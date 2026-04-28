@@ -35,35 +35,20 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
 
     const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
 
-    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem('megaMenuRecentSearches');
+            return saved ? JSON.parse(saved).slice(0, 5) : [];
+        } catch {
+            return [];
+        }
+    });
 
 
 
     // Load recent searches from localStorage
 
-    useEffect(() => {
-
-        if (typeof window !== 'undefined') {
-
-            const saved = localStorage.getItem('megaMenuRecentSearches');
-
-            if (saved) {
-
-                try {
-
-                    setRecentSearches(JSON.parse(saved).slice(0, 5));
-
-                } catch {
-
-                    // Invalid JSON, ignore
-
-                }
-
-            }
-
-        }
-
-    }, []);
 
 
 
@@ -355,13 +340,11 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
 
     // Reset focus when search changes
 
-    useEffect(() => {
-
+    const updateSearchQuery = useCallback((query: string) => {
+        setSearchQuery(query);
         setFocusedCategoryIndex(-1);
-
         setFocusedItemIndex(-1);
-
-    }, [searchQuery]);
+    }, []);
 
 
 
@@ -369,7 +352,7 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
 
         searchQuery,
 
-        setSearchQuery,
+        setSearchQuery: updateSearchQuery,
 
         isSearchFocused,
 

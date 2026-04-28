@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package thanawy.v1;
+
+option go_package = "thanawy-backend/internal/proto/thanawy/v1;thanawyv1";
+
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string name = 4;
+  string role = 5;
+  string avatar = 6;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string token = 2;
+  User user = 3;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string username = 3;
+  string phone = 4;
+  string grade_level = 5;
+  string education_type = 6;
+  string section = 7;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  User user = 2;
+}
+
+message GetProfileRequest {}
+
+message GetProfileResponse {
+  User user = 1;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {
+  bool success = 1;
+  string message = 2;
+}

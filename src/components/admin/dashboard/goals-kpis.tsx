@@ -310,7 +310,7 @@ interface KPICardProps {
   className?: string;
 }
 
-export function KPICard({
+function KPICard({
   title,
   value,
   target,

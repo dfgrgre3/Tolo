@@ -208,7 +208,7 @@ const actionColors = {
 
 import { usePermission } from "@/components/auth/PermissionGuard";
 
-export function QuickActions({
+function QuickActions({
   actions,
   title = "إجراءات سريعة",
   layout = "grid",
@@ -412,7 +412,7 @@ interface TopPerformersProps {
   className?: string;
 }
 
-export function TopPerformers({
+function TopPerformers({
   performers,
   title = "قاعة المشاهير - Hall of Fame",
   className,

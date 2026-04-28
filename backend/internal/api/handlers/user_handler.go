@@ -10,12 +10,14 @@ import (
 	"thanawy-backend/internal/repository"
 	"thanawy-backend/internal/services"
 
+	"time"
 	"github.com/gin-gonic/gin"
 )
 
 var authService = &services.AuthService{}
 var tokenService = &services.TokenService{}
 var userRepo *repository.UserRepository
+var sessionRepo *repository.SessionRepository
 
 func getUserRepo() *repository.UserRepository {
 	if userRepo == nil {
@@ -24,10 +26,23 @@ func getUserRepo() *repository.UserRepository {
 	return userRepo
 }
 
+func getSessionRepo() *repository.SessionRepository {
+	if sessionRepo == nil {
+		sessionRepo = repository.NewSessionRepository(db.DB)
+	}
+	return sessionRepo
+}
+
 // isProduction checks if the app is running in production mode
 func isProduction() bool {
 	cfg := config.Load()
 	return cfg.Environment == "production"
+}
+
+// Mock geolocation helper
+func getMockLocation(ip string) *string {
+	loc := "القاهرة، مصر"
+	return &loc
 }
 
 type LoginRequest struct {
@@ -42,33 +57,160 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	user, err := authService.Login(req.Email, req.Password, c.ClientIP(), c.Request.UserAgent())
+	ip := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+
+	user, err := authService.Login(req.Email, req.Password, ip, userAgent)
 	if err != nil {
+		// Log failed login attempt
+		_ = LogSecurityEvent("", models.SecurityEventLoginFailed, ip, userAgent, nil, nil)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	token, err := tokenService.GenerateAccessToken(user.ID, string(user.Role))
+	// Generate Token Pair
+	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return
 	}
 
-	// Set cookie for Next.js middleware compatibility
-	// secure = true in production (HTTPS), false in development
-	c.SetCookie("access_token", token, 3600*24, "/", "", isProduction(), true)
+	// Create Session in DB
+	location := getMockLocation(ip)
+	session := &models.UserSession{
+		ID:           tokens.JTI,
+		UserID:       user.ID,
+		RefreshToken: tokens.RefreshToken,
+		UserAgent:    userAgent,
+		IP:           ip,
+		Location:     location,
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+		LastActive:   time.Now(),
+	}
+
+	if err := getSessionRepo().Create(session); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
+		return
+	}
+
+	// Log security event
+	_ = LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil)
+
+	// Set cookies
+	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, "/api/auth/refresh", "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"token":   token,
+		"token":   tokens.AccessToken,
 		"user":    user,
+		"metadata": gin.H{
+			"lastLogin": user.UpdatedAt,
+			"ip":        ip,
+			"device":    userAgent,
+			"location":  location,
+		},
+	})
+}
+
+func RefreshToken(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token missing"})
+		return
+	}
+
+	session, err := getSessionRepo().FindByRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		return
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+		return
+	}
+
+	user, err := getUserRepo().FindByID(session.UserID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Generate new access token (Keep the same JTI/Session for simplicity or rotate)
+	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
+		return
+	}
+
+	// Revoke old session and create new one (Token Rotation)
+	_ = getSessionRepo().RevokeSessionByJTI(session.ID)
+
+	newSession := &models.UserSession{
+		ID:           tokens.JTI,
+		UserID:       user.ID,
+		RefreshToken: tokens.RefreshToken,
+		UserAgent:    c.Request.UserAgent(),
+		IP:           c.ClientIP(),
+		Location:     session.Location,
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+		LastActive:   time.Now(),
+	}
+	_ = getSessionRepo().Create(newSession)
+
+	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, "/api/auth/refresh", "", isProduction(), true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"token":   tokens.AccessToken,
 	})
 }
 
 func Logout(c *gin.Context) {
+	if token, err := c.Cookie("access_token"); err == nil {
+		if claims, err := tokenService.ValidateToken(token); err == nil {
+			_ = getSessionRepo().RevokeSessionByJTI(claims.JTI)
+		}
+	}
+
 	c.SetCookie("access_token", "", -1, "/", "", isProduction(), true)
+	c.SetCookie("refresh_token", "", -1, "/api/auth/refresh", "", isProduction(), true)
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Logged out successfully"})
 }
+
+/*
+func GetAuthSessions(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	var sessions []models.UserSession
+	if err := db.DB.Where("user_id = ? AND is_revoked = ?", userID, false).Find(&sessions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sessions"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"sessions": sessions, "success": true})
+}
+
+func DeleteAuthSession(c *gin.Context) {
+	sessionID := c.Query("sessionId")
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sessionId is required"})
+		return
+	}
+
+	if err := getSessionRepo().RevokeSessionByJTI(sessionID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke session"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func UpdateAuthSession(c *gin.Context) {
+	// Example: Mark device as trusted or similar
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+*/
+
 
 type RegisterRequest struct {
 	Email         string `json:"email" binding:"required,email"`
@@ -176,7 +318,7 @@ func GetUsers(c *gin.Context) {
 			"username":      user.Username,
 			"avatar":        user.Avatar,
 			"role":          user.Role,
-			"permissions":   defaultPermissions(user.Role, user.Permissions),
+			"permissions":   defaultPermissions(user.Role, []string(user.Permissions)),
 			"emailVerified": user.EmailVerified,
 			"createdAt":     user.CreatedAt,
 			"lastLogin":     nil,
@@ -270,7 +412,7 @@ func UpdateUser(c *gin.Context) {
 		updates["education_type"] = req.EducationType
 	}
 	if req.Permissions != nil {
-		updates["permissions"] = req.Permissions
+		updates["permissions"] = models.JSONStringArray(req.Permissions)
 	}
 
 	if err := db.DB.Model(&user).Updates(updates).Error; err != nil {

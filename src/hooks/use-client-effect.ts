@@ -38,7 +38,7 @@ async function getLogger() {
  * @param deps Dependency array for the effect
  * @param options Configuration options
  */
-export function useClientEffect(
+function useClientEffect(
   effect: () => void | (() => void),
   deps?: DependencyList,
   options?: {
@@ -113,7 +113,7 @@ export function useClientEffect(
  * Enhanced client effect that provides better SSR compatibility
  * Includes hydration-safe state management
  */
-export function useClientEffectSafe(
+function useClientEffectSafe(
   effect: () => void | (() => void),
   deps?: DependencyList,
   options?: {
@@ -170,7 +170,7 @@ export function useClientEffectSafe(
  * @param effect The effect function to run
  * @param deps Dependency array for the effect
  */
-export function useClientLayoutEffect(effect: () => void | (() => void), deps?: DependencyList) {
+function useClientLayoutEffect(effect: () => void | (() => void), deps?: DependencyList) {
   useLayoutEffect(() => {
     // Only run the effect on the client side
     if (typeof window !== 'undefined' && typeof effect === 'function') {
@@ -184,7 +184,7 @@ export function useClientLayoutEffect(effect: () => void | (() => void), deps?: 
  * Hook that provides a safe way to access window object and other browser APIs
  * Returns null during SSR and the actual object on client
  */
-export function useWindow() {
+function useWindow() {
   const [windowObj, setWindowObj] = useState<Window | null>(null);
 
   useClientEffect(() => {
@@ -200,7 +200,7 @@ export function useWindow() {
  * Hook that provides a safe way to access localStorage
  * Returns null during SSR and the actual localStorage on client
  */
-export function useRawLocalStorage() {
+function useRawLocalStorage() {
   const [storage, setStorage] = useState<Storage | null>(null);
 
   useClientEffect(() => {

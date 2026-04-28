@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format date with validation and error handling
  */
-export function formatDate(date: Date | string | null | undefined): string {
+function formatDate(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -35,7 +35,7 @@ export function formatDate(date: Date | string | null | undefined): string {
 /**
  * Format date and time with validation and error handling
  */
-export function formatDateTime(date: Date | string | null | undefined): string {
+function formatDateTime(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -64,7 +64,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 /**
  * Format relative time with validation and error handling
  */
-export function formatRelativeTime(date: Date | string | null | undefined): string {
+function formatRelativeTime(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -133,7 +133,7 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
 /**
  * Truncate text with validation
  */
-export function truncateText(text: string | null | undefined, maxLength: number): string {
+function truncateText(text: string | null | undefined, maxLength: number): string {
   // Validate input
   if (!text || typeof text !== 'string') {
     return '';
@@ -162,7 +162,7 @@ export function truncateText(text: string | null | undefined, maxLength: number)
 /**
  * Generate unique ID with validation
  */
-export function generateId(): string {
+function generateId(): string {
   try {
     const part1 = Math.random().toString(36).substring(2, 15);
     const part2 = Math.random().toString(36).substring(2, 15);

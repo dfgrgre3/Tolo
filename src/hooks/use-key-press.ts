@@ -28,7 +28,7 @@ import { useState, useEffect, useCallback } from 'react';
  * }
  * ```
  */
-export interface UseKeyPressOptions {
+interface UseKeyPressOptions {
   /** تنفيذ فقط عند الضغط مع Ctrl */
   ctrlKey?: boolean;
   /** تنفيذ فقط عند الضغط مع Alt */
@@ -43,7 +43,7 @@ export interface UseKeyPressOptions {
   enabled?: boolean;
 }
 
-export function useKeyPress(
+function useKeyPress(
 targetKey: string,
 handler: (event: KeyboardEvent) => void,
 options: UseKeyPressOptions = {})
@@ -111,7 +111,7 @@ options: UseKeyPressOptions = {})
  * }
  * ```
  */
-export function useMultiKeyPress(targetKeys: string[]): Set<string> {
+function useMultiKeyPress(targetKeys: string[]): Set<string> {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export function useMultiKeyPress(targetKeys: string[]): Set<string> {
  * }
  * ```
  */
-export function useKeyboardShortcuts(
+function useKeyboardShortcuts(
 shortcuts: Record<string, (event: KeyboardEvent) => void>)
 : void {
   const parseShortcut = useCallback((shortcut: string) => {

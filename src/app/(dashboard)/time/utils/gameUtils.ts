@@ -1,6 +1,6 @@
 import { TimeStats } from '../types';
 
-export interface GameMetrics {
+interface GameMetrics {
   level: number;
   currentXP: number;
   xpForNextLevel: number;

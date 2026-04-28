@@ -6,7 +6,7 @@
     ENGLISH = 'ENGLISH'
 }
 
-export enum ExamType {
+enum ExamType {
     FINAL = 'FINAL',
     MIDTERM = 'MIDTERM',
     QUIZ = 'QUIZ',
@@ -14,7 +14,7 @@ export enum ExamType {
     OTHER = 'OTHER'
 }
 
-export enum FocusStrategy {
+enum FocusStrategy {
     POMODORO = 'POMODORO',
     EIGHTY_TWENTY = 'EIGHTY_TWENTY',
     DEEP_WORK = 'DEEP_WORK',
@@ -44,21 +44,21 @@ export enum UserStatus {
     DELETED = 'DELETED',
 }
 
-export enum Difficulty {
+enum Difficulty {
   EASY = 'EASY',
   MEDIUM = 'MEDIUM',
   HARD = 'HARD',
   EXPERT = 'EXPERT',
 }
 
-export enum NotificationType {
+enum NotificationType {
   INFO = 'INFO',
   SUCCESS = 'SUCCESS',
   WARNING = 'WARNING',
   ERROR = 'ERROR',
 }
 
-export enum LessonType {
+enum LessonType {
   VIDEO = 'VIDEO',
   ARTICLE = 'ARTICLE',
   QUIZ = 'QUIZ',
@@ -66,7 +66,7 @@ export enum LessonType {
   ASSIGNMENT = 'ASSIGNMENT',
 }
 
-export enum AchievementCategory {
+enum AchievementCategory {
   STUDY = 'STUDY',
   TASKS = 'TASKS',
   EXAMS = 'EXAMS',
@@ -74,25 +74,25 @@ export enum AchievementCategory {
   STREAK = 'STREAK',
 }
 
-export enum DiscountType {
+enum DiscountType {
   PERCENTAGE = 'PERCENTAGE',
   FIXED = 'FIXED',
 }
 
-export enum CategoryType {
+enum CategoryType {
   BLOG = 'BLOG',
   FORUM = 'FORUM',
   COURSE = 'COURSE',
 }
 
-export enum AddonType {
+enum AddonType {
   EXAM_PACK = 'EXAM_PACK',
   AI_CREDITS = 'AI_CREDITS',
   TEACHER_HOURS = 'TEACHER_HOURS',
   OTHER = 'OTHER',
 }
 
-export enum SubscriptionStatus {
+enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   EXPIRED = 'EXPIRED',
@@ -100,7 +100,7 @@ export enum SubscriptionStatus {
   GRACE_PERIOD = 'GRACE_PERIOD',
 }
 
-export enum PaymentStatus {
+enum PaymentStatus {
   PENDING = 'PENDING',
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',

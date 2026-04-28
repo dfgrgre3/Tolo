@@ -1,12 +1,12 @@
 ﻿export {
   categoryStyles,
-  navBadgeStyles,
-  navIconStyles,
-  navIconWrapStyles,
-  navLayoutStyles,
-  navLinkStyles,
-  navTextStyles,
-  triggerStyles,
+  
+  
+  
+  
+  
+  
+  
 } from "./navigationTokens";
 
 export { HeaderMenuTrigger } from "./HeaderMenuTrigger";

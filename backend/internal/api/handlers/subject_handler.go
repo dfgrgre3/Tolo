@@ -29,7 +29,7 @@ func GetSubjects(c *gin.Context) {
 
 	// Filtering
 	if catID := c.Query("categoryId"); catID != "" {
-		query = query.Where("category_id = ?", catID)
+		query = query.Where("\"categoryId\" = ?", catID)
 	}
 
 	search := c.Query("search")
@@ -57,10 +57,10 @@ func GetSubjects(c *gin.Context) {
 		query = query.Where("level = ?", level)
 	}
 	if isPublished := c.Query("isPublished"); isPublished != "" {
-		query = query.Where("is_published = ?", isPublished == "true")
+		query = query.Where("\"isPublished\" = ?", isPublished == "true")
 	}
 	if isActive := c.Query("isActive"); isActive != "" {
-		query = query.Where("is_active = ?", isActive == "true")
+		query = query.Where("\"isActive\" = ?", isActive == "true")
 	}
 
 	var total int64
@@ -83,9 +83,9 @@ func GetSubjects(c *gin.Context) {
 	}
 	var counts []countResult
 	db.DB.Model(&models.Enrollment{}).
-		Select("subject_id, count(*) as count").
-		Where("subject_id IN ?", subjectIDs).
-		Group("subject_id").
+		Select("\"subjectId\", count(*) as count").
+		Where("\"subjectId\" IN ?", subjectIDs).
+		Group("\"subjectId\"").
 		Scan(&counts)
 
 	countMap := make(map[string]int64)
@@ -233,7 +233,7 @@ func EnrollCourse(c *gin.Context) {
 	}
 
 	var enrollment models.Enrollment
-	err := db.DB.Where("user_id = ? AND subject_id = ?", userId, courseId).First(&enrollment).Error
+	err := db.DB.Where("\"userId\" = ? AND \"subjectId\" = ?", userId, courseId).First(&enrollment).Error
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Already enrolled"})
 		return
@@ -277,7 +277,7 @@ func UpdateLessonProgress(c *gin.Context) {
 	}
 
 	var progress models.LessonProgress
-	err := db.DB.Where("user_id = ? AND lesson_id = ?", userId, lessonId).First(&progress).Error
+	err := db.DB.Where("\"userId\" = ? AND \"lessonId\" = ?", userId, lessonId).First(&progress).Error
 
 	if err != nil {
 		// Create new progress record
@@ -417,7 +417,7 @@ func GetUserSubjects(c *gin.Context) {
 	}
 
 	var enrollments []models.Enrollment
-	if err := db.DB.Preload("Subject").Where("user_id = ?", userId).Find(&enrollments).Error; err != nil {
+	if err := db.DB.Preload("Subject").Where("\"userId\" = ?", userId).Find(&enrollments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch enrollments"})
 		return
 	}

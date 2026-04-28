@@ -9,7 +9,6 @@ import {
   Star,
   TrendingUp,
   Clock,
-
   ChevronRight } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,10 +22,8 @@ import {
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
-// import removed
 import { formatDistanceToNow } from "date-fns";
 import { apiClient } from '@/lib/api/api-client';
-
 import { logger } from '@/lib/logger';
 
 interface ActivityItem {
@@ -48,7 +45,13 @@ export function ActivityWidget() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const getIcon = (type: string) => {
@@ -84,10 +87,6 @@ export function ActivityWidget() {
         return "bg-gray-500";
     }
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted || !user) return;

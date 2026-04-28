@@ -19,7 +19,7 @@ func GetSettings(c *gin.Context) {
 	}
 
 	var settings models.UserSettings
-	result := db.DB.Where("user_id = ?", userID).First(&settings)
+	result := db.DB.Where("\"userId\" = ?", userID).First(&settings)
 	
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
@@ -71,7 +71,7 @@ func UpdateSettings(c *gin.Context) {
 	}
 
 	var settings models.UserSettings
-	result := db.DB.Where("user_id = ?", userID).First(&settings)
+	result := db.DB.Where("\"userId\" = ?", userID).First(&settings)
 	
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {

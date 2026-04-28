@@ -42,7 +42,7 @@ const SENSITIVE_PATTERNS = [
   // JWT tokens
   /eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/g,
   // API Keys (generic)
-  /(api[_-]?key|apikey)["\s]*[:=]["\s]*[a-zA-Z0-9_\-]{20,}/gi,
+  /(api[_-]?key|apikey)["\s]*[:=]["\s]*[a-zA-Z0-9_-]{20,}/gi,
   // SMTP passwords
   /(smtp[_-]?pass|smtppassword)["\s]*[:=]["\s]*[^\s"']+/gi,
   // Database URLs with credentials
@@ -83,7 +83,7 @@ function sanitizeValue(value: any): any {
 /**
  * تنقية الكائن من البيانات الحساسة (بشكل عميق)
  */
-export function sanitizeObject(obj: any, depth: number = 0): any {
+function sanitizeObject(obj: any, depth: number = 0): any {
   // منع التكرار اللانهائي
   if (depth > 10) {
     return '[MAX_DEPTH]';
@@ -163,9 +163,3 @@ export function containsSensitiveData(message: string, context?: any): boolean {
   return false;
 }
 
-export default {
-  sanitizeObject,
-  sanitizeErrorMessage,
-  sanitizeLogContext,
-  containsSensitiveData,
-};

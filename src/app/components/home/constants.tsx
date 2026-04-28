@@ -74,7 +74,7 @@ export const rpgCommonStyles = {
   rtlSpacing: "space-s-4" // margin-inline-start
 };
 
-export const rpgGradients = {
+const rpgGradients = {
   primary: "bg-gradient-to-br from-violet-600/90 to-indigo-600/90",
   gold: "bg-gradient-to-br from-amber-400 to-yellow-600",
   danger: "bg-gradient-to-br from-rose-500 to-red-600",

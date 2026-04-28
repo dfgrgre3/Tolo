@@ -8,25 +8,22 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   User, Mail, Lock, Loader2, Eye, EyeOff, Check, Phone,
   Calendar, GraduationCap, Briefcase, Flag, Wand2, Shield, Info,
-  ArrowRight } from
-'lucide-react';
+  ArrowRight, Sparkles, Fingerprint, Globe, Smartphone, ShieldCheck,
+  ShieldAlert, Zap, History, Cpu
+} from 'lucide-react';
 import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/services/auth/navigation';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { AuthField } from '@/components/auth/AuthField';
-
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-// Add this helper function for phone number formatting
+// --- Helpers ---
 const formatPhoneNumber = (value: string): string => {
   if (!value) return '';
   const digitsOnly = value.replace(/\D/g, '');
-  if (digitsOnly.length > 0 && !digitsOnly.startsWith('01')) {
-    return digitsOnly.substring(0, 11);
-  }
   return digitsOnly.substring(0, 11);
 };
 
@@ -38,42 +35,41 @@ const handlePhoneInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
 };
 
 const COUNTRIES = [
-{ code: 'EG', name: 'مصر', phoneCode: '+20' },
-{ code: 'SA', name: 'السعودية', phoneCode: '+966' },
-{ code: 'AE', name: 'الإمارات', phoneCode: '+971' },
-{ code: 'KW', name: 'الكويت', phoneCode: '+965' },
-{ code: 'QA', name: 'قطر', phoneCode: '+974' },
-{ code: 'OM', name: 'عمان', phoneCode: '+968' },
-{ code: 'BH', name: 'البحرين', phoneCode: '+973' },
-{ code: 'JO', name: 'الأردن', phoneCode: '+962' }];
+  { code: 'EG', name: 'مصر', phoneCode: '+20' },
+  { code: 'SA', name: 'السعودية', phoneCode: '+966' },
+  { code: 'AE', name: 'الإمارات', phoneCode: '+971' },
+  { code: 'KW', name: 'الكويت', phoneCode: '+965' },
+  { code: 'QA', name: 'قطر', phoneCode: '+974' },
+  { code: 'OM', name: 'عمان', phoneCode: '+968' },
+  { code: 'BH', name: 'البحرين', phoneCode: '+973' },
+  { code: 'JO', name: 'الأردن', phoneCode: '+962' }
+];
 
+const STUDENT_GRADES = ['أولى إعدادي', 'ثانية إعدادي', 'ثالثة إعدادي', 'أولى ثانوي', 'ثانية ثانوي', 'ثالثة ثانوي'];
+const EDUCATION_TYPES = ['عام', 'أزهري', 'دولي', 'IG', 'American', 'أخرى'];
+const SUBJECTS = ['رياضيات', 'فيزياء', 'كيمياء', 'برمجة', 'إنجليزي', 'تصميم', 'لغة عربية', 'أحياء', 'تاريخ', 'جغرافيا'];
 
+// --- Validation Schema ---
 const registerSchema = z.object({
   username: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل').regex(/^[^\s@]+$/, 'اسم المستخدم لا يمكن أن يحتوي على مسافات أو رمز @'),
   email: z.string().email('يرجى إدخال بريد إلكتروني صحيح'),
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل').
-  regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد').
-  regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد').
-  regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد').
-  regex(/[^A-Za-z0-9]/, 'يجب أن تحتوي على رمز خاص واحد'),
+    regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد').
+    regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد').
+    regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد').
+    regex(/[^A-Za-z0-9]/, 'يجب أن تحتوي على رمز خاص واحد'),
   confirmPassword: z.string(),
   phone: z.string().refine((val) => {
     if (!val) return true;
     const egyptianPattern = /^(010|011|012|015)\d{8}$/;
     return egyptianPattern.test(val);
   }, 'رقم الهاتف المصري يجب أن يبدأ بـ 010، 011، 012، أو 015 ويتكون من 11 رقمًا'),
-  alternativePhone: z.string().optional().refine((val) => {
-    if (!val) return true;
-    const egyptianPattern = /^(010|011|012|015)\d{8}$/;
-    return egyptianPattern.test(val);
-  }, 'رقم الهاتف البديل يجب أن يكون رقم هاتف مصري صالح'),
   country: z.string().min(2, 'الدولة مطلوبة'),
   dateOfBirth: z.string().min(1, 'تاريخ الميلاد مطلوب'),
   role: z.enum(['STUDENT', 'TEACHER']),
   gradeLevel: z.string().optional(),
   educationType: z.string().optional(),
   interestedSubjects: z.array(z.string()).optional(),
-  subjectsTaught: z.array(z.string()).optional(),
   acceptTerms: z.boolean().refine((val) => val === true, 'يجب الموافقة على الشروط')
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'كلمتا المرور غير متطابقتين',
@@ -82,9 +78,95 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const STUDENT_GRADES = ['أولى إعدادي', 'ثانية إعدادي', 'ثالثة إعدادي', 'أولى ثانوي', 'ثانية ثانوي', 'ثالثة ثانوي'];
-const EDUCATION_TYPES = ['عام', 'أزهري', 'دولي', 'IG', 'American', 'أخرى'];
-const SUBJECTS = ['رياضيات', 'فيزياء', 'كيمياء', 'برمجة', 'إنجليزي', 'تصميم', 'لغة عربية', 'أحياء', 'تاريخ', 'جغرافيا'];
+// --- Components ---
+function PremiumInput({ 
+  label, 
+  icon: Icon, 
+  error, 
+  type = "text", 
+  registration, 
+  endAdornment 
+}: any) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [hasValue, setHasValue] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <m.div 
+        animate={{ 
+          borderColor: isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.1)",
+          backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.05)"
+        }}
+        className={cn(
+          "relative border rounded-2xl overflow-hidden transition-shadow duration-300",
+          isFocused ? "ring-4 ring-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" : "",
+          error ? "border-red-500/50" : ""
+        )}
+      >
+        <div className={cn(
+          "absolute right-4 top-1/2 -translate-y-1/2 transition-colors duration-300",
+          isFocused ? "text-primary" : "text-gray-500"
+        )}>
+          {Icon}
+        </div>
+        
+        <input
+          {...registration}
+          type={type}
+          onFocus={() => setIsFocused(true)}
+          onBlur={(e) => {
+            setIsFocused(false);
+            setHasValue(!!e.target.value);
+            if (registration.onBlur) registration.onBlur(e);
+          }}
+          onChange={(e) => {
+            registration.onChange(e);
+            setHasValue(!!e.target.value);
+          }}
+          placeholder=" "
+          className={cn(
+            "peer w-full h-16 pr-12 pl-6 text-white text-base font-bold outline-none bg-transparent"
+          )}
+        />
+        
+        <m.label 
+          animate={{
+            y: (isFocused || hasValue) ? -18 : 0,
+            scale: (isFocused || hasValue) ? 0.75 : 1,
+            color: isFocused ? "rgba(255,109,0,0.8)" : "rgba(107,114,128,1)"
+          }}
+          className={cn(
+            "absolute right-12 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all",
+            (isFocused || hasValue) ? "text-[10px]" : "text-sm"
+          )}
+        >
+          {label}
+        </m.label>
+
+        {endAdornment && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2">
+            {endAdornment}
+          </div>
+        )}
+      </m.div>
+      <AnimatePresence>
+        {error && (
+          <m.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex items-center gap-1 px-2 overflow-hidden"
+          >
+            <ShieldAlert size={12} className="text-red-500" />
+            <p className="text-[10px] font-black text-red-500 uppercase tracking-tight">
+              {error}
+            </p>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function RegisterForm() {
   const router = useRouter();
@@ -107,14 +189,16 @@ function RegisterForm() {
     defaultValues: {
       role: 'STUDENT',
       interestedSubjects: [],
-      subjectsTaught: [],
       acceptTerms: false,
       country: 'مصر'
     }
   });
 
-  const handlePhoneChange = (field: 'phone' | 'alternativePhone') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(field, formatPhoneNumber(e.target.value), { shouldValidate: true });
+  const roleValue = useWatch({ control, name: 'role' });
+  const interestedSubjects = useWatch({ control, name: 'interestedSubjects', defaultValue: [] }) || [];
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue('phone', formatPhoneNumber(e.target.value), { shouldValidate: true });
   };
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -125,20 +209,6 @@ function RegisterForm() {
       setSelectedCountry(countryCode);
     }
   };
-
-  const roleValue = useWatch({ control, name: 'role' });
-  const interestedSubjects = useWatch({ control, name: 'interestedSubjects', defaultValue: [] }) || [];
-
-  const redirectAfterRegister = useCallback((target: string) => {
-    router.replace(target);
-    router.refresh();
-  }, [router]);
-
-  useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
-      redirectAfterRegister(redirectUrl);
-    }
-  }, [isAuthLoading, isAuthenticated, redirectAfterRegister, redirectUrl]);
 
   const handleNextStep = async () => {
     let fieldsToValidate: any[] = [];
@@ -151,51 +221,41 @@ function RegisterForm() {
       setStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      toast.error('يرجى تصحيح الأخطاء في الخانات الحمراء');
+      toast.error('يرجى التأكد من صحة البيانات المدخلة');
     }
   };
 
-  const toggleArrayItem = (field: 'interestedSubjects' | 'subjectsTaught', value: string) => {
+  const toggleArrayItem = (field: 'interestedSubjects', value: string) => {
     const currentList = getValues(field) || [];
     setValue(
       field,
       currentList.includes(value) ?
-      currentList.filter((item) => item !== value) :
-      [...currentList, value]
+        currentList.filter((item) => item !== value) :
+        [...currentList, value]
     );
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
-
     try {
       const result = await registerUser({
-        email: data.email,
-        password: data.password,
-        username: data.username,
-        role: data.role,
-        country: data.country,
+        ...data,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
-        phone: data.phone,
-        alternativePhone: data.alternativePhone,
-        gradeLevel: data.gradeLevel,
-        educationType: data.educationType,
-        interestedSubjects: data.interestedSubjects,
-        subjectsTaught: data.subjectsTaught
       });
 
       if (result.success) {
-        toast.success(result.message || 'تم إنشاء مملكتك الخاصة بنجاح!');
+        toast.success('تم إنشاء الهوية بنجاح! مرحباً بك في تولو');
         if (result.autoLoggedIn) {
-          redirectAfterRegister(redirectUrl);
+          router.replace(redirectUrl);
+          router.refresh();
           return;
         }
         setTimeout(() => router.push(loginUrl), 2000);
       } else {
-        toast.error(result.error || 'فشل في استدعاء الهوية الجديدة');
+        toast.error(result.error || 'فشل إنشاء الحساب');
       }
     } catch (_err) {
-      toast.error('حدث عارض فني غير متوقع');
+      toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsLoading(false);
     }
@@ -203,277 +263,396 @@ function RegisterForm() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <m.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="h-12 w-12 border-2 border-primary border-t-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)]" />
-        
-      </div>);
-
+      <m.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex min-h-screen items-center justify-center bg-[#050505]"
+      >
+        <div className="flex flex-col items-center gap-6">
+          <Loader2 className="h-16 w-16 text-primary animate-spin" />
+          <span className="text-[12px] font-black text-primary/50 uppercase tracking-[0.8em]">Syncing Identity</span>
+        </div>
+      </m.div>
+    );
   }
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center py-12 px-4 bg-black overflow-hidden" dir="rtl">
-      {/* Background Decor */}
-      <div className="absolute top-[-5%] left-[-5%] w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full" />
-      <div className="absolute bottom-[-5%] right-[-5%] w-[500px] h-[500px] bg-blue-600/5 blur-[130px] rounded-full" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
-
-      <div className="relative w-full max-w-2xl">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12 text-center space-y-4">
-          
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 shadow-xl">
-            <Wand2 className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-            إنشاء <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">الهوية الأسطورية</span>
-          </h2>
-          <p className="text-gray-400 font-medium">ابدأ رحلة صناعة بطلك التعليمي في منصة تولو</p>
-        </m.div>
-
-        {/* Improved Stepper */}
-        <div className="mb-16 flex items-center justify-center gap-6">
-          {[1, 2, 3].map((i) =>
-          <div key={i} className="flex items-center">
-              <div className="relative flex flex-col items-center">
-                <m.div
-                animate={{
-                  scale: step === i ? 1.1 : 1,
-                  backgroundColor: step >= i ? 'var(--primary-rgb)' : 'rgba(255,255,255,0.05)'
-                }}
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl border-2 transition-all shadow-lg ${step >= i ? 'border-primary bg-primary text-black' : 'border-white/5 bg-white/5 text-gray-500'}`}>
-                
-                  {step > i ? <Check className="h-5 w-5" /> : <span className="text-lg font-black">{i}</span>}
-                </m.div>
-                <span className={`absolute -bottom-8 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${step >= i ? 'text-primary' : 'text-gray-600'}`}>
-                  {i === 1 ? 'نـوع الهويـة' : i === 2 ? 'بيانـات الواقـع' : 'تحديد المسـار'}
-                </span>
-              </div>
-              {i < 3 &&
-            <div className="mx-2 h-0.5 w-8 rounded-full bg-white/5 relative overflow-hidden">
-                   <m.div
-                initial={{ width: 0 }}
-                animate={{ width: step > i ? '100%' : '0%' }}
-                className="absolute inset-0 bg-primary" />
-              
-                </div>
-            }
-            </div>
-          )}
-        </div>
-
-        <m.div
-          layout
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-2xl">
-          
-          <div className="absolute inset-0 border border-white/5 pointer-events-none rounded-[2.5rem]" />
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            <AnimatePresence mode="wait">
-              {step === 1 &&
-              <m.div
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8">
-                
-                  <div className="text-center space-y-2 mb-8">
-                    <Shield className="mx-auto text-primary/40" size={32} />
-                    <h3 className="text-xl font-black text-white">من أنت في هذا العالم؟</h3>
-                    <p className="text-gray-500 text-sm">اختر دورك لنخصص لك التجربة الأمثل</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {[
-                  { id: 'STUDENT', label: 'طالب مغامر', icon: GraduationCap, desc: 'للمذاكرة، التفوق والمنافسة' },
-                  { id: 'TEACHER', label: 'معلم خبير', icon: Briefcase, desc: 'لمشاركة العلم وبناء الأبطال' }].
-                  map(({ id, label, icon: Icon, desc }) => {
-                    const active = roleValue === id;
-                    return (
-                      <label key={id} className={`group cursor-pointer rounded-[2rem] border-2 p-8 transition-all relative overflow-hidden ${active ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(var(--primary),0.1)]' : 'border-white/5 bg-white/5 hover:border-white/10'}`}>
-                          <input type="radio" value={id} {...register('role')} className="hidden" />
-                          <div className="flex flex-col items-center gap-4 text-center">
-                            <m.div
-                            animate={{ scale: active ? 1.1 : 1 }}
-                            className={`rounded-2xl p-5 ${active ? 'bg-primary text-black' : 'bg-white/5 text-gray-500 group-hover:bg-white/10'}`}>
-                            
-                              <Icon size={32} />
-                            </m.div>
-                            <div className="space-y-1">
-                              <span className={`block font-black text-lg ${active ? 'text-white' : 'text-gray-400'}`}>{label}</span>
-                              <span className="block text-[10px] text-gray-600 font-bold uppercase tracking-widest">{desc}</span>
-                            </div>
-                          </div>
-                        </label>);
-
-                  })}
-                  </div>
-                  
-                  <m.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="pt-4">
-                    <Button type="button" onClick={handleNextStep} className="h-16 w-full rounded-2xl bg-primary font-black text-black group">
-                      انتقـل للمرحلة التالية <ArrowRight className="mr-3 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </m.div>
-                </m.div>
-              }
-
-              {step === 2 &&
-              <m.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8">
-                
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <AuthField {...register('username')} label="اسم المحارب (ي٪ر للجميع)" placeholder="مثلا: Sniper_2026" icon={<User size={18} />} error={errors.username?.message} />
-                    <AuthField {...register('email')} type="email" label="المعرف الإلكتروني (البريد)" placeholder="warrior@thanawy.me" icon={<Mail size={18} />} error={errors.email?.message} />
-                    <AuthField {...register('password')} type={showPassword ? 'text' : 'password'} label="شيفرة الدخول" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" icon={<Lock size={18} />} endAdornment={<button type="button" onClick={() => setShowPassword((v) => !v)} className="p-2 mr-1">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>} error={errors.password?.message} />
-                    <AuthField {...register('confirmPassword')} type={showConfirmPassword ? 'text' : 'password'} label="تأكيد الشيفرة" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" icon={<Lock size={18} />} endAdornment={<button type="button" onClick={() => setShowConfirmPassword((v) => !v)} className="p-2 mr-1">{showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>} error={errors.confirmPassword?.message} />
-                    
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">مقر الإقامة</Label>
-                       <div className="relative group">
-                          <select
-                        value={selectedCountry}
-                        onChange={handleCountryChange}
-                        className="w-full h-14 rounded-2xl border border-white/10 bg-white/5 px-6 pr-12 font-bold text-white outline-none appearance-none focus:border-primary/50">
-                        
-                            {COUNTRIES.map((country) =>
-                        <option key={country.code} value={country.code} className="bg-neutral-900">{country.name}</option>
-                        )}
-                          </select>
-                          <Flag className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-primary transition-colors" />
-                       </div>
-                    </div>
-
-                    <AuthField
-                    value={getValues('phone')}
-                    onChange={handlePhoneChange('phone')}
-                    onKeyDown={handlePhoneInput}
-                    label="هاتف التواصل"
-                    placeholder="01XXXXXXXX"
-                    icon={<Phone size={18} />}
-                    error={errors.phone?.message} />
-                  
-                    
-                    <AuthField {...register('dateOfBirth')} type="date" label="تاريخ الميلاد" icon={<Calendar size={18} />} error={errors.dateOfBirth?.message} />
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-14 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white hover:bg-white/10">
-                      سابـق
-                    </Button>
-                    <Button type="button" onClick={handleNextStep} className="h-14 flex-[2] rounded-2xl bg-primary font-black text-black">
-                      تأكيد البيانات <ArrowRight className="mr-2 h-5 w-5" />
-                    </Button>
-                  </div>
-                </m.div>
-              }
-
-              {step === 3 &&
-              <m.div
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8">
-                
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">المستوى الحالي</Label>
-                      <select {...register('gradeLevel')} className="w-full h-14 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50">
-                        <option value="" className="bg-neutral-900">اختر المستوى</option>
-                        {STUDENT_GRADES.map((g) => <option key={g} value={g} className="bg-neutral-900">{g}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">الفرع الدراسي</Label>
-                      <select {...register('educationType')} className="w-full h-14 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50">
-                        <option value="" className="bg-neutral-900">اختر الفرع</option>
-                        {EDUCATION_TYPES.map((e) => <option key={e} value={e} className="bg-neutral-900">{e}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Info size={14} className="text-primary/60" />
-                      <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">المجالات المفضلة (اختر ما شئت)</Label>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                      {SUBJECTS.map((subject) => {
-                      const selected = interestedSubjects.includes(subject);
-                      return (
-                        <m.button
-                          whileHover={{ y: -2 }}
-                          key={subject}
-                          type="button"
-                          onClick={() => toggleArrayItem('interestedSubjects', subject)}
-                          className={`h-12 rounded-xl border text-[10px] font-black transition-all ${selected ? 'border-primary bg-primary text-black shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'}`}>
-                          
-                            {subject}
-                          </m.button>);
-
-                    })}
-                    </div>
-                  </div>
-
-                  <label className="flex items-start gap-4 rounded-3xl border border-primary/20 bg-primary/5 p-6 cursor-pointer group hover:bg-primary/10 transition-colors">
-                    <div className="relative flex items-center pt-1">
-                       <input
-                      type="checkbox"
-                      {...register('acceptTerms')}
-                      className="h-5 w-5 appearance-none rounded-md border border-white/20 bg-white/5 checked:bg-primary checked:border-primary transition-all cursor-pointer" />
-                    
-                       <Check className="absolute inset-0 m-auto h-3 w-3 text-black opacity-0 group-has-[:checked]:opacity-100 pointer-events-none" />
-                    </div>
-                    <span className="text-xs font-bold text-gray-400 leading-relaxed">
-                      بإكمالك لهذه الخطوة، أنت توافق على <Link href="/terms" className="text-primary font-black hover:underline">قوانين المملكة</Link> و <Link href="/privacy" className="text-primary font-black hover:underline">ميثاق الخصوصية</Link>.
-                    </span>
-                  </label>
-                  {errors.acceptTerms && <p className="text-[10px] font-bold text-red-500 uppercase mr-1">{errors.acceptTerms.message}</p>}
-
-                  <div className="flex gap-4">
-                    <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-16 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white">
-                      سابـق
-                    </Button>
-                    <Button type="submit" disabled={isLoading} className="h-16 flex-[2] rounded-2xl bg-primary text-black font-black text-lg relative overflow-hidden group">
-                       <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                       {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "إعـلان الهويـة والنـشوء"}
-                    </Button>
-                  </div>
-                </m.div>
-              }
-            </AnimatePresence>
-          </form>
-        </m.div>
-
-        <div className="mt-12 text-center pb-12">
-           <p className="text-sm font-bold text-gray-500">
-             تمتلك هوية مسبقة؟{' '}
-             <Link href={loginUrl} className="text-white font-black border-b border-white/20 hover:border-primary hover:text-primary transition-all pb-1">
-               بـوابة العـبور
-             </Link>
-           </p>
-        </div>
+    <div className="relative min-h-screen w-full flex flex-col items-center py-12 px-4 bg-[#020202] overflow-hidden selection:bg-primary/30" dir="rtl">
+      {/* Background Layers */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <m.div 
+          animate={{ opacity: [0.05, 0.15, 0.05] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full" 
+        />
+        <div className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-overlay" />
       </div>
-    </div>);
 
+      <m.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative w-full max-w-4xl space-y-12"
+      >
+        {/* Header */}
+        <div className="text-center space-y-6">
+          <m.div 
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="mx-auto w-24 h-24 rounded-[2rem] bg-gradient-to-br from-primary/30 to-primary/5 border border-primary/20 flex items-center justify-center shadow-[0_0_50px_rgba(var(--primary),0.15)] cursor-default"
+          >
+            <Wand2 className="w-12 h-12 text-primary" />
+          </m.div>
+          <div className="space-y-2">
+            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-tight">
+               إنشاء <span className="text-primary">هوية تولو</span>
+            </h1>
+            <p className="text-gray-500 font-bold text-lg tracking-wide uppercase">مرحباً بك في مستقبل التعليم الرقمي</p>
+          </div>
+        </div>
+
+        {/* Stepper (Animated) */}
+        <div className="flex items-center justify-center gap-4 px-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4">
+              <m.div 
+                animate={{ 
+                  backgroundColor: step >= i ? "rgba(255,109,0,1)" : "rgba(255,255,255,0.05)",
+                  borderColor: step >= i ? "rgba(255,109,0,1)" : "rgba(255,255,255,0.1)",
+                  color: step >= i ? "#000" : "#4b5563"
+                }}
+                className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl border transition-all",
+                  step >= i ? "shadow-[0_0_20px_rgba(255,109,0,0.3)]" : ""
+                )}
+              >
+                {step > i ? <Check className="w-6 h-6 stroke-[3px]" /> : i}
+              </m.div>
+              {i < 3 && (
+                <div className="w-12 md:w-24 h-1 rounded-full bg-white/5 overflow-hidden">
+                  <m.div 
+                    animate={{ width: step > i ? "100%" : "0%" }}
+                    className="h-full bg-primary"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Form Container */}
+        <m.div 
+          layout
+          className="relative overflow-hidden rounded-[3rem] border border-white/5 bg-black/60 backdrop-blur-3xl shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+        >
+          <div className="p-8 md:p-16 lg:p-20">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
+              <AnimatePresence mode="wait">
+                {/* STEP 1: ROLE */}
+                {step === 1 && (
+                  <m.div 
+                    key="step1"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-10"
+                  >
+                    <div className="text-center space-y-3">
+                      <ShieldCheck className="mx-auto text-primary animate-pulse" size={40} />
+                      <h3 className="text-3xl font-black text-white uppercase">تحديد نوع الحساب</h3>
+                      <p className="text-gray-500 font-bold">كل هوية تمنحك صلاحيات وأدوات مختلفة</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      {[
+                        { id: 'STUDENT', label: 'طالب معرفة', icon: GraduationCap, desc: 'للتفوق والتحدي' },
+                        { id: 'TEACHER', label: 'معلم خبير', icon: Briefcase, desc: 'لنشر العلم' }
+                      ].map(({ id, label, icon: Icon, desc }) => {
+                        const active = roleValue === id;
+                        return (
+                          <m.label 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            key={id} 
+                            className={cn(
+                              "group cursor-pointer rounded-[2.5rem] border-2 p-12 transition-all text-center space-y-6",
+                              active ? "border-primary bg-primary/5 ring-4 ring-primary/5 shadow-2xl shadow-primary/10" : "border-white/5 bg-white/5 hover:border-white/10"
+                            )}
+                          >
+                            <input type="radio" value={id} {...register('role')} className="hidden" />
+                            <m.div 
+                              animate={{ 
+                                backgroundColor: active ? "rgba(255,109,0,1)" : "rgba(255,255,255,0.05)",
+                                color: active ? "#000" : "#6b7280"
+                              }}
+                              className="mx-auto w-24 h-24 rounded-3xl flex items-center justify-center transition-all"
+                            >
+                              <Icon size={48} />
+                            </m.div>
+                            <div className="space-y-2">
+                              <span className={cn("block font-black text-2xl transition-colors", active ? "text-white" : "text-gray-500")}>{label}</span>
+                              <span className="block text-[11px] text-gray-600 font-black uppercase tracking-widest">{desc}</span>
+                            </div>
+                          </m.label>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="pt-6">
+                      <Button 
+                        type="button" 
+                        onClick={handleNextStep} 
+                        className="h-20 w-full rounded-2xl bg-primary font-black text-black text-xl shadow-2xl group overflow-hidden relative"
+                      >
+                        <m.div 
+                          className="absolute inset-0 bg-white/20"
+                          initial={{ y: "100%" }}
+                          whileHover={{ y: 0 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                          متابعة الخطوات <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
+                        </div>
+                      </Button>
+                    </div>
+                  </m.div>
+                )}
+
+                {/* STEP 2: PERSONAL INFO */}
+                {step === 2 && (
+                  <m.div 
+                    key="step2"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-10"
+                  >
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+                        <PremiumInput registration={register('username')} label="اسم المستخدم" icon={<User size={20} />} error={errors.username?.message} />
+                        <PremiumInput registration={register('email')} type="email" label="البريد الإلكتروني" icon={<Mail size={20} />} error={errors.email?.message} />
+                        
+                        <PremiumInput 
+                          registration={register('password')} 
+                          type={showPassword ? 'text' : 'password'} 
+                          label="كلمة المرور" 
+                          icon={<Lock size={20} />} 
+                          endAdornment={
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          } 
+                          error={errors.password?.message} 
+                        />
+                        
+                        <PremiumInput 
+                          registration={register('confirmPassword')} 
+                          type={showConfirmPassword ? 'text' : 'password'} 
+                          label="تأكيد كلمة المرور" 
+                          icon={<Lock size={20} />} 
+                          endAdornment={
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          } 
+                          error={errors.confirmPassword?.message} 
+                        />
+                        
+                        <div className="space-y-2">
+                          <m.div 
+                            animate={{ backgroundColor: selectedCountry ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.05)" }}
+                            className="relative border border-white/10 rounded-2xl h-16 flex items-center"
+                          >
+                            <select
+                              value={selectedCountry}
+                              onChange={handleCountryChange}
+                              className="w-full h-full bg-transparent px-12 font-bold text-white outline-none appearance-none cursor-pointer"
+                            >
+                              {COUNTRIES.map((country) => (
+                                <option key={country.code} value={country.code} className="bg-[#0a0a0a] text-white">{country.name}</option>
+                              ))}
+                            </select>
+                            <Flag className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                            <label className="absolute right-12 top-1/2 -translate-y-[180%] text-[10px] font-black uppercase text-primary/80 tracking-widest">الدولة</label>
+                          </m.div>
+                        </div>
+
+                        <PremiumInput
+                          registration={{
+                            ...register('phone'),
+                            onChange: handlePhoneChange,
+                            onKeyDown: handlePhoneInput
+                          }}
+                          label="رقم الهاتف"
+                          icon={<Phone size={20} />}
+                          error={errors.phone?.message}
+                        />
+                        
+                        <PremiumInput registration={register('dateOfBirth')} type="date" label="تاريخ الميلاد" icon={<Calendar size={20} />} error={errors.dateOfBirth?.message} />
+                      </div>
+
+                      <div className="flex gap-6 pt-6">
+                        <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-18 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-lg hover:bg-white/10 transition-colors">
+                          سابـق
+                        </Button>
+                        <Button type="button" onClick={handleNextStep} className="h-18 flex-[2] rounded-2xl bg-primary font-black text-black text-lg shadow-xl shadow-primary/10 group overflow-hidden relative">
+                          <m.div 
+                            className="absolute inset-0 bg-white/20"
+                            initial={{ y: "100%" }}
+                            whileHover={{ y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                          <div className="relative z-10 flex items-center justify-center gap-3">
+                            تأكيد البيانات <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
+                          </div>
+                        </Button>
+                      </div>
+                  </m.div>
+                )}
+
+                {/* STEP 3: PREFERENCES */}
+                {step === 3 && (
+                  <m.div 
+                    key="step3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-12"
+                  >
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">المستوى الدراسي</Label>
+                          <select {...register('gradeLevel')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
+                            <option value="" className="bg-[#0a0a0a]">اختر المستوى</option>
+                            {STUDENT_GRADES.map((g) => <option key={g} value={g} className="bg-[#0a0a0a]">{g}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">الفرع التعليمي</Label>
+                          <select {...register('educationType')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
+                            <option value="" className="bg-[#0a0a0a]">اختر الفرع</option>
+                            {EDUCATION_TYPES.map((e) => <option key={e} value={e} className="bg-[#0a0a0a]">{e}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2 block">المواد المفضلة</Label>
+                        <div className="flex flex-wrap gap-3">
+                          {SUBJECTS.map((subject) => {
+                            const selected = interestedSubjects.includes(subject);
+                            return (
+                              <m.button
+                                whileHover={{ y: -3, scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                key={subject}
+                                type="button"
+                                onClick={() => toggleArrayItem('interestedSubjects', subject)}
+                                className={cn(
+                                  "px-8 h-14 rounded-2xl border text-[12px] font-black transition-all",
+                                  selected ? "border-primary bg-primary text-black shadow-lg shadow-primary/20" : "border-white/5 bg-white/5 text-gray-500 hover:border-white/20"
+                                )}
+                              >
+                                {subject}
+                              </m.button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <m.label 
+                        whileHover={{ backgroundColor: "rgba(255,109,0,0.1)" }}
+                        className="flex items-start gap-6 rounded-[2.5rem] border border-primary/20 bg-primary/5 p-10 cursor-pointer transition-all"
+                      >
+                        <div className="relative flex items-center pt-1 shrink-0">
+                          <input
+                            type="checkbox"
+                            {...register('acceptTerms')}
+                            className="peer sr-only"
+                          />
+                          <div className="h-7 w-7 rounded-lg border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center">
+                            <m.div 
+                              animate={{ opacity: getValues('acceptTerms') ? 1 : 0, scale: getValues('acceptTerms') ? 1 : 0 }}
+                              className="text-primary"
+                            >
+                              <Check className="h-4 w-4 stroke-[4px]" />
+                            </m.div>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-gray-400 leading-relaxed">
+                          أوافق على كافة <Link href="/terms" className="text-primary font-black underline">الشروط والأحكام</Link> المتبعة في نظام تولو الذكي وأتعهد بالحفاظ على سرية بيانات الولوج الخاصة بي.
+                        </span>
+                      </m.label>
+                      <AnimatePresence>
+                        {errors.acceptTerms && (
+                          <m.p 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="text-[11px] font-bold text-red-500 pr-4"
+                          >
+                            {errors.acceptTerms.message}
+                          </m.p>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="flex gap-6">
+                        <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-20 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-xl hover:bg-white/10 transition-colors">
+                          سابـق
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          disabled={isLoading} 
+                          className="h-20 flex-[2] rounded-2xl bg-primary text-black font-black text-2xl shadow-2xl relative overflow-hidden group"
+                        >
+                          <m.div 
+                            className="absolute inset-0 bg-white/20"
+                            initial={{ y: "100%" }}
+                            whileHover={{ y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                          <div className="relative z-10">
+                            {isLoading ? <Loader2 className="h-10 w-10 animate-spin mx-auto" /> : "إكمال بناء الهوية"}
+                          </div>
+                        </Button>
+                      </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
+            </form>
+          </div>
+        </m.div>
+
+        {/* Footer */}
+        <div className="text-center space-y-12 pb-24">
+          <p className="text-lg font-bold text-gray-500">
+             لديك هوية بالفعل؟ {' '}
+            <Link href={loginUrl} className="text-white font-black border-b-2 border-white/20 hover:border-primary hover:text-primary transition-all pb-1 ml-1">
+              بوابة العـبور
+            </Link>
+          </p>
+
+          <div className="flex items-center justify-between max-xl mx-auto opacity-20 px-8">
+            <div className="flex items-center gap-3">
+              <Fingerprint size={20} className="text-primary" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-gray-500">Security Encrypted</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Globe size={20} className="text-primary" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-gray-500">Node Sync</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Smartphone size={20} className="text-primary" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-gray-500">Device Verified</span>
+            </div>
+          </div>
+        </div>
+      </m.div>
+    </div>
+  );
 }
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="h-8 w-8 text-primary animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#020202] flex items-center justify-center"><Loader2 className="h-12 w-12 text-primary animate-spin" /></div>}>
       <RegisterForm />
-    </Suspense>);
-
+    </Suspense>
+  );
 }

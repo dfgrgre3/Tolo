@@ -173,7 +173,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
 
 }
 
-export function useWebSocket() {
+function useWebSocket() {
   const context = useContext(WebSocketContext);
 
   // Always return safe defaults, never undefined

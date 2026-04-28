@@ -28,7 +28,7 @@ export interface TimeSettingsData {
   pomodoroBreakMinutes: number;
 }
 
-export default function TimeSettings({ onSave }: TimeSettingsProps) {
+function TimeSettings({ onSave }: TimeSettingsProps) {
   const [settings, setSettings] = useState<TimeSettingsData>({
     dailyGoalMinutes: 180,
     weeklyGoalMinutes: 1260,

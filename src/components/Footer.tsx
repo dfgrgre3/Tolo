@@ -23,11 +23,11 @@ import Image from "next/image";
 
 export default function Footer() {
   const { user } = useAuth();
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const footerLinks = [
   { title: "الأكاديمية", items: [

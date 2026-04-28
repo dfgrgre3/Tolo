@@ -6,6 +6,9 @@ import (
 	"strings"
 	"sync"
 	"thanawy-backend/internal/config"
+	"thanawy-backend/internal/db"
+	"thanawy-backend/internal/models"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -67,8 +70,28 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
+		// Advanced Session Validation (JTI Check)
+		jti, hasJTI := claims["jti"].(string)
+		if !hasJTI {
+			jti, _ = claims["id"].(string) // Fallback for old tokens or refresh tokens
+		}
+
+		if jti != "" {
+			var session models.UserSession
+			if err := db.DB.Where("id = ? AND is_revoked = ?", jti, false).First(&session).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
+				c.Abort()
+				return
+			}
+			// Update last active in background
+			go func(id string) {
+				db.DB.Model(&models.UserSession{}).Where("id = ?", id).Update("last_active", time.Now())
+			}(jti)
+		}
+
 		c.Set("userId", claims["sub"])
 		c.Set("role", claims["role"])
+		c.Set("jti", jti)
 		c.Next()
 	}
 }
@@ -120,8 +143,9 @@ func CORS() gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)

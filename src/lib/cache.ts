@@ -22,12 +22,12 @@ export function getRedisClient(): Redis {
     return redisClient;
 }
 
-export async function closeRedisClient(): Promise<void> {
+async function closeRedisClient(): Promise<void> {
     await redisClient.quit();
 }
 
 // Cache service wrapper for compatibility
-export const CacheService = {
+const CacheService = {
     async get<T = any>(key: string): Promise<T | null> {
         try {
             const client = getRedisClient();
@@ -108,7 +108,7 @@ export const CacheService = {
     },
 };
 
-export enum CachePrefixes {
+enum CachePrefixes {
   USER_PROFILE = 'user:profile',
   USER_ANALYTICS = 'user:analytics',
   EDUCATIONAL_CONTENT = 'educational',
@@ -116,5 +116,4 @@ export enum CachePrefixes {
   AUTH_SESSION = 'auth:session',
 }
 
-export const EducationalCache = CacheService;
-export default CacheService;
+

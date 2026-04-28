@@ -28,7 +28,7 @@ const API_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
-export class ApiError extends Error {
+class ApiError extends Error {
     public status: number;
     public code?: string;
 
@@ -42,7 +42,7 @@ export class ApiError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const BASE_API_URL = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
+const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api')).replace(/\/+$/, '');
 
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';

@@ -48,7 +48,7 @@ func GetPaymentHistory(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	var payments []models.Payment
 	
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Find(&payments).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&payments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 		return
 	}

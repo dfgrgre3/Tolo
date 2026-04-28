@@ -12,7 +12,7 @@ interface SettingsInputProps extends InputHTMLAttributes<HTMLInputElement> {
   containerClassName?: string;
 }
 
-export const SettingsInput = forwardRef<HTMLInputElement, SettingsInputProps>(
+const SettingsInput = forwardRef<HTMLInputElement, SettingsInputProps>(
   ({ label, icon: Icon, hint, error, containerClassName, ...props }, ref) => {
     return (
       <div className={cn('space-y-2', containerClassName)}>

@@ -3,8 +3,8 @@
  */
 
 export const DEFAULT_AUTHENTICATED_ROUTE = '/dashboard';
-export const DEFAULT_UNAUTHENTICATED_ROUTE = '/login';
-export const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+const DEFAULT_UNAUTHENTICATED_ROUTE = '/login';
+const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
 
 /**
  * Sanitizes a redirect path to ensure it's a relative path and not a malicious external URL.
@@ -24,7 +24,7 @@ export function sanitizeRedirectPath(path: string | null | undefined, fallback: 
 /**
  * Checks if a route is public.
  */
-export function isAuthPublicRoute(pathname: string): boolean {
+function isAuthPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(route => 
     pathname === route || pathname.startsWith(`${route}/`)
   );

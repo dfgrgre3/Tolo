@@ -16,7 +16,7 @@ func GetNotifications(c *gin.Context) {
 	}
 
 	var notifications []models.Notification
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Find(&notifications).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
 		return
 	}
@@ -41,13 +41,13 @@ func MarkNotificationRead(c *gin.Context) {
 
 	if req.ID != "" {
 		// Mark specific notification as read
-		if err := db.DB.Model(&models.Notification{}).Where("id = ? AND user_id = ?", req.ID, userId).Update("is_read", true).Error; err != nil {
+		if err := db.DB.Model(&models.Notification{}).Where("id = ? AND \"userId\" = ?", req.ID, userId).Update("\"isRead\"", true).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notification"})
 			return
 		}
 	} else {
 		// Mark all as read
-		if err := db.DB.Model(&models.Notification{}).Where("user_id = ?", userId).Update("is_read", true).Error; err != nil {
+		if err := db.DB.Model(&models.Notification{}).Where("\"userId\" = ?", userId).Update("\"isRead\"", true).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notifications"})
 			return
 		}

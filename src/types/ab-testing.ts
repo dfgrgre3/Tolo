@@ -1,4 +1,4 @@
-﻿export interface ExperimentVariant {
+﻿interface ExperimentVariant {
   name: string;
   views: number;
   completionRate: number;

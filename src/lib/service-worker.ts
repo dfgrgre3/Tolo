@@ -76,7 +76,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 	}
 }
 
-export async function unregisterServiceWorker(): Promise<boolean> {
+async function unregisterServiceWorker(): Promise<boolean> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		return false;
 	}
@@ -95,7 +95,7 @@ export async function unregisterServiceWorker(): Promise<boolean> {
 	}
 }
 
-export async function clearSearchCache(): Promise<boolean> {
+async function clearSearchCache(): Promise<boolean> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		return false;
 	}
@@ -139,7 +139,7 @@ export async function preCacheSearch(query: string, scope: string = "all"): Prom
 	});
 }
 
-export function isServiceWorkerSupported(): boolean {
+function isServiceWorkerSupported(): boolean {
 	return typeof window !== "undefined" && "serviceWorker" in navigator;
 }
 

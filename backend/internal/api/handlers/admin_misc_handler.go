@@ -549,7 +549,7 @@ func GetAdminAnnouncements(c *gin.Context) {
 	query.Count(&total)
 
 	var notifications []models.Notification
-	if err := query.Order("created_at desc").Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
+	if err := query.Order("\"createdAt\" desc").Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch announcements"})
 		return
 	}
@@ -675,7 +675,7 @@ func GetAdminAnalytics(c *gin.Context) {
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
-	db.DB.Model(&models.User{}).Select("COALESCE(SUM(total_xp), 0)").Scan(&totalXP)
+	db.DB.Model(&models.User{}).Select("COALESCE(SUM(\"totalXP\"), 0)").Scan(&totalXP)
 
 	roleStats := gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
@@ -697,8 +697,8 @@ func GetAdminAnalytics(c *gin.Context) {
 
 		var createdCount int64
 		var activeCount int64
-		db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", start, end).Count(&createdCount)
-		db.DB.Model(&models.StudySession{}).Where("created_at >= ? AND created_at < ?", start, end).Distinct("user_id").Count(&activeCount)
+		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Count(&createdCount)
+		db.DB.Model(&models.StudySession{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Distinct("\"userId\"").Count(&activeCount)
 
 		dailyUsers = append(dailyUsers, point{Date: start.Format("2006-01-02"), Count: activeCount})
 		dailyRegistrations = append(dailyRegistrations, point{Date: start.Format("2006-01-02"), Count: createdCount})
@@ -744,16 +744,16 @@ func GetAdminReportsOverview(c *gin.Context) {
 	monthAgo := now.AddDate(0, -1, 0)
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", dayAgo).Count(&usersToday)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&usersWeek)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", monthAgo).Count(&usersMonth)
+	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", dayAgo).Count(&usersToday)
+	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", weekAgo).Count(&usersWeek)
+	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", monthAgo).Count(&usersMonth)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
-	db.DB.Model(&models.Subject{}).Where("is_active = ?", true).Count(&activeSubjects)
+	db.DB.Model(&models.Subject{}).Where("\"isActive\" = ?", true).Count(&activeSubjects)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
 
 	var subjects []models.Subject
-	db.DB.Order("enrolled_count desc").Limit(5).Find(&subjects)
+	db.DB.Order("\"enrolledCount\" desc").Limit(5).Find(&subjects)
 	popularSubjects := make([]gin.H, 0, len(subjects))
 	for _, subject := range subjects {
 		popularSubjects = append(popularSubjects, gin.H{
@@ -773,7 +773,7 @@ func GetAdminReportsOverview(c *gin.Context) {
 		start := time.Date(now.Year(), now.Month(), now.Day()-i, 0, 0, 0, 0, now.Location())
 		end := start.Add(24 * time.Hour)
 		var count int64
-		db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", start, end).Count(&count)
+		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Count(&count)
 		registrationTrend = append(registrationTrend, trendPoint{Date: start.Format("2006-01-02"), Count: count})
 	}
 
@@ -824,7 +824,7 @@ func GetAdminReportsUsers(c *gin.Context) {
 	db.DB.Model(&models.User{}).Count(&total)
 
 	var users []models.User
-	if err := db.DB.Order("created_at desc").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+	if err := db.DB.Order("\"createdAt\" desc").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users report"})
 		return
 	}

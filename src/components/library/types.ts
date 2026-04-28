@@ -35,7 +35,7 @@ export type Category = {
   color?: string;
 };
 
-export type LibraryStats = {
+type LibraryStats = {
   totalBooks: number;
   totalDownloads: number;
   totalViews: number;

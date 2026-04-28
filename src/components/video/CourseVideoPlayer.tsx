@@ -707,4 +707,3 @@ export function CourseVideoPlayer({
   );
 }
 
-export default memo(CourseVideoPlayer);

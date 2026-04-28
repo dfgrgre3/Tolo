@@ -88,17 +88,17 @@ const courseSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseSchema>;
 
-export interface CourseCategory {
+interface CourseCategory {
   id: string;
   name: string;
 }
 
-export interface CourseTeacher {
+interface CourseTeacher {
   id: string;
   name: string;
 }
 
-export interface CourseInitialData {
+interface CourseInitialData {
   id: string;
   name?: string;
   nameAr?: string | null;

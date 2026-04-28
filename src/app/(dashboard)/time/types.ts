@@ -15,7 +15,7 @@ export interface SubjectEnrollment {
   createdAt: string;
 }
 
-export interface SubTask {
+interface SubTask {
   id: string;
   title: string;
   isCompleted: boolean;

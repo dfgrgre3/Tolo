@@ -82,14 +82,14 @@ export function runCommand(command: string, cwd: string = process.cwd()): boolea
 /**
  * Check if a file exists
  */
-export function fileExists(filePath: string): boolean {
+function fileExists(filePath: string): boolean {
     return fs.existsSync(filePath);
 }
 
 /**
  * Read file content
  */
-export function readFile(filePath: string): string | null {
+function readFile(filePath: string): string | null {
     if (!fs.existsSync(filePath)) return null;
     return fs.readFileSync(filePath, 'utf-8');
 }
@@ -97,14 +97,14 @@ export function readFile(filePath: string): string | null {
 /**
  * Write file content
  */
-export function writeFile(filePath: string, content: string): void {
+function writeFile(filePath: string, content: string): void {
     fs.writeFileSync(filePath, content, 'utf-8');
 }
 
 /**
  * Check if a port is in use
  */
-export function checkPort(port: number, host: string = 'localhost'): Promise<boolean> {
+function checkPort(port: number, host: string = 'localhost'): Promise<boolean> {
     return new Promise((resolve) => {
         const socket = new net.Socket();
 

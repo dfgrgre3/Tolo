@@ -18,6 +18,10 @@ type Enrollment struct {
 	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
+func (Enrollment) TableName() string {
+	return "SubjectEnrollment"
+}
+
 type LessonProgress struct {
 	ID        string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
 	UserID    string    `gorm:"not null;index:idx_user_lesson,unique" json:"userId"`

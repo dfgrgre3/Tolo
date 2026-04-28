@@ -129,7 +129,7 @@ export const analyticsQueue = new AppQueue('analytics');
 export const referralQueue = new AppQueue('referral');
 
 // Helper function to enqueue jobs
-export async function enqueueJob(queueName: string, jobName: string, data: any, options?: any) {
+async function enqueueJob(queueName: string, jobName: string, data: any, options?: any) {
     const queueMap: Record<string, AppQueue> = {
         gamification: gamificationQueue,
         notification: notificationQueue,

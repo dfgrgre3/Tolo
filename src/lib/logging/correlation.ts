@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export interface RequestContext {
+interface RequestContext {
   requestId: string;
   userId?: string;
   sessionId?: string;
@@ -49,14 +49,14 @@ export function getRequestContext(): RequestContext | undefined {
 /**
  * Run a function within a request context
  */
-export function runWithContext<T>(context: RequestContext, fn: () => T): T {
+function runWithContext<T>(context: RequestContext, fn: () => T): T {
   return contextStorage.run(context, fn);
 }
 
 /**
  * Initialize a new request context with a unique ID
  */
-export function initRequestContext(partial?: Partial<RequestContext>): RequestContext {
+function initRequestContext(partial?: Partial<RequestContext>): RequestContext {
   return {
     requestId: partial?.requestId || uuidv4(),
     startTime: Date.now(),
@@ -67,6 +67,6 @@ export function initRequestContext(partial?: Partial<RequestContext>): RequestCo
 /**
  * Helper to get the current Request ID
  */
-export function getRequestId(): string | undefined {
+function getRequestId(): string | undefined {
   return getRequestContext()?.requestId;
 }

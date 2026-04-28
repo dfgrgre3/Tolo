@@ -1,4 +1,4 @@
-﻿export interface Schedule {
+﻿interface Schedule {
   id: string;
   userId: string;
   planJson: string;

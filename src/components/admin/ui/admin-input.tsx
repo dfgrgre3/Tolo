@@ -216,7 +216,7 @@ interface FormFieldProps {
   className?: string;
 }
 
-export function FormField({
+function FormField({
   label,
   error,
   required,
@@ -243,4 +243,4 @@ export function FormField({
   );
 }
 
-export { AdminInput, SearchInput, AdminTextarea, inputVariants };
+export { AdminInput, SearchInput,   };

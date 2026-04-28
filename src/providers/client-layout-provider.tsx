@@ -5,8 +5,8 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { safeSetItem, safeGetItem, isBrowser } from '@/lib/safe-client-utils';
 import { toast } from 'sonner';
 
-export const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
-export const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
+const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
+const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
 
 export default function ClientLayoutProvider({ children }: {children: React.ReactNode;}) {
   const pathname = usePathname();

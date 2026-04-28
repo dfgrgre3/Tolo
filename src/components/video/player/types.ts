@@ -52,7 +52,7 @@ export type StoredVideoProgress = {
   completed: boolean;
 };
 
-export type ServerLessonProgress = {
+type ServerLessonProgress = {
   completed?: boolean;
   lastVideoPosition?: number;
   updatedAt?: string;
@@ -77,7 +77,7 @@ export type QualityOption = {
   label: string;
 };
 
-export interface QualitySource {
+interface QualitySource {
   id: number;
   label: string;
   src: string;

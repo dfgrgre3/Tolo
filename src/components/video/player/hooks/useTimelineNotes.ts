@@ -80,25 +80,23 @@ export function useTimelineNotes({
     if (!text) return;
 
     const nextNote = createTimelineNote(currentTime, text);
-    setNotes((current) => {
-      const nextNotes = [...current, nextNote].sort((left, right) => left.time - right.time);
-      void persistCloudNotes(nextNotes);
-      return nextNotes;
-    });
+    const nextNotes = [...notes, nextNote].sort((left, right) => left.time - right.time);
+    
+    setNotes(nextNotes);
+    void persistCloudNotes(nextNotes);
+    
     setNoteDraft("");
     setPlayerState({ sidebarTab: "notes", isSidebarOpen: true });
     flashFeedback({ icon: Clock3, label: "تمت إضافة الملاحظة" });
-  }, [currentTime, flashFeedback, noteDraft, persistCloudNotes, setPlayerState]);
+  }, [currentTime, flashFeedback, noteDraft, notes, persistCloudNotes, setPlayerState]);
 
   const removeNote = useCallback(
     (noteId: string) => {
-      setNotes((current) => {
-        const nextNotes = current.filter((note) => note.id !== noteId);
-        void persistCloudNotes(nextNotes);
-        return nextNotes;
-      });
+      const nextNotes = notes.filter((note) => note.id !== noteId);
+      setNotes(nextNotes);
+      void persistCloudNotes(nextNotes);
     },
-    [persistCloudNotes]
+    [notes, persistCloudNotes]
   );
 
   return {

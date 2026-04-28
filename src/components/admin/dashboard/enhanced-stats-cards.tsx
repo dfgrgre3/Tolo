@@ -257,7 +257,7 @@ interface SparklineProps {
   className?: string;
 }
 
-export function Sparkline({ data, color = "blue", className }: SparklineProps) {
+function Sparkline({ data, color = "blue", className }: SparklineProps) {
   const config = colorConfig[color];
   const max = Math.max(...data);
   const min = Math.min(...data);

@@ -29,7 +29,7 @@ const containerVariants = cva(
   }
 );
 
-export interface PageContainerProps
+interface PageContainerProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof containerVariants> {}
 

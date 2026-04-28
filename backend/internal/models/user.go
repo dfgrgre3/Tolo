@@ -2,7 +2,11 @@ package models
 
 import (
 	"time"
+	"encoding/json"
+	"database/sql/driver"
+	"fmt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	"github.com/google/uuid"
 )
 
@@ -51,7 +55,8 @@ type User struct {
 	Level                         int            `gorm:"default:1;index" json:"level"`
 	
 	// Access Control
-	Permissions                   []string       `gorm:"type:text[]" json:"permissions"`
+	Permissions                   JSONStringArray `gorm:"type:text" json:"permissions"`
+
 	
 	// Relations
 	Enrollments                   []Enrollment   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
@@ -63,5 +68,56 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 		u.ID = uuid.New().String()
 	}
 	return
+}
+
+type JSONStringArray []string
+
+func (a *JSONStringArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
+	}
+
+	return json.Unmarshal(bytes, a)
+}
+
+func (a JSONStringArray) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return "[]", nil
+	}
+	bytes, err := json.Marshal(a)
+	return string(bytes), err
+}
+
+// MarshalJSON ensures we always return [] instead of null for empty arrays
+func (a JSONStringArray) MarshalJSON() ([]byte, error) {
+	if a == nil {
+		return []byte("[]"), nil
+	}
+	return json.Marshal([]string(a))
+}
+
+
+// GormDataType returns the data type for GORM
+func (JSONStringArray) GormDataType() string {
+	return "json"
+}
+
+// GormDBDataType returns the database data type for GORM
+func (JSONStringArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch db.Dialector.Name() {
+	case "postgres":
+		return "JSONB"
+	}
+	return "TEXT"
 }
 

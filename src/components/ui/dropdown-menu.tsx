@@ -15,11 +15,11 @@ const DropdownMenuTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>>(
   ({ className, asChild = false, children, ...props }, ref) => {
     // تأكد من أن المكون يتم عرضه بشكل متسق بين الخادم والعميل
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    const mounted = React.useSyncExternalStore(
+      () => () => {},
+      () => true,
+      () => false
+    );
 
     if (!mounted) {
       // عرض عنصر بديل أثناء التحميل لمنع عدم تطابق الترطيب
@@ -234,13 +234,13 @@ export {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
-  DropdownMenuRadioItem,
+  
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
+  
   DropdownMenuGroup,
-  DropdownMenuPortal,
+  
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup };
+   };

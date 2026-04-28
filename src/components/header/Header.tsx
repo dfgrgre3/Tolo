@@ -81,17 +81,16 @@ export default function Header() {
     () => true,
     () => false
   );
-  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
-  
-  useEffect(() => {
-    if (typeof window !== "undefined") {
+  const shouldReduceMotion = useSyncExternalStore(
+    (callback) => {
+      if (typeof window === "undefined") return () => {};
       const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setShouldReduceMotion(mql.matches);
-      const handler = (e: MediaQueryListEvent) => setShouldReduceMotion(e.matches);
-      mql.addEventListener('change', handler);
-      return () => mql.removeEventListener('change', handler);
-    }
-  }, []);
+      mql.addEventListener('change', callback);
+      return () => mql.removeEventListener('change', callback);
+    },
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false
+  );
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);

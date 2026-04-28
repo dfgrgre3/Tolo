@@ -146,7 +146,7 @@ interface FABProps extends AdminButtonProps {
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
 }
 
-export function FloatingActionButton({
+function FloatingActionButton({
   position = "bottom-right",
   className,
   ...props
@@ -172,4 +172,4 @@ export function FloatingActionButton({
   );
 }
 
-export { AdminButton, IconButton, buttonVariants };
+export { AdminButton, IconButton,  };

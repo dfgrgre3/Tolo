@@ -3,7 +3,7 @@
 /**
  * خصائص مكون رسالة الحالة
  */
-export interface StatusMessageProps {
+interface StatusMessageProps {
   /** نص الرسالة */
   text: string;
   /** هل هذه رسالة خطأ؟ */

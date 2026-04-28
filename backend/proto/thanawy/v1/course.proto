@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package thanawy.v1;
+
+option go_package = "thanawy-backend/internal/proto/thanawy/v1;thanawyv1";
+
+service CourseService {
+  rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
+  rpc GetCourse(GetCourseRequest) returns (GetCourseResponse);
+}
+
+message Course {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string teacher_name = 4;
+}
+
+message GetCoursesRequest {}
+
+message GetCoursesResponse {
+  repeated Course courses = 1;
+}
+
+message GetCourseRequest {
+  string id = 1;
+}
+
+message GetCourseResponse {
+  Course course = 1;
+}

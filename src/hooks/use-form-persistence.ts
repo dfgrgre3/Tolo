@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function useFormPersistence<T extends Record<string, any>>(
+function useFormPersistence<T extends Record<string, any>>(
 formId: string,
 initialFormValues: T,
 _options: {
@@ -13,21 +13,22 @@ _options: {
 } = {})
 {
   const storageKey = `form:${formId}`;
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [state, setState] = useState<T>(initialFormValues);
-
-  useEffect(() => {
+  const [state, setState] = useState<T>(() => {
+    if (typeof window === "undefined") return initialFormValues;
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        setState(JSON.parse(raw) as T);
-      }
+      return raw ? JSON.parse(raw) as T : initialFormValues;
     } catch {
-      setState(initialFormValues);
-    } finally {
-      setIsInitialized(true);
+      return initialFormValues;
     }
-  }, [initialFormValues, storageKey]);
+  });
+
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const isInitialized = mounted;
 
   const saveFormData = useCallback((values: T) => {
     setState(values);

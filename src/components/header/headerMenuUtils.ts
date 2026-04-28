@@ -14,7 +14,7 @@ export function buildMobileNavItems(navItems: NavItemWithMegaMenu[]) {
   return navItems.filter((item) => item.href !== "/");
 }
 
-export function buildMobileSearchResults(navItems: NavItemWithMegaMenu[]) {
+function buildMobileSearchResults(navItems: NavItemWithMegaMenu[]) {
   const items: MobileSearchResult[] = [];
   const seen = new Set<string>();
 

@@ -45,6 +45,8 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SettingsCard } from './components';
+import { ActiveSessions } from '@/components/auth/ActiveSessions';
+
 
 interface ProfileData {
   firstName: string;
@@ -930,7 +932,21 @@ export default function ProfileSettingsPage() {
         </Link>
       </div>
 
+      {/* Security & Devices */}
+      <SettingsCard delay={0.3}>
+        <div className="p-5 border-b border-white/10">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-indigo-400" />
+            الأمان والأجهزة النشطة
+          </h3>
+        </div>
+        <div className="p-6">
+          <ActiveSessions />
+        </div>
+      </SettingsCard>
+
       {/* Info Panel */}
+
       <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 flex flex-col md:flex-row items-start gap-4">
         <div className="bg-indigo-500/20 p-3 rounded-xl shrink-0">
           <Shield className="h-6 w-6 text-indigo-400" />

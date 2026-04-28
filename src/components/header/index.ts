@@ -1,4 +1,4 @@
-﻿export { HeaderLogo } from "./HeaderLogo";
+export { HeaderLogo } from "./HeaderLogo";
 export { default } from "./Header";
 
 export { HeaderSearch } from "./HeaderSearch";
@@ -9,7 +9,6 @@ export { useMegaMenuState } from "./useMegaMenuState";
 
 // New Enhanced Components
 export { ReadingProgressBar, MinimalProgressIndicator } from "./ReadingProgressBar";
-export { FocusModeToggle, FocusModeIndicator } from "./FocusModeToggle";
 
 // Enhanced Hooks
 export * from "./hooks";

@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 
-export function LoadingSpinner({ className }: { className?: string }) {
+function LoadingSpinner({ className }: { className?: string }) {
   return (
     <div className={cn("relative h-16 w-16", className)}>
       {/* Pure CSS animated spinner - no framer-motion needed */}
@@ -25,7 +25,7 @@ export function LoadingSpinner({ className }: { className?: string }) {
   );
 }
 
-export function LoadingPage() {
+function LoadingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       {/* Top Progress Bar - CSS animation */}
@@ -72,7 +72,7 @@ export function LoadingPage() {
   );
 }
 
-export function SkeletonCard() {
+function SkeletonCard() {
   return (
     <div className="rpg-card flex flex-col gap-4">
       <Skeleton className="aspect-video w-full rounded-2xl" />
@@ -89,7 +89,7 @@ export function SkeletonCard() {
   );
 }
 
-export function SkeletonGrid({ count = 6 }: { count?: number }) {
+function SkeletonGrid({ count = 6 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {Array.from({ length: count }).map((_, i) => (

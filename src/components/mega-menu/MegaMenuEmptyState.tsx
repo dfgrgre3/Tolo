@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { m } from "framer-motion";
 import { Search } from "lucide-react";
@@ -56,7 +56,7 @@ export function MegaMenuEmptyState({ searchQuery, onClose }: MegaMenuEmptyStateP
 				transition={{ delay: 0.3 }}
 				className="text-sm text-muted-foreground text-center max-w-md leading-relaxed mb-6"
 			>
-				لم نجد أي عناصر تطابق <span className="font-semibold text-primary">"{searchQuery}"</span>. جرب كلمات مفتاحية مختلفة أو ابحث بطريقة أخرى.
+				لم نجد أي عناصر تطابق <span className="font-semibold text-primary">&quot;{searchQuery}&quot;</span>. جرب كلمات مفتاحية مختلفة أو ابحث بطريقة أخرى.
 			</m.p>
 
 			{/* Quick Actions */}

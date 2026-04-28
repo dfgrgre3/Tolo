@@ -5,7 +5,7 @@ import { m, useInView } from "framer-motion";
 import { StatCardProps } from "./types";
 import { rpgCommonStyles } from "./constants";
 
-export const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps) => {
+const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps) => {
   const [displayValue, setDisplayValue] = useState(0);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });

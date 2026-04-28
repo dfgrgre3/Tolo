@@ -159,7 +159,7 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
                <p>SECURE TRANSACTION</p>
           </div>
           <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">
-               هذه الفاتورة تم توليدها آلياً بواسطة نظام "ثانوية أونلاين". 
+               هذه الفاتورة تم توليدها آلياً بواسطة نظام &quot;ثانوية أونلاين&quot;. 
                <br />
                تم رصد ضريبة القيمة المضافة طبقاً لأحكام القانون المصري.
           </p>

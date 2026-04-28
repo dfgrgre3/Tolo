@@ -21,7 +21,7 @@ import { logger } from '@/lib/logger';
  * (Now backed by Zustand for better performance and smaller context size)
  */
 
-export type { AuthUser };
+;
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -537,4 +537,3 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
-export default AuthContext;

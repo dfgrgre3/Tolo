@@ -43,7 +43,7 @@ export interface NavItemWithMegaMenu {
   megaMenu?: MegaMenuCategory[];
 }
 
-export const coursesMegaMenu: MegaMenuCategory[] = [
+const coursesMegaMenu: MegaMenuCategory[] = [
   {
     title: "التصنيفات",
     items: [
@@ -68,7 +68,7 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-export const scheduleMegaMenu: MegaMenuCategory[] = [
+const scheduleMegaMenu: MegaMenuCategory[] = [
   {
     title: "المواعيد",
     items: [{ href: "/schedule", label: "جدول المحاضرات", icon: Calendar, description: "مواعيد المحاضرات والدروس" }],
@@ -83,7 +83,7 @@ export const scheduleMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-export const timeManagementMegaMenu: MegaMenuCategory[] = [
+const timeManagementMegaMenu: MegaMenuCategory[] = [
   {
     title: "التوقيت",
     items: [
@@ -101,7 +101,7 @@ export const timeManagementMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-export const libraryMegaMenu: MegaMenuCategory[] = [
+const libraryMegaMenu: MegaMenuCategory[] = [
   {
     title: "المصادر",
     items: [
@@ -115,7 +115,7 @@ export const libraryMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-export const analyticsMegaMenu: MegaMenuCategory[] = [
+const analyticsMegaMenu: MegaMenuCategory[] = [
   {
     title: "تحليلات عامة",
     items: [
@@ -183,7 +183,7 @@ export const moreMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-export const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
+const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
   {
     title: "اقتراحات ذكية",
     items: [

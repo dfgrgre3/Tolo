@@ -1,30 +1,21 @@
-﻿import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 
 /**
  * Hook to track network connection status
  * returns true if online, false if offline
  */
 export function useNetworkStatus(): boolean {
-    // Assume online by default to avoid hydration mismatch, update in effect
-    const [isOnline, setIsOnline] = useState<boolean>(true);
-
-    useEffect(() => {
-        // Correctly set initial state on client
-        if (typeof window !== 'undefined') {
-            setIsOnline(navigator.onLine);
-        }
-
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
-
-    return isOnline;
+    return useSyncExternalStore(
+        (callback) => {
+            if (typeof window === 'undefined') return () => {};
+            window.addEventListener('online', callback);
+            window.addEventListener('offline', callback);
+            return () => {
+                window.removeEventListener('online', callback);
+                window.removeEventListener('offline', callback);
+            };
+        },
+        () => navigator.onLine,
+        () => true
+    );
 }

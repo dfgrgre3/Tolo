@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package thanawy.v1;
+
+option go_package = "thanawy-backend/internal/proto/thanawy/v1;thanawyv1";
+
+service AnalyticsService {
+  rpc GetProgressSummary(GetProgressSummaryRequest) returns (GetProgressSummaryResponse);
+  rpc GetWeeklyAnalytics(GetWeeklyAnalyticsRequest) returns (GetWeeklyAnalyticsResponse);
+}
+
+message GetProgressSummaryRequest {}
+
+message GetProgressSummaryResponse {
+  int32 total_minutes = 1;
+  double average_focus = 2;
+  int64 tasks_completed = 3;
+  int32 streak_days = 4;
+}
+
+message GetWeeklyAnalyticsRequest {}
+
+message DailyProgress {
+  string day = 1;
+  int32 progress = 2;
+}
+
+message GetWeeklyAnalyticsResponse {
+  int32 progress_rate = 1;
+  int32 skills_acquired = 2;
+  int32 study_hours = 3;
+  repeated DailyProgress daily_progress = 4;
+}

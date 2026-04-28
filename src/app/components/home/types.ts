@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 
 // --- User Types ---
-export interface GamifiedUser extends BaseUser {
+interface GamifiedUser extends BaseUser {
     dailyStreak?: number;
     maxStreak?: number;
     gems?: number;
@@ -11,7 +11,7 @@ export interface GamifiedUser extends BaseUser {
 }
 
 // --- Shared Props ---
-export interface SectionProps {
+interface SectionProps {
     user?: GamifiedUser | null;
     className?: string;
 }
@@ -40,7 +40,7 @@ export interface FeatureItem {
 }
 
 // --- Exam/Subject Types ---
-export type Difficulty = "سهل" | "متوسط" | "صعب";
+type Difficulty = "سهل" | "متوسط" | "صعب";
 
 export interface Exam {
     id: string;
@@ -64,7 +64,7 @@ export interface SubjectWithExams {
 
 // --- Performance Types ---
 export type MetricStatus = "excellent" | "good" | "warning" | "critical";
-export type MetricTrend = "up" | "down" | "stable";
+type MetricTrend = "up" | "down" | "stable";
 
 export interface PerformanceMetric {
     name: string;

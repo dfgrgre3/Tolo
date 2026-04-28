@@ -11,6 +11,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+	"net"
+	"strings"
+	internalgrpc "thanawy-backend/internal/api/grpc"
+	thanawyv1 "thanawy-backend/internal/proto/thanawy/v1"
+	"thanawy-backend/internal/proto/thanawy/v1/thanawyv1connect"
 )
 
 func main() {
@@ -28,20 +35,23 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Run AutoMigrate in development/staging
-	if cfg.Environment != "production" {
-		if err := db.Migrate(); err != nil {
-			log.Printf("Warning: Database migration failed: %v", err)
-		} else {
-			log.Println("Database migration completed successfully.")
-		}
+	// Run migrations (AutoMigrate enabled for this update)
+	if err := db.Migrate(); err != nil {
+		log.Printf("Migration failed: %v", err)
 	}
+	log.Println("Database schema synced.")
+
 
 	// Initialize Redis
 	redisURL := os.Getenv("REDIS_URL")
 	if redisURL != "" {
 		db.ConnectRedis(redisURL)
 	}
+
+	// Initialize Services for gRPC/Connect
+	courseSvc := &internalgrpc.CourseServiceServer{}
+	authSvc := internalgrpc.NewAuthServiceServer()
+	analyticsSvc := &internalgrpc.AnalyticsServiceServer{}
 
 	// Setup Router
 	router := gin.Default()
@@ -68,6 +78,16 @@ func main() {
 	// API Groups
 	api := router.Group("/api")
 	{
+		// Connect RPC Handlers
+		coursePath, courseHandler := thanawyv1connect.NewCourseServiceHandler(&internalgrpc.CourseConnectHandler{Svc: courseSvc})
+		api.Any(strings.TrimPrefix(coursePath, "/")+"*action", gin.WrapH(http.StripPrefix("/api", courseHandler)))
+
+		authPath, authHandler := thanawyv1connect.NewAuthServiceHandler(&internalgrpc.AuthConnectHandler{Svc: authSvc})
+		api.Any(strings.TrimPrefix(authPath, "/")+"*action", gin.WrapH(http.StripPrefix("/api", authHandler)))
+
+		analyticsPath, analyticsHandler := thanawyv1connect.NewAnalyticsServiceHandler(&internalgrpc.AnalyticsConnectHandler{Svc: analyticsSvc})
+		api.Any(strings.TrimPrefix(analyticsPath, "/")+"*action", gin.WrapH(http.StripPrefix("/api", analyticsHandler)))
+
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", handlers.Login)
@@ -105,6 +125,9 @@ func main() {
 		api.GET("/tasks", handlers.GetTasks)
 		api.GET("/study-sessions", handlers.GetStudySessions)
 		api.GET("/reminders", handlers.GetReminders)
+		api.GET("/resources", func(c *gin.Context) {
+			c.JSON(200, gin.H{"data": []interface{}{}, "success": true})
+		})
 
 		// AI routes
 		ai := api.Group("/ai")
@@ -252,6 +275,31 @@ func main() {
 			protected.GET("/payments/history", handlers.GetPaymentHistory)
 		}
 	}
+
+	// Start gRPC Server
+	go func() {
+		grpcPort := os.Getenv("GRPC_PORT")
+		if grpcPort == "" {
+			grpcPort = "50051"
+		}
+		lis, err := net.Listen("tcp", ":"+grpcPort)
+		if err != nil {
+			log.Printf("Failed to listen for gRPC: %v", err)
+			return
+		}
+		s := grpc.NewServer()
+		thanawyv1.RegisterCourseServiceServer(s, courseSvc)
+		thanawyv1.RegisterAuthServiceServer(s, authSvc)
+		thanawyv1.RegisterAnalyticsServiceServer(s, analyticsSvc)
+		
+		// Register reflection service on gRPC server.
+		reflection.Register(s)
+		
+		log.Printf("gRPC server listening on port %s", grpcPort)
+		if err := s.Serve(lis); err != nil {
+			log.Printf("Failed to serve gRPC: %v", err)
+		}
+	}()
 
 	// Start Server
 	port := os.Getenv("PORT")

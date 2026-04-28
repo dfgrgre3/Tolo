@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 
 export const CardSkeleton = () => (
   <div className="animate-pulse bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4">
@@ -26,7 +26,7 @@ export const TransactionSkeleton = () => (
   </div>
 );
 
-export const ChartSkeleton = () => (
+const ChartSkeleton = () => (
   <div className="animate-pulse h-[250px] w-full bg-white/5 rounded-[2.5rem] p-6 border border-white/10 flex items-center justify-center">
     <div className="space-y-4 w-full px-10">
        <div className="h-4 w-1/4 bg-white/10 rounded mb-10" />

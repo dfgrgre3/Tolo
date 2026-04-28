@@ -43,4 +43,4 @@ export function Layout({
 }
 
 // Export Layout as default for backward compatibility
-export default Layout;
+

@@ -10,4 +10,4 @@ export const ComponentErrorBoundary = (props: React.ComponentProps<typeof ErrorB
   <ErrorBoundary variant="component" {...props} />
 );
 
-export default ErrorBoundary;
+

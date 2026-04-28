@@ -1,4 +1,4 @@
-export interface AppearanceSettingsPreference {
+interface AppearanceSettingsPreference {
   theme: 'light' | 'dark' | 'system';
   fontSize: 'small' | 'medium' | 'large';
   reducedMotion: boolean;
@@ -7,7 +7,7 @@ export interface AppearanceSettingsPreference {
   efficiencyMode?: boolean;
 }
 
-export interface LanguageSettingsPreference {
+interface LanguageSettingsPreference {
   language: string;
   numberFormat: 'arabic' | 'western';
   direction?: 'rtl' | 'ltr';

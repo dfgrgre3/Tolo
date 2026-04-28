@@ -1,6 +1,6 @@
-export type AchievementCategory = 'study' | 'tasks' | 'exams' | 'time' | 'streak' | 'general';
-export type AchievementDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
-export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
+type AchievementCategory = 'study' | 'tasks' | 'exams' | 'time' | 'streak' | 'general';
+type AchievementDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
+type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ProgressSummary {
   totalMinutes: number;

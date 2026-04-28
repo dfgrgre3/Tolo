@@ -62,7 +62,7 @@ interface AdvancedFiltersProps {
   className?: string;
 }
 
-export function AdvancedFilters({
+function AdvancedFilters({
   filters,
   onFilterChange,
   savedFilters = [],

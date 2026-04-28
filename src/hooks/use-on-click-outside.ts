@@ -35,7 +35,7 @@
  * }
  * ```
  */
-export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
+function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T>,
   handler: (event: MouseEvent | TouchEvent) => void,
   enabled: boolean = true
@@ -93,7 +93,7 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
  * }
  * ```
  */
-export function useOnClickOutsideMultiple<T extends HTMLElement = HTMLElement>(
+function useOnClickOutsideMultiple<T extends HTMLElement = HTMLElement>(
   refs: RefObject<T>[],
   handler: (event: MouseEvent | TouchEvent) => void,
   enabled: boolean = true
@@ -124,3 +124,5 @@ export function useOnClickOutsideMultiple<T extends HTMLElement = HTMLElement>(
     };
   }, [refs, handler, enabled]);
 }
+
+export {};

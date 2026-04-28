@@ -111,7 +111,7 @@ export const elkLogger = winston.createLogger({
 
 // Helper functions للاستخدام السهل
 // Note: This is elkLoggerHelper, NOT logger, to avoid conflict with unified-logger
-export const elkLoggerHelper = {
+const elkLoggerHelper = {
   info: (message: string, meta?: Record<string, any>) => {
     try {
       elkLogger.info(message, meta || {});
@@ -252,5 +252,5 @@ export const elkLoggerHelper = {
 // For backward compatibility, import elkLoggerHelper directly
 // IMPORTANT: This file does NOT export 'logger' to avoid conflicts with unified-logger.ts
 
-export default elkLogger;
+
 

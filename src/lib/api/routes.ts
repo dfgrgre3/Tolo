@@ -74,4 +74,4 @@ export const apiRoutes = {
   },
 } as const;
 
-export type ApiRoutes = typeof apiRoutes;
+type ApiRoutes = typeof apiRoutes;

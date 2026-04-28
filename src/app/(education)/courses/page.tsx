@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { apiClient } from "@/lib/api/api-client";
 
 type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 type SortOption =
@@ -171,7 +172,7 @@ function CourseCard({
         {course.thumbnailUrl ? (
           <Image
             src={course.thumbnailUrl}
-            alt={course.title}
+            alt={course.title || "صورة الدورة"}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -323,15 +324,79 @@ export default function CoursesPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("/api/courses?limit=48", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("تعذر تحميل الدورات التعليمية.");
+        // Fetch courses and categories in parallel
+        const [coursesResult, categoriesResult] = await Promise.allSettled([
+          apiClient.get<any>("/courses?limit=48"),
+          apiClient.get<any>("/categories"),
+        ]);
+
+        // Process courses
+        let coursesData: any[] = [];
+        if (coursesResult.status === "fulfilled") {
+          const payload = coursesResult.value;
+          const data = payload.data ?? payload;
+          // Backend returns courses in data.courses, data.items, or data.subjects
+          coursesData = data.courses ?? data.items ?? data.subjects ?? [];
+        } else {
+          logger.error("Failed to load courses", coursesResult.reason);
         }
 
-        const payload = await response.json();
-        const data = payload.data ?? payload;
-        setCourses(data.courses ?? []);
-        setCategories(data.categories ?? []);
+        // Process categories
+        let categoriesData: Array<{ id: string; name: string; nameAr?: string }> = [];
+        if (categoriesResult.status === "fulfilled") {
+          const payload = categoriesResult.value;
+          const data = payload.data ?? payload;
+          // Backend returns categories as an array or in data.categories
+          if (Array.isArray(data)) {
+            categoriesData = data;
+          } else if (Array.isArray(data.categories)) {
+            categoriesData = data.categories;
+          }
+        } else {
+          logger.error("Failed to load categories", categoriesResult.reason);
+        }
+
+        // Create a map of category IDs to names
+        const categoryMap = new Map<string, string>();
+        for (const cat of categoriesData) {
+          categoryMap.set(cat.id, cat.nameAr || cat.name || "");
+        }
+
+        // Map backend course format to frontend CourseSummary type
+        const mappedCourses: CourseSummary[] = coursesData.map((course: any) => ({
+          id: course.id || "",
+          title: course.name || course.nameAr || "",
+          description: course.description || "",
+          instructor: course.instructorName || "",
+          subject: course.nameAr || course.name || "",
+          categoryId: course.categoryId || "",
+          categoryName: categoryMap.get(course.categoryId) || "",
+          level: (course.level as CourseLevel) || "BEGINNER",
+          duration: course.durationHours || 0,
+          thumbnailUrl: course.thumbnailUrl,
+          price: course.price || 0,
+          rating: course.rating || 0,
+          enrolledCount: course.enrolledCount || course._count?.enrollments || 0,
+          createdAt: course.createdAt || "",
+          tags: course.tags || [],
+          enrolled: false, // TODO: Check enrollment status if user is logged in
+          progress: undefined,
+          isFeatured: course.isFeatured || false,
+          lessonsCount: course._count?.topics || course.topics?.length || 0,
+        }));
+
+        setCourses(mappedCourses);
+        setCategories(
+          categoriesData.map((cat) => ({
+            id: cat.id,
+            name: cat.nameAr || cat.name || "",
+          }))
+        );
+
+        // Set error only if both requests failed
+        if (coursesResult.status === "rejected" && categoriesResult.status === "rejected") {
+          throw new Error("تعذر تحميل الدورات التعليمية.");
+        }
       } catch (loadError) {
         logger.error("Error loading courses catalog", loadError);
         setError(

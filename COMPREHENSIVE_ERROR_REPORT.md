@@ -1,13 +1,13 @@
 # تقرير شامل لاكتشاف الأخطاء في المشروع
 
-**تاريخ الفحص:** ٢٧‏/٤‏/٢٠٢٦، ٤:٥٩:٥٨ ص
+**تاريخ الفحص:** ٢٨‏/٤‏/٢٠٢٦، ٥:٥٧:٠١ ص
 
 ## 📊 الإحصائيات
 
 - **إجمالي الأخطاء الحرجة:** 0
-- **إجمالي التحذيرات:** 189
+- **إجمالي التحذيرات:** 131
 - **إجمالي المعلومات:** 0
-- **الإجمالي:** 189
+- **الإجمالي:** 131
 
 ## ⚠️  التحذيرات (Warnings)
 
@@ -153,7 +153,7 @@
 
 ### تحذير 15: any-usage
 
-**الملف:** `src\app\(admin)\admin\live\page.tsx`:84
+**الملف:** `src\app\(admin)\admin\live\page.tsx`:85
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -163,7 +163,7 @@
 
 ### تحذير 16: any-usage
 
-**الملف:** `src\app\(admin)\admin\live\page.tsx`:172
+**الملف:** `src\app\(admin)\admin\live\page.tsx`:173
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -173,7 +173,7 @@
 
 ### تحذير 17: any-usage
 
-**الملف:** `src\app\(admin)\admin\live\page.tsx`:226
+**الملف:** `src\app\(admin)\admin\live\page.tsx`:227
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -183,7 +183,7 @@
 
 ### تحذير 18: console-usage
 
-**الملف:** `src\app\(admin)\admin\page.tsx`:153
+**الملف:** `src\app\(admin)\admin\page.tsx`:181
 
 **الرسالة:** استخدام console.error في الكود
 
@@ -193,7 +193,7 @@
 
 ### تحذير 19: console-usage
 
-**الملف:** `src\app\(admin)\admin\users\page.tsx`:103
+**الملف:** `src\app\(admin)\admin\users\page.tsx`:104
 
 **الرسالة:** استخدام console.error في الكود
 
@@ -203,7 +203,7 @@
 
 ### تحذير 20: any-usage
 
-**الملف:** `src\app\(auth)\register\page.tsx`:144
+**الملف:** `src\app\(admin)\admin\users\permissions\page.tsx`:202
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -213,7 +213,7 @@
 
 ### تحذير 21: any-usage
 
-**الملف:** `src\app\(auth)\register\page.tsx`:148
+**الملف:** `src\app\(auth)\register\page.tsx`:144
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -223,7 +223,7 @@
 
 ### تحذير 22: any-usage
 
-**الملف:** `src\app\(dashboard)\billing\referrals\page.tsx`:25
+**الملف:** `src\app\(auth)\register\page.tsx`:148
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -233,6 +233,16 @@
 
 ### تحذير 23: any-usage
 
+**الملف:** `src\app\(dashboard)\billing\referrals\page.tsx`:25
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 24: any-usage
+
 **الملف:** `src\app\(dashboard)\dashboard\page.tsx`:136
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
@@ -241,7 +251,17 @@
 
 ---
 
-### تحذير 24: console-usage
+### تحذير 25: any-usage
+
+**الملف:** `src\app\(dashboard)\dashboard\page.tsx`:469
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 26: console-usage
 
 **الملف:** `src\app\(dashboard)\dashboard\page.tsx`:146
 
@@ -251,7 +271,27 @@
 
 ---
 
-### تحذير 25: console-usage
+### تحذير 27: console-usage
+
+**الملف:** `src\app\(dashboard)\progress\page.tsx`:123
+
+**الرسالة:** استخدام console.warn في الكود
+
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
+
+---
+
+### تحذير 28: console-usage
+
+**الملف:** `src\app\(dashboard)\progress\page.tsx`:136
+
+**الرسالة:** استخدام console.warn في الكود
+
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
+
+---
+
+### تحذير 29: console-usage
 
 **الملف:** `src\app\(dashboard)\settings\security\logs\page.tsx`:65
 
@@ -261,7 +301,7 @@
 
 ---
 
-### تحذير 26: any-usage
+### تحذير 30: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\QuickActionButton.tsx`:47
 
@@ -271,7 +311,7 @@
 
 ---
 
-### تحذير 27: any-usage
+### تحذير 31: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\StudySessionsHistory.tsx`:1020
 
@@ -281,7 +321,7 @@
 
 ---
 
-### تحذير 28: any-usage
+### تحذير 32: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\TaskManagement.tsx`:336
 
@@ -291,7 +331,7 @@
 
 ---
 
-### تحذير 29: any-usage
+### تحذير 33: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\TaskManagement.tsx`:785
 
@@ -301,7 +341,7 @@
 
 ---
 
-### تحذير 30: any-usage
+### تحذير 34: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\TaskManagement.tsx`:833
 
@@ -311,7 +351,7 @@
 
 ---
 
-### تحذير 31: any-usage
+### تحذير 35: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\WeeklySchedule.tsx`:165
 
@@ -321,7 +361,7 @@
 
 ---
 
-### تحذير 32: any-usage
+### تحذير 36: any-usage
 
 **الملف:** `src\app\(dashboard)\time\components\WeeklySchedule.tsx`:166
 
@@ -331,7 +371,7 @@
 
 ---
 
-### تحذير 33: console-usage
+### تحذير 37: console-usage
 
 **الملف:** `src\app\(dashboard)\time\page.tsx`:84
 
@@ -341,7 +381,7 @@
 
 ---
 
-### تحذير 34: console-usage
+### تحذير 38: console-usage
 
 **الملف:** `src\app\(education)\certificates\[id]\page.tsx`:29
 
@@ -351,7 +391,7 @@
 
 ---
 
-### تحذير 35: any-usage
+### تحذير 39: any-usage
 
 **الملف:** `src\app\(education)\courses\[id]\checkout\page.tsx`:265
 
@@ -361,7 +401,7 @@
 
 ---
 
-### تحذير 36: console-usage
+### تحذير 40: console-usage
 
 **الملف:** `src\app\(education)\courses\[id]\checkout\page.tsx`:73
 
@@ -371,7 +411,7 @@
 
 ---
 
-### تحذير 37: console-usage
+### تحذير 41: console-usage
 
 **الملف:** `src\app\(education)\courses\[id]\checkout\page.tsx`:118
 
@@ -381,49 +421,9 @@
 
 ---
 
-### تحذير 38: any-usage
-
-**الملف:** `src\app\(education)\tips\page.tsx`:61
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 39: any-usage
-
-**الملف:** `src\app\(education)\tips\page.tsx`:62
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 40: any-usage
-
-**الملف:** `src\app\(education)\tips\page.tsx`:63
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 41: any-usage
-
-**الملف:** `src\app\(education)\tips\page.tsx`:64
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
 ### تحذير 42: any-usage
 
-**الملف:** `src\app\components\home\constants.tsx`:9
+**الملف:** `src\app\(education)\courses\[id]\page.tsx`:184
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -433,7 +433,7 @@
 
 ### تحذير 43: any-usage
 
-**الملف:** `src\app\components\home\HomeClient.tsx`:65
+**الملف:** `src\app\(education)\courses\[id]\page.tsx`:204
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -443,7 +443,7 @@
 
 ### تحذير 44: any-usage
 
-**الملف:** `src\app\components\home\UserHome.tsx`:76
+**الملف:** `src\app\(education)\tips\page.tsx`:61
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -453,7 +453,7 @@
 
 ### تحذير 45: any-usage
 
-**الملف:** `src\app\components\home\UserHome.tsx`:84
+**الملف:** `src\app\(education)\tips\page.tsx`:62
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -463,7 +463,7 @@
 
 ### تحذير 46: any-usage
 
-**الملف:** `src\components\ab-testing\stats-cards.tsx`:59
+**الملف:** `src\app\(education)\tips\page.tsx`:63
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -473,7 +473,7 @@
 
 ### تحذير 47: any-usage
 
-**الملف:** `src\components\admin\courses\course-card.tsx`:37
+**الملف:** `src\app\(education)\tips\page.tsx`:64
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -481,29 +481,29 @@
 
 ---
 
-### تحذير 48: any-usage
+### تحذير 48: console-usage
 
-**الملف:** `src\components\admin\courses\course-card.tsx`:38
+**الملف:** `src\app\api\progress\summary\route.ts`:48
 
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+**الرسالة:** استخدام console.error في الكود
 
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
 
 ---
 
-### تحذير 49: any-usage
+### تحذير 49: console-usage
 
-**الملف:** `src\components\admin\courses\course-card.tsx`:39
+**الملف:** `src\app\api\progress\summary\route.ts`:63
 
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+**الرسالة:** استخدام console.error في الكود
 
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
 
 ---
 
 ### تحذير 50: any-usage
 
-**الملف:** `src\components\admin\courses\course-card.tsx`:40
+**الملف:** `src\app\components\home\constants.tsx`:9
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -513,7 +513,7 @@
 
 ### تحذير 51: any-usage
 
-**الملف:** `src\components\admin\courses\course-card.tsx`:41
+**الملف:** `src\app\components\home\HomeClient.tsx`:65
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -523,7 +523,7 @@
 
 ### تحذير 52: any-usage
 
-**الملف:** `src\components\admin\dashboard\system-pulse.tsx`:11
+**الملف:** `src\app\components\home\UserHome.tsx`:76
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -533,7 +533,7 @@
 
 ### تحذير 53: any-usage
 
-**الملف:** `src\components\admin\dashboard\widgets.tsx`:220
+**الملف:** `src\app\components\home\UserHome.tsx`:84
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -541,19 +541,19 @@
 
 ---
 
-### تحذير 54: any-usage
+### تحذير 54: console-usage
 
-**الملف:** `src\components\admin\layout\admin-sidebar.tsx`:426
+**الملف:** `src\app\grpc-demo\page.tsx`:18
 
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+**الرسالة:** استخدام console.error في الكود
 
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
 
 ---
 
 ### تحذير 55: any-usage
 
-**الملف:** `src\components\admin\layout\admin-sidebar.tsx`:433
+**الملف:** `src\components\ab-testing\stats-cards.tsx`:59
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -563,7 +563,7 @@
 
 ### تحذير 56: any-usage
 
-**الملف:** `src\components\admin\royal-call\index.tsx`:24
+**الملف:** `src\components\admin\courses\course-card.tsx`:37
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -573,7 +573,7 @@
 
 ### تحذير 57: any-usage
 
-**الملف:** `src\components\admin\royal-call\index.tsx`:48
+**الملف:** `src\components\admin\courses\course-card.tsx`:38
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -583,7 +583,7 @@
 
 ### تحذير 58: any-usage
 
-**الملف:** `src\components\admin\royal-call\index.tsx`:356
+**الملف:** `src\components\admin\courses\course-card.tsx`:39
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -593,7 +593,7 @@
 
 ### تحذير 59: any-usage
 
-**الملف:** `src\components\admin\royal-call\royal-editor.tsx`:15
+**الملف:** `src\components\admin\courses\course-card.tsx`:40
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -603,7 +603,7 @@
 
 ### تحذير 60: any-usage
 
-**الملف:** `src\components\admin\royal-call\royal-preview.tsx`:88
+**الملف:** `src\components\admin\courses\course-card.tsx`:41
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -613,7 +613,7 @@
 
 ### تحذير 61: any-usage
 
-**الملف:** `src\components\admin\royal-call\types.ts`:11
+**الملف:** `src\components\admin\dashboard\system-pulse.tsx`:11
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -623,7 +623,7 @@
 
 ### تحذير 62: any-usage
 
-**الملف:** `src\components\admin\ui\data-table.tsx`:46
+**الملف:** `src\components\admin\dashboard\widgets.tsx`:220
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -633,7 +633,7 @@
 
 ### تحذير 63: any-usage
 
-**الملف:** `src\components\billing\SubscriptionPlans.tsx`:105
+**الملف:** `src\components\admin\layout\admin-sidebar.tsx`:426
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -643,7 +643,7 @@
 
 ### تحذير 64: any-usage
 
-**الملف:** `src\components\billing\SubscriptionPlans.tsx`:141
+**الملف:** `src\components\admin\layout\admin-sidebar.tsx`:433
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -653,7 +653,7 @@
 
 ### تحذير 65: any-usage
 
-**الملف:** `src\components\billing\SubscriptionPlans.tsx`:180
+**الملف:** `src\components\admin\royal-call\index.tsx`:24
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -663,7 +663,7 @@
 
 ### تحذير 66: any-usage
 
-**الملف:** `src\components\billing\WalletDashboard.tsx`:68
+**الملف:** `src\components\admin\royal-call\index.tsx`:48
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -673,7 +673,7 @@
 
 ### تحذير 67: any-usage
 
-**الملف:** `src\components\billing\WalletDashboard.tsx`:272
+**الملف:** `src\components\admin\royal-call\index.tsx`:356
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -683,7 +683,7 @@
 
 ### تحذير 68: any-usage
 
-**الملف:** `src\components\examples\ContactFormExample.tsx`:42
+**الملف:** `src\components\admin\royal-call\royal-editor.tsx`:15
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -693,7 +693,7 @@
 
 ### تحذير 69: any-usage
 
-**الملف:** `src\components\header\ActivityWidget.tsx`:45
+**الملف:** `src\components\admin\royal-call\royal-preview.tsx`:88
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -703,7 +703,7 @@
 
 ### تحذير 70: any-usage
 
-**الملف:** `src\components\header\CommandPalette.tsx`:66
+**الملف:** `src\components\admin\royal-call\types.ts`:11
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -713,7 +713,7 @@
 
 ### تحذير 71: any-usage
 
-**الملف:** `src\components\header\CommandPalette.tsx`:78
+**الملف:** `src\components\admin\ui\data-table.tsx`:46
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -723,7 +723,7 @@
 
 ### تحذير 72: any-usage
 
-**الملف:** `src\components\header\CommandPalette.tsx`:84
+**الملف:** `src\components\billing\SubscriptionPlans.tsx`:105
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -733,7 +733,7 @@
 
 ### تحذير 73: any-usage
 
-**الملف:** `src\components\header\CommandPalette.tsx`:91
+**الملف:** `src\components\billing\SubscriptionPlans.tsx`:135
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -743,7 +743,7 @@
 
 ### تحذير 74: any-usage
 
-**الملف:** `src\components\header\Header.tsx`:241
+**الملف:** `src\components\billing\SubscriptionPlans.tsx`:168
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -753,7 +753,7 @@
 
 ### تحذير 75: any-usage
 
-**الملف:** `src\components\header\Header.tsx`:299
+**الملف:** `src\components\billing\WalletDashboard.tsx`:69
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -763,7 +763,7 @@
 
 ### تحذير 76: any-usage
 
-**الملف:** `src\components\header\ProgressIndicator.tsx`:23
+**الملف:** `src\components\billing\WalletDashboard.tsx`:261
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -773,7 +773,7 @@
 
 ### تحذير 77: any-usage
 
-**الملف:** `src\components\header\QuickActions.tsx`:44
+**الملف:** `src\components\examples\ContactFormExample.tsx`:42
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -783,7 +783,7 @@
 
 ### تحذير 78: any-usage
 
-**الملف:** `src\components\header\SmartNavigationSuggestions.tsx`:40
+**الملف:** `src\components\header\ActivityWidget.tsx`:43
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -793,7 +793,7 @@
 
 ### تحذير 79: any-usage
 
-**الملف:** `src\components\header\UserMenu.tsx`:126
+**الملف:** `src\components\header\ActivityWidget.tsx`:98
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -803,7 +803,7 @@
 
 ### تحذير 80: any-usage
 
-**الملف:** `src\components\header\UserMenu.tsx`:128
+**الملف:** `src\components\header\CommandPalette.tsx`:66
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -813,7 +813,7 @@
 
 ### تحذير 81: any-usage
 
-**الملف:** `src\components\library\book-progress.tsx`:82
+**الملف:** `src\components\header\CommandPalette.tsx`:78
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -821,19 +821,19 @@
 
 ---
 
-### تحذير 82: console-usage
+### تحذير 82: any-usage
 
-**الملف:** `src\components\library\book-progress.tsx`:269
+**الملف:** `src\components\header\CommandPalette.tsx`:84
 
-**الرسالة:** استخدام console.error في الكود
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
-**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
 
 ---
 
 ### تحذير 83: any-usage
 
-**الملف:** `src\components\library\book-reviews.tsx`:106
+**الملف:** `src\components\header\CommandPalette.tsx`:91
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -843,7 +843,7 @@
 
 ### تحذير 84: any-usage
 
-**الملف:** `src\components\library\LibraryFilters.tsx`:14
+**الملف:** `src\components\header\Header.tsx`:240
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -853,7 +853,7 @@
 
 ### تحذير 85: any-usage
 
-**الملف:** `src\components\mega-menu\MegaMenuContent.tsx`:287
+**الملف:** `src\components\header\Header.tsx`:298
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -863,7 +863,7 @@
 
 ### تحذير 86: any-usage
 
-**الملف:** `src\components\ui\button.tsx`:11
+**الملف:** `src\components\header\ProgressIndicator.tsx`:23
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -873,7 +873,7 @@
 
 ### تحذير 87: any-usage
 
-**الملف:** `src\components\ui\button.tsx`:15
+**الملف:** `src\components\header\QuickActions.tsx`:44
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -883,7 +883,7 @@
 
 ### تحذير 88: any-usage
 
-**الملف:** `src\components\ui\button.tsx`:26
+**الملف:** `src\components\header\SmartNavigationSuggestions.tsx`:40
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -893,7 +893,7 @@
 
 ### تحذير 89: any-usage
 
-**الملف:** `src\components\video\CourseVideoPlayer.bak.tsx`:418
+**الملف:** `src\components\header\UserMenu.tsx`:126
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -901,9 +901,29 @@
 
 ---
 
-### تحذير 90: console-usage
+### تحذير 90: any-usage
 
-**الملف:** `src\components\video\player\hooks\useFrameCapture.ts`:50
+**الملف:** `src\components\header\UserMenu.tsx`:128
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 91: any-usage
+
+**الملف:** `src\components\library\book-progress.tsx`:82
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 92: console-usage
+
+**الملف:** `src\components\library\book-progress.tsx`:269
 
 **الرسالة:** استخدام console.error في الكود
 
@@ -911,29 +931,9 @@
 
 ---
 
-### تحذير 91: any-usage
-
-**الملف:** `src\hooks\use-efficiency.ts`:34
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 92: any-usage
-
-**الملف:** `src\hooks\use-global-settings.ts`:103
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
 ### تحذير 93: any-usage
 
-**الملف:** `src\hooks\use-premium-sounds.ts`:12
+**الملف:** `src\components\library\book-reviews.tsx`:106
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -943,7 +943,7 @@
 
 ### تحذير 94: any-usage
 
-**الملف:** `src\hooks\use-premium-sounds.ts`:100
+**الملف:** `src\components\library\LibraryFilters.tsx`:14
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -953,7 +953,7 @@
 
 ### تحذير 95: any-usage
 
-**الملف:** `src\hydration-fix.tsx`:52
+**الملف:** `src\components\mega-menu\MegaMenuContent.tsx`:287
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -963,7 +963,7 @@
 
 ### تحذير 96: any-usage
 
-**الملف:** `src\hydration-fix.tsx`:69
+**الملف:** `src\components\ui\button.tsx`:11
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -973,7 +973,7 @@
 
 ### تحذير 97: any-usage
 
-**الملف:** `src\hydration-fix.tsx`:86
+**الملف:** `src\components\ui\button.tsx`:15
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -983,7 +983,7 @@
 
 ### تحذير 98: any-usage
 
-**الملف:** `src\hydration-fix.tsx`:103
+**الملف:** `src\components\ui\button.tsx`:26
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -991,7 +991,57 @@
 
 ---
 
-### تحذير 99: any-usage
+### تحذير 99: console-usage
+
+**الملف:** `src\components\video\player\hooks\useFrameCapture.ts`:50
+
+**الرسالة:** استخدام console.error في الكود
+
+**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
+
+---
+
+### تحذير 100: any-usage
+
+**الملف:** `src\hooks\use-efficiency.ts`:34
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 101: any-usage
+
+**الملف:** `src\hooks\use-global-settings.ts`:105
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 102: any-usage
+
+**الملف:** `src\hooks\use-premium-sounds.ts`:12
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 103: any-usage
+
+**الملف:** `src\hooks\use-premium-sounds.ts`:100
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 104: any-usage
 
 **الملف:** `src\instrumentation.ts`:15
 
@@ -1001,7 +1051,7 @@
 
 ---
 
-### تحذير 100: console-usage
+### تحذير 105: console-usage
 
 **الملف:** `src\instrumentation.ts`:61
 
@@ -1011,7 +1061,7 @@
 
 ---
 
-### تحذير 101: console-usage
+### تحذير 106: console-usage
 
 **الملف:** `src\instrumentation.ts`:62
 
@@ -1021,7 +1071,7 @@
 
 ---
 
-### تحذير 102: console-usage
+### تحذير 107: console-usage
 
 **الملف:** `src\instrumentation.ts`:64
 
@@ -1031,7 +1081,7 @@
 
 ---
 
-### تحذير 103: console-usage
+### تحذير 108: console-usage
 
 **الملف:** `src\instrumentation.ts`:69
 
@@ -1041,117 +1091,7 @@
 
 ---
 
-### تحذير 104: any-usage
-
-**الملف:** `src\lib\ai\ai-service.ts`:64
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 105: any-usage
-
-**الملف:** `src\lib\ai\ai-service.ts`:137
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 106: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:10
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 107: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:72
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 108: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:133
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
 ### تحذير 109: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:219
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 110: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:290
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 111: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:362
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 112: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:386
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 113: any-usage
-
-**الملف:** `src\lib\ai\content-generation.ts`:399
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 114: any-usage
-
-**الملف:** `src\lib\api-cache.ts`:30
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 115: any-usage
 
 **الملف:** `src\lib\cache.ts`:42
 
@@ -1161,287 +1101,7 @@
 
 ---
 
-### تحذير 116: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:5
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 117: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:39
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 118: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:41
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 119: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:43
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 120: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:45
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 121: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:46
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 122: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:52
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 123: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:73
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 124: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:75
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 125: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:81
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 126: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:99
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 127: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:116
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 128: any-usage
-
-**الملف:** `src\lib\courses\advanced-course-service.ts`:122
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 129: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:179
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 130: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:214
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 131: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:372
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 132: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:379
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 133: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:381
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 134: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:383
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 135: any-usage
-
-**الملف:** `src\lib\courses\course-integration-service.ts`:430
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 136: any-usage
-
-**الملف:** `src\lib\courses\course-service.ts`:225
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 137: any-usage
-
-**الملف:** `src\lib\courses\course-service.ts`:283
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 138: any-usage
-
-**الملف:** `src\lib\educational-cache-service.ts`:43
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 139: any-usage
-
-**الملف:** `src\lib\error-handler.ts`:28
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 140: any-usage
-
-**الملف:** `src\lib\error-handler.ts`:50
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 141: any-usage
-
-**الملف:** `src\lib\error-handler.ts`:84
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 142: any-usage
-
-**الملف:** `src\lib\error-handler.ts`:85
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 143: any-usage
-
-**الملف:** `src\lib\error-handler.ts`:103
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 144: any-usage
+### تحذير 110: any-usage
 
 **الملف:** `src\lib\logging\correlation.ts`:25
 
@@ -1451,7 +1111,7 @@
 
 ---
 
-### تحذير 145: any-usage
+### تحذير 111: any-usage
 
 **الملف:** `src\lib\logging\elk-logger.ts`:61
 
@@ -1461,7 +1121,7 @@
 
 ---
 
-### تحذير 146: any-usage
+### تحذير 112: any-usage
 
 **الملف:** `src\lib\logging\elk-logger.ts`:75
 
@@ -1471,7 +1131,7 @@
 
 ---
 
-### تحذير 147: any-usage
+### تحذير 113: any-usage
 
 **الملف:** `src\lib\logging\error-service.ts`:223
 
@@ -1481,7 +1141,7 @@
 
 ---
 
-### تحذير 148: any-usage
+### تحذير 114: any-usage
 
 **الملف:** `src\lib\logging\error-service.ts`:239
 
@@ -1491,19 +1151,9 @@
 
 ---
 
-### تحذير 149: any-usage
+### تحذير 115: any-usage
 
-**الملف:** `src\lib\logging\unified-logger.ts`:50
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 150: any-usage
-
-**الملف:** `src\lib\logging\unified-logger.ts`:59
+**الملف:** `src\lib\logging\sanitizer.ts`:70
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -1511,9 +1161,9 @@
 
 ---
 
-### تحذير 151: any-usage
+### تحذير 116: any-usage
 
-**الملف:** `src\lib\logging\unified-logger.ts`:67
+**الملف:** `src\lib\logging\sanitizer.ts`:86
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -1521,7 +1171,67 @@
 
 ---
 
-### تحذير 152: any-usage
+### تحذير 117: any-usage
+
+**الملف:** `src\lib\logging\sanitizer.ts`:108
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 118: any-usage
+
+**الملف:** `src\lib\logging\sanitizer.ts`:138
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 119: any-usage
+
+**الملف:** `src\lib\logging\sanitizer.ts`:154
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 120: any-usage
+
+**الملف:** `src\lib\logging\unified-logger.ts`:51
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 121: any-usage
+
+**الملف:** `src\lib\logging\unified-logger.ts`:60
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 122: any-usage
+
+**الملف:** `src\lib\logging\unified-logger.ts`:68
+
+**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
+
+**الوصف:** استخدام `any` يقلل من فائدة TypeScript
+
+---
+
+### تحذير 123: any-usage
 
 **الملف:** `src\lib\logging\unified-logger.ts`:108
 
@@ -1531,7 +1241,7 @@
 
 ---
 
-### تحذير 153: any-usage
+### تحذير 124: any-usage
 
 **الملف:** `src\lib\logging\unified-logger.ts`:109
 
@@ -1541,29 +1251,9 @@
 
 ---
 
-### تحذير 154: console-usage
+### تحذير 125: console-usage
 
-**الملف:** `src\lib\logging\unified-logger.ts`:286
-
-**الرسالة:** استخدام console.warn في الكود
-
-**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
-
----
-
-### تحذير 155: console-usage
-
-**الملف:** `src\lib\logging\unified-logger.ts`:289
-
-**الرسالة:** استخدام console.error في الكود
-
-**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
-
----
-
-### تحذير 156: console-usage
-
-**الملف:** `src\lib\logging\unified-logger.ts`:305
+**الملف:** `src\lib\logging\unified-logger.ts`:295
 
 **الرسالة:** استخدام console.warn في الكود
 
@@ -1571,9 +1261,9 @@
 
 ---
 
-### تحذير 157: console-usage
+### تحذير 126: console-usage
 
-**الملف:** `src\lib\logging\unified-logger.ts`:308
+**الملف:** `src\lib\logging\unified-logger.ts`:298
 
 **الرسالة:** استخدام console.error في الكود
 
@@ -1581,49 +1271,9 @@
 
 ---
 
-### تحذير 158: any-usage
+### تحذير 127: console-usage
 
-**الملف:** `src\lib\paymob.ts`:52
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 159: any-usage
-
-**الملف:** `src\lib\paymob.ts`:79
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 160: any-usage
-
-**الملف:** `src\lib\paymob.ts`:132
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 161: any-usage
-
-**الملف:** `src\lib\paymob.ts`:142
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 162: console-usage
-
-**الملف:** `src\lib\perf-config.ts`:27
+**الملف:** `src\lib\logging\unified-logger.ts`:314
 
 **الرسالة:** استخدام console.warn في الكود
 
@@ -1631,19 +1281,9 @@
 
 ---
 
-### تحذير 163: console-usage
+### تحذير 128: console-usage
 
-**الملف:** `src\lib\perf-config.ts`:28
-
-**الرسالة:** استخدام console.warn في الكود
-
-**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
-
----
-
-### تحذير 164: console-usage
-
-**الملف:** `src\lib\perf-config.ts`:32
+**الملف:** `src\lib\logging\unified-logger.ts`:317
 
 **الرسالة:** استخدام console.error في الكود
 
@@ -1651,19 +1291,9 @@
 
 ---
 
-### تحذير 165: console-usage
+### تحذير 129: any-usage
 
-**الملف:** `src\lib\perf-config.ts`:33
-
-**الرسالة:** استخدام console.error في الكود
-
-**الوصف:** يجب استخدام logger بدلاً من console في الكود الإنتاجي
-
----
-
-### تحذير 166: any-usage
-
-**الملف:** `src\lib\queue\bullmq.ts`:82
+**الملف:** `src\lib\queue\bullmq.ts`:112
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -1671,19 +1301,9 @@
 
 ---
 
-### تحذير 167: any-usage
+### تحذير 130: any-usage
 
-**الملف:** `src\lib\queue\bullmq.ts`:102
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 168: any-usage
-
-**الملف:** `src\lib\rate-limit-unified.ts`:98
+**الملف:** `src\lib\queue\bullmq.ts`:132
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -1691,209 +1311,9 @@
 
 ---
 
-### تحذير 169: any-usage
+### تحذير 131: any-usage
 
-**الملف:** `src\lib\rate-limit-unified.ts`:99
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 170: any-usage
-
-**الملف:** `src\lib\rate-limit-unified.ts`:150
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 171: any-usage
-
-**الملف:** `src\lib\server-data-fetch.ts`:83
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 172: any-usage
-
-**الملف:** `src\lib\server-data-fetch.ts`:89
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 173: any-usage
-
-**الملف:** `src\lib\server-data-fetch.ts`:94
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 174: any-usage
-
-**الملف:** `src\lib\server-data-fetch.ts`:117
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 175: any-usage
-
-**الملف:** `src\lib\server-data-fetch.ts`:132
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 176: any-usage
-
-**الملف:** `src\lib\settings-initializer.ts`:29
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 177: any-usage
-
-**الملف:** `src\lib\settings-initializer.ts`:30
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 178: any-usage
-
-**الملف:** `src\middleware.ts`:90
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 179: any-usage
-
-**الملف:** `src\modules\gamification\gamification.worker.ts`:11
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 180: any-usage
-
-**الملف:** `src\modules\gamification\xp.repository.ts`:21
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 181: any-usage
-
-**الملف:** `src\modules\gamification\xp.repository.ts`:43
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 182: any-usage
-
-**الملف:** `src\modules\gamification\xp.repository.ts`:47
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 183: any-usage
-
-**الملف:** `src\modules\gamification\xp.repository.ts`:64
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 184: any-usage
-
-**الملف:** `src\modules\gamification\xp.service.ts`:28
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 185: any-usage
-
-**الملف:** `src\modules\gamification\xp.service.ts`:81
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 186: any-usage
-
-**الملف:** `src\modules\progress\progress.service.ts`:95
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 187: any-usage
-
-**الملف:** `src\modules\progress\progress.service.ts`:98
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 188: any-usage
-
-**الملف:** `src\modules\progress\progress.service.ts`:103
-
-**الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
-
-**الوصف:** استخدام `any` يقلل من فائدة TypeScript
-
----
-
-### تحذير 189: any-usage
-
-**الملف:** `src\modules\progress\progress.service.ts`:105
+**الملف:** `src\middleware.ts`:96
 
 **الرسالة:** استخدام `any` type - يجب استبداله بنوع محدد
 
@@ -1903,62 +1323,19 @@
 
 ## 📂 الأخطاء حسب الملف
 
-### src\lib\courses\advanced-course-service.ts
-
-**عدد الأخطاء:** 13 (0 حرج, 13 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 5)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 39)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 41)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 43)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 45)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 46)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 52)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 73)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 75)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 81)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 99)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 116)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 122)
-
 ### src\lib\logging\unified-logger.ts
 
 **عدد الأخطاء:** 9 (0 حرج, 9 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 50)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 59)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 67)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 51)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 60)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 68)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 108)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 109)
-- [warning] **console-usage**: استخدام console.warn في الكود (السطر 286)
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 289)
-- [warning] **console-usage**: استخدام console.warn في الكود (السطر 305)
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 308)
-
-### src\lib\ai\content-generation.ts
-
-**عدد الأخطاء:** 8 (0 حرج, 8 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 10)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 72)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 133)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 219)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 290)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 362)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 386)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 399)
-
-### src\lib\courses\course-integration-service.ts
-
-**عدد الأخطاء:** 7 (0 حرج, 7 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 179)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 214)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 372)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 379)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 381)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 383)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 430)
+- [warning] **console-usage**: استخدام console.warn في الكود (السطر 295)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 298)
+- [warning] **console-usage**: استخدام console.warn في الكود (السطر 314)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 317)
 
 ### src\app\(admin)\admin\books\reviews\page.tsx
 
@@ -2002,25 +1379,15 @@
 - [warning] **console-usage**: استخدام console.error في الكود (السطر 64)
 - [warning] **console-usage**: استخدام console.warn في الكود (السطر 69)
 
-### src\lib\error-handler.ts
+### src\lib\logging\sanitizer.ts
 
 **عدد الأخطاء:** 5 (0 حرج, 5 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 28)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 50)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 84)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 85)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 103)
-
-### src\lib\server-data-fetch.ts
-
-**عدد الأخطاء:** 5 (0 حرج, 5 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 83)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 89)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 94)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 117)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 132)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 70)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 86)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 108)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 138)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 154)
 
 ### src\app\(education)\tips\page.tsx
 
@@ -2040,58 +1407,21 @@
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 84)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 91)
 
-### src\hydration-fix.tsx
-
-**عدد الأخطاء:** 4 (0 حرج, 4 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 52)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 69)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 86)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 103)
-
-### src\lib\paymob.ts
-
-**عدد الأخطاء:** 4 (0 حرج, 4 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 52)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 79)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 132)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 142)
-
-### src\lib\perf-config.ts
-
-**عدد الأخطاء:** 4 (0 حرج, 4 تحذير)
-
-- [warning] **console-usage**: استخدام console.warn في الكود (السطر 27)
-- [warning] **console-usage**: استخدام console.warn في الكود (السطر 28)
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 32)
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 33)
-
-### src\modules\gamification\xp.repository.ts
-
-**عدد الأخطاء:** 4 (0 حرج, 4 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 21)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 43)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 47)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 64)
-
-### src\modules\progress\progress.service.ts
-
-**عدد الأخطاء:** 4 (0 حرج, 4 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 95)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 98)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 103)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 105)
-
 ### src\app\(admin)\admin\live\page.tsx
 
 **عدد الأخطاء:** 3 (0 حرج, 3 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 84)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 172)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 226)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 85)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 173)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 227)
+
+### src\app\(dashboard)\dashboard\page.tsx
+
+**عدد الأخطاء:** 3 (0 حرج, 3 تحذير)
+
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 136)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 469)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 146)
 
 ### src\app\(dashboard)\time\components\TaskManagement.tsx
 
@@ -2122,8 +1452,8 @@
 **عدد الأخطاء:** 3 (0 حرج, 3 تحذير)
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 105)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 141)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 180)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 135)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 168)
 
 ### src\components\ui\button.tsx
 
@@ -2132,14 +1462,6 @@
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 11)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 15)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 26)
-
-### src\lib\rate-limit-unified.ts
-
-**عدد الأخطاء:** 3 (0 حرج, 3 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 98)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 99)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 150)
 
 ### src\app\(admin)\admin\books\page.tsx
 
@@ -2155,12 +1477,12 @@
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 144)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 148)
 
-### src\app\(dashboard)\dashboard\page.tsx
+### src\app\(dashboard)\progress\page.tsx
 
 **عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 136)
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 146)
+- [warning] **console-usage**: استخدام console.warn في الكود (السطر 123)
+- [warning] **console-usage**: استخدام console.warn في الكود (السطر 136)
 
 ### src\app\(dashboard)\time\components\WeeklySchedule.tsx
 
@@ -2168,6 +1490,20 @@
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 165)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 166)
+
+### src\app\(education)\courses\[id]\page.tsx
+
+**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
+
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 184)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 204)
+
+### src\app\api\progress\summary\route.ts
+
+**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
+
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 48)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 63)
 
 ### src\app\components\home\UserHome.tsx
 
@@ -2187,15 +1523,22 @@
 
 **عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 68)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 272)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 69)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 261)
+
+### src\components\header\ActivityWidget.tsx
+
+**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
+
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 43)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 98)
 
 ### src\components\header\Header.tsx
 
 **عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 241)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 299)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 240)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 298)
 
 ### src\components\header\UserMenu.tsx
 
@@ -2218,20 +1561,6 @@
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 12)
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 100)
 
-### src\lib\ai\ai-service.ts
-
-**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 64)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 137)
-
-### src\lib\courses\course-service.ts
-
-**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 225)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 283)
-
 ### src\lib\logging\elk-logger.ts
 
 **عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
@@ -2250,34 +1579,26 @@
 
 **عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 82)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 102)
-
-### src\lib\settings-initializer.ts
-
-**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 29)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 30)
-
-### src\modules\gamification\xp.service.ts
-
-**عدد الأخطاء:** 2 (0 حرج, 2 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 28)
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 81)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 112)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 132)
 
 ### src\app\(admin)\admin\page.tsx
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
 
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 153)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 181)
 
 ### src\app\(admin)\admin\users\page.tsx
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
 
-- [warning] **console-usage**: استخدام console.error في الكود (السطر 103)
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 104)
+
+### src\app\(admin)\admin\users\permissions\page.tsx
+
+**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
+
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 202)
 
 ### src\app\(dashboard)\billing\referrals\page.tsx
 
@@ -2327,6 +1648,12 @@
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 65)
 
+### src\app\grpc-demo\page.tsx
+
+**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
+
+- [warning] **console-usage**: استخدام console.error في الكود (السطر 18)
+
 ### src\components\ab-testing\stats-cards.tsx
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
@@ -2375,12 +1702,6 @@
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 42)
 
-### src\components\header\ActivityWidget.tsx
-
-**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 45)
-
 ### src\components\header\ProgressIndicator.tsx
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
@@ -2417,12 +1738,6 @@
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 287)
 
-### src\components\video\CourseVideoPlayer.bak.tsx
-
-**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 418)
-
 ### src\components\video\player\hooks\useFrameCapture.ts
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
@@ -2439,25 +1754,13 @@
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 103)
-
-### src\lib\api-cache.ts
-
-**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 30)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 105)
 
 ### src\lib\cache.ts
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
 
 - [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 42)
-
-### src\lib\educational-cache-service.ts
-
-**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 43)
 
 ### src\lib\logging\correlation.ts
 
@@ -2469,16 +1772,10 @@
 
 **عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
 
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 90)
-
-### src\modules\gamification\gamification.worker.ts
-
-**عدد الأخطاء:** 1 (0 حرج, 1 تحذير)
-
-- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 11)
+- [warning] **any-usage**: استخدام `any` type - يجب استبداله بنوع محدد (السطر 96)
 
 
 ---
 
 **تم إنشاء التقرير بواسطة:** Comprehensive Error Check Script
-**التاريخ:** ٢٧‏/٤‏/٢٠٢٦، ٤:٥٩:٥٨ ص
+**التاريخ:** ٢٨‏/٤‏/٢٠٢٦، ٥:٥٧:٠١ ص

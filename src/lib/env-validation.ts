@@ -17,7 +17,7 @@ const REQUIRED_ENV_VARS = {
 
 const MIN_JWT_SECRET_LENGTH = 32;
 
-export interface EnvValidationResult {
+interface EnvValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -66,7 +66,7 @@ function validateJWTSecret(): {valid: boolean;error?: string;} {
 /**
  * Validate all environment variables
  */
-export function validateEnvironment(): EnvValidationResult {
+function validateEnvironment(): EnvValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
   const isProduction = process.env.NODE_ENV === 'production';
@@ -137,7 +137,7 @@ export function validateEnvironment(): EnvValidationResult {
  * @throws Error if JWT_SECRET is missing, unsafe, or too short
  * @returns Validated JWT_SECRET string
  */
-export function getJWTSecret(): string {
+function getJWTSecret(): string {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Security: NO FALLBACK VALUES ALLOWED

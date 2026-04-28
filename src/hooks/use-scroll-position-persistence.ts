@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 
-export function useScrollPositionPersistence() {
+function useScrollPositionPersistence() {
   const saveScrollPosition = useCallback((key: string, position: number) => {
     try {
       localStorage.setItem(`scroll:${key}`, String(position));

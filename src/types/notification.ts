@@ -1,6 +1,6 @@
 ﻿import { DateString } from './api/common';
 
-export type UINotificationType = 'info' | 'success' | 'warning' | 'error';
+type UINotificationType = 'info' | 'success' | 'warning' | 'error';
 
 export interface Notification {
   id: string;
@@ -18,7 +18,7 @@ export interface Notification {
   time?: string;
 }
 
-export interface NotificationTemplate {
+interface NotificationTemplate {
   title: string;
   message: string;
   type: UINotificationType;
@@ -26,7 +26,7 @@ export interface NotificationTemplate {
   icon?: string;
 }
 
-export interface NotificationPayload {
+interface NotificationPayload {
   title: string;
   message: string;
   type: UINotificationType;

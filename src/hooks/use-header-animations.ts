@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useMemo } from "react";
 
 // Optimized animation presets for smooth header animations
-export const headerAnimations = {
+const headerAnimations = {
     // Smooth enter/exit for dropdowns
     dropdown: {
         initial: { opacity: 0, y: -8, scale: 0.96 },
@@ -185,7 +185,7 @@ export function useHeaderAnimations() {
 }
 
 // Animation utility functions
-export const animationUtils = {
+const animationUtils = {
     // Create spring transition with custom settings
     createSpring: (stiffness = 400, damping = 30, mass = 0.8) => ({
         type: "spring" as const,
@@ -216,4 +216,4 @@ export const animationUtils = {
     },
 };
 
-export default headerAnimations;
+

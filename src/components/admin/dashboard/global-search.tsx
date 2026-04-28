@@ -48,7 +48,7 @@ export function GlobalSearch({
 }
 
 // Search button for sidebar/header
-export function GlobalSearchButton({
+function GlobalSearchButton({
   onClick,
   className,
 }: {

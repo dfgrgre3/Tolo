@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -117,24 +117,25 @@ export function SmartNavigationSuggestions() {
     return () => window.removeEventListener("popstate", handleNavigation);
   }, [mounted, user]);
 
-  const handleSuggestionClick = (suggestion: NavigationSuggestion) => {
+  const handleSuggestionClick = useCallback((suggestion: NavigationSuggestion) => {
     router.push(suggestion.href);
     setIsOpen(false);
 
     // Track navigation
     try {
       const history = safeGetItem<NavigationPage[]>("navigation_history", { fallback: [] });
+      const now = Date.now();
       const updated = [
-      { path: suggestion.href, label: suggestion.label, timestamp: Date.now() },
+      { path: suggestion.href, label: suggestion.label, timestamp: now },
       ...(Array.isArray(history) ? history : []).filter(
         (item: NavigationPage) => item.path !== suggestion.href
       )].
       slice(0, 10);
       localStorage.setItem("navigation_history", JSON.stringify(updated));
     } catch (_e) {
-
       // Ignore
-    }};
+    }
+  }, [router]);
 
   const groupedSuggestions = useMemo(() => {
     const groups: Record<string, NavigationSuggestion[]> = {

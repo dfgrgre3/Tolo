@@ -12,9 +12,9 @@ const logger = console;
 
 // ==================== Type Definitions ====================
 
-export type StorageType = 'local' | 'session';
+type StorageType = 'local' | 'session';
 
-export interface SafeStorageOptions<T = unknown> {
+interface SafeStorageOptions<T = unknown> {
   /** قيمة افتراضية في حالة عدم توفر التخزين */
   fallback?: T;
   /** نوع التخزين */
@@ -31,7 +31,7 @@ export interface SafeStorageOptions<T = unknown> {
  * فحص ما إذا كان localStorage متاحًا
  * Check if localStorage is available
  */
-export function isLocalStorageAvailable(): boolean {
+function isLocalStorageAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const testKey = '__storage_test__';
@@ -47,7 +47,7 @@ export function isLocalStorageAvailable(): boolean {
  * فحص ما إذا كان sessionStorage متاحًا
  * Check if sessionStorage is available
  */
-export function isSessionStorageAvailable(): boolean {
+function isSessionStorageAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const testKey = '__storage_test__';
@@ -142,7 +142,7 @@ options: SafeStorageOptions<T> = {})
  * حذف قيمة من التخزين بشكل آمن
  * Safely remove a value from storage
  */
-export function safeRemoveItem(
+function safeRemoveItem(
 key: string,
 options: SafeStorageOptions = {})
 : boolean {
@@ -164,7 +164,7 @@ options: SafeStorageOptions = {})
  * مسح جميع البيانات من التخزين بشكل آمن
  * Safely clear all storage
  */
-export function safeClearStorage(storageType: StorageType = 'local'): boolean {
+function safeClearStorage(storageType: StorageType = 'local'): boolean {
   const storage = getStorage(storageType);
   if (!storage) return false;
 
@@ -187,22 +187,21 @@ export function useSafeLocalStorage<T = any>(
 key: string,
 initialValue: T)
 : [T, (value: T | ((prev: T) => T)) => void, boolean] {
-  // حالة للتحقق من تحميل المكون
-  const [mounted, setMounted] = useState(false);
-
-  // الحالة مع القيمة الأولية
+  // Use useSyncExternalStore for safe storage access
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
-  // تحميل القيمة من localStorage بعد التحميل
   useEffect(() => {
-    const mountTimer = window.setTimeout(() => setMounted(true), 0);
-    const value = safeGetItem(key, { fallback: initialValue });
-    const valueTimer = window.setTimeout(() => setStoredValue(value as T), 0);
-    return () => {
-      window.clearTimeout(mountTimer);
-      window.clearTimeout(valueTimer);
-    };
-  }, [key, initialValue]);
+    if (mounted) {
+      const value = safeGetItem(key, { fallback: initialValue });
+      setStoredValue(value as T);
+    }
+  }, [key, initialValue, mounted]);
 
   // دالة لتحديث القيمة
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
@@ -224,25 +223,26 @@ initialValue: T)
  * Hook للوصول الآمن إلى sessionStorage مع المزامنة التلقائية
  * Hook for safe sessionStorage access with automatic sync
  */
-export function useSafeSessionStorage<T = any>(
+function useSafeSessionStorage<T = any>(
 key: string,
 initialValue: T)
 : [T, (value: T | ((prev: T) => T)) => void, boolean] {
-  const [mounted, setMounted] = useState(false);
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
-    const mountTimer = window.setTimeout(() => setMounted(true), 0);
-    const value = safeGetItem(key, {
-      fallback: initialValue,
-      storageType: 'session'
-    });
-    const valueTimer = window.setTimeout(() => setStoredValue(value as T), 0);
-    return () => {
-      window.clearTimeout(mountTimer);
-      window.clearTimeout(valueTimer);
-    };
-  }, [key, initialValue]);
+    if (mounted) {
+      const value = safeGetItem(key, {
+        fallback: initialValue,
+        storageType: 'session'
+      });
+      setStoredValue(value as T);
+    }
+  }, [key, initialValue, mounted]);
 
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
     try {
@@ -272,7 +272,7 @@ export function isBrowser(): boolean {
  * الوصول الآمن إلى window
  * Safe window access
  */
-export function safeWindow<T>(
+function safeWindow<T>(
 accessor: (window: Window) => T,
 fallback: T)
 : T {
@@ -290,7 +290,7 @@ fallback: T)
  * الوصول الآمن إلى document
  * Safe document access
  */
-export function safeDocument<T>(
+function safeDocument<T>(
 accessor: (document: Document) => T,
 fallback: T)
 : T {
@@ -309,21 +309,18 @@ fallback: T)
  * Hook to check if component is mounted in browser
  */
 export function useIsMounted(): boolean {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const mountTimer = window.setTimeout(() => setMounted(true), 0);
-    return () => window.clearTimeout(mountTimer);
-  }, []);
-
-  return mounted;
+  return React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 }
 
 /**
  * Hook للحصول على حجم نافذة المتصفح
  * Hook to get browser window size
  */
-export function useWindowSize() {
+function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
     width: 0,
     height: 0
@@ -351,54 +348,29 @@ export function useWindowSize() {
  * Hook للتحقق من استعلامات الوسائط
  * Hook for media queries
  */
-export function useSafeMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const mountTimer = window.setTimeout(() => setMounted(true), 0);
-
-    if (!isBrowser()) {
-      return () => window.clearTimeout(mountTimer);
-    }
-
-    // Used for cleanup in both the try and catch paths.
-    let initialMatchTimer: number | null = null;
-
-    try {
-      const media = window.matchMedia(query);
-
-      // تعيين القيمة الأولية
-      initialMatchTimer = window.setTimeout(() => setMatches(media.matches), 0);
-
-      // الاستماع للتغييرات
-      const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
-
-      // استخدام الطريقة المناسبة حسب دعم المتصفح
-      if (media.addEventListener) {
-        media.addEventListener('change', listener);
-        return () => {
-          if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
-          window.clearTimeout(mountTimer);
-          media.removeEventListener('change', listener);
-        };
-      } else {
-        // للمتصفحات القديمة
-        media.addListener(listener);
-        return () => {
-          if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
-          window.clearTimeout(mountTimer);
-          media.removeListener(listener);
-        };
+function useSafeMediaQuery(query: string): boolean {
+  const matches = useSyncExternalStore(
+    (callback) => {
+      if (!isBrowser()) return () => {};
+      try {
+        const media = window.matchMedia(query);
+        if (media.addEventListener) {
+          media.addEventListener('change', callback);
+          return () => media.removeEventListener('change', callback);
+        } else {
+          media.addListener(callback);
+          return () => media.removeListener(callback);
+        }
+      } catch (e) {
+        logger.warn('Failed to setup media query:', e);
+        return () => {};
       }
-    } catch (e) {
-      logger.warn('Failed to setup media query:', e);
-      return () => {
-        if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
-        window.clearTimeout(mountTimer);
-      };
-    }
-  }, [query]);
+    },
+    () => isBrowser() ? window.matchMedia(query).matches : false,
+    () => false
+  );
+
+  const mounted = useIsMounted();
 
   // إرجاع false قبل التحميل لتجنب مشاكل الهايدريشن
   return mounted ? matches : false;
@@ -410,7 +382,7 @@ export function useSafeMediaQuery(query: string): boolean {
  * Hook لإضافة مستمع أحداث بشكل آمن
  * Hook to safely add event listener
  */
-export function useSafeEventListener<K extends keyof WindowEventMap>(
+function useSafeEventListener<K extends keyof WindowEventMap>(
 eventName: K,
 handler: (event: WindowEventMap[K]) => void,
 element?: HTMLElement | Window | null)
@@ -465,7 +437,8 @@ function isHtmlContent(text: string): boolean {
 function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
-  const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+  const isBrowserEnv = typeof window !== 'undefined';
+  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
   if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
   if (url.includes('/auth/')) return false;
   return true;
@@ -473,11 +446,13 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 
 async function refreshAuthSession(): Promise<boolean> {
   try {
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const isBrowserEnv = typeof window !== 'undefined';
+    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    const refreshResponse = await fetch(`${BASE_API_URL}/auth/refresh`, {
+    const refreshUrl = `${BASE_API_URL.replace(/\/+$/, '')}/auth/refresh`;
+    const refreshResponse = await fetch(refreshUrl, {
       method: 'POST',
       credentials: 'include',
       signal: controller.signal
@@ -490,7 +465,7 @@ async function refreshAuthSession(): Promise<boolean> {
   }
 }
 
-export async function safeJsonParse<T = any>(
+async function safeJsonParse<T = any>(
 response: Response,
 fallback: T | null = null)
 : Promise<T | null> {
@@ -590,9 +565,10 @@ options?: RequestInit,
 fallback: T | null = null)
 : Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const isBrowser = typeof window !== 'undefined';
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
     const finalUrl = url.startsWith('/api/') 
-      ? `${BASE_API_URL}${url.substring(4)}` 
+      ? (isBrowser ? url : `${BASE_API_URL}${url.substring(4)}`) 
       : url;
 
     // Add timeout to prevent hanging requests (30 seconds)
@@ -826,4 +802,3 @@ const safeClientUtils = {
   safeFetch
 };
 
-export default safeClientUtils;

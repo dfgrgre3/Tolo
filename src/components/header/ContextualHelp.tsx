@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { HelpCircle, X, BookOpen, Video, MessageCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,14 +74,12 @@ const helpItemsByPath: Record<string, HelpItem[]> = {
 export function ContextualHelp() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [helpItems, setHelpItems] = useState<HelpItem[]>([]);
-
-  useEffect(() => {
+  const helpItems = useMemo(() => {
     // Find matching help items for current path
     const matchedPath = Object.keys(helpItemsByPath).find((path) =>
-    pathname?.startsWith(path)
+      pathname?.startsWith(path)
     );
-    setHelpItems(matchedPath ? helpItemsByPath[matchedPath] : []);
+    return matchedPath ? helpItemsByPath[matchedPath] : [];
   }, [pathname]);
 
   const getIcon = (type: string) => {

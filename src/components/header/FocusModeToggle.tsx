@@ -21,7 +21,7 @@ interface FocusModeToggleProps {
   showLabel?: boolean;
 }
 
-export const FocusModeToggle = memo(function FocusModeToggle({
+const FocusModeToggle = memo(function FocusModeToggle({
   className,
   showLabel = false
 }: FocusModeToggleProps) {
@@ -151,7 +151,7 @@ export const FocusModeToggle = memo(function FocusModeToggle({
 });
 
 // Compact focus mode indicator for minimal header
-export const FocusModeIndicator = memo(function FocusModeIndicator({
+const FocusModeIndicator = memo(function FocusModeIndicator({
   className
 
 
@@ -183,4 +183,3 @@ export const FocusModeIndicator = memo(function FocusModeIndicator({
 
 });
 
-export default FocusModeToggle;

@@ -82,7 +82,7 @@ export function calculateStudyEfficiency(actualTime: number, estimatedTime: numb
 /**
  * Estimate time to complete task based on historical data
  */
-export function estimateTaskTime(
+function estimateTaskTime(
   taskTitle: string, 
   historicalData: { title: string; duration: number }[]
 ): number | null {
@@ -101,7 +101,7 @@ export function estimateTaskTime(
 /**
  * Convert minutes to human-readable format
  */
-export function minutesToHumanReadable(minutes: number): string {
+function minutesToHumanReadable(minutes: number): string {
   if (minutes < 60) {
     return `${minutes} دقيقة`;
   }
@@ -119,7 +119,7 @@ export function minutesToHumanReadable(minutes: number): string {
 /**
  * Get the closest time slot in a given time range
  */
-export function findOptimalTimeSlot(
+function findOptimalTimeSlot(
   availability: { start: string; end: string }[],
   taskDuration: number
 ): { start: string; end: string } | null {
@@ -149,7 +149,7 @@ export function findOptimalTimeSlot(
 /**
  * Calculate productivity trend over time
  */
-export function calculateProductivityTrend(
+function calculateProductivityTrend(
   sessions: { date: string; duration: number }[],
   daysBack: number = 7
 ): number {

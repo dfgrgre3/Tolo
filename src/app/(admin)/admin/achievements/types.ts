@@ -64,7 +64,7 @@ export const categoryLabels: Record<string, string> = {
   STREAK: "تتابع",
 };
 
-export const difficultyLabels: Record<string, string> = {
+const difficultyLabels: Record<string, string> = {
   EASY: "سهل",
   MEDIUM: "متوسط",
   HARD: "صعب",
@@ -72,52 +72,52 @@ export const difficultyLabels: Record<string, string> = {
 };
 
 // Utility functions
-export function getRarityLabel(rarity: string): string {
+function getRarityLabel(rarity: string): string {
   const option = rarityOptions.find(opt => opt.value === rarity);
   return option?.label || rarity;
 }
 
-export function getCategoryLabel(category: string): string {
+function getCategoryLabel(category: string): string {
   return categoryLabels[category] || category;
 }
 
-export function getDifficultyLabel(difficulty: string): string {
+function getDifficultyLabel(difficulty: string): string {
   return difficultyLabels[difficulty] || difficulty;
 }
 
-export function formatXpReward(xp: number): string {
+function formatXpReward(xp: number): string {
   return `${xp} XP`;
 }
 
-export function formatUserCount(count: number): string {
+function formatUserCount(count: number): string {
   return `${count} مستخدم`;
 }
 
-export function formatDate(dateString: string): string {
+function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("ar-EG");
 }
 
-export function getRarityOrder(rarity: string): number {
+function getRarityOrder(rarity: string): number {
   const order = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
   return order[rarity as keyof typeof order] || 0;
 }
 
-export function getDifficultyOrder(difficulty: string): number {
+function getDifficultyOrder(difficulty: string): number {
   const order = { EASY: 1, MEDIUM: 2, HARD: 3, EXPERT: 4 };
   return order[difficulty as keyof typeof order] || 0;
 }
 
 // Validation helpers
-export function validateAchievementKey(key: string): boolean {
+function validateAchievementKey(key: string): boolean {
   return /^[A-Z_]+$/.test(key);
 }
 
-export function validateXpReward(xp: number): boolean {
+function validateXpReward(xp: number): boolean {
   return Number.isInteger(xp) && xp >= 0 && xp <= 10000;
 }
 
 // Default values
-export const defaultAchievementForm = {
+const defaultAchievementForm = {
   key: "",
   title: "",
   description: "",

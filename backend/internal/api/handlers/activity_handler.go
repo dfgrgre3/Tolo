@@ -19,7 +19,7 @@ func GetTasks(c *gin.Context) {
 	}
 
 	var tasks []models.Task
-	if err := db.DB.Where("user_id = ?", userId).Find(&tasks).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
 		return
 	}
@@ -56,7 +56,7 @@ func GetStudySessions(c *gin.Context) {
 	}
 
 	var sessions []models.StudySession
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Find(&sessions).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch study sessions"})
 		return
 	}
@@ -93,7 +93,7 @@ func GetSchedule(c *gin.Context) {
 	}
 
 	var schedule models.Schedule
-	if err := db.DB.Where("user_id = ?", userId).Order("updated_at desc").First(&schedule).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"updatedAt\" desc").First(&schedule).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"planJson": "{\"timeBlocks\": []}"})
 		return
 	}
@@ -113,7 +113,7 @@ func UpdateSchedule(c *gin.Context) {
 	uid := userId.(string)
 
 	var schedule models.Schedule
-	err := db.DB.Where("user_id = ?", uid).First(&schedule).Error
+	err := db.DB.Where("\"userId\" = ?", uid).First(&schedule).Error
 	if err != nil {
 		// Create new
 		schedule = models.Schedule{
@@ -123,7 +123,7 @@ func UpdateSchedule(c *gin.Context) {
 		db.DB.Create(&schedule)
 	} else {
 		// Update existing
-		db.DB.Model(&schedule).Update("plan_json", input.PlanJson)
+		db.DB.Model(&schedule).Update("\"planJson\"", input.PlanJson)
 	}
 
 	c.JSON(http.StatusOK, schedule)
@@ -140,7 +140,7 @@ func GetReminders(c *gin.Context) {
 	}
 
 	var reminders []models.Reminder
-	if err := db.DB.Where("user_id = ?", userId).Find(&reminders).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Find(&reminders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reminders"})
 		return
 	}

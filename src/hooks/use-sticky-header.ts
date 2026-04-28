@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-export interface StickyHeaderState {
+interface StickyHeaderState {
     isScrolled: boolean;
     isShrunk: boolean;
     isHidden: boolean;
@@ -11,7 +11,7 @@ export interface StickyHeaderState {
     scrollProgress: number;
 }
 
-export interface UseStickyHeaderOptions {
+interface UseStickyHeaderOptions {
     shrinkThreshold?: number;
     hideThreshold?: number;
     showOnScrollUp?: boolean;
@@ -151,4 +151,4 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
     };
 }
 
-export default useStickyHeader;
+

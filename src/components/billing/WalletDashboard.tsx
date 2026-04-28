@@ -233,10 +233,6 @@ export default function WalletDashboard() {
   const [activeTab, setActiveTab] = useState<"activity" | "invoices">("activity");
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const walletData = await apiClient.get<any>("/billing/wallet");
@@ -250,6 +246,10 @@ export default function WalletDashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleDeposit = async (amount: number) => {
     try {

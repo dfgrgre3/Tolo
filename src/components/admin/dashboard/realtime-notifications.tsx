@@ -321,7 +321,7 @@ interface NotificationBadgeProps {
   className?: string;
 }
 
-export function NotificationBadge({
+function NotificationBadge({
   count,
   onClick,
   className,
@@ -345,7 +345,7 @@ export function NotificationBadge({
 }
 
 // Toast notification for real-time alerts
-export function RealtimeToast({
+function RealtimeToast({
   notification,
   onDismiss,
 }: {

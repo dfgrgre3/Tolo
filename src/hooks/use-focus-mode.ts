@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
-export interface FocusModeState {
+interface FocusModeState {
     isEnabled: boolean;
     isMinimal: boolean;
     hideNotifications: boolean;
@@ -13,7 +13,7 @@ export interface FocusModeState {
     idleTimeout: number;
 }
 
-export interface FocusModeActions {
+interface FocusModeActions {
     toggle: () => void;
     enable: () => void;
     disable: () => void;
@@ -187,7 +187,7 @@ interface FocusModeContextType {
 
 const FocusModeContext = createContext<FocusModeContextType | null>(null);
 
-export function useFocusModeContext() {
+function useFocusModeContext() {
     const context = useContext(FocusModeContext);
     if (!context) {
         throw new Error("useFocusModeContext must be used within FocusModeProvider");
@@ -195,5 +195,5 @@ export function useFocusModeContext() {
     return context;
 }
 
-export { FocusModeContext };
-export default useFocusMode;
+;
+

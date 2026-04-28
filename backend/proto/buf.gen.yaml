@@ -1,0 +1,11 @@
+version: v1
+plugins:
+  - name: go
+    out: ../internal/proto
+    opt: paths=source_relative
+  - name: go-grpc
+    out: ../internal/proto
+    opt: paths=source_relative
+  - name: connect-go
+    out: ../internal/proto
+    opt: paths=source_relative

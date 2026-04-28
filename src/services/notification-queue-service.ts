@@ -2,7 +2,7 @@ import { Job } from 'bullmq';
 import { logger } from '../lib/logger';
 import { notificationQueue } from '../lib/queue/bullmq';
 
-export type NotificationChannel = 'email' | 'sms' | 'push' | 'in-app';
+type NotificationChannel = 'email' | 'sms' | 'push' | 'in-app';
 
 export type NotificationJobPayload = {
     userId: string;

@@ -6,20 +6,55 @@ import (
 	"strings"
 	"thanawy-backend/internal/models"
 	"time"
+	"unicode"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"gorm.io/plugin/dbresolver"
-	"gorm.io/plugin/prometheus"
 )
 
 var DB *gorm.DB
+
+// PrismaNamingStrategy implements GORM's NamingStrategy to match Prisma conventions:
+// - Table names: PascalCase (e.g., "User", "Subject")
+// - Column names: camelCase (e.g., "passwordHash", "createdAt")
+type PrismaNamingStrategy struct {
+	schema.NamingStrategy
+}
+
+func (PrismaNamingStrategy) TableName(table string) string {
+	return table // Model name is already PascalCase
+}
+
+func (PrismaNamingStrategy) ColumnName(table, column string) string {
+	// Convert PascalCase field name to camelCase column name
+	// e.g., "PasswordHash" -> "passwordHash", "ID" -> "id"
+	// Special handling for fields ending with "ID" (e.g., "TopicID" -> "topicId")
+	if column == "ID" {
+		return "id"
+	}
+	runes := []rune(column)
+	if len(runes) > 0 {
+		runes[0] = unicode.ToLower(runes[0])
+	}
+	// Handle "ID" suffix (e.g., TopicID -> topicId)
+	if len(runes) >= 2 && runes[len(runes)-2] == 'I' && runes[len(runes)-1] == 'D' {
+		runes[len(runes)-1] = 'd'
+	}
+	return string(runes)
+}
+
+func (PrismaNamingStrategy) PrimaryKeyColumnName() string {
+	return "id"
+}
 
 func Connect(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 		PrepareStmt: true, // Enable prepared statement cache for performance
+		NamingStrategy: PrismaNamingStrategy{},
 	})
 
 	if err != nil {
@@ -50,14 +85,16 @@ func Connect(dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// Register Prometheus monitoring
-	db.Use(prometheus.New(prometheus.Config{
-		DBName:          "thanawy_main",
-		RefreshInterval: 15,
-		MetricsCollector: []prometheus.MetricsCollector{
-			&prometheus.Postgres{VariableNames: []string{"Threads_running"}},
-		},
-	}))
+	// Prometheus monitoring removed to avoid memory issues
+	// To enable: import "gorm.io/plugin/prometheus" and uncomment below
+	/*
+		pgCollector := &prometheus.Postgres{VariableNames: []string{"Threads_running"}}
+		db.Use(prometheus.New(prometheus.Config{
+			DBName:          "thanawy_main",
+			RefreshInterval: 15,
+			MetricsCollector: []prometheus.MetricsCollector{pgCollector},
+		}))
+	*/
 
 	DB = db
 	log.Printf("Database connection established with Read-Write splitting and Monitoring.")
@@ -110,5 +147,6 @@ func Migrate() error {
 		&models.Reminder{},
 		&models.Notification{},
 		&models.SecurityLog{},
+		&models.UserSession{},
 	)
-}
+}

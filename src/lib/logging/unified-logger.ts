@@ -14,11 +14,11 @@ import { getRequestContext } from './correlation';
 import { sanitizeLogContext, sanitizeErrorMessage, containsSensitiveData } from './sanitizer';
 
 // Types
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogContext = Record<string, any>;
-export type LoggableContext = LogContext | unknown;
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogContext = Record<string, any>;
+type LoggableContext = LogContext | unknown;
 
-export interface LogEntry {
+interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
@@ -35,7 +35,7 @@ export interface LogEntry {
   userAgent?: string;
 }
 
-export interface LoggerConfig {
+interface LoggerConfig {
   level: LogLevel;
   enableConsole: boolean;
   enableELK: boolean;
@@ -541,7 +541,7 @@ let loggerInstance: UnifiedLogger | null = null;
 /**
  * Get the unified logger instance
  */
-export function getLogger(): UnifiedLogger {
+function getLogger(): UnifiedLogger {
   if (!loggerInstance) {
     loggerInstance = new UnifiedLogger();
   }
@@ -551,4 +551,3 @@ export function getLogger(): UnifiedLogger {
 // Create and export instances
 const defaultLogger = getLogger();
 export { defaultLogger as logger };
-export default defaultLogger;
