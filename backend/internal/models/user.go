@@ -55,7 +55,7 @@ type User struct {
 	Level                         int            `gorm:"default:1;index" json:"level"`
 	
 	// Access Control
-	Permissions                   JSONStringArray `gorm:"type:text" json:"permissions"`
+	Permissions                   JSONStringArray `gorm:"type:jsonb" json:"permissions"`
 
 	
 	// Relations
@@ -74,7 +74,7 @@ type JSONStringArray []string
 
 func (a *JSONStringArray) Scan(value interface{}) error {
 	if value == nil {
-		*a = nil
+		*a = JSONStringArray{}
 		return nil
 	}
 	var bytes []byte
@@ -84,7 +84,7 @@ func (a *JSONStringArray) Scan(value interface{}) error {
 	case string:
 		bytes = []byte(v)
 	default:
-		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
+		return fmt.Errorf("failed to scan JSONStringArray: %v", value)
 	}
 
 	return json.Unmarshal(bytes, a)
@@ -112,12 +112,4 @@ func (JSONStringArray) GormDataType() string {
 	return "json"
 }
 
-// GormDBDataType returns the database data type for GORM
-func (JSONStringArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch db.Dialector.Name() {
-	case "postgres":
-		return "JSONB"
-	}
-	return "TEXT"
-}
 
