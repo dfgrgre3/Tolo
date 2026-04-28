@@ -609,7 +609,11 @@ fallback: T | null = null)
 
     let response: Response;
     try {
-      response = await fetch(finalUrl, { ...options, signal });
+      response = await fetch(finalUrl, { 
+        ...options, 
+        signal,
+        credentials: options?.credentials || 'include' // Ensure cookies are sent
+      });
       clearTimeout(timeoutId);
     } catch (fetchError) {
       clearTimeout(timeoutId);
@@ -655,7 +659,7 @@ fallback: T | null = null)
       const isFallback = data === fallback;
 
       if (isFallback) {
-        const errorMessage = `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`;
+        const errorMessage = `HTTP ${response.status}: ${response.statusText} at ${url} - Server returned non-JSON response (likely HTML error page)`;
         return {
           data: fallback,
           error: new Error(errorMessage),

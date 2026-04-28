@@ -99,11 +99,11 @@ class ApiClient {
             clearTimeout(id);
 
             // Handle 401 Unauthorized - Attempt Token Refresh
-            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login') && retryCount < 1) {
                 const refreshed = await this.refreshToken();
                 if (refreshed) {
-                    // Retry original request one more time
-                    return this.request<T>(endpoint, options, retryCount);
+                    // Retry original request once more
+                    return this.request<T>(endpoint, options, retryCount + 1);
                 }
                 
                 // If refresh failed, reset auth state (if in browser)
