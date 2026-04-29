@@ -298,7 +298,7 @@ export default function AIAssistantEnhanced({
               
                 <span>{formatTime(message.timestamp)}</span>
                 {message.sentiment && message.sentiment.sentiment === 'positive' &&
-              <span className="text-green-600">ًںکٹ</span>
+              <span className="text-green-600">🤩</span>
               }
               </div>
             </div>
@@ -362,7 +362,7 @@ export default function AIAssistantEnhanced({
         </div>
         {isListening &&
         <p className="text-xs text-red-600 mt-2 text-center animate-pulse">
-            ًںژ¤ جاري الاستماع... تحدث الآن
+            🎙️ جاري الاستماع... تحدث الآن
           </p>
         }
       </form>

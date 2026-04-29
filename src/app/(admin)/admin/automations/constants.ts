@@ -1,4 +1,4 @@
-﻿import { Rule } from "./types";
+import { Rule } from "./types";
 
 export const triggerOptions = [
   { value: "ABSENCE_DAYS", label: "غاب عن المنصة لمدة" },
@@ -28,16 +28,31 @@ export const messageActionTypes = new Set([
 ]);
 
 export function normalizeRule(rule: Rule): Rule {
+  let conditions = rule.conditions;
+  let actionData = rule.actionData;
+
+  if (typeof rule.conditions === "string") {
+    try {
+      conditions = JSON.parse(rule.conditions);
+    } catch (e) {
+      console.error("Failed to parse rule conditions:", e);
+      conditions = {};
+    }
+  }
+
+  if (typeof rule.actionData === "string") {
+    try {
+      actionData = JSON.parse(rule.actionData);
+    } catch (e) {
+      console.error("Failed to parse rule actionData:", e);
+      actionData = {};
+    }
+  }
+
   return {
     ...rule,
-    conditions:
-      typeof rule.conditions === "string"
-        ? JSON.parse(rule.conditions)
-        : rule.conditions,
-    actionData:
-      typeof rule.actionData === "string"
-        ? JSON.parse(rule.actionData)
-        : rule.actionData,
+    conditions,
+    actionData,
   };
 }
 

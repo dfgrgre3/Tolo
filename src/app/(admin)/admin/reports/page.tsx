@@ -259,7 +259,7 @@ export default function AdminReportsPage() {
             <span>تقارير المملكة - Dungeon Master</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-            <span className={STYLES.neonText}>التقارير والبيانات</span> ًںڈ›ï¸ڈ
+            <span className={STYLES.neonText}>التقارير والبيانات</span> 🏛️
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl font-bold">
             تحليل شامل لأداء المملكة، تتبع التفاعل، ومراقبة نمو الجيش الكان.

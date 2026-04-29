@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
 // import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
+import { useWebSocket } from '@/contexts/websocket-context';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -44,12 +45,16 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const isFirstFetch = useRef(true);
   const limit = 20;
 
+  const isLoadingRef = useRef(false);
+  const offsetRef = useRef(0);
+
   const fetchNotifications = useCallback(async (reset = false) => {
-    if (isLoading) return;
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     setIsLoading(true);
 
     try {
-      const currentOffset = reset ? 0 : offset;
+      const currentOffset = reset ? 0 : offsetRef.current;
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: currentOffset.toString()
@@ -64,6 +69,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
       if (reset) {
         setNotifications(nextNotifications);
+        offsetRef.current = limit;
         setOffset(limit);
 
         // Show toast for new notifications if not the first fetch
@@ -80,7 +86,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         isFirstFetch.current = false;
       } else {
         setNotifications((prev) => [...prev, ...nextNotifications]);
-        setOffset(currentOffset + nextNotifications.length);
+        offsetRef.current = currentOffset + nextNotifications.length;
+        setOffset(offsetRef.current);
       }
 
       setUnreadCount(nextUnreadCount);
@@ -88,9 +95,10 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     } catch (error) {
       logger.warn('Error fetching notifications:', error);
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
-  }, [offset, limit, isLoading]);
+  }, [limit]); // Stable dependency
 
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
@@ -122,26 +130,51 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
   const toggleSound = useCallback(() => {
     setSoundEnabled((prev) => !prev);
-    // You could also persist this to local storage or user settings
   }, []);
+
+  const { socket, isConnected } = useWebSocket();
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'notification' || data.type === 'refresh_notifications') {
+          fetchNotifications(true);
+          
+          if (data.payload && data.payload.title) {
+            toast(data.payload.title, {
+              description: data.payload.message,
+              icon: data.payload.icon || '🔔'
+            });
+          }
+        }
+      } catch (error) {
+        logger.debug('Failed to parse WebSocket message in NotificationsProvider', error);
+      }
+    };
+
+    socket.addEventListener('message', handleMessage);
+    return () => {
+      socket.removeEventListener('message', handleMessage);
+    };
+  }, [socket, isConnected, fetchNotifications]);
 
   useEffect(() => {
     fetchNotifications(true);
-    // Only schedule if possible and hold onto cleanup function
-    let cleanup: (() => void) | undefined;
-    try {
-      // scheduleNotificationChecks is currently disabled as the library was removed
-      // cleanup = scheduleNotificationChecks?.();
-    } catch (e) {
-      logger.warn('Failed to schedule notification checks:', e);
-    }
+
+    // Poll for notifications every 60 seconds as a fallback for WebSocket
+    const pollInterval = setInterval(() => {
+      if (!isConnected) {
+        fetchNotifications(true);
+      }
+    }, 60000);
 
     return () => {
-      if (cleanup) {
-        cleanup();
-      }
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [fetchNotifications, isConnected]);
 
   const value = useMemo(() => ({
     notifications,

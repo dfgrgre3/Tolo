@@ -19,7 +19,7 @@ export function LoadingState() {
 					animate={{ scale: [0.8, 1.1, 0.8] }}
 					transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
 				>
-					ًںڈ†
+					🏆
 				</m.div>
 			</div>
 			

@@ -38,6 +38,8 @@ type PlayerUiState = {
   brightness: number;
   loopStart: number | null;
   loopEnd: number | null;
+  activeQuestionId: string | null;
+  answeredQuestionIds: Set<string>;
 };
 
 type PlayerStore = PlayerUiState & {
@@ -81,6 +83,8 @@ export const defaultPlayerUiState: PlayerUiState = {
   brightness: 1,
   loopStart: null,
   loopEnd: null,
+  activeQuestionId: null,
+  answeredQuestionIds: new Set(),
 };
 
 export const useCourseVideoPlayerStore = create<PlayerStore>((set) => ({

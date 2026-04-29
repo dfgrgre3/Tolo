@@ -225,7 +225,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="قوانين وأعراف المملكة ًں“œ"
+        title="قوانين وأعراف المملكة 📜"
         description="تعديل القوانين الأساسية، تفعيل المزايا السحرية، وإدارة شؤون الصيانة العامة."
       >
         <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export default function AdminSettingsPage() {
                 exit={{ opacity: 0, x: 20 }}
               >
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-8 px-4 px-3 rounded-xl animate-pulse">
-                  تعديلات غير مختومة âœ’ï¸ڈ
+                  تعديلات غير مختومة ✍️
                 </Badge>
               </m.div>
             )}
@@ -473,7 +473,7 @@ export default function AdminSettingsPage() {
                   name="maintenance.message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest text-red-500/60">رسالة ت٪ر للمحاربين أثناء الصيانة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest text-red-500/60">رسالة تظهر للمحاربين أثناء الصيانة</FormLabel>
                       <FormControl>
                         <Textarea 
                           {...field} 

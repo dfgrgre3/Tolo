@@ -11,6 +11,7 @@ import (
 	apiresponse "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
 )
@@ -317,32 +318,39 @@ func GetAdminDashboard(c *gin.Context) {
 	var totalExams int64
 	var completedTasks int64
 	var totalStudySessions int64
+	var newUsersToday int64
+	var totalXP int64
+
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
 	db.DB.Model(&models.User{}).Where("status = ?", models.StatusActive).Count(&activeUsers)
+	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", todayStart).Count(&newUsersToday)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Task{}).Where("status = ?", models.TaskCompleted).Count(&completedTasks)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
+	db.DB.Model(&models.User{}).Select("COALESCE(SUM(\"totalXP\"), 0)").Scan(&totalXP)
 
 	c.JSON(http.StatusOK, gin.H{
 		"users": gin.H{
 			"total":  totalUsers,
-			"new":    0,
+			"new":    newUsersToday,
 			"active": activeUsers,
 		},
 		"content": gin.H{
 			"subjects":  totalSubjects,
 			"exams":     totalExams,
-			"resources": 0,
+			"resources": 0, // resources not yet fully implemented in schema
 		},
 		"activity": gin.H{
 			"studySessions":  totalStudySessions,
 			"tasksCompleted": completedTasks,
 		},
 		"gamification": gin.H{
-			"totalXP":      0,
-			"achievements": 0,
+			"totalXP":      totalXP,
+			"achievements": 0, // achievements table might be empty or not yet implemented
 		},
 	})
 }
@@ -361,10 +369,10 @@ func GetAdminLive(c *gin.Context) {
 	}
 
 	var studySessions []models.StudySession
-	_ = db.DB.Where("updated_at >= ? OR start_time >= ? OR end_time >= ?", cutoff, cutoff, cutoff).Find(&studySessions).Error
+	_ = db.DB.Where("\"updatedAt\" >= ? OR \"startTime\" >= ? OR \"endTime\" >= ?", cutoff, cutoff, cutoff).Find(&studySessions).Error
 
 	var examResults []models.ExamResult
-	_ = db.DB.Where("taken_at >= ?", cutoff).Find(&examResults).Error
+	_ = db.DB.Where("\"takenAt\" >= ?", cutoff).Find(&examResults).Error
 
 	type subjectSummary struct {
 		ID     string `json:"id"`
@@ -521,12 +529,7 @@ func GetAdminLive(c *gin.Context) {
 	})
 }
 
-func DeleteAuthSession(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Session terminated successfully",
-	})
-}
+
 
 func GetAdminAnnouncements(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -609,6 +612,17 @@ func CreateAdminAnnouncement(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create announcement"})
 		return
 	}
+
+	// Broadcast to everyone
+	broadcastMsg, _ := json.Marshal(gin.H{
+		"type": "notification",
+		"payload": gin.H{
+			"title":   notification.Title,
+			"message": notification.Message,
+			"type":    notification.Type,
+		},
+	})
+	GlobalHub.broadcast <- broadcastMsg
 
 	c.JSON(http.StatusCreated, gin.H{"success": true})
 }

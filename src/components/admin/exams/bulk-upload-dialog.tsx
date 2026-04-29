@@ -220,7 +220,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
                 className="w-full h-12 rounded-xl text-md font-black"
                 loading={loading}
               >
-                بدء عملية التحميل ًںڈ›ï¸ڈ
+                بدء عملية التحميل 🏛️
               </AdminButton>
             </DialogFooter>
           </div>

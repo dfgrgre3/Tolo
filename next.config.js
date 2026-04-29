@@ -7,6 +7,7 @@ const nextConfig = {
   output: 'standalone',
   // Enable React strict mode for better performance
   reactStrictMode: true,
+  turbopack: {},
 
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -58,7 +59,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
       },
       {
         source: '/uploads/:path*',
@@ -122,6 +123,9 @@ const nextConfig = {
         'node:https': false,
         'async_hooks': false,
         'node:async_hooks': false,
+        'node:buffer': false,
+        'winston': false,
+        '@elastic/elasticsearch': false,
       };
     } else {
       // Server-side alias

@@ -418,7 +418,7 @@ function AnalyticsSectionComponent() {
                     <div className="flex items-center gap-3 order-2 sm:order-1">
                         <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.goldText}`}>إحصائيات البطل</h2>
                         <div className="p-3 bg-white/5 rounded-xl border border-white/10 shadow-inner">
-                            <span className="text-2xl filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">ًں“ٹ</span>
+                            <span className="text-2xl filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">📊</span>
                         </div>
                     </div>
 

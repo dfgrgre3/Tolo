@@ -389,7 +389,7 @@ export default function WalletDashboard() {
 
                   <div className="h-[80%] flex flex-col items-center justify-center text-gray-500 gap-4">
                         <TrendingUp className="w-16 h-16 opacity-10 animate-pulse" />
-                        <p className="text-sm font-bold opacity-40">بيانات النمو ست٪ر هنا قريباً</p>
+                        <p className="text-sm font-bold opacity-40">بيانات النمو ستظهر هنا قريباً</p>
                       </div>
                   }
                   </div>

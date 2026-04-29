@@ -62,7 +62,7 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
           className="bg-white rounded-xl max-w-md w-full p-6"
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            إنشاء هدف جديد ًںژ¯
+            إنشاء هدف جديد 🎯
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">

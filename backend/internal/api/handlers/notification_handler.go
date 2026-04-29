@@ -6,6 +6,7 @@ import (
 	"thanawy-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"encoding/json"
 )
 
 func GetNotifications(c *gin.Context) {
@@ -52,6 +53,10 @@ func MarkNotificationRead(c *gin.Context) {
 			return
 		}
 	}
+
+	// Notify via WebSocket to refresh notifications
+	refreshMsg, _ := json.Marshal(gin.H{"type": "refresh_notifications"})
+	GlobalHub.NotifyUser(userId.(string), refreshMsg)
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }

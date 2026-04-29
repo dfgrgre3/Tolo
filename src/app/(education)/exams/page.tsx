@@ -144,10 +144,10 @@ export default function ExamsPage() {
                   <span>ردهة التحديات الكبرى</span>
                </div>
                <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-                  غرفة <span className={STYLES.neonText}>الاختبارات</span> ًںڈ›ï¸ڈ
+                  غرفة <span className={STYLES.neonText}>الاختبارات</span> 🏛️
                </h1>
                <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
-                  هنا تظڈختبر القدرات وتظڈصقل المهارات. اختر ساحة معركتك، دوّن إنجازاتك، وراقب نمو قوتك القتالية ضد أصعب العقبات.
+                  هنا تُختبر القدرات وتُصقل المهارات. اختر ساحة معركتك، دوّن إنجازاتك، وراقب نمو قوتك القتالية ضد أصعب العقبات.
                </p>
             </m.div>
 

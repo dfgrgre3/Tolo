@@ -223,7 +223,7 @@ export default function StudyPatterns({ weekly }: StudyPatternsProps) {
 								{patterns.consistencyRate < 50 && (
 									<div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
 										<p className="text-sm font-medium text-orange-800 dark:text-orange-200">
-											âڑ ï¸ڈ حاول زيادة عدد أيام المذاكرة لتحسين الانتظام
+											⚠️ حاول زيادة عدد أيام المذاكرة لتحسين الانتظام
 										</p>
 									</div>
 								)}

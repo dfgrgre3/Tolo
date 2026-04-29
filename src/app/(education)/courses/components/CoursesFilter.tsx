@@ -65,11 +65,11 @@ const categoryIconsById: Record<string, LucideIcon> = {
 function resolveCategoryIcon(category: Category): LucideIcon {
   const byId = categoryIconsById[category.id];
   if (byId) return byId;
-  if (category.icon?.includes("ًں§ھ") || category.icon?.includes("âڑ›")) return Beaker;
-  if (category.icon?.includes("ًںŒچ")) return Globe;
-  if (category.icon?.includes("ًں”¢")) return Calculator;
-  if (category.icon?.includes("ًں’»") || category.icon?.includes("ًں–¥")) return Code2;
-  if (category.icon?.includes("ًںڈ›")) return Landmark;
+  if (category.icon?.includes("🧪") || category.icon?.includes("âڑ›")) return Beaker;
+  if (category.icon?.includes("🌍")) return Globe;
+  if (category.icon?.includes("🔢")) return Calculator;
+  if (category.icon?.includes("💻") || category.icon?.includes("🖥️")) return Code2;
+  if (category.icon?.includes("🏛️")) return Landmark;
   return BookOpen;
 }
 

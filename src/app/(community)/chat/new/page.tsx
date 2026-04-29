@@ -161,7 +161,7 @@ export default function NewChatPage() {
           </div>
         ) : (
           <div className="rounded-lg border p-12 text-center">
-            <div className="text-5xl mb-4">ًں‘¥</div>
+            <div className="text-5xl mb-4">👥</div>
             <h3 className="text-lg font-medium mb-2">لا توجد نتائج</h3>
             <p className="text-muted-foreground">جرب تغيير معايير البحث</p>
           </div>

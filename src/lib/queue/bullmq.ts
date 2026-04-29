@@ -8,6 +8,8 @@ const queueConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:63
     maxRetriesPerRequest: null,
 });
 
+let policyCheckLogged = false;
+
 /**
  * Ensures Redis is configured with 'noeviction' policy.
  * BullMQ requires this to prevent data loss when Redis is under memory pressure.
@@ -16,22 +18,31 @@ async function ensureCorrectEvictionPolicy() {
     try {
         const result = await queueConnection.config('GET', 'maxmemory-policy');
         // ioredis returns config as [name, value]
-        const policy = Array.isArray(result) ? result[1] : null;
+        const policy = Array.isArray(result) ? result[1] : (typeof result === 'string' ? result : null);
         
         if (policy && policy !== 'noeviction') {
-            logger.warn(`[BullMQ] Redis eviction policy is '${policy}'. Attempting to set to 'noeviction'...`);
-            await queueConnection.config('SET', 'maxmemory-policy', 'noeviction');
-            logger.info('[BullMQ] Redis eviction policy successfully set to \'noeviction\'');
-        } else if (!policy) {
-            logger.debug('[BullMQ] Could not determine Redis eviction policy via CONFIG GET');
+            if (!policyCheckLogged) {
+                logger.warn(`[BullMQ] Redis eviction policy is '${policy}'. BullMQ requires 'noeviction'.`);
+                policyCheckLogged = true;
+            }
+            try {
+                await queueConnection.config('SET', 'maxmemory-policy', 'noeviction');
+                logger.info('[BullMQ] Redis eviction policy successfully set to \'noeviction\'');
+            } catch (setErr) {
+                // Silently fail if we already warned, as managed Redis often blocks this
+                logger.debug(`[BullMQ] Could not set policy via CONFIG SET: ${setErr instanceof Error ? setErr.message : String(setErr)}`);
+            }
         }
     } catch (error) {
-        // Many managed Redis services (like Redis Labs free tier) disable CONFIG commands
-        logger.debug('[BullMQ] Could not automatically configure Redis eviction policy:', error instanceof Error ? error.message : String(error));
-        logger.warn(
-            '[BullMQ] IMPORTANT: Ensure your Redis maxmemory-policy is set to \'noeviction\' ' +
-            'to prevent job loss under memory pressure.'
-        );
+        const errMsg = error instanceof Error ? error.message : String(error);
+        if (errMsg.includes('unknown command') || errMsg.includes('ERR unknown command')) {
+            if (!policyCheckLogged) {
+                logger.info('[BullMQ] Redis CONFIG command is disabled (common in managed Redis). Ensure noeviction policy is set manually.');
+                policyCheckLogged = true;
+            }
+        } else {
+            logger.debug(`[BullMQ] Error checking Redis policy: ${errMsg}`);
+        }
     }
 }
 

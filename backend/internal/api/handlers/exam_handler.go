@@ -48,9 +48,9 @@ func GetExams(c *gin.Context) {
 	}
 	var counts []countResult
 	db.DB.Model(&models.ExamResult{}).
-		Select("exam_id, count(*) as count").
-		Where("exam_id IN ?", examIDs).
-		Group("exam_id").
+		Select("\"examId\", count(*) as count").
+		Where("\"examId\" IN ?", examIDs).
+		Group("\"examId\"").
 		Scan(&counts)
 
 	countMap := make(map[string]int64)
@@ -143,7 +143,7 @@ func UpdateExam(c *gin.Context) {
 		updates["title"] = input.Title
 	}
 	if input.SubjectID != "" {
-		updates["subject_id"] = input.SubjectID
+		updates["subjectId"] = input.SubjectID
 	}
 	if input.Type != "" {
 		updates["type"] = input.Type

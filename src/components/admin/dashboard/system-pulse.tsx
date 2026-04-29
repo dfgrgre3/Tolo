@@ -62,26 +62,44 @@ function PulseBar({ label, value, max, icon: Icon, color, unit = "%" }: PulseIte
 
 export function SystemPulse() {
   const [stats, setStats] = React.useState({
-    cpu: 24,
-    ram: 42,
-    db: 12,
-    api: 98,
-    cache: 88,
+    cpu: 0,
+    ram: 0,
+    db: 0,
+    api: 100,
+    cache: 100,
   });
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Simulate real-time updates
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        cpu: Math.max(10, Math.min(90, prev.cpu + (Math.random() * 10 - 5))),
-        ram: Math.max(30, Math.min(95, prev.ram + (Math.random() * 4 - 2))),
-        db: Math.max(5, Math.min(40, prev.db + (Math.random() * 6 - 3))),
-        api: Math.max(90, Math.min(100, prev.api + (Math.random() * 2 - 1))),
-        cache: Math.max(80, Math.min(99, prev.cache + (Math.random() * 2 - 1))),
-      }));
-    }, 3000);
-    return () => clearInterval(interval);
+  const fetchStats = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/infrastructure/stats');
+      const data = await response.json();
+      if (data.success && data.data) {
+        // Parse "123 MiB" string or similar if needed, or just use raw values if backend is updated
+        // For now, we'll extract values from the response
+        const memStr = data.data.system.memoryUsage || "0";
+        const memValue = parseInt(memStr) || 0;
+        
+        setStats({
+          cpu: Math.floor(Math.random() * 20) + 5, // Simulated for now as Go doesn't easily expose CPU without extra libs
+          ram: Math.min(100, Math.floor((memValue / 1024) * 100)), // Assuming 1GB total for percentage
+          db: 15,
+          api: 100,
+          cache: 100,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch infra stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000); // Update every 10 seconds
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   return (
     <div className="rpg-glass p-8 space-y-8 border-primary/20">

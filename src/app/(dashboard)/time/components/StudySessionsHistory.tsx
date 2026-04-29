@@ -107,10 +107,10 @@ const MOOD_LABELS = {
 };
 
 const MOOD_ICONS = {
-  'EXCELLENT': 'ًںکٹ',
-  'GOOD': 'ًں™‚',
-  'AVERAGE': 'ًںکگ',
-  'POOR': 'ًںک”'
+  'EXCELLENT': '🤩',
+  'GOOD': '🙂',
+  'AVERAGE': '😑',
+  'POOR': '😔'
 };
 
 const TIME_PERIODS = [

@@ -390,7 +390,7 @@ export default function AdminChallengesPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title=" ساحة التحديات والمبارزات âڑ”ï¸ڈ"
+        title=" ساحة التحديات والمبارزات ⚔️"
         description="إدارة المهمات اليومية، البطولات الملحمية، وتوزيع هالات الـ XP للمحاربين المميزين."
       >
         <div className="flex items-center gap-3">
@@ -656,7 +656,7 @@ export default function AdminChallengesPage() {
                     <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                       <div className="space-y-0.5">
                         <FormLabel className="font-black text-xs">تفعيل النزاع المسلح؟</FormLabel>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">المبارزات النشطة ت٪ر فوراً للجيش</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">المبارزات النشطة تظهر فوراً للجيش</p>
                       </div>
                       <FormControl>
                         <Switch

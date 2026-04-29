@@ -78,11 +78,11 @@ export default function NewEventPage() {
   };
 
   const categories = [
-    { id: "academic", name: "أكاديمي", icon: "ًںژ“" },
-    { id: "social", name: "اجتماعي", icon: "ًں‘¥" },
+    { id: "academic", name: "أكاديمي", icon: "🎓" },
+    { id: "social", name: "اجتماعي", icon: "👥" },
     { id: "sports", name: "رياضي", icon: "âڑ½" },
-    { id: "cultural", name: "ثقافي", icon: "ًںژ­" },
-    { id: "workshop", name: "ورشة عمل", icon: "ًں› ï¸ڈ" },
+    { id: "cultural", name: "ثقافي", icon: "🎭" },
+    { id: "workshop", name: "ورشة عمل", icon: "🛠️" },
   ];
 
   return (

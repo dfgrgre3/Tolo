@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Consolidated Error Management & Logging Service
  * Unified single source of truth for error handling, logging, formatting, toasts and persistence.
  */
@@ -77,15 +77,14 @@ class ErrorService {
 
   private loadLogsFromStorage(): void {
     try {
-      const storedLogs = safeGetItem('errorLogs', { fallback: null });
-      if (storedLogs) {
-        this.logs = Array.isArray(storedLogs) ? storedLogs : JSON.parse(String(storedLogs));
-        if (this.logs.length > this.maxLogs) {
-          this.logs = this.logs.slice(-this.maxLogs);
-        }
+      const storedLogs = safeGetItem<ErrorLogEntry[]>('errorLogs', { fallback: [] });
+      if (Array.isArray(storedLogs)) {
+        this.logs = storedLogs.slice(-this.maxLogs);
+      } else {
+        this.logs = [];
       }
     } catch {
-      // Silent fail
+      this.logs = [];
     }
   }
 

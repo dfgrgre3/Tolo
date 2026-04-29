@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * ًں”گ صفحة الأمان - Security Settings
+ * 🔐 صفحة الأمان - Security Settings
  * 
  * إدارة أمان الحساب:
  * - تغيير كلمة المرور
@@ -97,11 +97,14 @@ export default function SecurityPage() {
   const fetchRecentLogs = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/security-logs?limit=3');
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.details || error.error || 'Failed to fetch logs');
+      }
       const data = await res.json();
       setRecentLogs(data.logs || []);
-    } catch (_err) {
-      logger.error('Failed to fetch logs');
+    } catch (err: any) {
+      logger.error(err.message || 'Failed to fetch logs');
     } finally {
       setIsLoadingLogs(false);
     }
@@ -346,7 +349,7 @@ export default function SecurityPage() {
             <div>
               <p className="text-sm text-green-300">المصادقة الثنائية مفعّلة</p>
               <p className="text-xs text-green-400/70 mt-1">
-                سيظڈطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
+                سيُطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
               </p>
             </div>
           </div>

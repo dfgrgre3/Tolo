@@ -1029,7 +1029,7 @@ export default function AdminCoursesPage() {
                 <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <p className="text-xs font-bold text-primary">
-                      بعد الإنشاء ستظڈوجِّه تلقائيًا لصفحة إضافة الفصول والدروس.
+                      بعد الإنشاء ستُوجِّه تلقائيًا لصفحة إضافة الفصول والدروس.
                     </p>
                   </div>
                 }
@@ -1326,7 +1326,7 @@ export default function AdminCoursesPage() {
                   <div className="grid gap-3 sm:grid-cols-3">
                     {(["isActive", "isPublished", "isFeatured"] as const).map((name) => {
                       const labels = {
-                        isActive: { title: "تفعيل الدورة", desc: "ت٪ر في النظام" },
+                        isActive: { title: "تفعيل الدورة", desc: "تظهر في النظام" },
                         isPublished: { title: "نشر للطلاب", desc: "مرئية للجمهور" },
                         isFeatured: { title: "دورة مميزة", desc: "تمييز خاص" }
                       };

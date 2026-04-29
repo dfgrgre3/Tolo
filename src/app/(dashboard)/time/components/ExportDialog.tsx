@@ -170,9 +170,9 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
           <div className="p-3 rounded-lg bg-muted/50">
             <p className="text-sm font-medium mb-2">ملخص البيانات:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li>â€¢ {filteredTasks.length} مهمة</li>
-              <li>â€¢ {filteredSessions.length} جلسة مذاكرة</li>
-              <li>â€¢ {filteredReminders.length} تذكير</li>
+              <li>• {filteredTasks.length} مهمة</li>
+              <li>• {filteredSessions.length} جلسة مذاكرة</li>
+              <li>• {filteredReminders.length} تذكير</li>
             </ul>
           </div>
 

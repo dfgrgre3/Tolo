@@ -44,10 +44,18 @@ export function useTouchGestures({
         const xRatio = (event.clientX - bounds.left) / bounds.width;
         if (xRatio >= 0.66) {
           seekBy(SEEK_STEP_SECONDS);
+          setGestureActiveMode("seek");
+          setGestureValue(`+${SEEK_STEP_SECONDS}`);
+          if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
+          feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), 600);
           return;
         }
         if (xRatio <= 0.34) {
           seekBy(-SEEK_STEP_SECONDS);
+          setGestureActiveMode("seek");
+          setGestureValue(`-${SEEK_STEP_SECONDS}`);
+          if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
+          feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), 600);
           return;
         }
       }
@@ -99,8 +107,9 @@ export function useTouchGestures({
         const store = useCourseVideoPlayerStore.getState();
         originalRateRef.current = store.playbackRate;
         setPlayerState({ playbackRate: 2 });
-        flashFeedback({ icon: FastForward, label: "2x سرعة التشغيل" });
-      }, 600);
+        setGestureActiveMode("speed");
+        setGestureValue("2");
+      }, 500);
     },
     [brightness, flashFeedback, seekBy, setPlayerState, volume]
   );
@@ -162,7 +171,7 @@ export function useTouchGestures({
     const store = useCourseVideoPlayerStore.getState();
     if (store.playbackRate === 2 && originalRateRef.current !== 2) {
       setPlayerState({ playbackRate: originalRateRef.current });
-      flashFeedback({ icon: FastForward, label: `${originalRateRef.current}x سرعة عادية` });
+      setGestureActiveMode(null);
     }
 
     const gesture = touchGestureRef.current;

@@ -78,7 +78,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
               </span>
             </h2>
             <p className="text-base text-indigo-100/90 font-medium">
-              مغامرتك التعليمية مستمرة! ًںڑ€
+              مغامرتك التعليمية مستمرة! 🚀
             </p>
           </div>
         </div>

@@ -79,7 +79,7 @@ export function AchievementToast({
                 </m.div>
                 <div>
                   <h3 className="font-bold text-white text-lg">
-                    إنجاز جديد! ًںژ‰
+                    إنجاز جديد! 🎉
                   </h3>
                   <p className="text-yellow-100 text-sm">
                     {achievement.title}
@@ -90,7 +90,7 @@ export function AchievementToast({
                 onClick={handleClose}
                 className="text-white hover:text-yellow-200 transition-colors"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -109,7 +109,7 @@ export function AchievementToast({
                 transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
                 className="bg-white/20 rounded-full px-3 py-1 flex items-center space-x-2"
               >
-                <span className="text-2xl">â­گ</span>
+                <span className="text-2xl">⭐</span>
                 <span className="font-bold text-white">
                   +{achievement.xpReward} XP
                 </span>

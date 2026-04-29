@@ -133,13 +133,13 @@ export default function NotificationsPage() {
     if (icon) return icon;
     switch (type) {
       case 'success':
-        return 'âœ…';
+        return '✅';
       case 'warning':
-        return 'âڑ ï¸ڈ';
+        return '⚠️';
       case 'error':
         return 'â‌Œ';
       default:
-        return 'â„¹ï¸ڈ';
+        return 'ℹ️';
     }
   };
 

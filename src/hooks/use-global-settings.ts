@@ -5,7 +5,7 @@
  *
  * يقوم بـ:
  * 1. تحميل إعدادات المستخدم عند تسجيل الدخول
- * 2. تطبيق السمة (theme) ولون الخط والم٪ر على الـ DOM
+ * 2. تطبيق السمة (theme) ولون الخط والمظهر على الـ DOM
  * 3. تطبيق إعدادات اللغة والتوجيه (RTL/LTR)
  * 4. حفظ الإعدادات في localStorage لاستعادتها بسرعة
  */
@@ -137,7 +137,7 @@ export function useGlobalSettings() {
       if (!preferences) return;
 
 
-      // تطبيق إعدادات الم٪ر
+      // تطبيق إعدادات المظهر
       if (preferences.appearance) {
         const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode, efficiencyMode } =
           preferences.appearance;

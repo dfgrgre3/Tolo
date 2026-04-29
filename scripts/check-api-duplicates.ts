@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env tsx
 /**
- * ط³ظƒط±ط¨طھ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ API Routes ظپظٹ Next.js
- * ظٹظƒطھط´ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظˆط§ظ„ظ…ط´ط§ظƒظ„ ط§ظ„ظ…ط­طھظ…ظ„ط© ظپظٹ ط¨ظ†ظٹط© API Routes
+ * سكربت للتحقق من ازدواجية ملفات API Routes في Next.js
+ * يكتشف الملفات المكررة والمشاكل المحتملة في بنية API Routes
  */
 
 import * as fs from 'fs';
@@ -30,7 +30,7 @@ interface CheckResult {
   };
 }
 
-// ط§ظ„ط£ظ†ظ…ط§ط· ط§ظ„ظ…ط´ط¨ظˆظ‡ط© ظ„ط£ط³ظ…ط§ط، ط§ظ„ظ…ظ„ظپط§طھ
+// الأنماط المشبوهة لأسماء الملفات
 const SUSPICIOUS_PATTERNS = [
   /-improved\.tsx?$/i,
   /-enhanced\.tsx?$/i,
@@ -46,7 +46,7 @@ const SUSPICIOUS_PATTERNS = [
 
 
 /**
- * ط§ظ„ط¨ط­ط« ط¹ظ† ط¬ظ…ظٹط¹ ظ…ظ„ظپط§طھ route ظپظٹ ظ…ط¬ظ„ط¯ API
+ * البحث عن جميع ملفات route في مجلد API
  */
 function findRouteFiles(apiDir: string): Map<string, string[]> {
   const routeFiles = new Map<string, string[]>();
@@ -65,7 +65,7 @@ function findRouteFiles(apiDir: string): Map<string, string[]> {
       if (entry.isDirectory()) {
         scanDirectory(fullPath, relativeFilePath);
       } else if (entry.isFile()) {
-        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ…ظ„ظپط§طھ route
+        // التحقق من ملفات route
         if (entry.name === 'route.ts' || entry.name === 'route.tsx') {
           const dirKey = relativePath || '.';
           if (!routeFiles.has(dirKey)) {
@@ -82,7 +82,7 @@ function findRouteFiles(apiDir: string): Map<string, string[]> {
 }
 
 /**
- * ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+ * البحث عن الملفات المشبوهة
  */
 function findSuspiciousFiles(apiDir: string): string[] {
   const suspiciousFiles: string[] = [];
@@ -101,7 +101,7 @@ function findSuspiciousFiles(apiDir: string): string[] {
       if (entry.isDirectory()) {
         scanDirectory(fullPath, relativeFilePath);
       } else if (entry.isFile()) {
-        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط£ظ†ظ…ط§ط· ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+        // التحقق من الأنماط المشبوهة
         const isSuspicious = SUSPICIOUS_PATTERNS.some(pattern => pattern.test(entry.name));
         if (isSuspicious) {
           suspiciousFiles.push(relativeFilePath);
@@ -115,7 +115,7 @@ function findSuspiciousFiles(apiDir: string): string[] {
 }
 
 /**
- * ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط¬ظ„ط¯
+ * اكتشاف الملفات المكررة في نفس المجلد
  */
 function detectDuplicates(routeFiles: Map<string, string[]>): DuplicateFile[] {
   const duplicates: DuplicateFile[] = [];
@@ -134,7 +134,7 @@ function detectDuplicates(routeFiles: Map<string, string[]>): DuplicateFile[] {
 }
 
 /**
- * ط§ظƒطھط´ط§ظپ ط§ظ„طھط¶ط§ط±ط¨ط§طھ ط§ظ„ظ…ط­طھظ…ظ„ط© ظپظٹ ط§ظ„ظ…ط³ط§ط±ط§طھ
+ * اكتشاف التضاربات المحتملة في المسارات
  */
 function detectConflicts(apiDir: string): RouteConflict[] {
   const conflicts: RouteConflict[] = [];
@@ -152,7 +152,7 @@ function detectConflicts(apiDir: string): RouteConflict[] {
       const relativePath = routePath ? `${routePath}/${entry.name}` : entry.name;
 
       if (entry.isDirectory()) {
-        // طھط®ط·ظٹ ط§ظ„ظ…ط¬ظ„ط¯ط§طھ ط§ظ„ط¯ظٹظ†ط§ظ…ظٹظƒظٹط© [id]
+        // تخطي المجلدات الديناميكية [id]
         if (!entry.name.startsWith('[')) {
           scanDirectory(fullPath, relativePath);
         }
@@ -170,19 +170,19 @@ function detectConflicts(apiDir: string): RouteConflict[] {
 
   scanDirectory(apiDir);
 
-  // ط§ظ„ط¨ط­ط« ط¹ظ† ظ…ط³ط§ط±ط§طھ ظ…طھط´ط§ط¨ظ‡ط© ظ‚ط¯ طھط³ط¨ط¨ طھط¶ط§ط±ط¨ط§ظ‹
-  // ظ…ظ„ط§ط­ط¸ط©: ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…طھط¯ط§ط®ظ„ط© ظپظٹ Next.js ظ…ط³ظ…ظˆط­ط© (ظ…ط«ظ„ /api/auth ظˆ /api/auth/login)
-  // ظ†ط­ظ† ظ†ط¨ط­ط« ظپظ‚ط· ط¹ظ† ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„طھظٹ ظ‚ط¯ طھظƒظˆظ† ظ…ظƒط±ط±ط© ط£ظˆ ظ…طھط´ط§ط¨ظ‡ط© ط¨ط´ظƒظ„ ظ…ط´ط¨ظˆظ‡
+  // البحث عن مسارات متشابهة قد تسبب تضارباً
+  // ملاحظة: المسارات المتداخلة في Next.js مسموحة (مثل /api/auth و /api/auth/login)
+  // نحن نبحث فقط عن المسارات التي قد تكون مكررة أو متشابهة بشكل مشبوه
   const pathArray = Array.from(routePaths.keys());
   for (let i = 0; i < pathArray.length; i++) {
     for (let j = i + 1; j < pathArray.length; j++) {
       const path1 = pathArray[i];
       const path2 = pathArray[j];
 
-      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…طھط´ط§ط¨ظ‡ط© (طھط¬ط§ظ‡ظ„ ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…طھط¯ط§ط®ظ„ط© ط§ظ„طµط­ظٹط­ط©)
+      // التحقق من المسارات المتشابهة (تجاهل المسارات المتداخلة الصحيحة)
       if (arePathsConflicting(path1, path2)) {
-        // طھط¬ط§ظ‡ظ„ ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…طھط¯ط§ط®ظ„ط© ط§ظ„طµط­ظٹط­ط© ظپظٹ Next.js
-        // ظ…ط«ظ„: /api/auth ظˆ /api/auth/login (ظ‡ط°ط§ ظ…ط³ظ…ظˆط­)
+        // تجاهل المسارات المتداخلة الصحيحة في Next.js
+        // مثل: /api/auth و /api/auth/login (هذا مسموح)
         const isNestedRoute = path1.startsWith(path2 + '/') || path2.startsWith(path1 + '/');
         if (!isNestedRoute) {
           conflicts.push({
@@ -199,43 +199,43 @@ function detectConflicts(apiDir: string): RouteConflict[] {
 }
 
 /**
- * ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط¶ط§ط±ط¨ ط­ظ‚ظٹظ‚ظٹ ط¨ظٹظ† ظ…ط³ط§ط±ظٹظ†
- * ظپظٹ Next.jsطŒ ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…طھط¯ط§ط®ظ„ط© ظ…ط³ظ…ظˆط­ط© (ظ…ط«ظ„: /api/auth ظˆ /api/auth/login)
- * ط§ظ„طھط¶ط§ط±ط¨ ط§ظ„ط­ظ‚ظٹظ‚ظٹ ظٹط­ط¯ط« ظپظ‚ط· ط¹ظ†ط¯ظ…ط§ ظٹظƒظˆظ† ظ‡ظ†ط§ظƒ ظ…ظ„ظپط§ظ† route.ts ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط¬ظ„ط¯
+ * التحقق من وجود تضارب حقيقي بين مسارين
+ * في Next.js، المسارات المتداخلة مسموحة (مثل: /api/auth و /api/auth/login)
+ * التضارب الحقيقي يحدث فقط عندما يكون هناك ملفان route.ts في نفس المجلد
  */
 function arePathsConflicting(path1: string, path2: string): boolean {
-  // ظ…ط³ط§ط±ط§طھ ظ…طھط·ط§ط¨ظ‚ط© طھظ…ط§ظ…ط§ظ‹ - ظ‡ط°ط§ طھط¶ط§ط±ط¨ ط­ظ‚ظٹظ‚ظٹ
+  // مسارات متطابقة تماماً - هذا تضارب حقيقي
   if (path1 === path2) {
     return true;
   }
 
-  // ظ…ط³ط§ط±ط§طھ ظ…طھط´ط§ط¨ظ‡ط© ط¬ط¯ط§ظ‹ (ظ…ط«ظ„: users/register ظˆ users/register-improved)
-  // ظ‡ط°ط§ ظٹط´ظٹط± ط¥ظ„ظ‰ ظˆط¬ظˆط¯ ظ…ظ„ظپط§طھ ظ…ظƒط±ط±ط© ط¨ط£ط³ظ…ط§ط، ظ…ط®طھظ„ظپط©
+  // مسارات متشابهة جداً (مثل: users/register و users/register-improved)
+  // هذا يشير إلى وجود ملفات مكررة بأسماء مختلفة
   const normalized1 = path1.replace(/[-_]/g, '').toLowerCase();
   const normalized2 = path2.replace(/[-_]/g, '').toLowerCase();
   
-  // ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ…ط³ط§ط±ط§طھ ظ…طھط·ط§ط¨ظ‚ط© ط¨ط¹ط¯ ط¥ط²ط§ظ„ط© ط§ظ„ط´ط±ط·ط§طھ ظˆط§ظ„ط´ط±ط·ط§طھ ط§ظ„ط³ظپظ„ظٹط©
+  // إذا كانت المسارات متطابقة بعد إزالة الشرطات والشرطات السفلية
   if (normalized1 === normalized2) {
     return true;
   }
 
-  // ظ…ط³ط§ط±ط§طھ ظ…طھط´ط§ط¨ظ‡ط© ط¬ط²ط¦ظٹط§ظ‹ ظ‚ط¯ طھط´ظٹط± ط¥ظ„ظ‰ ط§ط²ط¯ظˆط§ط¬ظٹط©
-  // ظ…ط«ظ„: "reminders" ظˆ "reminders-improved" (ط¥ط°ط§ ظƒط§ظ†ط§ ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط³طھظˆظ‰)
+  // مسارات متشابهة جزئياً قد تشير إلى ازدواجية
+  // مثل: "reminders" و "reminders-improved" (إذا كانا في نفس المستوى)
   const parts1 = path1.split('/');
   const parts2 = path2.split('/');
   
-  // ط¥ط°ط§ ظƒط§ظ†ط§ ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط³طھظˆظ‰ ظˆظ„ظ‡ظ…ط§ ظ†ظپط³ ط§ظ„ط¨ط§ط¯ط¦ط©
+  // إذا كانا في نفس المستوى ولهما نفس البادئة
   if (parts1.length === parts2.length && parts1.length > 0) {
     const lastPart1 = parts1[parts1.length - 1].toLowerCase();
     const lastPart2 = parts2[parts2.length - 1].toLowerCase();
     
-    // طھط£ظƒط¯ ظ…ظ† ط£ظ† ط§ظ„ظ…ط³ط§ط±ط§طھ ظ…طھط´ط§ط¨ظ‡ط© ظپظٹ ط§ظ„ط£ط¬ط²ط§ط، ط§ظ„ط³ط§ط¨ظ‚ط©
+    // تأكد من أن المسارات متشابهة في الأجزاء السابقة
     const prefix1 = parts1.slice(0, -1).join('/');
     const prefix2 = parts2.slice(0, -1).join('/');
     
     if (prefix1 === prefix2) {
-      // ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط¬ط²ط، ط§ظ„ط£ط®ظٹط± ظ…طھط´ط§ط¨ظ‡ط§ظ‹ ط¨ط´ظƒظ„ ظ…ط´ط¨ظˆظ‡
-      // ظ…ط«ظ„: "reminders" ظˆ "reminders-improved"
+      // إذا كان الجزء الأخير متشابهاً بشكل مشبوه
+      // مثل: "reminders" و "reminders-improved"
       const suspiciousPatterns = [
         /^(.+)-improved$/,
         /^(.+)-enhanced$/,
@@ -255,17 +255,17 @@ function arePathsConflicting(path1: string, path2: string): boolean {
         if (match1 && match2 && match1[1] === match2[1]) return true;
       }
       
-      // ط­ط§ظ„ط© ط®ط§طµط©: ط¬ظ…ط¹ ط¨ط³ظٹط· (ظ…ط«ظ„: session -> sessions)
-      // ظ„ظƒظ† ظپظ‚ط· ط¥ط°ط§ ظƒط§ظ† ط§ظ„ظپط±ظ‚ ظ‡ظˆ ط­ط±ظپ 's' ظپظ‚ط· ظپظٹ ط§ظ„ظ†ظ‡ط§ظٹط©
+      // حالة خاصة: جمع بسيط (مثل: session -> sessions)
+      // لكن فقط إذا كان الفرق هو حرف 's' فقط في النهاية
       if (lastPart1 + 's' === lastPart2 || lastPart2 + 's' === lastPart1) {
-        // ظ‡ط°ظ‡ ظ‚ط¯ طھظƒظˆظ† ظ…ط³ط§ط±ط§طھ طµط­ظٹط­ط©طŒ ظ„ظƒظ† ظ†ط¨ظ„ط؛ ط¹ظ†ظ‡ط§ ظ„ظ„طھط­ظ‚ظ‚
+        // هذه قد تكون مسارات صحيحة، لكن نبلغ عنها للتحقق
         return true;
       }
       
-      // طھط¬ط§ظ‡ظ„ ط§ظ„ط­ط§ظ„ط§طھ ط§ظ„طھظٹ طھظƒظˆظ† ظپظٹظ‡ط§ ط§ظ„ظ…ط³ط§ط±ط§طھ ظ…ط®طھظ„ظپط© طھظ…ط§ظ…ط§ظ‹
-      // ظ…ط«ظ„: "verify" ظˆ "verify-login" (ظ‡ط°ظ‡ ظ…ط³ط§ط±ط§طھ طµط­ظٹط­ط©)
+      // تجاهل الحالات التي تكون فيها المسارات مختلفة تماماً
+      // مثل: "verify" و "verify-login" (هذه مسارات صحيحة)
       if (lastPart1.includes('-') && lastPart2.includes('-')) {
-        // ط¥ط°ط§ ظƒط§ظ† ظƒظ„ط§ظ‡ظ…ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط´ط±ط·ط©طŒ ظپظ‡ظ…ط§ ظ…ط³ط§ط±ط§طھ ظ…ط®طھظ„ظپط©
+        // إذا كان كلاهما يحتوي على شرطة، فهما مسارات مختلفة
         return false;
       }
     }
@@ -275,7 +275,7 @@ function arePathsConflicting(path1: string, path2: string): boolean {
 }
 
 /**
- * ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ…ظ„ظپط§طھ route ظ…ظƒط±ط±ط© ط¨ط¬ط§ظ†ط¨ ط¨ط¹ط¶ظ‡ط§
+ * التحقق من وجود ملفات route مكررة بجانب بعضها
  */
 function checkAdjacentDuplicates(apiDir: string): DuplicateFile[] {
   const duplicates: DuplicateFile[] = [];
@@ -299,7 +299,7 @@ function checkAdjacentDuplicates(apiDir: string): DuplicateFile[] {
       }
     }
 
-    // ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ route.ts ظˆظ…ظ„ظپط§طھ route ط£ط®ط±ظ‰
+    // إذا كان هناك route.ts وملفات route أخرى
     if (routeFiles.length > 0 && otherRouteFiles.length > 0) {
       duplicates.push({
         directory: relativePath || 'api',
@@ -330,39 +330,39 @@ function checkAdjacentDuplicates(apiDir: string): DuplicateFile[] {
 }
 
 /**
- * ط§ظ„ظˆط¸ظٹظپط© ط§ظ„ط±ط¦ظٹط³ظٹط©
+ * الوظيفة الرئيسية
  */
 function checkApiDuplicates(): CheckResult {
   const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
 
   if (!fs.existsSync(apiDir)) {
-    console.error('â‌Œ ظ…ط¬ظ„ط¯ API ط؛ظٹط± ظ…ظˆط¬ظˆط¯:', apiDir);
+    console.error('â‌Œ مجلد API غير موجود:', apiDir);
     process.exit(1);
   }
 
-  console.log('ًں”چ ط¨ط¯ط، ظپط­طµ ظ…ظ„ظپط§طھ API Routes...\n');
+  console.log('ًں”چ بدء فحص ملفات API Routes...\n');
 
-  // 1. ط§ظ„ط¨ط­ط« ط¹ظ† ظ…ظ„ظپط§طھ route
+  // 1. البحث عن ملفات route
   const routeFiles = findRouteFiles(apiDir);
-  console.log(`âœ“ طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ${routeFiles.size} ظ…ط¬ظ„ط¯ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ route files`);
+  console.log(`âœ“ تم العثور على ${routeFiles.size} مجلد يحتوي على route files`);
 
-  // 2. ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط¬ظ„ط¯
+  // 2. اكتشاف الملفات المكررة في نفس المجلد
   const duplicates = detectDuplicates(routeFiles);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ط²ط¯ظˆط§ط¬ظٹط© ط§ظ„ظ…ظ„ظپط§طھ ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط¬ظ„ط¯`);
+  console.log(`âœ“ تم فحص ازدواجية الملفات في نفس المجلد`);
 
-  // 3. ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ط§ظ„ظ…ط¬ط§ظˆط±ط©
+  // 3. اكتشاف الملفات المكررة المجاورة
   const adjacentDuplicates = checkAdjacentDuplicates(apiDir);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط¬ط§ظˆط±ط©`);
+  console.log(`âœ“ تم فحص الملفات المجاورة`);
 
-  // 4. ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+  // 4. اكتشاف الملفات المشبوهة
   const suspiciousFiles = findSuspiciousFiles(apiDir);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©`);
+  console.log(`âœ“ تم فحص الملفات المشبوهة`);
 
-  // 5. ط§ظƒطھط´ط§ظپ ط§ظ„طھط¶ط§ط±ط¨ط§طھ
+  // 5. اكتشاف التضاربات
   const conflicts = detectConflicts(apiDir);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ظ„طھط¶ط§ط±ط¨ط§طھ ط§ظ„ظ…ط­طھظ…ظ„ط©\n`);
+  console.log(`âœ“ تم فحص التضاربات المحتملة\n`);
 
-  // ط¯ظ…ط¬ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+  // دمج جميع الملفات المكررة
   const allDuplicates = [...duplicates, ...adjacentDuplicates];
 
   return {
@@ -378,29 +378,29 @@ function checkApiDuplicates(): CheckResult {
 }
 
 /**
- * ط·ط¨ط§ط¹ط© ط§ظ„طھظ‚ط±ظٹط±
+ * طباعة التقرير
  */
 function printReport(result: CheckResult) {
   console.log('='.repeat(80));
-  console.log('ًں“ٹ طھظ‚ط±ظٹط± ظپط­طµ ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ API Routes');
+  console.log('ًں“ٹ تقرير فحص ازدواجية ملفات API Routes');
   console.log('='.repeat(80));
   console.log();
 
-  // ظ…ظ„ط®طµ
-  console.log('ًں“ˆ ط§ظ„ظ…ظ„ط®طµ:');
-  console.log(`   â€¢ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©: ${result.summary.totalDuplicates}`);
-  console.log(`   â€¢ ط§ظ„طھط¶ط§ط±ط¨ط§طھ: ${result.summary.totalConflicts}`);
-  console.log(`   â€¢ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©: ${result.summary.totalSuspicious}`);
+  // ملخص
+  console.log('ًں“ˆ الملخص:');
+  console.log(`   â€¢ الملفات المكررة: ${result.summary.totalDuplicates}`);
+  console.log(`   â€¢ التضاربات: ${result.summary.totalConflicts}`);
+  console.log(`   â€¢ الملفات المشبوهة: ${result.summary.totalSuspicious}`);
   console.log();
 
-  // ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+  // الملفات المكررة
   if (result.duplicates.length > 0) {
-    console.log('âڑ ï¸ڈ  ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©:');
+    console.log('âڑ ï¸ڈ  الملفات المكررة:');
     console.log('-'.repeat(80));
     result.duplicates.forEach((dup, index) => {
-      console.log(`\n${index + 1}. ط§ظ„ظ…ط¬ظ„ط¯: ${dup.directory}`);
-      console.log(`   ط§ظ„ظ…ط´ظƒظ„ط©: ${dup.issue}`);
-      console.log(`   ط§ظ„ظ…ظ„ظپط§طھ:`);
+      console.log(`\n${index + 1}. المجلد: ${dup.directory}`);
+      console.log(`   المشكلة: ${dup.issue}`);
+      console.log(`   الملفات:`);
       dup.files.forEach(file => {
         console.log(`      - ${file}`);
       });
@@ -408,9 +408,9 @@ function printReport(result: CheckResult) {
     console.log();
   }
 
-  // ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+  // الملفات المشبوهة
   if (result.suspiciousFiles.length > 0) {
-    console.log('ًں”چ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط© (طھط­طھظˆظٹ ط¹ظ„ظ‰ ط£ظ†ظ…ط§ط· ظ…ط«ظ„ -improved, -enhanced, -new):');
+    console.log('ًں”چ الملفات المشبوهة (تحتوي على أنماط مثل -improved, -enhanced, -new):');
     console.log('-'.repeat(80));
     result.suspiciousFiles.forEach((file, index) => {
       console.log(`   ${index + 1}. ${file}`);
@@ -418,16 +418,16 @@ function printReport(result: CheckResult) {
     console.log();
   }
 
-  // ط§ظ„طھط¶ط§ط±ط¨ط§طھ
+  // التضاربات
   if (result.conflicts.length > 0) {
-    console.log('âڑ، ط§ظ„طھط¶ط§ط±ط¨ط§طھ ط§ظ„ظ…ط­طھظ…ظ„ط©:');
+    console.log('âڑ، التضاربات المحتملة:');
     console.log('-'.repeat(80));
-    console.log('âڑ ï¸ڈ  ظ…ظ„ط§ط­ط¸ط©: ط¨ط¹ط¶ ظ‡ط°ظ‡ ط§ظ„طھط¶ط§ط±ط¨ط§طھ ظ‚ط¯ طھظƒظˆظ† ظ…ط³ط§ط±ط§طھ طµط­ظٹط­ط© ظپظٹ Next.js.');
-    console.log('   ط±ط§ط¬ط¹ ظƒظ„ ظ…ط³ط§ط± ظ„ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ†ظ‡ ظ…ط·ظ„ظˆط¨ ظˆظ„ظٹط³ ظ…ظƒط±ط±ط§ظ‹.\n');
+    console.log('âڑ ï¸ڈ  ملاحظة: بعض هذه التضاربات قد تكون مسارات صحيحة في Next.js.');
+    console.log('   راجع كل مسار للتأكد من أنه مطلوب وليس مكرراً.\n');
     result.conflicts.forEach((conflict, index) => {
-      console.log(`\n${index + 1}. ط§ظ„ظ…ط³ط§ط±: ${conflict.path}`);
-      console.log(`   ط§ظ„ط®ط·ظˆط±ط©: ${conflict.severity}`);
-      console.log(`   ظٹطھط¹ط§ط±ط¶ ظ…ط¹:`);
+      console.log(`\n${index + 1}. المسار: ${conflict.path}`);
+      console.log(`   الخطورة: ${conflict.severity}`);
+      console.log(`   يتعارض مع:`);
       conflict.conflicts.forEach(conf => {
         console.log(`      - ${conf}`);
       });
@@ -435,30 +435,30 @@ function printReport(result: CheckResult) {
     console.log();
   }
 
-  // ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط©
+  // النتيجة النهائية
   console.log('='.repeat(80));
   if (result.summary.totalDuplicates === 0 && 
       result.summary.totalConflicts === 0 && 
       result.summary.totalSuspicious === 0) {
-    console.log('âœ… ظ„ط§ طھظˆط¬ط¯ ظ…ط´ط§ظƒظ„ ظ…ظƒطھط´ظپط©!');
+    console.log('âœ… لا توجد مشاكل مكتشفة!');
   } else {
-    console.log('â‌Œ طھظ… ط§ظƒطھط´ط§ظپ ظ…ط´ط§ظƒظ„ طھط­طھط§ط¬ ط¥ظ„ظ‰ ظ…ط¹ط§ظ„ط¬ط©');
-    console.log('\nًں’، ط§ظ„طھظˆطµظٹط§طھ:');
-    console.log('   1. ط§ط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ط£ظˆ ط§ط¯ظ…ط¬ظ‡ط§ ظپظٹ ظ…ظ„ظپ ظˆط§ط­ط¯');
-    console.log('   2. طھط£ظƒط¯ ظ…ظ† ظˆط¬ظˆط¯ ظ…ظ„ظپ route.ts ظˆط§ط­ط¯ ظپظ‚ط· ظپظٹ ظƒظ„ ظ…ط¬ظ„ط¯');
-    console.log('   3. ط£ط¹ط¯ طھط³ظ…ظٹط© ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط© ط£ظˆ ط§ط­ط°ظپظ‡ط§ ط¥ط°ط§ ظ„ظ… طھط¹ط¯ ظ…ط³طھط®ط¯ظ…ط©');
-    console.log('   4. ط±ط§ط¬ط¹ ط§ظ„طھط¶ط§ط±ط¨ط§طھ ط§ظ„ظ…ط­طھظ…ظ„ط© ظˆط£ط²ظ„ ط§ظ„ظ…ط³ط§ط±ط§طھ ط§ظ„ظ…ظƒط±ط±ط©');
+    console.log('â‌Œ تم اكتشاف مشاكل تحتاج إلى معالجة');
+    console.log('\nًں’، التوصيات:');
+    console.log('   1. احذف الملفات المكررة أو ادمجها في ملف واحد');
+    console.log('   2. تأكد من وجود ملف route.ts واحد فقط في كل مجلد');
+    console.log('   3. أعد تسمية الملفات المشبوهة أو احذفها إذا لم تعد مستخدمة');
+    console.log('   4. راجع التضاربات المحتملة وأزل المسارات المكررة');
   }
   console.log('='.repeat(80));
 }
 
-// طھط´ط؛ظٹظ„ ط§ظ„ظپط­طµ
+// تشغيل الفحص
 if (require.main === module) {
   try {
     const result = checkApiDuplicates();
     printReport(result);
     
-    // ط¥ط±ط¬ط§ط¹ ظƒظˆط¯ ط®ط±ظˆط¬ ظ…ظ†ط§ط³ط¨
+    // إرجاع كود خروج مناسب
     if (result.summary.totalDuplicates > 0 || 
         result.summary.totalConflicts > 0 || 
         result.summary.totalSuspicious > 0) {
@@ -467,7 +467,7 @@ if (require.main === module) {
       process.exit(0);
     }
   } catch (error) {
-    console.error('â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ظپط­طµ:', error);
+    console.error('â‌Œ حدث خطأ أثناء الفحص:', error);
     process.exit(1);
   }
 }

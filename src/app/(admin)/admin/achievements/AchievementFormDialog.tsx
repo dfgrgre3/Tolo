@@ -301,7 +301,7 @@ export function AchievementFormDialog({
                 <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                   <div className="space-y-0.5">
                     <FormLabel className="font-black text-xs">وسام سري</FormLabel>
-                    <p className="text-[10px] text-muted-foreground font-bold">ي٪ر للمحاربين كعلامة استفهام</p>
+                    <p className="text-[10px] text-muted-foreground font-bold">يظهر للمحاربين كعلامة استفهام</p>
                   </div>
                   <FormControl>
                     <Switch

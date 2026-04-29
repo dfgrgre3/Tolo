@@ -34,7 +34,7 @@ func GetSubjects(c *gin.Context) {
 
 	search := c.Query("search")
 	if search != "" {
-		query = query.Where("name ILIKE ? OR name_ar ILIKE ?", "%"+search+"%", "%"+search+"%")
+		query = query.Where("name ILIKE ? OR \"nameAr\" ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Pagination
@@ -151,7 +151,7 @@ func GetSubject(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error; err != nil {
+	if err := db.DB.Preload("Topics.SubTopics.Attachments").Preload("Topics.SubTopics.Exam").First(&subject, "\"id\" = ?", id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subject not found"})
 		return
 	}
@@ -170,7 +170,7 @@ func GetCourseLessons(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error; err != nil {
+	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "\"id\" = ?", id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
 		return
 	}
@@ -227,16 +227,33 @@ func EnrollCourse(c *gin.Context) {
 	
 	// Verify subject exists
 	var subject models.Subject
-	if err := db.DB.First(&subject, "id = ?", courseId).Error; err != nil {
+	if err := db.DB.First(&subject, "\"id\" = ?", courseId).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subject not found"})
 		return
 	}
 
+	// Check if user is already enrolled
 	var enrollment models.Enrollment
 	err := db.DB.Where("\"userId\" = ? AND \"subjectId\" = ?", userId, courseId).First(&enrollment).Error
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Already enrolled"})
 		return
+	}
+
+	// Payment verification logic
+	if subject.Price > 0 {
+		var payment models.Payment
+		// Check for a COMPLETED payment for this subject and user
+		err := db.DB.Where("\"userId\" = ? AND \"subjectId\" = ? AND status = ?", userId, courseId, models.PaymentCompleted).First(&payment).Error
+		if err != nil {
+			c.JSON(http.StatusPaymentRequired, gin.H{
+				"error":     "Payment required for this course",
+				"courseId":  courseId,
+				"price":     subject.Price,
+				"requiresPayment": true,
+			})
+			return
+		}
 	}
 
 	enrollment = models.Enrollment{
@@ -253,6 +270,78 @@ func EnrollCourse(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Enrolled successfully"})
+}
+
+func CourseCheckout(c *gin.Context) {
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userId := userIdValue.(string)
+	courseId := c.Param("id")
+
+	var input struct {
+		PaymentMethod string `json:"paymentMethod" binding:"required"`
+		CouponCode    string `json:"couponCode"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	var subject models.Subject
+	if err := db.DB.First(&subject, "\"id\" = ?", courseId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
+		return
+	}
+
+	// Create a payment record
+	payment := models.Payment{
+		UserID:    userId,
+		SubjectID: courseId,
+		Amount:    subject.Price,
+		Method:    input.PaymentMethod,
+		Status:    models.PaymentPending,
+		Reference: "COURSE-" + time.Now().Format("20060102150405"),
+	}
+
+	if err := db.DB.Create(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment"})
+		return
+	}
+
+	// For demonstration/initial link, if it's internal_wallet or a simulated success:
+	if input.PaymentMethod == "internal_wallet" {
+		// Mock logic: assume they have enough balance for now or just succeed
+		payment.Status = models.PaymentCompleted
+		db.DB.Save(&payment)
+
+		// Auto-enroll after successful payment
+		enrollment := models.Enrollment{
+			UserID:     userId,
+			SubjectID:  courseId,
+			EnrolledAt: time.Now(),
+		}
+		db.DB.Create(&enrollment)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Payment successful and enrolled",
+		})
+		return
+	}
+
+	// Mock Paymob response if using card
+	if input.PaymentMethod == "card" || input.PaymentMethod == "wallet" || input.PaymentMethod == "fawry" {
+		c.JSON(http.StatusOK, gin.H{
+			"paymentKey": "mock_payment_key_" + payment.ID,
+			"iframeId":    "123456", // Mock iframe ID
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": false, "error": "Unsupported payment method"})
 }
 
 func UpdateLessonProgress(c *gin.Context) {
@@ -277,7 +366,7 @@ func UpdateLessonProgress(c *gin.Context) {
 	}
 
 	var progress models.LessonProgress
-	err := db.DB.Where("\"userId\" = ? AND \"lessonId\" = ?", userId, lessonId).First(&progress).Error
+	err := db.DB.Where("\"userId\" = ? AND \"subTopicId\" = ?", userId, lessonId).First(&progress).Error
 
 	if err != nil {
 		// Create new progress record
@@ -439,4 +528,112 @@ func GetUserSubjects(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func UpdateCourseCurriculum(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		Topics []models.Topic `json:"topics"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	// Use a transaction for bulk updates
+	tx := db.DB.Begin()
+
+	// For each topic, update or create
+	for _, topic := range input.Topics {
+		topic.SubjectID = id
+		if topic.ID == "" {
+			if err := tx.Create(&topic).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create topic"})
+				return
+			}
+		} else {
+			if err := tx.Save(&topic).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update topic"})
+				return
+			}
+		}
+
+		// Handle subtopics
+		for _, st := range topic.SubTopics {
+			st.TopicID = topic.ID
+			if st.ID == "" {
+				if err := tx.Create(&st).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subtopic"})
+					return
+				}
+			} else {
+				if err := tx.Save(&st).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subtopic"})
+					return
+				}
+			}
+		}
+	}
+
+	tx.Commit()
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Curriculum updated"})
+}
+
+func AddLessonAttachment(c *gin.Context) {
+	lessonId := c.Param("id")
+	var attachment models.LessonAttachment
+	if err := c.ShouldBindJSON(&attachment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	attachment.SubTopicID = lessonId
+	if err := db.DB.Create(&attachment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add attachment"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, attachment)
+}
+
+func CreateCourseReview(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	subjectId := c.Param("id")
+
+	var review models.CourseReview
+	if err := c.ShouldBindJSON(&review); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	review.UserID = userId.(string)
+	review.SubjectID = subjectId
+
+	if err := db.DB.Create(&review).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create review"})
+		return
+	}
+
+	// Update subject rating (simplified calculation)
+	var avg float64
+	db.DB.Model(&models.CourseReview{}).Where("\"subjectId\" = ?", subjectId).Select("avg(rating)").Scan(&avg)
+	db.DB.Model(&models.Subject{}).Where("id = ?", subjectId).Update("rating", avg)
+
+	c.JSON(http.StatusCreated, review)
+}
+
+func GetCourseReviews(c *gin.Context) {
+	subjectId := c.Param("id")
+	var reviews []models.CourseReview
+
+	if err := db.DB.Preload("User").Where("\"subjectId\" = ? AND \"isVisible\" = ?", subjectId, true).Find(&reviews).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reviews"})
+		return
+	}
+
+	c.JSON(http.StatusOK, reviews)
 }

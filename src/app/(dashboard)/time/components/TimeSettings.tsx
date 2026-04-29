@@ -184,12 +184,12 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
           <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-950/30">
             <CardTitle className="flex items-center text-lg">
               <Moon className="h-5 w-5 text-indigo-600 dark:text-indigo-400 ml-2" />
-              الم٪ر
+              المظهر
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="theme">الم٪ر</Label>
+              <Label htmlFor="theme">المظهر</Label>
               <Select
                 value={settings.theme}
                 onValueChange={(value: 'light' | 'dark' | 'auto') => setSettings({

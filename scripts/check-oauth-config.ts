@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env tsx
 /**
  * OAuth Configuration Check Script
- * ط³ظƒط±ط¨طھ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ OAuth ظˆ redirect_uri
+ * سكربت للتحقق من إعدادات OAuth و redirect_uri
  * 
  * Checks:
  * - Google OAuth redirect_uri configuration
@@ -167,7 +167,7 @@ function checkOAuthConfig(): OAuthReport {
 
 function formatReport(report: OAuthReport): void {
   console.log('\n' + '='.repeat(70));
-  console.log('OAuth Configuration Check / ظپط­طµ ط¥ط¹ط¯ط§ط¯ط§طھ OAuth');
+  console.log('OAuth Configuration Check / فحص إعدادات OAuth');
   console.log('='.repeat(70) + '\n');
 
   // Google OAuth Status
@@ -219,7 +219,7 @@ function formatReport(report: OAuthReport): void {
 
   // Recommendations
   if (report.recommendations.length > 0) {
-    console.log('ًں’، Recommendations / ط§ظ„طھظˆطµظٹط§طھ:');
+    console.log('ًں’، Recommendations / التوصيات:');
     report.recommendations.forEach((rec, index) => {
       console.log(`   ${index + 1}. ${rec}`);
     });

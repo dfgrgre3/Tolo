@@ -24,6 +24,10 @@ type Category struct {
 	UpdatedAt   time.Time    `json:"updatedAt"`
 }
 
+func (Category) TableName() string {
+	return "Category"
+}
+
 func (c *Category) BeforeCreate(tx *gorm.DB) (err error) {
 	if c.ID == "" {
 		c.ID = uuid.New().String()

@@ -32,7 +32,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
           className={`text-3xl md:text-4xl font-black mb-4 ${rpgCommonStyles.neonText} flex items-center justify-center gap-2`}
         >
           <span>قدرات النظام (System Features)</span>
-          <span className="text-2xl animate-pulse" aria-hidden="true">ًں’ژ</span>
+          <span className="text-2xl animate-pulse" aria-hidden="true">💎</span>
         </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
           اكتشف الأدوات التي ستساعدك في رحلتك الملحمية نحو التفوق

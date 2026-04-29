@@ -67,7 +67,7 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
       {/* Info Grid */}
       <div className="grid grid-cols-2 gap-12 mb-12">
         <div>
-          <h3 className="text-blue-600/50 text-[10px] font-black mb-3 border-b pb-1 uppercase tracking-widest">مظڈقدمة إلى (Billed To):</h3>
+          <h3 className="text-blue-600/50 text-[10px] font-black mb-3 border-b pb-1 uppercase tracking-widest">مُقدمة إلى (Billed To):</h3>
           <div className="space-y-1">
             <p className="font-bold text-lg text-gray-800">{data.customerName}</p>
             <p className="text-gray-500 text-sm">{data.customerEmail}</p>

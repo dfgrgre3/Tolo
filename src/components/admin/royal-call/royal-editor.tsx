@@ -64,7 +64,7 @@ export function RoyalEditor({ formData, updateField, isArabic: _isArabic, smsInf
         <div className="space-y-3">
           <label className="text-[10px] font-black text-muted-foreground uppercase flex justify-between px-1 tracking-[0.1em]">
              عنوان المخطوطة
-             <span className="text-primary/60 italic font-medium">سي٪ر بشكل عريض في الأعلى</span>
+             <span className="text-primary/60 italic font-medium">سيظهر بشكل عريض في الأعلى</span>
           </label>
           <AdminInput 
             placeholder="اكتب العنوان الملكي هنا..." 

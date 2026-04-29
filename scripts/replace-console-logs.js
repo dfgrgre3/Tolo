@@ -1,6 +1,6 @@
 ﻿/**
  * Script to replace console.* calls with unified logger
- * ط³ظƒط±ظٹط¨طھ ظ„ط§ط³طھط¨ط¯ط§ظ„ ط§ط³طھط®ط¯ط§ظ…ط§طھ console.* ط¨ظ†ط¸ط§ظ… ط§ظ„طھط³ط¬ظٹظ„ ط§ظ„ظ…ظˆط­ط¯
+ * سكريبت لاستبدال استخدامات console.* بنظام التسجيل الموحد
  */
 
 const fs = require('fs');

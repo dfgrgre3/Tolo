@@ -31,11 +31,15 @@ type Exam struct {
 
 type Question struct {
 	ID      string `gorm:"primaryKey" json:"id"`
-	ExamID  string `gorm:"not null;index" json:"examId"`
+	ExamID  string `gorm:"column:exam_id;not null;index" json:"examId"`
 	Text    string `gorm:"not null" json:"text"`
 	Type    string `json:"type"` // MCQ, TRUE_FALSE, TEXT
 	Options string `json:"options"` // JSON string of options
 	Answer  string `json:"answer"`
+}
+
+func (Question) TableName() string {
+	return "questions"
 }
 
 type ExamResult struct {
@@ -45,6 +49,10 @@ type ExamResult struct {
 	Score     float64   `json:"score"`
 	Passed    bool      `json:"passed"`
 	TakenAt   time.Time `json:"takenAt"`
+}
+
+func (Exam) TableName() string {
+	return "Exam"
 }
 
 func (e *Exam) BeforeCreate(tx *gorm.DB) (err error) {
@@ -59,6 +67,10 @@ func (q *Question) BeforeCreate(tx *gorm.DB) (err error) {
 		q.ID = uuid.New().String()
 	}
 	return
+}
+
+func (ExamResult) TableName() string {
+	return "ExamResult"
 }
 
 func (er *ExamResult) BeforeCreate(tx *gorm.DB) (err error) {

@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 
-// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Types أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+// ───────── Types ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 interface EnrollmentTrend {
   date: string;
   count: number;
@@ -67,7 +67,7 @@ interface AnalyticsData {
   }>;
 }
 
-// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ CSS Mini Chart Components أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+// ───────── CSS Mini Chart Components ────────────────────────────────────────────────────────────────────────────────────
 function SparklineChart({
   data,
   color = "hsl(var(--primary))",
@@ -272,7 +272,7 @@ function HorizontalBar({
   );
 }
 
-// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Main Component أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+// ───────── Main Component ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export default function CourseAnalyticsPage() {
   const router = useRouter();
   const params = useParams();
@@ -311,7 +311,7 @@ export default function CourseAnalyticsPage() {
     );
   };
 
-  // أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Error أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+  // ───────── Error ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-6 text-center">
@@ -320,12 +320,12 @@ export default function CourseAnalyticsPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-xl font-black">
-            فطآ´ظâ€‍ طھطآ­ظâ€¦يظâ€‍
-            طآ§ظâ€‍طھطآ­ظâ€‍يظâ€‍طآ§طھ
+            فشل تحميل
+            التحليلات
           </h2>
           <p className="text-sm text-muted-foreground font-medium max-w-sm">
             {(error as Error).message ||
-              "طآ­طآ¯طآ« طآ®طآ·طآ£ غيطآ± ظâ€¦طھظث†ظâ€ڑطآ¹ طآ£طآ«ظâ€ طآ§ء طآ¬ظâ€‍طآ¨ طآ§ظâ€‍طآ¨يطآ§ظâ€ طآ§طھ ظâ€¦ظâ€  طآ§ظâ€‍طآ®طآ§طآ¯ظâ€¦"}
+              "حدث خطأ غير متوقع أثناء جلب البيانات من الخادم"}
           </p>
         </div>
         <AdminButton
@@ -333,13 +333,13 @@ export default function CourseAnalyticsPage() {
           className="rounded-xl px-8"
           onClick={() => window.location.reload()}
         >
-          طآ¥طآ¹طآ§طآ¯طآ© طآ§ظâ€‍ظâ€¦طآ­طآ§ظث†ظâ€‍طآ©
+          إعادة المحاولة
         </AdminButton>
       </div>
     );
   }
 
-  // أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Loading أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+  // ───────── Loading ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   if (isLoading || !analytics) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -355,8 +355,8 @@ export default function CourseAnalyticsPage() {
             />
           </div>
           <p className="text-sm font-bold text-muted-foreground animate-pulse">
-            طآ¬طآ§طآ±ي طھطآ­ظâ€¦يظâ€‍
-            طآ§ظâ€‍طھطآ­ظâ€‍يظâ€‍طآ§طھ...
+            جاري تحميل
+            التحليلات...
           </p>
         </div>
       </div>
@@ -370,7 +370,7 @@ export default function CourseAnalyticsPage() {
 
   return (
     <div className="space-y-8 pb-20" dir="rtl">
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Header أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Header ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <AdminButton
@@ -383,8 +383,8 @@ export default function CourseAnalyticsPage() {
           </AdminButton>
           <div>
             <h1 className="text-2xl font-black">
-              طھطآ­ظâ€‍يظâ€‍طآ§طھ طآ§ظâ€‍طآ¯ظث†طآ±طآ©
-              طآ§ظâ€‍طھطآ¹ظâ€‍يظâ€¦يطآ©
+              تحليلات الدورة
+              التعليمية
             </h1>
             <p className="text-xs text-muted-foreground font-medium">
               {analytics.course.name}
@@ -397,20 +397,20 @@ export default function CourseAnalyticsPage() {
           onClick={handleExportStudents}
         >
           <Download className="h-4 w-4" />
-          طھطآµطآ¯يطآ± طآ¨يطآ§ظâ€ طآ§طھ
-          طآ§ظâ€‍طآ·ظâ€‍طآ§طآ¨
+          تصدير بيانات
+          الطلاب
         </AdminButton>
       </div>
 
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Quick Stats أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Quick Stats ───────────────────────────────────────────────────────────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <AdminCard className="relative overflow-hidden p-5 group">
           <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                طآ¥طآ¬ظâ€¦طآ§ظâ€‍ي
-                طآ§ظâ€‍طھطآ³طآ¬يظâ€‍طآ§طھ
+                إجمالي
+                التسجيلات
               </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
                 <Users className="h-5 w-5 text-blue-500" />
@@ -429,7 +429,7 @@ export default function CourseAnalyticsPage() {
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                طآ¥طآ¬ظâ€¦طآ§ظâ€‍ي طآ§ظâ€‍طآ¥يطآ±طآ§طآ¯طآ§طھ
+                إجمالي الإيرادات
               </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
                 <DollarSign className="h-5 w-5 text-emerald-500" />
@@ -440,7 +440,7 @@ export default function CourseAnalyticsPage() {
               <span className="text-sm">EGP</span>
             </p>
             <p className="text-[11px] text-muted-foreground">
-              طآ¢طآ®طآ± 30 يظث†ظâ€¦:{" "}
+              ط¢خر 30 يوم:{" "}
               {analytics.revenue.recent30Days.toLocaleString()} EGP
             </p>
           </div>
@@ -451,7 +451,7 @@ export default function CourseAnalyticsPage() {
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                ظâ€¦طھظث†طآ³طآ· طآ§ظâ€‍طھظâ€ڑييظâ€¦
+                متوسط التقييم
               </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
                 <Star className="h-5 w-5 text-amber-500" />
@@ -459,7 +459,7 @@ export default function CourseAnalyticsPage() {
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-black">
-                {analytics.avgRating > 0 ? analytics.avgRating : "أ¢â‚¬â€‌"}
+                {analytics.avgRating > 0 ? analytics.avgRating : "—"}
               </p>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -476,7 +476,7 @@ export default function CourseAnalyticsPage() {
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {analytics.reviewCount} طھظâ€ڑييظâ€¦
+              {analytics.reviewCount} تقييم
             </p>
           </div>
         </AdminCard>
@@ -486,7 +486,7 @@ export default function CourseAnalyticsPage() {
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                ظâ€¦طھظث†طآ³طآ· طآ§ظâ€‍طھظâ€ڑطآ¯ظâ€¦
+                متوسط التقدم
               </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
                 <Target className="h-5 w-5 text-violet-500" />
@@ -527,7 +527,7 @@ export default function CourseAnalyticsPage() {
         </AdminCard>
       </div>
 
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Enrollment Trends + Progress Distribution أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Enrollment Trends + Progress Distribution ─────────────── */}
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <AdminCard className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -537,10 +537,10 @@ export default function CourseAnalyticsPage() {
               </div>
               <div>
                 <h3 className="font-black">
-                  طآ§طھطآ¬طآ§ظâ€، طآ§ظâ€‍طھطآ³طآ¬يظâ€‍طآ§طھ
+                  اتجاف، التسجيلات
                 </h3>
                 <p className="text-[11px] text-muted-foreground">
-                  طآ¢طآ®طآ± 30 يظث†ظâ€¦
+                  ط¢خر 30 يوم
                 </p>
               </div>
             </div>
@@ -549,7 +549,7 @@ export default function CourseAnalyticsPage() {
               className="rounded-full px-3 font-bold text-xs"
             >
               {analytics.enrollmentTrends.reduce((s, t) => s + t.count, 0)}{" "}
-              طھطآ³طآ¬يظâ€‍
+              تسجيل
             </Badge>
           </div>
           <BarChart
@@ -567,10 +567,10 @@ export default function CourseAnalyticsPage() {
             </div>
             <div>
               <h3 className="font-black">
-                طھظث†طآ²يطآ¹ طآ§ظâ€‍طھظâ€ڑطآ¯ظâ€¦
+                توزيس التقدم
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                طآ­طآ§ظâ€‍طآ© طھظâ€ڑطآ¯ظâ€¦ طآ§ظâ€‍طآ·ظâ€‍طآ§طآ¨
+                حالة تقدم الطلاب
               </p>
             </div>
           </div>
@@ -581,22 +581,22 @@ export default function CourseAnalyticsPage() {
                 {
                   value: analytics.progressDistribution.completed,
                   color: "#10b981",
-                  label: "ظâ€¦ظئ’طھظâ€¦ظâ€‍",
+                  label: "مكتمل",
                 },
                 {
                   value: analytics.progressDistribution.halfWay,
                   color: "#3b82f6",
-                  label: "ظâ€ طآµف طآ§ظâ€‍طآ·طآ±يظâ€ڑ",
+                  label: "نصف الطريق",
                 },
                 {
                   value: analytics.progressDistribution.inProgress,
                   color: "#f59e0b",
-                  label: "ظâ€ڑيطآ¯ طآ§ظâ€‍طھطآ¹ظâ€‍ظâ€¦",
+                  label: "قيد التعلم",
                 },
                 {
                   value: analytics.progressDistribution.notStarted,
                   color: "#6b7280",
-                  label: "ظâ€‍ظâ€¦ يطآ¨طآ¯طآ£",
+                  label: "لم يبدأ",
                 },
               ]}
             />
@@ -605,22 +605,22 @@ export default function CourseAnalyticsPage() {
           <div className="grid grid-cols-2 gap-2">
             {[
               {
-                label: "ظâ€¦ظئ’طھظâ€¦ظâ€‍",
+                label: "مكتمل",
                 value: analytics.progressDistribution.completed,
                 color: "bg-emerald-500",
               },
               {
-                label: "ظâ€ طآµف طآ§ظâ€‍طآ·طآ±يظâ€ڑ",
+                label: "نصف الطريق",
                 value: analytics.progressDistribution.halfWay,
                 color: "bg-blue-500",
               },
               {
-                label: "ظâ€ڑيطآ¯ طآ§ظâ€‍طھطآ¹ظâ€‍ظâ€¦",
+                label: "قيد التعلم",
                 value: analytics.progressDistribution.inProgress,
                 color: "bg-amber-500",
               },
               {
-                label: "ظâ€‍ظâ€¦ يطآ¨طآ¯طآ£",
+                label: "لم يبدأ",
                 value: analytics.progressDistribution.notStarted,
                 color: "bg-gray-500",
               },
@@ -640,7 +640,7 @@ export default function CourseAnalyticsPage() {
         </AdminCard>
       </div>
 
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Rating Distribution + Revenue أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Rating Distribution + Revenue ───────────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         <AdminCard className="p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -649,11 +649,11 @@ export default function CourseAnalyticsPage() {
             </div>
             <div>
               <h3 className="font-black">
-                طھظث†طآ²يطآ¹ طآ§ظâ€‍طھظâ€ڑييظâ€¦طآ§طھ
+                توزيس التقييمات
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                {analytics.reviewCount} طھظâ€ڑييظâ€¦
-                طآ¥طآ¬ظâ€¦طآ§ظâ€‍ي
+                {analytics.reviewCount} تقييم
+                إجمالي
               </p>
             </div>
           </div>
@@ -702,10 +702,10 @@ export default function CourseAnalyticsPage() {
             </div>
             <div>
               <h3 className="font-black">
-                طھفطآ§طآµيظâ€‍ طآ§ظâ€‍طآ¥يطآ±طآ§طآ¯طآ§طھ
+                تفاصيل الإيرادات
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                ظâ€¦ظâ€‍طآ®طآµ ظâ€¦طآ§ظâ€‍ي ظâ€‍ظâ€‍طآ¯ظث†طآ±طآ©
+                ملخص مالي للدورة
               </p>
             </div>
           </div>
@@ -713,8 +713,8 @@ export default function CourseAnalyticsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-4">
                 <p className="text-[10px] font-bold text-muted-foreground">
-                  طآ§ظâ€‍طآ¥يطآ±طآ§طآ¯طآ§طھ
-                  طآ§ظâ€‍طآ¥طآ¬ظâ€¦طآ§ظâ€‍يطآ©
+                  الإيرادات
+                  الإجمالية
                 </p>
                 <p className="text-2xl font-black text-emerald-500 mt-1">
                   {analytics.revenue.total.toLocaleString()}
@@ -723,7 +723,7 @@ export default function CourseAnalyticsPage() {
               </div>
               <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-4">
                 <p className="text-[10px] font-bold text-muted-foreground">
-                  طآ¢طآ®طآ± 30 يظث†ظâ€¦
+                  ط¢خر 30 يوم
                 </p>
                 <p className="text-2xl font-black text-blue-500 mt-1">
                   {analytics.revenue.recent30Days.toLocaleString()}
@@ -734,7 +734,7 @@ export default function CourseAnalyticsPage() {
             <div className="rounded-2xl bg-muted/20 border p-4 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground">
-                  طآ³طآ¹طآ± طآ§ظâ€‍طآ¯ظث†طآ±طآ©
+                  سعر الدورة
                 </p>
                 <p className="text-lg font-black mt-1">
                   {analytics.revenue.pricePerStudent} EGP
@@ -742,7 +742,7 @@ export default function CourseAnalyticsPage() {
               </div>
               <div className="text-left">
                 <p className="text-[10px] font-bold text-muted-foreground">
-                  طآ¹طآ¯طآ¯ طآ§ظâ€‍طآ·ظâ€‍طآ§طآ¨
+                  عدد الطلاب
                 </p>
                 <p className="text-lg font-black mt-1">
                   {analytics.totalEnrollments}
@@ -750,7 +750,7 @@ export default function CourseAnalyticsPage() {
               </div>
               <div className="text-left">
                 <p className="text-[10px] font-bold text-muted-foreground">
-                  ظâ€¦طھظث†طآ³طآ· ظâ€‍ظئ’ظâ€‍ طآ·طآ§ظâ€‍طآ¨
+                  متوسط لكل طالب
                 </p>
                 <p className="text-lg font-black mt-1">
                   {analytics.revenue.pricePerStudent} EGP
@@ -761,7 +761,7 @@ export default function CourseAnalyticsPage() {
         </AdminCard>
       </div>
 
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Content Performance أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Content Performance ───────────────────────────────────────────────────────────────────────────────── */}
       <AdminCard className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -770,12 +770,12 @@ export default function CourseAnalyticsPage() {
             </div>
             <div>
               <h3 className="font-black">
-                طآ£طآ¯طآ§ء طآ§ظâ€‍ظâ€¦طآ­طھظث†ظâ€°
+                أداء المحتوفذ
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                طھفطآ§طآµيظâ€‍ طآ§ظâ€‍ظث†طآ­طآ¯طآ§طھ
-                طآ§ظâ€‍طھطآ¹ظâ€‍يظâ€¦يطآ©
-                ظث†طآ§ظâ€‍طآ¯طآ±ظث†طآ³
+                تفاصيل الوحدات
+                التعليمية
+                والدروس
               </p>
             </div>
           </div>
@@ -790,7 +790,7 @@ export default function CourseAnalyticsPage() {
                 value={topic.totalDuration}
                 max={maxContentDuration}
                 color={`hsl(${(i * 40 + 200) % 360}, 70%, 55%)`}
-                suffix={` طآ¯ أ¢â‚¬â€‌ ${topic.lessonsCount} طآ¯طآ±طآ³`}
+                suffix={` د — ${topic.lessonsCount} درس`}
               />
             ))}
           </div>
@@ -798,14 +798,14 @@ export default function CourseAnalyticsPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
             <p className="text-sm font-bold text-muted-foreground">
-              ظâ€‍ظâ€¦ يطھظâ€¦ طآ¥طآ¶طآ§فطآ©
-              ظâ€¦طآ­طھظث†ظâ€° طآ¨طآ¹طآ¯
+              لم يتم إضافة
+              محتوفذ بعد
             </p>
           </div>
         )}
       </AdminCard>
 
-      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Comparison with Other Courses أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      {/* ───────── Comparison with Other Courses ────────────────────────────────────────────────────── */}
       <AdminCard className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
@@ -813,12 +813,12 @@ export default function CourseAnalyticsPage() {
           </div>
           <div>
             <h3 className="font-black">
-              ظâ€¦ظâ€ڑطآ§طآ±ظâ€ طآ© ظâ€¦طآ¹
-              طآ§ظâ€‍طآ¯ظث†طآ±طآ§طھ طآ§ظâ€‍طآ£طآ®طآ±ظâ€°
+              مقارنة مع
+              الدورات الأخرفذ
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              طھطآ±طھيطآ¨ طآ­طآ³طآ¨ طآ¹طآ¯طآ¯
-              طآ§ظâ€‍طھطآ³طآ¬يظâ€‍طآ§طھ
+              ترتيب حسب عدد
+              التسجيلات
             </p>
           </div>
         </div>
@@ -850,8 +850,8 @@ export default function CourseAnalyticsPage() {
                       {course.name}
                       {course.isCurrent && (
                         <Badge className="mr-2 rounded-full px-2 h-4 text-[8px] font-bold bg-primary/10 text-primary border-primary/20">
-                          طآ§ظâ€‍طآ¯ظث†طآ±طآ©
-                          طآ§ظâ€‍طآ­طآ§ظâ€‍يطآ©
+                          الدورة
+                          الحالية
                         </Badge>
                       )}
                     </div>
@@ -868,7 +868,7 @@ export default function CourseAnalyticsPage() {
                       <span className="font-bold tabular-nums">
                         {course.rating > 0
                           ? course.rating.toFixed(1)
-                          : "أ¢â‚¬â€‌"}
+                          : "—"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-emerald-500">
@@ -885,8 +885,8 @@ export default function CourseAnalyticsPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <BarChart3 className="h-10 w-10 text-muted-foreground/20 mb-3" />
             <p className="text-sm font-bold text-muted-foreground">
-              ظâ€‍طآ§ طھظث†طآ¬طآ¯ طآ¨يطآ§ظâ€ طآ§طھ
-              ظâ€¦ظâ€ڑطآ§طآ±ظâ€ طآ© ظâ€¦طھطآ§طآ­طآ©
+              لا توجد بيانات
+              مقارنة متاحة
             </p>
           </div>
         )}

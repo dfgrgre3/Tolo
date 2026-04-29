@@ -32,7 +32,7 @@ import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
-  const { user: _user, fetchWithAuth } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "completed" | "explore">("active");
@@ -66,8 +66,10 @@ export default function GamifiedCoursesDashboard() {
   const completedQuests = enrolledCourses.filter((c) => (c.progress || 0) >= 100);
   const exploreCourses = courses.filter((c) => !c.enrolled).slice(0, 4); // Suggest 4
 
-  const totalXP = enrolledCourses.reduce((acc, c) => acc + (c.progress || 0) * 10, 0); // Mock XP calculation
-  const masteryLevel = Math.floor(totalXP / 1000) + 1;
+  const totalXP = user?.totalXP || 0;
+  const masteryLevel = user?.level || 1;
+  const examsPassedCount = user?.examsPassed || 0;
+  const currentStreak = user?.currentStreak || 0;
 
   if (loading) {
     return (
@@ -137,7 +139,7 @@ export default function GamifiedCoursesDashboard() {
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">انتصارات</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-foreground">{completedQuests.length}</span>
+                  <span className="text-4xl font-black text-foreground">{examsPassedCount}</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">دورات مكتملة بالكامل</p>
               </div>
@@ -156,7 +158,7 @@ export default function GamifiedCoursesDashboard() {
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">شعلة الحماس</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-foreground">12</span>
+                  <span className="text-4xl font-black text-foreground">{currentStreak}</span>
                   <span className="text-sm font-bold text-muted-foreground">يوم</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">الالتزام المتواصل</p>
@@ -372,7 +374,7 @@ export default function GamifiedCoursesDashboard() {
                   <span className="text-muted-foreground font-medium">التقدم الأسبوعي</span>
                   <span className="font-bold text-primary">65%</span>
                 </div>
-                <Progress value={65} className="h-2 bg-primary/20" />
+                <Progress value={Math.min(user?.totalXP ? (user.totalXP % 1000) / 10 : 0, 100)} className="h-2 bg-primary/20" />
                 <p className="text-[10px] text-muted-foreground text-left">3 ساعات متبقية لتحقيق الهدف</p>
               </div>
 
@@ -380,12 +382,12 @@ export default function GamifiedCoursesDashboard() {
                 <div className="bg-background/50 rounded-xl p-3 border border-white/5 space-y-1">
                   <BookOpen className="h-4 w-4 text-emerald-500" />
                   <p className="text-[10px] font-bold text-muted-foreground">دروس مكتملة</p>
-                  <p className="text-xl font-black">24</p>
+                  <p className="text-xl font-black">{tasksCompletedCount}</p>
                 </div>
                 <div className="bg-background/50 rounded-xl p-3 border border-white/5 space-y-1">
                   <Clock className="h-4 w-4 text-amber-500" />
                   <p className="text-[10px] font-bold text-muted-foreground">ساعات التعلم</p>
-                  <p className="text-xl font-black">18.5</p>
+                  <p className="text-xl font-black">{studyTimeHours}</p>
                 </div>
               </div>
 

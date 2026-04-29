@@ -85,7 +85,7 @@ export default function TipsPage() {
               <span>خزانة الحكمة المفقودة</span>
            </div>
            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-              لفائف <span className={STYLES.neonText}>الإتقان</span> ًں”®
+              لفائف <span className={STYLES.neonText}>الإتقان</span> 🔮
            </h1>
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
               استراتيجيات وتكتيكات محصنة باليقين، جمڪا لك كبار الحكماء لتختصر عليك طريق السيادة وتضاعف من سرعة تطورك العلمي.

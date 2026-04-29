@@ -97,16 +97,23 @@ export default function SubscriptionPage() {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchSummary() {
+    async function fetchData() {
       try {
         const [summaryRes, addonsRes] = await Promise.all([
-        fetch('/api/users/billing-summary'),
-        fetch('/api/subscriptions/addons')]
-        );
+          fetch('/api/users/billing-summary'),
+          fetch('/api/subscriptions/addons')
+        ]);
 
-        if (summaryRes.ok) {
+        if (!summaryRes.ok) {
+          if (summaryRes.status === 401) {
+            setError("unauthorized");
+          } else {
+            setError(`failed_fetch_${summaryRes.status}`);
+          }
+        } else {
           const data = await summaryRes.json();
           setSummary(data);
         }
@@ -117,11 +124,12 @@ export default function SubscriptionPage() {
         }
       } catch (err: unknown) {
         logger.error(err instanceof Error ? err.message : String(err));
+        setError("network_error");
       } finally {
         setLoading(false);
       }
     }
-    fetchSummary();
+    fetchData();
   }, []);
 
   const handlePurchaseAddon = async (addonId: string) => {
@@ -153,20 +161,57 @@ export default function SubscriptionPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary border-r-2" />
-      </div>);
-
+      </div>
+    );
   }
 
-  if (!summary) {
+  if (error || !summary) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] text-white">
-        <div className="text-center">
-          <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-          <p>يجب تسجيل الدخول لعرض ملخص الحساب</p>
-          <Link href="/login" className="text-blue-500 hover:underline mt-4 block">تسجيل الدخول</Link>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] text-white p-4">
+        <div className="text-center bg-[#111114] p-8 md:p-12 rounded-[2.5rem] border border-white/5 shadow-2xl max-w-lg w-full">
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={40} className="text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">
+            {error === "unauthorized" ? "يجب تسجيل الدخول" : "حدث خطأ في جلب البيانات"}
+          </h2>
+          <p className="text-gray-400 mb-8 mx-auto">
+            {error === "unauthorized" 
+              ? "يرجى تسجيل الدخول لعرض ملخص حسابك وفواتيرك." 
+              : error?.startsWith("failed_fetch_404")
+              ? "لم يتم العثور على رابط البيانات. تأكد من تشغيل السيرفر وتحديثه."
+              : "لا يمكننا الوصول إلى السيرفر حالياً. يرجى التحقق من اتصالك بالإنترنت."}
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            {error === "unauthorized" ? (
+              <Link 
+                href="/login" 
+                className="px-8 py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-all active:scale-95 text-center">
+                تسجيل الدخول
+              </Link>
+            ) : (
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all active:scale-95">
+                إعادة المحاولة
+              </button>
+            )}
+            <Link href="/" className="text-gray-500 hover:text-white transition-colors text-sm text-center">
+              العودة للرئيسية
+            </Link>
+          </div>
+          
+          {error && error !== "unauthorized" && (
+            <div className="mt-8 pt-8 border-t border-white/5">
+              <code className="text-[10px] text-gray-600 bg-black/30 px-2 py-1 rounded">
+                Debug Code: {error}
+              </code>
+            </div>
+          )}
         </div>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -183,7 +228,6 @@ export default function SubscriptionPage() {
           <Link
             href="/billing"
             className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 active:scale-95 text-center justify-center">
-            
             تجديد أو ترقية الاشتراك
             <ArrowUpRight size={18} />
           </Link>
@@ -284,19 +328,17 @@ export default function SubscriptionPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {addons.map((addon) =>
-            <m.div
-              key={addon.id}
-              whileHover={{ y: -8 }}
-              className="bg-[#111114] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center group relative overflow-hidden">
-              
+              <m.div
+                key={addon.id}
+                whileHover={{ y: -8 }}
+                className="bg-[#111114] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center group relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-all" />
                 <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center ${
-              addon.type === "EXAM_PACK" ? "bg-purple-500/10 text-purple-500" :
-              addon.type === "AI_CREDITS" ? "bg-blue-500/10 text-blue-500" :
-              "bg-green-500/10 text-green-500"}`
-              }>
+                  addon.type === "EXAM_PACK" ? "bg-purple-500/10 text-purple-500" :
+                  addon.type === "AI_CREDITS" ? "bg-blue-500/10 text-blue-500" :
+                  "bg-green-500/10 text-green-500"}`}>
                   {addon.type === "EXAM_PACK" ? <GraduationCap size={32} /> :
-                addon.type === "AI_CREDITS" ? <Bot size={32} /> : <BookOpen size={32} />}
+                  addon.type === "AI_CREDITS" ? <Bot size={32} /> : <BookOpen size={32} />}
                 </div>
 
                 <h3 className="text-lg font-bold mb-2">{addon.nameAr || addon.name}</h3>
@@ -306,19 +348,16 @@ export default function SubscriptionPage() {
                     {addon.price} <span className="text-xs text-gray-500 font-bold uppercase">ج.م</span>
                   </div>
                   <button
-                  onClick={() => handlePurchaseAddon(addon.id)}
-                  disabled={purchasing === addon.id || summary.balance < addon.price}
-                  className={`w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                  summary.balance < addon.price ? "bg-white/5 text-gray-500 cursor-not-allowed" :
-                  "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"}`
-                  }>
-                  
+                    onClick={() => handlePurchaseAddon(addon.id)}
+                    disabled={purchasing === addon.id || summary.balance < addon.price}
+                    className={`w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                    summary.balance < addon.price ? "bg-white/5 text-gray-500 cursor-not-allowed" :
+                    "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"}`}>
                     {purchasing === addon.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> :
-                  <>
-                        {summary.balance < addon.price ? "الرصيد غير كافٍ" : "شراء الآن"}
-                        <ArrowUpRight size={16} />
-                      </>
-                  }
+                    <>
+                      {summary.balance < addon.price ? "الرصيد غير كافٍ" : "شراء الآن"}
+                      <ArrowUpRight size={16} />
+                    </>}
                   </button>
                 </div>
               </m.div>
@@ -335,8 +374,8 @@ export default function SubscriptionPage() {
             </h2>
             <div className="p-8 rounded-[2rem] bg-gradient-to-br from-blue-600 to-blue-800 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:bg-white/20 transition-all" />
-              {summary.activeSubscription ?
-              <>
+              {summary.activeSubscription ? (
+                <>
                   <div className="mb-6">
                     <span className="text-white/60 text-sm uppercase tracking-wider font-bold">خطة {summary.activeSubscription.plan?.nameAr || "الاشتراك"}</span>
                     <h3 className="text-4xl font-extrabold text-white mt-1">نشط</h3>
@@ -354,16 +393,16 @@ export default function SubscriptionPage() {
                   <Link href="/dashboard" className="w-full py-4 bg-white text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-white/90 transition-all">
                     فتح لوحة الطالب
                   </Link>
-                </> :
-
-              <div className="text-center py-8">
+                </>
+              ) : (
+                <div className="text-center py-8">
                   <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
                     <AlertCircle size={32} className="text-white/50" />
                   </div>
                   <p className="text-white font-bold mb-6">لا يوجد اشتراك نشط حالياً</p>
                   <Link href="/billing" className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold">اشترك الآن</Link>
                 </div>
-              }
+              )}
             </div>
           </div>
 
@@ -386,8 +425,8 @@ export default function SubscriptionPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {summary.paymentHistory.map((payment) =>
-                    <tr key={payment.id} className="hover:bg-white/2 transition-colors border-l border-transparent hover:border-blue-500/30">
+                    {summary.paymentHistory.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-white/2 transition-colors border-l border-transparent hover:border-blue-500/30">
                         <td className="px-6 py-4">
                           <div className="font-bold">{payment.subscription?.plan?.nameAr || "رصيد / شحن"}</div>
                           <div className="text-[10px] text-gray-500 uppercase tracking-tighter">{payment.paymentMethod || "Card"}</div>
@@ -396,12 +435,11 @@ export default function SubscriptionPage() {
                         <td className="px-6 py-4">
                           <div className="flex justify-center">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold ${
-                          payment.status === "SUCCESS" ? "bg-green-500/10 text-green-500 border border-green-500/20" :
-                          payment.status === "PENDING" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
-                          "bg-red-500/10 text-red-500 border border-red-500/20"}`
-                          }>
+                              payment.status === "SUCCESS" ? "bg-green-500/10 text-green-500 border border-green-500/20" :
+                              payment.status === "PENDING" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                              "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
                               {payment.status === "SUCCESS" ? <CheckCircle2 size={10} /> :
-                            payment.status === "PENDING" ? <Clock size={10} /> : <XCircle size={10} />}
+                              payment.status === "PENDING" ? <Clock size={10} /> : <XCircle size={10} />}
                               {payment.status === "SUCCESS" ? "ناجحة" : payment.status === "PENDING" ? "قيد الانتظار" : "فشلت"}
                             </span>
                           </div>
@@ -411,15 +449,14 @@ export default function SubscriptionPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-center">
-                            {payment.status === "SUCCESS" &&
-                          <button
-                            onClick={() => generateInvoicePDF(`invoice-${payment.id}`, `invoice-${payment.id}`)}
-                            className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 transition-all hover:scale-110 active:scale-95"
-                            title="تحميل الفاتورة">
-                            
+                            {payment.status === "SUCCESS" && (
+                              <button
+                                onClick={() => generateInvoicePDF(`invoice-${payment.id}`, `invoice-${payment.id}`)}
+                                className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 transition-all hover:scale-110 active:scale-95"
+                                title="تحميل الفاتورة">
                                 <Download size={14} />
                               </button>
-                          }
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-mono text-[10px] text-gray-500 text-left">
@@ -428,39 +465,38 @@ export default function SubscriptionPage() {
                           </span>
                         </td>
                       </tr>
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
 
               {/* Hidden Off-screen Invoice Templates for Capturing */}
               <div className="fixed top-[-10000px] left-[-10000px] opacity-0 pointer-events-none">
-                {summary.paymentHistory.filter((p) => p.status === "SUCCESS").map((payment) =>
-                <InvoiceTemplate
-                  key={payment.id}
-                  data={{
-                    paymentId: payment.id,
-                    orderId: payment.orderId || "",
-                    customerName: summary.name,
-                    customerEmail: summary.email,
-                    planName: payment.subscription?.plan?.nameAr || "رصيد / شحن",
-                    amount: payment.amount + (payment.discountAmountValue || 0),
-                    discountAmount: payment.discountAmountValue,
-                    promoDiscount: payment.promoDiscount,
-                    prorationDiscount: payment.prorationDiscount,
-                    balanceUsed: payment.balanceUsed,
-                    finalAmount: payment.amount,
-                    date: payment.createdAt,
-                    paymentMethod: payment.paymentMethod || "Card"
-                  }} />
-
-                )}
+                {summary.paymentHistory.filter((p) => p.status === "SUCCESS").map((payment) => (
+                  <InvoiceTemplate
+                    key={payment.id}
+                    data={{
+                      paymentId: payment.id,
+                      orderId: payment.orderId || "",
+                      customerName: summary.name,
+                      customerEmail: summary.email,
+                      planName: payment.subscription?.plan?.nameAr || "رصيد / شحن",
+                      amount: payment.amount + (payment.discountAmountValue || 0),
+                      discountAmount: payment.discountAmountValue,
+                      promoDiscount: payment.promoDiscount,
+                      prorationDiscount: payment.prorationDiscount,
+                      balanceUsed: payment.balanceUsed,
+                      finalAmount: payment.amount,
+                      date: payment.createdAt,
+                      paymentMethod: payment.paymentMethod || "Card"
+                    }} />
+                ))}
               </div>
-              {summary.paymentHistory.length === 0 &&
-              <div className="p-12 text-center text-gray-500">
+              {summary.paymentHistory.length === 0 && (
+                <div className="p-12 text-center text-gray-500">
                   <p>لا توجد أي عمليات دفع حتى الآن.</p>
                 </div>
-              }
+              )}
             </div>
           </div>
         </div>
@@ -470,6 +506,6 @@ export default function SubscriptionPage() {
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         body { font-family: 'Cairo', sans-serif; }
       `}</style>
-    </div>);
-
+    </div>
+  );
 }

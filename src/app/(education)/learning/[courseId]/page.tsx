@@ -74,6 +74,15 @@ type Lesson = {
   isFree: boolean;
   locked: boolean;
   attachments: Attachment[];
+  examId?: string | null;
+  interactiveQuestions?: {
+    id: string;
+    time: number;
+    question: string;
+    options: string[];
+    correctOptionIndex: number;
+    explanation?: string;
+  }[];
 };
 
 type Chapter = {
@@ -203,8 +212,23 @@ export default function AdvancedLearningHub() {
         }
 
         const curriculumPayload = await curriculumRes.json();
+
         const nextChapters: Chapter[] =
           (curriculumPayload.data ?? curriculumPayload).curriculum || [];
+
+        // Mock interactive questions for demonstration
+        if (nextChapters.length > 0 && nextChapters[0].subTopics.length > 0) {
+          nextChapters[0].subTopics[0].interactiveQuestions = [
+            {
+              id: "q1",
+              time: 15, // 15 seconds
+              question: "ما هي الوحدة الأساسية لقياس المادة في الكيمياء؟",
+              options: ["المول", "الجرام", "اللتر", "المتر"],
+              correctOptionIndex: 0,
+              explanation: "المول هو الوحدة الأساسية لقياس كمية المادة في النظام الدولي للوحدات.",
+            },
+          ];
+        }
 
         setChapters(nextChapters);
 
@@ -634,10 +658,10 @@ export default function AdvancedLearningHub() {
             </Button>
 
             <div>
-              <p className="text-xs font-bold text-orange-600 dark:text-orange-300">
-                غرفة التعلّم
+              <p className="text-[10px] font-black text-orange-600 dark:text-orange-300 uppercase tracking-widest">
+                بيئة التعلّم الذكية
               </p>
-              <h1 className="text-base font-black sm:text-lg">{course.title}</h1>
+              <h1 className="text-base font-black sm:text-lg truncate max-w-[200px] md:max-w-md">{course.title}</h1>
             </div>
           </div>
 
@@ -916,6 +940,7 @@ export default function AdvancedLearningHub() {
                     videoUrl={activeLesson.videoUrl}
                     alreadyCompleted={activeLesson.completed}
                     bookmarks={bookmarks}
+                    interactiveQuestions={activeLesson.interactiveQuestions}
                     playerApiRef={playerApiRef}
                     watermarkText={course.instructor}
                     isTheaterMode={isTheaterMode}
@@ -927,6 +952,30 @@ export default function AdvancedLearningHub() {
                         : undefined
                     }
                   />
+                ) : activeLesson.type === "QUIZ" ? (
+                  <div className="flex aspect-video flex-col items-center justify-center rounded-[28px] bg-amber-50 dark:bg-amber-500/5 text-center border-2 border-dashed border-amber-200 dark:border-amber-500/20">
+                    <div className="p-6 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-6">
+                       <HelpCircle className="h-16 w-16" />
+                    </div>
+                    <h3 className="text-2xl font-black text-amber-900 dark:text-amber-100">اختبار الدرس المدمج</h3>
+                    <p className="mt-3 max-w-md text-sm leading-7 text-amber-700/70 dark:text-amber-400/70">
+                      هذا الدرس عبارة عن اختبار لقياس مدى استيعابك للمفاهيم. اضغط على الزر أدناه لبدء الاختبار.
+                    </p>
+                    <Button 
+                      className="mt-8 h-14 px-10 rounded-2xl bg-amber-500 text-white hover:bg-amber-600 shadow-xl shadow-amber-500/20 font-black text-lg gap-3"
+                      onClick={() => router.push(`/exams/${activeLesson.examId || activeLesson.id}`)}
+                    >
+                      <Play className="h-5 w-5 fill-current" />
+                      بدء الاختبار الآن
+                    </Button>
+                  </div>
+                ) : activeLesson.type === "ARTICLE" ? (
+                  <div className="min-h-[500px] rounded-[28px] bg-white dark:bg-slate-900/40 p-8 shadow-inner overflow-y-auto">
+                    <div 
+                      className="prose prose-lg dark:prose-invert max-w-none leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: activeLesson.content || "لا يوجد محتوى نصي متاح." }}
+                    />
+                  </div>
                 ) : (
                   <div className="flex aspect-video flex-col items-center justify-center rounded-[28px] bg-slate-100 text-center dark:bg-white/5">
                     <FileText className="mb-4 h-12 w-12 text-slate-400" />
@@ -1098,16 +1147,16 @@ export default function AdvancedLearningHub() {
                         />
                         <div className="mt-4 flex justify-end">
                           <Button
-                            className="rounded-2xl bg-orange-500 text-white hover:bg-orange-600"
+                            className="rounded-2xl bg-orange-500 text-white hover:bg-orange-600 px-8 h-12 shadow-lg shadow-orange-500/20 font-black"
                             disabled={postingQuestion || !newQuestion.trim()}
                             onClick={() => void postQuestion()}
                           >
                             {postingQuestion ? (
                               <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                             ) : (
-                              <MessageSquare className="ml-2 h-4 w-4" />
+                              <Send className="ml-2 h-4 w-4" />
                             )}
-                            إرسال السؤال
+                            إرسال الاستفسار
                           </Button>
                         </div>
                       </div>

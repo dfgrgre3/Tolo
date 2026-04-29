@@ -78,7 +78,7 @@ export default function UpcomingRemindersCard({
                       <p className="text-sm text-muted-foreground mb-1 line-clamp-1">{reminder.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium mt-1">
-                      <span className="text-yellow-500/70">âڈ°</span>
+                      <span className="text-yellow-500/70">⏰</span>
                       {new Date(reminder.remindAt).toLocaleString('ar-EG', {
                         weekday: 'short',
                         year: 'numeric',
@@ -109,12 +109,12 @@ export default function UpcomingRemindersCard({
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="text-center py-10 flex flex-col items-center"
             >
-              <div className="mb-4 text-5xl opacity-50 grayscale">ًں””</div>
+              <div className="mb-4 text-5xl opacity-50 grayscale">🔔</div>
               <p className="text-muted-foreground font-semibold text-lg">
                 {showUpcomingOnly ? 'لا توجد تذكيرات قادمة' : 'لا يوجد سجل تذكيرات'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {showUpcomingOnly ? 'جميع تذكيراتك استظڈكملت' : 'قم بإنشاء تذكير جديد'}
+                {showUpcomingOnly ? 'جميع تذكيراتك استُكملت' : 'قم بإنشاء تذكير جديد'}
               </p>
             </m.div>
           )}

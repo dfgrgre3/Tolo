@@ -74,7 +74,7 @@ export default function LandingPage() {
           transition={{ delay: 0.2 }}
           className="text-6xl md:text-9xl font-black tracking-tighter leading-[1.1] mb-8">
           
-           حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> ًںڈ†
+           حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> 🏆
          </m.h1>
 
          <m.p

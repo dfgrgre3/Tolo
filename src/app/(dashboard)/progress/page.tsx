@@ -420,7 +420,7 @@ export default function ProgressPage() {
                      
                      <div className="space-y-4">
                         <div className="text-center py-20 text-gray-500 font-bold border-2 border-dashed border-white/5 rounded-3xl">
-                           لا يوجد سجل قتال متاح حالياً. ابدأ أول درس لك لل٪ور هنا!
+                           لا يوجد سجل قتال متاح حالياً. ابدأ أول درس لك للظهور هنا!
                         </div>
                      </div>
                   </div>

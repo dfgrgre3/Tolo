@@ -69,7 +69,7 @@ export default function GoalsPage() {
           className="text-center mb-8">
           
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            ًںژ¯ أهدافي المخصصة
+            🎯 أهدافي المخصصة
           </h1>
           <p className="text-gray-600">
             حدد أهدافك الخاصة وسجل تقدمك نحو تحقيقها
@@ -85,9 +85,9 @@ export default function GoalsPage() {
           
           <div className="bg-white rounded-lg p-1 shadow-md">
             {[
-            { key: 'all', label: 'الكل', icon: 'ًں“‹' },
-            { key: 'active', label: 'نشط', icon: 'ًں”„' },
-            { key: 'completed', label: 'مكتمل', icon: 'âœ…' }].
+            { key: 'all', label: 'الكل', icon: '📋' },
+            { key: 'active', label: 'نشط', icon: '🔄' },
+            { key: 'completed', label: 'مكتمل', icon: '✅' }].
             map((tab) =>
             <button
               key={tab.key}
@@ -139,7 +139,7 @@ export default function GoalsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-16">
           
-            <div className="text-6xl mb-4">ًںژ¯</div>
+            <div className="text-6xl mb-4">🎯</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               {filter === 'all' ? 'لا توجد أهداف بعد' :
             filter === 'active' ? 'لا توجد أهداف نشطة' :

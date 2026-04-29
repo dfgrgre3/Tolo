@@ -17,6 +17,7 @@ const (
 type Payment struct {
 	ID        string        `gorm:"primaryKey" json:"id"`
 	UserID    string        `gorm:"not null;index" json:"userId"`
+	SubjectID string        `gorm:"index" json:"subjectId"`
 	Amount    float64       `gorm:"not null" json:"amount"`
 	Currency  string        `gorm:"default:'EGP'" json:"currency"`
 	Status    PaymentStatus `gorm:"default:'PENDING'" json:"status"`
@@ -24,6 +25,9 @@ type Payment struct {
 	Reference string        `gorm:"uniqueIndex" json:"reference"`
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
+
+	// Relations
+	Subject   Subject       `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
 }
 
 type Invoice struct {
@@ -35,11 +39,19 @@ type Invoice struct {
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
+func (Payment) TableName() string {
+	return "Payment"
+}
+
 func (p *Payment) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.ID == "" {
 		p.ID = uuid.New().String()
 	}
 	return
+}
+
+func (Invoice) TableName() string {
+	return "Invoice"
 }
 
 func (i *Invoice) BeforeCreate(tx *gorm.DB) (err error) {

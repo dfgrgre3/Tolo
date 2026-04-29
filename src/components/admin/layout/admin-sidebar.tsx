@@ -143,7 +143,7 @@ const mainNavItems: SidebarNavItem[] = [
     permission: "ANALYTICS_VIEW",
   },
   {
-    title: "مظڈنشئ التقارير (الخزانة)",
+    title: "مُنشئ التقارير (الخزانة)",
     href: "/admin/reports",
     icon: TableProperties,
     color: "bg-orange-500",

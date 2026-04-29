@@ -48,7 +48,7 @@ class WebSocketErrorBoundary extends React.Component<
 
 // WebSocket is completely disabled - set as constant outside component
 // Change to true only when deploying to edge runtime (Cloudflare Workers)
-const WEBSOCKET_ENABLED = false;
+const WEBSOCKET_ENABLED = true;
 
 export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
   const { user } = useAuth();
@@ -173,7 +173,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
 
 }
 
-function useWebSocket() {
+export function useWebSocket() {
   const context = useContext(WebSocketContext);
 
   // Always return safe defaults, never undefined

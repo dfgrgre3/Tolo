@@ -238,4 +238,18 @@ export function SettingsSkeleton() {
   );
 }
 
-;
+export function LoadingSkeleton({ type = 'dashboard' }: { type?: 'dashboard' | 'table' | 'analytics' | 'settings' }) {
+  switch (type) {
+    case 'table':
+      return <TableSkeleton />;
+    case 'analytics':
+      return <AnalyticsSkeleton />;
+    case 'settings':
+      return <SettingsSkeleton />;
+    case 'dashboard':
+    default:
+      return <DashboardSkeleton />;
+  }
+}
+
+export default LoadingSkeleton;

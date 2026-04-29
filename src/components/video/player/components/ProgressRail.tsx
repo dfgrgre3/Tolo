@@ -40,6 +40,21 @@ export const ProgressRail = memo(function ProgressRail({
   const bufferedPercent = duration > 0 ? (buffered / duration) * 100 : 0;
   const safeProgressPercent = clamp(progressPercent, 0, 100);
   const safeBufferedPercent = clamp(bufferedPercent, 0, 100);
+
+  // Pseudo-random heatmap data for engagement visualization
+  const heatmapData = useMemo(() => {
+    if (duration <= 0) return [];
+    const points = 40;
+    const data = [];
+    for (let i = 0; i < points; i++) {
+      // Create some "hot" zones
+      const base = Math.sin(i / 2) * 15 + 20;
+      const noise = Math.random() * 10;
+      data.push(Math.max(5, base + noise));
+    }
+    return data;
+  }, [duration]);
+
   const activeCue =
     previewTime !== null ? getThumbnailCueAtTime(thumbnails, previewTime) : null;
   const activeMarker = useMemo(() => {
@@ -237,6 +252,23 @@ export const ProgressRail = memo(function ProgressRail({
             </m.div>
           ) : null}
         </AnimatePresence>
+
+        {/* Engagement Heatmap */}
+        <div className="absolute inset-x-0 -top-4 bottom-2 pointer-events-none opacity-0 group-hover/progress:opacity-40 group-focus-within/progress:opacity-40 transition-opacity duration-300">
+          <svg className="h-full w-full" preserveAspectRatio="none" viewBox={`0 0 ${heatmapData.length} 50`}>
+            <path
+              d={`M 0 50 ${heatmapData.map((h, i) => `L ${i} ${50 - h}`).join(" ")} L ${heatmapData.length} 50 Z`}
+              fill="url(#heatmapGradient)"
+              className="transition-all duration-500"
+            />
+            <defs>
+              <linearGradient id="heatmapGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
 
         <div className="relative h-2.5 overflow-hidden rounded-full bg-white/15 transition-all duration-200 group-hover/progress:h-3.5 group-focus-within/progress:h-3.5">
           <div

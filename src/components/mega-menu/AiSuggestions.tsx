@@ -147,7 +147,7 @@ export const AiSuggestions = memo(function AiSuggestions({
           id: 'behavior-1',
           itemId: 'quick-revision',
           itemType: 'content',
-          title: 'ًں”¥ مراجعة سريعة للاختبار',
+          title: '🔥 مراجعة سريعة للاختبار',
           description: 'لديك اختبار غداً في الكيمياء! ابدأ المراجعة المركزة الآن.',
           score: 0.99,
           algorithm: 'deep_learning',

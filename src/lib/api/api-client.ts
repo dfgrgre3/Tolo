@@ -2,10 +2,11 @@
  * Centralized API Client (Fetch Wrapper)
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
+import { performanceMonitor } from '../metrics/performance';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
-//   api-client â†’ ErrorManager â†’ safe-client-utils â†’ client-logger â†’ unified-logger â†’ ErrorManager
+//   api-client → ErrorManager → safe-client-utils → client-logger → unified-logger → ErrorManager
 // This cycle causes api-client to resolve as `undefined` in modules that import it (e.g. auth-client).
 // Instead, ErrorManager is loaded lazily inside the catch block below.
 
@@ -42,7 +43,7 @@ class ApiError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api')).replace(/\/+$/, '');
+const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api')).replace(/\/+$/, '');
 
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';
@@ -89,12 +90,14 @@ class ApiClient {
         try {
             const url = normalizeEndpoint(endpoint);
             
+            const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
             const response = await fetch(url, {
                 ...customOptions,
                 headers,
                 credentials: 'include', // Ensure cookies are sent (access_token)
                 signal: controller.signal,
             });
+            timer.stop();
 
             clearTimeout(id);
 

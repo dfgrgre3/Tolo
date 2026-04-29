@@ -68,7 +68,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
             rank: entry.rank || index + 1,
             name: entry.name || "مستخدم",
             score: entry.totalXP || 0,
-            badge: entry.rank === 1 ? "ًں¥‡" : entry.rank === 2 ? "ًں¥ˆ" : entry.rank === 3 ? "ًں¥‰" : "â­گ",
+            badge: entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : "⭐",
             isCurrentUser: entry.userId === userId
           }));
 

@@ -71,6 +71,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { AiCommandCenter } from "@/components/admin/dashboard/ai-command-center";
+import { useWebSocket } from "@/contexts/websocket-context";
 
 interface DashboardData {
   stats: {
@@ -167,6 +168,7 @@ export default function AdminDashboardPage() {
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("week");
   const { playSound } = usePremiumSounds();
   const { fetchWithAuth } = useAuth();
+  const { isConnected: wsConnected } = useWebSocket();
   
   // Persistence for layout
   const [widgetOrder, setWidgetOrder] = React.useState<string[]>([]);
@@ -231,19 +233,13 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const notifications = React.useMemo(() => [
-    { id: "1", type: "user" as const, title: "محارب جديد", description: "انضم أحمد محمد إلى المملكة", timestamp: new Date(1711280000000), read: false },
-    { id: "2", type: "activity" as const, title: "حملة مكثفة", description: "تم استرداد 50 مخطوطة اليوم", timestamp: new Date(1711270000000), read: false },
-    { id: "3", type: "achievement" as const, title: "ترقية رتبة", description: "تم منح 10 أوسمة بسالة", timestamp: new Date(1711260000000), read: true },
-  ], []);
 
   const dashboardNotifications = React.useMemo(() => {
-    if (!data) {
-      return notifications;
+    if (!data || !data.recentActivity) {
+      return [];
     }
 
-    const recentActivity = data.recentActivity || [];
-    return recentActivity.slice(0, 6).map((item, index) => {
+    return data.recentActivity.slice(0, 6).map((item, index) => {
       const notificationType =
         item.type === "user" || item.type === "achievement"
           ? (item.type as "user" | "achievement")
@@ -265,7 +261,7 @@ export default function AdminDashboardPage() {
         read: index > 1,
       };
     });
-  }, [data, notifications]);
+  }, [data]);
 
   if (loading && !data) {
     return <DashboardSkeleton />;
@@ -435,7 +431,7 @@ export default function AdminDashboardPage() {
 
               <RealtimeNotifications
                 notifications={dashboardNotifications}
-                isConnected={true}
+                isConnected={wsConnected}
               />
 
               <ProgressOverview

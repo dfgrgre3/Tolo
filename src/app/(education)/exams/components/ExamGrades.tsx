@@ -944,7 +944,7 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
           className="mr-auto text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
           aria-label="إغلاق رسالة الخطأ">
           
-            âœ•
+            ✕
           </Button>
         </div>
       }

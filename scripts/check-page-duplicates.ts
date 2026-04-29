@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env tsx
 /**
- * ط³ظƒط±ط¨طھ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ ط§ظ„طµظپط­ط§طھ (Pages) ظپظٹ Next.js App Router
- * ظٹظƒطھط´ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظ…ط«ظ„ page-enhanced.tsx, layout-new.tsx, page-new.tsx, page-advanced.tsx
+ * سكربت للتحقق من ازدواجية ملفات الصفحات (Pages) في Next.js App Router
+ * يكتشف الملفات المكررة مثل page-enhanced.tsx, layout-new.tsx, page-new.tsx, page-advanced.tsx
  */
 
 import * as fs from 'fs';
@@ -24,7 +24,7 @@ interface CheckResult {
   };
 }
 
-// ط§ظ„ط£ظ†ظ…ط§ط· ط§ظ„ظ…ط´ط¨ظˆظ‡ط© ظ„ط£ط³ظ…ط§ط، ط§ظ„ظ…ظ„ظپط§طھ
+// الأنماط المشبوهة لأسماء الملفات
 const SUSPICIOUS_PATTERNS = [
   /page-enhanced\.tsx?$/i,
   /page-new\.tsx?$/i,
@@ -55,7 +55,7 @@ const SUSPICIOUS_PATTERNS = [
 
 
 /**
- * ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط© ظپظٹ ظ…ط¬ظ„ط¯ app
+ * البحث عن الملفات المشبوهة في مجلد app
  */
 function findSuspiciousFiles(appDir: string): string[] {
   const suspiciousFiles: string[] = [];
@@ -74,13 +74,13 @@ function findSuspiciousFiles(appDir: string): string[] {
         : entry.name;
 
       if (entry.isDirectory()) {
-        // طھط®ط·ظٹ node_modules ظˆ .next
+        // تخطي node_modules و .next
         if (entry.name === 'node_modules' || entry.name === '.next' || entry.name.startsWith('.')) {
           continue;
         }
         scanDirectory(fullPath, relativeFilePath);
       } else if (entry.isFile()) {
-        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط£ظ†ظ…ط§ط· ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+        // التحقق من الأنماط المشبوهة
         const isSuspicious = SUSPICIOUS_PATTERNS.some(pattern => pattern.test(entry.name));
         if (isSuspicious) {
           suspiciousFiles.push(relativeFilePath);
@@ -94,7 +94,7 @@ function findSuspiciousFiles(appDir: string): string[] {
 }
 
 /**
- * ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظپظٹ ظ†ظپط³ ط§ظ„ظ…ط¬ظ„ط¯
+ * اكتشاف الملفات المكررة في نفس المجلد
  */
 function detectDuplicates(appDir: string): DuplicateFile[] {
   const duplicates: DuplicateFile[] = [];
@@ -114,26 +114,26 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
       if (entry.isFile()) {
         const fileName = entry.name.toLowerCase();
         
-        // ظ…ظ„ظپط§طھ page ط§ظ„ظ‚ظٹط§ط³ظٹط©
+        // ملفات page القياسية
         if (fileName === 'page.ts' || fileName === 'page.tsx') {
           pageFiles.push(entry.name);
         }
-        // ظ…ظ„ظپط§طھ layout ط§ظ„ظ‚ظٹط§ط³ظٹط©
+        // ملفات layout القياسية
         else if (fileName === 'layout.ts' || fileName === 'layout.tsx') {
           layoutFiles.push(entry.name);
         }
-        // ظ…ظ„ظپط§طھ page ظ…ط´ط¨ظˆظ‡ط© (ظ…ط«ظ„ page-enhanced.tsx)
+        // ملفات page مشبوهة (مثل page-enhanced.tsx)
         else if (fileName.startsWith('page-') && (fileName.endsWith('.ts') || fileName.endsWith('.tsx'))) {
           otherPageFiles.push(entry.name);
         }
-        // ظ…ظ„ظپط§طھ layout ظ…ط´ط¨ظˆظ‡ط© (ظ…ط«ظ„ layout-new.tsx)
+        // ملفات layout مشبوهة (مثل layout-new.tsx)
         else if (fileName.startsWith('layout-') && (fileName.endsWith('.ts') || fileName.endsWith('.tsx'))) {
           otherLayoutFiles.push(entry.name);
         }
       }
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ page
+    // التحقق من ازدواجية ملفات page
     if (pageFiles.length > 0 && otherPageFiles.length > 0) {
       duplicates.push({
         directory: relativePath || 'app',
@@ -144,7 +144,7 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
       });
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ layout
+    // التحقق من ازدواجية ملفات layout
     if (layoutFiles.length > 0 && otherLayoutFiles.length > 0) {
       duplicates.push({
         directory: relativePath || 'app',
@@ -155,7 +155,7 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
       });
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ…ظ„ظپط§طھ page ظ…طھط¹ط¯ط¯ط© ط¨ط¯ظˆظ† ظ…ظ„ظپ ظ‚ظٹط§ط³ظٹ
+    // التحقق من وجود ملفات page متعددة بدون ملف قياسي
     if (pageFiles.length === 0 && otherPageFiles.length > 1) {
       duplicates.push({
         directory: relativePath || 'app',
@@ -166,7 +166,7 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
       });
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ…ظ„ظپط§طھ layout ظ…طھط¹ط¯ط¯ط© ط¨ط¯ظˆظ† ظ…ظ„ظپ ظ‚ظٹط§ط³ظٹ
+    // التحقق من وجود ملفات layout متعددة بدون ملف قياسي
     if (layoutFiles.length === 0 && otherLayoutFiles.length > 1) {
       duplicates.push({
         directory: relativePath || 'app',
@@ -188,7 +188,7 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        // طھط®ط·ظٹ node_modules ظˆ .next
+        // تخطي node_modules و .next
         if (entry.name === 'node_modules' || entry.name === '.next' || entry.name.startsWith('.')) {
           continue;
         }
@@ -205,25 +205,25 @@ function detectDuplicates(appDir: string): DuplicateFile[] {
 }
 
 /**
- * ط§ظ„ظˆط¸ظٹظپط© ط§ظ„ط±ط¦ظٹط³ظٹط©
+ * الوظيفة الرئيسية
  */
 function checkPageDuplicates(): CheckResult {
   const appDir = path.join(process.cwd(), 'src', 'app');
 
   if (!fs.existsSync(appDir)) {
-    console.error('â‌Œ ظ…ط¬ظ„ط¯ app ط؛ظٹط± ظ…ظˆط¬ظˆط¯:', appDir);
+    console.error('â‌Œ مجلد app غير موجود:', appDir);
     process.exit(1);
   }
 
-  console.log('ًں”چ ط¨ط¯ط، ظپط­طµ ظ…ظ„ظپط§طھ ط§ظ„طµظپط­ط§طھ (Pages) ظپظٹ App Router...\n');
+  console.log('ًں”چ بدء فحص ملفات الصفحات (Pages) في App Router...\n');
 
-  // 1. ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+  // 1. اكتشاف الملفات المكررة
   const duplicates = detectDuplicates(appDir);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ط²ط¯ظˆط§ط¬ظٹط© ط§ظ„ظ…ظ„ظپط§طھ`);
+  console.log(`âœ“ تم فحص ازدواجية الملفات`);
 
-  // 2. ط§ظƒطھط´ط§ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+  // 2. اكتشاف الملفات المشبوهة
   const suspiciousFiles = findSuspiciousFiles(appDir);
-  console.log(`âœ“ طھظ… ظپط­طµ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©\n`);
+  console.log(`âœ“ تم فحص الملفات المشبوهة\n`);
 
   return {
     duplicates,
@@ -236,31 +236,31 @@ function checkPageDuplicates(): CheckResult {
 }
 
 /**
- * ط·ط¨ط§ط¹ط© ط§ظ„طھظ‚ط±ظٹط±
+ * طباعة التقرير
  */
 function printReport(result: CheckResult) {
   console.log('='.repeat(80));
-  console.log('ًں“ٹ طھظ‚ط±ظٹط± ظپط­طµ ط§ط²ط¯ظˆط§ط¬ظٹط© ظ…ظ„ظپط§طھ ط§ظ„طµظپط­ط§طھ (Pages)');
+  console.log('ًں“ٹ تقرير فحص ازدواجية ملفات الصفحات (Pages)');
   console.log('='.repeat(80));
   console.log();
 
-  // ظ…ظ„ط®طµ
-  console.log('ًں“ˆ ط§ظ„ظ…ظ„ط®طµ:');
-  console.log(`   â€¢ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©: ${result.summary.totalDuplicates}`);
-  console.log(`   â€¢ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©: ${result.summary.totalSuspicious}`);
+  // ملخص
+  console.log('ًں“ˆ الملخص:');
+  console.log(`   â€¢ الملفات المكررة: ${result.summary.totalDuplicates}`);
+  console.log(`   â€¢ الملفات المشبوهة: ${result.summary.totalSuspicious}`);
   console.log();
 
-  // ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+  // الملفات المكررة
   if (result.duplicates.length > 0) {
-    console.log('âڑ ï¸ڈ  ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©:');
+    console.log('âڑ ï¸ڈ  الملفات المكررة:');
     console.log('-'.repeat(80));
     result.duplicates.forEach((dup, index) => {
-      console.log(`\n${index + 1}. ط§ظ„ظ…ط¬ظ„ط¯: src/app/${dup.directory}`);
-      console.log(`   ط§ظ„ظ…ط´ظƒظ„ط©: ${dup.issue}`);
+      console.log(`\n${index + 1}. المجلد: src/app/${dup.directory}`);
+      console.log(`   المشكلة: ${dup.issue}`);
       if (dup.standardFile) {
-        console.log(`   âœ… ط§ظ„ظ…ظ„ظپ ط§ظ„ظ‚ظٹط§ط³ظٹ: ${dup.standardFile}`);
+        console.log(`   âœ… الملف القياسي: ${dup.standardFile}`);
       }
-      console.log(`   â‌Œ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© (ظٹط¬ط¨ ط­ط°ظپظ‡ط§):`);
+      console.log(`   â‌Œ الملفات المكررة (يجب حذفها):`);
       dup.duplicateFiles.forEach(file => {
         console.log(`      - ${file}`);
       });
@@ -268,9 +268,9 @@ function printReport(result: CheckResult) {
     console.log();
   }
 
-  // ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+  // الملفات المشبوهة
   if (result.suspiciousFiles.length > 0) {
-    console.log('ًں”چ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط© (طھط­طھظˆظٹ ط¹ظ„ظ‰ ط£ظ†ظ…ط§ط· ظ…ط«ظ„ -enhanced, -new, -advanced):');
+    console.log('ًں”چ الملفات المشبوهة (تحتوي على أنماط مثل -enhanced, -new, -advanced):');
     console.log('-'.repeat(80));
     result.suspiciousFiles.forEach((file, index) => {
       console.log(`   ${index + 1}. src/app/${file}`);
@@ -278,37 +278,37 @@ function printReport(result: CheckResult) {
     console.log();
   }
 
-  // ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط©
+  // النتيجة النهائية
   console.log('='.repeat(80));
   if (result.summary.totalDuplicates === 0 && result.summary.totalSuspicious === 0) {
-    console.log('âœ… ظ„ط§ طھظˆط¬ط¯ ظ…ط´ط§ظƒظ„ ظ…ظƒطھط´ظپط©!');
+    console.log('âœ… لا توجد مشاكل مكتشفة!');
   } else {
-    console.log('â‌Œ طھظ… ط§ظƒطھط´ط§ظپ ظ…ط´ط§ظƒظ„ طھط­طھط§ط¬ ط¥ظ„ظ‰ ظ…ط¹ط§ظ„ط¬ط©');
-    console.log('\nًں’، ط§ظ„طھظˆطµظٹط§طھ:');
-    console.log('   1. Next.js ظٹط³طھط®ط¯ظ… ظپظ‚ط· ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ‚ظٹط§ط³ظٹط© (page.tsx, layout.tsx)');
-    console.log('   2. ط§ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© (page-enhanced.tsx, layout-new.tsx, etc.)');
-    console.log('   3. ط¥ط°ط§ ظƒط§ظ† ظ„ط¯ظٹظƒ ظ…ط­طھظˆظ‰ ظ…ظ‡ظ… ظپظٹ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©طŒ ط§ظ†ظ‚ظ„ظ‡ ط¥ظ„ظ‰ ط§ظ„ظ…ظ„ظپ ط§ظ„ظ‚ظٹط§ط³ظٹ');
-    console.log('   4. ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© طھط²ظٹط¯ ط­ط¬ظ… ط§ظ„ظ…ط´ط±ظˆط¹ ظˆطھط´طھطھ ط§ظ„ظ…ط·ظˆط±ظٹظ†');
-    console.log('\nًں“‌ ظ„طھظ†ط¸ظٹظپ ط§ظ„ظ…ظ„ظپط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹طŒ ط§ط³طھط®ط¯ظ…:');
+    console.log('â‌Œ تم اكتشاف مشاكل تحتاج إلى معالجة');
+    console.log('\nًں’، التوصيات:');
+    console.log('   1. Next.js يستخدم فقط الملفات القياسية (page.tsx, layout.tsx)');
+    console.log('   2. احذف جميع الملفات المكررة (page-enhanced.tsx, layout-new.tsx, etc.)');
+    console.log('   3. إذا كان لديك محتوى مهم في الملفات المكررة، انقله إلى الملف القياسي');
+    console.log('   4. الملفات المكررة تزيد حجم المشروع وتشتت المطورين');
+    console.log('\nًں“‌ لتنظيف الملفات تلقائياً، استخدم:');
     console.log('   npm run clean:page-duplicates');
   }
   console.log('='.repeat(80));
 }
 
-// طھط´ط؛ظٹظ„ ط§ظ„ظپط­طµ
+// تشغيل الفحص
 if (require.main === module) {
   try {
     const result = checkPageDuplicates();
     printReport(result);
     
-    // ط¥ط±ط¬ط§ط¹ ظƒظˆط¯ ط®ط±ظˆط¬ ظ…ظ†ط§ط³ط¨
+    // إرجاع كود خروج مناسب
     if (result.summary.totalDuplicates > 0 || result.summary.totalSuspicious > 0) {
       process.exit(1);
     } else {
       process.exit(0);
     }
   } catch (error) {
-    console.error('â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ظپط­طµ:', error);
+    console.error('â‌Œ حدث خطأ أثناء الفحص:', error);
     process.exit(1);
   }
 }

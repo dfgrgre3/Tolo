@@ -136,7 +136,7 @@ export default function EventsPage() {
                     ساحة <span className={STYLES.neonText}>المناسبات</span> <br /> الكبرى
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                    هنا يلتقي الفرسان، وتظڈعقد المحاضرات التاريخية. لا تدع فرصة حضور هذه التجمعات العظمى تفوتك، ففيها تظڈبنى التحالفات وتظڈتبادل الخبرات.
+                    هنا يلتقي الفرسان، وتُعقد المحاضرات التاريخية. لا تدع فرصة حضور هذه التجمعات العظمى تفوتك، ففيها تُبنى التحالفات وتُتبادل الخبرات.
                  </p>
                  <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
                     {userId &&

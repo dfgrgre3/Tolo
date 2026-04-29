@@ -25,6 +25,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
+import { useAuth } from "@/contexts/auth-context";
 
 interface ActivityItem {
   id: string;
@@ -40,8 +41,7 @@ interface ActivityItem {
 }
 
 export function ActivityWidget() {
-  const authContext: any = { user: null, isAuthenticated: false, isLoading: false };
-  const user = authContext?.user ?? null;
+  const { user, isAuthenticated } = useAuth();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -204,7 +204,7 @@ export function ActivityWidget() {
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
 							<Activity className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
 							<p className="text-sm font-medium text-foreground mb-1">لا يوجد نشاط</p>
-							<p className="text-xs text-muted-foreground">سي٪ر نشاطك هنا</p>
+							<p className="text-xs text-muted-foreground">سيظهر نشاطك هنا</p>
 						</div> :
 
           <div className="p-2 space-y-1">

@@ -144,7 +144,7 @@ export default function ContestsPage() {
     <div className="space-y-8 pb-10">
       <PageHeader
         title="المسابقات الحية (Live Contests Arena)"
-        description="نظام Kahoot المظڈصغر لبناء قاعات المسابقات، واختبار التفاعل الحيّ بين مجموعات المحاربين مع نظام نقاط فوري."
+        description="نظام Kahoot المُصغر لبناء قاعات المسابقات، واختبار التفاعل الحيّ بين مجموعات المحاربين مع نظام نقاط فوري."
       >
         {!activeLobby || activeLobby.status === "FINISHED" ? (
           <AdminButton onClick={() => setShowConfig(!showConfig)} icon={Plus}>

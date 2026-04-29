@@ -264,7 +264,7 @@ export default function AdminTeachersPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مجلس الحكماء والعلماء ًںژ“"
+        title="مجلس الحكماء والعلماء 🎓"
         description="إدارة هيئة التدريس، تخصصات المعلمين، وقنوات التواصل المباشرة مع الطلاب.">
         
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>

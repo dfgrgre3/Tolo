@@ -26,13 +26,13 @@ func (s *AnalyticsServiceServer) GetProgressSummary(ctx context.Context, req *th
 	}
 	var stats Stats
 	db.DB.Model(&models.StudySession{}).
-		Where("user_id = ?", userId).
-		Select("SUM(duration_min) as total_minutes, AVG(focus_score) as avg_focus, COUNT(*) as count").
+		Where("\"userId\" = ?", userId).
+		Select("SUM(\"durationMin\") as total_minutes, AVG(\"focusScore\") as avg_focus, COUNT(*) as count").
 		Scan(&stats)
 
 	var tasksCompleted int64
 	db.DB.Model(&models.Task{}).
-		Where("user_id = ? AND status = ?", userId, "COMPLETED").
+		Where("\"userId\" = ? AND status = ?", userId, "COMPLETED").
 		Count(&tasksCompleted)
 
 	streakDays := calculateStreakDays(userId)
@@ -50,7 +50,7 @@ func (s *AnalyticsServiceServer) GetWeeklyAnalytics(ctx context.Context, req *th
 
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
 	var sessions []models.StudySession
-	db.DB.Where("user_id = ? AND created_at >= ?", userId, sevenDaysAgo).Order("created_at asc").Find(&sessions)
+	db.DB.Where("\"userId\" = ? AND \"createdAt\" >= ?", userId, sevenDaysAgo).Order("\"createdAt\" asc").Find(&sessions)
 
 	dailyProgress := make(map[string]int)
 	totalStudyMinutes := 0
@@ -80,7 +80,7 @@ func (s *AnalyticsServiceServer) GetWeeklyAnalytics(ctx context.Context, req *th
 	}
 
 	var skillsAcquired int64
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND status = ?", userId, "COMPLETED").Count(&skillsAcquired)
+	db.DB.Model(&models.Task{}).Where("\"userId\" = ? AND status = ?", userId, "COMPLETED").Count(&skillsAcquired)
 
 	return &thanawyv1.GetWeeklyAnalyticsResponse{
 		ProgressRate:   int32(progressRate),
@@ -115,7 +115,7 @@ func (h *AnalyticsConnectHandler) GetWeeklyAnalytics(ctx context.Context, req *c
 // Helper (reused from progress_handler.go logic)
 func calculateStreakDays(userID string) int {
 	var sessions []models.StudySession
-	db.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&sessions)
+	db.DB.Where("\"userId\" = ?", userID).Order("\"createdAt\" DESC").Find(&sessions)
 
 	if len(sessions) == 0 {
 		return 0

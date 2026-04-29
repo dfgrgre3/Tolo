@@ -156,88 +156,88 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const baseCommands: CommandItem[] = [
       {
         id: "home",
-        label: "ط§ظ„طµظپط­ط© ط§ظ„ط±ط¦ظٹط³ظٹط©",
-        description: "ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط§ظ„طµظپط­ط© ط§ظ„ط±ط¦ظٹط³ظٹط©",
+        label: "الصفحة الرئيسية",
+        description: "العودة إلى الصفحة الرئيسية",
         icon: <Home className="h-4 w-4" />,
         action: () => router.push("/"),
-        keywords: ["home", "ط±ط¦ظٹط³ظٹط©", "ط¨ط¯ط§ظٹط©"],
-        category: "طھظ†ظ‚ظ„",
+        keywords: ["home", "رئيسية", "بداية"],
+        category: "تنقل",
         shortcut: "Ctrl+H",
       },
       {
         id: "courses",
-        label: "ط§ظ„ط¯ظˆط±ط§طھ",
-        description: "ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ط¯ظˆط±ط§طھ",
+        label: "الدورات",
+        description: "عرض جميع الدورات",
         icon: <BookOpen className="h-4 w-4" />,
         action: () => router.push("/courses"),
-        keywords: ["courses", "ط¯ظˆط±ط§طھ", "ظƒظˆط±ط³ط§طھ"],
-        category: "طھط¹ظ„ظٹظ…",
+        keywords: ["courses", "دورات", "كورسات"],
+        category: "تعليم",
         popular: true,
       },
       {
         id: "teachers",
-        label: "ط§ظ„ظ…ط¹ظ„ظ…ظٹظ†",
-        description: "ط§ط³طھظƒط´ظپ ط§ظ„ظ…ط¹ظ„ظ…ظٹظ†",
+        label: "المعلمين",
+        description: "استكشف المعلمين",
         icon: <Users className="h-4 w-4" />,
         action: () => router.push("/teachers"),
-        keywords: ["teachers", "ظ…ط¹ظ„ظ…ظٹظ†", "ط£ط³ط§طھط°ط©"],
-        category: "طھط¹ظ„ظٹظ…",
+        keywords: ["teachers", "معلمين", "أساتذة"],
+        category: "تعليم",
       },
       {
         id: "forum",
-        label: "ط§ظ„ظ…ظ†طھط¯ظ‰",
-        description: "ظ…ظ†ط§ظ‚ط´ط§طھ ظˆظ…ط­ط§ط¯ط«ط§طھ",
+        label: "المنتدى",
+        description: "مناقشات ومحادثات",
         icon: <MessageSquare className="h-4 w-4" />,
         action: () => router.push("/forum"),
-        keywords: ["forum", "ظ…ظ†طھط¯ظ‰", "ظ…ظ†ط§ظ‚ط´ط§طھ"],
-        category: "ظ…ط¬طھظ…ط¹",
+        keywords: ["forum", "منتدى", "مناقشات"],
+        category: "مجتمع",
       },
       {
         id: "schedule",
-        label: "ط§ظ„ط¬ط¯ظˆظ„ ط§ظ„ط²ظ…ظ†ظٹ",
-        description: "ط¹ط±ط¶ ط¬ط¯ظˆظ„ظƒ ط§ظ„ط²ظ…ظ†ظٹ",
+        label: "الجدول الزمني",
+        description: "عرض جدولك الزمني",
         icon: <Calendar className="h-4 w-4" />,
         action: () => router.push("/schedule"),
-        keywords: ["schedule", "ط¬ط¯ظˆظ„", "ظ…ظˆط§ط¹ظٹط¯"],
-        category: "طھظ†ط¸ظٹظ…",
+        keywords: ["schedule", "جدول", "مواعيد"],
+        category: "تنظيم",
         popular: true,
       },
       {
         id: "time",
-        label: "ط¥ط¯ط§ط±ط© ط§ظ„ظˆظ‚طھ",
-        description: "طھطھط¨ط¹ ظˆظ‚طھظƒ ط§ظ„ط¯ط±ط§ط³ظٹ",
+        label: "إدارة الوقت",
+        description: "تتبع وقتك الدراسي",
         icon: <Clock className="h-4 w-4" />,
         action: () => router.push("/time"),
-        keywords: ["time", "ظˆظ‚طھ", "طھطھط¨ط¹"],
-        category: "ط¥ظ†طھط§ط¬ظٹط©",
+        keywords: ["time", "وقت", "تتبع"],
+        category: "إنتاجية",
         popular: true,
       },
       {
         id: "analytics",
-        label: "ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ",
-        description: "ط¹ط±ط¶ ط¥ط­طµط§ط¦ظٹط§طھظƒ",
+        label: "الإحصائيات",
+        description: "عرض إحصائياتك",
         icon: <BarChart3 className="h-4 w-4" />,
         action: () => router.push("/analytics"),
-        keywords: ["analytics", "ط¥ط­طµط§ط¦ظٹط§طھ", "ط¥ط­طµط§ط¦ظٹط§طھ"],
-        category: "طھط­ظ„ظٹظ„ط§طھ",
+        keywords: ["analytics", "إحصائيات", "إحصائيات"],
+        category: "تحليلات",
       },
       {
         id: "achievements",
-        label: "ط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ",
-        description: "ط¹ط±ط¶ ط¥ظ†ط¬ط§ط²ط§طھظƒ",
+        label: "الإنجازات",
+        description: "عرض إنجازاتك",
         icon: <Award className="h-4 w-4" />,
         action: () => router.push("/achievements"),
-        keywords: ["achievements", "ط¥ظ†ط¬ط§ط²ط§طھ", "ط¬ظˆط§ط¦ط²"],
-        category: "ط¥ظ†ط¬ط§ط²ط§طھ",
+        keywords: ["achievements", "إنجازات", "جوائز"],
+        category: "إنجازات",
       },
       {
         id: "leaderboard",
-        label: "ظ„ظˆط­ط© ط§ظ„ظ…طھطµط¯ط±ظٹظ†",
-        description: "طھط±طھظٹط¨ ط§ظ„ط·ظ„ط§ط¨",
+        label: "لوحة المتصدرين",
+        description: "ترتيب الطلاب",
         icon: <TrendingUp className="h-4 w-4" />,
         action: () => router.push("/leaderboard"),
-        keywords: ["leaderboard", "ظ…طھطµط¯ط±ظٹظ†", "طھط±طھظٹط¨"],
-        category: "طھظ†ط§ظپط³",
+        keywords: ["leaderboard", "متصدرين", "ترتيب"],
+        category: "تنافس",
       },
     ];
 
@@ -245,17 +245,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       baseCommands.push(
         {
           id: "settings",
-          label: "ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ",
-          description: "طھط¹ط¯ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھظƒ",
+          label: "الإعدادات",
+          description: "تعديل إعداداتك",
           icon: <Settings className="h-4 w-4" />,
           action: () => router.push("/settings"),
-          keywords: ["settings", "ط¥ط¹ط¯ط§ط¯ط§طھ", "ط®ظٹط§ط±ط§طھ"],
-          category: "ط­ط³ط§ط¨",
+          keywords: ["settings", "إعدادات", "خيارات"],
+          category: "حساب",
         },
         {
           id: "notifications",
-          label: "ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ",
-          description: "ط¹ط±ط¶ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ",
+          label: "الإشعارات",
+          description: "عرض الإشعارات",
           icon: <Bell className="h-4 w-4" />,
           action: () => {
             const trigger = document.querySelector(
@@ -263,8 +263,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             ) as HTMLElement | null;
             trigger?.click();
           },
-          keywords: ["notifications", "ط¥ط´ط¹ط§ط±ط§طھ", "طھظ†ط¨ظٹظ‡ط§طھ"],
-          category: "ط­ط³ط§ط¨",
+          keywords: ["notifications", "إشعارات", "تنبيهات"],
+          category: "حساب",
           shortcut: "Ctrl+N",
         }
       );
@@ -376,7 +376,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-w-2xl p-0 gap-0 overflow-hidden"
-        aria-label="ظ„ظˆط­ط© ط§ظ„ط£ظˆط§ظ…ط±"
+        aria-label="لوحة الأوامر"
       >
         <div className="flex flex-col">
           <div className="flex items-center gap-3 border-b px-4 py-3">
@@ -385,9 +385,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               ref={inputRef}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="ط§ط¨ط­ط« ط¹ظ† ط¯ط±ظˆط³طŒ ظ…ظ„ظپط§طھطŒ ط£ظˆ ط£ظˆط§ظ…ط±... (O+C+R)"
+              placeholder="ابحث عن دروس، ملفات، أو أوامر... (O+C+R)"
               className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-auto py-2"
-              aria-label="ط¨ط­ط« ظپظٹ ظ„ظˆط­ط© ط§ظ„ط£ظˆط§ظ…ط±"
+              aria-label="بحث في لوحة الأوامر"
             />
 
             <div className="flex items-center gap-2">
@@ -402,7 +402,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
                   )}
                   onClick={toggleListening}
-                  title={isListening ? "ط¥ظٹظ‚ط§ظپ ط§ظ„ط§ط³طھظ…ط§ط¹" : "ط¨ط­ط« طµظˆطھظٹ"}
+                  title={isListening ? "إيقاف الاستماع" : "بحث صوتي"}
                 >
                   <Mic className={cn("h-4 w-4", isListening && "fill-current")} />
                 </Button>
@@ -414,7 +414,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   size="icon"
                   className="h-6 w-6 shrink-0"
                   onClick={() => handleSearchChange("")}
-                  aria-label="ظ…ط³ط­ ط§ظ„ط¨ط­ط«"
+                  aria-label="مسح البحث"
                 >
                   <Command className="h-3 w-3" />
                 </Button>
@@ -426,8 +426,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             {filteredCommands.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <Search className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                <p className="text-sm font-medium text-foreground mb-1">ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬</p>
-                <p className="text-xs text-muted-foreground">ط¬ط±ط¨ ط§ظ„ط¨ط­ط« ط¨ظƒظ„ظ…ط§طھ ظ…ط®طھظ„ظپط©</p>
+                <p className="text-sm font-medium text-foreground mb-1">لا توجد نتائج</p>
+                <p className="text-xs text-muted-foreground">جرب البحث بكلمات مختلفة</p>
               </div>
             ) : (
               <div className="p-2">

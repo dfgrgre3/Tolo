@@ -1,7 +1,6 @@
-﻿#!/usr/bin/env tsx
 /**
  * Comprehensive Environment & Prisma Check Script
- * ط³ظƒط±ط¨طھ ط´ط§ظ…ظ„ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ظˆ Prisma
+ * سكربت شامل للتحقق من بيئة التشغيل و Prisma
  * 
  * Checks for:
  * - Prisma EPERM issues (Windows-specific)
@@ -230,7 +229,7 @@ async function checkEnvironment(): Promise<EnvironmentReport> {
 
 function printReport(report: EnvironmentReport): void {
   console.log('\nًں”چ Comprehensive Environment & Prisma Check');
-  console.log('ًں”چ ظپط­طµ ط´ط§ظ…ظ„ ظ„ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ظˆ Prisma\n');
+  console.log('ًں”چ فحص شامل لبيئة التشغيل و Prisma\n');
   console.log('='.repeat(70));
 
   let hasIssues = false;
@@ -332,22 +331,22 @@ function printReport(report: EnvironmentReport): void {
   
   if (hasIssues) {
     console.log('\nâڑ ï¸ڈ  ISSUES DETECTED! Please fix the issues above.');
-    console.log('âڑ ï¸ڈ  طھظ… ط§ظƒطھط´ط§ظپ ظ…ط´ط§ظƒظ„! ظٹط±ط¬ظ‰ ط¥طµظ„ط§ط­ ط§ظ„ظ…ط´ط§ظƒظ„ ط£ط¹ظ„ط§ظ‡.\n');
+    console.log('âڑ ï¸ڈ  تم اكتشاف مشاكل! يرجى إصلاح المشاكل أعلاه.\n');
     console.log('ًں’، Quick fixes:');
-    console.log('ًں’، ط¥طµظ„ط§ط­ط§طھ ط³ط±ظٹط¹ط©:');
+    console.log('ًں’، إصلاحات سريعة:');
     console.log('   - For Prisma EPERM: npm run fix:prisma');
-    console.log('     ظ„ط¥طµظ„ط§ط­ Prisma EPERM: npm run fix:prisma');
+    console.log('     لإصلاح Prisma EPERM: npm run fix:prisma');
     if (report.auth.conflictingPackages.length > 0) {
       const packages = report.auth.conflictingPackages.map(p => p.package).join(' ');
       console.log(`   - Remove auth conflicts: npm uninstall ${packages}`);
-      console.log(`     ظ„ط­ط°ظپ طھط¹ط§ط±ط¶ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط©: npm uninstall ${packages}`);
+      console.log(`     لحذف تعارضات المصادقة: npm uninstall ${packages}`);
     }
     console.log('\n   For more details: npm run check:auth');
-    console.log('   ظ„ظ…ط²ظٹط¯ ظ…ظ† ط§ظ„طھظپط§طµظٹظ„: npm run check:auth');
+    console.log('   لمزيد من التفاصيل: npm run check:auth');
     process.exit(1);
   } else {
     console.log('\nâœ… All checks passed! Environment is healthy.');
-    console.log('âœ… ظ†ط¬ط­طھ ط¬ظ…ظٹط¹ ط§ظ„ظپط­ظˆطµط§طھ! ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ط³ظ„ظٹظ…ط©.');
+    console.log('âœ… نجحت جميع الفحوصات! بيئة التشغيل سليمة.');
     process.exit(0);
   }
 }

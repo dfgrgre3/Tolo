@@ -176,7 +176,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                     transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
                     className="inline-block origin-bottom-right ml-4 text-6xl md:text-7xl">
                     
-                       âڑ”ï¸ڈ
+                       ⚔️
                      </m.span>
                    </h1>
                  </div>

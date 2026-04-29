@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -57,12 +57,15 @@ export default function SecurityLogsPage() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/auth/security-logs?limit=50');
-      if (!res.ok) throw new Error('Failed to fetch logs');
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.details || error.error || 'Failed to fetch logs');
+      }
       const data = await res.json();
       setLogs(data.logs || []);
-    } catch (err: unknown) {
+    } catch (err: any) {
       toast.error('فشل تحميل سجل النشاطات');
-      console.error(err instanceof Error ? err.message : String(err));
+      console.error(err.message || 'Failed to fetch logs');
     } finally {
       setIsLoading(false);
     }

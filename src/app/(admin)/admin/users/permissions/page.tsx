@@ -162,7 +162,7 @@ export default function PermissionsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مصفوفة الصلاحيات (Kingdom Guard) âڑ”ï¸ڈ"
+        title="مصفوفة الصلاحيات (Kingdom Guard) ⚔️"
         description="إدارة رتب الأبطال والقادة، منح وتجريد الصلاحيات من القادة والمراقبين.">
         
         <AdminButton icon={ShieldAlert} variant="outline" className="opacity-70 group hover:opacity-100">
@@ -235,7 +235,7 @@ export default function PermissionsPage() {
                 onClick={() => selectedUser && updatePermissionsMutation.mutate({ userId: selectedUser.id, permissions: editingPermissions })}
                 loading={updatePermissionsMutation.isPending}>
                 
-                  حفظ الصلاحيات الملكية ًںڈ›ï¸ڈ
+                  حفظ الصلاحيات الملكية 🏛️
                 </AdminButton>
                 <AdminButton
                 variant="outline"

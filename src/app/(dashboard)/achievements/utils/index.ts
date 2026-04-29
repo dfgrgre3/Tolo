@@ -26,13 +26,13 @@ export const getCategoryLabel = (category: AchievementCategory): string => {
  */
 export const getCategoryIcon = (category: AchievementCategory): string => {
 	const icons: Record<AchievementCategory, string> = {
-		study: 'ًں“ڑ',
-		tasks: 'âœ…',
-		exams: 'ًں“ٹ',
-		time: 'âڈ±ï¸ڈ',
-		streak: 'ًں”¥',
+		study: '📚',
+		tasks: '✅',
+		exams: '📊',
+		time: '⏱️',
+		streak: '🔥',
 	};
-	return icons[category] || 'ًںڈ†';
+	return icons[category] || '🏆';
 };
 
 /**

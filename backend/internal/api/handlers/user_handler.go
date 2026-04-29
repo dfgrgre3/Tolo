@@ -71,7 +71,7 @@ func Login(c *gin.Context) {
 	// Generate Token Pair
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens", "details": err.Error()})
 		return
 	}
 
@@ -85,16 +85,42 @@ func Login(c *gin.Context) {
 		IP:           ip,
 		Location:     location,
 		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
-		LastActive:   time.Now(),
+		LastAccessed: time.Now(),
+	}
+
+	// Device Limiting: Ensure only 2 devices
+	activeSessions, _ := getSessionRepo().GetActiveSessions(user.ID)
+	if len(activeSessions) >= 2 {
+		// Log a security event about device limit reach
+		_ = LogSecurityEvent(user.ID, "DEVICE_LIMIT_REACHED", ip, userAgent, location, nil)
+		
+		// Auto-logout the oldest session to allow this new login
+		oldestSession := activeSessions[0]
+		_ = getSessionRepo().RevokeSessionByJTI(oldestSession.ID)
 	}
 
 	if err := getSessionRepo().Create(session); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session", "details": err.Error()})
 		return
 	}
 
 	// Log security event
-	_ = LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil)
+	if err := LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil); err != nil {
+		// Log error but don't fail the login
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"token":   tokens.AccessToken,
+			"user":    user,
+			"warning": "Login successful but failed to log security event",
+			"metadata": gin.H{
+				"lastLogin": user.UpdatedAt,
+				"ip":        ip,
+				"device":    userAgent,
+				"location":  location,
+			},
+		})
+		return
+	}
 
 	// Set cookies
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
@@ -155,7 +181,7 @@ func RefreshToken(c *gin.Context) {
 		IP:           c.ClientIP(),
 		Location:     session.Location,
 		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
-		LastActive:   time.Now(),
+		LastAccessed: time.Now(),
 	}
 	_ = getSessionRepo().Create(newSession)
 
@@ -180,11 +206,10 @@ func Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Logged out successfully"})
 }
 
-/*
 func GetAuthSessions(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	var sessions []models.UserSession
-	if err := db.DB.Where("user_id = ? AND is_revoked = ?", userID, false).Find(&sessions).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ? AND \"isActive\" = ?", userID, true).Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sessions"})
 		return
 	}
@@ -209,7 +234,6 @@ func UpdateAuthSession(c *gin.Context) {
 	// Example: Mark device as trusted or similar
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
-*/
 
 
 type RegisterRequest struct {
@@ -406,10 +430,10 @@ func UpdateUser(c *gin.Context) {
 		updates["bio"] = req.Bio
 	}
 	if req.GradeLevel != nil {
-		updates["grade_level"] = req.GradeLevel
+		updates["gradeLevel"] = req.GradeLevel
 	}
 	if req.EducationType != nil {
-		updates["education_type"] = req.EducationType
+		updates["educationType"] = req.EducationType
 	}
 	if req.Permissions != nil {
 		updates["permissions"] = models.JSONStringArray(req.Permissions)
@@ -504,6 +528,27 @@ func CreateUser(c *gin.Context) {
 }
 
 func buildUserDetailsPayload(user models.User) gin.H {
+	var tasksCompleted int64
+	var totalTasks int64
+	var totalStudySessions int64
+	var totalStudyTime int64
+	var examsPassed int64
+	var examResultsCount int64
+	var unreadNotifications int64
+	var totalEnrollments int64
+	var achievementsCount int64
+
+	db.DB.Model(&models.Task{}).Where("\"userId\" = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
+	db.DB.Model(&models.Task{}).Where("\"userId\" = ?", user.ID).Count(&totalTasks)
+	db.DB.Model(&models.StudySession{}).Where("\"userId\" = ?", user.ID).Count(&totalStudySessions)
+	db.DB.Model(&models.StudySession{}).Where("\"userId\" = ?", user.ID).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&totalStudyTime)
+	db.DB.Model(&models.ExamResult{}).Where("\"userId\" = ? AND passed = ?", user.ID, true).Count(&examsPassed)
+	db.DB.Model(&models.ExamResult{}).Where("\"userId\" = ?", user.ID).Count(&examResultsCount)
+	db.DB.Model(&models.Notification{}).Where("\"userId\" = ? AND \"isRead\" = ?", user.ID, false).Count(&unreadNotifications)
+	db.DB.Model(&models.Enrollment{}).Where("\"userId\" = ?", user.ID).Count(&totalEnrollments)
+	// Add achievements count if table exists, else 0
+	// db.DB.Model(&models.Achievement{}).Where("\"userId\" = ?", user.ID).Count(&achievementsCount)
+
 	return gin.H{
 		"id":                 user.ID,
 		"email":              user.Email,
@@ -520,11 +565,11 @@ func buildUserDetailsPayload(user models.User) gin.H {
 		"lastLogin":          nil,
 		"totalXP":            user.TotalXP,
 		"level":              user.Level,
-		"currentStreak":      0,
+		"currentStreak":      0, // Streak logic requires a separate daily activity tracking table or complex query
 		"longestStreak":      0,
-		"totalStudyTime":     0,
-		"tasksCompleted":     0,
-		"examsPassed":        0,
+		"totalStudyTime":     totalStudyTime,
+		"tasksCompleted":     tasksCompleted,
+		"examsPassed":        examsPassed,
 		"pomodoroSessions":   0,
 		"deepWorkSessions":   0,
 		"studyXP":            0,
@@ -544,12 +589,12 @@ func buildUserDetailsPayload(user models.User) gin.H {
 		"dateOfBirth":        nil,
 		"gender":             nil,
 		"_count": gin.H{
-			"tasks":              0,
-			"studySessions":      0,
-			"achievements":       0,
-			"notifications":      0,
-			"examResults":        0,
-			"subjectEnrollments": 0,
+			"tasks":              totalTasks,
+			"studySessions":      totalStudySessions,
+			"achievements":       achievementsCount,
+			"notifications":      unreadNotifications,
+			"examResults":        examResultsCount,
+			"subjectEnrollments": totalEnrollments,
 			"customGoals":        0,
 			"reminders":          0,
 			"sessions":           0,
@@ -607,10 +652,10 @@ func UpdateProfile(c *gin.Context) {
 		updates["bio"] = req.Bio
 	}
 	if req.GradeLevel != "" {
-		updates["grade_level"] = req.GradeLevel
+		updates["gradeLevel"] = req.GradeLevel
 	}
 	if req.EducationType != "" {
-		updates["education_type"] = req.EducationType
+		updates["educationType"] = req.EducationType
 	}
 	if req.Section != "" {
 		updates["section"] = req.Section
@@ -634,6 +679,57 @@ func UpdateProfile(c *gin.Context) {
 	_ = getUserRepo().Update(&user)
 	
 	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
+}
+
+func GetBillingSummary(c *gin.Context) {
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	user, err := getUserRepo().FindByID(userId.(string))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var payments []models.Payment
+	db.DB.Where("\"userId\" = ?", user.ID).Order("\"createdAt\" desc").Limit(20).Find(&payments)
+
+	var totalSpent float64
+	var successCount int64
+	var pendingCount int64
+	var failedCount int64
+
+	for _, p := range payments {
+		if p.Status == models.PaymentCompleted {
+			totalSpent += p.Amount
+			successCount++
+		} else if p.Status == models.PaymentPending {
+			pendingCount++
+		} else {
+			failedCount++
+		}
+	}
+
+	// Mock stats if needed or use real ones
+	c.JSON(http.StatusOK, gin.H{
+		"name":                  stringOrEmpty(user.Name),
+		"email":                 user.Email,
+		"balance":               user.Balance,
+		"additionalAiCredits":   user.AiCredits,
+		"additionalExamCredits": user.ExamCredits,
+		"activeSubscription":    nil, // TODO: Implement active subscription logic
+		"paymentHistory":        payments,
+		"stats": gin.H{
+			"totalSpent":   totalSpent,
+			"paymentCount": len(payments),
+			"successCount": successCount,
+			"pendingCount": pendingCount,
+			"failedCount":  failedCount,
+		},
+	})
 }
 
 func calculateTotalPages(total int64, limit int) int64 {

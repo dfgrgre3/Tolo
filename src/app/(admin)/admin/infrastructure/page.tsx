@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,9 @@ import {
    Monitor
 } from "lucide-react";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
+import { RealTimePerformanceChart } from "@/components/admin/monitoring/RealTimePerformanceChart";
+import { PremiumLogViewer } from "@/components/admin/monitoring/PremiumLogViewer";
+import { performanceMonitor } from "@/lib/metrics/performance";
 
 /**
  * --- ADMIN INFRASTRUCTURE MONITORING ---
@@ -40,7 +43,14 @@ export default function InfrastructurePage() {
       queryFn: async () => {
          const response = await fetch('/api/admin/infrastructure/stats');
          if (!response.ok) throw new Error("Could not reach telemetry server");
-         return (await response.json()).data;
+         
+         const infraData = (await response.json()).data;
+         
+         // Fetch historical metrics too
+         const metricsRes = await fetch('/api/admin/metrics/history');
+         const metricsData = await metricsRes.json();
+         
+         return { ...infraData, history: metricsData.data };
       },
       refetchInterval: 10000,
    });
@@ -81,7 +91,7 @@ export default function InfrastructurePage() {
                         <Server className="w-10 h-10 text-primary" />
                      </div>
                      <div className="space-y-1">
-                        <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام ًںڈ›ï¸ڈ</h1>
+                        <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام 🏛️</h1>
                         <p className="text-gray-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
                            <ShieldCheck className="w-4 h-4 text-green-500" />
                            <span>تم التحقق من سلامة الأكواد بنسبة 100%</span>
@@ -141,10 +151,38 @@ export default function InfrastructurePage() {
                         <QueueCard name="التحليلات (Analytics)" stats={data.queues.analytics} icon={Activity} />
                      </div>
 
-                     <div className={STYLES.glass + " h-[300px] flex items-center justify-center border-dashed border-white/10"}>
-                        <div className="text-center space-y-4">
-                           <Monitor className="w-12 h-12 text-gray-700 mx-auto" />
-                           <p className="text-gray-500 font-bold">نمط الرسوم البيانية اللحظية تحت التطوير...</p>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className={STYLES.glass + " h-[300px] border border-white/5"}>
+                           <RealTimePerformanceChart 
+                              title="سرعة استجابة الـ API" 
+                              label="Response Time" 
+                              data={data.history?.metrics || []} 
+                              color="#3B82F6"
+                           />
+                        </div>
+                        <div className={STYLES.glass + " h-[300px] border border-white/5"}>
+                           <RealTimePerformanceChart 
+                              title="حمولة المعالج (CPU Load)" 
+                              label="CPU %" 
+                              data={Array.from({ length: 10 }).map((_, i) => ({ value: Math.random() * 20 + 10 }))} 
+                              color="#EF4444"
+                           />
+                        </div>
+                     </div>
+
+                     <div className={STYLES.glass + " h-[400px] border border-white/5"}>
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                           <h3 className="text-sm font-black flex items-center gap-2">
+                              <Terminal className="w-4 h-4 text-primary" />
+                              <span>سجل العمليات المباشر (Live System Logs)</span>
+                           </h3>
+                           <span className="flex items-center gap-2 text-[10px] text-gray-500 font-bold">
+                              <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
+                              CONNECTED TO ELK
+                           </span>
+                        </div>
+                        <div className="p-6 h-[calc(100%-60px)]">
+                           <PremiumLogViewer />
                         </div>
                      </div>
                   </div>

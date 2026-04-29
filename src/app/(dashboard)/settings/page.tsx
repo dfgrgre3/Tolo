@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * ًں‘¤ صفحة الملف الشخصي - Profile Settings (متطورة ومتكاملة)
+ * 👤 صفحة الملف الشخصي - Profile Settings (متطورة ومتكاملة)
  *
  * الصفحة الرئيسية للإعدادات مع تحديث شامل للبيانات الشخصية والدراسية والمهنية.
  * مرتبطة بالكامل مع API وبيانات المستخدم الحقيقية.
@@ -36,6 +36,7 @@ import {
   MapPin,
 
   Shield,
+  ShieldCheck,
   AlertCircle,
   ChevronRight,
   RefreshCw,
@@ -95,7 +96,7 @@ const gradeLevels = [
 
 
 const countries = [
-'مصر', 'السعودية', 'الإمارات', 'الكويت', 'قطر', 'البحرين', 'عظڈمان',
+'مصر', 'السعودية', 'الإمارات', 'الكويت', 'قطر', 'البحرين', 'عُمان',
 'الأردن', 'لبنان', 'سوريا', 'العراق', 'اليمن', 'ليبيا', 'تونس',
 'الجزائر', 'المغرب', 'السودان', 'غيرها'];
 
@@ -566,7 +567,7 @@ export default function ProfileSettingsPage() {
                     'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                   )}>
 
-                  {isTeacher ? 'ًںژ“ مدرس' : 'ًں“ڑ طالب'}
+                  {isTeacher ? '🎓 مدرس' : '📚 طالب'}
                 </span>
               </div>
 
@@ -648,7 +649,7 @@ export default function ProfileSettingsPage() {
             onChange={(e) => handleInputChange('username', e.target.value)}
             disabled={!isEditing}
             placeholder="اسم_المستخدم"
-            hint="ي٪ر في ملفك الشخصي العام ولا يمكن أن يحتوي على مسافات" />
+            hint="يظهر في ملفك الشخصي العام ولا يمكن أن يحتوي على مسافات" />
 
 
           {/* Email & Phone */}
@@ -703,8 +704,8 @@ export default function ProfileSettingsPage() {
             <label className="text-sm font-semibold text-slate-300">الجنس</label>
             <div className="flex gap-3">
               {[
-              { value: 'male', label: 'ًں‘¨ ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
-              { value: 'female', label: 'ًں‘© أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }].
+              { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
+              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }].
               map((g) =>
               <button
                 key={g.value}
@@ -892,7 +893,7 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-3 leading-relaxed">
-            ست٪ر هذه النبذة في ملفك الشخصي العام وفي مجتمعات النقاش الخاصة بالمناهج.
+            ستظهر هذه النبذة في ملفك الشخصي العام وفي مجتمعات النقاش الخاصة بالمناهج.
           </p>
         </div>
       </SettingsCard>
@@ -925,7 +926,7 @@ export default function ProfileSettingsPage() {
             </div>
             <div>
               <p className="font-semibold text-white text-sm">إعدادات الخصوصية</p>
-              <p className="text-xs text-slate-500">التحكم في ٪ور بياناتك</p>
+              <p className="text-xs text-slate-500">التحكم في ظهور بياناتك</p>
             </div>
           </div>
           <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
@@ -955,7 +956,7 @@ export default function ProfileSettingsPage() {
           <h4 className="text-white font-bold mb-1">خصوصية بياناتك محمية</h4>
           <p className="text-slate-400 text-sm leading-relaxed">
             نحن نهتم بخصوصيتك. البيانات الأكاديمية مثل المدرسة والشعبة تستخدم فقط لتحسين تجربتك
-            التعليمية. يمكنك إدارة ٪ور هذه البيانات من{' '}
+            التعليمية. يمكنك إدارة ظهور هذه البيانات من{' '}
             <Link href="/settings/privacy" className="text-indigo-400 hover:text-indigo-300 transition-colors underline">
               صفحة الخصوصية
             </Link>.

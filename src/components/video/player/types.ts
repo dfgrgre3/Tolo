@@ -131,6 +131,15 @@ export interface Lesson {
   completed?: boolean;
 }
 
+export interface InteractiveQuestion {
+  id: string;
+  time: number;
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation?: string;
+}
+
 export interface ThumbnailCue {
   start: number;
   end: number;
@@ -162,4 +171,5 @@ export interface CourseVideoPlayerProps {
   onLessonChange?: (lessonId: string) => void;
   thumbnailVttUrl?: string;
   qualitySources?: QualitySource[];
+  interactiveQuestions?: InteractiveQuestion[];
 }

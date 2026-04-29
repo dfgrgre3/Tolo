@@ -43,7 +43,7 @@ export function QuestCard() {
                   <div className="flex items-center gap-4">
                     <p className="text-gray-400 flex items-center gap-1.5">
                       <BookOpen className="w-4 h-4" />
-                      الوحدة الثالثة â€¢ الدرس الثاني
+                      الوحدة الثالثة • الدرس الثاني
                     </p>
                     <span className="h-1 w-1 rounded-full bg-gray-600" />
                     <p className="font-black text-orange-500/90 text-sm tracking-wide">+150 XP عند الإكمال</p>

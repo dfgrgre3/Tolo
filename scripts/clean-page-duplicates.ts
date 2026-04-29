@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env tsx
 /**
- * ط³ظƒط±ط¨طھ ظ„طھظ†ط¸ظٹظپ ظˆط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط© ظپظٹ طµظپط­ط§طھ Next.js App Router
- * ظٹط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ظ…ط«ظ„ page-enhanced.tsx, layout-new.tsx, page-new.tsx, page-advanced.tsx
+ * سكربت لتنظيف وحذف الملفات المكررة في صفحات Next.js App Router
+ * يحذف الملفات مثل page-enhanced.tsx, layout-new.tsx, page-new.tsx, page-advanced.tsx
  */
 
 import * as fs from 'fs';
@@ -14,53 +14,53 @@ interface CleanupOptions {
 }
 
 /**
- * ط­ط°ظپ ظ…ظ„ظپ ظ…ظƒط±ط±
+ * حذف ملف مكرر
  */
 function deleteDuplicateFile(filePath: string, dryRun: boolean = false): boolean {
   try {
     if (dryRun) {
-      console.log(`   [DRY RUN] ط³ظٹطھظ… ط­ط°ظپ: ${filePath}`);
+      console.log(`   [DRY RUN] سيتم حذف: ${filePath}`);
       return true;
     }
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log(`   âœ… طھظ… ط­ط°ظپ: ${filePath}`);
+      console.log(`   âœ… تم حذف: ${filePath}`);
       return true;
     } else {
-      console.log(`   âڑ ï¸ڈ  ط§ظ„ظ…ظ„ظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯: ${filePath}`);
+      console.log(`   âڑ ï¸ڈ  الملف غير موجود: ${filePath}`);
       return false;
     }
   } catch (error) {
-    console.error(`   â‌Œ ط®ط·ط£ ظپظٹ ط­ط°ظپ ${filePath}:`, error);
+    console.error(`   â‌Œ خطأ في حذف ${filePath}:`, error);
     return false;
   }
 }
 
 /**
- * طھظ†ط¸ظٹظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+ * تنظيف الملفات المكررة
  */
 function cleanDuplicates(options: CleanupOptions = {}) {
   const { dryRun = false, interactive = false } = options;
   const appDir = path.join(process.cwd(), 'src', 'app');
 
   if (!fs.existsSync(appDir)) {
-    console.error('â‌Œ ظ…ط¬ظ„ط¯ app ط؛ظٹط± ظ…ظˆط¬ظˆط¯:', appDir);
+    console.error('â‌Œ مجلد app غير موجود:', appDir);
     process.exit(1);
   }
 
-  console.log('ًں§¹ ط¨ط¯ط، طھظ†ط¸ظٹظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©...\n');
+  console.log('ًں§¹ بدء تنظيف الملفات المكررة...\n');
   if (dryRun) {
-    console.log('âڑ ï¸ڈ  ظˆط¶ط¹ DRY RUN: ظ„ظ† ظٹطھظ… ط­ط°ظپ ط£ظٹ ظ…ظ„ظپط§طھ ظپط¹ظ„ظٹط§ظ‹\n');
+    console.log('âڑ ï¸ڈ  وضع DRY RUN: لن يتم حذف أي ملفات فعلياً\n');
   }
 
   const result = checkPageDuplicates();
   let deletedCount = 0;
   let failedCount = 0;
 
-  // ط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©
+  // حذف الملفات المكررة
   if (result.duplicates.length > 0) {
-    console.log('\nًں—‘ï¸ڈ  ط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ظƒط±ط±ط©:');
+    console.log('\nًں—‘ï¸ڈ  حذف الملفات المكررة:');
     console.log('-'.repeat(80));
 
     for (const dup of result.duplicates) {
@@ -71,9 +71,9 @@ function cleanDuplicates(options: CleanupOptions = {}) {
         const relativePath = `src/app/${dup.directory}/${file}`;
 
         if (interactive) {
-          // ظپظٹ ط§ظ„ظˆط¶ط¹ ط§ظ„طھظپط§ط¹ظ„ظٹطŒ ظ†ط³ط£ظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…
-          // ظ„ظƒظ† ظپظٹ ط§ظ„ط³ظƒط±ط¨طھ ط§ظ„طھظ„ظ‚ط§ط¦ظٹطŒ ظ†ط­ط°ظپ ظ…ط¨ط§ط´ط±ط©
-          console.log(`\n   ظ…ظ„ظپ: ${relativePath}`);
+          // في الوضع التفاعلي، نسأل المستخدم
+          // لكن في السكربت التلقائي، نحذف مباشرة
+          console.log(`\n   ملف: ${relativePath}`);
         }
 
         if (deleteDuplicateFile(filePath, dryRun)) {
@@ -85,9 +85,9 @@ function cleanDuplicates(options: CleanupOptions = {}) {
     }
   }
 
-  // ط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©
+  // حذف الملفات المشبوهة
   if (result.suspiciousFiles.length > 0) {
-    console.log('\nًں—‘ï¸ڈ  ط­ط°ظپ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط´ط¨ظˆظ‡ط©:');
+    console.log('\nًں—‘ï¸ڈ  حذف الملفات المشبوهة:');
     console.log('-'.repeat(80));
 
     for (const file of result.suspiciousFiles) {
@@ -95,7 +95,7 @@ function cleanDuplicates(options: CleanupOptions = {}) {
       const relativePath = `src/app/${file}`;
 
       if (interactive) {
-        console.log(`\n   ظ…ظ„ظپ: ${relativePath}`);
+        console.log(`\n   ملف: ${relativePath}`);
       }
 
       if (deleteDuplicateFile(filePath, dryRun)) {
@@ -106,15 +106,15 @@ function cleanDuplicates(options: CleanupOptions = {}) {
     }
   }
 
-  // ط§ظ„ظ…ظ„ط®طµ
+  // الملخص
   console.log('\n' + '='.repeat(80));
-  console.log('ًں“ٹ ظ…ظ„ط®طµ ط§ظ„طھظ†ط¸ظٹظپ:');
-  console.log(`   âœ… طھظ… ط­ط°ظپ: ${deletedCount} ظ…ظ„ظپ`);
+  console.log('ًں“ٹ ملخص التنظيف:');
+  console.log(`   âœ… تم حذف: ${deletedCount} ملف`);
   if (failedCount > 0) {
-    console.log(`   â‌Œ ظپط´ظ„ ظپظٹ ط­ط°ظپ: ${failedCount} ظ…ظ„ظپ`);
+    console.log(`   â‌Œ فشل في حذف: ${failedCount} ملف`);
   }
   if (dryRun) {
-    console.log(`   âڑ ï¸ڈ  ظˆط¶ط¹ DRY RUN: ظ„ظ… ظٹطھظ… ط­ط°ظپ ط£ظٹ ظ…ظ„ظپط§طھ ظپط¹ظ„ظٹط§ظ‹`);
+    console.log(`   âڑ ï¸ڈ  وضع DRY RUN: لم يتم حذف أي ملفات فعلياً`);
   }
   console.log('='.repeat(80));
 
@@ -124,7 +124,7 @@ function cleanDuplicates(options: CleanupOptions = {}) {
   };
 }
 
-// طھط´ط؛ظٹظ„ ط§ظ„طھظ†ط¸ظٹظپ
+// تشغيل التنظيف
 if (require.main === module) {
   try {
     const args = process.argv.slice(2);
@@ -132,7 +132,7 @@ if (require.main === module) {
     const interactive = args.includes('--interactive') || args.includes('-i');
 
     if (dryRun) {
-      console.log('âڑ ï¸ڈ  ظˆط¶ط¹ DRY RUN ظ…ظپط¹ظ‘ظ„ - ظ„ظ† ظٹطھظ… ط­ط°ظپ ط£ظٹ ظ…ظ„ظپط§طھ\n');
+      console.log('âڑ ï¸ڈ  وضع DRY RUN مفعّل - لن يتم حذف أي ملفات\n');
     }
 
     const result = cleanDuplicates({ dryRun, interactive });
@@ -143,7 +143,7 @@ if (require.main === module) {
       process.exit(0);
     }
   } catch (error) {
-    console.error('â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھظ†ط¸ظٹظپ:', error);
+    console.error('â‌Œ حدث خطأ أثناء التنظيف:', error);
     process.exit(1);
   }
 }

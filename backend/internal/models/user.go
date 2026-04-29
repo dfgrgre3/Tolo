@@ -1,13 +1,12 @@
 package models
 
 import (
-	"time"
-	"encoding/json"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+	"time"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserRole string
@@ -28,7 +27,7 @@ const (
 )
 
 type User struct {
-	ID                            string         `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	ID                            string         `gorm:"primaryKey;type:text" json:"id"`
 	Email                         string         `gorm:"uniqueIndex;not null" json:"email"`
 	Name                          *string        `gorm:"index" json:"name"`
 	Username                      *string        `gorm:"uniqueIndex" json:"username"`
@@ -57,10 +56,19 @@ type User struct {
 	// Access Control
 	Permissions                   JSONStringArray `gorm:"type:jsonb" json:"permissions"`
 
+	// Billing & Credits
+	Balance                       float64        `gorm:"default:0" json:"balance"`
+	AiCredits                     int            `gorm:"default:0" json:"aiCredits"`
+	ExamCredits                   int            `gorm:"default:0" json:"examCredits"`
+
 	
 	// Relations
 	Enrollments                   []Enrollment   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	LessonProgresses               []LessonProgress `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+func (User) TableName() string {
+	return "User"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

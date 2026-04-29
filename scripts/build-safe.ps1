@@ -31,14 +31,8 @@ if (Test-Path ".next") {
     }
 }
 
-# Generate and build
-Write-Host "`n[3/3] Generating Prisma and building..." -ForegroundColor Yellow
-npx prisma generate
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Prisma generate failed!" -ForegroundColor Red
-    exit 1
-}
-
+# Build
+Write-Host "`n[3/3] Building Next.js application..." -ForegroundColor Yellow
 npx next build --webpack
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed!" -ForegroundColor Red

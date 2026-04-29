@@ -227,7 +227,7 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            ٪ور الملف الشخصي
+            ظهور الملف الشخصي
           </h3>
           <p className="text-xs text-slate-400 mt-1">من يمكنه رؤية ملفك الشخصي</p>
         </div>
@@ -284,7 +284,7 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <History className="h-5 w-5 text-indigo-400" />
-            إ٪ار النشاط
+            إظهار النشاط
           </h3>
           <p className="text-xs text-slate-400 mt-1">التحكم في ما يراه الآخرون عنك</p>
         </div>
@@ -293,15 +293,15 @@ export default function PrivacySettingsPage() {
           <SettingsToggle
             icon={Eye}
             title="حالة الاتصال"
-            description="إ٪ار أنك متصل الآن"
+            description="إظهار أنك متصل الآن"
             enabled={settings.showOnlineStatus}
             onToggle={(v) => updateSetting('showOnlineStatus', v)}
           />
           
           <SettingsToggle
             icon={History}
-            title="آخر ٪ور"
-            description="إ٪ار وقت آخر نشاط لك"
+            title="آخر ظهور"
+            description="إظهار وقت آخر نشاط لك"
             enabled={settings.showLastSeen}
             onToggle={(v) => updateSetting('showLastSeen', v)}
           />
@@ -309,7 +309,7 @@ export default function PrivacySettingsPage() {
           <SettingsToggle
             icon={Eye}
             title="التقدم الدراسي"
-            description="إ٪ار نسبة إكمال الدورات"
+            description="إظهار نسبة إكمال الدورات"
             enabled={settings.showProgress}
             onToggle={(v) => updateSetting('showProgress', v)}
           />
@@ -317,7 +317,7 @@ export default function PrivacySettingsPage() {
           <SettingsToggle
             icon={Shield}
             title="الإنجازات"
-            description="إ٪ار شاراتك وإنجازاتك"
+            description="إظهار شاراتك وإنجازاتك"
             enabled={settings.showAchievements}
             onToggle={(v) => updateSetting('showAchievements', v)}
           />

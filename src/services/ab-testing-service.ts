@@ -15,4 +15,5 @@ const abTestingService = {
   trackExperimentEvent
 };
 
-export {};
+export { abTestingService };
+export default abTestingService;

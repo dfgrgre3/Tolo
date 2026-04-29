@@ -122,7 +122,7 @@ export function RoyalCallModal({ open, onOpenChange, users }: RoyalCallModalProp
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`تم بث المرسوم الملكي بنجاح ًں‘‘`, {
+        toast.success(`تم بث المرسوم الملكي بنجاح 👑`, {
           description: `وصل المرسوم لـ ${data.data.summary.success} محارب | السجلات الفاشلة: ${data.data.summary.failure}`,
         });
         onOpenChange(false);

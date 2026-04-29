@@ -165,15 +165,21 @@ export function UserMenu() {
               <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
-                <span>جميع الإشعارات</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
-                <span>إشعارات غير مقروءة</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
-                <span>إعدادات الإشعارات</span>
-              </DropdownMenuItem>
+              <Link href="/notifications">
+                <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
+                  <span>جميع الإشعارات</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/notifications?filter=unread">
+                <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
+                  <span>إشعارات غير مقروءة</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/settings/notifications">
+                <DropdownMenuItem className="cursor-pointer gap-2.5 py-2">
+                  <span>إعدادات الإشعارات</span>
+                </DropdownMenuItem>
+              </Link>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 
@@ -209,7 +215,7 @@ export function UserMenu() {
 
             <Moon className="h-4 w-4 text-primary" />
             }
-            <span>تبديل الم٪ر</span>
+            <span>تبديل المظهر</span>
             <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
           </DropdownMenuItem>
 

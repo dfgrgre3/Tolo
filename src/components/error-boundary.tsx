@@ -10,9 +10,9 @@ import { logger } from '@/lib/logger';
 interface Props {
   /** المكونات الفرعية */
   children: ReactNode;
-  /** مكون بديل يظڈعرض عند حدوث خطأ */
+  /** مكون بديل يُعرض عند حدوث خطأ */
   fallback?: ReactNode;
-  /** دالة callback تظڈستدعى عند حدوث خطأ */
+  /** دالة callback تُستدعى عند حدوث خطأ */
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   /** نوع الخطأ لتخصيص صفحة الخطأ */
   errorType?: ErrorType;

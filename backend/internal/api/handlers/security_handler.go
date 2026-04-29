@@ -8,14 +8,27 @@ import (
 	"thanawy-backend/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"fmt"
 )
 
-var securityLogRepo = repository.NewSecurityLogRepository(db.DB)
+var securityLogRepo *repository.SecurityLogRepository
 
+func getSecurityLogRepo() *repository.SecurityLogRepository {
+	if securityLogRepo == nil {
+		securityLogRepo = repository.NewSecurityLogRepository(db.DB)
+	}
+	return securityLogRepo
+}
 func GetSecurityLogs(c *gin.Context) {
 	userId, exists := c.Get("userId")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userIdStr, ok := userId.(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in session"})
 		return
 	}
 
@@ -25,9 +38,10 @@ func GetSecurityLogs(c *gin.Context) {
 		limit = 50
 	}
 
-	logs, err := securityLogRepo.FindByUserID(userId.(string), limit)
+	logs, err := getSecurityLogRepo().FindByUserID(userIdStr, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch security logs"})
+		fmt.Printf("Error fetching security logs for user %s: %v\n", userIdStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch security logs", "details": err.Error()})
 		return
 	}
 
@@ -47,5 +61,5 @@ func LogSecurityEvent(userID string, eventType models.SecurityEventType, ip, use
 		Location:  location,
 		Metadata:  metadata,
 	}
-	return securityLogRepo.Create(log)
+	return getSecurityLogRepo().Create(log)
 }

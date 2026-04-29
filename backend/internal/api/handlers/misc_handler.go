@@ -5,15 +5,53 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime"
-	"time"
+	"strings"
+	"thanawy-backend/internal/db"
+	"thanawy-backend/internal/models"
 )
 
 func GetUnreadNotificationsCount(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"count": 0})
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var count int64
+	if err := db.DB.Model(&models.Notification{}).Where("\"userId\" = ? AND \"isRead\" = ?", userId, false).Count(&count).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count notifications"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
 func GetRecentActivities(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"activities": []interface{}{}})
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var notifications []models.Notification
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(10).Find(&notifications).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch activities"})
+		return
+	}
+
+	activities := make([]gin.H, 0, len(notifications))
+	for _, n := range notifications {
+		activities = append(activities, gin.H{
+			"id":          n.ID,
+			"type":        strings.ToLower(string(n.Type)),
+			"title":       n.Title,
+			"description": n.Message,
+			"timestamp":   n.CreatedAt,
+			"read":        n.IsRead,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"activities": activities})
 }
 
 func GetWalletBalance(c *gin.Context) {
@@ -62,31 +100,7 @@ func ImpersonateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func GetAuthSessions(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"sessions": []gin.H{
-			{
-				"id":           "current-session",
-				"userAgent":    c.GetHeader("User-Agent"),
-				"ip":           c.ClientIP(),
-				"deviceInfo":   nil,
-				"createdAt":    time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
-				"lastAccessed": time.Now().Format(time.RFC3339),
-				"expiresAt":    time.Now().Add(24 * time.Hour).Format(time.RFC3339),
-				"isCurrent":    true,
-				"isTrusted":    true,
-				"location":     nil,
-			},
-		},
-	})
-}
 
-func UpdateAuthSession(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Session updated successfully",
-	})
-}
 
 func GetAdminInfrastructureStats(c *gin.Context) {
 	var memory runtime.MemStats
@@ -108,6 +122,15 @@ func GetAdminInfrastructureStats(c *gin.Context) {
 				"notifications": gin.H{"active": 0, "waiting": 0, "failed": 0, "completed": 0},
 				"analytics":     gin.H{"active": 0, "waiting": 0, "failed": 0, "completed": 0},
 			},
+		},
+	})
+}
+
+func GetAdminMetricsHistory(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"metrics": []interface{}{},
 		},
 	})
 }

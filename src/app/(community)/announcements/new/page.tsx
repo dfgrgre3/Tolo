@@ -121,10 +121,10 @@ export default function NewAnnouncementPage() {
   };
 
   const categories = [
-    { id: "academic", name: "أكاديمي", icon: "ًںژ“" },
-    { id: "administrative", name: "إداري", icon: "ًںڈ¢" },
-    { id: "events", name: "فعاليات", icon: "ًںژ‰" },
-    { id: "competitions", name: "مسابقات", icon: "ًںڈ†" },
+    { id: "academic", name: "أكاديمي", icon: "🎓" },
+    { id: "administrative", name: "إداري", icon: "🏢" },
+    { id: "events", name: "فعاليات", icon: "🎉" },
+    { id: "competitions", name: "مسابقات", icon: "🏆" },
   ];
 
   const priorities = [

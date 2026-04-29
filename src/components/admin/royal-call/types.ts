@@ -25,7 +25,7 @@ export const ROYAL_TEMPLATES: MessageTemplate[] = [
   { 
     id: "welcome", 
     label: "ترحيب بالمحارب", 
-    title: "مرحباً بك في ساحة المعركة âڑ”ï¸ڈ", 
+    title: "مرحباً بك في ساحة المعركة ⚔️", 
     message: "الإمبراطورية ترحب بك أيها المحارب. استعد للتدريب وتطوير مهاراتك لتكون الأقوى!", 
     type: "info",
     icon: Shield,
@@ -34,7 +34,7 @@ export const ROYAL_TEMPLATES: MessageTemplate[] = [
   { 
     id: "warning_absence", 
     label: "تحذير غياب", 
-    title: "تحذير من القيادة العظڈليا âڑ ï¸ڈ", 
+    title: "تحذير من القيادة العُليا ⚠️", 
     message: "لاحظنا غيابك الطويل عن ساحة التدريب مؤخراً. يجب العودة فوراً وإلا ستتعرض لفقدان نقاط القوة (XP) الخاصة بك.", 
     type: "warning",
     icon: Book,
@@ -43,7 +43,7 @@ export const ROYAL_TEMPLATES: MessageTemplate[] = [
   { 
     id: "reward", 
     label: "مكافأة أسطورية", 
-    title: "مكافأة أسطورية في انتظارك ًںژپ", 
+    title: "مكافأة أسطورية في انتظارك 🎁", 
     message: "أثبتت جدارتك في المهام الأخيرة، وبناءً عليه قرر الإمبراطور منحك مكافأة خاصة. تفضل بزيارة خزانة الغنائم للحصول عليها!", 
     type: "success",
     icon: Award,
@@ -52,7 +52,7 @@ export const ROYAL_TEMPLATES: MessageTemplate[] = [
   { 
     id: "ban_threat", 
     label: "إنذار بالنفي", 
-    title: "إنذار أخير قبل النفي ًںڑ«", 
+    title: "إنذار أخير قبل النفي 🚫", 
     message: "لقد تم رصد مخالفات جسيمة لقوانين الإمبراطورية. هذا إنذار أخير قبل تجريدك من رتبتك ونفيك نهائياً.", 
     type: "error",
     icon: Skull,

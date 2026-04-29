@@ -37,9 +37,9 @@ func GetCategories(c *gin.Context) {
 		}
 		var counts []countResult
 		db.DB.Model(&models.Subject{}).
-			Select("category_id, count(*) as count").
-			Where("category_id IN ?", categoryIDs).
-			Group("category_id").
+			Select("\"categoryId\", count(*) as count").
+			Where("\"categoryId\" IN ?", categoryIDs).
+			Group("\"categoryId\"").
 			Scan(&counts)
 
 		countMap := make(map[string]int64)
@@ -185,7 +185,7 @@ func DeleteCategory(c *gin.Context) {
 	}
 
 	var count int64
-	db.DB.Model(&models.Subject{}).Where("category_id = ?", input.ID).Count(&count)
+	db.DB.Model(&models.Subject{}).Where("\"categoryId\" = ?", input.ID).Count(&count)
 	if count > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Category is linked to courses"})
 		return

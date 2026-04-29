@@ -158,7 +158,7 @@ export default function ContentReportsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader 
-        title="مراقبة جودة المحتوى (Eagle Eye) ًں¦…"
+        title="مراقبة جودة المحتوى (Eagle Eye) 🦠…"
         description="استقبل وصحح بلاغات الطلاب عن الأخطاء العلمية أو التقنية لضمان دقة معلومات المملكة."
       >
         <AdminButton icon={RefreshCw} variant="outline" onClick={() => refetch()} loading={isLoading}>
@@ -236,7 +236,7 @@ export default function ContentReportsPage() {
                 onClick={() => selectedReport && updateReportMutation.mutate({ id: selectedReport.id, status: 'RESOLVED', adminNote: resolutionNote })}
                 loading={updateReportMutation.isPending}
               >
-                تثبيت كـ &quot;تم الإصلاح&quot; ًںڈ›ï¸ڈ
+                تثبيت كـ &quot;تم الإصلاح&quot; 🏛️
               </AdminButton>
               <AdminButton 
                 variant="outline"

@@ -14,6 +14,7 @@ import { HydrationFix } from '@/components/hydration-fix';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { ScrollPersistence } from '@/components/layout/ScrollPersistence';
 import { LazyMotion, domAnimation } from 'framer-motion';
+import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,7 +68,9 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                       <NotificationsProvider>
                         <TooltipProvider>
                           <LazyMotion features={domAnimation} strict>
-                            {children}
+                            <PerformanceProvider>
+                              {children}
+                            </PerformanceProvider>
                             <Footer />
                           </LazyMotion>
                           <Toaster richColors closeButton position="top-center" />

@@ -50,7 +50,7 @@ export function RoleGate({
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center bg-red-500/5 border border-red-500/10 rounded-3xl backdrop-blur-xl">
                 <ShieldAlert className="w-16 h-16 text-red-500 mb-6 animate-pulse" />
-                <h3 className="text-2xl font-black text-white mb-2">منطقة محظورة âڑ”ï¸ڈ</h3>
+                <h3 className="text-2xl font-black text-white mb-2">منطقة محظورة ⚔️</h3>
                 <p className="text-gray-500 mb-8 max-w-sm">
                     ليست لديك الصلاحيات الكافية لدخول هذه الغرفة. يرجى العودة للساحة العامة.
                 </p>

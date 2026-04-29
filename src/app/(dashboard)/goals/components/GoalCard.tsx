@@ -40,7 +40,7 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           </div>
         </div>
         <div className={`text-2xl ${goal.isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
-          {goal.isCompleted ? 'âœ…' : 'ًںژ¯'}
+          {goal.isCompleted ? '✅' : '🎯'}
         </div>
       </div>
 

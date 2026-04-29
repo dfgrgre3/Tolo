@@ -400,7 +400,7 @@ export function HeaderMobileMenuEnhanced({
 
             <div className="p-4 border-t border-border/40 space-y-3 bg-muted/20 backdrop-blur-sm mt-auto">
               <Button variant="outline" onClick={toggleTheme} className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm">
-                <span className="text-sm font-medium">الم٪ر</span>
+                <span className="text-sm font-medium">المظهر</span>
                 {theme === "dark" ? (
                   <div className="flex items-center gap-1.5 text-primary">
                     <Moon className="h-3.5 w-3.5" />

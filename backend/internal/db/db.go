@@ -35,6 +35,20 @@ func (PrismaNamingStrategy) ColumnName(table, column string) string {
 	if column == "ID" {
 		return "id"
 	}
+	
+	// Handle common acronyms (IP, ID, etc.) - convert to lowercase
+	// Check if the column is all uppercase (like "IP")
+	isAcronym := true
+	for _, r := range column {
+		if !unicode.IsUpper(r) && r != '_' {
+			isAcronym = false
+			break
+		}
+	}
+	if isAcronym && len(column) > 1 {
+		return strings.ToLower(column)
+	}
+	
 	runes := []rune(column)
 	if len(runes) > 0 {
 		runes[0] = unicode.ToLower(runes[0])
@@ -148,5 +162,7 @@ func Migrate() error {
 		&models.Notification{},
 		&models.SecurityLog{},
 		&models.UserSession{},
+		&models.LessonAttachment{},
+		&models.CourseReview{},
 	)
-}
+}

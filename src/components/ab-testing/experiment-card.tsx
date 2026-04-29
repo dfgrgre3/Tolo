@@ -132,7 +132,7 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
               <div>
                 <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2">
                   <span>عدد القراءات/المشاهدات (Traffic)</span>
-                  <span>{experiment.variantA.views} مظڈسجل</span>
+                  <span>{experiment.variantA.views} مُسجل</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div className="bg-slate-500 h-full rounded-full" style={{ width: `${(experiment.variantA.views / maxViews) * 100}%` }}></div>
@@ -173,7 +173,7 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
               <div>
                 <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2">
                   <span>عدد القراءات/المشاهدات (Traffic)</span>
-                  <span>{experiment.variantB.views} مظڈسجل</span>
+                  <span>{experiment.variantB.views} مُسجل</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div className="bg-teal-500 h-full rounded-full" style={{ width: `${(experiment.variantB.views / maxViews) * 100}%` }}></div>

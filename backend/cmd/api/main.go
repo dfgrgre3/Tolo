@@ -40,6 +40,9 @@ func main() {
 		log.Printf("Migration failed: %v", err)
 	}
 	log.Println("Database schema synced.")
+	
+	// Start WebSocket Hub
+	go handlers.GlobalHub.Run()
 
 
 	// Initialize Redis
@@ -59,7 +62,7 @@ func main() {
 	// Apply Middlewares
 	router.Use(middleware.CORS())
 	router.Use(gin.Recovery())
-	router.Use(gin.Logger())
+	router.Use(middleware.StructuredLogger())
 
 	// Serve static files for uploads
 	router.Static("/uploads", "./uploads")
@@ -113,6 +116,7 @@ func main() {
 		api.GET("/courses", handlers.GetSubjects)
 		api.GET("/courses/:id", handlers.GetSubject)
 		api.GET("/courses/:id/lessons", handlers.GetCourseLessons)
+		api.GET("/courses/:id/reviews", handlers.GetCourseReviews)
 		api.GET("/categories", handlers.GetCategories)
 		api.GET("/courses/categories", handlers.GetCategories) // Alias
 		api.GET("/teachers", handlers.GetTeachers)
@@ -141,7 +145,10 @@ func main() {
 		}
 
 		// Guest User
-		api.GET("/users/guest", handlers.GetGuestUser)
+		api.Any("/users/guest", handlers.GetGuestUser)
+
+		// WebSocket
+		api.GET("/ws", handlers.WSHandler)
 
 		// Public Library routes
 		api.GET("/library/categories", handlers.GetLibraryCategories)
@@ -172,6 +179,7 @@ func main() {
 			protected.PATCH("/settings/preferences", handlers.UpdateSettings)
 
 			// Profile
+			protected.GET("/users/billing-summary", handlers.GetBillingSummary)
 			protected.PATCH("/users/profile", handlers.UpdateProfile)
 
 			// Activities
@@ -182,6 +190,8 @@ func main() {
 			// Billing & Subscriptions
 			protected.GET("/billing/wallet", handlers.GetWalletBalance)
 			protected.GET("/subscriptions/plans", handlers.GetSubscriptionPlans)
+			protected.GET("/subscriptions/addons", handlers.GetSubscriptionAddons)
+			protected.POST("/subscriptions/addons", handlers.PurchaseAddon)
 			protected.POST("/subscriptions/checkout", handlers.SubscriptionCheckout)
 			protected.POST("/coupons/validate", handlers.ValidateCoupon)
 
@@ -197,11 +207,14 @@ func main() {
 
 			// Enrollment & Progress
 			protected.POST("/courses/:id/enroll", handlers.EnrollCourse)
+			protected.POST("/courses/:id/checkout", handlers.CourseCheckout)
+			protected.GET("/courses/:id/curriculum", handlers.GetSubjectCurriculum)
 			protected.POST("/courses/lessons/:id/progress", handlers.UpdateLessonProgress)
 
-			// Lesson Notes
+			// Lesson Notes & Reviews
 			protected.GET("/courses/lessons/:id/notes", handlers.GetLessonNotes)
 			protected.POST("/courses/lessons/:id/notes", handlers.CreateLessonNote)
+			protected.POST("/courses/:id/reviews", handlers.CreateCourseReview)
 
 			// Upload
 			protected.POST("/upload", handlers.Upload)
@@ -215,6 +228,7 @@ func main() {
 				admin.GET("/live", handlers.GetAdminLive)
 				admin.GET("/analytics", handlers.GetAdminAnalytics)
 				admin.GET("/infrastructure/stats", handlers.GetAdminInfrastructureStats)
+				admin.GET("/metrics/history", handlers.GetAdminMetricsHistory)
 				admin.GET("/reports/overview", handlers.GetAdminReportsOverview)
 				admin.GET("/reports/books", handlers.GetAdminReportsBooks)
 				admin.GET("/reports/users", handlers.GetAdminReportsUsers)
@@ -258,6 +272,8 @@ func main() {
 				admin.PATCH("/courses", handlers.UpdateSubject)
 				admin.DELETE("/courses/:id", handlers.DeleteSubject)
 				admin.GET("/courses/:id/curriculum", handlers.GetSubjectCurriculum)
+				admin.PATCH("/courses/:id/curriculum", handlers.UpdateCourseCurriculum)
+				admin.POST("/courses/lessons/:id/attachments", handlers.AddLessonAttachment)
 
 				// Admin Exams
 				admin.GET("/exams", handlers.GetExams)

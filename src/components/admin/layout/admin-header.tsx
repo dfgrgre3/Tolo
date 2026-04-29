@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -19,15 +19,10 @@ import {
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
-interface Notification {
-  id: string;
-  type: "user" | "achievement" | "system" | "warning" | "success" | "info";
-  title: string;
-  message: string;
-  time: Date;
-  read: boolean;
-  actionUrl?: string;
-}
+import { useNotificationsContext } from "@/providers/notifications-provider";
+import { type Notification } from "@/types/notification";
+import { useAuth } from "@/contexts/auth-context";
+import { logger } from "@/lib/logger";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
@@ -76,15 +71,24 @@ const notificationColors: Record<string, string> = {
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [notifications, setNotifications] = React.useState<Notification[]>([
-    { id: "1", type: "user", title: "مستخدم جديد", message: "تم تسجيل مستخدم جديد في النظام", time: new Date("2026-04-15T11:55:00.000Z"), read: false },
-    { id: "2", type: "achievement", title: "إنجاز جديد", message: "تم فتح إنجاز جديد: الطالب المثالي", time: new Date("2026-04-15T11:45:00.000Z"), read: false },
-    { id: "3", type: "system", title: "تحديث النظام", message: "تم تحديث النظام بنجاح إلى الإصدار 2.0", time: new Date("2026-04-15T11:00:00.000Z"), read: true },
-    { id: "4", type: "warning", title: "تحذير", message: "اقتراب مساحة التخزين من الحد الأقصى", time: new Date("2026-04-15T10:00:00.000Z"), read: true },
-    { id: "5", type: "success", title: "نجاح", message: "تم إرسال الإشعارات بنجاح", time: new Date("2026-04-15T09:00:00.000Z"), read: true },
-  ]);
+  const {
+    notifications,
+    unreadCount,
+    markAsRead: globalMarkAsRead,
+    isLoading
+  } = useNotificationsContext();
+
+  const { user, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      logger.error("Logout failed:", error);
+    }
+  };
 
   React.useEffect(() => {
     setMounted(true);
@@ -106,7 +110,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
     return crumbs;
   }, [pathname]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
   const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "لوحة التحكم";
 
   const formatNotificationTime = (date: Date) => {
@@ -122,19 +125,18 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
     return `منذ ${days} يوم`;
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+  const markAsRead = async (id: string) => {
+    await globalMarkAsRead([id]);
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    await globalMarkAsRead(undefined, true);
     toast.success("تم تحديد جميع الإشعارات كمقروءة");
   };
 
   const clearNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    // This could call a delete API if implemented
+    toast.info("هذه الميزة ستتوفر قريباً");
   };
 
   return (
@@ -203,7 +205,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         {/* Theme Toggle */}
         <IconButton
           icon={!mounted ? Sun : (theme === "dark" ? Moon : Sun)}
-          label="تبديل الم٪ر"
+          label="تبديل المظهر"
           variant="ghost"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         />
@@ -248,39 +250,36 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                 </div>
               ) : (
                 notifications.map((notification) => {
-                  const type = (notification.type || "info").toLowerCase();
-                  const Icon = notificationIcons[type] || Info;
-                  const colorClass = notificationColors[type] || notificationColors.info;
-                  return (
-                    <div
-                      key={notification.id}
-                      className={`flex items-start gap-3 p-4 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.read ? "bg-primary/5" : ""}`}
-                      onClick={() => {
-                        markAsRead(notification.id);
-                        if (notification.actionUrl) {
-                          window.location.href = notification.actionUrl;
-                        }
-                      }}
-                    >
-                      <div className={`flex-shrink-0 p-2 rounded-lg ${colorClass}`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium text-sm ${!notification.read ? "" : "text-muted-foreground"}`}>
-                            {notification.title}
-                          </span>
-                          {!notification.read && (
-                            <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          )}
+                    const isRead = notification.isRead;
+                    const Icon = notificationIcons[notification.type] || Bell;
+                    const colorClass = notificationColors[notification.type] || "text-gray-500 bg-gray-500/10";
+                    return (
+                      <div
+                        key={notification.id}
+                        className={`flex items-start gap-3 p-4 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer ${!isRead ? "bg-primary/5" : ""}`}
+                        onClick={() => {
+                          markAsRead(notification.id);
+                        }}
+                      >
+                        <div className={`flex-shrink-0 p-2 rounded-lg ${colorClass}`}>
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/60 mt-1">
-                          {formatNotificationTime(notification.time)}
-                        </p>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium text-sm ${!isRead ? "" : "text-muted-foreground"}`}>
+                              {notification.title}
+                            </span>
+                            {!isRead && (
+                              <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-1">
+                            {formatNotificationTime(new Date(notification.createdAt))}
+                          </p>
+                        </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -312,24 +311,24 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1 sm:gap-2.5 h-9 rounded-lg px-1 sm:px-2 hover:bg-accent transition-colors">
-              <Avatar className="h-7 w-7 ring-2 ring-primary/20">
-                <AvatarImage src="/logo-tolo.jpg" alt="Admin" />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-bold">
-                  م
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden lg:flex flex-col items-start">
-                <span className="text-xs font-semibold leading-none">المدير</span>
-                <span className="text-[10px] text-muted-foreground leading-none mt-0.5">مدير النظام</span>
-              </div>
-            </button>
+              <button className="flex items-center gap-1 sm:gap-2.5 h-9 rounded-lg px-1 sm:px-2 hover:bg-accent transition-colors">
+                <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+                  <AvatarImage src={user?.avatar || "/logo-tolo.jpg"} alt={user?.name || "Admin"} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-bold">
+                    {user?.name?.[0] || user?.email?.[0] || "م"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden lg:flex flex-col items-start">
+                  <span className="text-xs font-semibold leading-none">{user?.name || user?.username || "المدير"}</span>
+                  <span className="text-[10px] text-muted-foreground leading-none mt-0.5">مدير النظام</span>
+                </div>
+              </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 rounded-xl">
             <DropdownMenuLabel>
               <div className="flex flex-col gap-1">
-                <span className="font-semibold">المدير</span>
-                <span className="text-xs text-muted-foreground font-normal">admin@tolo.com</span>
+                <span className="font-semibold">{user?.name || user?.username || "المدير"}</span>
+                <span className="text-xs text-muted-foreground font-normal">{user?.email || "admin@tolo.com"}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -346,7 +345,10 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive cursor-pointer">
+            <DropdownMenuItem 
+              className="text-destructive cursor-pointer"
+              onClick={handleLogout}
+            >
               <LogOut className="ml-2 h-4 w-4" />
               تسجيل الخروج
             </DropdownMenuItem>

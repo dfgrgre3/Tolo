@@ -7,19 +7,23 @@ import (
 )
 
 type UserSession struct {
-	ID           string         `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
-	UserID       string         `gorm:"not null;index" json:"userId"`
+	ID           string         `gorm:"primaryKey;type:text" json:"id"`
+	UserID       string         `gorm:"not null;type:text;index" json:"userId"`
 	RefreshToken string         `gorm:"uniqueIndex;not null" json:"-"`
 	UserAgent    string         `gorm:"type:text" json:"userAgent"`
-	IP           string         `gorm:"not null" json:"ip"`
+	IP           string         `gorm:"not null;column:ip" json:"ip"`
 	Location     *string        `json:"location"`
 	DeviceType   string         `json:"deviceType"` // e.g., mobile, desktop
-	IsRevoked    bool           `gorm:"default:false;index" json:"isRevoked"`
-	LastActive   time.Time      `json:"lastActive"`
+	IsActive     bool           `gorm:"default:true;index" json:"isActive"`
+	LastAccessed time.Time      `json:"lastActive"`
 	ExpiresAt    time.Time      `gorm:"index" json:"expiresAt"`
 	CreatedAt    time.Time      `json:"createdAt"`
 	UpdatedAt    time.Time      `json:"updatedAt"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (UserSession) TableName() string {
+	return "Session"
 }
 
 func (s *UserSession) BeforeCreate(tx *gorm.DB) (err error) {

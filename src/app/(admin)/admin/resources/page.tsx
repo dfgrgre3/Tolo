@@ -314,7 +314,7 @@ export default function AdminResourcesPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="أرشيف الموارد الإمبراطوري ًں“ڑ"
+        title="أرشيف الموارد الإمبراطوري 📚"
         description="إدارة المكتبة المركزية، المخطوطات العلمية، وبوابات التعلم الخارجية لجيش المحاربين.">
         
         <div className="flex items-center gap-3">

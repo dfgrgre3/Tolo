@@ -20,16 +20,19 @@ const (
 )
 
 type SecurityLog struct {
-	ID        string           `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	ID        string           `gorm:"primaryKey;type:text" json:"id"`
 	UserID    string           `gorm:"type:text;not null;index:idx_security_logs_user_created,priority:1" json:"userId"`
 	EventType SecurityEventType `gorm:"not null;index" json:"eventType"`
-	IP        string           `gorm:"not null" json:"ip"`
+	IP        string           `gorm:"column:ip;not null" json:"ip"`
 	UserAgent string           `gorm:"type:text" json:"userAgent"`
 	Location  *string          `json:"location"`
 	Metadata  *string          `gorm:"type:text" json:"metadata"` // JSON string for additional data
 	CreatedAt time.Time        `gorm:"not null;index:idx_security_logs_user_created,priority:2" json:"createdAt"`
 	UpdatedAt time.Time        `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt   `gorm:"index" json:"-"`
+}
+
+func (SecurityLog) TableName() string {
+	return "SecurityLog"
 }
 
 func (s *SecurityLog) BeforeCreate(tx *gorm.DB) (err error) {

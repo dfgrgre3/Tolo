@@ -371,7 +371,7 @@ export default function AdminRewardsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="خزينة الغنائم الملكية ًںژپ"
+        title="خزينة الغنائم الملكية 🎁"
         description="إدارة كنوز المملكة، الأوسمة النادرة، والجوائز المخصصة لمبدعي الإمبراطورية."
       >
         <div className="flex items-center gap-3">

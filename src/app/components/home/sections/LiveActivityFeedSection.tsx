@@ -276,7 +276,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
                    <Activity className="h-10 w-10 text-gray-600" />
                  </div>
                  <p className="text-xl font-bold text-gray-500 mb-2">لا توجد أنشطة لعرضها حالياً</p>
-                 <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لت٪ر أنشطتك هنا.</p>
+                 <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لتظهر أنشطتك هنا.</p>
               </div>
             }
           </AnimatePresence>

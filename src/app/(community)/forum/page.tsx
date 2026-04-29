@@ -128,7 +128,7 @@ export default function ForumPage() {
                     <span>قاعة الحكمة والتبادل العسكري</span>
                  </div>
                  <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-                    ساحة <span className={STYLES.neonText}>حوار الأبطال</span> ًں›،ï¸ڈ
+                    ساحة <span className={STYLES.neonText}>حوار الأبطال</span> 🛡️
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl">
                     تبادل المعرفة مع رفاقك، اطرح تساؤلاتك في خضم المعركة، وساهم في بناء مكتبة الحكمة للمملكة.
@@ -216,7 +216,7 @@ export default function ForumPage() {
               <h2 className="text-3xl font-black flex items-center gap-4">
                  <BookOpen className="h-7 w-7 text-primary" />
                  <span>المخطوطات واللفائف</span>
-                 <Badge className="bg-white/5 text-gray-500 border-white/10 px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{sortedPosts.length} نتيجة عظڈثر عليها</Badge>
+                 <Badge className="bg-white/5 text-gray-500 border-white/10 px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{sortedPosts.length} نتيجة عُثر عليها</Badge>
               </h2>
            </div>
 

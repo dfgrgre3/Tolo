@@ -106,7 +106,7 @@ export default function AdminAnalyticsPage() {
                  <div className="p-2 bg-primary/20 text-primary rounded-lg"><Settings className="w-5 h-5"/></div>
                  <div>
                     <h3 className="font-bold text-lg">وضع تخصيص اللوحة (Widget Builder)</h3>
-                    <p className="text-xs text-muted-foreground">قم بترتيب وإخفاء/إ٪ار المكونات التي تهمك فقط.</p>
+                    <p className="text-xs text-muted-foreground">قم بترتيب وإخفاء/إظهار المكونات التي تهمك فقط.</p>
                  </div>
               </div>
               <div>

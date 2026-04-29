@@ -122,7 +122,7 @@ export default function BlogPage() {
                     حوليات <span className={STYLES.neonText}>الحكماء</span> <br /> والباحثين
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                    هنا تظڈدون الخبرات، وتظڈحفظ أسرار التفوق. مقالات معمقة صا۪ا كبار الأكاديميين لتنير لك دروب السيادة العلمية.
+                    هنا تُدون الخبرات، وتُحفظ أسرار التفوق. مقالات معمقة صاغها كبار الأكاديميين لتنير لك دروب السيادة العلمية.
                  </p>
                  <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
                     {userId &&
@@ -195,7 +195,7 @@ export default function BlogPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "newest" | "popular")}>
               
-                 <option value="newest" className="bg-background">الأحدث ٪وراً</option>
+                 <option value="newest" className="bg-background">الأحدث ظهوراً</option>
                  <option value="popular" className="bg-background">الأكثر قراءً</option>
               </select>
            </div>

@@ -172,7 +172,7 @@ const ExamsSectionComponent = () => {
           if (!subjectMap.has(subjectName)) {
             subjectMap.set(subjectName, {
               id: subjectName,
-              emoji: SUBJECT_EMOJIS[subjectName] || "âڑ”ï¸ڈ",
+              emoji: SUBJECT_EMOJIS[subjectName] || "⚔️",
               name: subjectName,
               exams: []
             });
@@ -270,7 +270,7 @@ const ExamsSectionComponent = () => {
                         <div className="relative w-full md:w-96 group">
                             <input
                 type="text"
-                placeholder="ًں”چ ابحث عن تحدي أو مادة..."
+                placeholder="🔍 ابحث عن تحدي أو مادة..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-5 py-4 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all pl-12 shadow-inner text-lg" />

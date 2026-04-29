@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * ًں”” صفحة إعدادات الإشعارات - Notifications Settings
+ * 🔔 صفحة إعدادات الإشعارات - Notifications Settings
  * 
  * تخصيص جميع أنواع الإشعارات مع:
  * - إشعارات المهام والامتحانات
@@ -59,7 +59,10 @@ export default function NotificationsSettingsPage() {
       try {
         const preferences = await fetchSettingsPreferences();
         if (!mounted) return;
-        setSettings(preferences.notifications);
+        setSettings({
+          ...DEFAULT_NOTIFICATION_SETTINGS,
+          ...(preferences.notifications || {}),
+        });
       } catch {
         if (!mounted) return;
         setSettings({ ...DEFAULT_NOTIFICATION_SETTINGS });
@@ -92,7 +95,10 @@ export default function NotificationsSettingsPage() {
       const updatedPreferences = await saveSettingsPreferences({
         notifications: settings,
       });
-      setSettings(updatedPreferences.notifications);
+      setSettings({
+        ...DEFAULT_NOTIFICATION_SETTINGS,
+        ...(updatedPreferences.notifications || {}),
+      });
       toast.success('تم حفظ إعدادات الإشعارات');
       setHasChanges(false);
     } catch (error) {

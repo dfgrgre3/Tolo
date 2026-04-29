@@ -820,7 +820,7 @@ export default function CourseDetailsPage() {
                 <UserCheck className="h-8 w-8 text-muted-foreground/30" />
               </div>
               <p className="text-sm font-bold text-muted-foreground">لا يوجد طلاب مسجلون</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">سي٪ر الطلاب هنا عند التسجيل في الدورة</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">سيظهر الطلاب هنا عند التسجيل في الدورة</p>
             </AdminCard>
           )}
         </TabsContent>
@@ -908,7 +908,7 @@ export default function CourseDetailsPage() {
                     <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
                   </div>
                   <p className="text-sm font-bold text-muted-foreground">لا توجد تقييمات بعد</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">ست٪ر تقييمات الطلاب هنا عند تقديمها</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">ستظهر تقييمات الطلاب هنا عند تقديمها</p>
                 </AdminCard>
               )}
             </div>
@@ -925,10 +925,10 @@ export default function CourseDetailsPage() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
                     <Eye className="h-5 w-5" />
                   </div>
-                  <h3 className="font-black">حالة النشر وال٪ور</h3>
+                  <h3 className="font-black">حالة النشر والظهور</h3>
                 </div>
                 <p className="text-slate-400 text-sm leading-7">
-                  تحكم في ٪ور الدورة للطلاب وحالتها في المنصة التعليمية.
+                  تحكم في ظهور الدورة للطلاب وحالتها في المنصة التعليمية.
                 </p>
               </div>
               <div className="p-6 space-y-4">
@@ -963,7 +963,7 @@ export default function CourseDetailsPage() {
                   <h3 className="font-black">تحسين محركات البحث</h3>
                 </div>
                 <p className="text-blue-300/70 text-sm leading-7">
-                  إعدادات SEO تساعد في ٪ور الدورة في نتائج البحث وجذب المزيد من الطلاب.
+                  إعدادات SEO تساعد في ظهور الدورة في نتائج البحث وجذب المزيد من الطلاب.
                 </p>
               </div>
               <div className="p-6 space-y-4">

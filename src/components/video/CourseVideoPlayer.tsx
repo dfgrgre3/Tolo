@@ -22,7 +22,9 @@ import {
   Volume2,
   VolumeX,
   Repeat,
+  HelpCircle,
 } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   AUTOPLAY_NEXT_SECONDS,
@@ -40,8 +42,11 @@ import { PlayerPanels } from "./player/components/PlayerPanels";
 import { AmbientBackground } from "./player/components/AmbientBackground";
 import { GestureOverlay } from "./player/components/GestureOverlay";
 import { SkipIntroButton } from "./player/components/SkipIntroButton";
+import { InteractiveQuestionOverlay } from "./player/components/InteractiveQuestionOverlay";
+import { ActiveNotePopup } from "./player/components/ActiveNotePopup";
 
 // Hooks
+import { useAuth } from "@/contexts/auth-context";
 import { useYouTubePlayer } from "./player/hooks/useYouTubePlayer";
 import { useKeyboardShortcuts } from "./player/hooks/useKeyboardShortcuts";
 import { useTouchGestures } from "./player/hooks/useTouchGestures";
@@ -98,6 +103,7 @@ export function CourseVideoPlayer({
   onLessonChange,
   thumbnailVttUrl,
   qualitySources = [],
+  interactiveQuestions = [],
 }: CourseVideoPlayerProps) {
   // --- Refs & Internal State ---
   const [activeVideoUrl, setActiveVideoUrl] = useState(videoUrl);
@@ -141,6 +147,8 @@ export function CourseVideoPlayer({
     sidebarTab: s.sidebarTab,
     isSidebarOpen: s.isSidebarOpen,
     showControls: s.showControls,
+    activeQuestionId: s.activeQuestionId,
+    answeredQuestionIds: s.answeredQuestionIds,
   })));
 
   // --- Helpers ---
@@ -188,6 +196,49 @@ export function CourseVideoPlayer({
     alreadyCompleted,
   });
 
+  // --- Security & Content Protection ---
+  const { user } = useAuth();
+  const [isRecordingDetected, setIsRecordingDetected] = useState(false);
+  
+  const dynamicWatermark = useMemo(() => {
+    if (!user) return watermarkText;
+    return `${user.name || user.username} | ${user.phone || "Verified"} | ${new Date().toLocaleDateString('ar-EG')}`;
+  }, [user, watermarkText]);
+
+  useEffect(() => {
+    // Content Protection: Detect blur which often happens when starting a capture tool
+    const handleBlur = () => {
+      if (store.isPlaying) setIsRecordingDetected(true);
+    };
+    const handleFocus = () => setIsRecordingDetected(false);
+    
+    // Prevent Right Click
+    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('contextmenu', handleContextMenu);
+    
+    // DevTools Detection (Heuristic)
+    const handleResize = () => {
+      const threshold = 160;
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      
+      if (widthDiff > threshold || heightDiff > threshold) {
+        setIsRecordingDetected(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [store.isPlaying]);
+
   // --- Hook: HLS Engine ---
   const hlsRef = useHlsEngine({ activeVideoUrl, provider, videoRef, flashFeedback });
 
@@ -203,7 +254,21 @@ export function CourseVideoPlayer({
     const duration = adapter.getDuration();
     const buffered = adapter.getBuffered();
 
-    const { loopStart, loopEnd } = useCourseVideoPlayerStore.getState();
+    const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = useCourseVideoPlayerStore.getState();
+    
+    // Interactive Questions Detection
+    if (interactiveQuestions.length > 0 && !activeQuestionId) {
+      const question = interactiveQuestions.find(q => 
+        Math.abs(q.time - nextTime) < 0.8 && !answeredQuestionIds.has(q.id)
+      );
+      if (question) {
+        adapter.pause();
+        setPlayerState({ activeQuestionId: question.id, isPlaying: false, showControls: true });
+        flashFeedback({ icon: HelpCircle, label: "سؤال تفاعلي" });
+        return; // Stop sync until answered
+      }
+    }
+
     if (loopStart !== null && loopEnd !== null && nextTime >= loopEnd) {
       adapter.seekTo(loopStart);
       setPlayerState({ currentTime: loopStart });
@@ -214,7 +279,7 @@ export function CourseVideoPlayer({
         buffered,
       });
     }
-  }, [getAdapter, setPlayerState]);
+  }, [getAdapter, setPlayerState, interactiveQuestions, flashFeedback]);
 
   const stopPlaybackLoop = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -577,6 +642,25 @@ export function CourseVideoPlayer({
         className
       )}
     >
+      <AnimatePresence>
+        {isRecordingDetected && (
+          <m.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center text-center p-8"
+          >
+            <div className="space-y-4">
+              <Lock className="w-16 h-16 text-red-500 mx-auto animate-pulse" />
+              <h3 className="text-2xl font-bold text-white">حماية المحتوى نشطة</h3>
+              <p className="text-gray-400 max-w-md">
+                يرجى العودة إلى نافذة المتصفح للمتابعة. يمنع تسجيل الشاشة أو تصوير المحتوى حرصاً على حقوق المنصة.
+              </p>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+
       <AmbientBackground videoRef={videoRef} provider={provider} />
       <GestureOverlay mode={gestureActiveMode} value={gestureValue} visible={!!gestureActiveMode} />
       <SkipIntroButton currentTime={store.currentTime} markers={mergedMarkers} onSkip={handleSeek} />
@@ -590,7 +674,6 @@ export function CourseVideoPlayer({
           </video>
         )}
       </div>
-
       <button
         aria-label="سطح المشغل"
         type="button"
@@ -601,12 +684,48 @@ export function CourseVideoPlayer({
         onTouchEnd={handleTouchEnd}
       />
 
-      <div className={cn(
-        "pointer-events-none absolute rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-bold text-white/50 backdrop-blur-md transition-all duration-1000",
-        WATERMARK_POSITIONS[store.watermarkIndex]
-      )}>
-        {watermarkText}
-      </div>
+      <AnimatePresence>
+        {store.activeQuestionId && (
+          <InteractiveQuestionOverlay
+            question={interactiveQuestions.find(q => q.id === store.activeQuestionId)!}
+            onAnswer={(isCorrect) => {
+              if (isCorrect) {
+                const nextAnswered = new Set(store.answeredQuestionIds);
+                nextAnswered.add(store.activeQuestionId!);
+                setPlayerState({ answeredQuestionIds: nextAnswered });
+              }
+            }}
+            onClose={() => {
+              setPlayerState({ activeQuestionId: null });
+              void getAdapter()?.play();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <ActiveNotePopup
+        text={notes.find(n => Math.abs(n.time - store.currentTime) < 2)?.text || ""}
+        visible={notes.some(n => Math.abs(n.time - store.currentTime) < 2)}
+      />
+
+      <m.div
+        animate={{
+          x: [0, 100, -100, 0],
+          y: [0, -50, 50, 0],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className={cn(
+          "pointer-events-none absolute z-20 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-bold text-white/40 backdrop-blur-md",
+          WATERMARK_POSITIONS[store.watermarkIndex]
+        )}
+      >
+        {dynamicWatermark}
+      </m.div>
 
       <PlayerHeader
         provider={provider}

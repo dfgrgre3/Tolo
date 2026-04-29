@@ -221,7 +221,7 @@ export default function AdminAuditLogsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مخطوطة الأحداث الملكية ًں“œ"
+        title="مخطوطة الأحداث الملكية 📜"
         description="سجل المراقبة الإمبراطوري، رصد تحركات المحاربين، وتوثيق سجلات الدخول والخروج من المملكة."
       />
 

@@ -438,7 +438,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
+  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
   if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
   if (url.includes('/auth/')) return false;
   return true;
@@ -447,7 +447,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 async function refreshAuthSession(): Promise<boolean> {
   try {
     const isBrowserEnv = typeof window !== 'undefined';
-    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
+    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
@@ -490,7 +490,7 @@ fallback: T | null = null)
 
     // إذا كان HTML، يعني أن هناك خطأ في الخادم (مثل صفحة خطأ Next.js)
     if (isHtmlContent(text)) {
-      // فقط في وضع التطوير نظڈ٪ر الخطأ التفصيلي
+      // فقط في وضع التطوير نُظهر الخطأ التفصيلي
       if (process.env.NODE_ENV === 'development') {
         const url = response.url || 'Unknown URL';
         logger.warn(
@@ -533,7 +533,7 @@ fallback: T | null = null)
     try {
       return JSON.parse(text) as T;
     } catch (parseError) {
-      // فقط في وضع التطوير نظڈ٪ر تفاصيل الخطأ
+      // فقط في وضع التطوير نُظهر تفاصيل الخطأ
       if (process.env.NODE_ENV === 'development') {
         logger.warn(
           `[Development] Failed to parse response as JSON:`,
@@ -547,7 +547,7 @@ fallback: T | null = null)
       return fallback;
     }
   } catch (_error) {
-    // فقط في وضع التطوير نظڈ٪ر تفاصيل الخطأ
+    // فقط في وضع التطوير نُظهر تفاصيل الخطأ
     if (process.env.NODE_ENV === 'development') {
       logger.error('[Development] Error parsing JSON response:', _error);
     }
@@ -566,7 +566,7 @@ fallback: T | null = null)
 : Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
     const isBrowser = typeof window !== 'undefined';
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
     const finalUrl = url.startsWith('/api/') 
       ? (isBrowser ? url : `${BASE_API_URL}${url.substring(4)}`) 
       : url;
@@ -721,7 +721,7 @@ fallback: T | null = null)
       }
     }
 
-    // فقط في وضع التطوير نظڈ٪ر تفاصيل الأخطاء غير المتوقعة
+    // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة
     if (process.env.NODE_ENV === 'development' && normalizedError.name !== 'AbortError') {
       logger.error(`[Development] Fetch error for URL: ${url}`, normalizedError);
     }

@@ -62,18 +62,19 @@ import { AdminUpload } from "@/components/admin/ui/admin-upload";
 
 type Lesson = {
   id: string;
-  name: string;
+  title: string; // Backend uses Title
   order: number;
-  type: string;
+  type: "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT";
   videoUrl?: string | null;
-  duration?: number;
+  durationMinutes?: number; // Backend uses durationMinutes
   isFree?: boolean;
   description?: string | null;
+  examId?: string | null; // Added
 };
 
 type Chapter = {
   id: string;
-  name: string;
+  title: string; // Backend uses Title
   order: number;
   subTopics: Lesson[];
 };
@@ -103,10 +104,15 @@ function SortableLesson({ lesson, onDelete, onEdit }: { lesson: Lesson; onDelete
       </div>
       {lesson.type === 'VIDEO' ? <Video className="w-4 h-4 text-blue-500" /> : <FileText className="w-4 h-4 text-emerald-500" />}
       <div className="flex-1 flex flex-col gap-0.5">
-        <span className="text-sm font-bold">{lesson.name}</span>
+        <span className="text-sm font-bold">{lesson.title}</span>
         {lesson.videoUrl && (
           <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[200px]">
             {lesson.videoUrl}
+          </span>
+        )}
+        {lesson.examId && (
+          <span className="text-[10px] text-primary font-bold">
+            مرتبط باختبار: {lesson.examId}
           </span>
         )}
       </div>
@@ -159,7 +165,7 @@ function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson
                 <div onClick={() => setExpanded(!expanded)} className="cursor-pointer flex items-center gap-3 flex-1">
                    {expanded ? <ChevronUp className="w-5 h-5 text-primary" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
                    <div className="space-y-0.5">
-                      <h3 className="font-black text-sm uppercase tracking-widest">{chapter.name}</h3>
+                      <h3 className="font-black text-sm uppercase tracking-widest">{chapter.title}</h3>
                       <p className="text-[10px] text-zinc-500 font-bold">{chapter.subTopics.length} دروس تعليمية</p>
                    </div>
                 </div>
@@ -221,7 +227,7 @@ export default function CurriculumEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   
   // Edit states
-  const [editingChapter, setEditingChapter] = useState<{ id: string, name: string } | null>(null);
+  const [editingChapter, setEditingChapter] = useState<{ id: string, title: string } | null>(null);
   const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson, chapterId: string } | null>(null);
 
   const sensors = useSensors(
@@ -232,11 +238,12 @@ export default function CurriculumEditorPage() {
   useEffect(() => {
     const fetchCurriculum = async () => {
       try {
-        const res = await fetch(`/api/admin/subjects?id=${subjectId}&include=curriculum`);
+        const res = await fetch(`/api/admin/courses/${subjectId}/curriculum`);
         if (res.ok) {
-          const data = await res.json();
-          setSubject(data.data?.subject || null);
-          setChapters(data.data?.curriculum || []);
+          const payload = await res.json();
+          // Normalize names to handle backend/frontend differences if any
+          const data = payload.data || payload;
+          setChapters(data.topics || []);
         }
       } catch (_err) {
         toast.error("فشل تحميل المنهج");
@@ -278,7 +285,7 @@ export default function CurriculumEditorPage() {
   const addChapter = () => {
     const newChapter: Chapter = {
       id: `new-${Date.now()}`,
-      name: "فصل دراسي جديد",
+      title: "فصل دراسي جديد",
       order: chapters.length,
       subTopics: []
     };
@@ -296,11 +303,11 @@ export default function CurriculumEditorPage() {
           ...c,
           subTopics: [...c.subTopics, {
             id: `new-lesson-${Date.now()}`,
-            name: "درس جديد",
+            title: "درس جديد",
             order: c.subTopics.length,
             type: "VIDEO",
             videoUrl: "",
-            duration: 0,
+            durationMinutes: 0,
             isFree: false
           }]
         };
@@ -340,13 +347,13 @@ export default function CurriculumEditorPage() {
   };
 
   const handleEditChapter = (chapter: Chapter) => {
-    setEditingChapter({ id: chapter.id, name: chapter.name });
+    setEditingChapter({ id: chapter.id, title: chapter.title });
   };
 
   const handleSaveChapter = () => {
     if (!editingChapter) return;
     setChapters(prev => prev.map(c => 
-      c.id === editingChapter.id ? { ...c, name: editingChapter.name } : c
+      c.id === editingChapter.id ? { ...c, title: editingChapter.title } : c
     ));
     setEditingChapter(null);
   };
@@ -354,10 +361,10 @@ export default function CurriculumEditorPage() {
   const handleSave = async () => {
      setIsSaving(true);
      try {
-       const res = await fetch(`/api/admin/subjects`, {
-         method: 'PUT',
+       const res = await fetch(`/api/admin/courses/${subjectId}/curriculum`, {
+         method: 'PATCH',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ id: subjectId, curriculum: chapters }),
+         body: JSON.stringify({ topics: chapters }),
        });
 
        if (res.ok) {
@@ -465,14 +472,14 @@ export default function CurriculumEditorPage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="font-black text-xl">تعديل الفصل الدراسي</DialogTitle>
-              <DialogDescription className="text-zinc-500 font-bold text-xs">تغيير اسم الفصل الذي سي٪ر للطلاب</DialogDescription>
+              <DialogDescription className="text-zinc-500 font-bold text-xs">تغيير اسم الفصل الذي سيظهر للطلاب</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase">اسم الفصل</Label>
                   <Input 
-                    value={editingChapter?.name || ""} 
-                    onChange={(e) => setEditingChapter(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    value={editingChapter?.title || ""} 
+                    onChange={(e) => setEditingChapter(prev => prev ? { ...prev, title: e.target.value } : null)}
                     className="h-12 rounded-xl text-sm font-bold"
                   />
                </div>
@@ -494,8 +501,8 @@ export default function CurriculumEditorPage() {
                <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase">اسم الدرس</Label>
                   <Input 
-                    value={editingLesson?.lesson.name || ""} 
-                    onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, name: e.target.value } } : null)}
+                    value={editingLesson?.lesson.title || ""} 
+                    onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, title: e.target.value } } : null)}
                     className="h-12 rounded-xl text-sm font-bold"
                   />
                </div>
@@ -522,8 +529,8 @@ export default function CurriculumEditorPage() {
                     <Label className="text-[10px] font-black uppercase">مدة الدرس (دقائق)</Label>
                     <Input 
                       type="number"
-                      value={editingLesson?.lesson.duration || 0} 
-                      onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, duration: parseInt(e.target.value) || 0 } } : null)}
+                      value={editingLesson?.lesson.durationMinutes || 0} 
+                      onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, durationMinutes: parseInt(e.target.value) || 0 } } : null)}
                       className="h-12 rounded-xl text-sm font-bold"
                     />
                  </div>
@@ -551,10 +558,22 @@ export default function CurriculumEditorPage() {
                   </div>
                </div>
 
+               {editingLesson?.lesson.type === 'QUIZ' && (
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">معرف الاختبار (Exam ID)</Label>
+                    <Input 
+                      value={editingLesson?.lesson.examId || ""} 
+                      onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, examId: e.target.value } } : null)}
+                      className="h-12 rounded-xl text-sm font-bold"
+                      placeholder="أدخل ID الاختبار المرتبط"
+                    />
+                 </div>
+               )}
+
                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-bold">درس مجاني</Label>
-                    <p className="text-[10px] text-zinc-500 font-medium">سي٪ر هذا الدرس كمعاينة للطلاب غير المشتركين</p>
+                    <p className="text-[10px] text-zinc-500 font-medium">سيظهر هذا الدرس كمعاينة للطلاب غير المشتركين</p>
                   </div>
                   <Switch 
                     checked={editingLesson?.lesson.isFree || false} 

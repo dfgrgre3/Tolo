@@ -46,7 +46,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
               {title || "عنوان المخطوطة الملكية"}
             </h3>
             <p className="text-lg font-bold leading-relaxed opacity-90 drop-shadow-sm line-clamp-6">
-              {message || "هنا سي٪ر نص المرسوم الإمبراطوري بكل نقائه وهيبته..."}
+              {message || "هنا سيظهر نص المرسوم الإمبراطوري بكل نقائه وهيبته..."}
             </p>
           </div>
 
@@ -57,7 +57,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
               className="pt-4"
             >
               <div className="w-full h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center font-black text-sm border border-white/20 transition-all cursor-default">
-                تفاصيل المخطوطة ًں“œ
+                تفاصيل المخطوطة 📜
               </div>
             </m.div>
           )}
@@ -73,7 +73,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
             </div>
           </div>
           <div className="flex flex-col">
-            <p className="text-xs font-black">من: القيادة العظڈليا للإمبراطورية</p>
+            <p className="text-xs font-black">من: القيادة العُليا للإمبراطورية</p>
             <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                <p className="text-[10px] font-bold opacity-60">بث مباشر الآن</p>

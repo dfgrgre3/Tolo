@@ -11,10 +11,10 @@ interface QuickAction {
 }
 
 const QuickActions: QuickAction[] = [
-	{ label: "دورات", href: "/courses", icon: "ًں“ڑ" },
-	{ label: "جدول", href: "/schedule", icon: "ًں“…" },
-	{ label: "مكتبة", href: "/library", icon: "ًں“–" },
-	{ label: "AI", href: "/ai", icon: "ًں¤–" },
+	{ label: "دورات", href: "/courses", icon: "📚" },
+	{ label: "جدول", href: "/schedule", icon: "📅" },
+	{ label: "مكتبة", href: "/library", icon: "📖" },
+	{ label: "AI", href: "/ai", icon: "🤖" },
 ];
 
 interface MegaMenuEmptyStateProps {

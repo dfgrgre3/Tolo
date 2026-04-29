@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -42,7 +42,7 @@ type Device = {
   os: string;
   ip: string;
   location: string;
-  lastActive: Date;
+  lastActive: Date | null;
   isCurrent: boolean;
   isTrusted: boolean;
 };
@@ -99,6 +99,16 @@ function mapSessionToDevice(session: SessionApiRecord): Device {
   const os = info.os ?? fallback.os;
   const name = info.name ?? `${browser} على ${os}`;
 
+  // Validate the date to avoid "Invalid time value" error
+  let lastActive: Date | null = null;
+  if (session.lastAccessed) {
+    const parsedDate = new Date(session.lastAccessed);
+    // Check if the date is valid
+    if (!isNaN(parsedDate.getTime())) {
+      lastActive = parsedDate;
+    }
+  }
+
   return {
     id: session.id,
     name,
@@ -107,7 +117,7 @@ function mapSessionToDevice(session: SessionApiRecord): Device {
     os,
     ip: session.ip || 'unknown',
     location: session.location || 'غير محدد',
-    lastActive: new Date(session.lastAccessed),
+    lastActive,
     isCurrent: session.isCurrent,
     isTrusted: session.isTrusted
   };
@@ -482,12 +492,14 @@ function DeviceCard({
             <span className="flex items-center gap-1">
               IP: {device.ip}
             </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {device.isCurrent ?
-              'نشط الآن' :
-              formatDistanceToNow(device.lastActive, { addSuffix: true, locale: ar })}
-            </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {device.isCurrent ?
+                'نشط الآن' :
+                device.lastActive ?
+                formatDistanceToNow(device.lastActive, { addSuffix: true, locale: ar }) :
+                'تاريخ غير معروف'}
+              </span>
           </div>
         </div>
 
@@ -548,6 +560,6 @@ function DeviceCard({
           </div>
         }
       </div>
-    </div>);
-
+    </div>
+  );
 }

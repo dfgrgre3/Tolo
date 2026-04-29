@@ -82,7 +82,7 @@ export default function ReferralsPage() {
                 <Gift size={16} />
                 برنامج الإحالة والمكافآت
             </m.div>
-            <h1 className="text-4xl font-extrabold mb-4">ادعظڈ أصدقاءك واكسب رصيداً!</h1>
+            <h1 className="text-4xl font-extrabold mb-4">ادعُ أصدقاءك واكسب رصيداً!</h1>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
                 شارك كود الإحالة الخاص بك مع زملائك. عند اشتراك أي صديق باستخدام كودك، ستحصل أنت على <span className="text-green-400 font-bold">20 ج.م</span> في محفظتك فوراً.
             </p>

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"thanawy-backend/internal/db"
@@ -13,16 +14,18 @@ import (
 // GetSettings retrieves user settings/preferences
 func GetSettings(c *gin.Context) {
 	userID, exists := c.Get("userId")
-	if !exists {
+	if !exists || userID == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
 	var settings models.UserSettings
-	result := db.DB.Where("\"userId\" = ?", userID).First(&settings)
+	// Use struct-based query to let GORM handle naming strategy correctly
+	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
 	
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
+			log.Printf("INFO: Creating default settings for user %v", userID)
 			// Create default settings for user
 			settings = models.UserSettings{
 				UserID:              userID.(string),
@@ -38,17 +41,44 @@ func GetSettings(c *gin.Context) {
 				StudyReminders:       true,
 				EmailNotifications:   true,
 				PushNotifications:    true,
+				TaskReminders:        true,
+				TaskReminderTime:     "30",
+				DailyGoalReminders:   true,
+				ExamReminders:        true,
+				ExamReminderDays:     3,
+				DeadlineReminders:    true,
+				ProgressReports:      true,
+				WeeklyReport:         true,
+				AchievementAlerts:    true,
+				CommentNotifications: true,
+				MentionNotifications: true,
+				PushEnabled:          true,
+				EmailEnabled:         true,
+				SmsEnabled:           false,
+				QuietHoursEnabled:    false,
+				QuietHoursStart:      "22:00",
+				QuietHoursEnd:        "07:00",
+				SoundEnabled:         true,
+				VibrationEnabled:     true,
 				ProfileVisibility:    "public",
 				ShowOnlineStatus:     true,
 				ShowProgress:         true,
 			}
 			
 			if err := db.DB.Create(&settings).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create settings"})
+				log.Printf("ERROR: Failed to create settings for user %v: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to create settings",
+					"details": err.Error(),
+				})
 				return
 			}
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch settings"})
+			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to fetch settings",
+				"details": result.Error.Error(),
+			})
 			return
 		}
 	}
@@ -71,10 +101,11 @@ func UpdateSettings(c *gin.Context) {
 	}
 
 	var settings models.UserSettings
-	result := db.DB.Where("\"userId\" = ?", userID).First(&settings)
+	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
 	
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
+			log.Printf("INFO: Creating default settings for user %v during update", userID)
 			// Create default settings first
 			settings = models.UserSettings{
 				UserID:              userID.(string),
@@ -96,11 +127,19 @@ func UpdateSettings(c *gin.Context) {
 			}
 			
 			if err := db.DB.Create(&settings).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create settings"})
+				log.Printf("ERROR: Failed to create settings for user %v during update: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to create settings",
+					"details": err.Error(),
+				})
 				return
 			}
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch settings"})
+			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to fetch settings",
+				"details": result.Error.Error(),
+			})
 			return
 		}
 	}
@@ -150,6 +189,65 @@ func UpdateSettings(c *gin.Context) {
 	}
 	if showProgress, ok := patch["showProgress"].(bool); ok {
 		settings.ShowProgress = showProgress
+	}
+	
+	// Extended notification settings
+	if v, ok := patch["taskReminders"].(bool); ok {
+		settings.TaskReminders = v
+	}
+	if v, ok := patch["taskReminderTime"].(string); ok {
+		settings.TaskReminderTime = v
+	}
+	if v, ok := patch["dailyGoalReminders"].(bool); ok {
+		settings.DailyGoalReminders = v
+	}
+	if v, ok := patch["examReminders"].(bool); ok {
+		settings.ExamReminders = v
+	}
+	if v, ok := patch["examReminderDays"].(float64); ok {
+		settings.ExamReminderDays = int(v)
+	}
+	if v, ok := patch["deadlineReminders"].(bool); ok {
+		settings.DeadlineReminders = v
+	}
+	if v, ok := patch["progressReports"].(bool); ok {
+		settings.ProgressReports = v
+	}
+	if v, ok := patch["weeklyReport"].(bool); ok {
+		settings.WeeklyReport = v
+	}
+	if v, ok := patch["achievementAlerts"].(bool); ok {
+		settings.AchievementAlerts = v
+	}
+	if v, ok := patch["commentNotifications"].(bool); ok {
+		settings.CommentNotifications = v
+	}
+	if v, ok := patch["mentionNotifications"].(bool); ok {
+		settings.MentionNotifications = v
+	}
+	if v, ok := patch["pushEnabled"].(bool); ok {
+		settings.PushEnabled = v
+	}
+	if v, ok := patch["emailEnabled"].(bool); ok {
+		settings.EmailEnabled = v
+	}
+	if v, ok := patch["smsEnabled"].(bool); ok {
+		settings.SmsEnabled = v
+	}
+	if v, ok := patch["quietHoursEnabled"].(bool); ok {
+		settings.QuietHoursEnabled = v
+	}
+	if v, ok := patch["quietHoursStart"].(string); ok {
+		settings.QuietHoursStart = v
+	}
+	if v, ok := patch["quietHoursEnd"].(string); ok {
+		settings.QuietHoursEnd = v
+	}
+	if v, ok := patch["soundEnabled"].(bool); ok {
+		settings.SoundEnabled = v
+	}
+	if v, ok := patch["vibrationEnabled"].(bool); ok {
+		settings.VibrationEnabled = v
 	}
 
 	if err := db.DB.Save(&settings).Error; err != nil {

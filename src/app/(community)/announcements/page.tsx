@@ -144,7 +144,7 @@ export default function AnnouncementsPage() {
                     ساحة <span className={STYLES.neonText}>الإعلانات</span> <br /> والمسابقات
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                    هنا تصدر المراسيم الملكية، وتظڈعلن تحديات المملكة الكبرى. ابقِ متيقظاً لكل جديد في رحلتك نحو السيادة.
+                    هنا تصدر المراسيم الملكية، وتُعلن تحديات المملكة الكبرى. ابقِ متيقظاً لكل جديد في رحلتك نحو السيادة.
                  </p>
                  <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
                     <Link href="/announcements/new">

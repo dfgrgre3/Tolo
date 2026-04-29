@@ -132,7 +132,7 @@ export default function AdminSubjectsPage() {
       nameAr: "",
       code: "",
       description: "",
-      icon: "ًں“ڑ",
+      icon: "📚",
       color: "#6366f1",
       type: "COURSE",
       isActive: true,
@@ -153,7 +153,7 @@ export default function AdminSubjectsPage() {
         nameAr: subject.nameAr || "",
         code: subject.code || "",
         description: subject.description || "",
-        icon: subject.icon || "ًں“ڑ",
+        icon: subject.icon || "📚",
         color: subject.color || "#6366f1",
         type: subject.type || "COURSE",
         isActive: subject.isActive,
@@ -171,7 +171,7 @@ export default function AdminSubjectsPage() {
         nameAr: "",
         code: "",
         description: "",
-        icon: "ًں“ڑ",
+        icon: "📚",
         color: "#6366f1",
         type: "COURSE",
         isActive: true,
@@ -241,7 +241,7 @@ export default function AdminSubjectsPage() {
               className="h-12 w-12 flex items-center justify-center rounded-[1rem] bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)] transition-transform hover:scale-110"
               style={{ color: s.color || "#6366f1" }}
             >
-              <span className="text-xl">{s.icon || "ًں“ڑ"}</span>
+              <span className="text-xl">{s.icon || "📚"}</span>
             </div>
             <div>
               <p className="font-black text-sm tracking-tight">{s.nameAr || s.name}</p>
@@ -333,7 +333,7 @@ export default function AdminSubjectsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader 
-        title="أكاديمية الدورات الملكية ًںژ“" 
+        title="أكاديمية الدورات الملكية 🎓" 
         description="تطوير وإدارة المناهج الدراسية، المواد العلمية، وخطط التعلم الاستراتيجية."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>

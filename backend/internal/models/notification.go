@@ -27,6 +27,10 @@ type Notification struct {
 	UpdatedAt time.Time        `json:"updatedAt"`
 }
 
+func (Notification) TableName() string {
+	return "Notification"
+}
+
 func (n *Notification) BeforeCreate(tx *gorm.DB) (err error) {
 	if n.ID == "" {
 		n.ID = uuid.New().String()

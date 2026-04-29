@@ -8,8 +8,8 @@ import (
 
 // UserSettings stores user preferences and settings
 type UserSettings struct {
-	ID        string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
-	UserID    string    `gorm:"type:uuid;not null;uniqueIndex;index" json:"userId"`
+	ID        string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID    string    `gorm:"type:text;not null;uniqueIndex;index" json:"userId"`
 	// Note: Foreign key constraint removed temporarily to avoid migration issues
 	// User      User      `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 	
@@ -30,6 +30,27 @@ type UserSettings struct {
 	StudyReminders       bool `gorm:"default:true" json:"studyReminders"`
 	EmailNotifications   bool `gorm:"default:true" json:"emailNotifications"`
 	PushNotifications    bool `gorm:"default:true" json:"pushNotifications"`
+	
+	// Extended notification settings
+	TaskReminders       bool   `gorm:"default:true" json:"taskReminders"`
+	TaskReminderTime    string `gorm:"default:'30'" json:"taskReminderTime"`
+	DailyGoalReminders  bool   `gorm:"default:true" json:"dailyGoalReminders"`
+	ExamReminders       bool   `gorm:"default:true" json:"examReminders"`
+	ExamReminderDays    int    `gorm:"default:3" json:"examReminderDays"`
+	DeadlineReminders   bool   `gorm:"default:true" json:"deadlineReminders"`
+	ProgressReports     bool   `gorm:"default:true" json:"progressReports"`
+	WeeklyReport        bool   `gorm:"default:true" json:"weeklyReport"`
+	AchievementAlerts   bool   `gorm:"default:true" json:"achievementAlerts"`
+	CommentNotifications bool  `gorm:"default:true" json:"commentNotifications"`
+	MentionNotifications bool  `gorm:"default:true" json:"mentionNotifications"`
+	PushEnabled         bool   `gorm:"default:true" json:"pushEnabled"`
+	EmailEnabled        bool   `gorm:"default:true" json:"emailEnabled"`
+	SmsEnabled          bool   `gorm:"default:false" json:"smsEnabled"`
+	QuietHoursEnabled   bool   `gorm:"default:false" json:"quietHoursEnabled"`
+	QuietHoursStart     string `gorm:"default:'22:00'" json:"quietHoursStart"`
+	QuietHoursEnd       string `gorm:"default:'07:00'" json:"quietHoursEnd"`
+	SoundEnabled        bool   `gorm:"default:true" json:"soundEnabled"`
+	VibrationEnabled    bool   `gorm:"default:true" json:"vibrationEnabled"`
 	
 	// Privacy settings
 	ProfileVisibility string `gorm:"default:'public'" json:"profileVisibility"` // public, friends, private

@@ -57,8 +57,18 @@ func Auth() gin.HandlerFunc {
 			return []byte(cfg.JWTSecret), nil
 		})
 
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		if err != nil {
+			if strings.Contains(err.Error(), "token is expired") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token", "details": err.Error()})
+			}
+			c.Abort()
+			return
+		}
+
+		if !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token invalid"})
 			c.Abort()
 			return
 		}
@@ -78,14 +88,14 @@ func Auth() gin.HandlerFunc {
 
 		if jti != "" {
 			var session models.UserSession
-			if err := db.DB.Where("id = ? AND is_revoked = ?", jti, false).First(&session).Error; err != nil {
+			if err := db.DB.Where("id = ? AND \"isActive\" = ?", jti, true).First(&session).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
 				c.Abort()
 				return
 			}
 			// Update last active in background
 			go func(id string) {
-				db.DB.Model(&models.UserSession{}).Where("id = ?", id).Update("last_active", time.Now())
+				db.DB.Model(&models.UserSession{}).Where("id = ?", id).Update("lastAccessed", time.Now())
 			}(jti)
 		}
 

@@ -187,7 +187,7 @@ interface ActionCardProps {
   children?: React.ReactNode;
 }
 
-eunction AdminActionCard({
+function AdminActionCard({
   title,
   description,
   icon: Icon,
