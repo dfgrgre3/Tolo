@@ -2,16 +2,15 @@ package models
 
 import (
 	"time"
-	"gorm.io/gorm"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // UserSettings stores user preferences and settings
 type UserSettings struct {
 	ID        string    `gorm:"primaryKey;type:text" json:"id"`
-	UserID    string    `gorm:"type:text;not null;uniqueIndex;index" json:"userId"`
-	// Note: Foreign key constraint removed temporarily to avoid migration issues
-	// User      User      `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
+	UserID    string    `gorm:"type:text;not null;uniqueIndex" json:"userId"`
+	User      User      `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 	
 	// Appearance settings
 	Theme          string `gorm:"default:'light'" json:"theme"`          // light, dark, system
@@ -60,6 +59,10 @@ type UserSettings struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (UserSettings) TableName() string {
+	return "UserSettings"
 }
 
 func (s *UserSettings) BeforeCreate(tx *gorm.DB) (err error) {

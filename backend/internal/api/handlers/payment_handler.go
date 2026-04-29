@@ -1,23 +1,40 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type CreatePaymentRequest struct {
-	Amount    float64 `json:"amount" binding:"required"`
+	Amount    float64 `json:"amount" binding:"required,gt=0"`
 	Method    string  `json:"method" binding:"required"`
 	Currency  string  `json:"currency"`
 	SubjectID string  `json:"subjectId"`
 }
 
+// generateSecureReference generates a cryptographically unique payment reference
+func generateSecureReference(prefix string) string {
+	b := make([]byte, 12)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%s-%s-%s", prefix, time.Now().Format("20060102150405"), hex.EncodeToString(b))
+}
+
 func CreatePayment(c *gin.Context) {
-	userId, _ := c.Get("userId")
+	userId, exists := c.Get("userId")
+	if !exists || userId == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
 	var req CreatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -28,6 +45,12 @@ func CreatePayment(c *gin.Context) {
 		req.Currency = "EGP"
 	}
 
+	// Validate amount bounds
+	if req.Amount > 100000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Amount exceeds maximum allowed"})
+		return
+	}
+
 	payment := models.Payment{
 		UserID:    userId.(string),
 		SubjectID: req.SubjectID,
@@ -35,7 +58,7 @@ func CreatePayment(c *gin.Context) {
 		Currency:  req.Currency,
 		Method:    req.Method,
 		Status:    models.PaymentPending,
-		Reference: "REF-" + time.Now().Format("20060102150405"),
+		Reference: generateSecureReference("REF"),
 	}
 
 	if err := db.DB.Create(&payment).Error; err != nil {
@@ -47,7 +70,12 @@ func CreatePayment(c *gin.Context) {
 }
 
 func GetPaymentHistory(c *gin.Context) {
-	userId, _ := c.Get("userId")
+	userId, exists := c.Get("userId")
+	if !exists || userId == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
 	var payments []models.Payment
 	
 	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&payments).Error; err != nil {
@@ -91,8 +119,20 @@ func GetSubscriptionAddons(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"addons": addons})
 }
 
+// addonPrices maps addon IDs to their prices for server-side validation
+var addonPrices = map[string]float64{
+	"addon_ai_100":      50,
+	"addon_exams_5":     75,
+	"addon_balance_100": 100,
+}
+
 func PurchaseAddon(c *gin.Context) {
-	userId, _ := c.Get("userId")
+	userId, exists := c.Get("userId")
+	if !exists || userId == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
 	var req struct {
 		AddonID string `json:"addonId" binding:"required"`
 	}
@@ -101,57 +141,73 @@ func PurchaseAddon(c *gin.Context) {
 		return
 	}
 
-	// This is a simplified logic. In real world, we'd check balance and update credits.
-	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	// Validate addon exists
+	price, validAddon := addonPrices[req.AddonID]
+	if !validAddon {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid addon ID"})
 		return
 	}
 
-	// Example price check (hardcoded for now to match mock data)
-	price := 0.0
-	switch req.AddonID {
-	case "addon_ai_100": price = 50
-	case "addon_exams_5": price = 75
-	case "addon_balance_100": price = 100
-	}
+	// Use a transaction with row-level locking to prevent race conditions
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		// SELECT ... FOR UPDATE prevents concurrent balance modifications
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&user, "id = ?", userId).Error; err != nil {
+			return fmt.Errorf("user not found")
+		}
 
-	if user.Balance < price {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
-		return
-	}
+		if user.Balance < price {
+			return fmt.Errorf("insufficient_balance")
+		}
 
-	// Start Transaction
-	tx := db.DB.Begin()
-	
-	// Deduct balance
-	if err := tx.Model(&user).Update("balance", user.Balance-price).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update balance"})
-		return
-	}
+		// Deduct balance using atomic SQL expression to prevent TOCTOU
+		if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", price)).Error; err != nil {
+			return fmt.Errorf("failed to update balance: %w", err)
+		}
 
-	// Add credits
-	updates := make(map[string]interface{})
-	if req.AddonID == "addon_ai_100" {
-		updates["aiCredits"] = user.AiCredits + 100
-	} else if req.AddonID == "addon_exams_5" {
-		updates["examCredits"] = user.ExamCredits + 5
-	} else if req.AddonID == "addon_balance_100" {
-		updates["balance"] = user.Balance + 100 - price // Effectively just adding balance if they paid for it? 
-		// Actually, if it's a "Wallet Credit" purchase, they usually pay with external money.
-		// If they pay with "Balance", it doesn't make sense unless it's a coupon.
-		// Let's just mock it.
-	}
+		// Add credits using atomic SQL expressions
+		switch req.AddonID {
+		case "addon_ai_100":
+			if err := tx.Model(&user).Update("aiCredits", gorm.Expr("\"aiCredits\" + ?", 100)).Error; err != nil {
+				return fmt.Errorf("failed to update credits: %w", err)
+			}
+		case "addon_exams_5":
+			if err := tx.Model(&user).Update("examCredits", gorm.Expr("\"examCredits\" + ?", 5)).Error; err != nil {
+				return fmt.Errorf("failed to update credits: %w", err)
+			}
+		case "addon_balance_100":
+			// For wallet credit purchase, the net effect is balance stays the same
+			// (deducted price, added value). Using external payment in real implementation.
+			if err := tx.Model(&user).Update("balance", gorm.Expr("balance + ?", 100)).Error; err != nil {
+				return fmt.Errorf("failed to update balance: %w", err)
+			}
+		}
 
-	if len(updates) > 0 {
-		if err := tx.Model(&user).Updates(updates).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update credits"})
+		// Create a payment record for audit trail
+		payment := models.Payment{
+			UserID:    user.ID,
+			Amount:    price,
+			Currency:  "EGP",
+			Method:    "WALLET",
+			Status:    models.PaymentCompleted,
+			Reference: generateSecureReference("ADDON"),
+		}
+		if err := tx.Create(&payment).Error; err != nil {
+			return fmt.Errorf("failed to create payment record: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		if err.Error() == "insufficient_balance" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
 			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process purchase"})
+		return
 	}
 
-	tx.Commit()
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }

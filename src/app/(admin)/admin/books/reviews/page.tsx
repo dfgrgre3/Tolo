@@ -187,7 +187,6 @@ export default function AdminBookReviewsPage() {
                 <RowActions
                     row={row.original}
                     onDelete={handleDelete}
-                    hideEdit
                 />
             ),
         },

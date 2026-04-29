@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -244,8 +244,8 @@ export default function AdminSettingsPage() {
           </AnimatePresence>
           
           <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl shadow-2xl">
-            <IconButton icon={Download} onClick={handleExportSettings} title="تصدير القوانين" />
-            <IconButton icon={RefreshCw} onClick={handleReset} title="استعادة الجذور" />
+            <SettingsIconButton icon={Download} onClick={handleExportSettings} title="تصدير القوانين" />
+            <SettingsIconButton icon={RefreshCw} onClick={handleReset} title="استعادة الجذور" />
             <div className="w-px h-6 bg-white/10 self-center mx-1" />
             <AdminButton 
               size="sm" 
@@ -494,7 +494,7 @@ export default function AdminSettingsPage() {
   );
 }
 
-function IconButton({ icon: Icon, onClick, title }: { icon: React.ElementType, onClick?: () => void, title?: string }) {
+function SettingsIconButton({ icon: Icon, onClick, title }: { icon: React.ElementType, onClick?: () => void, title?: string }) {
   return (
     <button 
       type="button"

@@ -15,40 +15,46 @@ const (
 )
 
 type Exam struct {
-	ID        string    `gorm:"primaryKey" json:"id"`
-	SubjectID string    `gorm:"not null;index" json:"subjectId"`
+	ID        string    `gorm:"primaryKey;type:text" json:"id"`
+	SubjectID string    `gorm:"not null;index;type:text" json:"subjectId"`
 	Title     string    `gorm:"not null" json:"title"`
-	Type      ExamType  `gorm:"default:'QUIZ'" json:"type"`
+	Type      ExamType  `gorm:"default:'QUIZ';index" json:"type"`
 	Duration  int       `json:"duration"` // in minutes
 	MaxScore  float64   `gorm:"default:100" json:"maxScore"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	
 	// Relations
-	Subject   Subject    `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
-	Questions []Question `json:"questions,omitempty"`
+	Subject   Subject    `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"subject,omitempty"`
+	Questions []Question `gorm:"foreignKey:ExamID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
 }
 
 type Question struct {
-	ID      string `gorm:"primaryKey" json:"id"`
-	ExamID  string `gorm:"column:exam_id;not null;index" json:"examId"`
-	Text    string `gorm:"not null" json:"text"`
-	Type    string `json:"type"` // MCQ, TRUE_FALSE, TEXT
-	Options string `json:"options"` // JSON string of options
-	Answer  string `json:"answer"`
+	ID      string `gorm:"primaryKey;type:text" json:"id"`
+	ExamID  string `gorm:"not null;index;type:text" json:"examId"`
+	Text    string `gorm:"not null;type:text" json:"text"`
+	Type    string `gorm:"default:'MCQ'" json:"type"` // MCQ, TRUE_FALSE, TEXT
+	Options string `gorm:"type:text" json:"options"` // JSON string of options
+	Answer  string `gorm:"not null" json:"-"` // Hidden from API responses for security
 }
 
 func (Question) TableName() string {
-	return "questions"
+	return "Question"
 }
 
 type ExamResult struct {
-	ID        string    `gorm:"primaryKey" json:"id"`
-	ExamID    string    `gorm:"not null;index" json:"examId"`
-	UserID    string    `gorm:"not null;index" json:"userId"`
+	ID        string    `gorm:"primaryKey;type:text" json:"id"`
+	ExamID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:1;type:text" json:"examId"`
+	UserID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:2;type:text" json:"userId"`
 	Score     float64   `json:"score"`
 	Passed    bool      `json:"passed"`
-	TakenAt   time.Time `json:"takenAt"`
+	TakenAt   time.Time `gorm:"index" json:"takenAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// Relations
+	Exam Exam `gorm:"foreignKey:ExamID;constraint:OnDelete:CASCADE" json:"exam,omitempty"`
+	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
 }
 
 func (Exam) TableName() string {
@@ -79,4 +85,3 @@ func (er *ExamResult) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return
 }
-

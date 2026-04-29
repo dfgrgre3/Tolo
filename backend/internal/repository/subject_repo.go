@@ -26,6 +26,17 @@ const (
 	SubjectCacheTTL    = 30 * time.Minute // Subjects change less frequently than users
 )
 
+// allowedSubjectFilters is a whitelist of safe column names for dynamic filtering.
+// This prevents SQL injection through user-controlled filter keys.
+var allowedSubjectFilters = map[string]string{
+	"isActive":    `"isActive"`,
+	"isPublished": `"isPublished"`,
+	"level":       "level",
+	"categoryId":  `"categoryId"`,
+	"language":    "language",
+	"isFeatured":  `"isFeatured"`,
+}
+
 func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 	cacheKey := fmt.Sprintf("%sid:%s", SubjectCachePrefix, id)
 
@@ -63,7 +74,12 @@ func (r *SubjectRepository) FindAll(filters map[string]interface{}) ([]models.Su
 	query := r.db.Model(&models.Subject{}).Preload("Topics")
 	
 	for k, v := range filters {
-		query = query.Where(fmt.Sprintf("%s = ?", k), v)
+		// Only allow whitelisted filter keys to prevent SQL injection
+		safeColumn, ok := allowedSubjectFilters[k]
+		if !ok {
+			continue // Skip unknown/unsafe filter keys
+		}
+		query = query.Where(fmt.Sprintf("%s = ?", safeColumn), v)
 	}
 
 	err := query.Find(&subjects).Error

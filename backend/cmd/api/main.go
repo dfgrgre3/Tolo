@@ -2,8 +2,11 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"strings"
+
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
@@ -13,8 +16,7 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"net"
-	"strings"
+
 	internalgrpc "thanawy-backend/internal/api/grpc"
 	thanawyv1 "thanawy-backend/internal/proto/thanawy/v1"
 	"thanawy-backend/internal/proto/thanawy/v1/thanawyv1connect"
@@ -35,21 +37,20 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Run migrations (AutoMigrate enabled for this update)
-	if err := db.Migrate(); err != nil {
+	// Run migrations with distributed lock to prevent race conditions in Kubernetes
+	if err := db.MigrateWithLock(); err != nil {
 		log.Printf("Migration failed: %v", err)
 	}
 	log.Println("Database schema synced.")
-	
-	// Start WebSocket Hub
-	go handlers.GlobalHub.Run()
-
 
 	// Initialize Redis
 	redisURL := os.Getenv("REDIS_URL")
 	if redisURL != "" {
 		db.ConnectRedis(redisURL)
 	}
+
+	// Initialize WebSocket Hub with Redis Pub/Sub support
+	handlers.InitHub()
 
 	// Initialize Services for gRPC/Connect
 	courseSvc := &internalgrpc.CourseServiceServer{}
@@ -93,7 +94,7 @@ func main() {
 
 		auth := api.Group("/auth")
 		{
-			auth.POST("/login", handlers.Login)
+			auth.POST("/login", middleware.LoginRateLimiter(), handlers.Login)
 			auth.POST("/register", handlers.Register)
 			auth.POST("/logout", handlers.Logout)
 
@@ -105,7 +106,7 @@ func main() {
 			auth.PATCH("/sessions", handlers.UpdateAuthSession)
 			auth.GET("/security-logs", handlers.GetSecurityLogs)
 			auth.POST("/refresh", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"success": true}) // Placeholder for now
+				c.JSON(http.StatusOK, gin.H{"success": true})
 			})
 			auth.POST("/2fa/verify", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"success": true})
@@ -118,20 +119,13 @@ func main() {
 		api.GET("/courses/:id/lessons", handlers.GetCourseLessons)
 		api.GET("/courses/:id/reviews", handlers.GetCourseReviews)
 		api.GET("/categories", handlers.GetCategories)
-		api.GET("/courses/categories", handlers.GetCategories) // Alias
+		api.GET("/courses/categories", handlers.GetCategories)
 		api.GET("/teachers", handlers.GetTeachers)
-		
+
 		// Public Exam routes (read-only)
 		api.GET("/exams", handlers.GetExams)
 
-		// Activity routes (Task/Session/Schedule/Reminder)
-		api.GET("/schedule", handlers.GetSchedule)
-		api.GET("/tasks", handlers.GetTasks)
-		api.GET("/study-sessions", handlers.GetStudySessions)
-		api.GET("/reminders", handlers.GetReminders)
-		api.GET("/resources", func(c *gin.Context) {
-			c.JSON(200, gin.H{"data": []interface{}{}, "success": true})
-		})
+		// Activity routes moved to protected group
 
 		// AI routes
 		ai := api.Group("/ai")
@@ -148,7 +142,7 @@ func main() {
 		api.Any("/users/guest", handlers.GetGuestUser)
 
 		// WebSocket
-		api.GET("/ws", handlers.WSHandler)
+		api.GET("/ws", middleware.Auth(), handlers.WSHandler)
 
 		// Public Library routes
 		api.GET("/library/categories", handlers.GetLibraryCategories)
@@ -164,6 +158,13 @@ func main() {
 			protected.GET("/recommendations", handlers.GetAIRecommendations)
 
 			// Protected Activity routes
+			protected.GET("/schedule", handlers.GetSchedule)
+			protected.GET("/tasks", handlers.GetTasks)
+			protected.GET("/study-sessions", handlers.GetStudySessions)
+			protected.GET("/reminders", handlers.GetReminders)
+			protected.GET("/resources", func(c *gin.Context) {
+				c.JSON(200, gin.H{"data": []interface{}{}, "success": true})
+			})
 			protected.POST("/schedule", handlers.UpdateSchedule)
 			protected.POST("/tasks", handlers.CreateTask)
 			protected.POST("/study-sessions", handlers.CreateStudySession)
@@ -219,6 +220,13 @@ func main() {
 			// Upload
 			protected.POST("/upload", handlers.Upload)
 			protected.POST("/upload/chunked", handlers.UploadChunked)
+
+			// Exam routes
+			protected.POST("/exams/:id/submit", handlers.SubmitExam)
+
+			// Payment routes
+			protected.POST("/payments/create", handlers.CreatePayment)
+			protected.GET("/payments/history", handlers.GetPaymentHistory)
 
 			// Admin routes
 			admin := protected.Group("/admin")
@@ -281,14 +289,11 @@ func main() {
 				admin.PATCH("/exams", handlers.UpdateExam)
 				admin.DELETE("/exams", handlers.DeleteExam)
 				admin.POST("/exams/bulk", handlers.AdminExamsBulkUpload)
+
+				// Admin Payments & Revenue
+				admin.GET("/payments", handlers.GetAdminPayments)
+				admin.GET("/analytics/revenue", handlers.GetAdminRevenue)
 			}
-
-		// Exam routes
-		protected.POST("/exams/:id/submit", handlers.SubmitExam)
-
-			// Payment routes
-			protected.POST("/payments/create", handlers.CreatePayment)
-			protected.GET("/payments/history", handlers.GetPaymentHistory)
 		}
 	}
 
@@ -307,10 +312,10 @@ func main() {
 		thanawyv1.RegisterCourseServiceServer(s, courseSvc)
 		thanawyv1.RegisterAuthServiceServer(s, authSvc)
 		thanawyv1.RegisterAnalyticsServiceServer(s, analyticsSvc)
-		
-		// Register reflection service on gRPC server.
+
+		// Register reflection service on gRPC server
 		reflection.Register(s)
-		
+
 		log.Printf("gRPC server listening on port %s", grpcPort)
 		if err := s.Serve(lis); err != nil {
 			log.Printf("Failed to serve gRPC: %v", err)

@@ -12,31 +12,37 @@ const (
 	PaymentPending   PaymentStatus = "PENDING"
 	PaymentCompleted PaymentStatus = "COMPLETED"
 	PaymentFailed    PaymentStatus = "FAILED"
+	PaymentRefunded  PaymentStatus = "REFUNDED"
 )
 
 type Payment struct {
-	ID        string        `gorm:"primaryKey" json:"id"`
-	UserID    string        `gorm:"not null;index" json:"userId"`
-	SubjectID string        `gorm:"index" json:"subjectId"`
-	Amount    float64       `gorm:"not null" json:"amount"`
-	Currency  string        `gorm:"default:'EGP'" json:"currency"`
-	Status    PaymentStatus `gorm:"default:'PENDING'" json:"status"`
-	Method    string        `json:"method"` // PAYMOB, WALLET, etc.
-	Reference string        `gorm:"uniqueIndex" json:"reference"`
-	CreatedAt time.Time     `json:"createdAt"`
+	ID        string        `gorm:"primaryKey;type:text" json:"id"`
+	UserID    string        `gorm:"not null;index:idx_payment_user_subject,priority:1;type:text" json:"userId"`
+	SubjectID string        `gorm:"index:idx_payment_user_subject,priority:2;type:text" json:"subjectId"`
+	Amount    float64       `gorm:"not null;check:amount >= 0" json:"amount"`
+	Currency  string        `gorm:"not null;default:'EGP'" json:"currency"`
+	Status    PaymentStatus `gorm:"not null;default:'PENDING';index" json:"status"`
+	Method    string        `gorm:"not null" json:"method"` // PAYMOB, WALLET, etc.
+	Reference string        `gorm:"uniqueIndex;not null" json:"reference"`
+	CreatedAt time.Time     `gorm:"index" json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
 
 	// Relations
-	Subject   Subject       `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Subject Subject `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
 }
 
 type Invoice struct {
-	ID            string    `gorm:"primaryKey" json:"id"`
-	PaymentID     string    `gorm:"uniqueIndex" json:"paymentId"`
-	UserID        string    `gorm:"index" json:"userId"`
-	InvoiceNumber string    `gorm:"uniqueIndex" json:"invoiceNumber"`
+	ID            string    `gorm:"primaryKey;type:text" json:"id"`
+	PaymentID     string    `gorm:"uniqueIndex;not null;type:text" json:"paymentId"`
+	UserID        string    `gorm:"index;not null;type:text" json:"userId"`
+	InvoiceNumber string    `gorm:"uniqueIndex;not null" json:"invoiceNumber"`
 	PdfUrl        string    `json:"pdfUrl"`
 	CreatedAt     time.Time `json:"createdAt"`
+
+	// Relations
+	Payment Payment `gorm:"foreignKey:PaymentID;constraint:OnDelete:CASCADE" json:"payment,omitempty"`
+	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func (Payment) TableName() string {
@@ -60,4 +66,3 @@ func (i *Invoice) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return
 }
-

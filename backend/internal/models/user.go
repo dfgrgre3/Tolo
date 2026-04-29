@@ -63,8 +63,17 @@ type User struct {
 
 	
 	// Relations
+	Settings                      *UserSettings  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Enrollments                   []Enrollment   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	LessonProgresses               []LessonProgress `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Tasks                         []Task         `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	StudySessions                 []StudySession `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Schedules                     []Schedule     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Reminders                     []Reminder     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Payments                      []Payment      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	ExamResults                   []ExamResult   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Sessions                      []UserSession  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	SecurityLogs                  []SecurityLog  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func (User) TableName() string {

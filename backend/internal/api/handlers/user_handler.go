@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	cryptoRand "crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strconv"
 	apiresponse "thanawy-backend/internal/api/response"
@@ -12,6 +14,7 @@ import (
 
 	"time"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var authService = &services.AuthService{}
@@ -223,6 +226,19 @@ func DeleteAuthSession(c *gin.Context) {
 		return
 	}
 
+	// SECURITY: Verify the session belongs to the authenticated user
+	userID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var session models.UserSession
+	if err := db.DB.Where("id = ? AND \"userId\" = ?", sessionID, userID).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found or access denied"})
+		return
+	}
+
 	if err := getSessionRepo().RevokeSessionByJTI(sessionID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke session"})
 		return
@@ -412,6 +428,12 @@ func UpdateUser(c *gin.Context) {
 
 	updates := make(map[string]interface{})
 	if req.Role != "" {
+		// Validate role to prevent privilege escalation
+		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "ADMIN": true}
+		if !validRoles[req.Role] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+			return
+		}
 		updates["role"] = req.Role
 	}
 	if req.Name != nil {
@@ -444,6 +466,8 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// Reload user to get fresh data (avoid stale cache write)
+	db.DB.First(&user, "id = ?", user.ID)
 	// Sync cache
 	_ = getUserRepo().Update(&user)
 	
@@ -499,15 +523,36 @@ func CreateUser(c *gin.Context) {
 		Username *string `json:"username"`
 		Role     string  `json:"role"`
 		Phone    *string `json:"phone"`
+		Password string  `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Validate role - only allow valid roles
 	role := models.RoleStudent
 	if input.Role != "" {
+		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "ADMIN": true}
+		if !validRoles[input.Role] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+			return
+		}
 		role = models.UserRole(input.Role)
+	}
+
+	// Generate a random temporary password if none provided
+	password := input.Password
+	if password == "" {
+		b := make([]byte, 16)
+		_, _ = cryptoRand.Read(b)
+		password = hex.EncodeToString(b)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
 	}
 
 	user := models.User{
@@ -516,7 +561,7 @@ func CreateUser(c *gin.Context) {
 		Username:     input.Username,
 		Role:         role,
 		Phone:        input.Phone,
-		PasswordHash: "$2a$12$RYM9CZPUKMeXAHOD01E4QeSjQIvT0.Q.rZEDkHXY/r8ok6sY4M1Ki", // Hash of "temporary-password"
+		PasswordHash: string(hashedPassword),
 	}
 
 	if err := db.DB.Create(&user).Error; err != nil {
@@ -675,6 +720,8 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Reload user to get fresh data before caching (avoid stale cache write)
+	db.DB.First(&user, "id = ?", user.ID)
 	// Sync cache
 	_ = getUserRepo().Update(&user)
 	

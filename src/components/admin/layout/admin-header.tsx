@@ -48,6 +48,21 @@ const breadcrumbLabels: Record<string, string> = {
   contests: "المسابقات",
   settings: "الإعدادات",
   "audit-logs": "سجل النظام",
+  revenue: "التحليل المالي",
+  payments: "المدفوعات",
+  coupons: "أكواد الخصم",
+  courses: "الدورات التعليمية",
+  "course-categories": "تصنيفات الدورات",
+  teachers: "المعلمين",
+  infrastructure: "البنية التحتية",
+  ai: "مركز الذكاء الاصطناعي",
+  marketing: "حملات التسويق",
+  "ab-testing": "اختبارات A/B",
+  automations: "محرك القواعد",
+  live: "المراقبة اللحظية",
+  reports: "مُنشئ التقارير",
+  permissions: "الصلاحيات",
+  curriculum: "المنهج الدراسي",
 };
 
 const notificationIcons: Record<string, React.ElementType> = {

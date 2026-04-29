@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -45,7 +45,10 @@ import {
   Split,
   Workflow,
   PlayCircle,
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
+  Ticket,
+  DollarSign,
 } from "lucide-react";
 import { IconButton } from "@/components/admin/ui/admin-button";
 import {
@@ -293,6 +296,30 @@ const communityNavItems: SidebarNavItem[] = [
   },
 ];
 
+const financialNavItems: SidebarNavItem[] = [
+  {
+    title: "التحليل المالي",
+    href: "/admin/revenue",
+    icon: DollarSign,
+    color: "bg-emerald-600",
+    permission: "ANALYTICS_VIEW",
+  },
+  {
+    title: "المدفوعات والمعاملات",
+    href: "/admin/payments",
+    icon: CreditCard,
+    color: "bg-blue-500",
+    permission: "ANALYTICS_VIEW",
+  },
+  {
+    title: "أكواد الخصم",
+    href: "/admin/coupons",
+    icon: Ticket,
+    color: "bg-purple-500",
+    permission: "MARKETING_VIEW",
+  },
+];
+
 const infrastructureNavItems: SidebarNavItem[] = [
   {
     title: "مراقبة البنية التحتية",
@@ -429,6 +456,7 @@ export function AdminSidebar() {
   const filteredContentNav = filterByPermission(contentNavItems);
   const filteredGamificationNav = filterByPermission(gamificationNavItems);
   const filteredCommunityNav = filterByPermission(communityNavItems);
+  const filteredFinancialNav = filterByPermission(financialNavItems);
   const filteredInfrastructureNav = filterByPermission(infrastructureNavItems);
   const filteredQuickActions = quickActions.filter(action => !action.permission || hasPermission(action.permission as any));
 
@@ -599,6 +627,7 @@ export function AdminSidebar() {
         <SidebarNavSection title="المحتوى التعليمي" items={filteredContentNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="التحديات والمكافآت" items={filteredGamificationNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="المجتمع" items={filteredCommunityNav} pathname={pathname} collapsed={collapsed} />
+        <SidebarNavSection title="الإدارة المالية" items={filteredFinancialNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="البنية التحتية" items={filteredInfrastructureNav} pathname={pathname} collapsed={collapsed} />
       </div>
 

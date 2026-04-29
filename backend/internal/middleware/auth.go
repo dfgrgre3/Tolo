@@ -42,6 +42,10 @@ func Auth() gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			c.Abort()
 			return
@@ -80,13 +84,33 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		// Advanced Session Validation (JTI Check)
-		jti, hasJTI := claims["jti"].(string)
-		if !hasJTI {
-			jti, _ = claims["id"].(string) // Fallback for old tokens or refresh tokens
-		}
+	// Advanced Session Validation (JTI Check)
+	jti, hasJTI := claims["jti"].(string)
+	if !hasJTI {
+		jti, _ = claims["id"].(string) // Fallback for old tokens or refresh tokens
+	}
 
-		if jti != "" {
+	if jti != "" {
+		// Use Redis for session validation (Stateless JWT with Redis session store)
+		sessionStore := db.NewRedisSessionStore()
+		if sessionStore != nil {
+			// Check if session exists in Redis
+			active, err := sessionStore.IsSessionActive(jti)
+			if err != nil || !active {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
+				c.Abort()
+				return
+			}
+			
+			// Update last active time in background (non-blocking)
+			go func() {
+				if err := sessionStore.UpdateLastAccessed(jti); err != nil {
+					// Log error but don't fail the request
+					fmt.Printf("Failed to update session last accessed: %v\n", err)
+				}
+			}()
+		} else {
+			// Fallback to database if Redis is not available (graceful degradation)
 			var session models.UserSession
 			if err := db.DB.Where("id = ? AND \"isActive\" = ?", jti, true).First(&session).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
@@ -98,6 +122,7 @@ func Auth() gin.HandlerFunc {
 				db.DB.Model(&models.UserSession{}).Where("id = ?", id).Update("lastAccessed", time.Now())
 			}(jti)
 		}
+	}
 
 		c.Set("userId", claims["sub"])
 		c.Set("role", claims["role"])

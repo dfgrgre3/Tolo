@@ -49,31 +49,35 @@ func GetProgressSummary(c *gin.Context) {
 }
 
 // calculateStreakDays calculates consecutive days with study sessions
+// Uses SQL aggregation to avoid loading all sessions into memory
 func calculateStreakDays(userID string) int {
-	var sessions []models.StudySession
-	// Get all study sessions for the user, ordered by creation date descending
-	db.DB.Where("\"userId\" = ?", userID).
-		Order("\"createdAt\" DESC").
-		Find(&sessions)
-
-	if len(sessions) == 0 {
-		return 0
+	// Fetch only distinct days, limited to last 365 days for efficiency
+	type dayResult struct {
+		Day string
 	}
+	var days []dayResult
+	db.DB.Model(&models.StudySession{}).
+		Select("DISTINCT DATE(\"createdAt\") as day").
+		Where("\"userId\" = ? AND \"createdAt\" >= ?", userID, time.Now().AddDate(-1, 0, 0)).
+		Order("day DESC").
+		Scan(&days)
 
-	// Get unique days with activity
-	activityDays := make(map[string]bool)
-	for _, session := range sessions {
-		day := session.CreatedAt.Format("2006-01-02")
-		activityDays[day] = true
+	if len(days) == 0 {
+		return 0
 	}
 
 	// Calculate streak from today backwards
 	streak := 0
 	currentDate := time.Now()
 
+	daySet := make(map[string]bool, len(days))
+	for _, d := range days {
+		daySet[d.Day] = true
+	}
+
 	for {
 		dayStr := currentDate.Format("2006-01-02")
-		if activityDays[dayStr] {
+		if daySet[dayStr] {
 			streak++
 			currentDate = currentDate.AddDate(0, 0, -1) // Go back one day
 		} else {
@@ -84,18 +88,12 @@ func calculateStreakDays(userID string) int {
 	return streak
 }
 func GetWeeklyAnalytics(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
-	}
-
-	if userId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	userId := userIdValue.(string)
 
 	// Calculate weekly analytics from database
 	// 1. Get study sessions for the past 7 days

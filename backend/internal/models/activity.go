@@ -60,11 +60,19 @@ type Reminder struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+func (Task) TableName() string {
+	return "Task"
+}
+
 func (t *Task) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.ID == "" {
 		t.ID = uuid.New().String()
 	}
 	return
+}
+
+func (StudySession) TableName() string {
+	return "StudySession"
 }
 
 func (s *StudySession) BeforeCreate(tx *gorm.DB) (err error) {
@@ -74,11 +82,19 @@ func (s *StudySession) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (Schedule) TableName() string {
+	return "Schedule"
+}
+
 func (sch *Schedule) BeforeCreate(tx *gorm.DB) (err error) {
 	if sch.ID == "" {
 		sch.ID = uuid.New().String()
 	}
 	return
+}
+
+func (Reminder) TableName() string {
+	return "Reminder"
 }
 
 func (r *Reminder) BeforeCreate(tx *gorm.DB) (err error) {

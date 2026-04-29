@@ -14,7 +14,8 @@ import {
    AlertTriangle,
    Server,
    Layers,
-   Monitor
+   Monitor,
+   Terminal,
 } from "lucide-react";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
 import { RealTimePerformanceChart } from "@/components/admin/monitoring/RealTimePerformanceChart";

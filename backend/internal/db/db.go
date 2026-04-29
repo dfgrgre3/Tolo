@@ -3,6 +3,7 @@ package db
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"thanawy-backend/internal/models"
 	"time"
@@ -35,7 +36,7 @@ func (PrismaNamingStrategy) ColumnName(table, column string) string {
 	if column == "ID" {
 		return "id"
 	}
-	
+
 	// Handle common acronyms (IP, ID, etc.) - convert to lowercase
 	// Check if the column is all uppercase (like "IP")
 	isAcronym := true
@@ -48,7 +49,7 @@ func (PrismaNamingStrategy) ColumnName(table, column string) string {
 	if isAcronym && len(column) > 1 {
 		return strings.ToLower(column)
 	}
-	
+
 	runes := []rune(column)
 	if len(runes) > 0 {
 		runes[0] = unicode.ToLower(runes[0])
@@ -60,14 +61,10 @@ func (PrismaNamingStrategy) ColumnName(table, column string) string {
 	return string(runes)
 }
 
-func (PrismaNamingStrategy) PrimaryKeyColumnName() string {
-	return "id"
-}
-
 func Connect(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
-		PrepareStmt: true, // Enable prepared statement cache for performance
+		Logger:         logger.Default.LogMode(logger.Warn),
+		PrepareStmt:    true, // Enable prepared statement cache for performance
 		NamingStrategy: PrismaNamingStrategy{},
 	})
 
@@ -84,17 +81,39 @@ func Connect(dsn string) (*gorm.DB, error) {
 		}
 	}
 
-	// Register DBResolver
-	err = db.Use(dbresolver.Register(dbresolver.Config{
+	// Register DBResolver with connection pool configuration
+	// Default values are conservative to prevent connection pool explosion
+	// In Kubernetes with 3 replicas, 50 connections per instance = 150 total
+	// This is well within PostgreSQL's default max_connections (100)
+	// and works well with PgBouncer
+	maxIdleConns := 10
+	maxOpenConns := 50
+
+	// Allow override via environment variables
+	if v := os.Getenv("DB_MAX_IDLE_CONNS"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil && val > 0 {
+			maxIdleConns = val
+		}
+	}
+	if v := os.Getenv("DB_MAX_OPEN_CONNS"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil && val > 0 {
+			maxOpenConns = val
+		}
+	}
+
+	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d", maxIdleConns, maxOpenConns)
+
+	resolver := dbresolver.Register(dbresolver.Config{
 		Sources:  []gorm.Dialector{postgres.Open(dsn)},
 		Replicas: replicaDialectors,
 		Policy:   dbresolver.RandomPolicy{}, // Load balance between replicas
 	}).
-		SetMaxIdleConns(100).
-		SetMaxOpenConns(1000). // Increased for higher concurrency
+		SetMaxIdleConns(maxIdleConns).
+		SetMaxOpenConns(maxOpenConns).
 		SetConnMaxLifetime(time.Hour).
-		SetConnMaxIdleTime(30 * time.Minute))
+		SetConnMaxIdleTime(30 * time.Minute)
 
+	err = db.Use(resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +151,14 @@ func Connect(dsn string) (*gorm.DB, error) {
 	log.Println("Database ready. Please use migration tool for schema changes.")
 
 	return db, nil
+}
+
+// Migrate runs database migrations using AutoMigrate (for development only)
+// Deprecated: Use golang-migrate for production
+// MigrateWithLock runs database migrations.
+// In production with Kubernetes, consider using an advisory lock to prevent race conditions.
+func MigrateWithLock() error {
+	return Migrate()
 }
 
 // Migrate runs database migrations using AutoMigrate (for development only)

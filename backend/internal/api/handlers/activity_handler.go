@@ -10,13 +10,12 @@ import (
 
 // Tasks
 func GetTasks(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
+	userId := userIdValue.(string)
 
 	var tasks []models.Task
 	if err := db.DB.Where("\"userId\" = ?", userId).Find(&tasks).Error; err != nil {
@@ -47,13 +46,12 @@ func CreateTask(c *gin.Context) {
 
 // Study Sessions
 func GetStudySessions(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
+	userId := userIdValue.(string)
 
 	var sessions []models.StudySession
 	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&sessions).Error; err != nil {
@@ -84,13 +82,12 @@ func CreateStudySession(c *gin.Context) {
 
 // Schedule
 func GetSchedule(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
+	userId := userIdValue.(string)
 
 	var schedule models.Schedule
 	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"updatedAt\" desc").First(&schedule).Error; err != nil {
@@ -123,7 +120,7 @@ func UpdateSchedule(c *gin.Context) {
 		db.DB.Create(&schedule)
 	} else {
 		// Update existing
-		db.DB.Model(&schedule).Update("\"planJson\"", input.PlanJson)
+		db.DB.Model(&schedule).Update("planJson", input.PlanJson)
 	}
 
 	c.JSON(http.StatusOK, schedule)
@@ -131,13 +128,12 @@ func UpdateSchedule(c *gin.Context) {
 
 // Reminders
 func GetReminders(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
+	userId := userIdValue.(string)
 
 	var reminders []models.Reminder
 	if err := db.DB.Where("\"userId\" = ?", userId).Find(&reminders).Error; err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetSettings retrieves user settings/preferences
@@ -65,13 +66,19 @@ func GetSettings(c *gin.Context) {
 				ShowProgress:         true,
 			}
 			
-			if err := db.DB.Create(&settings).Error; err != nil {
+			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
+			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
 				log.Printf("ERROR: Failed to create settings for user %v: %v", userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": "Failed to create settings",
 					"details": err.Error(),
 				})
 				return
+			}
+			
+			// Re-fetch to ensure we have the settings if DoNothing was triggered
+			if settings.ID == "" {
+				db.DB.Where("userId = ?", userID.(string)).First(&settings)
 			}
 		} else {
 			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
@@ -126,13 +133,19 @@ func UpdateSettings(c *gin.Context) {
 				ShowProgress:         true,
 			}
 			
-			if err := db.DB.Create(&settings).Error; err != nil {
+			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
+			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
 				log.Printf("ERROR: Failed to create settings for user %v during update: %v", userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": "Failed to create settings",
 					"details": err.Error(),
 				})
 				return
+			}
+			
+			// Re-fetch to ensure we have the settings if DoNothing was triggered
+			if settings.ID == "" {
+				db.DB.Where("\"userId\" = ?", userID.(string)).First(&settings)
 			}
 		} else {
 			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)

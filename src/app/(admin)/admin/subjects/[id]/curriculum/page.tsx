@@ -512,7 +512,7 @@ export default function CurriculumEditorPage() {
                     <Label className="text-[10px] font-black uppercase">نوع الدرس</Label>
                     <Select 
                       value={editingLesson?.lesson.type} 
-                      onValueChange={(val) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, type: val } } : null)}
+                      onValueChange={(val) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, type: val as Lesson["type"] } } : null)}
                     >
                       <SelectTrigger className="h-12 rounded-xl text-sm font-bold">
                         <SelectValue />

@@ -199,7 +199,7 @@ export default function PermissionsPage() {
                       <h4 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-white/5 pb-2 mb-4">{cat}</h4>
                       <div className="space-y-3">
                          {perms.map((p) => {
-                      const isDefault = selectedUser ? (DEFAULT_ROLE_PERMISSIONS[selectedUser.role as any] || []).includes(p as any) : false;
+                      const isDefault = selectedUser ? (DEFAULT_ROLE_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_ROLE_PERMISSIONS] || []).includes(p as Permission) : false;
                       const isActive = editingPermissions.includes(p) || isDefault;
 
                       const isOverride = editingPermissions.includes(p);

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	cryptoRand "crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	apiresponse "thanawy-backend/internal/api/response"
@@ -8,6 +10,7 @@ import (
 	"thanawy-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GetCategories(c *gin.Context) {
@@ -213,12 +216,22 @@ func CreateTeacher(c *gin.Context) {
 
 	teacherName := input.Name
 	email := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(input.Name), " ", ".")) + "@thanawy.local"
-	passwordHash := "$2a$12$RYM9CZPUKMeXAHOD01E4QeSjQIvT0.Q.rZEDkHXY/r8ok6sY4M1Ki" // Hash of "temporary-password"
+
+	// Generate a random password instead of using a hardcoded one
+	randomBytes := make([]byte, 16)
+	_, _ = cryptoRand.Read(randomBytes)
+	randomPassword := hex.EncodeToString(randomBytes)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(randomPassword), 12)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate password"})
+		return
+	}
+
 	teacher := models.User{
 		Email:        email,
 		Name:         &teacherName,
 		Username:     &teacherName,
-		PasswordHash: passwordHash,
+		PasswordHash: string(hashedPassword),
 		Role:         models.RoleTeacher,
 		Bio:          input.Notes,
 	}

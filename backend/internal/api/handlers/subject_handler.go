@@ -11,6 +11,8 @@ import (
 	"thanawy-backend/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var subjectRepo *repository.SubjectRepository
@@ -313,17 +315,50 @@ func CourseCheckout(c *gin.Context) {
 
 	// For demonstration/initial link, if it's internal_wallet or a simulated success:
 	if input.PaymentMethod == "internal_wallet" {
-		// Mock logic: assume they have enough balance for now or just succeed
-		payment.Status = models.PaymentCompleted
-		db.DB.Save(&payment)
+		// Use transaction with row-level lock for wallet payment
+		txErr := db.DB.Transaction(func(tx *gorm.DB) error {
+			var user models.User
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				First(&user, "id = ?", userId).Error; err != nil {
+				return err
+			}
 
-		// Auto-enroll after successful payment
-		enrollment := models.Enrollment{
-			UserID:     userId,
-			SubjectID:  courseId,
-			EnrolledAt: time.Now(),
+			if user.Balance < subject.Price {
+				return gorm.ErrInvalidData // Insufficient balance
+			}
+
+			// Atomic balance deduction
+			if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", subject.Price)).Error; err != nil {
+				return err
+			}
+
+			// Complete payment
+			if err := tx.Model(&payment).Update("status", models.PaymentCompleted).Error; err != nil {
+				return err
+			}
+
+			// Auto-enroll after successful payment
+			enrollment := models.Enrollment{
+				UserID:     userId,
+				SubjectID:  courseId,
+				EnrolledAt: time.Now(),
+			}
+			if err := tx.Create(&enrollment).Error; err != nil {
+				// Ignore duplicate enrollment error
+				_ = err
+			}
+
+			return nil
+		})
+
+		if txErr != nil {
+			if txErr == gorm.ErrInvalidData {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Payment failed"})
+			return
 		}
-		db.DB.Create(&enrollment)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
@@ -492,18 +527,12 @@ func GetSubjectCurriculum(c *gin.Context) {
 }
 
 func GetUserSubjects(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
-		uid, _ := c.Get("userId")
-		if uid != nil {
-			userId = uid.(string)
-		}
-	}
-
-	if userId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	userId := userIdValue.(string)
 
 	var enrollments []models.Enrollment
 	if err := db.DB.Preload("Subject").Where("\"userId\" = ?", userId).Find(&enrollments).Error; err != nil {
@@ -579,7 +608,10 @@ func UpdateCourseCurriculum(c *gin.Context) {
 		}
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save curriculum changes"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Curriculum updated"})
 }
 
