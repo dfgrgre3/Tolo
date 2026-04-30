@@ -18,7 +18,7 @@ func GetTasks(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var tasks []models.Task
-	if err := db.DB.Where("\"userId\" = ?", userId).Find(&tasks).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(100).Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
 		return
 	}
@@ -54,7 +54,7 @@ func GetStudySessions(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var sessions []models.StudySession
-	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&sessions).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(100).Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch study sessions"})
 		return
 	}
@@ -136,7 +136,7 @@ func GetReminders(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var reminders []models.Reminder
-	if err := db.DB.Where("\"userId\" = ?", userId).Find(&reminders).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"time\" asc").Limit(100).Find(&reminders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reminders"})
 		return
 	}

@@ -57,8 +57,8 @@ func calculateStreakDays(userID string) int {
 	}
 	var days []dayResult
 	db.DB.Model(&models.StudySession{}).
-		Select("DISTINCT DATE(\"createdAt\") as day").
-		Where("\"userId\" = ? AND \"createdAt\" >= ?", userID, time.Now().AddDate(-1, 0, 0)).
+		Select("DISTINCT DATE(\"startTime\") as day").
+		Where("\"userId\" = ? AND \"startTime\" >= ?", userID, time.Now().AddDate(-1, 0, 0)).
 		Order("day DESC").
 		Scan(&days)
 
@@ -99,7 +99,7 @@ func GetWeeklyAnalytics(c *gin.Context) {
 	// 1. Get study sessions for the past 7 days
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
 	var sessions []models.StudySession
-	db.DB.Where("\"userId\" = ? AND \"createdAt\" >= ?", userId, sevenDaysAgo).Order("\"createdAt\" asc").Find(&sessions)
+	db.DB.Where("\"userId\" = ? AND \"startTime\" >= ?", userId, sevenDaysAgo).Order("\"startTime\" asc").Find(&sessions)
 
 	// 2. Aggregate daily progress
 	dailyProgress := make(map[string]int)

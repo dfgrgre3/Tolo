@@ -32,7 +32,7 @@ func (s *TokenService) GenerateTokenPair(userId, role string) (*TokenPair, error
 		JTI:  jti,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userId,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        jti,
 		},
@@ -70,7 +70,7 @@ func (s *TokenService) GenerateAccessToken(userId, role string) (string, error) 
 		JTI:  jti,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userId,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        jti,
 		},

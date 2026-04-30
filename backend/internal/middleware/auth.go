@@ -172,18 +172,46 @@ func RoleRequired(roles ...string) gin.HandlerFunc {
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		cfg := getConfig()
+
+		isDevelopment := cfg.Environment == "development" || cfg.Environment == ""
+
+		allowedOrigins := []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"https://thanawy.net",
+			"https://www.thanawy.net",
+		}
+
+		isAllowed := false
+		if isDevelopment && origin != "" {
+			isAllowed = true
 		} else {
+			for _, o := range allowedOrigins {
+				if origin == o {
+					isAllowed = true
+					break
+				}
+			}
+		}
+
+		if origin != "" && isAllowed {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		} else if isDevelopment && origin == "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			if isAllowed || isDevelopment {
+				c.AbortWithStatus(204)
+			} else {
+				c.AbortWithStatus(403)
+			}
 			return
 		}
 

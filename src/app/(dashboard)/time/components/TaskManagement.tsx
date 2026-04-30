@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { VirtualList } from "@/components/ui/virtual-list";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -915,7 +916,12 @@ export default function TaskManagement({
                 </p>
               </div>
             ) : (
-              filteredTasks.map((task) => {
+              <VirtualList
+                items={filteredTasks}
+                itemHeight={160}
+                containerHeight={600}
+                keyExtractor={(task) => task.id}
+                renderItem={(task) => {
                 const dueDateInfo = getDueDateInfo(task.dueAt);
                 const isExpanded = expandedTasks.includes(task.id);
                 const completedSubtasks = task.subtasks?.filter(st => st.isCompleted).length || 0;
@@ -1254,7 +1260,8 @@ export default function TaskManagement({
                     </div>
                   </div>
                 );
-              })
+                }}
+              />
             )}
           </div>
         </CardContent>

@@ -12,6 +12,7 @@ import (
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"encoding/json"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,6 +58,26 @@ func AdminAIPost(c *gin.Context) {
 	}
 }
 
+// Admin metrics history for frontend
+func AdminMetricsHistoryGet(c *gin.Context) {
+	// Provide static/dummy metrics since Next.js performanceMonitor data is gone
+	metrics := []gin.H{
+		{"timestamp": time.Now().UnixMilli(), "type": "memory", "value": 150},
+		{"timestamp": time.Now().UnixMilli(), "type": "cpu", "value": 10},
+	}
+	stats := gin.H{
+		"averageResponseTime": 120,
+		"errorRate":           0.01,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"metrics": metrics,
+			"stats":   stats,
+		},
+	})
+}
+
 // Admin bulk messaging
 func AdminBulkSendMessage(c *gin.Context) {
 	var req struct {
@@ -97,8 +118,20 @@ func Upload(c *gin.Context) {
 		}
 	}
 
-	// Generate a unique filename using timestamp
-	ext := filepath.Ext(file.Filename)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	
+	// Validate extension to prevent malicious uploads (e.g. XSS via .html or RCE via .php)
+	allowedExts := map[string]bool{
+		".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
+		".pdf": true, ".doc": true, ".docx": true,
+		".mp4": true, ".mp3": true,
+	}
+
+	if !allowedExts[ext] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File type not allowed"})
+		return
+	}
+
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 	dst := filepath.Join(uploadDir, filename)
 
@@ -363,7 +396,7 @@ func GetAdminLive(c *gin.Context) {
 	cutoff := time.Now().Add(-time.Duration(minutes) * time.Minute)
 
 	var users []models.User
-	if err := db.DB.Where("status = ?", models.StatusActive).Find(&users).Error; err != nil {
+	if err := db.DB.Where("status = ?", models.StatusActive).Order("\"updatedAt\" desc").Limit(200).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch active users"})
 		return
 	}

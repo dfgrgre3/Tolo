@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/config"
@@ -64,6 +65,8 @@ func main() {
 	router.Use(middleware.CORS())
 	router.Use(gin.Recovery())
 	router.Use(middleware.StructuredLogger())
+	// Global Rate Limiting: 100 requests per minute to prevent DDoS
+	router.Use(middleware.RateLimiter(100, time.Minute))
 
 	// Serve static files for uploads
 	router.Static("/uploads", "./uploads")
@@ -153,6 +156,7 @@ func main() {
 		{
 			protected.GET("/progress/summary", handlers.GetProgressSummary)
 			protected.GET("/analytics/weekly", handlers.GetWeeklyAnalytics)
+			protected.GET("/analytics/time", handlers.GetTimeAnalytics)
 			protected.GET("/analytics/performance", handlers.GetWeeklyAnalytics)
 			protected.GET("/analytics/predictions", handlers.GetWeeklyAnalytics)
 			protected.GET("/recommendations", handlers.GetAIRecommendations)

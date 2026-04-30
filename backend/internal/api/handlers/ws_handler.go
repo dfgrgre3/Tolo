@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
+	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 )
 
@@ -17,7 +18,29 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+
+		cfg := config.Load()
+		if cfg.Environment == "development" || cfg.Environment == "" {
+			return true
+		}
+
+		allowedOrigins := []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"https://thanawy.net",
+			"https://www.thanawy.net",
+		}
+
+		for _, o := range allowedOrigins {
+			if origin == o {
+				return true
+			}
+		}
+		return false
 	},
 }
 

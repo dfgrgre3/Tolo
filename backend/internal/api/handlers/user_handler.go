@@ -112,7 +112,6 @@ func Login(c *gin.Context) {
 		// Log error but don't fail the login
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
-			"token":   tokens.AccessToken,
 			"user":    user,
 			"warning": "Login successful but failed to log security event",
 			"metadata": gin.H{
@@ -131,7 +130,6 @@ func Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"token":   tokens.AccessToken,
 		"user":    user,
 		"metadata": gin.H{
 			"lastLogin": user.UpdatedAt,
@@ -193,7 +191,6 @@ func RefreshToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"token":   tokens.AccessToken,
 	})
 }
 

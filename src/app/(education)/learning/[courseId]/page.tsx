@@ -36,7 +36,20 @@ import {
   Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CourseVideoPlayer, type CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
+import dynamic from "next/dynamic";
+import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
+
+const CourseVideoPlayer = dynamic(
+  () => import("@/components/video/CourseVideoPlayer").then((mod) => mod.CourseVideoPlayer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-video w-full animate-pulse bg-slate-900 rounded-[28px] border border-white/10 flex items-center justify-center text-white/50">
+        جارِ تحميل المشغل...
+      </div>
+    ),
+  }
+);
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

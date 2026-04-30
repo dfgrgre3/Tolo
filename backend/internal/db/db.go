@@ -161,12 +161,42 @@ func MigrateWithLock() error {
 	return Migrate()
 }
 
+func cleanLegacyData(db *gorm.DB) {
+	log.Println("Running Data Migration: Cleaning legacy plural tables...")
+	tables := []string{"users", "subjects", "security_logs", "exams", "topics", "sub_topics", "enrollments", "lesson_progresses", "study_sessions", "tasks", "schedules", "reminders", "notifications", "payments", "invoices", "exam_results", "categories", "user_settings", "user_preferences"}
+	for _, t := range tables {
+		db.Exec("DROP TABLE IF EXISTS " + t + " CASCADE")
+	}
+
+	log.Println("Running Data Migration: Resolving duplicates before constraints...")
+	// Remove duplicate UserSettings
+	db.Exec(`DELETE FROM "UserSettings" WHERE id NOT IN (SELECT MIN(id) FROM "UserSettings" GROUP BY "userId")`)
+	// Remove duplicate Enrollments
+	db.Exec(`DELETE FROM "SubjectEnrollment" WHERE id NOT IN (SELECT MIN(id) FROM "SubjectEnrollment" GROUP BY "userId", "subjectId")`)
+	// Remove duplicate LessonProgress
+	db.Exec(`DELETE FROM "TopicProgress" WHERE id NOT IN (SELECT MIN(id) FROM "TopicProgress" GROUP BY "userId", "subTopicId")`)
+
+	log.Println("Running Data Migration: Enforcing strict DB constraints...")
+	// UserSettings Constraint
+	db.Exec(`ALTER TABLE "UserSettings" DROP CONSTRAINT IF EXISTS unique_user_settings;`)
+	db.Exec(`ALTER TABLE "UserSettings" ADD CONSTRAINT unique_user_settings UNIQUE ("userId");`)
+	
+	// SubjectEnrollment Constraint
+	db.Exec(`ALTER TABLE "SubjectEnrollment" DROP CONSTRAINT IF EXISTS unique_user_subject;`)
+	db.Exec(`ALTER TABLE "SubjectEnrollment" ADD CONSTRAINT unique_user_subject UNIQUE ("userId", "subjectId");`)
+	
+	// TopicProgress Constraint
+	db.Exec(`ALTER TABLE "TopicProgress" DROP CONSTRAINT IF EXISTS unique_user_lesson;`)
+	db.Exec(`ALTER TABLE "TopicProgress" ADD CONSTRAINT unique_user_lesson UNIQUE ("userId", "subTopicId");`)
+}
+
 // Migrate runs database migrations using AutoMigrate (for development only)
 // Deprecated: Use golang-migrate for production
 func Migrate() error {
 	if DB == nil {
 		return nil
 	}
+	cleanLegacyData(DB)
 	log.Println("Running AutoMigrate (development only)...")
 	return DB.AutoMigrate(
 		&models.User{},
