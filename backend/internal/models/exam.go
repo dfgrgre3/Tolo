@@ -21,8 +21,9 @@ type Exam struct {
 	Type      ExamType  `gorm:"default:'QUIZ';index" json:"type"`
 	Duration  int       `json:"duration"` // in minutes
 	MaxScore  float64   `gorm:"default:100" json:"maxScore"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Subject   Subject    `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"subject,omitempty"`
@@ -34,8 +35,9 @@ type Question struct {
 	ExamID  string `gorm:"not null;index;type:text" json:"examId"`
 	Text    string `gorm:"not null;type:text" json:"text"`
 	Type    string `gorm:"default:'MCQ'" json:"type"` // MCQ, TRUE_FALSE, TEXT
-	Options string `gorm:"type:text" json:"options"`  // JSON string of options
-	Answer  string `gorm:"not null" json:"-"`         // Hidden from API responses for security
+	Options   string         `gorm:"type:text" json:"options"`  // JSON string of options
+	Answer    string         `gorm:"not null" json:"-"`         // Hidden from API responses for security
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Question) TableName() string {
@@ -48,9 +50,11 @@ type ExamResult struct {
 	UserID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:2;type:text" json:"userId"`
 	Score     float64   `json:"score"`
 	Passed    bool      `json:"passed"`
+	Answers   string    `gorm:"type:text" json:"answers"` // JSON string of user answers
 	TakenAt   time.Time `gorm:"index" json:"takenAt"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Exam Exam `gorm:"foreignKey:ExamID;constraint:OnDelete:CASCADE" json:"exam,omitempty"`

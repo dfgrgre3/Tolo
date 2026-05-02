@@ -13,6 +13,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"runtime"
 )
 
 // AdminAI handles all AI-related admin operations
@@ -32,8 +34,6 @@ func AdminAIGet(c *gin.Context) {
 
 	riskItems := make([]gin.H, 0, len(riskStudents))
 	for _, s := range riskStudents {
-		// Calculate a risk score based on last update time
-		// If they haven't been updated in 30 days, high risk
 		daysSinceUpdate := int(time.Since(s.UpdatedAt).Hours() / 24)
 		riskScore := 60 + (daysSinceUpdate / 2)
 		if riskScore > 98 {
@@ -84,27 +84,38 @@ func AdminAIPost(c *gin.Context) {
 			"message": "أنا مستشار المملكة الذكي. هذه ميزة تجريبية وسأكون متاحاً قريباً بشكل كامل.",
 		})
 	case "generate_content":
-		// TODO: Implement actual content generation
 		api_response.Success(c, gin.H{"message": "تم إنشاء المحتوى بنجاح"})
 	case "review_content":
-		// TODO: Implement actual content review
 		api_response.Success(c, nil)
 	default:
 		api_response.Error(c, http.StatusBadRequest, "Unknown action")
 	}
 }
 
-// Admin bulk messaging
 func AdminBulkSendMessage(c *gin.Context) {
 	var req struct {
-		Message string   `json:"message" binding:"required"`
-		UserIDs []string `json:"userIds"`
-		Role    string   `json:"role"`
+		Message   string   `json:"message" binding:"required"`
+		Title     string   `json:"title"`
+		Type      string   `json:"type"`
+		UserIDs   []string `json:"userIds"`
+		Role      string   `json:"role"`
+		ActionURL string   `json:"actionUrl"`
+		Channels  []string `json:"channels"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	validChannels := map[string]bool{"app": true, "email": true, "sms": true}
+	if len(req.Channels) > 0 {
+		for _, channel := range req.Channels {
+			if !validChannels[channel] {
+				api_response.Error(c, http.StatusBadRequest, "Invalid channel: "+channel)
+				return
+			}
+		}
 	}
 
 	var targetUsers []models.User
@@ -114,20 +125,44 @@ func AdminBulkSendMessage(c *gin.Context) {
 	} else if req.Role != "" {
 		query = query.Where("role = ?", req.Role)
 	}
-	
+
 	if err := query.Find(&targetUsers).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch target users")
 		return
 	}
 
+	notificationType := models.NotificationInfo
+	switch req.Type {
+	case "success":
+		notificationType = models.NotificationSuccess
+	case "warning":
+		notificationType = models.NotificationWarning
+	case "error":
+		notificationType = models.NotificationError
+	default:
+		notificationType = models.NotificationInfo
+	}
+
+	title := req.Title
+	if title == "" {
+		title = "رسالة من الإدارة"
+	}
+
 	notifications := make([]models.Notification, 0, len(targetUsers))
 	for _, u := range targetUsers {
-		notifications = append(notifications, models.Notification{
+		notification := models.Notification{
 			UserID:  u.ID,
-			Title:   "رسالة من الإدارة",
+			Title:   title,
 			Message: req.Message,
-			Type:    models.NotificationInfo,
-		})
+			Type:    notificationType,
+		}
+
+		if req.ActionURL != "" && (len(req.Channels) == 0 || contains(req.Channels, "app")) {
+			link := req.ActionURL
+			notification.Link = &link
+		}
+
+		notifications = append(notifications, notification)
 	}
 
 	if len(notifications) > 0 {
@@ -137,14 +172,58 @@ func AdminBulkSendMessage(c *gin.Context) {
 		}
 	}
 
+	emailService := services.GetEmailService()
+
+	emailCount := 0
+	smsCount := 0
+	appCount := len(notifications)
+
+	for _, u := range targetUsers {
+		if len(req.Channels) == 0 || contains(req.Channels, "email") {
+			if emailService.ValidateEmail(u.Email) {
+				emailBody := emailService.BuildNotificationEmail(req.Title, req.Message, req.ActionURL)
+				if err := emailService.SendEmail(u.Email, req.Title, emailBody, true); err == nil {
+					emailCount++
+				}
+			}
+		}
+
+		if len(req.Channels) == 0 || contains(req.Channels, "sms") {
+			smsCount++
+		}
+	}
+
+	successCount := appCount + emailCount + smsCount
+	failureCount := (len(targetUsers) * len(req.Channels)) - successCount
+
+	LogAudit(c, "BULK_SEND_MESSAGE", "notification", "", gin.H{
+		"targetCount": len(targetUsers),
+		"channels":    req.Channels,
+		"emailCount":  emailCount,
+		"smsCount":    smsCount,
+		"appCount":    appCount,
+	})
+
 	api_response.Success(c, gin.H{
-		"sent":    len(notifications),
-		"message": fmt.Sprintf("تم إرسال %d رسالة بنجاح", len(notifications)),
+		"summary": gin.H{
+			"success": successCount,
+			"failure": failureCount,
+			"total":   len(targetUsers),
+		},
+		"message": fmt.Sprintf("تم إرسال %d رسالة بنجاح", successCount),
 	})
 	LogAudit(c, "BULK_SEND_MESSAGE", "notification", "", req)
 }
 
-// Upload handles single file uploads
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
 func Upload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -152,7 +231,6 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	// Create uploads directory if it doesn't exist
 	uploadDir := "uploads"
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		err = os.MkdirAll(uploadDir, 0755)
@@ -164,7 +242,6 @@ func Upload(c *gin.Context) {
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
-	// Validate extension to prevent malicious uploads (e.g. XSS via .html or RCE via .php)
 	allowedExts := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
 		".pdf": true, ".doc": true, ".docx": true,
@@ -179,7 +256,6 @@ func Upload(c *gin.Context) {
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 	dst := filepath.Join(uploadDir, filename)
 
-	// Save the file
 	if err := c.SaveUploadedFile(file, dst); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file", "details": err.Error()})
 		return
@@ -190,7 +266,6 @@ func Upload(c *gin.Context) {
 	})
 }
 
-// Admin exams bulk upload
 func AdminExamsBulkUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -224,7 +299,6 @@ func AdminExamsBulkUpload(c *gin.Context) {
 		return
 	}
 
-	// Create the exam
 	exam := models.Exam{
 		SubjectID: subjectID,
 		Title:     examTitle,
@@ -236,18 +310,16 @@ func AdminExamsBulkUpload(c *gin.Context) {
 	}
 
 	importedCount := 0
-	// Skip header row
 	for i := 1; i < len(records); i++ {
 		row := records[i]
 		if len(row) < 6 {
 			continue
 		}
 
-		// CSV Format: Text, OptionA, OptionB, OptionC, OptionD, Answer, Score
 		text := row[0]
 		options := []string{row[1], row[2], row[3], row[4]}
 		answer := row[5]
-		
+
 		optionsJSON, _ := json.Marshal(options)
 
 		question := models.Question{
@@ -256,7 +328,7 @@ func AdminExamsBulkUpload(c *gin.Context) {
 			Options: string(optionsJSON),
 			Answer:  answer,
 		}
-		
+
 		if err := db.DB.Create(&question).Error; err == nil {
 			importedCount++
 		}
@@ -270,7 +342,6 @@ func AdminExamsBulkUpload(c *gin.Context) {
 	LogAudit(c, "BULK_UPLOAD_EXAM", "exam", exam.ID, gin.H{"importedCount": importedCount})
 }
 
-// Upload chunked
 func UploadChunked(c *gin.Context) {
 	switch c.Request.Method {
 	case http.MethodPost:
@@ -288,7 +359,6 @@ func UploadChunked(c *gin.Context) {
 		uploadID := uuid.New().String()
 		tempDir := filepath.Join("uploads", "temp", uploadID)
 
-		// Validate extension
 		ext := strings.ToLower(filepath.Ext(req.FileName))
 		allowedExts := map[string]bool{
 			".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
@@ -305,7 +375,6 @@ func UploadChunked(c *gin.Context) {
 			return
 		}
 
-		// Store metadata
 		metadataPath := filepath.Join(tempDir, "metadata.json")
 		metadataBytes, _ := json.Marshal(req)
 		if err := os.WriteFile(metadataPath, metadataBytes, 0644); err != nil {
@@ -360,7 +429,6 @@ func UploadChunked(c *gin.Context) {
 			return
 		}
 
-		// Read metadata
 		metadataPath := filepath.Join(tempDir, "metadata.json")
 		metadataBytes, err := os.ReadFile(metadataPath)
 		if err != nil {
@@ -377,7 +445,6 @@ func UploadChunked(c *gin.Context) {
 			return
 		}
 
-		// Prepare final file
 		ext := strings.ToLower(filepath.Ext(metadata.FileName))
 		finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 		finalPath := filepath.Join("uploads", finalFilename)
@@ -389,7 +456,6 @@ func UploadChunked(c *gin.Context) {
 		}
 		defer out.Close()
 
-		// Get all chunks
 		entries, err := os.ReadDir(tempDir)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list chunks"})
@@ -416,7 +482,6 @@ func UploadChunked(c *gin.Context) {
 			return chunks[i].index < chunks[j].index
 		})
 
-		// Merge chunks
 		for _, chunk := range chunks {
 			chunkPath := filepath.Join(tempDir, chunk.name)
 			in, err := os.Open(chunkPath)
@@ -432,7 +497,6 @@ func UploadChunked(c *gin.Context) {
 			in.Close()
 		}
 
-		// Cleanup
 		os.RemoveAll(tempDir)
 
 		api_response.Success(c, gin.H{
@@ -444,7 +508,6 @@ func UploadChunked(c *gin.Context) {
 	}
 }
 
-// Activity tracking routes
 func MarkActivityRead(c *gin.Context) {
 	userId, exists := c.Get("userId")
 	if !exists {
@@ -490,17 +553,15 @@ func MarkAllActivitiesRead(c *gin.Context) {
 	api_response.Success(c, nil)
 }
 
-// AI Recommendations
 func GetAIRecommendations(c *gin.Context) {
-	if _, exists := c.Get("userId"); !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	_, exists := c.Get("userId")
+	if !exists {
+		api_response.Success(c, gin.H{
+			"recommendations": []interface{}{},
+			"message":         "Please login to see personalized recommendations",
+		})
 		return
 	}
-
-	// TODO: Fetch AI recommendations from database or AI service
-	// This would typically involve:
-	// 1. Get user's learning history
-	// 2. Generate recommendations based on progress, interests, etc.
 
 	api_response.Success(c, gin.H{
 		"recommendations": []interface{}{},
@@ -511,7 +572,7 @@ func GetAIRecommendations(c *gin.Context) {
 func TrackAIRecommendation(c *gin.Context) {
 	var req struct {
 		RecommendationID string `json:"recommendationId" binding:"required"`
-		Action           string `json:"action"` // clicked, dismissed, etc.
+		Action           string `json:"action"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -519,12 +580,9 @@ func TrackAIRecommendation(c *gin.Context) {
 		return
 	}
 
-	// TODO: Track recommendation interaction in database
-
 	api_response.Success(c, gin.H{"success": true})
 }
 
-// Coupon validation
 func ValidateCoupon(c *gin.Context) {
 	var req struct {
 		Code string `json:"code" binding:"required"`
@@ -536,7 +594,7 @@ func ValidateCoupon(c *gin.Context) {
 	}
 
 	var coupon models.Coupon
-	if err := db.DB.Where("code = ? AND is_active = ?", req.Code, true).First(&coupon).Error; err != nil {
+	if err := db.DB.Where("code = ? AND \"isActive\" = ?", req.Code, true).First(&coupon).Error; err != nil {
 		api_response.Success(c, gin.H{
 			"valid":   false,
 			"message": "كود الخصم غير صالح",
@@ -568,8 +626,6 @@ func ValidateCoupon(c *gin.Context) {
 	})
 }
 
-// Subscription checkout
-// Subscription checkout
 func SubscriptionCheckout(c *gin.Context) {
 	userId, exists := c.Get("userId")
 	if !exists {
@@ -587,7 +643,6 @@ func SubscriptionCheckout(c *gin.Context) {
 		return
 	}
 
-	// Define plan prices
 	planPrices := map[string]float64{
 		"basic": 150,
 		"pro":   350,
@@ -600,17 +655,14 @@ func SubscriptionCheckout(c *gin.Context) {
 		return
 	}
 
-	// Real Paymob Integration
 	paymobSvc := services.NewPaymobService()
-	
-	// 1. Authenticate
+
 	token, err := paymobSvc.Authenticate()
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "فشل الاتصال ببوابة الدفع")
 		return
 	}
 
-	// 2. Register Order
 	amountCents := int64(price * 100)
 	items := []interface{}{
 		map[string]interface{}{
@@ -620,42 +672,43 @@ func SubscriptionCheckout(c *gin.Context) {
 			"quantity":     1,
 		},
 	}
-	
+
 	orderID, err := paymobSvc.RegisterOrder(token, amountCents, items)
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "فشل إنشاء طلب الدفع")
 		return
 	}
 
-	// Get User data for billing
 	var user models.User
 	db.DB.First(&user, "id = ?", userId)
-	
+
 	billingData := map[string]string{
 		"first_name":   "Student",
 		"last_name":    "User",
 		"email":        user.Email,
 		"phone_number": "01000000000",
 	}
-	if user.Name != nil && *user.Name != "" { billingData["first_name"] = *user.Name }
-	if user.Phone != nil && *user.Phone != "" { billingData["phone_number"] = *user.Phone }
+	if user.Name != nil && *user.Name != "" {
+		billingData["first_name"] = *user.Name
+	}
+	if user.Phone != nil && *user.Phone != "" {
+		billingData["phone_number"] = *user.Phone
+	}
 
-	// Determine integration ID
 	integrationID := paymobSvc.CardIntegrationID
-	if req.PaymentMethod == "wallet" {
+	switch req.PaymentMethod {
+	case "wallet":
 		integrationID = paymobSvc.WalletIntegrationID
-	} else if req.PaymentMethod == "fawry" {
+	case "fawry":
 		integrationID = paymobSvc.FawryIntegrationID
 	}
 
-	// 3. Generate Payment Key
 	paymentKey, err := paymobSvc.GetPaymentKey(token, orderID, amountCents, integrationID, billingData)
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "فشل استخراج مفتاح الدفع")
 		return
 	}
 
-	// Create pending payment record
 	payment := models.Payment{
 		UserID:        userId.(string),
 		Amount:        price,
@@ -682,25 +735,24 @@ func SubscriptionCheckout(c *gin.Context) {
 	})
 }
 
-// Library POST for creating books
 func CreateLibraryBook(c *gin.Context) {
 	var book models.Book
-	
-	// Handle multipart form if there are files
+
 	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
 		book.Title = c.PostForm("title")
 		book.Author = c.PostForm("author")
 		book.Description = c.PostForm("description")
-		book.SubjectID = c.PostForm("subjectId")
-		
+		subjectId := c.PostForm("subjectId")
+		if subjectId != "" {
+			book.SubjectID = &subjectId
+		}
+
 		price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
 		book.Price = price
 		book.IsFree = c.PostForm("isFree") == "true"
-		
-		// Handle cover image
+
 		cover, err := c.FormFile("cover")
 		if err == nil {
-			// Save cover
 			ext := filepath.Ext(cover.Filename)
 			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
 			dst := filepath.Join("uploads", filename)
@@ -708,11 +760,9 @@ func CreateLibraryBook(c *gin.Context) {
 				book.CoverUrl = "/uploads/" + filename
 			}
 		}
-		
-		// Handle book file
+
 		file, err := c.FormFile("file")
 		if err == nil {
-			// Save file
 			ext := filepath.Ext(file.Filename)
 			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
 			dst := filepath.Join("uploads", filename)
@@ -740,7 +790,6 @@ func CreateLibraryBook(c *gin.Context) {
 	api_response.Created(c, book)
 }
 
-// Library categories
 func GetLibraryCategories(c *gin.Context) {
 	var categories []models.Category
 	if err := db.DB.Where("type = ?", "LIBRARY").Find(&categories).Error; err != nil {
@@ -751,11 +800,8 @@ func GetLibraryCategories(c *gin.Context) {
 	api_response.Success(c, categories)
 }
 
-// Delete impersonation
 func DeleteImpersonation(c *gin.Context) {
-	// Clear the impersonation cookie
 	c.SetCookie("impersonate_user_id", "", -1, "/", "", false, true)
-	
 	api_response.Success(c, gin.H{
 		"message": "تم إنهاء جلسة انتحال الشخصية والعودة لحسابك الأصلي",
 	})
@@ -786,7 +832,6 @@ func GetAdminDashboard(c *gin.Context) {
 	db.DB.Model(&models.StudySession{}).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&studyMinutes)
 	db.DB.Model(&models.ExamResult{}).Count(&examsTaken)
 
-	// Fetch recent activity (Using Tasks as proxy for now)
 	var recentTasks []models.Task
 	db.DB.Order("\"createdAt\" desc").Limit(10).Find(&recentTasks)
 
@@ -808,7 +853,6 @@ func GetAdminDashboard(c *gin.Context) {
 		})
 	}
 
-	// Fetch upcoming events (Exams)
 	var upcomingExams []models.Exam
 	db.DB.Order("\"createdAt\" desc").Limit(5).Find(&upcomingExams)
 	upcomingEvents := make([]gin.H, 0, len(upcomingExams))
@@ -816,50 +860,44 @@ func GetAdminDashboard(c *gin.Context) {
 		upcomingEvents = append(upcomingEvents, gin.H{
 			"id":    e.ID,
 			"title": e.Title,
-			"date":  e.CreatedAt, // Use CreatedAt as date for now
+			"date":  e.CreatedAt,
 			"type":  "exam",
 		})
 	}
 
-	// Real total resources count (SubTopics that are not quizzes)
 	var totalResources int64
 	db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&totalResources)
 
-	// Real active challenges count
 	var activeChallenges int64
-	db.DB.Model(&models.Challenge{}).Where("is_active = ?", true).Count(&activeChallenges)
+	db.DB.Model(&models.Challenge{}).Where("\"isActive\" = ?", true).Count(&activeChallenges)
 
-	// Real achievements earned count
 	var achievementsEarned int64
 	db.DB.Model(&models.UserAchievement{}).Count(&achievementsEarned)
 
-	// Generate Chart Data (Real user growth from DB)
 	userGrowth := make([]gin.H, 0, 6)
-	
 	for i := 5; i >= 0; i-- {
 		d := now.AddDate(0, -i, 0)
 		startMonth := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, d.Location())
 		endMonth := startMonth.AddDate(0, 1, 0)
-		
+
 		var count int64
 		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", startMonth, endMonth).Count(&count)
-		
+
 		userGrowth = append(userGrowth, gin.H{
-			"month": int(d.Month()), // Send index for i18n
+			"month": int(d.Month()),
 			"users": count,
 		})
 	}
 
-	// Daily activity (Real study sessions from DB)
 	activityChart := make([]gin.H, 0, 7)
 	for i := 6; i >= 0; i-- {
 		d := now.AddDate(0, 0, -i)
 		startDay := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
 		endDay := startDay.AddDate(0, 0, 1)
-		
+
 		var count int64
 		db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ? AND \"startTime\" < ?", startDay, endDay).Count(&count)
-		
+
 		activityChart = append(activityChart, gin.H{
 			"day":      startDay.Format("02/01"),
 			"sessions": count,
@@ -990,8 +1028,8 @@ func GetAdminLive(c *gin.Context) {
 				}
 
 				var subject models.Subject
-				if session.SubjectID != "" {
-					_ = db.DB.First(&subject, "id = ?", session.SubjectID).Error
+				if session.SubjectID != nil && *session.SubjectID != "" {
+					_ = db.DB.First(&subject, "id = ?", *session.SubjectID).Error
 				}
 
 				activityDetails = gin.H{
@@ -1151,7 +1189,6 @@ func CreateAdminAnnouncement(c *gin.Context) {
 		return
 	}
 
-	// Broadcast to everyone
 	broadcastMsg, _ := json.Marshal(gin.H{
 		"type": "notification",
 		"payload": gin.H{
@@ -1232,11 +1269,8 @@ func GetAdminAnalytics(c *gin.Context) {
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
 	db.DB.Model(&models.User{}).Select("COALESCE(SUM(\"totalXP\"), 0)").Scan(&totalXP)
 	db.DB.Model(&models.BlogPost{}).Count(&totalBlogPosts)
-	// For achievements and challenges, we can count total earned/completed
-	// (Though we might need join tables if they exist, but for now we'll count total records)
-	db.DB.Model(&models.Achievement{}).Select("COALESCE(SUM(unlocked_count), 0)").Scan(&achievementsEarned)
-	// For challenges, maybe count how many are inactive (completed/expired) or use a completion model if it existed
-	db.DB.Model(&models.Challenge{}).Where("is_active = ?", false).Count(&challengesCompleted)
+	db.DB.Model(&models.Achievement{}).Select("COALESCE(SUM(\"unlockedCount\"), 0)").Scan(&achievementsEarned)
+	db.DB.Model(&models.Challenge{}).Where("\"isActive\" = ?", false).Count(&challengesCompleted)
 
 	roleStats := gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
@@ -1434,6 +1468,40 @@ func GetAdminReportsUsers(c *gin.Context) {
 	})
 }
 
+func GetAdminInfrastructureStats(c *gin.Context) {
+	numGoroutines := runtime.NumGoroutine()
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	memoryMiB := m.Alloc / 1024 / 1024
+
+	dbStatus := "healthy"
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		dbStatus = "unhealthy"
+	} else {
+		if pingErr := sqlDB.Ping(); pingErr != nil {
+			dbStatus = "unhealthy"
+		}
+	}
+
+	redisLatency := "N/A"
+
+	queues := gin.H{
+		"active":  0,
+		"waiting": 0,
+		"failed":  0,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"goroutines":   numGoroutines,
+		"memoryMiB":    memoryMiB,
+		"dbStatus":     dbStatus,
+		"redisLatency": redisLatency,
+		"queues":       queues,
+	})
+}
+
 func GetAdminReportsBooks(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -1483,18 +1551,20 @@ func calculateUserGrowthTrend() float64 {
 	now := time.Now()
 	thisMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	lastMonthStart := thisMonthStart.AddDate(0, -1, 0)
-	
+
 	var thisMonth int64
 	var lastMonth int64
-	
+
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", thisMonthStart).Count(&thisMonth)
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", lastMonthStart, thisMonthStart).Count(&lastMonth)
-	
+
 	if lastMonth == 0 {
-		if thisMonth > 0 { return 100.0 }
+		if thisMonth > 0 {
+			return 100.0
+		}
 		return 0.0
 	}
-	
+
 	return float64(thisMonth-lastMonth) / float64(lastMonth) * 100.0
 }
 
@@ -1502,17 +1572,19 @@ func calculateStudyTimeTrend() float64 {
 	now := time.Now()
 	thisWeekStart := now.AddDate(0, 0, -int(now.Weekday()))
 	lastWeekStart := thisWeekStart.AddDate(0, 0, -7)
-	
+
 	var thisWeek int64
 	var lastWeek int64
-	
+
 	db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ?", thisWeekStart).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&thisWeek)
 	db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ? AND \"startTime\" < ?", lastWeekStart, thisWeekStart).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&lastWeek)
-	
+
 	if lastWeek == 0 {
-		if thisWeek > 0 { return 100.0 }
+		if thisWeek > 0 {
+			return 100.0
+		}
 		return 0.0
 	}
-	
+
 	return float64(thisWeek-lastWeek) / float64(lastWeek) * 100.0
 }

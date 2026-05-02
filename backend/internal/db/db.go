@@ -211,6 +211,21 @@ func cleanLegacyData(db *gorm.DB) {
 	log.Println("Running Data Migration: Creating performance indexes...")
 	// Performance Index for Notifications
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_notifications_user_created ON "Notification" ("userId", "createdAt" DESC);`)
+	// Performance Index for User Search and Growth
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_users_created_at ON "User" ("createdAt");`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_users_status_updated ON "User" ("status", "updatedAt" DESC);`)
+	// Performance Index for Study Sessions
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_study_sessions_start_time ON "StudySession" ("startTime");`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_study_sessions_user_updated ON "StudySession" ("userId", "updatedAt" DESC);`)
+	// Performance Index for Exam Results
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_exam_results_taken_at ON "ExamResult" ("takenAt");`)
+	// Performance Indexes for Wallet & Financials
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_wallet_user_created ON "WalletTransaction" ("userId", "createdAt" DESC);`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_payments_user_status ON "Payment" ("userId", "status", "createdAt" DESC);`)
+	// Performance Indexes for Content
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_subjects_active_cat ON "Subject" ("isActive", "categoryId", "level");`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_topics_subject_order ON "Topic" ("subjectId", "order");`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_subtopics_topic_order ON "SubTopic" ("topicId", "order");`)
 }
 
 // Migrate runs database migrations using AutoMigrate (for development only)
@@ -237,6 +252,7 @@ func Migrate() error {
 		&models.ExamResult{},
 		&models.Payment{},
 		&models.Invoice{},
+		&models.WalletTransaction{},
 		&models.Enrollment{},
 		&models.LessonProgress{},
 		&models.Schedule{},
@@ -250,18 +266,24 @@ func Migrate() error {
 		&models.Reward{},
 		&models.Season{},
 		&models.Challenge{},
+		&models.UserAchievement{},
+		&models.UserChallenge{},
 		&models.Coupon{},
 		&models.Automation{},
 		&models.ABExperiment{},
 		&models.BlogPost{},
 		&models.ForumCategory{},
 		&models.ForumTopic{},
-		&models.Event{},
+		&models.LiveEvent{},
 		&models.Book{},
 		&models.AuditLog{},
 		&models.SystemSetting{},
 		&models.SubscriptionPlan{},
 		&models.UserSubscription{},
+		&models.AIConversation{},
+		&models.AIMessage{},
+		&models.Contest{},
+		&models.ContestQuestion{},
 	)
 }
 // Seed populates the database with initial data

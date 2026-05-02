@@ -21,7 +21,11 @@ type Notification struct {
 	Title     string           `gorm:"not null" json:"title"`
 	Message   string           `gorm:"not null;type:text" json:"message"`
 	Type      NotificationType `gorm:"default:'INFO';index" json:"type"`
+	Category  string           `gorm:"default:'GENERAL';index" json:"category"`
+	Priority  string           `gorm:"default:'MEDIUM';index" json:"priority"`
+	Icon      *string          `json:"icon"`
 	Link      *string          `json:"link"`
+	Actions   JSONStringArray  `gorm:"type:jsonb" json:"actions"` // Array of action buttons/links
 	IsRead    bool             `gorm:"default:false;index" json:"isRead"`
 	CreatedAt time.Time        `gorm:"index:idx_notifications_user_created,priority:2" json:"createdAt"`
 	UpdatedAt time.Time        `json:"updatedAt"`

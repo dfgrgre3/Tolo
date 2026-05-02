@@ -21,8 +21,9 @@ type Category struct {
 	Type        CategoryType `gorm:"default:'COURSE'" json:"type"`
 	Description *string      `json:"description"`
 	Icon        *string      `json:"icon"`
-	CreatedAt   time.Time    `json:"createdAt"`
-	UpdatedAt   time.Time    `json:"updatedAt"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Category) TableName() string {

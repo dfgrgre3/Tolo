@@ -65,12 +65,19 @@ func AdminCollection(modelType string) gin.HandlerFunc {
 
 		switch c.Request.Method {
 		case http.MethodGet:
-			// TODO: Implement database fetch for modelType when models are available
-			items := []gin.H{}
-			total := int64(0)
+			var total int64
+			var items interface{}
 			
-			// Placeholder for future implementation
-			// Example: if modelType == "resources" { query from DB }
+			// Fetch from database based on modelType
+			switch modelType {
+			case "resources":
+				var resources []models.SubTopic
+				db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&total)
+				db.DB.Where("type != ?", models.SubTopicQuiz).Limit(limit).Offset((page-1)*limit).Order("\"createdAt\" DESC").Find(&resources)
+				items = resources
+			default:
+				items = []interface{}{}
+			}
 			
 			pagination := gin.H{
 				"page":       page,
@@ -88,15 +95,10 @@ func AdminCollection(modelType string) gin.HandlerFunc {
 			})
 
 		case http.MethodPost, http.MethodPatch, http.MethodPut:
-			body := requestBodyOrEmpty(c)
-			if body["id"] == nil || body["id"] == "" {
-				body["id"] = uuid.NewString()
-			}
-			body["createdAt"] = time.Now()
-			api_response.Success(c, body)
+			api_response.Error(c, http.StatusNotImplemented, "POST/PUT not implemented for dynamic collections via this endpoint")
 
 		case http.MethodDelete:
-			api_response.Success(c, nil)
+			api_response.Error(c, http.StatusNotImplemented, "DELETE not implemented for dynamic collections via this endpoint")
 
 		default:
 			api_response.Error(c, http.StatusMethodNotAllowed, "Method not allowed")
@@ -339,17 +341,137 @@ func Marketing(c *gin.Context) {
 }
 
 func Contests(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
 	switch c.Request.Method {
 	case http.MethodGet:
-		api_response.Success(c, gin.H{"contests": []gin.H{}, "items": []gin.H{}})
-	case http.MethodPost, http.MethodPatch, http.MethodPut:
-		body := requestBodyOrEmpty(c)
-		if body["id"] == nil || body["id"] == "" {
-			body["id"] = uuid.NewString()
+		var contests []models.Contest
+		var total int64
+		
+		db.DB.Model(&models.Contest{}).Count(&total)
+		if err := db.DB.Limit(limit).Offset((page-1)*limit).Order("\"createdAt\" DESC").Find(&contests).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch contests")
+			return
 		}
-		api_response.Success(c, body)
-	case http.MethodDelete:
+		
+		items := make([]gin.H, 0, len(contests))
+		for _, contest := range contests {
+			items = append(items, gin.H{
+				"id":                contest.ID,
+				"title":             contest.Title,
+				"description":       contest.Description,
+				"category":          contest.Category,
+				"questionsCount":    contest.QuestionsCount,
+				"participantsCount": contest.ParticipantsCount,
+				"pinCode":           contest.PinCode,
+				"status":            contest.Status,
+				"createdAt":         contest.CreatedAt,
+			})
+		}
+		
+		pagination := gin.H{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		}
+		
+		api_response.Success(c, gin.H{
+			"contests": items,
+			"items":    items,
+			"data":     gin.H{"contests": items, "items": items, "pagination": pagination},
+			"pagination": pagination,
+			"stats":    gin.H{},
+		})
+
+	case http.MethodPost:
+		var input struct {
+			Title       string  `json:"title" binding:"required"`
+			Description *string `json:"description"`
+			Category    *string `json:"category"`
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			api_response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		
+		contest := models.Contest{
+			Title:       input.Title,
+			Description: input.Description,
+			Category:    input.Category,
+			Status:      "DRAFT",
+		}
+		
+		if err := db.DB.Create(&contest).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to create contest")
+			return
+		}
+		
+		LogAudit(c, "CREATE", "contest", contest.ID, contest)
+		api_response.Created(c, contest)
+
+	case http.MethodPatch:
+		id := c.Param("id")
+		var input struct {
+			Title       *string `json:"title"`
+			Description *string `json:"description"`
+			Category    *string `json:"category"`
+			Status      *string `json:"status"`
+			PinCode     *string `json:"pinCode"`
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			api_response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		
+		var contest models.Contest
+		if err := db.DB.First(&contest, "id = ?", id).Error; err != nil {
+			api_response.Error(c, http.StatusNotFound, "Contest not found")
+			return
+		}
+		
+		updates := make(map[string]interface{})
+		if input.Title != nil {
+			updates["title"] = *input.Title
+		}
+		if input.Description != nil {
+			updates["description"] = input.Description
+		}
+		if input.Category != nil {
+			updates["category"] = input.Category
+		}
+		if input.Status != nil {
+			updates["status"] = *input.Status
+		}
+		if input.PinCode != nil {
+			updates["pinCode"] = input.PinCode
+		}
+		
+		if err := db.DB.Model(&contest).Updates(updates).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to update contest")
+			return
+		}
+		
+		LogAudit(c, "UPDATE", "contest", id, updates)
 		api_response.Success(c, nil)
+
+	case http.MethodDelete:
+		id := c.Param("id")
+		if err := db.DB.Delete(&models.Contest{}, "id = ?", id).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to delete contest")
+			return
+		}
+		
+		LogAudit(c, "DELETE", "contest", id, nil)
+		api_response.Success(c, nil)
+
 	default:
 		api_response.Error(c, http.StatusMethodNotAllowed, "Method not allowed")
 	}

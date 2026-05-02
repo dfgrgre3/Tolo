@@ -35,6 +35,7 @@ func ConnectRedis(url string) {
 
 	if err := Redis.Ping(ctx).Err(); err != nil {
 		log.Printf("Failed to connect to Redis: %v", err)
+		Redis = nil
 		return
 	}
 

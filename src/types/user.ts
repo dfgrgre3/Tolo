@@ -1,4 +1,4 @@
-﻿import { UserRole, UserStatus } from './enums';
+import { UserRole, UserStatus } from './enums';
 
 export interface User {
     id: string;
@@ -15,20 +15,29 @@ export interface User {
     updatedAt: Date | string;
     lastLogin?: Date | string | null;
     twoFactorEnabled: boolean;
-    biometricEnabled: boolean;
 
-    // Gamification
+    // Billing & Subscriptions
+    balance: number;
+    aiCredits: number;
+    examCredits: number;
+    activeSubscriptionId?: string | null;
+    subscriptionExpiresAt?: Date | string | null;
+
+    // Access Control
+    permissions: string[];
+
+    // Gamification (core)
     totalXP: number;
     level: number;
+
+    // Gamification (stats)
     currentStreak: number;
     longestStreak: number;
     totalStudyTime: number;
     tasksCompleted: number;
     examsPassed: number;
-    pomodoroSessions: number;
-    deepWorkSessions: number;
 
-    // Multi-layer points system
+    // Multi-layer XP system
     studyXP: number;
     taskXP: number;
     examXP: number;

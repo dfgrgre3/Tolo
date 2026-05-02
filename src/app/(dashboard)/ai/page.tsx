@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from 'react';
 import {
@@ -25,6 +25,9 @@ import AIAssistant from './components/AIAssistant';
 import ExamGenerator from './components/ExamGenerator';
 import TeacherSearch from './components/TeacherSearch';
 import TipsGenerator from './components/TipsGenerator';
+import StudyPlanner from './features/StudyPlanner';
+import LessonSummarizer from './features/LessonSummarizer';
+import EssayGrader from './features/EssayGrader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -91,6 +94,9 @@ export default function AILearningPage() {
               {[
             { id: 'assistant', label: 'المساعد الذكي', icon: Bot, desc: 'حوار مباشر' },
             { id: 'exam', label: 'منشئ الامتحانات', icon: FileText, desc: 'اختبارات قتالية' },
+            { id: 'planner', label: 'مخطط المذاكرة', icon: Compass, desc: 'جدول ذكي' },
+            { id: 'summarizer', label: 'الملخص الذكي', icon: Scroll, desc: 'تبسيط الدروس' },
+            { id: 'grader', label: 'مصحح التعبير', icon: Sparkles, desc: 'تقييم لغوي' },
             { id: 'teachers', label: 'البحث عن معلمين', icon: Search, desc: 'رفقاء الرحلة' },
             { id: 'tips', label: 'نصائح النمو', icon: Lightbulb, desc: 'استراتيجيات' }].
             map((tab) => {
@@ -159,6 +165,24 @@ export default function AILearningPage() {
                  <TabsContent value="exam" className="mt-0 outline-none">
                     <div className={STYLES.glass + " p-0"}>
                        <ExamGenerator subjects={subjects} years={years} className="w-full" />
+                    </div>
+                 </TabsContent>
+
+                 <TabsContent value="planner" className="mt-0 outline-none">
+                    <div className={STYLES.glass + " p-0"}>
+                       <StudyPlanner />
+                    </div>
+                 </TabsContent>
+
+                 <TabsContent value="summarizer" className="mt-0 outline-none">
+                    <div className={STYLES.glass + " p-0"}>
+                       <LessonSummarizer />
+                    </div>
+                 </TabsContent>
+
+                 <TabsContent value="grader" className="mt-0 outline-none">
+                    <div className={STYLES.glass + " p-0"}>
+                       <EssayGrader />
                     </div>
                  </TabsContent>
 

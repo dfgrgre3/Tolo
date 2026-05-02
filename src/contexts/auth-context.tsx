@@ -116,7 +116,13 @@ export function AuthProvider({
     refreshPromise.current = (async () => {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeout = setTimeout(() => {
+          try {
+            controller.abort('timeout');
+          } catch (e) {
+            controller.abort();
+          }
+        }, 10000); // 10s timeout
 
         const response = await fetch(apiRoutes.auth.refresh, {
           method: 'POST',
@@ -126,7 +132,10 @@ export function AuthProvider({
 
         clearTimeout(timeout);
         return response.ok;
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          logger.warn('refreshToken timed out');
+        }
         return false;
       } finally {
         isRefreshing.current = false;
@@ -185,66 +194,120 @@ export function AuthProvider({
   const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
     const clearOnFailure = options?.clearOnFailure ?? true;
 
-    try {
-      // Priority: if we're already refreshing tokens, wait for that first
-      if (isRefreshing.current && refreshPromise.current) {
-        await refreshPromise.current;
-      }
+    // Deduplicate concurrent user refresh calls to prevent hammering the server
+    // and overlapping timeouts.
+    if (_userFetchPromise.current) {
+      return _userFetchPromise.current;
+    }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+    _userFetchPromise.current = (async () => {
+      try {
+        // Priority: if we're already refreshing tokens, wait for that first
+        if (isRefreshing.current && refreshPromise.current) {
+          try {
+            await refreshPromise.current;
+          } catch (e) {
+            // Ignore refresh promise errors here as we'll handle failure in the fetch
+          }
+        }
 
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-        signal: controller.signal
-      });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+          try {
+            controller.abort('timeout');
+          } catch (e) {
+            // Fallback for environments where abort() doesn't accept a reason
+            controller.abort();
+          }
+        }, 10000);
 
-      // If it returns 401, it might be because the access token is expired
-      // but the server-side /api/auth/me didn't auto-refresh (or failed).
-      // We should try one explicit refresh if we haven't already.
-      if (response.status === 401) {
-        clearTimeout(timeout);
-        const refreshed = await refreshToken();
-        if (refreshed) {
-          // Retry getting user with new tokens
-          const retryController = new AbortController();
-          const retryTimeout = setTimeout(() => retryController.abort(), 10000);
-
-          const retryResponse = await fetch('/api/auth/me', {
+        try {
+          const response = await fetch('/api/auth/me', {
             credentials: 'include',
             cache: 'no-store',
-            signal: retryController.signal
+            signal: controller.signal
           });
 
-          clearTimeout(retryTimeout);
-          if (retryResponse.ok) {
-            const data = await retryResponse.json();
+          // If it returns 401, it might be because the access token is expired
+          // but the server-side /api/auth/me didn't auto-refresh (or failed).
+          // We should try one explicit refresh if we haven't already.
+          if (response.status === 401) {
+            clearTimeout(timeout);
+            const refreshed = await refreshToken();
+            if (refreshed) {
+              // Retry getting user with new tokens
+              const retryController = new AbortController();
+              const retryTimeout = setTimeout(() => {
+                try {
+                  retryController.abort('timeout');
+                } catch (e) {
+                  retryController.abort();
+                }
+              }, 10000);
+
+              try {
+                const retryResponse = await fetch('/api/auth/me', {
+                  credentials: 'include',
+                  cache: 'no-store',
+                  signal: retryController.signal
+                });
+
+                clearTimeout(retryTimeout);
+                if (retryResponse.ok) {
+                  const data = await retryResponse.json();
+                  setUser(data.user);
+                  return true;
+                }
+              } catch (retryError) {
+                clearTimeout(retryTimeout);
+                if (retryError instanceof Error && retryError.name === 'AbortError') {
+                  logger.warn('refreshUser retry timed out');
+                } else {
+                  throw retryError;
+                }
+              }
+            }
+          } else if (response.ok) {
+            clearTimeout(timeout);
+            const data = await response.json();
             setUser(data.user);
             return true;
           }
-        }
-      } else if (response.ok) {
-        clearTimeout(timeout);
-        const data = await response.json();
-        setUser(data.user);
-        return true;
-      }
 
-      clearTimeout(timeout);
-      if (clearOnFailure) {
-        setUser(null);
-        clearUserId();
+          clearTimeout(timeout);
+          if (clearOnFailure) {
+            setUser(null);
+            clearUserId();
+          }
+          return false;
+        } catch (fetchError) {
+          clearTimeout(timeout);
+          
+          // Handle timeout/abort specifically to avoid noisy error logs for known timeouts
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            logger.warn('refreshUser fetch timed out or was aborted');
+            if (clearOnFailure) {
+              setUser(null);
+              clearUserId();
+            }
+            return false;
+          }
+          
+          throw fetchError;
+        }
+      } catch (error) {
+        logger.error('refreshUser error:', error);
+        if (clearOnFailure) {
+          setUser(null);
+          clearUserId();
+        }
+        return false;
+      } finally {
+        _userFetchPromise.current = null;
       }
-      return false;
-    } catch (error) {
-      logger.error('refreshUser error:', error);
-      if (clearOnFailure) {
-        setUser(null);
-        clearUserId();
-      }
-      return false;
-    }
+    })();
+
+    return _userFetchPromise.current;
   }, [refreshToken, setUser]);
 
   /**

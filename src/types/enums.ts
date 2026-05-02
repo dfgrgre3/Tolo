@@ -1,4 +1,4 @@
-﻿export enum SubjectType {
+export enum SubjectType {
     MATH = 'MATH',
     PHYSICS = 'PHYSICS',
     CHEMISTRY = 'CHEMISTRY',
@@ -6,7 +6,7 @@
     ENGLISH = 'ENGLISH'
 }
 
-enum ExamType {
+export enum ExamType {
     FINAL = 'FINAL',
     MIDTERM = 'MIDTERM',
     QUIZ = 'QUIZ',
@@ -14,7 +14,7 @@ enum ExamType {
     OTHER = 'OTHER'
 }
 
-enum FocusStrategy {
+export enum FocusStrategy {
     POMODORO = 'POMODORO',
     EIGHTY_TWENTY = 'EIGHTY_TWENTY',
     DEEP_WORK = 'DEEP_WORK',
@@ -30,7 +30,6 @@ export enum TaskStatus {
 }
 
 export enum UserRole {
-    USER = 'USER',
     STUDENT = 'STUDENT',
     ADMIN = 'ADMIN',
     TEACHER = 'TEACHER',
@@ -44,21 +43,21 @@ export enum UserStatus {
     DELETED = 'DELETED',
 }
 
-enum Difficulty {
+export enum Difficulty {
   EASY = 'EASY',
   MEDIUM = 'MEDIUM',
   HARD = 'HARD',
   EXPERT = 'EXPERT',
 }
 
-enum NotificationType {
+export enum NotificationType {
   INFO = 'INFO',
   SUCCESS = 'SUCCESS',
   WARNING = 'WARNING',
   ERROR = 'ERROR',
 }
 
-enum LessonType {
+export enum LessonType {
   VIDEO = 'VIDEO',
   ARTICLE = 'ARTICLE',
   QUIZ = 'QUIZ',
@@ -66,7 +65,7 @@ enum LessonType {
   ASSIGNMENT = 'ASSIGNMENT',
 }
 
-enum AchievementCategory {
+export enum AchievementCategory {
   STUDY = 'STUDY',
   TASKS = 'TASKS',
   EXAMS = 'EXAMS',
@@ -74,35 +73,34 @@ enum AchievementCategory {
   STREAK = 'STREAK',
 }
 
-enum DiscountType {
+export enum DiscountType {
   PERCENTAGE = 'PERCENTAGE',
   FIXED = 'FIXED',
 }
 
-enum CategoryType {
+export enum CategoryType {
   BLOG = 'BLOG',
-  FORUM = 'FORUM',
   COURSE = 'COURSE',
+  LIBRARY = 'LIBRARY',
 }
 
-enum AddonType {
+export enum AddonType {
   EXAM_PACK = 'EXAM_PACK',
   AI_CREDITS = 'AI_CREDITS',
   TEACHER_HOURS = 'TEACHER_HOURS',
   OTHER = 'OTHER',
 }
 
-enum SubscriptionStatus {
+export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
-  GRACE_PERIOD = 'GRACE_PERIOD',
+  EXPIRED = 'EXPIRED',
+  PENDING = 'PENDING',
 }
 
-enum PaymentStatus {
+export enum PaymentStatus {
   PENDING = 'PENDING',
-  SUCCESS = 'SUCCESS',
+  COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   REFUNDED = 'REFUNDED',
 }

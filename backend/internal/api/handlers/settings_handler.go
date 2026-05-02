@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 
@@ -90,20 +91,20 @@ func GetSettings(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"preferences": settings})
+	api_response.Success(c, gin.H{"settings": settings})
 }
 
 // UpdateSettings updates user settings/preferences
 func UpdateSettings(c *gin.Context) {
 	userID, exists := c.Get("userId")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		api_response.Error(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	var patch map[string]interface{}
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -263,10 +264,10 @@ func UpdateSettings(c *gin.Context) {
 		settings.VibrationEnabled = v
 	}
 
-	if err := db.DB.Save(&settings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update settings"})
-		return
-	}
+		if err := db.DB.Save(&settings).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
+			return
+		}
 
-	c.JSON(http.StatusOK, gin.H{"preferences": settings})
-}
+		api_response.Success(c, gin.H{"settings": settings})
+	}

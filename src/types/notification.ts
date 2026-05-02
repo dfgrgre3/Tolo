@@ -1,35 +1,38 @@
-﻿import { DateString } from './api/common';
+import { DateString } from './api/common';
+import { NotificationType } from './enums';
 
-type UINotificationType = 'info' | 'success' | 'warning' | 'error';
+export interface NotificationAction {
+  label: string;
+  action: string;
+  url?: string;
+}
 
 export interface Notification {
   id: string;
+  userId: string;
   title: string;
   message: string;
-  type: UINotificationType;
+  type: NotificationType;
+  category: string;
+  priority: 'low' | 'medium' | 'high' | 'LOW' | 'MEDIUM' | 'HIGH';
+  icon?: string | null;
+  link?: string | null;
+  actions?: NotificationAction[] | string[] | null;
   isRead: boolean;
-  actionUrl?: string;
-  link?: string;
-  category?: string;
-  priority?: 'low' | 'medium' | 'high';
-  actions?: Array<{ label: string; action: string; url?: string }>;
-  icon?: string;
   createdAt: DateString;
-  time?: string;
+  updatedAt?: DateString;
 }
 
-interface NotificationTemplate {
+export interface NotificationTemplate {
   title: string;
   message: string;
-  type: UINotificationType;
-  actionUrl?: string;
+  type: NotificationType;
   icon?: string;
 }
 
-interface NotificationPayload {
+export interface NotificationPayload {
   title: string;
   message: string;
-  type: UINotificationType;
-  actionUrl?: string;
+  type: NotificationType;
   icon?: string;
 }

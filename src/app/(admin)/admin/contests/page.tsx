@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { logger } from '@/lib/logger';
+import { adminFetch } from '@/lib/api/admin-api';
 
 // Types
 interface ContestQuestion {
@@ -66,9 +67,12 @@ export default function ContestsPage() {
     const fetchContests = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/contests");
-        const data = await res.json();
-        setContests(Array.isArray(data) ? data : []);
+        const res = await adminFetch("/contests");
+        const json = await res.json();
+        // Response format: { success: true, contests: [], items: [], data: { contests: [], ... } }
+        const data = json.data || json;
+        const contestsArray = data.contests || data.items || [];
+        setContests(Array.isArray(contestsArray) ? contestsArray : []);
       } catch (error) {
         logger.error("Failed to fetch contests", error as Error);
       } finally {

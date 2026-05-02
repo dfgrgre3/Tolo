@@ -43,7 +43,6 @@ interface Transaction {
   id: string;
   amount: number;
   type: string;
-  status: string;
   description: string;
   createdAt: string;
 }
@@ -487,8 +486,8 @@ export default function WalletDashboard() {
                                   <h3 className={`text-2xl font-black ${tx.amount > 0 ? "text-emerald-500" : "text-rose-500"}`}>
                                     {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString()} <span className="text-sm">ج.م</span>
                                   </h3>
-                                  <div className={`text-[9px] font-black px-3 py-1 rounded-full border ${statusMap[tx.status]?.color || "text-gray-500"}`}>
-                                    {statusMap[tx.status]?.label || tx.status}
+                                  <div className={`text-[9px] font-black px-3 py-1 rounded-full border ${tx.amount > 0 ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" : "text-rose-500 bg-rose-500/10 border-rose-500/20"}`}>
+                                    {tx.amount > 0 ? "مكتمل" : "تم الخصم"}
                                   </div>
                                 </div>
                               </m.div>);

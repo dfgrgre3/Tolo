@@ -54,7 +54,7 @@ func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 		}
 
 		// Hit Database
-		err := r.db.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error
+		err := r.db.Preload("Topics.SubTopics.Attachments").First(&subject, "id = ?", id).Error
 		if err == nil && db.Redis != nil {
 			r.cacheSubject(&subject)
 		}
@@ -71,7 +71,7 @@ func (r *SubjectRepository) FindAll(filters map[string]interface{}) ([]models.Su
 	// For lists, we might not want to cache the entire result set in a single key
 	// because filters vary wildly. But we can cache individual subjects.
 	var subjects []models.Subject
-	query := r.db.Model(&models.Subject{}).Preload("Topics")
+	query := r.db.Model(&models.Subject{}).Preload("Topics.SubTopics.Attachments")
 
 	for k, v := range filters {
 		// Only allow whitelisted filter keys to prevent SQL injection
@@ -118,4 +118,12 @@ func (r *SubjectRepository) cacheSubject(subject *models.Subject) {
 	data, _ := json.Marshal(subject)
 	ctx := context.Background()
 	db.Redis.Set(ctx, fmt.Sprintf("%sid:%s", SubjectCachePrefix, subject.ID), data, SubjectCacheTTL)
+}
+
+// InvalidateSubjectCache clears the cached subject data when its relations (Topics, SubTopics) are updated
+func (r *SubjectRepository) InvalidateSubjectCache(id string) {
+	if db.Redis != nil {
+		ctx := context.Background()
+		db.Redis.Del(ctx, fmt.Sprintf("%sid:%s", SubjectCachePrefix, id))
+	}
 }

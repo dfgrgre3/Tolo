@@ -1,6 +1,4 @@
-type AchievementCategory = 'study' | 'tasks' | 'exams' | 'time' | 'streak' | 'general';
-type AchievementDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
-type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
+import { AchievementCategory as Category, Difficulty } from './enums';
 
 export interface ProgressSummary {
   totalMinutes: number;
@@ -15,8 +13,8 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string;
-  category: AchievementCategory;
-  difficulty: AchievementDifficulty;
+  category: Category;
+  difficulty: Difficulty;
   xpReward: number;
   requirements: Record<string, unknown>;
   isSecret?: boolean;
@@ -24,7 +22,7 @@ export interface Achievement {
   earnedAt?: string | null;
   progress?: number;
   maxProgress?: number;
-  rarity?: AchievementRarity;
+  rarity?: 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
 }
 
 export interface UserProgress {

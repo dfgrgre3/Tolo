@@ -350,39 +350,6 @@ func AdminCreateForumCategory(c *gin.Context) {
 	api_response.Created(c, item)
 }
 
-// Events
-func AdminGetEvents(c *gin.Context) {
-	var events []models.Event
-	listItems(c, &events, "events", "Subject")
-}
-
-func AdminCreateEvent(c *gin.Context) {
-	var item models.Event
-	if err := c.ShouldBindJSON(&item); err != nil {
-		api_response.Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	db.DB.Create(&item)
-	api_response.Created(c, item)
-}
-
-func AdminUpdateEvent(c *gin.Context) {
-	id := c.Param("id")
-	var item models.Event
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Event not found")
-		return
-	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
-}
-
-func AdminDeleteEvent(c *gin.Context) {
-	db.DB.Delete(&models.Event{}, "id = ?", c.Param("id"))
-	api_response.Success(c, nil)
-}
-
 // AB Testing
 func AdminGetABTests(c *gin.Context) {
 	var tests []models.ABExperiment
@@ -403,7 +370,10 @@ func AdminCreateBook(c *gin.Context) {
 		book.Title = c.PostForm("title")
 		book.Author = c.PostForm("author")
 		book.Description = c.PostForm("description")
-		book.SubjectID = c.PostForm("subjectId")
+		subjectId := c.PostForm("subjectId")
+		if subjectId != "" {
+			book.SubjectID = &subjectId
+		}
 		
 		price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
 		book.Price = price

@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
-	"fmt"
+	"time"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -221,11 +222,13 @@ func SubmitExam(c *gin.Context) {
 	passed := score >= (exam.MaxScore * 0.5)
 
 	// 5. Save result
+	answersJSON, _ := json.Marshal(submission.Answers)
 	result := models.ExamResult{
 		UserID:  userId.(string),
 		ExamID:  examId,
 		Score:   score,
 		Passed:  passed,
+		Answers: string(answersJSON),
 		TakenAt: time.Now(),
 	}
 
@@ -240,4 +243,24 @@ func SubmitExam(c *gin.Context) {
 	GlobalNotifyAdmins("اكتمال اختبار", fmt.Sprintf("أكمل المستخدم اختبار %s بنتيجة %.1f (%s)", exam.Title, score, statusStr), "info")
 
 	c.JSON(http.StatusOK, result)
+}
+
+func GetExamResults(c *gin.Context) {
+	userId := c.Query("userId")
+	if userId == "" {
+		val, exists := c.Get("userId")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+		userId = val.(string)
+	}
+
+	var results []models.ExamResult
+	if err := db.DB.Preload("Exam.Subject").Preload("Exam.Questions").Where("\"userId\" = ?", userId).Order("\"takenAt\" desc").Find(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch results"})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
 }

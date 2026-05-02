@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -56,8 +57,9 @@ type Subject struct {
 	Type                string      `gorm:"default:'COURSE'" json:"type"`
 	LastContentUpdate   *time.Time  `json:"lastContentUpdate"`
 
-	CreatedAt time.Time `gorm:"index" json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Topics      []Topic      `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"topics,omitempty"`
@@ -70,8 +72,9 @@ type Topic struct {
 	Title       string    `gorm:"default:'';index" json:"title"`
 	Description *string   `json:"description"`
 	Order       int       `gorm:"default:0;index" json:"order"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	SubTopics []SubTopic `gorm:"foreignKey:TopicID;constraint:OnDelete:CASCADE" json:"subTopics,omitempty"`
@@ -98,8 +101,9 @@ type SubTopic struct {
 	Order           int          `gorm:"default:0;index" json:"order"`
 	DurationMinutes int          `gorm:"default:0" json:"durationMinutes"`
 	IsFree          bool         `gorm:"default:false;index" json:"isFree"`
-	CreatedAt       time.Time    `json:"createdAt"`
-	UpdatedAt       time.Time    `json:"updatedAt"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Attachments []LessonAttachment `gorm:"foreignKey:SubTopicID;constraint:OnDelete:CASCADE" json:"attachments,omitempty"`
@@ -113,18 +117,20 @@ type LessonAttachment struct {
 	FileUrl    string    `gorm:"not null" json:"fileUrl"`
 	FileType   string    `json:"fileType"` // PDF, ZIP, etc.
 	FileSize   int64     `json:"fileSize"`
-	CreatedAt  time.Time `json:"createdAt"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type CourseReview struct {
 	ID        string    `gorm:"primaryKey;type:text" json:"id"`
-	SubjectID string    `gorm:"not null;index;type:text;constraint:OnDelete:CASCADE" json:"subjectId"`
-	UserID    string    `gorm:"not null;index;type:text;constraint:OnDelete:CASCADE" json:"userId"`
+	SubjectID string    `gorm:"not null;index:idx_user_subject_review,unique;type:text;constraint:OnDelete:CASCADE" json:"subjectId"`
+	UserID    string    `gorm:"not null;index:idx_user_subject_review,unique;type:text;constraint:OnDelete:CASCADE" json:"userId"`
 	Rating    int       `gorm:"not null;default:5" json:"rating"`
 	Comment   string    `gorm:"type:text" json:"comment"`
 	IsVisible bool      `gorm:"default:true" json:"isVisible"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	User User `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -234,9 +240,24 @@ func (a *StringArray) Scan(value interface{}) error {
 	}
 }
 
-func (a StringArray) Value() (interface{}, error) {
-	if a == nil {
-		return nil, nil
+func (a StringArray) Value() (driver.Value, error) {
+	if a == nil || len(a) == 0 {
+		return "{}", nil
 	}
-	return json.Marshal(a)
+	
+	// Format as PostgreSQL array: {"val1","val2"}
+	var sb strings.Builder
+	sb.WriteString("{")
+	for i, v := range a {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		v = strings.ReplaceAll(v, `\`, `\\`)
+		v = strings.ReplaceAll(v, `"`, `\"`)
+		sb.WriteString(`"`)
+		sb.WriteString(v)
+		sb.WriteString(`"`)
+	}
+	sb.WriteString("}")
+	return sb.String(), nil
 }

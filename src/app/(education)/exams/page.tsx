@@ -30,6 +30,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import MistakeExplainer from "./components/MistakeExplainer";
+
+interface Question {
+   id: string;
+   text: string;
+   answer?: string;
+   options?: string;
+}
 
 interface Exam {
    id: string;
@@ -38,6 +46,7 @@ interface Exam {
    year: number;
    url: string;
    type?: string;
+   questions?: Question[];
 }
 
 interface ExamsResponse {
@@ -48,6 +57,7 @@ interface ExamResult {
    id: string;
    score: number;
    takenAt: string;
+   answers: string; // JSON
    exam: Exam;
 }
 
@@ -69,6 +79,8 @@ export default function ExamsPage() {
    const [takenAt, setTakenAt] = useState("");
    const [isLoading, setIsLoading] = useState(true);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   const [expandedResult, setExpandedResult] = useState<string | null>(null);
+   const [activeMistake, setActiveMistake] = useState<{questionId: string, userAnswer: string} | null>(null);
    const [, ,] = useState<string | null>(null);
 
    useEffect(() => {

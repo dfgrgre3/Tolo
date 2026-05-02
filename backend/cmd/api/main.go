@@ -143,16 +143,25 @@ func main() {
 
 		// Public Exam routes (read-only)
 		api.GET("/exams", handlers.GetExams)
+		api.GET("/exams/results", handlers.GetExamResults)
 
 		// Activity routes moved to protected group
 
 		// AI routes
 		ai := api.Group("/ai")
+		ai.Use(middleware.Auth())
 		{
 			ai.POST("/exam", handlers.AIExamProxy)
 			ai.POST("/suggest", handlers.AISuggestProxy)
 			ai.POST("/chat", handlers.AIChatProxy)
 			ai.POST("/tips", handlers.AITipsProxy)
+			ai.GET("/conversations", handlers.GetConversations)
+			ai.GET("/conversation/:id", handlers.GetConversation)
+			ai.DELETE("/conversation/:id", handlers.DeleteConversation)
+			ai.POST("/explain-mistake", handlers.ExplainMistakeProxy)
+			ai.POST("/study-planner", handlers.GenerateStudyPlanProxy)
+			ai.POST("/summarize", handlers.SummarizeLessonProxy)
+			ai.POST("/grade-essay", handlers.GradeEssayProxy)
 			ai.GET("/recommendations", handlers.GetAIRecommendations)
 			ai.POST("/recommendations/track", handlers.TrackAIRecommendation)
 		}
@@ -221,10 +230,15 @@ func main() {
 			// Billing & Subscriptions
 			protected.GET("/billing/wallet", handlers.GetWalletBalance)
 			protected.POST("/billing/wallet", handlers.HandleWalletDeposit)
+			protected.GET("/billing/wallet/transactions", handlers.GetUserWalletTransactions)
 			protected.GET("/subscriptions/plans", handlers.GetSubscriptionPlans)
+			protected.GET("/subscriptions", handlers.GetUserSubscription)
 			protected.GET("/subscriptions/addons", handlers.GetSubscriptionAddons)
 			protected.POST("/subscriptions/addons", handlers.PurchaseAddon)
-			protected.POST("/subscriptions/checkout", handlers.SubscriptionCheckout)
+			protected.POST("/subscriptions/purchase", handlers.PurchasePlan)
+			protected.POST("/subscriptions/initiate-payment", handlers.InitiatePlanPayment)
+			protected.POST("/subscriptions/cancel", handlers.CancelSubscription)
+			protected.POST("/subscriptions/renew", handlers.RenewSubscription)
 			protected.POST("/coupons/validate", handlers.ValidateCoupon)
 
 			// User Subjects
@@ -287,6 +301,11 @@ func main() {
 				admin.PATCH("/users/:id", middleware.PermissionRequired(models.PermUsersManage), handlers.UpdateUser)
 				admin.DELETE("/users", middleware.PermissionRequired(models.PermUsersManage), handlers.DeleteUser)
 				admin.DELETE("/users/:id", middleware.PermissionRequired(models.PermUsersManage), handlers.DeleteUser)
+				
+				// Wallet Management
+				admin.GET("/users/:id/wallet/transactions", middleware.PermissionRequired(models.PermUsersView), handlers.GetUserWalletTransactions)
+				admin.POST("/users/wallet", middleware.PermissionRequired(models.PermUsersManage), handlers.ProcessWalletTransaction)
+
 				admin.POST("/impersonate", handlers.ImpersonateUser)
 				admin.DELETE("/impersonate", handlers.DeleteImpersonation)
 				admin.POST("/users/bulk-send-message", handlers.AdminBulkSendMessage)
@@ -336,14 +355,20 @@ func main() {
 				admin.DELETE("/exams", middleware.PermissionRequired(models.PermExamsManage), handlers.DeleteExam)
 				admin.POST("/exams/bulk", middleware.PermissionRequired(models.PermExamsManage), handlers.AdminExamsBulkUpload)
 
-				// Admin Payments & Revenue
-				admin.GET("/payments", handlers.GetAdminPayments)
-				admin.GET("/analytics/revenue", handlers.GetAdminRevenue)
+			// Admin Payments & Revenue
+			admin.GET("/payments", handlers.GetAdminPayments)
+			admin.GET("/analytics/revenue", handlers.GetAdminRevenue)
 
-				// Compatibility endpoints used by the admin frontend. These routes keep
-				// pages reachable while each feature graduates to a dedicated data model.
-				// Admin Gamification
-				admin.GET("/achievements", middleware.PermissionRequired(models.PermAchievementsView), handlers.AdminGetAchievements)
+			// Admin Contests
+			admin.GET("/contests", middleware.PermissionRequired(models.PermContestsView), handlers.Contests)
+			admin.POST("/contests", middleware.PermissionRequired(models.PermContestsManage), handlers.Contests)
+			admin.PATCH("/contests/:id", middleware.PermissionRequired(models.PermContestsManage), handlers.Contests)
+			admin.DELETE("/contests/:id", middleware.PermissionRequired(models.PermContestsManage), handlers.Contests)
+
+			// Compatibility endpoints used by the admin frontend. These routes keep
+			// pages reachable while each feature graduates to a dedicated data model.
+			// Admin Gamification
+			admin.GET("/achievements", middleware.PermissionRequired(models.PermAchievementsView), handlers.AdminGetAchievements)
 				admin.POST("/achievements", middleware.PermissionRequired(models.PermAchievementsManage), handlers.AdminCreateAchievement)
 				admin.PATCH("/achievements/:id", middleware.PermissionRequired(models.PermAchievementsManage), handlers.AdminUpdateAchievement)
 				admin.DELETE("/achievements/:id", middleware.PermissionRequired(models.PermAchievementsManage), handlers.AdminDeleteAchievement)
@@ -377,11 +402,6 @@ func main() {
 				admin.GET("/forum", middleware.PermissionRequired(models.PermForumView), handlers.AdminGetForum)
 				admin.GET("/forum-categories", middleware.PermissionRequired(models.PermForumView), handlers.AdminGetForumCategories)
 				admin.POST("/forum-categories", middleware.PermissionRequired(models.PermForumManage), handlers.AdminCreateForumCategory)
-				
-				admin.GET("/events", middleware.PermissionRequired(models.PermEventsView), handlers.AdminGetEvents)
-				admin.POST("/events", middleware.PermissionRequired(models.PermEventsManage), handlers.AdminCreateEvent)
-				admin.PATCH("/events/:id", middleware.PermissionRequired(models.PermEventsManage), handlers.AdminUpdateEvent)
-				admin.DELETE("/events/:id", middleware.PermissionRequired(models.PermEventsManage), handlers.AdminDeleteEvent)
 				
 				admin.GET("/automations", middleware.PermissionRequired(models.PermAdminBypass), handlers.AdminGetAutomations) // No specific perm yet
 				

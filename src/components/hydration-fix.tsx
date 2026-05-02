@@ -8,64 +8,53 @@ import { useEffect, useCallback } from "react";
  */
 export function HydrationFix() {
   const cleanElements = useCallback(() => {
-    // استهداف السمات المعروفة التي تسبب مشاكل فقط بدلاً من مسح كل شيء
-    const selectors = [
-    '[bis_skin_checked]',
-    '[bis_register]',
-    '[data-gr-ext-installed]',
-    '[data-new-gr-c-s-check-loaded]',
-    '[data-lastpass-icon]',
-    '[data-dashlane-rid]',
-    '[__processed_id]',
-    '[style*="--processed"]'];
-
+    // Only target elements that are known to cause hydration issues with common extensions
+    const attributesToRemove = [
+      'bis_skin_checked',
+      'bis_register',
+      'data-gr-ext-installed',
+      'data-new-gr-c-s-check-loaded',
+      'data-lastpass-icon',
+      'data-dashlane-rid'
+    ];
 
     try {
-      const elements = document.querySelectorAll(selectors.join(','));
+      const selectors = attributesToRemove.map(attr => `[${attr}]`).join(',');
+      const elements = document.querySelectorAll(selectors);
 
       elements.forEach((el) => {
-        const attributesToRemove = [
-        'bis_skin_checked',
-        'bis_register',
-        'data-gr-ext-installed',
-        'data-new-gr-c-s-check-loaded',
-        'data-lastpass-icon',
-        'data-dashlane-rid'];
-
-
         attributesToRemove.forEach((attr) => {
           if (el.hasAttribute(attr)) el.removeAttribute(attr);
         });
-
-        // مسح السمات التي تبدأ بـ __processed_
-        if (el.attributes) {
-          Array.from(el.attributes).forEach((attr) => {
-            if (attr.name.startsWith('__processed_')) {
-              el.removeAttribute(attr.name);
-            }
-          });
-        }
       });
-    } catch (_e) {
 
-      // Silently fail if selector is invalid or parsing fails
-    }}, []);
+      // Cleanup system-specific processed IDs only if they exist on the root
+      if (document.documentElement.hasAttribute('__processed_id')) {
+        document.documentElement.removeAttribute('__processed_id');
+      }
+    } catch (_e) {
+      // Fail silently
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Run initial cleanup
-    cleanElements();
+    // Run cleanup once on mount using idle callback to avoid blocking hydration
+    let idleHandle: number;
+    const timer = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        idleHandle = (window as any).requestIdleCallback(cleanElements);
+      } else {
+        cleanElements();
+      }
+    }, 500);
 
-    // Use MutationObserver to clean up elements added by extensions dynamically
-    let timeout: NodeJS.Timeout;
+    // Use a much less aggressive observer that only watches for root attribute changes
+    // instead of the entire subtree. Subtree observation is a major performance killer.
     const observer = new MutationObserver((mutations) => {
       let shouldClean = false;
       for (const mutation of mutations) {
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          shouldClean = true;
-          break;
-        }
         if (mutation.type === 'attributes') {
           shouldClean = true;
           break;
@@ -73,26 +62,25 @@ export function HydrationFix() {
       }
       
       if (shouldClean) {
-        clearTimeout(timeout);
-        timeout = setTimeout(cleanElements, 1000); // Debounce to 1 second
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(cleanElements);
+        } else {
+          cleanElements();
+        }
       }
     });
 
     observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
       attributes: true,
-      attributeFilter: [
-        'bis_skin_checked',
-        'bis_register',
-        'data-gr-ext-installed',
-        'data-new-gr-c-s-check-loaded',
-        'data-lastpass-icon',
-        'data-dashlane-rid'
-      ]
+      childList: false, // Don't watch every new node
+      subtree: false    // Don't watch the entire tree
     });
 
     return () => {
+      clearTimeout(timer);
+      if (idleHandle && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
       observer.disconnect();
     };
   }, [cleanElements]);

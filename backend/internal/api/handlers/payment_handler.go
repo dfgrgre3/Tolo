@@ -3,6 +3,7 @@ package handlers
 import (
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"thanawy-backend/internal/services"
 	"time"
 	"fmt"
 	"crypto/rand"
@@ -65,23 +66,44 @@ func PaymobWebhook(c *gin.Context) {
 				return err
 			}
 
-			// If it's a course payment, auto-enroll
-			if payment.SubjectID != "" {
+		// If it's a course payment, auto-enroll
+		if payment.SubjectID != nil && *payment.SubjectID != "" {
 				enrollment := models.Enrollment{
 					UserID:    payment.UserID,
-					SubjectID: payment.SubjectID,
+					SubjectID:  *payment.SubjectID,
 					EnrolledAt: time.Now(),
 				}
 				if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment).Error; err != nil {
 					return err
 				}
 				// Increment enrollment count
-				tx.Model(&models.Subject{}).Where("id = ?", payment.SubjectID).Update("enrolledCount", gorm.Expr("\"enrolledCount\" + 1"))
+				tx.Model(&models.Subject{}).Where("id = ?", *payment.SubjectID).Update("enrolledCount", gorm.Expr("\"enrolledCount\" + 1"))
 			}
 
-			// If it's a wallet top-up, add to balance
+			// If it's a wallet top-up, add to balance and record transaction
 			if payment.Method == "WALLET_TOPUP" {
-				tx.Model(&models.User{}).Where("id = ?", payment.UserID).Update("balance", gorm.Expr("balance + ?", payment.Amount))
+				// We update balance and version for optimistic locking compatibility
+				if err := tx.Model(&models.User{}).Where("id = ?", payment.UserID).
+					Updates(map[string]interface{}{
+						"balance": gorm.Expr("balance + ?", payment.Amount),
+						"version": gorm.Expr("version + 1"),
+					}).Error; err != nil {
+					return err
+				}
+
+				// Create wallet transaction record
+				walletTx := models.WalletTransaction{
+					UserID:      payment.UserID,
+					Type:        models.TxTypeDeposit,
+					Amount:      payment.Amount,
+					Currency:    "EGP",
+					WalletType:  "BALANCE",
+					Description: "شحن رصيد عبر بوابة الدفع",
+					ReferenceID: &payment.Reference,
+				}
+				if err := tx.Create(&walletTx).Error; err != nil {
+					return err
+				}
 			}
 
 			// If it's a subscription plan payment, create user subscription
@@ -93,9 +115,10 @@ func PaymobWebhook(c *gin.Context) {
 
 				// Calculate duration
 				duration := 30 * 24 * time.Hour
-				if plan.Interval == models.IntervalYearly {
+				switch plan.Interval {
+case models.IntervalYearly:
 					duration = 365 * 24 * time.Hour
-				} else if plan.Interval == models.IntervalForever {
+				case models.IntervalForever:
 					duration = 100 * 365 * 24 * time.Hour
 				}
 
@@ -153,7 +176,7 @@ type CreatePaymentRequest struct {
 	Amount    float64 `json:"amount" binding:"required,gt=0"`
 	Method    string  `json:"method" binding:"required"`
 	Currency  string  `json:"currency"`
-	SubjectID string  `json:"subjectId"`
+	SubjectID *string `json:"subjectId"`
 }
 
 var allowedPaymentMethods = map[string]bool{
@@ -198,9 +221,9 @@ func CreatePayment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Amount exceeds maximum allowed"})
 		return
 	}
-	if req.SubjectID != "" {
+	if req.SubjectID != nil && *req.SubjectID != "" {
 		var subject models.Subject
-		if err := db.DB.Select("id", "price").First(&subject, "id = ?", req.SubjectID).Error; err != nil {
+		if err := db.DB.Select("id", "price").First(&subject, "id = ?", *req.SubjectID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid subject"})
 			return
 		}
@@ -307,50 +330,76 @@ func PurchaseAddon(c *gin.Context) {
 		return
 	}
 
-	// Use a transaction with row-level locking to prevent race conditions
+	paymentRef := generateSecureReference("ADDON")
+
+	// Single atomic transaction: deduct balance + add credits + create records
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. Fetch user for balance check and optimistic locking
 		var user models.User
-		// SELECT ... FOR UPDATE prevents concurrent balance modifications
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&user, "id = ?", userId).Error; err != nil {
-			return fmt.Errorf("user not found")
+		if err := tx.Where("id = ?", userId).First(&user).Error; err != nil {
+			return err
 		}
 
 		if user.Balance < price {
-			return fmt.Errorf("insufficient_balance")
+			return services.ErrInsufficientBalance
 		}
 
-		// Deduct balance using atomic SQL expression to prevent TOCTOU
-		if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", price)).Error; err != nil {
-			return fmt.Errorf("failed to update balance: %w", err)
+		// 2. Deduct balance with optimistic locking
+		result := tx.Model(&models.User{}).
+			Where("id = ? AND version = ?", userId, user.Version).
+			Updates(map[string]interface{}{
+				"balance": gorm.Expr("balance - ?", price),
+				"version": user.Version + 1,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return services.ErrOptimisticLock
 		}
 
-		// Add credits using atomic SQL expressions
+		// 3. Add credits based on addon type
 		switch req.AddonID {
 		case "addon_ai_100":
-			if err := tx.Model(&user).Update("aiCredits", gorm.Expr("\"aiCredits\" + ?", 100)).Error; err != nil {
+			if err := tx.Model(&models.User{}).Where("id = ?", userId).
+				Update("aiCredits", gorm.Expr("\"aiCredits\" + ?", 100)).Error; err != nil {
 				return fmt.Errorf("failed to update credits: %w", err)
 			}
 		case "addon_exams_5":
-			if err := tx.Model(&user).Update("examCredits", gorm.Expr("\"examCredits\" + ?", 5)).Error; err != nil {
+			if err := tx.Model(&models.User{}).Where("id = ?", userId).
+				Update("examCredits", gorm.Expr("\"examCredits\" + ?", 5)).Error; err != nil {
 				return fmt.Errorf("failed to update credits: %w", err)
 			}
 		case "addon_balance_100":
-			// For wallet credit purchase, the net effect is balance stays the same
-			// (deducted price, added value). Using external payment in real implementation.
-			if err := tx.Model(&user).Update("balance", gorm.Expr("balance + ?", 100)).Error; err != nil {
+			if err := tx.Model(&models.User{}).Where("id = ?", userId).
+				Update("balance", gorm.Expr("balance + ?", 100)).Error; err != nil {
 				return fmt.Errorf("failed to update balance: %w", err)
 			}
 		}
 
-		// Create a payment record for audit trail
+		// 4. Create wallet transaction record
+		walletTx := models.WalletTransaction{
+			UserID:      userId.(string),
+			Type:        models.TxTypeWithdraw,
+			Amount:      -price,
+			Currency:    "EGP",
+			WalletType:  "BALANCE",
+			Description: fmt.Sprintf("شراء إضافة: %s", req.AddonID),
+			ReferenceID: &paymentRef,
+		}
+		if err := tx.Create(&walletTx).Error; err != nil {
+			return fmt.Errorf("failed to create wallet transaction: %w", err)
+		}
+
+		// 5. Create payment record for audit trail
 		payment := models.Payment{
-			UserID:    user.ID,
-			Amount:    price,
-			Currency:  "EGP",
-			Method:    "WALLET",
-			Status:    models.PaymentCompleted,
-			Reference: generateSecureReference("ADDON"),
+			UserID:      userId.(string),
+			Amount:      price,
+			Currency:    "EGP",
+			Method:      "WALLET",
+			Status:      models.PaymentCompleted,
+			Reference:   paymentRef,
+			CompletedAt: time.Now(),
 		}
 		if err := tx.Create(&payment).Error; err != nil {
 			return fmt.Errorf("failed to create payment record: %w", err)
@@ -360,11 +409,15 @@ func PurchaseAddon(c *gin.Context) {
 	})
 
 	if err != nil {
-		if err.Error() == "insufficient_balance" {
+		if err == services.ErrInsufficientBalance {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process purchase"})
+		if err == services.ErrOptimisticLock {
+			c.JSON(http.StatusConflict, gin.H{"error": "يرجى المحاولة مرة أخرى"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to apply addon credits"})
 		return
 	}
 
@@ -386,40 +439,42 @@ func HandleWalletDeposit(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
-	}
-
-	err := db.DB.Transaction(func(tx *gorm.DB) error {
-		// Update balance
-		if err := tx.Model(&user).Update("balance", gorm.Expr("balance + ?", req.Amount)).Error; err != nil {
-			return err
-		}
-
-		// Create payment record
-		payment := models.Payment{
-			UserID:    userId.(string),
-			Amount:    req.Amount,
-			Currency:  "EGP",
-			Method:    "WALLET_TOPUP",
-			Status:    models.PaymentCompleted,
-			Reference: generateSecureReference("TOPUP"),
-		}
-		if err := tx.Create(&payment).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
+	// Use centralized wallet service with optimistic locking
+	_, err := services.ProcessWalletTransaction(
+		userId.(string),
+		req.Amount,
+		models.TxTypeDeposit,
+		"BALANCE",
+		"إيداع رصيد في المحفظة",
+		nil,
+	)
 
 	if err != nil {
+		if err == services.ErrOptimisticLock {
+			c.JSON(http.StatusConflict, gin.H{"error": "يرجى المحاولة مرة أخرى"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update wallet"})
 		return
 	}
 
+	// Create payment record for audit trail
+	payment := models.Payment{
+		UserID:    userId.(string),
+		Amount:    req.Amount,
+		Currency:  "EGP",
+		Method:    "WALLET_TOPUP",
+		Status:    models.PaymentCompleted,
+		Reference: generateSecureReference("TOPUP"),
+		CompletedAt: time.Now(),
+	}
+	if err := db.DB.Create(&payment).Error; err != nil {
+		// Log but don't fail — the deposit itself succeeded
+		fmt.Printf("Warning: failed to create payment audit record for user %s: %v\n", userId, err)
+	}
+
 	// Reload user for fresh balance
+	var user models.User
 	db.DB.First(&user, "id = ?", userId)
 
 	c.JSON(http.StatusOK, gin.H{

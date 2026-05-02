@@ -170,7 +170,7 @@ export default function InfrastructurePage() {
                            </h3>
                         </div>
                         <p className="text-xs text-gray-500 font-bold mb-4 italic">* يتم جلب السجلات من الخادم الخلفي بشكل لحظي.</p>
-                        <PremiumLogViewer logs={[]} />
+                        <PremiumLogViewer />
                      </div>
                   </div>
                </div>

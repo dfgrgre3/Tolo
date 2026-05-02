@@ -31,7 +31,6 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
         safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
 
         if (lastVisited && lastVisited !== '/') {
-          // Add a small delay for Next.js to be ready
           const timer = setTimeout(() => {
             router.push(lastVisited);
             toast.info('جاري استعادة جلستك السابقة...', {
@@ -48,13 +47,10 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
   // Save current path
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
-
-    // Persist current path - use both for maximum reliability
-    safeSetItem(LAST_VISITED_PATH_KEY, fullPath, { storageType: 'local' });
     safeSetItem(LAST_VISITED_PATH_KEY, fullPath, { storageType: 'session' });
   }, [pathname, fullPath]);
 
-  // Scroll Restoration Logic
+  // Optimized Scroll Restoration Logic
   const saveScrollPosition = useCallback(() => {
     if (!isBrowser() || !pathname) return;
 
@@ -67,11 +63,10 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
       positions[fullPath] = window.scrollY;
       safeSetItem(SCROLL_POSITIONS_KEY, positions, { storageType: 'local' });
     } catch (_e) {
+      // Ignore storage errors
+    }
+  }, [fullPath, pathname]);
 
-      // Ignore storage errors on scroll
-    }}, [pathname, fullPath]);
-
-  // Restore scroll position on path change
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
 
@@ -82,53 +77,44 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
 
     const savedScroll = positions[fullPath];
     if (savedScroll !== undefined) {
-      // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(() => {
         window.scrollTo({ top: savedScroll, behavior: 'instant' });
       });
     }
 
-    // Save scroll on beforeunload or path change
-    let scrollTimeout: NodeJS.Timeout;
+    // Use a single scroll listener with throttle (simulated via timeout)
+    let lastScrollSave = 0;
     const onScroll = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(saveScrollPosition, 250);
+      const now = Date.now();
+      if (now - lastScrollSave > 1000) { // Save at most once per second
+        saveScrollPosition();
+        lastScrollSave = now;
+      }
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('beforeunload', saveScrollPosition);
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') saveScrollPosition();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-
     return () => {
-      clearTimeout(scrollTimeout);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('beforeunload', saveScrollPosition);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [pathname, fullPath, saveScrollPosition]);
 
-  // Global Input Persistence (Auto-save form fields and UI states)
+  // Optimized Input Persistence
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
 
     const INPUT_STATE_KEY = `thanawy:inputs:${fullPath}`;
     let saveTimeout: NodeJS.Timeout;
 
-    // Restore inputs logic
     const restoreInputs = () => {
       if (isRestoring.current) return;
       isRestoring.current = true;
 
       try {
         const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local' });
-        if (!savedInputs) {
-          isRestoring.current = false;
-          return;
-        }
+        if (!savedInputs) return;
 
         Object.entries(savedInputs).forEach(([id, data]) => {
           const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
@@ -154,29 +140,25 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
             }
           }
         });
+      } catch (_e) {
+        // Fail silently
       } finally {
-        // Unlock restoration after a small delay to allow events to process
-        setTimeout(() => {isRestoring.current = false;}, 100);
+        setTimeout(() => { isRestoring.current = false; }, 100);
       }
     };
 
-    // Save inputs on change with debouncing
     const handleFormChange = (_e: Event) => {
-      // Ignore events triggered by restoration process
       if (isRestoring.current) return;
 
       const target = _e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
       const id = target.id || target.name;
-      if (!id) return;
-
-      // Skip sensitive fields
+      if (!id || target.tagName === 'BUTTON') return;
       if (target instanceof HTMLInputElement && (target.type === 'password' || target.type === 'hidden')) return;
-      if (target.tagName === 'BUTTON') return;
 
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
-        const savedInputs = safeGetItem<Record<string, { value?: string; checked?: boolean; type: string }>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
-
+        const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
+        
         if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
           savedInputs[id] = { checked: target.checked, type: target.type };
         } else {
@@ -184,102 +166,26 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
         }
 
         safeSetItem(INPUT_STATE_KEY, savedInputs, { storageType: 'local' });
-      }, 500);
+      }, 1000); // Increased debounce to 1s
     };
 
-    // UI Persistence for elements with data-persist-id
-    const saveUIAndElementScroll = () => {
-      const UI_STATE_KEY = `thanawy:ui:${fullPath}`;
-      const SCROLL_STATE_KEY = `thanawy:element-scroll:${fullPath}`;
-
-      const persistentElements = document.querySelectorAll('[data-persist-id]');
-      const scrollableElements = document.querySelectorAll('[data-persist-scroll-id]');
-
-      if (persistentElements.length === 0 && scrollableElements.length === 0) return;
-
-      const uiState: Record<string, any> = {};
-      const scrollState: Record<string, {x: number;y: number;}> = {};
-
-      persistentElements.forEach((el) => {
-        const id = el.getAttribute('data-persist-id');
-        if (!id) return;
-        uiState[id] = {
-          expanded: el.getAttribute('aria-expanded'),
-          hidden: el.getAttribute('aria-hidden'),
-          open: el.hasAttribute('open')
-        };
-      });
-
-      scrollableElements.forEach((el) => {
-        const id = el.getAttribute('data-persist-scroll-id');
-        if (!id) return;
-        scrollState[id] = { x: el.scrollLeft, y: el.scrollTop };
-      });
-
-      if (Object.keys(uiState).length > 0) {
-        safeSetItem(UI_STATE_KEY, uiState, { storageType: 'local' });
-      }
-      if (Object.keys(scrollState).length > 0) {
-        safeSetItem(SCROLL_STATE_KEY, scrollState, { storageType: 'local' });
-      }
-    };
-
-    const restoreUIAndElementScroll = () => {
-      const UI_STATE_KEY = `thanawy:ui:${fullPath}`;
-      const SCROLL_STATE_KEY = `thanawy:element-scroll:${fullPath}`;
-
-      const savedUI = safeGetItem<Record<string, { expanded: string | null; hidden: string | null; open: boolean }>>(UI_STATE_KEY, { storageType: 'local' });
-      const savedScroll = safeGetItem<Record<string, {x: number;y: number;}>>(SCROLL_STATE_KEY, { storageType: 'local' });
-
-      if (savedUI) {
-        Object.entries(savedUI).forEach(([id, state]) => {
-          const el = document.querySelector(`[data-persist-id="${id}"]`);
-          if (!el) return;
-          if (state.expanded !== null) el.setAttribute('aria-expanded', state.expanded);
-          if (state.hidden !== null) el.setAttribute('aria-hidden', state.hidden);
-          if (state.open !== undefined) {
-            if (state.open) el.setAttribute('open', '');else
-            el.removeAttribute('open');
-          }
-        });
-      }
-
-      if (savedScroll) {
-        Object.entries(savedScroll).forEach(([id, pos]) => {
-          const el = document.querySelector(`[data-persist-scroll-id="${id}"]`);
-          if (!el) return;
-          el.scrollLeft = pos.x;
-          el.scrollTop = pos.y;
-        });
-      }
-    };
-
-    // Initial restoration with staged delay to prevent blocking hydration
+    // Staged restoration
     const timer = setTimeout(() => {
-      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        window.requestIdleCallback(() => {
-          restoreInputs();
-          restoreUIAndElementScroll();
-        }, { timeout: 2000 });
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(restoreInputs, { timeout: 2000 });
       } else {
-        setTimeout(() => {
-          restoreInputs();
-          restoreUIAndElementScroll();
-        }, 500);
+        setTimeout(restoreInputs, 500);
       }
     }, 1000);
 
-    // Event listeners - use passive where possible
     document.addEventListener('input', handleFormChange, { passive: true });
     document.addEventListener('change', handleFormChange, { passive: true });
-    window.addEventListener('beforeunload', saveUIAndElementScroll, { passive: true });
 
     return () => {
       clearTimeout(timer);
       clearTimeout(saveTimeout);
       document.removeEventListener('input', handleFormChange);
       document.removeEventListener('change', handleFormChange);
-      window.removeEventListener('beforeunload', saveUIAndElementScroll);
     };
   }, [pathname, fullPath]);
 

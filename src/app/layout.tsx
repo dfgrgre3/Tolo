@@ -3,6 +3,8 @@ import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
+import Header from '@/components/header/Header';
+import { Suspense } from 'react';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -45,7 +47,7 @@ export default async function RootLayout({
           <meta name="theme-color" content="#f97316" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
         </head>
-        <body className={alexandria.variable} suppressHydrationWarning>
+        <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
           <SWRegistration />
           <ThemeProvider
             attribute="class"
@@ -53,7 +55,12 @@ export default async function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
+            <GlobalProviders initialAuthHint={hasAuthToken}>
+              <Suspense fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+                <Header />
+              </Suspense>
+              {children}
+            </GlobalProviders>
           </ThemeProvider>
         </body>
       </html>

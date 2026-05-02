@@ -12,7 +12,6 @@ import Footer from '@/components/footer';
 import ErrorBoundary from '@/components/error-boundary';
 import { HydrationFix } from '@/components/hydration-fix';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
-import { ScrollPersistence } from '@/components/layout/ScrollPersistence';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 
@@ -60,7 +59,6 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
         <EfficiencyProvider>
           <ClientLayoutProvider>
             <HydrationFix />
-            <ScrollPersistence />
             <QueryClientProvider client={queryClient}>
               <AuthProvider initialAuthHint={initialAuthHint}>
                 <GlobalSettingsApplier>

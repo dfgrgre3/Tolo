@@ -167,7 +167,7 @@ export function AiCommandCenter() {
                 المساعد جاهز للاستجابة
               </span>
               <AdminButton
-                variant="royal"
+                variant="premium"
                 onClick={() => copilotMutation.mutate(prompt)}
                 loading={copilotMutation.isPending}
                 disabled={!prompt.trim()}
@@ -262,7 +262,7 @@ export function AiCommandCenter() {
                 * المحتوى المولد بواسطة الذكاء الاصطناعي يتطلب مراجعة بشرية قبل النشر.
              </span>
              <AdminButton
-                variant="royal"
+                variant="premium"
                 onClick={() => generateMutation.mutate()}
                 loading={generateMutation.isPending}
                 disabled={!generatorForm.prompt.trim()}

@@ -18,7 +18,7 @@ const (
 type Payment struct {
 	ID        string        `gorm:"primaryKey;type:text" json:"id"`
 	UserID    string        `gorm:"not null;index:idx_payment_user_subject,priority:1;type:text" json:"userId"`
-	SubjectID string        `gorm:"index:idx_payment_user_subject,priority:2;type:text" json:"subjectId"`
+	SubjectID *string       `gorm:"index:idx_payment_user_subject,priority:2;type:text" json:"subjectId"`
 	PlanID    string        `gorm:"index;type:text" json:"planId"`
 	Amount    float64       `gorm:"not null;check:amount >= 0" json:"amount"`
 	Currency  string        `gorm:"not null;default:'EGP'" json:"currency"`
@@ -31,12 +31,13 @@ type Payment struct {
 	ExternalTxnID string    `gorm:"index" json:"externalTxnId"`
 	CompletedAt   time.Time `json:"completedAt"`
 
-	CreatedAt time.Time     `gorm:"index" json:"createdAt"`
-	UpdatedAt time.Time     `json:"updatedAt"`
+	CreatedAt time.Time      `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Subject Subject `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	Subject *Subject `gorm:"foreignKey:SubjectID;constraint:OnDelete:SET NULL" json:"subject,omitempty"`
 }
 
 type Invoice struct {
@@ -45,7 +46,9 @@ type Invoice struct {
 	UserID        string    `gorm:"index;not null;type:text" json:"userId"`
 	InvoiceNumber string    `gorm:"uniqueIndex;not null" json:"invoiceNumber"`
 	PdfUrl        string    `json:"pdfUrl"`
-	CreatedAt     time.Time `json:"createdAt"`
+	CreatedAt     time.Time      `json:"createdAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Payment Payment `gorm:"foreignKey:PaymentID;constraint:OnDelete:CASCADE" json:"payment,omitempty"`

@@ -50,9 +50,24 @@ type User struct {
 	Section       *string `json:"section"`
 	Bio           *string `json:"bio"`
 
-	// Gamification (Embedded for simplicity or as relations)
+	// Gamification (core)
 	TotalXP int `gorm:"default:0;index" json:"totalXP"`
 	Level   int `gorm:"default:1;index" json:"level"`
+
+	// Gamification (stats - synced periodically or on events)
+	CurrentStreak    int `gorm:"default:0" json:"currentStreak"`
+	LongestStreak    int `gorm:"default:0" json:"longestStreak"`
+	TotalStudyTime   int `gorm:"default:0" json:"totalStudyTime"`   // in minutes
+	TasksCompleted   int `gorm:"default:0" json:"tasksCompleted"`
+	ExamsPassed      int `gorm:"default:0" json:"examsPassed"`
+
+	// Multi-layer XP system
+	StudyXP     int `gorm:"default:0" json:"studyXP"`
+	TaskXP      int `gorm:"default:0" json:"taskXP"`
+	ExamXP      int `gorm:"default:0" json:"examXP"`
+	ChallengeXP int `gorm:"default:0" json:"challengeXP"`
+	QuestXP     int `gorm:"default:0" json:"questXP"`
+	SeasonXP    int `gorm:"default:0" json:"seasonXP"`
 
 	// Access Control
 	Permissions JSONStringArray `gorm:"type:jsonb" json:"permissions"`
@@ -61,12 +76,14 @@ type User struct {
 	Balance     float64 `gorm:"default:0" json:"balance"`
 	AiCredits   int     `gorm:"default:0" json:"aiCredits"`
 	ExamCredits int     `gorm:"default:0" json:"examCredits"`
+	Version     int     `gorm:"default:1" json:"-"` // Optimistic locking for balances
 
 	// Subscriptions
 	ActiveSubscriptionID *string    `gorm:"index;type:text" json:"activeSubscriptionId"`
 	SubscriptionExpiresAt *time.Time `gorm:"index" json:"subscriptionExpiresAt"`
 
 	// Security & Auth
+	LastLogin             *time.Time `gorm:"index" json:"lastLogin"`
 	TwoFactorEnabled      bool       `gorm:"default:false" json:"twoFactorEnabled"`
 	TwoFactorSecret       *string    `json:"-"`
 	ResetPasswordToken    *string    `gorm:"index" json:"-"`
@@ -85,9 +102,10 @@ type User struct {
 	Schedules        []Schedule       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Reminders        []Reminder       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Payments         []Payment        `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	ExamResults      []ExamResult     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Sessions         []UserSession    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	SecurityLogs     []SecurityLog    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	ExamResults        []ExamResult        `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Sessions           []UserSession       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	SecurityLogs       []SecurityLog       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	WalletTransactions []WalletTransaction `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func (u *User) HasPermission(permission string) bool {

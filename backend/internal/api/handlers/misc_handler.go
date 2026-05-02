@@ -69,14 +69,14 @@ func GetWalletBalance(c *gin.Context) {
 		return
 	}
 
-	var payments []models.Payment
-	db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(20).Find(&payments)
+	var transactions []models.WalletTransaction
+	db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(20).Find(&transactions)
 
 	api_response.Success(c, gin.H{
 		"balance":      user.Balance,
 		"currency":     "EGP",
-		"transactions": payments,
-		"history":      payments, // For compatibility with different frontend versions
+		"transactions": transactions,
+		"history":      transactions, // For compatibility with different frontend versions
 	})
 }
 
@@ -131,34 +131,6 @@ func ImpersonateUser(c *gin.Context) {
 	})
 }
 
-func GetAdminInfrastructureStats(c *gin.Context) {
-	var memory runtime.MemStats
-	runtime.ReadMemStats(&memory)
-
-	sqlDB, err := db.DB.DB()
-	dbStatus := "healthy"
-	var dbOpenConns int
-	if err != nil {
-		dbStatus = "unhealthy"
-	} else {
-		stats := sqlDB.Stats()
-		dbOpenConns = stats.OpenConnections
-	}
-
-	api_response.Success(c, gin.H{
-		"cpuUsage":      runtime.NumCPU() * 2, // Estimated
-		"memoryUsage":   (memory.Alloc * 100) / (memory.Sys + 1),
-		"dbStatus":      dbStatus,
-		"dbOpenConnections": dbOpenConns,
-		"redisLatency":  5, // Placeholder for Redis
-		"memoryMiB":     memory.Alloc / 1024 / 1024,
-		"goroutines":    runtime.NumGoroutine(),
-		"queues": gin.H{
-			"gamification":  gin.H{"active": 0, "waiting": 0, "failed": 0, "completed": 0},
-			"notifications": gin.H{"active": 0, "waiting": 0, "failed": 0, "completed": 0},
-		},
-	})
-}
 
 func GetAdminMetricsHistory(c *gin.Context) {
 	var m runtime.MemStats

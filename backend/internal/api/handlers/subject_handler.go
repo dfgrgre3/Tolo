@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"math"
@@ -328,7 +329,7 @@ func CourseCheckout(c *gin.Context) {
 	if input.PaymentMethod == "internal_wallet" {
 		payment := models.Payment{
 			UserID:    userId,
-			SubjectID: courseId,
+			SubjectID: &courseId,
 			Amount:    subject.Price,
 			Method:    input.PaymentMethod,
 			Status:    models.PaymentPending,
@@ -435,9 +436,10 @@ func CourseCheckout(c *gin.Context) {
 
 		// Determine integration ID
 		integrationID := paymobSvc.CardIntegrationID
-		if input.PaymentMethod == "wallet" {
+		switch input.PaymentMethod {
+case "wallet":
 			integrationID = paymobSvc.WalletIntegrationID
-		} else if input.PaymentMethod == "fawry" {
+		case "fawry":
 			integrationID = paymobSvc.FawryIntegrationID
 		}
 
@@ -452,7 +454,7 @@ func CourseCheckout(c *gin.Context) {
 		// Create pending payment record
 		payment := models.Payment{
 			UserID:        userId,
-			SubjectID:     courseId,
+			SubjectID:     &courseId,
 			Amount:        subject.Price,
 			Method:        input.PaymentMethod,
 			Status:        models.PaymentPending,
@@ -504,21 +506,45 @@ func UpdateLessonProgress(c *gin.Context) {
 	lessonId := c.Param("id")
 
 	var input struct {
-		Completed bool `json:"completed"`
+		Completed           bool    `json:"completed"`
+		LastWatchedPosition float64 `json:"lastWatchedPosition"`
+		TimeSpentSeconds    int     `json:"timeSpentSeconds"`
+		Status              string  `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		api_response.Error(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
-	progress := models.LessonProgress{
-		UserID:    userId,
-		LessonID:  lessonId,
-		Completed: input.Completed,
+	progressStatus := models.ProgressStatus(input.Status)
+	if progressStatus == "" {
+		if input.Completed {
+			progressStatus = models.ProgressStatusCompleted
+		} else {
+			progressStatus = models.ProgressStatusInProgress
+		}
 	}
+
+	progress := models.LessonProgress{
+		UserID:              userId,
+		LessonID:            lessonId,
+		Completed:           input.Completed,
+		LastWatchedPosition: int(input.LastWatchedPosition),
+		TimeSpentSeconds:    input.TimeSpentSeconds,
+		Status:              progressStatus,
+	}
+	
+	// Create or update, accumulating timeSpentSeconds if it exists.
+	// We use raw SQL for accumulation on conflict to be safe and elegant.
 	if err := db.DB.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "userId"}, {Name: "subTopicId"}},
-		DoUpdates: clause.AssignmentColumns([]string{"completed", "updatedAt"}),
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"completed":             input.Completed,
+			"lastWatchedPosition":   input.LastWatchedPosition,
+			"timeSpentSeconds":      gorm.Expr("\"timeSpentSeconds\" + ?", input.TimeSpentSeconds),
+			"status":                progressStatus,
+			"updatedAt":             time.Now(),
+		}),
 	}).Create(&progress).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to save lesson progress: "+err.Error())
 		return
@@ -632,13 +658,82 @@ func DeleteSubject(c *gin.Context) {
 		_ = c.ShouldBindJSON(&input)
 		id = input.ID
 	}
-	if err := getSubjectRepo().Delete(id); err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to delete subject")
+	
+	log.Printf("Attempting to delete subject with ID: %s", id)
+	
+	// First, check if subject exists
+	var subject models.Subject
+	if err := db.DB.First(&subject, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+			return
+		}
+		log.Printf("Error checking subject existence: %v", err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to verify subject")
 		return
+	}
+	
+	// Delete in transaction to ensure atomicity
+	tx := db.DB.Begin()
+	defer tx.Rollback()
+	
+	// Delete related records that don't have CASCADE constraints
+	// Delete StudySessions referencing this subject
+	if err := tx.Where("\"subjectId\" = ?", id).Delete(&models.StudySession{}).Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error deleting study sessions for subject %s: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related study sessions")
+		return
+	}
+	
+	// Delete Books referencing this subject
+	if err := tx.Where("\"subjectId\" = ?", id).Delete(&models.Book{}).Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error deleting books for subject %s: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related books")
+		return
+	}
+	
+	// Delete Challenges referencing this subject
+	if err := tx.Where("\"subjectId\" = ?", id).Delete(&models.Challenge{}).Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error deleting challenges for subject %s: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related challenges")
+		return
+	}
+	
+	// Delete Payments referencing this subject (set to null instead of delete)
+	if err := tx.Model(&models.Payment{}).Where("\"subjectId\" = ?", id).Update("subject_id", nil).Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error updating payments for subject %s: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update related payments")
+		return
+	}
+	
+	// Now delete the subject (Topics, Enrollments will be cascade deleted)
+	if err := tx.Delete(&subject).Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error deleting subject %s: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to delete subject: "+err.Error())
+		return
+	}
+	
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("Error committing transaction for subject %s deletion: %v", id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to complete deletion")
+		return
+	}
+	
+	// Clear cache
+	if db.Redis != nil {
+		ctx := context.Background()
+		db.Redis.Del(ctx, fmt.Sprintf("%sid:%s", repository.SubjectCachePrefix, id))
 	}
 
 	LogAudit(c, "DELETE", "subject", id, nil)
-	api_response.Success(c, nil)
+	log.Printf("Successfully deleted subject: %s (%s)", id, subject.Name)
+	api_response.Success(c, gin.H{"message": "Subject deleted successfully"})
 }
 
 func GetSubjectCurriculum(c *gin.Context) {
@@ -759,6 +854,7 @@ func UpdateCourseCurriculum(c *gin.Context) {
 	}
 
 	tx := db.DB.Begin()
+	defer tx.Rollback()
 
 	// Delete existing topics and subtopics for this subject (clean slate approach)
 	// This is simpler and avoids orphaned records
@@ -836,6 +932,9 @@ func UpdateCourseCurriculum(c *gin.Context) {
 		return
 	}
 
+	// Invalidate the cache for this subject
+	getSubjectRepo().InvalidateSubjectCache(id)
+
 	// Return the updated curriculum
 	var subject models.Subject
 	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error; err != nil {
@@ -860,6 +959,15 @@ func AddLessonAttachment(c *gin.Context) {
 	if err := db.DB.Create(&attachment).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to add attachment")
 		return
+	}
+
+	// Invalidate parent subject cache
+	var subTopic models.SubTopic
+	if err := db.DB.First(&subTopic, "id = ?", lessonId).Error; err == nil {
+		var topic models.Topic
+		if err := db.DB.First(&topic, "id = ?", subTopic.TopicID).Error; err == nil && topic.SubjectID != "" {
+			getSubjectRepo().InvalidateSubjectCache(topic.SubjectID)
+		}
 	}
 
 	api_response.Created(c, attachment)

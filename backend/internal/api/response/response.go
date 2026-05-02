@@ -54,8 +54,16 @@ func List(c *gin.Context, items interface{}, pagination Pagination, aliases gin.
 		data[key] = value
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    data,
-	})
+	Success(c, data)
+}
+
+// AdminList responds with admin-specific list format including stats
+func AdminList(c *gin.Context, items interface{}, pagination Pagination, stats gin.H) {
+	data := gin.H{
+		"items": items,
+		"pagination": pagination,
+		"stats": stats,
+	}
+
+	Success(c, data)
 }

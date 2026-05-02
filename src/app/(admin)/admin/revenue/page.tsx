@@ -81,7 +81,7 @@ const periodLabels: Record<PeriodFilter, string> = {
 export default function AdminRevenuePage() {
   const [period, setPeriod] = React.useState<PeriodFilter>("month");
 
-  const { data: stats, isLoading, refetch, isFetching } = useQuery({
+  const { data: stats, isLoading, refetch, isFetching, error } = useQuery({
     queryKey: ["admin", "revenue", period],
     queryFn: async () => {
       const res = await fetch(`/api/admin/analytics/revenue?period=${period}`);
@@ -117,10 +117,39 @@ export default function AdminRevenuePage() {
     );
   }
 
-  const safeStats = stats || {
-    summary: { today: 0, thisMonth: 0, totalTransactions: 0, conversionRate: "0%" },
-    chartData: [],
-    topPlans: [],
+  if (error) {
+    return (
+      <div className="space-y-10 pb-20" dir="rtl">
+        <PageHeader
+          title="التقارير المالية والإيرادات 💰"
+          description="متابعة الإيرادات، المعاملات المالية، ومعدلات التحويل للمنصة بشكل مباشر ومفصل."
+        />
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="p-6 rounded-full bg-red-500/10 mb-4">
+            <DollarSign className="w-12 h-12 text-red-500" />
+          </div>
+          <h3 className="text-xl font-black text-foreground mb-2">حدث خطأ في تحميل البيانات</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            تعذر تحميل بيانات الإيرادات. يرجى المحاولة مرة أخرى لاحقاً.
+          </p>
+          <AdminButton variant="premium" icon={RefreshCw} onClick={() => refetch()}>
+            إعادة المحاولة
+          </AdminButton>
+        </div>
+      </div>
+    );
+  }
+
+  // Provide safe defaults even if stats exists but is malformed
+  const safeStats: RevenueStats = {
+    summary: {
+      today: stats?.summary?.today ?? 0,
+      thisMonth: stats?.summary?.thisMonth ?? 0,
+      totalTransactions: stats?.summary?.totalTransactions ?? 0,
+      conversionRate: stats?.summary?.conversionRate ?? "0%",
+    },
+    chartData: stats?.chartData ?? [],
+    topPlans: stats?.topPlans ?? [],
   };
 
   return (

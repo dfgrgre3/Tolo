@@ -65,7 +65,7 @@ func GetAdminPayments(c *gin.Context) {
 		db.DB.Select("id", "name", "email", "avatar").Where("id = ?", p.UserID).First(&user)
 
 		subjectData := gin.H(nil)
-		if p.SubjectID != "" {
+		if p.SubjectID != nil && *p.SubjectID != "" {
 			subjectData = gin.H{
 				"id":     p.Subject.ID,
 				"name":   p.Subject.Name,

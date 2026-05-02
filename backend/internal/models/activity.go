@@ -9,55 +9,63 @@ import (
 type TaskStatus string
 
 const (
-	TaskPending   TaskStatus = "PENDING"
-	TaskCompleted TaskStatus = "COMPLETED"
+	TaskPending    TaskStatus = "PENDING"
+	TaskInProgress TaskStatus = "IN_PROGRESS"
+	TaskCompleted  TaskStatus = "COMPLETED"
+	TaskCancelled  TaskStatus = "CANCELLED"
 )
 
 type Task struct {
-	ID            string     `gorm:"primaryKey" json:"id"`
-	UserID        string     `gorm:"not null;index:idx_tasks_user_status,priority:1" json:"userId"`
-	Title         string     `gorm:"not null" json:"title"`
-	Description   *string    `json:"description"`
-	Status        TaskStatus `gorm:"default:'PENDING';index:idx_tasks_user_status,priority:2" json:"status"`
-	Priority      string     `gorm:"default:'MEDIUM';index" json:"priority"`
-	DueAt         *time.Time `gorm:"index" json:"dueAt"`
-	EstimatedTime int        `json:"estimatedTime"` // in minutes
-	ActualTime    int        `json:"actualTime"`    // in minutes
-	CreatedAt     time.Time  `gorm:"index" json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
+	ID            string         `gorm:"primaryKey;type:text" json:"id"`
+	UserID        string         `gorm:"not null;type:text;index:idx_tasks_user_status,priority:1" json:"userId"`
+	Title         string         `gorm:"not null" json:"title"`
+	Description   *string        `json:"description"`
+	Status        TaskStatus     `gorm:"default:'PENDING';index:idx_tasks_user_status,priority:2" json:"status"`
+	Priority      string         `gorm:"default:'MEDIUM';index" json:"priority"`
+	DueAt         *time.Time     `gorm:"index" json:"dueAt"`
+	SubjectID     *string        `gorm:"index;type:text" json:"subjectId"`
+	Subject       *Subject       `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	EstimatedTime int            `json:"estimatedTime"` // in minutes
+	ActualTime    int            `json:"actualTime"`    // in minutes
+	CreatedAt     time.Time      `gorm:"index" json:"createdAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type StudySession struct {
-	ID          string    `gorm:"primaryKey" json:"id"`
-	UserID      string    `gorm:"not null;index:idx_study_sessions_user_start,priority:1" json:"userId"`
-	DurationMin int       `gorm:"default:0" json:"durationMin"`
-	FocusScore  int       `gorm:"default:0" json:"focusScore"`
-	StartTime   time.Time `gorm:"index:idx_study_sessions_user_start,priority:2" json:"startTime"`
-	EndTime     time.Time `json:"endTime"`
-	SubjectID   string    `gorm:"index" json:"subjectId"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          string         `gorm:"primaryKey;type:text" json:"id"`
+	UserID      string         `gorm:"not null;type:text;index:idx_study_sessions_user_start,priority:1" json:"userId"`
+	DurationMin int            `gorm:"default:0" json:"durationMin"`
+	FocusScore  int            `gorm:"default:0" json:"focusScore"`
+	StartTime   time.Time      `gorm:"index:idx_study_sessions_user_start,priority:2" json:"startTime"`
+	EndTime     time.Time      `json:"endTime"`
+	SubjectID   *string        `gorm:"index;type:text;constraint:OnDelete:SET NULL" json:"subjectId"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Schedule struct {
-	ID        string    `gorm:"primaryKey" json:"id"`
-	UserID    string    `gorm:"not null;index" json:"userId"`
-	PlanJson  string    `gorm:"type:text" json:"planJson"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        string         `gorm:"primaryKey;type:text" json:"id"`
+	UserID    string         `gorm:"not null;type:text;index" json:"userId"`
+	PlanJson  string         `gorm:"type:text" json:"planJson"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Reminder struct {
-	ID        string    `gorm:"primaryKey" json:"id"`
-	UserID    string    `gorm:"not null;index" json:"userId"`
-	Title     string    `gorm:"not null" json:"title"`
-	Message   *string   `json:"message"`
-	RemindAt  time.Time `json:"remindAt"`
-	Type      string    `gorm:"default:'STUDY'" json:"type"`
-	Priority  string    `gorm:"default:'MEDIUM'" json:"priority"`
-	IsActive  bool      `gorm:"default:true" json:"isActive"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        string         `gorm:"primaryKey;type:text" json:"id"`
+	UserID    string         `gorm:"not null;type:text;index" json:"userId"`
+	Title     string         `gorm:"not null" json:"title"`
+	Message   *string        `json:"message"`
+	RemindAt  time.Time      `json:"remindAt"`
+	Type      string         `gorm:"default:'STUDY'" json:"type"`
+	Priority  string         `gorm:"default:'MEDIUM'" json:"priority"`
+	IsActive  bool           `gorm:"default:true" json:"isActive"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Task) TableName() string {

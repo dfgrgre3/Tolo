@@ -92,9 +92,9 @@ func Auth() gin.HandlerFunc {
 		}
 
 		// Fetch permissions for granular control
-		var permissions []string
-		if err := db.DB.Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &permissions).Error; err == nil {
-			c.Set("permissions", permissions)
+		var perms models.JSONStringArray
+		if err := db.DB.Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &perms).Error; err == nil {
+			c.Set("permissions", []string(perms))
 		}
 
 		c.Next()
@@ -127,14 +127,22 @@ func RoleRequired(roles ...string) gin.HandlerFunc {
 
 func PermissionRequired(permission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, _ := c.Get("role")
+		// Check if user is authenticated
+		role, roleExists := c.Get("role")
+		if !roleExists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			return
+		}
+
+		// Admin has full access
 		if role == "ADMIN" {
 			c.Next()
 			return
 		}
 
+		// Check specific permission
 		perms, exists := c.Get("permissions")
-		if !exists {
+		if !exists || perms == nil {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "No permissions assigned"})
 			return
 		}

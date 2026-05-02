@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Zap, Mic, MicOff, Heart } from 'lucide-react';
@@ -78,8 +78,10 @@ export default function AIAssistantEnhanced({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sentimentAlert, setSentimentAlert] = useState<{sentiment: string;suggestions?: string[];} | null>(null);
+  const [image, setImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -146,6 +148,17 @@ export default function AIAssistantEnhanced({
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -168,9 +181,11 @@ export default function AIAssistantEnhanced({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: currentInput,
+          image: image,
           history: messages.slice(-5) // Send last 5 messages as context
         })
       });
+      setImage(null); // Clear image after sending
 
       if (!response.ok) {
         throw new Error('فشلت عملية الاتصال بالمساعد الذكي');
@@ -355,11 +370,37 @@ export default function AIAssistantEnhanced({
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isLoading || !input.trim()}>
+            disabled={isLoading || (!input.trim() && !image)}>
             
             <Send className="h-5 w-5" />
           </button>
         </div>
+        {image && (
+          <div className="mt-2 relative inline-block">
+            <img src={image} alt="Upload preview" className="h-20 w-20 object-cover rounded-lg border border-gray-300" />
+            <button 
+              onClick={() => setImage(null)}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleImageUpload} 
+          accept="image/*" 
+          className="hidden" 
+        />
+        <button 
+          type="button" 
+          onClick={() => fileInputRef.current?.click()}
+          className="text-xs text-blue-600 mt-2 hover:underline flex items-center gap-1"
+        >
+          <Zap className="h-3 w-3" />
+          إرفاق صورة سؤال
+        </button>
         {isListening &&
         <p className="text-xs text-red-600 mt-2 text-center animate-pulse">
             🎙️ جاري الاستماع... تحدث الآن

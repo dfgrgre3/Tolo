@@ -45,7 +45,7 @@ class ApiError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const DEFAULT_API_URL = 'http://127.0.0.1:8080/api';
+export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
 const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)).replace(/\/+$/, '');
 

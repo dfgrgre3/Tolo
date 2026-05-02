@@ -189,8 +189,7 @@
 }
 
 /* Respect user motion preferences - DISABLE ALL ANIMATIONS */
-@media (prefers-reduced-motion: reduce), screen {
-
+@media (prefers-reduced-motion: reduce) {
   *,
   ::before,
   ::after {
@@ -201,13 +200,6 @@
   }
 }
 
-/* Completely Disable All Animations & Transitions */
-*,
-*::before,
-*::after {
-  animation: none !important;
-  transition: none !important;
-}
 
 /* Remove all keyframe animations */
 @keyframes blob {

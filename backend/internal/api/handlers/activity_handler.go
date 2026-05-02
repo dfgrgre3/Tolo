@@ -6,6 +6,7 @@ import (
 	"thanawy-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Tasks
@@ -55,12 +56,15 @@ func UpdateTask(c *gin.Context) {
 	}
 	uid := userIdValue.(string)
 
-	var task models.Task
-	if err := db.DB.Where("id = ? AND \"userId\" = ?", id, uid).First(&task).Error; err != nil {
+	var existingTask models.Task
+	if err := db.DB.Where("id = ? AND \"userId\" = ?", id, uid).First(&existingTask).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		return
 	}
 
+	originalStatus := existingTask.Status
+
+	var task models.Task
 	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -70,7 +74,33 @@ func UpdateTask(c *gin.Context) {
 	task.ID = id
 	task.UserID = uid
 
-	if err := db.DB.Save(&task).Error; err != nil {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&task).Error; err != nil {
+			return err
+		}
+
+		// Gamification logic
+		if originalStatus != models.TaskCompleted && task.Status == models.TaskCompleted {
+			if err := tx.Model(&models.User{}).Where("id = ?", uid).
+				Updates(map[string]interface{}{
+					"TotalXP":        gorm.Expr("\"totalXP\" + ?", 50),
+					"TasksCompleted": gorm.Expr("\"tasksCompleted\" + ?", 1),
+				}).Error; err != nil {
+				return err
+			}
+		} else if originalStatus == models.TaskCompleted && task.Status != models.TaskCompleted {
+			if err := tx.Model(&models.User{}).Where("id = ?", uid).
+				Updates(map[string]interface{}{
+					"TotalXP":        gorm.Expr("\"totalXP\" - ?", 50),
+					"TasksCompleted": gorm.Expr("\"tasksCompleted\" - ?", 1),
+				}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
 		return
 	}
