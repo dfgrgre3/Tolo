@@ -1,4 +1,4 @@
-﻿// Types and constants for achievements
+// Types and constants for achievements
 export interface Achievement {
   id: string;
   key: string;
@@ -18,110 +18,109 @@ export interface Achievement {
 }
 
 export const rarityOptions = [
-  { value: "common", label: "عادي" },
-  { value: "uncommon", label: "غير عادي" },
-  { value: "rare", label: "نادر" },
-  { value: "epic", label: "ملحمي" },
-  { value: "legendary", label: "أسطوري" },
+  { value: "common", label: "أساسي" },
+  { value: "uncommon", label: "برونزي" },
+  { value: "rare", label: "فضي" },
+  { value: "epic", label: "ذهبي" },
+  { value: "legendary", label: "بلاتيني" },
 ];
 
 export const categoryOptions = [
-  { value: "STUDY", label: "دراسة" },
-  { value: "TASKS", label: "مهام" },
-  { value: "EXAMS", label: "امتحانات" },
-  { value: "TIME", label: "وقت" },
-  { value: "STREAK", label: "تتابع" },
+  { value: "STUDY", label: "نشاط دراسي" },
+  { value: "TASKS", label: "إتمام مهام" },
+  { value: "EXAMS", label: "اختبارات" },
+  { value: "TIME", label: "وقت المذاكرة" },
+  { value: "STREAK", label: "استمرارية" },
 ];
 
 export const difficultyOptions = [
-  { value: "EASY", label: "سهل" },
+  { value: "EASY", label: "مبتدئ" },
   { value: "MEDIUM", label: "متوسط" },
-  { value: "HARD", label: "صعب" },
+  { value: "HARD", label: "متقدم" },
   { value: "EXPERT", label: "خبير" },
 ];
 
 export const rarityColors: Record<string, string> = {
-  common: "bg-gray-500",
-  uncommon: "bg-green-500",
-  rare: "bg-blue-500",
-  epic: "bg-purple-500",
-  legendary: "bg-yellow-500",
+  common: "bg-slate-500",
+  uncommon: "bg-orange-600",
+  rare: "bg-zinc-400",
+  epic: "bg-amber-500",
+  legendary: "bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.3)]",
 };
 
 export const rarityLabels: Record<string, string> = {
-  common: "عادي",
-  uncommon: "غير عادي",
-  rare: "نادر",
-  epic: "ملحمي",
-  legendary: "أسطوري",
+  common: "أساسي",
+  uncommon: "برونزي",
+  rare: "فضي",
+  epic: "ذهبي",
+  legendary: "بلاتيني",
 };
 
 export const categoryLabels: Record<string, string> = {
-  STUDY: "دراسة",
-  TASKS: "مهام",
-  EXAMS: "امتحانات",
-  TIME: "وقت",
-  STREAK: "تتابع",
+  STUDY: "نشاط دراسي",
+  TASKS: "إتمام مهام",
+  EXAMS: "اختبارات",
+  TIME: "وقت المذاكرة",
+  STREAK: "استمرارية",
 };
 
-const difficultyLabels: Record<string, string> = {
-  EASY: "سهل",
+export const difficultyLabels: Record<string, string> = {
+  EASY: "مبتدئ",
   MEDIUM: "متوسط",
-  HARD: "صعب",
+  HARD: "متقدم",
   EXPERT: "خبير",
 };
 
 // Utility functions
-function getRarityLabel(rarity: string): string {
-  const option = rarityOptions.find(opt => opt.value === rarity);
-  return option?.label || rarity;
+export function getRarityLabel(rarity: string): string {
+  return rarityLabels[rarity] || rarity;
 }
 
-function getCategoryLabel(category: string): string {
+export function getCategoryLabel(category: string): string {
   return categoryLabels[category] || category;
 }
 
-function getDifficultyLabel(difficulty: string): string {
+export function getDifficultyLabel(difficulty: string): string {
   return difficultyLabels[difficulty] || difficulty;
 }
 
-function formatXpReward(xp: number): string {
-  return `${xp} XP`;
+export function formatXpReward(xp: number): string {
+  return `${xp} نقطة`;
 }
 
-function formatUserCount(count: number): string {
+export function formatUserCount(count: number): string {
   return `${count} مستخدم`;
 }
 
-function formatDate(dateString: string): string {
+export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("ar-EG");
 }
 
-function getRarityOrder(rarity: string): number {
+export function getRarityOrder(rarity: string): number {
   const order = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
   return order[rarity as keyof typeof order] || 0;
 }
 
-function getDifficultyOrder(difficulty: string): number {
+export function getDifficultyOrder(difficulty: string): number {
   const order = { EASY: 1, MEDIUM: 2, HARD: 3, EXPERT: 4 };
   return order[difficulty as keyof typeof order] || 0;
 }
 
 // Validation helpers
-function validateAchievementKey(key: string): boolean {
+export function validateAchievementKey(key: string): boolean {
   return /^[A-Z_]+$/.test(key);
 }
 
-function validateXpReward(xp: number): boolean {
+export function validateXpReward(xp: number): boolean {
   return Number.isInteger(xp) && xp >= 0 && xp <= 10000;
 }
 
 // Default values
-const defaultAchievementForm = {
+export const defaultAchievementForm = {
   key: "",
   title: "",
   description: "",
-  icon: "trophy",
+  icon: "award",
   rarity: "common" as const,
   xpReward: 10,
   isSecret: false,

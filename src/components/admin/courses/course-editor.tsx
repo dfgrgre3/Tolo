@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminUpload } from "@/components/admin/ui/admin-upload";
@@ -309,6 +310,32 @@ export function CourseEditor({
   const youtubeEmbedUrl = youtubeMatch
     ? `https://www.youtube.com/embed/${youtubeMatch[1]}`
     : null;
+
+  const generateWithAI = async (field: "description" | "seoDescription") => {
+    const name = form.getValues("nameAr") || form.getValues("name");
+    if (!name) {
+      toast.error("يرجى إدخال اسم الدورة أولاً");
+      return;
+    }
+
+    const toastId = toast.loading("جاري توليد المحتوى بالذكاء الاصطناعي...");
+    try {
+      const response = await fetch(apiRoutes.ai.chat, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message: `قم بكتابة ${field === 'description' ? 'وصف تفصيلي وجذاب' : 'وصف SEO مختصر'} لدورة تعليمية بعنوان "${name}".` 
+        }),
+      });
+      const result = await response.json();
+      if (result.reply) {
+        form.setValue(field, result.reply);
+        toast.success("تم توليد المحتوى بنجاح", { id: toastId });
+      }
+    } catch {
+      toast.error("فشل الاتصال بمساعد الذكاء الاصطناعي", { id: toastId });
+    }
+  };
 
   const control = form.control;
 
@@ -656,9 +683,21 @@ export function CourseEditor({
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">
-                            وصف الدورة
-                          </FormLabel>
+                          <div className="flex items-center justify-between mb-2">
+                            <FormLabel className="font-bold">
+                              وصف الدورة
+                            </FormLabel>
+                            <AdminButton 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-[10px] gap-1.5 text-primary bg-primary/5 hover:bg-primary/10 rounded-lg"
+                              onClick={() => generateWithAI("description")}
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              توليد بالذكاء الاصطناعي
+                            </AdminButton>
+                          </div>
                           <FormControl>
                             <Textarea
                               {...field}

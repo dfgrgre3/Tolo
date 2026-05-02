@@ -42,7 +42,7 @@ func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 
 	val, err, _ := r.sf.Do(cacheKey, func() (interface{}, error) {
 		var subject models.Subject
-		
+
 		// Try cache first
 		if db.Redis != nil {
 			cachedVal, err := db.Redis.Get(context.Background(), cacheKey).Result()
@@ -68,11 +68,11 @@ func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 }
 
 func (r *SubjectRepository) FindAll(filters map[string]interface{}) ([]models.Subject, error) {
-	// For lists, we might not want to cache the entire result set in a single key 
+	// For lists, we might not want to cache the entire result set in a single key
 	// because filters vary wildly. But we can cache individual subjects.
 	var subjects []models.Subject
 	query := r.db.Model(&models.Subject{}).Preload("Topics")
-	
+
 	for k, v := range filters {
 		// Only allow whitelisted filter keys to prevent SQL injection
 		safeColumn, ok := allowedSubjectFilters[k]

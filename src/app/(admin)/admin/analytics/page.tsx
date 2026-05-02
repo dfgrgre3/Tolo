@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -22,6 +22,7 @@ import { AiCommandCenter } from "@/components/admin/dashboard/ai-command-center"
 import { Reorder } from "framer-motion";
 import { toast } from "sonner";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 
 const DailyActiveUsersChart = dynamic(() => import('./charts').then(mod => mod.DailyActiveUsersChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
 const DailyRegistrationsChart = dynamic(() => import('./charts').then(mod => mod.DailyRegistrationsChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
@@ -35,7 +36,7 @@ export default function AdminAnalyticsPage() {
   const { data, isLoading: loading, error: _queryError, refetch } = useQuery({
     queryKey: ['admin', 'analytics', period],
     queryFn: async () => {
-      const response = await fetch(`${apiRoutes.admin.analytics}?period=${period}`);
+      const response = await adminFetch(`${apiRoutes.admin.analytics}?period=${period}`);
       if (!response.ok) throw new Error("Failed to fetch analytics data");
       return response.json();
     },
@@ -173,11 +174,29 @@ export default function AdminAnalyticsPage() {
                              ))}
                            </div>
                          </AdminGridCard>
-                         <AdminGridCard title="إحصائيات البطولات">
+                         <AdminGridCard title="إحصائيات التفاعل والتحفيز">
                            <div className="space-y-4">
-                             <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Trophy className="h-4 w-4 text-yellow-500" /><span className="text-sm">الأوسمة</span></div><span className="font-medium">{data?.gamification?.achievementsEarned ?? 0}</span></div>
-                             <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Target className="h-4 w-4 text-green-500" /><span className="text-sm">التحديات</span></div><span className="font-medium">{data?.gamification?.challengesCompleted ?? 0}</span></div>
-                             <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Zap className="h-4 w-4 text-blue-500" /><span className="text-sm">XP الموزع</span></div><span className="font-medium">{(data?.gamification?.totalXP ?? 0).toLocaleString()}</span></div>
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <Award className="h-4 w-4 text-yellow-500" />
+                                 <span className="text-sm">الأوسمة والتقدير</span>
+                               </div>
+                               <span className="font-medium">{data?.gamification?.achievementsEarned ?? 0}</span>
+                             </div>
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <ClipboardList className="h-4 w-4 text-emerald-500" />
+                                 <span className="text-sm">المهام التعليمية</span>
+                               </div>
+                               <span className="font-medium">{data?.gamification?.challengesCompleted ?? 0}</span>
+                             </div>
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <Zap className="h-4 w-4 text-blue-500" />
+                                 <span className="text-sm">إجمالي نقاط التفاعل</span>
+                               </div>
+                               <span className="font-medium">{(data?.gamification?.totalXP ?? 0).toLocaleString()}</span>
+                             </div>
                            </div>
                          </AdminGridCard>
                        </div>

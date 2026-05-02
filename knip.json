@@ -4,7 +4,6 @@
     "src/app/layout.tsx",
     "src/app/page.tsx",
     "src/app/api/**/route.ts",
-    "src/proxy.ts",
     "scripts/*.ts",
     "scripts/*.mjs"
   ],

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -6,8 +6,10 @@ import { Loader2, AlertCircle, CheckCircle2, ArrowRight, ShieldCheck, Sparkles }
 import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
 
 function VerifyEmailContent() {
+  const { verifyEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -26,15 +28,9 @@ function VerifyEmailContent() {
 
     const verify = async () => {
       try {
-        const response = await fetch('/api/auth/verify-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
+        const result = await verifyEmail(token);
 
-        const result = await response.json();
-
-        if (response.ok) {
+        if (result.success) {
           setStatus('success');
           setMessage('تم تفعيل حسابك بنجاح! ننتظرك في الداخل...');
           setTimeout(() => router.push('/dashboard'), 3000);

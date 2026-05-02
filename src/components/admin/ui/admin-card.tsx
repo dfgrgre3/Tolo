@@ -10,8 +10,8 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "hover:shadow-lg hover:-translate-y-0.5",
-        gradient: "bg-gradient-to-br from-card to-muted/50 hover:shadow-xl",
+        default: "",
+        gradient: "bg-gradient-to-br from-card to-muted/50",
         glass: "bg-card/50 backdrop-blur-xl border-white/10",
         outline: "bg-transparent hover:bg-muted/50",
         flat: "border-0 bg-muted/30 hover:bg-muted/50",
@@ -103,14 +103,14 @@ export function AdminStatsCard({
     <AdminCard 
       variant="glass" 
       className={cn(
-        "relative overflow-hidden group transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl",
+        "relative overflow-hidden group",
         className
       )}
     >
       {/* Dynamic Glow Effect */}
       <div 
         className={cn(
-          "absolute -right-8 -top-8 h-32 w-32 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40",
+          "absolute -right-8 -top-8 h-32 w-32 rounded-full blur-3xl opacity-20",
           color === "blue" && "bg-blue-500",
           color === "green" && "bg-emerald-500",
           color === "yellow" && "bg-amber-500",
@@ -132,7 +132,7 @@ export function AdminStatsCard({
           </div>
           {Icon && (
             <div className={cn(
-              "flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-white/10 shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3", 
+              "flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-white/10 shadow-lg", 
               iconBgClasses[color]
             )}>
               <Icon className={cn("h-7 w-7", colorClasses[color])} />
@@ -203,7 +203,7 @@ function AdminActionCard({
           {Icon && (
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
+                "flex h-10 w-10 items-center justify-center rounded-xl",
                 `bg-${color}/10`
               )}
               style={{ backgroundColor: `oklch(var(--${color}) / 0.1)` }}

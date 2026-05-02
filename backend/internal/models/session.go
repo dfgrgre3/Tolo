@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-	"gorm.io/gorm"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"time"
 )
 
 type UserSession struct {

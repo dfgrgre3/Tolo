@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
@@ -9,6 +9,7 @@ import { Lock, Loader2, AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, Shie
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
@@ -25,6 +26,7 @@ const resetPasswordSchema = z.object({
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 function ResetPasswordForm() {
+  const { resetPassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -52,15 +54,9 @@ function ResetPasswordForm() {
     setStatus(null);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password: data.password }),
-      });
+      const result = await resetPassword(token, data.password);
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         toast.success('تمت إعادة تعيين كلمة المرور بنجاح');
         setStatus({
           type: 'success',

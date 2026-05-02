@@ -23,13 +23,13 @@ func GetSettings(c *gin.Context) {
 	var settings models.UserSettings
 	// Use struct-based query to let GORM handle naming strategy correctly
 	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
-	
+
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			log.Printf("INFO: Creating default settings for user %v", userID)
 			// Create default settings for user
 			settings = models.UserSettings{
-				UserID:              userID.(string),
+				UserID:               userID.(string),
 				Theme:                "light",
 				FontSize:             "medium",
 				ReducedMotion:        false,
@@ -65,25 +65,25 @@ func GetSettings(c *gin.Context) {
 				ShowOnlineStatus:     true,
 				ShowProgress:         true,
 			}
-			
+
 			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
 			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
 				log.Printf("ERROR: Failed to create settings for user %v: %v", userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Failed to create settings",
+					"error":   "Failed to create settings",
 					"details": err.Error(),
 				})
 				return
 			}
-			
+
 			// Re-fetch to ensure we have the settings if DoNothing was triggered
 			if settings.ID == "" {
-				db.DB.Where("userId = ?", userID.(string)).First(&settings)
+				db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
 			}
 		} else {
 			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to fetch settings",
+				"error":   "Failed to fetch settings",
 				"details": result.Error.Error(),
 			})
 			return
@@ -103,19 +103,19 @@ func UpdateSettings(c *gin.Context) {
 
 	var patch map[string]interface{}
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	var settings models.UserSettings
 	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
-	
+
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			log.Printf("INFO: Creating default settings for user %v during update", userID)
 			// Create default settings first
 			settings = models.UserSettings{
-				UserID:              userID.(string),
+				UserID:               userID.(string),
 				Theme:                "light",
 				FontSize:             "medium",
 				ReducedMotion:        false,
@@ -132,17 +132,17 @@ func UpdateSettings(c *gin.Context) {
 				ShowOnlineStatus:     true,
 				ShowProgress:         true,
 			}
-			
+
 			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
 			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
 				log.Printf("ERROR: Failed to create settings for user %v during update: %v", userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Failed to create settings",
+					"error":   "Failed to create settings",
 					"details": err.Error(),
 				})
 				return
 			}
-			
+
 			// Re-fetch to ensure we have the settings if DoNothing was triggered
 			if settings.ID == "" {
 				db.DB.Where("\"userId\" = ?", userID.(string)).First(&settings)
@@ -150,7 +150,7 @@ func UpdateSettings(c *gin.Context) {
 		} else {
 			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to fetch settings",
+				"error":   "Failed to fetch settings",
 				"details": result.Error.Error(),
 			})
 			return
@@ -203,7 +203,7 @@ func UpdateSettings(c *gin.Context) {
 	if showProgress, ok := patch["showProgress"].(bool); ok {
 		settings.ShowProgress = showProgress
 	}
-	
+
 	// Extended notification settings
 	if v, ok := patch["taskReminders"].(bool); ok {
 		settings.TaskReminders = v

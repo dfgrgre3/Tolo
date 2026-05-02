@@ -264,7 +264,7 @@ export default function SubscriptionPlans() {
                 </div>
 
                 <div className="space-y-4 mb-12 flex-grow">
-                  {(plan.featuresAr || plan.features).map((feature, i) =>
+                  {(plan.featuresAr || plan.features || []).map((feature, i) =>
               <div key={i} className="flex items-start gap-4 text-sm text-gray-300 group/item">
                       <div className="mt-1 bg-emerald-500/20 p-1 rounded-full group-hover/item:bg-emerald-500 group-hover/item:text-white transition-all">
                         <Check className="w-3 h-3 text-emerald-500 group-hover/item:text-inherit" />

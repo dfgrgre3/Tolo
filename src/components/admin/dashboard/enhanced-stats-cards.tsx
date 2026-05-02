@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { cn, formatNumber } from "@/lib/utils";
@@ -78,26 +78,7 @@ const colorConfig = {
 };
 
 function AnimatedNumber({ value, className }: { value: number; className?: string }) {
-  const [displayValue, setDisplayValue] = React.useState(0);
-
-  React.useEffect(() => {
-    const duration = 1000;
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplayValue(value);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return <span className={className}>{formatNumber(displayValue)}</span>;
+  return <span className={className}>{formatNumber(value)}</span>;
 }
 
 function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean; index: number }) {
@@ -111,15 +92,13 @@ function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean
       onClick={stat.onClick}
       className={cn(
         "relative overflow-hidden group",
-        "animate-in fade-in slide-in-from-bottom-4",
         stat.onClick && "cursor-pointer"
       )}
-      style={{ animationDelay: `${index * 100}ms` }}
     >
       {/* Background gradient decoration */}
       <div
         className={cn(
-          "absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br opacity-50 transition-transform group-hover:scale-150",
+          "absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br opacity-50",
           config.gradient
         )}
       />
@@ -142,7 +121,7 @@ function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean
           {Icon && (
             <div
               className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
+                "flex h-12 w-12 items-center justify-center rounded-xl",
                 config.bg
               )}
             >
@@ -186,7 +165,7 @@ function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean
 export function EnhancedStatsCards({
   stats,
   layout = "grid",
-  animated = true,
+  animated = false,
   className,
 }: EnhancedStatsCardsProps) {
   if (layout === "carousel") {

@@ -5,7 +5,7 @@
  * Comprehensive library for safe client-side API access
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
 
 // Use console internally to avoid circular dependencies with the unified logger
 const logger = console;
@@ -272,7 +272,7 @@ export function isBrowser(): boolean {
  * الوصول الآمن إلى window
  * Safe window access
  */
-function safeWindow<T>(
+export function safeWindow<T>(
 accessor: (window: Window) => T,
 fallback: T)
 : T {
@@ -290,7 +290,7 @@ fallback: T)
  * الوصول الآمن إلى document
  * Safe document access
  */
-function safeDocument<T>(
+export function safeDocument<T>(
 accessor: (document: Document) => T,
 fallback: T)
 : T {
@@ -438,7 +438,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
+  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api');
   if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
   if (url.includes('/auth/')) return false;
   return true;
@@ -447,7 +447,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 async function refreshAuthSession(): Promise<boolean> {
   try {
     const isBrowserEnv = typeof window !== 'undefined';
-    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
+    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
@@ -566,7 +566,7 @@ fallback: T | null = null)
 : Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
     const isBrowser = typeof window !== 'undefined';
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api';
     const finalUrl = url.startsWith('/api/') 
       ? (isBrowser ? url : `${BASE_API_URL}${url.substring(4)}`) 
       : url;
@@ -595,8 +595,7 @@ fallback: T | null = null)
       clearTimeout(timeoutId);
       // Enhance error message with URL for debugging
       if (fetchError instanceof Error) {
-        fetchError.message = `Failed to fetch from ${finalUrl}: ${fetchError.message}`;
-        throw fetchError;
+        throw new Error(`Failed to fetch from ${finalUrl}: ${fetchError.message}`);
       }
       throw new Error(`Failed to fetch from ${finalUrl}`);
     }
@@ -715,10 +714,9 @@ fallback: T | null = null)
     }
 
     if (signalWasAborted && normalizedError.name !== 'AbortError') {
+      // Create a new error with the correct message instead of modifying read-only property
+      normalizedError = new Error('Request was aborted');
       normalizedError.name = 'AbortError';
-      if (!normalizedError.message || normalizedError.message === 'Unknown fetch error') {
-        normalizedError.message = 'Request was aborted';
-      }
     }
 
     // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة

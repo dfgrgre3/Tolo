@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -29,17 +29,20 @@ import {
   Plus, Crown, Calendar,
   Flame, Swords, Sparkles,
   Zap, History, Timer, Trophy,
-  Hammer,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { m } from "framer-motion";
 
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { logger } from '@/lib/logger';
 
 interface Season {
@@ -93,12 +96,12 @@ export default function AdminSeasonsPage() {
   const fetchSeasons = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/seasons");
+      const response = await adminFetch(apiRoutes.admin.seasons);
       const data = await response.json();
-      setSeasons(data.seasons || []);
+      setSeasons(data.data?.seasons || data.data?.items || data.seasons || []);
     } catch (error) {
       logger.error("Error fetching seasons:", error);
-      toast.error("حدث خطأ في استدعاء سجلات الملاحم");
+      toast.error("حدث خطأ في استدعاء سجلات المواسم");
     } finally {
       setLoading(false);
     }
@@ -135,22 +138,22 @@ export default function AdminSeasonsPage() {
 
   const handleSubmit = async (values: SeasonFormValues) => {
     try {
-      const url = "/api/admin/seasons";
+      const url = editingSeason ? `${apiRoutes.admin.seasons}/${editingSeason.id}` : apiRoutes.admin.seasons;
       const method = editingSeason ? "PATCH" : "POST";
       const body = editingSeason ? { ...values, id: editingSeason.id } : values;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
 
       if (response.ok) {
-        toast.success(editingSeason ? "تم تحديث قوانين الموسم" : "تم إعلان ملحمة جديدة في الإمبراطورية");
+        toast.success(editingSeason ? "تم تحديث بيانات الموسم بنجاح" : "تم إضافة موسم تعليمي جديد بنجاح");
         setDialogOpen(false);
         fetchSeasons();
       } else {
-        toast.error("فشل في حفظ الموسم");
+        toast.error("فشل في حفظ بيانات الموسم");
       }
     } catch (error) {
       logger.error("Error saving season:", error);
@@ -162,17 +165,17 @@ export default function AdminSeasonsPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/seasons", {
+      const response = await adminFetch(apiRoutes.admin.seasons, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })
       });
 
       if (response.ok) {
-        toast.success("تم مسح الموسم وحرق سجلاته");
+        toast.success("تم حذف الموسم من السجلات بنجاح");
         fetchSeasons();
       } else {
-        toast.error("فشل في الإتلاف");
+        toast.error("فشل في حذف الموسم");
       }
     } catch (error) {
       logger.error("Error deleting season:", error);
@@ -185,7 +188,7 @@ export default function AdminSeasonsPage() {
   const columns: ColumnDef<Season>[] = [
   {
     accessorKey: "name",
-    header: "الموسم / الملحمة",
+    header: "الموسم",
     cell: ({ row }) => {
       const season = row.original;
       return (
@@ -196,7 +199,7 @@ export default function AdminSeasonsPage() {
             <div>
               <p className="font-black text-sm tracking-tight">{season.name}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 line-clamp-1 max-w-[200px]">
-                {season.description || "لا يوجد وصف لهذا العصر"}
+                {season.description || "لا يوجد وصف لهذا الموسم"}
               </p>
             </div>
           </div>);
@@ -205,14 +208,14 @@ export default function AdminSeasonsPage() {
   },
   {
     accessorKey: "isActive",
-    header: "الحالة الملكية",
+    header: "الحالة",
     cell: ({ row }) => {
       const active = row.original.isActive;
       return (
         <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
-              {active ? "حقبة نشطة" : "حقبة منتهية"}
+              {active ? "موسم نشط" : "موسم منتهٍ"}
             </span>
           </div>);
 
@@ -236,23 +239,23 @@ export default function AdminSeasonsPage() {
   },
   {
     id: "stats",
-    header: "إحصائيات المعركة",
+    header: "إحصائيات الموسم",
     cell: ({ row }) =>
     <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Swords className="w-3 h-3 text-orange-500" />
-            <span className="text-[10px] font-black">{row.original._count?.participations || 0} محارب</span>
+            <span className="text-[10px] font-black">{row.original._count?.participations || 0} طالب</span>
           </div>
           <div className="flex items-center gap-2 opacity-60">
             <Trophy className="w-3 h-3 text-yellow-500" />
-            <span className="text-[10px] font-bold">{row.original._count?.leaderboards || 0} قائمة تصنيف</span>
+            <span className="text-[10px] font-bold">{row.original._count?.leaderboards || 0} قائمة متصدرين</span>
           </div>
         </div>
 
   },
   {
     id: "actions",
-    header: "التحكم الإمبراطوري",
+    header: "الإجراءات",
     cell: ({ row }) =>
     <RowActions
       row={row.original}
@@ -261,8 +264,8 @@ export default function AdminSeasonsPage() {
       extraActions={[
       {
         icon: Zap,
-        label: "تصفير الـ Leaderboard",
-        onClick: () => toast.success("تم إرسال أمر لإعادة تعيين موازين القوى وبدء حقبة جديدة.")
+        label: "إعادة تعيين لوحة المتصدرين",
+        onClick: () => toast.success("تم إرسال أمر لإعادة تعيين لوحة المتصدرين لبدء فترة جديدة.")
       }]
       } />
 
@@ -273,53 +276,53 @@ export default function AdminSeasonsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="المواسم القتالية (Battle Passes) 🛡️"
-        description="إدارة العصور التعليمية، ضبط جوائز الـ Battle Pass، وجدولة ملاحم القمة لجيش المحاربين.">
+        title="إدارة المواسم التعليمية 🛡️"
+        description="إدارة الفترات التعليمية، ضبط جوائز المواسم، وجدولة المنافسات بين الطلاب.">
         
         <AdminButton
           icon={Plus}
           onClick={() => handleOpenDialog()}
           className="h-14 px-8 rounded-2xl text-md font-black shadow-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
           
-          إعلان موسم جديد
+          إضافة موسم جديد
         </AdminButton>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <AdminStatsCard
-          title="عصور المملكة"
+          title="إجمالي المواسم"
           value={seasons.length}
           icon={History}
           color="blue"
           description="إجمالي المواسم المسجلة" />
         
         <AdminStatsCard
-          title="الحقبة الحالية"
+          title="المواسم النشطة"
           value={seasons.filter((s) => s.isActive).length}
           icon={Flame}
           color="red"
-          description="مواسم نشطة الآن" />
+          description="مواسم جارية حالياً" />
         
         <AdminStatsCard
-          title="جيش المشاركين"
+          title="إجمالي المشاركين"
           value={seasons.reduce((acc, s) => acc + (s._count?.participations || 0), 0)}
           icon={Swords}
           color="purple"
-          description="إجمالي تداخل المحاربين" />
+          description="إجمالي مشاركات الطلاب" />
         
         <AdminStatsCard
-          title="جوائز مسلحة"
+          title="مواسم بمكافآت"
           value={seasons.filter((s) => s.rewards).length}
           icon={Trophy}
           color="yellow"
-          description="مواسم بكنوز محددة" />
+          description="مواسم بمسار جوائز محدد" />
         
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
         
         {loading ?
         <TableSkeleton rows={6} cols={5} /> :
@@ -328,7 +331,7 @@ export default function AdminSeasonsPage() {
           columns={columns}
           data={seasons}
           searchKey="name"
-          searchPlaceholder="ابحث في سجلات الزمن..."
+          searchPlaceholder="ابحث في سجلات المواسم..."
           actions={{ onRefresh: () => fetchSeasons() }} />
 
         }
@@ -343,18 +346,18 @@ export default function AdminSeasonsPage() {
               <DialogTitle className="text-2xl font-black flex items-center gap-3">
                 {editingSeason ?
                 <>
-                    <Hammer className="w-7 h-7 text-indigo-500" />
-                    تغيير معالم الحقبة
+                    <Edit className="w-7 h-7 text-indigo-500" />
+                    تعديل بيانات الموسم
                   </> :
 
                 <>
                     <Sparkles className="w-7 h-7 text-purple-500" />
-                    إعلان عصر جديد
+                    إضافة موسم جديد
                   </>
                 }
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                حدد ملامح الموسم القادم وأسس حجر الزاوية للمنافسة بين الأبطال.
+                حدد تفاصيل الموسم القادم وضع حجر الأساس للمنافسة بين الطلاب.
               </DialogDescription>
             </DialogHeader>
 
@@ -367,7 +370,7 @@ export default function AdminSeasonsPage() {
                   <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسـم الموسم</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="موسم فرسان النيل..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" />
+                        <Input {...field} placeholder="موسم التفوق الدراسي..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -379,9 +382,9 @@ export default function AdminSeasonsPage() {
                   name="description"
                   render={({ field }) =>
                   <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تاريخ العصر (الوصف)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف الموسم</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="لقد بدأ زمن جديد..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[80px]" />
+                        <Textarea {...field} placeholder="وصف الموسم وأهدافه..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[80px]" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -394,7 +397,7 @@ export default function AdminSeasonsPage() {
                     name="startDate"
                     render={({ field }) =>
                     <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">فجر الموسم (بداية)</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تاريخ البداية</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
                         </FormControl>
@@ -408,7 +411,7 @@ export default function AdminSeasonsPage() {
                     name="endDate"
                     render={({ field }) =>
                     <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">غروب الموسم (نهاية)</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تاريخ النهاية</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
                         </FormControl>
@@ -423,7 +426,7 @@ export default function AdminSeasonsPage() {
                   name="rewards"
                   render={({ field }) =>
                   <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مخطط الغنائم (Rewards Path)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">خطة المكافآت (Rewards Path)</FormLabel>
                       <FormControl>
                         <Textarea {...field} placeholder="المستوى 1: وسام، المستوى 5: لقب..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[80px]" />
                       </FormControl>
@@ -438,13 +441,13 @@ export default function AdminSeasonsPage() {
                   render={({ field }) =>
                   <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5 shadow-inner">
                       <div className="space-y-0.5">
-                        <FormLabel className="font-black text-xs">تفعيل الحقبة الآن؟</FormLabel>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase">سيظهر الموسم فوراً لكافة المحاربين</p>
+                        <FormLabel className="font-black text-xs">تفعيل الموسم الآن؟</FormLabel>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">سيظهر الموسم فوراً لكافة الطلاب</p>
                       </div>
                       <FormControl>
                         <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange} />
+                          checked={field.value}
+                          onCheckedChange={field.onChange} />
                       
                       </FormControl>
                     </FormItem>
@@ -452,8 +455,8 @@ export default function AdminSeasonsPage() {
                 
 
                 <DialogFooter className="pt-4">
-                  <AdminButton type="submit" icon={editingSeason ? Hammer : Sparkles} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
-                    {editingSeason ? "تحديث ميثاق الموسم" : "إعلان الموسم في الإمبراطورية"}
+                  <AdminButton type="submit" icon={editingSeason ? Edit : Sparkles} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                    {editingSeason ? "تحديث بيانات الموسم" : "نشر الموسم الجديد"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -462,12 +465,12 @@ export default function AdminSeasonsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="إتلاف الموسم نهائياً؟"
-        description="أنت على وشك حرق سجلات هذا الموسم من تاريخ المملكة. هل أنت متأكد؟"
-        confirmText="نعم، احذف الموسم"
+        title="حذف الموسم نهائياً؟"
+        description="هل أنت متأكد من حذف هذا الموسم من السجلات؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete} />
       

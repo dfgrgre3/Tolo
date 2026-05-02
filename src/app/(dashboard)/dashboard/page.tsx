@@ -23,10 +23,12 @@ import {
 
   LayoutDashboard,
   AlertCircle,
+  Clock as ClockIcon,
 
   ChevronRight,
   TrendingUp,
-  Award } from
+  Award,
+  Play } from
 
 "lucide-react";
 
@@ -324,7 +326,7 @@ export default function DashboardPage() {
                           <span>إنجاز {lastCourse.progress}%</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
+                          <ClockIcon className="w-4 h-4" />
                           <span>آخر دخول: {new Date(lastCourse.lastAccessedAt).toLocaleDateString('ar-EG')}</span>
                         </div>
                       </div>

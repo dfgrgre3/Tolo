@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('يرجى إدخال بريد إلكتروني صحيح'),
@@ -17,6 +18,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth();
   const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,15 +35,9 @@ export default function ForgotPasswordPage() {
     setStatus(null);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const result = await forgotPassword(data.email);
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         toast.success('تم إرسال رابط إعادة التعيين بنجاح');
         setStatus({
           type: 'success',

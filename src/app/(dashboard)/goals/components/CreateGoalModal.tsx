@@ -29,6 +29,7 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
       description: formData.description || undefined,
       targetValue: parseFloat(formData.targetValue),
       currentValue: 0,
+      type: 'custom',
       unit: formData.unit,
       category: 'custom',
       xpReward: 10

@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { Split, BarChart3, Plus } from "lucide-react";
+import { Split, BarChart3, Plus, Microscope } from "lucide-react";
 import { ExperimentCard } from "@/components/ab-testing/experiment-card";
 import { CreateExperimentDialog } from "@/components/ab-testing/create-experiment-dialog";
 import { StatsCards } from "@/components/ab-testing/stats-cards";
@@ -136,16 +136,16 @@ export default function ABTestingPage() {
   return (
     <div className="space-y-8 pb-10">
       <PageHeader
-        title="مختبر النمو وتجارب (A/B Testing)"
-        description="قارن بين نسخة واحدة من الاختبارات أو الدروس، واعرف أيهما يحقق أفضل تفاعل (Engagement) وأعلى معدلات استيعاب لدى المحاربين.">
+        title="مركز تجارب وتحليل الأداء (A/B Testing)"
+        description="قارن بين نماذج مختلفة من الدروس أو الواجهات، وحدد الخيار الأمثل الذي يحقق أفضل تفاعل وأعلى معدلات استيعاب لدى الطلاب.">
         
         <CreateExperimentDialog 
           onCreate={handleCreateExperiment}
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
         >
-          <AdminButton icon={Plus} className="h-12 rounded-xl text-lg font-bold gap-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 shadow-[0_0_20px_rgba(20,184,166,0.3)]">
-            إنشاء تجربة انقسام جديدة
+          <AdminButton icon={Plus} className="h-12 rounded-xl text-lg font-bold gap-2 bg-gradient-to-r from-primary to-primary/80 shadow-lg">
+            إنشاء تجربة مقارنة جديدة
           </AdminButton>
         </CreateExperimentDialog>
       </PageHeader>
@@ -161,8 +161,8 @@ export default function ABTestingPage() {
       
 
       <h3 className="text-xl font-black flex items-center gap-2 mt-12 mb-6">
-        <BarChart3 className="w-6 h-6 text-primary" />
-        لوحة المختبر (Active & Past Experiments)
+        <Microscope className="w-6 h-6 text-primary" />
+        قائمة التجارب (الحالية والسابقة)
       </h3>
 
       {filteredExperiments.length === 0 ?

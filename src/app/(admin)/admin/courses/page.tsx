@@ -25,7 +25,10 @@ import {
   Users,
   Globe,
   EyeOff,
-
+  ChevronRight,
+  ChevronLeft,
+  Trash2,
+  XCircle,
   CheckCircle2,
   AlertCircle,
   Download } from
@@ -66,7 +69,7 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { apiRoutes } from "@/lib/api/routes";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -797,31 +800,65 @@ export default function AdminCoursesPage() {
     </div>;
 
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——————————————————————————————————————————————————————————————————————————————————————————————————
 
   return (
-    <div className="space-y-6 pb-20" dir="rtl">
-      {/* Header */}
-      <PageHeader
-        title="إدارة الدورات التعليمية"
-        description="أنشئ وراقب وادر دوراتك من شاشة مركزية واحدة â€“ نشر، تحليلات، وإدارة المنهج."
-        badge={`${pagination?.total ?? courses.length} دورة`}>
+    <div className="space-y-8" dir="rtl">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/30 p-8 backdrop-blur-xl">
+        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[80px]" />
+        <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-violet-500/10 blur-[80px]" />
         
-        <div className="flex flex-wrap items-center gap-2">
-          <AdminButton variant="outline" icon={Tags} onClick={() => setCategoryDialogOpen(true)}>
-            التصنيفات
-          </AdminButton>
-          <AdminButton variant="outline" icon={Download} onClick={handleExport}>
-            تصدير
-          </AdminButton>
-          <AdminButton icon={Plus} onClick={() => router.push("/admin/courses/new")}>
-            دورة جديدة
-          </AdminButton>
-        </div>
-      </PageHeader>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-right">
+            <h1 className="text-4xl font-black tracking-tight text-foreground">
+              إدارة الدورات التعليمية
+            </h1>
+            <p className="text-lg font-medium text-muted-foreground">
+              تحكم في المحتوى، الطلاب، والأداء المالي لمنصة Thanawy
+            </p>
+          </div>
 
-      {/* Stats */}
-      <CourseStats stats={statsData} />
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <AdminButton 
+              variant="outline" 
+              className="h-12 rounded-2xl px-6 font-black gap-2 bg-background/50 border-border/50"
+              onClick={() => setCategoryDialogOpen(true)}
+            >
+              <Tags className="h-4 w-4" />
+              إدارة التصنيفات
+            </AdminButton>
+            <AdminButton 
+              className="h-12 rounded-2xl px-8 font-black gap-2 shadow-xl shadow-primary/20"
+              onClick={() => {
+                setEditingCourse(null);
+                setQuickCreateOpen(true);
+              }}
+            >
+              <Plus className="h-5 w-5" />
+              دورة تعليمية جديدة
+            </AdminButton>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "إجمالي الدورات", value: statsData.totalCourses, icon: BookOpen, color: "text-blue-500" },
+            { label: "الدورات المنشورة", value: statsData.publishedCourses, icon: CheckCircle2, color: "text-emerald-500" },
+            { label: "إجمالي الاشتراكات", value: statsData.totalEnrollments, icon: Users, color: "text-violet-500" },
+            { label: "صافي الإيرادات", value: formatPrice(statsData.totalRevenue), icon: DollarSign, color: "text-amber-500" },
+          ].map((stat, i) => (
+            <div key={i} className="rounded-2xl border border-border/50 bg-background/40 p-4 backdrop-blur-md">
+              <div className="flex items-center gap-2 mb-1">
+                <stat.icon className={cn("h-3 w-3", stat.color)} />
+                <span className="text-[10px] font-black uppercase text-muted-foreground">{stat.label}</span>
+              </div>
+              <p className="text-xl font-black">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Filters */}
       <CourseFilters
@@ -835,7 +872,7 @@ export default function AdminCoursesPage() {
         currentView={view}
         categories={categories}
         onRefresh={() => refetch()}
-        onAddCourse={() => router.push("/admin/courses/new")}
+        onAddCourse={() => setQuickCreateOpen(true)}
         totalCount={pagination?.total ?? courses.length}
         isLoading={isFetching} />
       
@@ -968,7 +1005,7 @@ export default function AdminCoursesPage() {
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           className="h-10 w-10 rounded-xl p-0">
           
-            â€؛
+            <ChevronRight className="h-4 w-4" />
           </AdminButton>
           <div className="flex items-center gap-1">
             {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -996,7 +1033,7 @@ export default function AdminCoursesPage() {
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           className="h-10 w-10 rounded-xl p-0">
           
-            ⬹
+            <ChevronLeft className="h-4 w-4" />
           </AdminButton>
         </div>
       }

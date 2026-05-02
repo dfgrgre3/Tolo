@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import {
@@ -29,12 +29,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { useForm } from "react-hook-form";
-import { Hammer, Sparkles } from "lucide-react";
+import { Award, Check, Sparkles, Medal } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Achievement, rarityOptions, categoryOptions, difficultyOptions } from "./types";
 
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { logger } from '@/lib/logger';
 
 const achievementSchema = z.object({
@@ -42,7 +44,7 @@ const achievementSchema = z.object({
   title: z.string().min(1, "العنوان مطلوب"),
   description: z.string().min(1, "الوصف مطلوب"),
   icon: z.string().min(1, "الأيقونة مطلوبة"),
-  rarity: z.string().min(1, "الندرة مطلوبة"),
+  rarity: z.string().min(1, "الفئة مطلوبة"),
   xpReward: z.number().min(0, "المكافأة يجب أن تكون صفر أو أكثر"),
   isSecret: z.boolean(),
   category: z.string().min(1, "الفئة مطلوبة"),
@@ -70,7 +72,7 @@ export function AchievementFormDialog({
       key: "",
       title: "",
       description: "",
-      icon: "trophy",
+      icon: "award",
       rarity: "common",
       xpReward: 10,
       isSecret: false,
@@ -97,7 +99,7 @@ export function AchievementFormDialog({
         key: "",
         title: "",
         description: "",
-        icon: "trophy",
+        icon: "award",
         rarity: "common",
         xpReward: 10,
         isSecret: false,
@@ -109,18 +111,17 @@ export function AchievementFormDialog({
 
   const handleSubmit = async (values: AchievementFormValues) => {
     try {
-      const url = "/api/admin/achievements";
+      const url = editingAchievement ? `${apiRoutes.admin.achievements}/${editingAchievement.id}` : apiRoutes.admin.achievements;
       const method = editingAchievement ? "PATCH" : "POST";
       const body = editingAchievement ? { ...values, id: editingAchievement.id } : values;
-
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success(editingAchievement ? "تم تحديث الإنجاز بنجاح" : "تم إنشاء الإنجاز بنجاح");
+        toast.success(editingAchievement ? "تم تحديث الوسام بنجاح" : "تم إنشاء الوسام بنجاح");
         onSuccess();
       } else {
         toast.error("حدث خطأ أثناء حفظ الإنجاز");
@@ -134,14 +135,14 @@ export function AchievementFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
-        <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500" />
+        <div className="h-1.5 bg-gradient-to-r from-primary/80 via-primary to-primary/40" />
         <div className="p-8">
           <DialogHeader className="mb-8">
             <DialogTitle className="text-2xl font-black">
-              {editingAchievement ? "تنسيق وسام الجدارة" : "صياغة وسام ملكي جديد"}
+              {editingAchievement ? "تعديل بيانات الوسام" : "إنشاء وسام تعليمي جديد"}
             </DialogTitle>
             <DialogDescription className="font-bold text-muted-foreground">
-              أدخل بيانات الوسام بدقة لتكريم المحاربين المستحقين.
+              أدخل بيانات الوسام بدقة لتكريم الطلاب والمستخدمين المتميزين.
             </DialogDescription>
           </DialogHeader>
         <Form {...form}>
@@ -152,9 +153,9 @@ export function AchievementFormDialog({
                 name="key"
                 render={({ field }) => (
                   <FormItem>
-                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مفتاح الاستدعاء (Key)</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">المفتاح البرمجي (Key)</FormLabel>
                   <FormControl>
-                    <Input {...field} dir="ltr" placeholder="FIRST_STEPS" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                    <Input {...field} dir="ltr" placeholder="ACHIEVEMENT_KEY" className="rounded-xl border-white/10 bg-white/5 h-11" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,9 +166,9 @@ export function AchievementFormDialog({
                 name="icon"
                 render={({ field }) => (
                   <FormItem>
-                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">أيقونة الوسام…</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">أيقونة الوسام</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="trophy" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                    <Input {...field} placeholder="award" className="rounded-xl border-white/10 bg-white/5 h-11" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +180,7 @@ export function AchievementFormDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مانشيت الوسام (العنوان)</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان الوسام</FormLabel>
                   <FormControl>
                     <Input {...field} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
                   </FormControl>
@@ -192,7 +193,7 @@ export function AchievementFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف البطولة (المحتوى)</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف الإنجاز</FormLabel>
                   <FormControl>
                     <Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 p-4 font-medium" />
                   </FormControl>
@@ -206,11 +207,11 @@ export function AchievementFormDialog({
                 name="rarity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الندرة</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">فئة التميز</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
-                          <SelectValue placeholder="اختر الندرة" />
+                          <SelectValue placeholder="اختر الفئة" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -230,7 +231,7 @@ export function AchievementFormDialog({
                 name="xpReward"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مكافأة الـ XP</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مكافأة النقاط</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -250,7 +251,7 @@ export function AchievementFormDialog({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مجال التمييز (الفئة)</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مجال الإنجاز (الفئة)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -274,7 +275,7 @@ export function AchievementFormDialog({
                 name="difficulty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">صعوبة المنال</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الصعوبة</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -300,8 +301,8 @@ export function AchievementFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                   <div className="space-y-0.5">
-                    <FormLabel className="font-black text-xs">وسام سري</FormLabel>
-                    <p className="text-[10px] text-muted-foreground font-bold">يظهر للمحاربين كعلامة استفهام</p>
+                    <FormLabel className="font-black text-xs">وسام مخفي</FormLabel>
+                    <p className="text-[10px] text-muted-foreground font-bold">لن يظهر الوصف أو العنوان للمستخدمين حتى يتم الحصول عليه.</p>
                   </div>
                   <FormControl>
                     <Switch
@@ -313,8 +314,8 @@ export function AchievementFormDialog({
               )}
             />
             <DialogFooter className="pt-4">
-              <AdminButton type="submit" icon={editingAchievement ? Sparkles : Hammer} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
-                {editingAchievement ? "تحديث ميزات الوسام" : "صب الوسام في القالب"}
+              <AdminButton type="submit" icon={editingAchievement ? Sparkles : Check} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                {editingAchievement ? "تحديث بيانات الوسام" : "حفظ الوسام الجديد"}
               </AdminButton>
             </DialogFooter>
           </form>

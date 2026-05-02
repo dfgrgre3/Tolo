@@ -53,6 +53,11 @@ interface AuthContextType {
   verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean;error?: string;}>;
   refreshUser: (options?: {clearOnFailure?: boolean;}) => Promise<boolean>;
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
+  forgotPassword: (email: string) => Promise<{success: boolean;error?: string;message?: string;}>;
+  resetPassword: (token: string, newPassword: string) => Promise<{success: boolean;error?: string;}>;
+  verifyEmail: (token: string) => Promise<{success: boolean;error?: string;}>;
+  resendVerification: (email: string) => Promise<{success: boolean;error?: string;}>;
+  requestMagicLink: (email: string) => Promise<{success: boolean;error?: string;}>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -513,7 +518,68 @@ export function AuthProvider({
     logout,
     verify2FA,
     refreshUser,
-    fetchWithAuth
+    fetchWithAuth,
+    forgotPassword: async (email: string) => {
+      try {
+        const res = await fetch(apiRoutes.auth.forgotPassword, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        return { success: res.ok, ...data };
+      } catch (err) {
+        return { success: false, error: 'Network error' };
+      }
+    },
+    resetPassword: async (token: string, newPassword: string) => {
+      try {
+        const res = await fetch(apiRoutes.auth.resetPassword, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword })
+        });
+        const data = await res.json();
+        return { success: res.ok, ...data };
+      } catch (err) {
+        return { success: false, error: 'Network error' };
+      }
+    },
+    verifyEmail: async (token: string) => {
+      try {
+        const res = await fetch(`${apiRoutes.auth.verifyEmail}?token=${token}`);
+        const data = await res.json();
+        return { success: res.ok, ...data };
+      } catch (err) {
+        return { success: false, error: 'Network error' };
+      }
+    },
+    resendVerification: async (email: string) => {
+      try {
+        const res = await fetch(apiRoutes.auth.resendVerification, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        return { success: res.ok, ...data };
+      } catch (err) {
+        return { success: false, error: 'Network error' };
+      }
+    },
+    requestMagicLink: async (email: string) => {
+      try {
+        const res = await fetch(apiRoutes.auth.magicLink.request, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        return { success: res.ok, ...data };
+      } catch (err) {
+        return { success: false, error: 'Network error' };
+      }
+    }
   };
 
   return (

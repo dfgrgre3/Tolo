@@ -7,14 +7,14 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
-import { Plus, LayoutGrid, Search, Book, GraduationCap, Users, Clock, Send, Hammer } from "lucide-react";
+import { Plus, LayoutGrid, Search, Book, GraduationCap, Users, Clock, Send, Edit } from "lucide-react";
 import { AdminUpload } from "@/components/admin/ui/admin-upload";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { 
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
@@ -197,7 +197,7 @@ export default function AdminSubjectsPage() {
       });
 
       if (response.ok) {
-        toast.success(editingSubject ? "تم تحديث المخطوطة بنجاح" : "تمت إضافة مادة جديدة للمملكة");
+        toast.success(editingSubject ? "تم تحديث بيانات المادة بنجاح" : "تمت إضافة مادة جديدة للمنصة");
         setDialogOpen(false);
         refetch();
       } else {
@@ -217,7 +217,7 @@ export default function AdminSubjectsPage() {
         body: JSON.stringify({ id: deleteDialog.id }),
       });
       if (response.ok) {
-        toast.success("تم إتلاف المادة من السجلات");
+        toast.success("تم حذف المادة من السجلات");
         refetch();
       } else {
         toast.error("فشل الحذف");
@@ -255,7 +255,7 @@ export default function AdminSubjectsPage() {
     },
     {
       accessorKey: "price",
-      header: "تكلفة التعلم",
+      header: "سعر الاشتراك",
       cell: ({ row }) => (
         <span className="font-black text-emerald-500 text-xs tracking-tighter shadow-emerald-500/20 drop-shadow-sm">
           {formatNumber(row.original.price)} EGP
@@ -264,7 +264,7 @@ export default function AdminSubjectsPage() {
     },
     {
       accessorKey: "level",
-      header: "رتبة الصعوبة",
+      header: "مستوى الصعوبة",
       cell: ({ row }) => {
         const levels: Record<string, { label: string, color: string }> = { 
           EASY: { label: "مبتدئ", color: "emerald" }, 
@@ -285,7 +285,7 @@ export default function AdminSubjectsPage() {
     },
     {
       accessorKey: "stats",
-      header: "سجلات الانتساب",
+      header: "الإحصائيات",
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-black flex items-center gap-1">
@@ -301,14 +301,14 @@ export default function AdminSubjectsPage() {
     },
     {
       accessorKey: "isActive",
-      header: "حالة الورشة",
+      header: "الحالة",
       cell: ({ row }) => {
         const active = row.original.isActive;
         return (
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
-              {active ? "نشط" : "مسودة معلقة"}
+            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500" : "bg-gray-500"}`} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-gray-500"}`}>
+              {active ? "نشط" : "مسودة"}
             </span>
           </div>
         );
@@ -316,7 +316,7 @@ export default function AdminSubjectsPage() {
     },
     {
       id: "actions",
-      header: "التحكم الإداري",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
@@ -333,11 +333,11 @@ export default function AdminSubjectsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader 
-        title="أكاديمية الدورات الملكية 🎓" 
-        description="تطوير وإدارة المناهج الدراسية، المواد العلمية، وخطط التعلم الاستراتيجية."
+        title="إدارة المناهج الدراسية" 
+        description="تطوير وإدارة المواد العلمية وخطط التعلم."
       >
-        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          س٘ك مادة جديدة
+        <AdminButton variant="default" icon={Plus} onClick={() => handleOpenDialog()} className="rounded-2xl shadow-xl">
+          إضافة مادة جديدة
         </AdminButton>
       </PageHeader>
 
@@ -347,14 +347,14 @@ export default function AdminSubjectsPage() {
           value={subjects.length || 0} 
           icon={Book} 
           color="blue"
-          description="مخطوطة تعليمية"
+          description="مادة تعليمية"
         />
         <AdminStatsCard 
           title="إجمالي الطلاب" 
           value={subjects.reduce((acc, s) => acc + (s._count?.enrollments || 0), 0)} 
           icon={Users} 
           color="purple"
-          description="متعلم مسجل حالياً"
+          description="طالب مسجل"
         />
         <AdminStatsCard 
           title="متوسط الأسعار" 
@@ -364,18 +364,18 @@ export default function AdminSubjectsPage() {
           description="EGP للدورة الواحدة"
         />
         <AdminStatsCard 
-          title="نشاط الأكاديمية" 
+          title="المواد المفعلة" 
           value={subjects.filter(s => s.isActive).length} 
           icon={Clock} 
           color="yellow"
-          description="دورة متاحة للعموم"
+          description="دورة متاحة"
         />
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         <AdminDataTable
           columns={columns}
@@ -397,7 +397,7 @@ export default function AdminSubjectsPage() {
                   type="text"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="ابحث في سجلات المواد..."
+                  placeholder="ابحث في المواد..."
                   className="h-10 w-64 rounded-xl border border-border bg-accent/10 px-10 text-sm outline-none ring-primary transition focus:ring-1 font-bold"
                 />
               </div>
@@ -414,18 +414,18 @@ export default function AdminSubjectsPage() {
               <DialogTitle className="text-2xl font-black flex items-center gap-3">
                 {editingSubject ? (
                   <>
-                    <Hammer className="w-7 h-7 text-indigo-500" />
-                    تنقيح بيانات المادة
+                    <Edit className="w-7 h-7 text-indigo-500" />
+                    تعديل بيانات المادة
                   </>
                 ) : (
                   <>
                     <Plus className="w-7 h-7 text-emerald-500" />
-                    تأسيس مادة تعليمية جديدة
+                    إضافة مادة تعليمية جديدة
                   </>
                 )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                املأ سجلات المادة لتكون جاهزة لطلاب الأكاديمية.
+                املأ بيانات المادة لتكون جاهزة لطلاب المنصة.
               </DialogDescription>
             </DialogHeader>
 
@@ -434,14 +434,14 @@ export default function AdminSubjectsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="nameAr" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الاسم الملكي بالعربي</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الاسم بالعربي</FormLabel>
                       <FormControl><Input {...field} value={field.value || ""} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">English System ID</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رمز النظام (English)</FormLabel>
                       <FormControl><Input {...field} value={field.value || ""} dir="ltr" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-mono font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -451,14 +451,14 @@ export default function AdminSubjectsPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <FormField control={form.control} name="price" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تكلفة الاشتراك (EGP)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">سعر الاشتراك (EGP)</FormLabel>
                       <FormControl><Input type="number" {...field} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-black" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="level" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رتبة الصعوبة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الصعوبة</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11 px-4 text-xs font-bold">
@@ -477,7 +477,7 @@ export default function AdminSubjectsPage() {
                   )} />
                   <FormField control={form.control} name="instructorName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">كبير المعلمين</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسم المحاضر</FormLabel>
                       <FormControl><Input {...field} value={field.value || ""} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -502,10 +502,10 @@ export default function AdminSubjectsPage() {
                   )} />
                   <FormField control={form.control} name="trailerUrl" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عرض تشويقي (Trailer)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عرض تقديمي (Trailer)</FormLabel>
                       <FormControl>
                         <div className="space-y-3">
-                          <Input {...field} value={field.value || ""} placeholder="رابط يوتيوب..." dir="ltr" className="rounded-xl border-white/10 bg-white/5 h-10 px-4 text-[10px] font-mono" />
+                          <Input {...field} value={field.value || ""} placeholder="رابط فيديو..." dir="ltr" className="rounded-xl border-white/10 bg-white/5 h-10 px-4 text-[10px] font-mono" />
                           <AdminUpload 
                             accept="video/*" 
                             onUploadComplete={(url) => field.onChange(url)} 
@@ -519,22 +519,22 @@ export default function AdminSubjectsPage() {
 
                 <FormField control={form.control} name="description" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف المنهج التعليمي</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف المنهج</FormLabel>
                     <FormControl><Textarea {...field} value={field.value || ""} className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px] font-medium" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
 
                 <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/10 rounded-2xl">
-                  <p className="font-black text-xs uppercase tracking-widest text-primary">إتاحة المادة للمتعلمين</p>
+                  <p className="font-black text-xs uppercase tracking-widest text-primary">إتاحة المادة للطلاب</p>
                   <FormField control={form.control} name="isActive" render={({ field }) => (
                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                   )} />
                 </div>
 
                 <DialogFooter className="pt-2">
-                  <AdminButton type="submit" className="w-full h-14 text-md font-black rounded-2xl shadow-xl" icon={editingSubject ? Hammer : Send}>
-                    {editingSubject ? "تحديث ميثاق المادة" : "تأسيس المادة في السجلات"}
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black rounded-2xl shadow-xl" icon={editingSubject ? Edit : Send}>
+                    {editingSubject ? "تحديث بيانات المادة" : "حفظ المادة"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -543,13 +543,13 @@ export default function AdminSubjectsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
         onConfirm={handleDelete}
-        title="هل أنت متأكد من الإتلاف؟"
-        description="سيتم حذف المادة الملكية وجميع سجلاتها نهائياً من أرشيف الأكاديمية."
-        confirmText="نعم، أتلف السجلات"
+        title="حذف المادة نهائياً؟"
+        description="هل أنت متأكد من حذف هذه المادة وجميع سجلاتها نهائياً من سجلات المنصة؟"
+        confirmText="تأكيد الحذف"
         variant="destructive"
       />
     </div>

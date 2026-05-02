@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,11 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        gradient: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md hover:shadow-lg hover:scale-[1.02]",
+        gradient: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md hover:shadow-lg",
         success: "bg-green-500 text-white hover:bg-green-600 shadow-sm",
         warning: "bg-yellow-500 text-white hover:bg-yellow-600 shadow-sm",
+        premium: "bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-white shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:shadow-[0_0_30px_rgba(251,191,36,0.6)] border border-amber-300/50 font-black uppercase tracking-widest",
+        neon: "bg-black text-primary border border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] hover:bg-primary hover:text-white transition-all duration-300",
       },
       size: {
         sm: "h-8 px-3 text-xs",

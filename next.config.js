@@ -59,7 +59,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api'}/:path*`,
       },
       {
         source: '/uploads/:path*',
@@ -99,10 +99,16 @@ const nextConfig = {
       'tailwind-merge',
       'uuid',
       'lodash',
-      'axios'
+      'axios',
+      'lucide-react'
     ],
     proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
+  },
+
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000,
+    pagesBufferLength: 20,
   },
 
   // Configure webpack to handle path aliases

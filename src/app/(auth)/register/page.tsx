@@ -240,6 +240,8 @@ function RegisterForm() {
     try {
       const result = await registerUser({
         ...data,
+        email: data.email || "",
+        password: data.password || "",
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       });
 

@@ -62,8 +62,18 @@ func (PrismaNamingStrategy) ColumnName(table, column string) string {
 }
 
 func Connect(dsn string) (*gorm.DB, error) {
+	logMode := logger.Warn
+	if os.Getenv("DB_LOG_LEVEL") == "info" {
+		logMode = logger.Info
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:         logger.Default.LogMode(logger.Warn),
+		Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+			SlowThreshold:             500 * time.Millisecond,
+			LogLevel:                  logMode,
+			IgnoreRecordNotFoundError: true,
+			ParameterizedQueries:      true,
+		}),
 		PrepareStmt:    true, // Enable prepared statement cache for performance
 		NamingStrategy: PrismaNamingStrategy{},
 	})
@@ -88,6 +98,8 @@ func Connect(dsn string) (*gorm.DB, error) {
 	// and works well with PgBouncer
 	maxIdleConns := 10
 	maxOpenConns := 50
+	connMaxLifetime := time.Hour
+	connMaxIdleTime := 30 * time.Minute
 
 	// Allow override via environment variables
 	if v := os.Getenv("DB_MAX_IDLE_CONNS"); v != "" {
@@ -100,8 +112,18 @@ func Connect(dsn string) (*gorm.DB, error) {
 			maxOpenConns = val
 		}
 	}
+	if v := os.Getenv("DB_CONN_MAX_LIFETIME_MINUTES"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil && val > 0 {
+			connMaxLifetime = time.Duration(val) * time.Minute
+		}
+	}
+	if v := os.Getenv("DB_CONN_MAX_IDLE_MINUTES"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil && val > 0 {
+			connMaxIdleTime = time.Duration(val) * time.Minute
+		}
+	}
 
-	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d", maxIdleConns, maxOpenConns)
+	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d, ConnMaxLifetime=%s, ConnMaxIdleTime=%s", maxIdleConns, maxOpenConns, connMaxLifetime, connMaxIdleTime)
 
 	resolver := dbresolver.Register(dbresolver.Config{
 		Sources:  []gorm.Dialector{postgres.Open(dsn)},
@@ -110,8 +132,8 @@ func Connect(dsn string) (*gorm.DB, error) {
 	}).
 		SetMaxIdleConns(maxIdleConns).
 		SetMaxOpenConns(maxOpenConns).
-		SetConnMaxLifetime(time.Hour).
-		SetConnMaxIdleTime(30 * time.Minute)
+		SetConnMaxLifetime(connMaxLifetime).
+		SetConnMaxIdleTime(connMaxIdleTime)
 
 	err = db.Use(resolver)
 	if err != nil {
@@ -145,10 +167,7 @@ func Connect(dsn string) (*gorm.DB, error) {
 		$$ LANGUAGE plpgsql;
 	`)
 
-	// Note: AutoMigrate removed for production use
-	// Use migration tool (golang-migrate) instead
-	// Run: migrate -path backend/migrations -database "$(DATABASE_URL)" up
-	log.Println("Database ready. Please use migration tool for schema changes.")
+	log.Println("Database ready. Schema changes are controlled by explicit migration flags.")
 
 	return db, nil
 }
@@ -180,14 +199,18 @@ func cleanLegacyData(db *gorm.DB) {
 	// UserSettings Constraint
 	db.Exec(`ALTER TABLE "UserSettings" DROP CONSTRAINT IF EXISTS unique_user_settings;`)
 	db.Exec(`ALTER TABLE "UserSettings" ADD CONSTRAINT unique_user_settings UNIQUE ("userId");`)
-	
+
 	// SubjectEnrollment Constraint
 	db.Exec(`ALTER TABLE "SubjectEnrollment" DROP CONSTRAINT IF EXISTS unique_user_subject;`)
 	db.Exec(`ALTER TABLE "SubjectEnrollment" ADD CONSTRAINT unique_user_subject UNIQUE ("userId", "subjectId");`)
-	
+
 	// TopicProgress Constraint
 	db.Exec(`ALTER TABLE "TopicProgress" DROP CONSTRAINT IF EXISTS unique_user_lesson;`)
 	db.Exec(`ALTER TABLE "TopicProgress" ADD CONSTRAINT unique_user_lesson UNIQUE ("userId", "subTopicId");`)
+
+	log.Println("Running Data Migration: Creating performance indexes...")
+	// Performance Index for Notifications
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_perf_notifications_user_created ON "Notification" ("userId", "createdAt" DESC);`)
 }
 
 // Migrate runs database migrations using AutoMigrate (for development only)
@@ -196,7 +219,9 @@ func Migrate() error {
 	if DB == nil {
 		return nil
 	}
-	cleanLegacyData(DB)
+	if os.Getenv("DB_CLEANUP") == "true" {
+		cleanLegacyData(DB)
+	}
 	log.Println("Running AutoMigrate (development only)...")
 	return DB.AutoMigrate(
 		&models.User{},
@@ -221,5 +246,62 @@ func Migrate() error {
 		&models.UserSession{},
 		&models.LessonAttachment{},
 		&models.CourseReview{},
+		&models.Achievement{},
+		&models.Reward{},
+		&models.Season{},
+		&models.Challenge{},
+		&models.Coupon{},
+		&models.Automation{},
+		&models.ABExperiment{},
+		&models.BlogPost{},
+		&models.ForumCategory{},
+		&models.ForumTopic{},
+		&models.Event{},
+		&models.Book{},
+		&models.AuditLog{},
+		&models.SystemSetting{},
+		&models.SubscriptionPlan{},
+		&models.UserSubscription{},
 	)
+}
+// Seed populates the database with initial data
+func Seed() error {
+	if DB == nil {
+		return nil
+	}
+
+	log.Println("Seeding database...")
+
+	// 1. Create default library categories
+	libraryCategories := []models.Category{
+		{Name: "كتب مدرسية", Slug: "textbooks", Type: models.CategoryTypeLibrary},
+		{Name: "ملخصات", Slug: "summaries", Type: models.CategoryTypeLibrary},
+		{Name: "مراجعات نهائية", Slug: "final-reviews", Type: models.CategoryTypeLibrary},
+		{Name: "أسئلة واختبارات", Slug: "questions-and-exams", Type: models.CategoryTypeLibrary},
+	}
+
+	for _, cat := range libraryCategories {
+		var existing models.Category
+		if err := DB.Where("slug = ? AND type = ?", cat.Slug, cat.Type).First(&existing).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				DB.Create(&cat)
+				log.Printf("Created library category: %s", cat.Name)
+			}
+		}
+	}
+
+	// 2. Create default system settings
+	var settings models.SystemSetting
+	if err := DB.Where("key = ?", "admin_settings").First(&settings).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			defaultSettings := `{"siteName":"Thanawy","siteDescription":"منصة تعليمية لإدارة التعلم والمحتوى.","features":{"registration":true,"emailVerification":true,"engagement":true,"forum":true,"blog":true,"events":true,"aiAssistant":true}}`
+			DB.Create(&models.SystemSetting{
+				Key:   "admin_settings",
+				Value: defaultSettings,
+			})
+			log.Println("Created default admin settings")
+		}
+	}
+
+	return nil
 }

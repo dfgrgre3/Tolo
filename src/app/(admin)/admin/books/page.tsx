@@ -106,7 +106,8 @@ export default function AdminBooksPage() {
       }
 
       const response = await fetch(`/api/admin/books?${params.toString()}`);
-      return (await response.json()) as BooksResponse;
+      const json = await response.json();
+      return (json.data || json) as BooksResponse;
     },
   });
 

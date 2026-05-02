@@ -24,6 +24,8 @@ export const viewport = {
 
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { ClerkProvider } from '@clerk/nextjs';
+import { arSA } from '@clerk/localizations';
 
 export default async function RootLayout({
   children,
@@ -34,25 +36,27 @@ export default async function RootLayout({
   const hasAuthToken = cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://i.ytimg.com" />
-        <meta name="theme-color" content="#f97316" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-      </head>
-      <body className={alexandria.variable} suppressHydrationWarning>
-        <SWRegistration />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
-        </ThemeProvider>
-      </body>
-    </html>
+    <ClerkProvider localization={arSA}>
+      <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href="https://i.ytimg.com" />
+          <meta name="theme-color" content="#f97316" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+        </head>
+        <body className={alexandria.variable} suppressHydrationWarning>
+          <SWRegistration />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

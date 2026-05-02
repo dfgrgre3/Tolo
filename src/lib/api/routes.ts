@@ -11,6 +11,14 @@ export const apiRoutes = {
     refresh: "/api/auth/refresh",
     sessions: "/api/auth/sessions",
     verify2FA: "/api/auth/2fa/verify",
+    magicLink: {
+      request: "/api/auth/magic-link/request",
+      verify: "/api/auth/magic-link/verify",
+    },
+    forgotPassword: "/api/auth/forgot-password",
+    resetPassword: "/api/auth/reset-password",
+    verifyEmail: "/api/auth/verify-email",
+    resendVerification: "/api/auth/resend-verification",
   },
   admin: {
     dashboard: "/api/admin/dashboard",
@@ -35,6 +43,19 @@ export const apiRoutes = {
     rewards: "/api/admin/rewards",
     achievements: "/api/admin/achievements",
     seasons: "/api/admin/seasons",
+    blog: "/api/admin/blog",
+    forum: "/api/admin/forum",
+    forumCategories: "/api/admin/forum-categories",
+    events: "/api/admin/events",
+    automations: "/api/admin/automations",
+    abTesting: "/api/admin/ab-testing",
+    books: "/api/admin/books",
+    auditLogs: "/api/admin/audit-logs",
+    reportsContent: "/api/admin/reports/content",
+    bookReviews: "/api/admin/books/reviews",
+    bookViews: "/api/admin/books/views",
+    resources: "/api/admin/resources",
+    impersonate: "/api/admin/impersonate",
   },
   settings: {
     preferences: "/api/settings/preferences",
@@ -79,6 +100,12 @@ export const apiRoutes = {
     achievements: "/api/gamification/achievements",
     leaderboard: "/api/gamification/leaderboard",
     goals: "/api/gamification/goals",
+  },
+  ai: {
+    chat: "/api/ai/chat",
+    exam: "/api/ai/exam",
+    suggest: "/api/ai/suggest",
+    tips: "/api/ai/tips",
   },
 } as const;
 

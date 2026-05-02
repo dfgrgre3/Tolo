@@ -4,15 +4,17 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
-import { Plus, Trophy, RefreshCw, Award, Star, Zap } from "lucide-react";
+import { Plus, Trophy, RefreshCw, Award, Star, Zap, Medal } from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { AchievementTable } from "./AchievementTable";
 import { AchievementFormDialog } from "./AchievementFormDialog";
 import { Achievement } from "./types";
 import { m } from "framer-motion";
 
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { logger } from '@/lib/logger';
 
 export default function AdminAchievementsPage() {
@@ -28,15 +30,15 @@ export default function AdminAchievementsPage() {
   const fetchAchievements = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/achievements");
+      const response = await adminFetch(apiRoutes.admin.achievements);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setAchievements(data.achievements || []);
+      setAchievements(data.data?.achievements || data.data?.items || data.achievements || []);
     } catch (error) {
       logger.error("Error fetching achievements:", error);
-      toast.error("حدث خطأ أثناء جلب الإنجازات. يرجى المحاولة مرة أخرى.");
+      toast.error("حدث خطأ أثناء جلب سجلات الأوسمة.");
       setAchievements([]);
     } finally {
       setLoading(false);
@@ -60,21 +62,21 @@ export default function AdminAchievementsPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/achievements", {
+      const response = await adminFetch(apiRoutes.admin.achievements, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
       });
 
       if (response.ok) {
-        toast.success("تم حذف الإنجاز بنجاح");
+        toast.success("تم حذف الوسام بنجاح");
         fetchAchievements();
       } else {
-        toast.error("حدث خطأ أثناء حذف الإنجاز");
+        toast.error("حدث خطأ أثناء حذف الوسام");
       }
     } catch (error) {
       logger.error("Error deleting achievement:", error);
-      toast.error("حدث خطأ أثناء حذف الإنجاز");
+      toast.error("حدث خطأ أثناء حذف الوسام");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -83,15 +85,15 @@ export default function AdminAchievementsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="قاعة أوسمة البسالة 🏅"
-        description="سجل البطولات الملحمية، تخليد ذكرى الأبطال، ومنح أوسمة الجدارة للمحاربين المميزين."
+        title="نظام الأوسمة والتقدير"
+        description="إدارة الأوسمة التعليمية، تكريم الطلاب المتميزين، ومنح إنجازات التفوق للمستخدمين والطلاب."
       >
         <div className="flex items-center gap-3">
           <AdminButton variant="outline" icon={RefreshCw} onClick={fetchAchievements} loading={loading}>
             تحديث السجلات
           </AdminButton>
           <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-            صياغة وسام جديد
+            إضافة وسام جديد
           </AdminButton>
         </div>
       </PageHeader>
@@ -99,39 +101,39 @@ export default function AdminAchievementsPage() {
       {/* Stats Summary */}
       <div className="grid gap-6 md:grid-cols-4">
         <AdminStatsCard
-          title="فيالق الأوسمة"
+          title="إجمالي الأوسمة"
           value={achievements.length}
-          description="وسام جدارة متاح"
-          icon={Trophy}
-          color="yellow"
+          description="وسام تعليمي متاح"
+          icon={Medal}
+          color="blue"
         />
         <AdminStatsCard
-          title="أوسمة الشرف المعلنة"
+          title="الأوسمة المعلنة"
           value={achievements.filter(a => !a.isSecret).length}
-          description="وسام ظاهر للجيش"
+          description="وسام ظاهر للطلاب"
           icon={Award}
           color="green"
         />
         <AdminStatsCard
-          title="كنوز أسطورية"
+          title="فئات التميز"
           value={achievements.filter(a => a.rarity === "rare" || a.rarity === "epic" || a.rarity === "legendary").length}
-          description="أوسمة نادرة جداً"
+          description="أوسمة بمستويات متقدمة"
           icon={Star}
           color="purple"
         />
         <AdminStatsCard
-          title="هالات الـ XP"
+          title="مكافآت النقاط"
           value={achievements.reduce((sum, a) => sum + (a.xpReward || 0), 0).toLocaleString()}
-          description="إجمالي نقاط الخبرة المتاحة"
+          description="إجمالي النقاط المتاحة"
           icon={Zap}
-          color="blue"
+          color="yellow"
         />
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
       >
         {loading ? (
           <TableSkeleton rows={8} cols={7} />
@@ -155,12 +157,12 @@ export default function AdminAchievementsPage() {
         }}
       />
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="سحب وسام الشرف"
-        description="هل أنت متأكد من حذف هذا الوسام من سجلات المملكة؟ هذا القرار سيؤثر على تاريخ المحاربين الحاصلين عليه."
-        confirmText="نعم، احذف الوسام"
+        title="حذف الوسام التعليمي"
+        description="هل أنت متأكد من حذف هذا الوسام من سجلات النظام؟ هذا الإجراء سيؤثر على سجلات الطلاب الحاصلين عليه."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete}
       />

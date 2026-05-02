@@ -1,9 +1,10 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
@@ -11,6 +12,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"time"
 )
 
 type AuthService struct {
@@ -25,17 +27,17 @@ func (s *AuthService) getRepo() *repository.UserRepository {
 }
 
 type RegisterInput struct {
-	Email           string
-	Username        string
-	Password        string
-	Role            models.UserRole
-	IP              string
-	UserAgent       string
-	Phone           string
-	GradeLevel      string
-	EducationType   string
-	Section         string
-	ReferredByCode  string
+	Email          string
+	Username       string
+	Password       string
+	Role           models.UserRole
+	IP             string
+	UserAgent      string
+	Phone          string
+	GradeLevel     string
+	EducationType  string
+	Section        string
+	ReferredByCode string
 }
 
 func (s *AuthService) Register(input RegisterInput) (*models.User, error) {
@@ -57,15 +59,15 @@ func (s *AuthService) Register(input RegisterInput) (*models.User, error) {
 
 	// 4. Create user
 	user := models.User{
-		Email:        email,
-		Username:     &input.Username,
-		PasswordHash: string(hashedPassword),
-		Role:         input.Role,
-		Status:       models.StatusActive,
-		Phone:        &input.Phone,
-		GradeLevel:   &input.GradeLevel,
+		Email:         email,
+		Username:      &input.Username,
+		PasswordHash:  string(hashedPassword),
+		Role:          input.Role,
+		Status:        models.StatusActive,
+		Phone:         &input.Phone,
+		GradeLevel:    &input.GradeLevel,
 		EducationType: &input.EducationType,
-		Section:      &input.Section,
+		Section:       &input.Section,
 	}
 
 	if err := s.getRepo().Create(&user); err != nil {
@@ -80,7 +82,7 @@ func (s *AuthService) Register(input RegisterInput) (*models.User, error) {
 func (s *AuthService) Login(email, password, ip, userAgent string) (*models.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 
-	user, err := s.getRepo().FindByEmail(email)
+	user, err := s.getRepo().FindByEmailNoCache(email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Timing safe: still do a bcrypt compare
@@ -91,7 +93,8 @@ func (s *AuthService) Login(email, password, ip, userAgent string) (*models.User
 	}
 
 	// Check password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
 		return nil, errors.New("invalid email or password")
 	}
 
@@ -103,11 +106,134 @@ func (s *AuthService) Login(email, password, ip, userAgent string) (*models.User
 	return user, nil
 }
 
-func (s *AuthService) generateRandomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+func (s *AuthService) generateRandomString(n int) (string, error) {
+	byteLen := n
+	if byteLen < 32 {
+		byteLen = 32
 	}
-	return string(b)
+	b := make([]byte, byteLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate secure token: %w", err)
+	}
+	token := base64.RawURLEncoding.EncodeToString(b)
+	if len(token) > n {
+		return token[:n], nil
+	}
+	return token, nil
+}
+
+func (s *AuthService) RequestMagicLink(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	user, err := s.getRepo().FindByEmailNoCache(email)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := s.generateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+	expires := time.Now().Add(15 * time.Minute)
+
+	user.MagicLinkToken = &token
+	user.MagicLinkExpires = &expires
+
+	if err := s.getRepo().Update(user); err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (s *AuthService) VerifyMagicLink(token string) (*models.User, error) {
+	var user models.User
+	if err := db.DB.Where("\"magicLinkToken\" = ? AND \"magicLinkExpires\" > ?", token, time.Now()).First(&user).Error; err != nil {
+		return nil, errors.New("invalid or expired magic link")
+	}
+
+	// Clear token
+	user.MagicLinkToken = nil
+	user.MagicLinkExpires = nil
+	if err := s.getRepo().Update(&user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (s *AuthService) RequestPasswordReset(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	user, err := s.getRepo().FindByEmailNoCache(email)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := s.generateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+	expires := time.Now().Add(1 * time.Hour)
+
+	user.ResetPasswordToken = &token
+	user.ResetPasswordExpires = &expires
+
+	if err := s.getRepo().Update(user); err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (s *AuthService) ResetPassword(token, newPassword string) error {
+	var user models.User
+	if err := db.DB.Where("\"resetPasswordToken\" = ? AND \"resetPasswordExpires\" > ?", token, time.Now()).First(&user).Error; err != nil {
+		return errors.New("invalid or expired reset token")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedPassword)
+	user.ResetPasswordToken = nil
+	user.ResetPasswordExpires = nil
+
+	return s.getRepo().Update(&user)
+}
+
+func (s *AuthService) RequestEmailVerification(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	user, err := s.getRepo().FindByEmailNoCache(email)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := s.generateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+	expires := time.Now().Add(24 * time.Hour)
+
+	user.VerificationToken = &token
+	user.VerificationExpires = &expires
+
+	if err := s.getRepo().Update(user); err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (s *AuthService) VerifyEmail(token string) error {
+	var user models.User
+	if err := db.DB.Where("\"verificationToken\" = ? AND \"verificationExpires\" > ?", token, time.Now()).First(&user).Error; err != nil {
+		return errors.New("invalid or expired verification token")
+	}
+
+	user.EmailVerified = true
+	user.VerificationToken = nil
+	user.VerificationExpires = nil
+
+	return s.getRepo().Update(&user)
 }

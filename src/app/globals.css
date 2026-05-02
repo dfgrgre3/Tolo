@@ -188,8 +188,8 @@
   }
 }
 
-/* Respect user motion preferences */
-@media (prefers-reduced-motion: reduce) {
+/* Respect user motion preferences - DISABLE ALL ANIMATIONS */
+@media (prefers-reduced-motion: reduce), screen {
 
   *,
   ::before,
@@ -199,6 +199,31 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Completely Disable All Animations & Transitions */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Remove all keyframe animations */
+@keyframes blob {
+  /* Disabled */
+}
+
+@keyframes shimmer {
+  /* Disabled */
+}
+
+@keyframes accordion-down {
+  /* Disabled */
+}
+
+@keyframes accordion-up {
+  /* Disabled */
 }
 
 /* Animations & Transitions */
@@ -284,7 +309,7 @@
 }
 
 .rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 backdrop-blur-md transition-all duration-300 hover:scale-[1.01];
+  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 backdrop-blur-md transition-none;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
@@ -318,6 +343,29 @@
 
 .rpg-divider {
   @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-6;
+}
+
+.rpg-royal-glow {
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.2), 0 0 80px rgba(251, 191, 36, 0.1);
+}
+
+.rpg-royal-border {
+  @apply border border-amber-500/30 relative;
+}
+
+.rpg-royal-border::after {
+  content: '';
+  @apply absolute inset-0 border border-amber-500/10 pointer-events-none rounded-[inherit] scale-[1.02];
+}
+
+/* Animations Removed */
+
+.glass-morphism {
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
+}
+
+.dark .glass-morphism {
+  @apply bg-black/20 backdrop-blur-md border border-white/5;
 }
 
 .gradient-border {

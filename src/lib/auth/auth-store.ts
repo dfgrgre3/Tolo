@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { clearUserId } from '@/lib/user-utils';
+import { clearUserId, setUserId } from '@/lib/user-utils';
 
 
 export interface AuthUser {
@@ -73,7 +73,14 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
       isAuthenticated: false,
       isRefreshing: false,
-      setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
+      setUser: (user) => {
+        if (user?.id) {
+          setUserId(user.id);
+        } else {
+          clearUserId();
+        }
+        set({ user, isAuthenticated: !!user, isLoading: false });
+      },
       setIsLoading: (isLoading) => set({ isLoading }),
       setIsRefreshing: (isRefreshing) => set({ isRefreshing }),
       reset: () => {

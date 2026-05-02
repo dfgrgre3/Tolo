@@ -71,9 +71,22 @@ interface DraggableDashboardProps {
   onOrderChange?: (newOrder: string[]) => void;
 }
 
-export function DraggableDashboard({ children, onOrderChange }: DraggableDashboardProps) {
-  const [items, setItems] = React.useState(children.map(c => c.id));
+const EMPTY_ARRAY: any[] = [];
+
+export function DraggableDashboard({ children: initialChildren, onOrderChange, ...props }: DraggableDashboardProps & { sections?: any }) {
+  const children = initialChildren || (props as any).sections || EMPTY_ARRAY;
+  const [items, setItems] = React.useState(() => children.map((c: any) => c.id));
   const { playSound } = usePremiumSounds();
+
+  React.useEffect(() => {
+    const newIds = children.map((c: any) => c.id);
+    const currentIds = items;
+    
+    // Only update if IDs have actually changed (simple equality check for contents)
+    if (newIds.length !== currentIds.length || newIds.some((id, i) => id !== currentIds[i])) {
+      setItems(newIds);
+    }
+  }, [initialChildren, (props as any).sections]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

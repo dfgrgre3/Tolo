@@ -6,7 +6,7 @@ import { Volume2, SunMedium, FastForward } from "lucide-react";
 import type { PlayerFeedback } from "../types";
 
 type TouchGestureState = {
-  mode: "volume" | "brightness" | null;
+  mode: "volume" | "brightness" | "seek" | "speed" | null;
   startX: number;
   startY: number;
   startValue: number;
@@ -29,8 +29,8 @@ export function useTouchGestures({
   resetControlsTimeout,
 }: TouchGesturesOptions) {
   const { volume, brightness, showControls, setPlayerState } = useCourseVideoPlayerStore();
-  const [gestureActiveMode, setGestureActiveMode] = useState<"volume" | "brightness" | null>(null);
-  const [gestureValue, setGestureValue] = useState(0);
+  const [gestureActiveMode, setGestureActiveMode] = useState<"volume" | "brightness" | "seek" | "speed" | null>(null);
+  const [gestureValue, setGestureValue] = useState<number | string>(0);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
   const lastTapRef = useRef<{ timestamp: number; x: number } | null>(null);
   const feedbackHideTimeoutRef = useRef<number | null>(null);

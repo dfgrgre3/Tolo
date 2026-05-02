@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"thanawy-backend/internal/models"
 	"gorm.io/gorm"
+	"thanawy-backend/internal/models"
 )
 
 type SecurityLogRepository struct {
@@ -30,12 +30,12 @@ func (r *SecurityLogRepository) FindByUserID(userID string, limit int) ([]models
 func (r *SecurityLogRepository) FindAll(limit int, offset int) ([]models.SecurityLog, int64, error) {
 	var logs []models.SecurityLog
 	var count int64
-	
+
 	err := r.db.Model(&models.SecurityLog{}).Count(&count).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	err = r.db.Order("\"createdAt\" desc").Limit(limit).Offset(offset).Find(&logs).Error
 	return logs, count, err
 }

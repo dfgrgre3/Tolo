@@ -22,7 +22,7 @@ import {
   Gift,
   Target,
   Award,
-  Crown,
+  Medal,
   Newspaper,
   Gamepad2,
   BarChart3,
@@ -49,6 +49,7 @@ import {
   CreditCard,
   Ticket,
   DollarSign,
+  ClipboardList,
 } from "lucide-react";
 import { IconButton } from "@/components/admin/ui/admin-button";
 import {
@@ -198,7 +199,7 @@ const contentNavItems: SidebarNavItem[] = [
     permission: "RESOURCES_VIEW",
   },
   {
-    title: "AI Command Center",
+    title: "المساعد الذكي",
     href: "/admin/ai",
     icon: Bot,
     color: "bg-red-500",
@@ -206,16 +207,16 @@ const contentNavItems: SidebarNavItem[] = [
   },
 ];
 
-const gamificationNavItems: SidebarNavItem[] = [
+const engagementNavItems: SidebarNavItem[] = [
   {
-    title: "التحديات",
+    title: "المهام التعليمية",
     href: "/admin/challenges",
-    icon: Trophy,
+    icon: ClipboardList,
     color: "bg-orange-500",
     permission: "CHALLENGES_VIEW",
   },
   {
-    title: "الإنجازات",
+    title: "الأوسمة والتقدير",
     href: "/admin/achievements",
     icon: Award,
     color: "bg-yellow-500",
@@ -229,28 +230,28 @@ const gamificationNavItems: SidebarNavItem[] = [
     permission: "REWARDS_VIEW",
   },
   {
-    title: "المواسم",
+    title: "فترات التميز",
     href: "/admin/seasons",
-    icon: Crown,
+    icon: Medal,
     color: "bg-purple-500",
     permission: "SEASONS_VIEW",
   },
   {
-    title: "محرك القواعد (الأتمتة)",
+    title: "أتمتة العمليات",
     href: "/admin/automations",
     icon: Workflow,
     color: "bg-blue-500",
     permission: "AI_MANAGE",
   },
   {
-    title: "حملات الغنائم (CRM)",
+    title: "حملات التواصل (CRM)",
     href: "/admin/marketing",
     icon: Send,
     color: "bg-pink-500",
     permission: "MARKETING_VIEW",
   },
   {
-    title: "اختبارات النمو A/B",
+    title: "تجارب تحسين الأداء A/B",
     href: "/admin/ab-testing",
     icon: Split,
     color: "bg-teal-500",
@@ -260,37 +261,37 @@ const gamificationNavItems: SidebarNavItem[] = [
 
 const communityNavItems: SidebarNavItem[] = [
   {
-    title: "الإعلانات",
+    title: "الإعلانات الرسمية",
     href: "/admin/announcements",
     icon: Bell,
     color: "bg-sky-500",
     permission: "ANNOUNCEMENTS_VIEW",
   },
   {
-    title: "المنتدى",
+    title: "منتدى الحوار",
     href: "/admin/forum",
     icon: MessageSquare,
     color: "bg-teal-500",
     permission: "FORUM_VIEW",
   },
   {
-    title: "المدونة",
+    title: "المدونة الأكاديمية",
     href: "/admin/blog",
     icon: Newspaper,
     color: "bg-indigo-500",
     permission: "BLOG_VIEW",
   },
   {
-    title: "الأحداث",
+    title: "الفعاليات",
     href: "/admin/events",
     icon: Calendar,
     color: "bg-lime-500",
     permission: "EVENTS_VIEW",
   },
   {
-    title: "المسابقات",
+    title: "المسابقات العلمية",
     href: "/admin/contests",
-    icon: Gamepad2,
+    icon: Trophy,
     color: "bg-red-500",
     permission: "CONTESTS_VIEW",
   },
@@ -305,14 +306,14 @@ const financialNavItems: SidebarNavItem[] = [
     permission: "ANALYTICS_VIEW",
   },
   {
-    title: "المدفوعات والمعاملات",
+    title: "سجل المدفوعات",
     href: "/admin/payments",
     icon: CreditCard,
     color: "bg-blue-500",
     permission: "ANALYTICS_VIEW",
   },
   {
-    title: "أكواد الخصم",
+    title: "أكواد التخفيض",
     href: "/admin/coupons",
     icon: Ticket,
     color: "bg-purple-500",
@@ -322,14 +323,14 @@ const financialNavItems: SidebarNavItem[] = [
 
 const infrastructureNavItems: SidebarNavItem[] = [
   {
-    title: "مراقبة البنية التحتية",
+    title: "مراقبة الأداء",
     href: "/admin/infrastructure",
     icon: Monitor,
     color: "bg-blue-600",
     permission: "SETTINGS_MANAGE",
   },
   {
-    title: "تقسيم البيانات (Scalability)",
+    title: "قواعد البيانات",
     href: "/admin/infrastructure/partitions",
     icon: Split,
     color: "bg-indigo-600",
@@ -347,8 +348,8 @@ const infrastructureNavItems: SidebarNavItem[] = [
 const quickActions: QuickAction[] = [
   { title: "إضافة مستخدم", href: "/admin/users/new", icon: UserPlus, color: "blue", permission: "USERS_MANAGE" },
   { title: "إضافة محتوى", href: "/admin/subjects/new", icon: FilePlus, color: "green", permission: "SUBJECTS_MANAGE" },
-  { title: "إضافة تحدي", href: "/admin/challenges/new", icon: Trophy, color: "orange", permission: "CHALLENGES_MANAGE" },
-  { title: "الذكاء الاستراتيجي", href: "/admin/ai", icon: Bot, color: "red", permission: "AI_MANAGE" },
+  { title: "إضافة مهمة", href: "/admin/challenges/new", icon: ClipboardList, color: "orange", permission: "CHALLENGES_MANAGE" },
+  { title: "المساعد الذكي", href: "/admin/ai", icon: Bot, color: "red", permission: "AI_MANAGE" },
   { title: "إرسال إعلان", href: "/admin/announcements/new", icon: Bell, color: "purple", permission: "ANNOUNCEMENTS_MANAGE" },
 ];
 
@@ -454,7 +455,7 @@ export function AdminSidebar() {
 
   const filteredMainNav = filterByPermission(mainNavItems);
   const filteredContentNav = filterByPermission(contentNavItems);
-  const filteredGamificationNav = filterByPermission(gamificationNavItems);
+  const filteredEngagementNav = filterByPermission(engagementNavItems);
   const filteredCommunityNav = filterByPermission(communityNavItems);
   const filteredFinancialNav = filterByPermission(financialNavItems);
   const filteredInfrastructureNav = filterByPermission(infrastructureNavItems);
@@ -625,7 +626,7 @@ export function AdminSidebar() {
       <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin">
         <SidebarNavSection title="الرئيسية" items={filteredMainNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="المحتوى التعليمي" items={filteredContentNav} pathname={pathname} collapsed={collapsed} />
-        <SidebarNavSection title="التحديات والمكافآت" items={filteredGamificationNav} pathname={pathname} collapsed={collapsed} />
+        <SidebarNavSection title="الأنشطة والتحفيز" items={filteredEngagementNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="المجتمع" items={filteredCommunityNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="الإدارة المالية" items={filteredFinancialNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="البنية التحتية" items={filteredInfrastructureNav} pathname={pathname} collapsed={collapsed} />

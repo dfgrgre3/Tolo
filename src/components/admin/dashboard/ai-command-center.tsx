@@ -16,8 +16,8 @@ import {
   Crown,
   Scroll
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
 import { apiClient } from "@/lib/api/api-client";
+import { AdminButton } from "../ui/admin-button";
 
 type RiskStudent = {
   id: string;
@@ -113,31 +113,29 @@ export function AiCommandCenter() {
   return (
     <section className="grid gap-8 xl:grid-cols-[1.4fr_0.6fr]" dir="rtl">
       {/* --- Main Intelligence Hub --- */}
-      <m.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="rpg-glass p-8 border-primary/20 space-y-8"
+      <div 
+        className="rpg-glass p-8 border-primary/20 space-y-8 rpg-royal-glow"
       >
         <div className="flex flex-col md:flex-row items-start justify-between gap-6">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_15px_rgba(var(--primary),0.2)]">
               <Brain className="h-4 w-4" />
-              <span>ذكاء المملكة الروحاني - Copilot</span>
+              <span>المساعد الإداري الذكي (BETA)</span>
             </div>
-            <h2 className="text-3xl font-black">غرفة التخطيط الإستراتيجي</h2>
+            <h2 className="text-3xl font-black">مساعد إدارة المنصة</h2>
             <p className="text-gray-400 font-medium max-w-xl">
-              تحدث مع مستشار المملكة الذكي، أصدر المخططات، وراقب نبض الجمهور.
+              تحدث مع المساعد الذكي لتوليد التقارير، إنشاء الاختبارات، أو مراجعة أداء الطلاب.
             </p>
           </div>
           
           <div className="flex gap-4">
              <div className="rpg-card p-4 flex flex-col items-center gap-1 min-w-[120px] bg-red-500/5 border-red-500/20">
                 <span className="text-3xl font-black text-red-500">{data?.summary.highRiskCount ?? 0}</span>
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">محارب في خطر</span>
+                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">طلاب في خطر</span>
              </div>
              <div className="rpg-card p-4 flex flex-col items-center gap-1 min-w-[120px] bg-sky-500/5 border-sky-500/20">
                 <span className="text-3xl font-black text-sky-500">{data?.summary.reviewPendingCount ?? 0}</span>
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">تحرك معلق</span>
+                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">طلبات معلقة</span>
              </div>
           </div>
         </div>
@@ -145,16 +143,14 @@ export function AiCommandCenter() {
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
             {starterPrompts.map((item, index) => (
-              <m.button
+              <button
                 key={`prompt-${index}-${item.substring(0, 20).replace(/\s+/g, '-')}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => setPrompt(item)}
                 className="rounded-xl border border-white/5 bg-white/5 px-4 py-2.5 text-xs font-bold text-gray-300 transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary backdrop-blur-md"
               >
                 {item}
-              </m.button>
+              </button>
             ))}
           </div>
 
@@ -164,61 +160,56 @@ export function AiCommandCenter() {
               onChange={(event) => setPrompt(event.target.value)}
               rows={4}
               className="w-full min-h-[140px] rounded-2xl border border-white/5 bg-black/20 px-5 py-4 text-sm font-medium text-white outline-none ring-0 placeholder:text-gray-600 focus:border-primary/50 transition-all backdrop-blur-xl"
-              placeholder="اكتب أمراً للإدارة..."
+              placeholder="اطلب شيئاً من المساعد الذكي..."
             />
             <div className="absolute bottom-4 left-4 flex items-center justify-between right-4">
               <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
-                تم استدعاء المستشار بنجاح
+                المساعد جاهز للاستجابة
               </span>
-              <m.button
-                whileHover={{ scale: 1.05, x: -5 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
+              <AdminButton
+                variant="royal"
                 onClick={() => copilotMutation.mutate(prompt)}
-                disabled={copilotMutation.isPending || !prompt.trim()}
-                className="inline-flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 disabled:opacity-50 transition-all"
+                loading={copilotMutation.isPending}
+                disabled={!prompt.trim()}
+                icon={Send}
+                className="h-12 px-8 rounded-2xl"
               >
-                {copilotMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                أرسل الهدهد
-              </m.button>
+                إرسال الطلب
+              </AdminButton>
             </div>
           </div>
         </div>
 
-        <AnimatePresence>
-          {copilotReply && (
-            <m.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-8 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                 <Scroll className="w-24 h-24 text-amber-500" />
+        {copilotReply && (
+          <div 
+            className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-8 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+               <Brain className="w-24 h-24 text-amber-500" />
+            </div>
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-3 text-amber-400 text-sm font-black uppercase tracking-widest">
+                <Sparkles className="h-5 w-5" />
+                رد المساعد الذكي
               </div>
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-3 text-amber-400 text-sm font-black uppercase tracking-widest">
-                  <Sparkles className="h-5 w-5" />
-                  الرد الملكي المختوم
-                </div>
-                <p className="whitespace-pre-wrap text-sm leading-8 text-gray-300 font-medium border-r-2 border-amber-500/30 pr-6">
-                  {copilotReply}
-                </p>
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
+              <p className="whitespace-pre-wrap text-sm leading-8 text-gray-300 font-medium border-r-2 border-amber-500/30 pr-6">
+                {copilotReply}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="rpg-divider" />
 
         <div className="space-y-6">
           <div className="flex items-center gap-3 text-xl font-black">
             <ClipboardList className="h-6 w-6 text-primary" />
-            <span>صناعة المخطوطات والوثائق</span>
+            <span>توليد المحتوى التعليمي</span>
           </div>
           
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">عنوان المخطوطة</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">عنوان المحتوى</label>
               <input
                 value={generatorForm.title}
                 onChange={(event) => setGeneratorForm((current) => ({ ...current, title: event.target.value }))}
@@ -227,7 +218,7 @@ export function AiCommandCenter() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">نوع الوثيقة</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">نوع المحتوى</label>
               <select
                 value={generatorForm.contentType}
                 onChange={(event) => setGeneratorForm((current) => ({ ...current, contentType: event.target.value }))}
@@ -256,7 +247,7 @@ export function AiCommandCenter() {
           </div>
           
           <div className="space-y-2">
-             <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">مواصفات الاستدعاء</label>
+             <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">مواصفات التوليد</label>
              <textarea
                value={generatorForm.prompt}
                onChange={(event) => setGeneratorForm((current) => ({ ...current, prompt: event.target.value }))}
@@ -268,52 +259,48 @@ export function AiCommandCenter() {
 
           <div className="flex justify-between items-center bg-primary/5 border border-primary/10 rounded-2xl p-4">
              <span className="text-xs text-primary/70 font-bold max-w-sm">
-                * جميع العناصر المصنوعة بواسطة السحر تدخل قائمة المراجعة تلقائياً قبل نشرها للعامة.
+                * المحتوى المولد بواسطة الذكاء الاصطناعي يتطلب مراجعة بشرية قبل النشر.
              </span>
-             <m.button
-               whileHover={{ scale: 1.05 }}
-               whileTap={{ scale: 0.95 }}
-               type="button"
-               onClick={() => generateMutation.mutate()}
-               disabled={generateMutation.isPending || !generatorForm.prompt.trim()}
-               className="inline-flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-6 py-3 text-sm font-black text-orange-500 transition-all hover:bg-orange-500/20"
-             >
-               {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-               صناعة الآن
-             </m.button>
+             <AdminButton
+                variant="royal"
+                onClick={() => generateMutation.mutate()}
+                loading={generateMutation.isPending}
+                disabled={!generatorForm.prompt.trim()}
+                icon={Zap}
+                className="h-12 px-8 rounded-2xl from-orange-500 via-amber-500 to-orange-600 shadow-orange-500/20"
+              >
+                توليد الآن
+              </AdminButton>
           </div>
         </div>
-      </m.div>
+      </div>
 
       {/* --- Intelligence Feeds (Sidebar) --- */}
       <div className="space-y-8">
         {/* Risk Assessment */}
-        <m.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <div 
           className="rpg-glass p-6 border-red-500/10"
         >
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-lg font-black flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500 animate-pulse" />
-              <span>رصد المخاطر</span>
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span>طلاب معرضون للخطر</span>
             </h3>
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest font-mono">Real-time</span>
           </div>
           
           <div className="space-y-4">
-            {isLoading && <div className="text-xs text-gray-500 font-bold animate-pulse text-center p-8">جارٍ استطلاع الجبهة...</div>}
+            {isLoading && <div className="text-xs text-gray-500 font-bold animate-pulse text-center p-8">جاري التحليل...</div>}
             {(data?.riskStudents || []).map((student, index) => (
-              <m.div 
+              <div 
                 key={`risk-student-${student.id || index}`} 
-                whileHover={{ x: -4 }}
                 className="rpg-card p-4 border-white/5 bg-white/5 hover:border-red-500/30 transition-all group"
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="font-bold text-sm tracking-tight">{student.name}</div>
                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-tighter mt-0.5">
-                      {student.gradeLevel || "محارب ناشئ"}
+                      {student.gradeLevel || "طالب"}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
@@ -331,28 +318,25 @@ export function AiCommandCenter() {
                      </div>
                    ))}
                 </div>
-              </m.div>
+              </div>
             ))}
             {!isLoading && (data?.riskStudents || []).length === 0 && (
               <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/5">
                 <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto mb-3 opacity-20" />
-                <p className="text-xs text-gray-500 font-bold leading-relaxed">المملكة آمنة حالياً. لا توجد تهديدات مرصودة.</p>
+                <p className="text-xs text-gray-500 font-bold leading-relaxed">لا توجد مخاطر مرصودة حالياً.</p>
               </div>
             )}
           </div>
-        </m.div>
+        </div>
 
         {/* Content Review Queue */}
-        <m.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+        <div 
           className="rpg-glass p-6 border-sky-500/10"
         >
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-lg font-black flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-sky-500" />
-              <span>مراجعة المخطوطات</span>
+              <span>مراجعة المحتوى</span>
             </h3>
             <div className="p-1 px-2 rounded-md bg-sky-500/10 border border-sky-500/30 text-[10px] font-black text-sky-500">
                {data?.reviewQueue.length ?? 0}
@@ -376,38 +360,34 @@ export function AiCommandCenter() {
                 </p>
                 
                 <div className="flex gap-2">
-                  <m.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     type="button"
                     onClick={() => reviewMutation.mutate({ id: item.id, decision: "approve" })}
                     disabled={reviewMutation.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 py-2 text-[10px] font-black text-emerald-500 hover:bg-emerald-500/20 transition-all"
+                    className="flex-1-inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 py-2 text-[10px] font-black text-emerald-500 hover:bg-emerald-500/20 transition-all"
                   >
                     <CheckCircle2 className="h-3 w-3" />
-                    اختم بالقبول
-                  </m.button>
-                  <m.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    قبول
+                  </button>
+                  <button
                     type="button"
                     onClick={() => reviewMutation.mutate({ id: item.id, decision: "reject" })}
                     disabled={reviewMutation.isPending}
                     className="inline-flex items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/30 p-2 text-rose-500 hover:bg-rose-500/20 transition-all"
                   >
                     <XCircle className="h-3 w-3" />
-                  </m.button>
+                  </button>
                 </div>
               </div>
             ))}
             {!isLoading && (data?.reviewQueue || []).length === 0 && (
               <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/5">
-                <Crown className="w-8 h-8 text-sky-500 mx-auto mb-3 opacity-20" />
-                <p className="text-xs text-gray-500 font-bold leading-relaxed">جميع المخططات موافق عليها من قبل الملك.</p>
+                <Brain className="w-8 h-8 text-sky-500 mx-auto mb-3 opacity-20" />
+                <p className="text-xs text-gray-500 font-bold leading-relaxed">جميع المخططات موافق عليها.</p>
               </div>
             )}
           </div>
-        </m.div>
+        </div>
       </div>
     </section>
   );

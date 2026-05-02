@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -41,20 +41,20 @@ interface AuditLog {
 }
 
 const eventTypeLabels: Record<string, string> = {
-  LOGIN: "دخول المملكة",
-  LOGOUT: "مغادرة المملكة",
-  REGISTER: "محارب جديد",
-  PASSWORD_CHANGE: "تجديد مفتاح التشفير",
-  EMAIL_CHANGE: "تحديث المراسلات",
-  PROFILE_UPDATE: "تعديل السيرة الذاتية",
-  FAILED_LOGIN: "محاولة اختراق!",
-  SUSPICIOUS_ACTIVITY: "نشاط مريب!",
+  LOGIN: "تسجيل الدخول",
+  LOGOUT: "تسجيل الخروج",
+  REGISTER: "مستخدم جديد",
+  PASSWORD_CHANGE: "تغيير كلمة المرور",
+  EMAIL_CHANGE: "تحديث البريد الإلكتروني",
+  PROFILE_UPDATE: "تعديل الملف الشخصي",
+  FAILED_LOGIN: "محاولة دخول فاشلة",
+  SUSPICIOUS_ACTIVITY: "نشاط مشبوه",
   ACCOUNT_LOCKED: "قفل الحساب",
-  ACCOUNT_UNLOCKED: "إعادة تفعيل",
-  TWO_FACTOR_ENABLED: "تفعيل الحماية الثنائية",
-  TWO_FACTOR_DISABLED: "تعطيل الحماية",
-  SESSION_EXPIRED: "انتهاء مفعول الجلسة",
-  API_ACCESS: "استدعاء خارجي (API)",
+  ACCOUNT_UNLOCKED: "إلغاء قفل الحساب",
+  TWO_FACTOR_ENABLED: "تفعيل 2FA",
+  TWO_FACTOR_DISABLED: "تعطيل 2FA",
+  SESSION_EXPIRED: "انتهاء الجلسة",
+  API_ACCESS: "وصول عبر API",
 };
 
 const eventTypeColors: Record<string, string> = {
@@ -64,8 +64,8 @@ const eventTypeColors: Record<string, string> = {
   PASSWORD_CHANGE: "bg-yellow-600",
   EMAIL_CHANGE: "bg-yellow-600",
   PROFILE_UPDATE: "bg-blue-500",
-  FAILED_LOGIN: "bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.3)]",
-  SUSPICIOUS_ACTIVITY: "bg-red-700 shadow-lg",
+  FAILED_LOGIN: "bg-red-600",
+  SUSPICIOUS_ACTIVITY: "bg-red-700",
   ACCOUNT_LOCKED: "bg-red-600",
   ACCOUNT_UNLOCKED: "bg-emerald-500",
   TWO_FACTOR_ENABLED: "bg-purple-600",
@@ -107,8 +107,8 @@ export default function AdminAuditLogsPage() {
 
       const response = await fetch(`/api/admin/audit-logs?${params}`);
       const data = await response.json();
-      setLogs(data.logs || []);
-      setEventTypes(data.eventTypes || []);
+      setLogs(data.data?.logs || data.data?.items || data.logs || []);
+      setEventTypes(data.data?.eventTypes || data.eventTypes || []);
     } catch (error) {
       logger.error("Error fetching audit logs:", error);
     } finally {
@@ -123,7 +123,7 @@ export default function AdminAuditLogsPage() {
   const columns: ColumnDef<AuditLog>[] = [
     {
       accessorKey: "createdAt",
-      header: "التوقيت الفلكي",
+      header: "وقت الحدث",
       cell: ({ row }) => {
         const date = row.getValue("createdAt") as string;
         return (
@@ -138,7 +138,7 @@ export default function AdminAuditLogsPage() {
     },
     {
       accessorKey: "user",
-      header: "المحارب / التابع",
+      header: "المستخدم",
       cell: ({ row }) => {
         const log = row.original;
         if (!log.user) {
@@ -147,7 +147,7 @@ export default function AdminAuditLogsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted border border-border/50">
                 <UserX className="h-5 w-5 text-muted-foreground/50" />
               </div>
-              <span className="text-[11px] font-bold text-muted-foreground/60 uppercase">مجهول الهوية</span>
+              <span className="text-[11px] font-bold text-muted-foreground/60 uppercase">غير معروف</span>
             </div>
           );
         }
@@ -160,7 +160,7 @@ export default function AdminAuditLogsPage() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-black text-xs tracking-tight">{log.user.name || "محارب بلا اسم"}</p>
+              <p className="font-black text-xs tracking-tight">{log.user.name || "مستخدم بدون اسم"}</p>
               <p className="text-[10px] text-muted-foreground font-bold opacity-60 uppercase">{log.user.email}</p>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function AdminAuditLogsPage() {
     },
     {
       accessorKey: "eventType",
-      header: "طبيعة الاستدعاء",
+      header: "نوع العملية",
       cell: ({ row }) => {
         const eventType = row.getValue("eventType") as string;
         const Icon = eventTypeIcons[eventType] || Info;
@@ -183,7 +183,7 @@ export default function AdminAuditLogsPage() {
     },
     {
       accessorKey: "ip",
-      header: "إحداثيات الـ IP",
+      header: "عنوان IP",
       cell: ({ row }) => (
         <code className="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-md font-mono font-bold tracking-tighter opacity-80" dir="ltr">
           {row.getValue("ip")}
@@ -192,17 +192,17 @@ export default function AdminAuditLogsPage() {
     },
     {
       accessorKey: "location",
-      header: "نطاق الاستدعاء",
+      header: "الموقع الجغرافي",
       cell: ({ row }) => (
          <div className="flex items-center gap-1.5 text-xs font-bold opacity-70">
             <Globe className="w-3 h-3" />
-            <span>{row.getValue("location") || "أرض مجهولة"}</span>
+            <span>{row.getValue("location") || "غير معروف"}</span>
          </div>
       ),
     },
     {
       accessorKey: "deviceInfo",
-      header: "العتاد المستخدم",
+      header: "بيانات الجهاز",
       cell: ({ row }) => {
         const deviceInfo = row.getValue("deviceInfo") as string | null;
         if (!deviceInfo) return <span className="text-[10px] opacity-20">---</span>;
@@ -221,8 +221,8 @@ export default function AdminAuditLogsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مخطوطة الأحداث الملكية 📜"
-        description="سجل المراقبة الإمبراطوري، رصد تحركات المحاربين، وتوثيق سجلات الدخول والخروج من المملكة."
+        title="سجل العمليات والرقابة"
+        description="سجل مراقبة العمليات الإدارية، تتبع أنشطة المستخدمين، وتوثيق كافة أحداث النظام لضمان الأمان والشفافية."
       />
 
       {/* Filters */}
@@ -230,7 +230,7 @@ export default function AdminAuditLogsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
-            placeholder="بحث بمعرف المحارب..."
+            placeholder="البحث بمعرف المستخدم..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-accent/20 border border-border h-11 pr-12 pl-4 rounded-xl text-sm font-bold focus:ring-1 ring-primary/50 outline-none transition-all"
@@ -241,10 +241,10 @@ export default function AdminAuditLogsPage() {
             <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
               <SelectTrigger className="w-56 h-11 bg-accent/20 border-border rounded-xl font-bold">
                 <Filter className="ml-2 h-4 w-4 text-primary" />
-                <SelectValue placeholder="طبيعة الحدث" />
+                <SelectValue placeholder="نوع العملية" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-white/10">
-                <SelectItem value="all" className="font-bold cursor-pointer">سجلات المملكة كافة</SelectItem>
+                <SelectItem value="all" className="font-bold cursor-pointer">كافة السجلات</SelectItem>
                 {eventTypes.map((type) => (
                   <SelectItem key={type} value={type} className="font-bold cursor-pointer">
                     {eventTypeLabels[type] || type}
@@ -254,7 +254,7 @@ export default function AdminAuditLogsPage() {
             </Select>
 
             <AdminButton variant="outline" icon={RefreshCw} onClick={fetchLogs} loading={loading}>
-              تحديث المخطوطة
+              تحديث السجلات
             </AdminButton>
             
             {(eventTypeFilter !== "all" || searchQuery) && (
@@ -262,7 +262,7 @@ export default function AdminAuditLogsPage() {
                 setEventTypeFilter("all");
                 setSearchQuery("");
               }}>
-                نسيان الفلاتر
+                إعادة تعيين
               </Button>
             )}
         </div>
@@ -271,7 +271,7 @@ export default function AdminAuditLogsPage() {
       <m.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
       >
         {loading ? (
           <div className="p-8 space-y-6">
@@ -291,7 +291,7 @@ export default function AdminAuditLogsPage() {
             columns={columns}
             data={logs}
             searchKey="ip"
-            searchPlaceholder="البحث عن إحداثيات IP..."
+            searchPlaceholder="البحث عن عنوان IP..."
           />
         )}
       </m.div>

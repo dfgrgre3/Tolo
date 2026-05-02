@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Enrollment struct {
@@ -14,10 +14,10 @@ type Enrollment struct {
 	EnrolledAt time.Time `gorm:"index" json:"enrolledAt"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
-	
+
 	// Relations
-	Subject   Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
-	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Subject Subject `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	User    User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
 func (Enrollment) TableName() string {

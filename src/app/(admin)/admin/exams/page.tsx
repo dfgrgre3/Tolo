@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -7,14 +7,14 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { 
   Plus, ExternalLink, Target, 
-  FileText, Eye, Calendar, Users, Trophy, Search, UploadCloud, Hammer, Send
+  FileText, Eye, Calendar, Users, Trophy, Search, UploadCloud, Edit, Send, Trash2
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
@@ -169,7 +169,7 @@ export default function AdminExamsPage() {
       });
 
       if (response.ok) {
-        toast.success(editingExam ? "تم تحديث مخطط المبارزة" : "تم تعبئة مبارزة جديدة بنجاح");
+        toast.success(editingExam ? "تم تحديث بيانات الامتحان بنجاح" : "تم إضافة امتحان جديد بنجاح");
         setDialogOpen(false);
         refetch();
       } else {
@@ -190,7 +190,7 @@ export default function AdminExamsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم إتلاف المخطوطة من السجلات");
+        toast.success("تم حذف الاختبار من السجلات");
         refetch();
       } else {
         toast.error("فشل في الحذف");
@@ -205,7 +205,7 @@ export default function AdminExamsPage() {
   const columns: ColumnDef<Exam>[] = [
     {
       accessorKey: "title",
-      header: "الاختبار / المبارزة",
+      header: "الاختبار",
       cell: ({ row }) => {
         const exam = row.original;
         return (
@@ -226,7 +226,7 @@ export default function AdminExamsPage() {
     },
     {
       accessorKey: "subject",
-      header: "المجال العلمي",
+      header: "المادة الدراسية",
       cell: ({ row }) => (
         <Badge variant="outline" className="rounded-lg bg-white/5 text-primary border-primary/20 font-black text-[10px] uppercase px-3 py-1">
           {row.original.subject.nameAr || row.original.subject.name}
@@ -235,34 +235,34 @@ export default function AdminExamsPage() {
     },
     {
       accessorKey: "results",
-      header: "المشاركة الشعبية",
+      header: "المشاركون",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Users className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-black">{row.original._count.results} محارب اجتازها</span>
+          <span className="text-xs font-black">{row.original._count.results} طالب أنجزه</span>
         </div>
       ),
     },
     {
       accessorKey: "createdAt",
-      header: "تاريخ التدوين",
+      header: "تاريخ الإضافة",
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="text-xs font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
-          <span className="text-[10px] text-muted-foreground font-bold italic opacity-60">سجل ملكي</span>
+          <span className="text-[10px] text-muted-foreground font-bold italic opacity-60">سجل إداري</span>
         </div>
       ),
     },
     {
       id: "actions",
-      header: "العمليات الملكية",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
           onEdit={handleOpenDialog}
           onDelete={(e) => setDeleteDialog({ open: true, id: e.id })}
           extraActions={[
-            { icon: Eye, label: "معاينة المبارزة", onClick: (e) => setPreviewExam(e) },
+            { icon: Eye, label: "معاينة الاختبار", onClick: (e) => setPreviewExam(e) },
             { icon: ExternalLink, label: "الرابط المرجعي", onClick: (e) => window.open(e.url, "_blank") },
           ]}
         />
@@ -273,8 +273,8 @@ export default function AdminExamsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="قاعة الاختبارات الملكية 🏆"
-        description="إدارة المسابقات العلمية، امتحانات السنوات السابقة، وتقييم قدرات المحاربين."
+        title="إدارة الاختبارات والامتحانات"
+        description="إدارة الاختبارات التعليمية، امتحانات السنوات السابقة، وتقييم مستوى الطلاب."
       >
         <div className="flex items-center gap-3">
           <AdminButton 
@@ -282,7 +282,7 @@ export default function AdminExamsPage() {
             icon={UploadCloud} 
             onClick={() => setBulkDialogOpen(true)}
           >
-            الرفع الجماعي للمبارزات
+            الرفع الجماعي للاختبارات
           </AdminButton>
           <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
             إضافة اختبار جديد
@@ -297,21 +297,21 @@ export default function AdminExamsPage() {
           value={exams.length} 
           icon={FileText} 
           color="blue"
-          description="مخطوطة في الخزانة"
+          description="اختبار في سجلات المنصة"
         />
         <AdminStatsCard 
           title="إجمالي المحاولات" 
           value={exams.reduce((acc, e) => acc + e._count.results, 0)} 
           icon={Users} 
           color="purple"
-          description="مبارزة تمت بنجاح"
+          description="عملية إنجاز ناجحة"
         />
         <AdminStatsCard 
           title="مواد مختبرة" 
           value={Array.from(new Set(exams.map(e => e.subject.id))).length} 
           icon={Target} 
           color="green"
-          description="فرع علمي نشط"
+          description="مادة دراسية نشطة"
         />
         <AdminStatsCard 
           title="حصاد الأسبوع" 
@@ -325,7 +325,7 @@ export default function AdminExamsPage() {
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         <AdminDataTable
           columns={columns}
@@ -364,18 +364,18 @@ export default function AdminExamsPage() {
               <DialogTitle className="text-2xl font-black flex items-center gap-3">
                 {editingExam ? (
                   <>
-                    <Hammer className="w-7 h-7 text-indigo-500" />
-                    تنقيح مخطط الاختبار
+                    <Edit className="w-7 h-7 text-indigo-500" />
+                    تعديل بيانات الاختبار
                   </>
                 ) : (
                   <>
                     <Plus className="w-7 h-7 text-emerald-500" />
-                    صياغة اختبار ملكي جديد
+                    إضافة اختبار جديد
                   </>
                 )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                أدخل بيانات الاختبار لضمان دقة التقييم للمحاربين.
+                أدخل بيانات الاختبار لضمان دقة التقييم للطلاب.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -385,7 +385,7 @@ export default function AdminExamsPage() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان المبارزة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان الاختبار</FormLabel>
                       <FormControl><Input {...field} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -398,7 +398,7 @@ export default function AdminExamsPage() {
                     name="subjectId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">العلم التابع له</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">المادة التابعة</FormLabel>
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11 px-4 text-xs font-bold">
@@ -442,7 +442,7 @@ export default function AdminExamsPage() {
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تصنيف المبارزة</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تصنيف الاختبار</FormLabel>
                         <FormControl><Input {...field} placeholder="مثال: تجريبي / نهائي" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -462,8 +462,8 @@ export default function AdminExamsPage() {
                 </div>
 
                 <DialogFooter className="pt-2">
-                  <AdminButton type="submit" className="w-full h-14 text-md font-black rounded-2xl shadow-xl" icon={editingExam ? Hammer : Send}>
-                    {editingExam ? "حفظ مخطط الاختبار" : "اعتماد الاختبار رسمياً"}
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black rounded-2xl shadow-xl" icon={editingExam ? Edit : Send}>
+                    {editingExam ? "حفظ التعديلات" : "إضافة الاختبار"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -483,7 +483,7 @@ export default function AdminExamsPage() {
                 </p>
               </div>
               <AdminButton variant="outline" size="lg" onClick={() => window.open(previewExam?.url, "_blank")} icon={ExternalLink} className="rounded-2xl border-white/10">
-                فتح برابط ملكي
+                فتح في نافذة جديدة
               </AdminButton>
             </div>
             <div className="flex-1 bg-white/[0.02] relative">
@@ -499,12 +499,12 @@ export default function AdminExamsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="إتلاف مخطط الاختبار؟"
-        description="سيتم حذف المخطوطة ونتائج المبارزات بشكل نهائي من أرشيف المملكة. هل أنت متأكد؟"
-        confirmText="نعم، احرق السجلات"
+        title="حذف الاختبار نهائياً؟"
+        description="هل أنت متأكد من حذف هذا الاختبار من السجلات؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete}
       />

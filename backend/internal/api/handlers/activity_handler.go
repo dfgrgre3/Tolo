@@ -32,16 +32,65 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 
-	userId, _ := c.Get("userId")
-	if userId != nil {
-		task.UserID = userId.(string)
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
+	task.UserID = userIdValue.(string)
 
 	if err := db.DB.Create(&task).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
 		return
 	}
 	c.JSON(http.StatusCreated, task)
+}
+
+func UpdateTask(c *gin.Context) {
+	id := c.Param("id")
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	uid := userIdValue.(string)
+
+	var task models.Task
+	if err := db.DB.Where("id = ? AND \"userId\" = ?", id, uid).First(&task).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&task); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure ID and UserID don't change
+	task.ID = id
+	task.UserID = uid
+
+	if err := db.DB.Save(&task).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
+		return
+	}
+	c.JSON(http.StatusOK, task)
+}
+
+func DeleteTask(c *gin.Context) {
+	id := c.Param("id")
+	userIdValue, exists := c.Get("userId")
+	if !exists || userIdValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	uid := userIdValue.(string)
+
+	if err := db.DB.Where("id = ? AND \"userId\" = ?", id, uid).Delete(&models.Task{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 // Study Sessions

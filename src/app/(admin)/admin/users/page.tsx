@@ -8,16 +8,16 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send } from "lucide-react";
+import { UserPlus, Download, Mail, Shield, Users, Zap, Search, Send, LogIn } from "lucide-react";
 import { exportToCSV, ExportColumn } from '@/lib/export-utils';
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { RoyalCallModal as RoyalMessageModal } from "@/components/admin/royal-call";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
+import { BroadcastModal as MessageModal } from "@/components/admin/broadcast/broadcast-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
-import { m } from "framer-motion";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 
 interface UserModel {
   id: string;
@@ -71,6 +71,11 @@ export default function AdminUsersPage() {
     open: false,
     users: [],
   });
+  const [impersonateDialog, setImpersonateDialog] = React.useState<{ open: boolean; user: UserModel | null }>({
+    open: false,
+    user: null,
+  });
+  const [impersonating, setImpersonating] = React.useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "users", page, limit, search, role],
@@ -81,7 +86,7 @@ export default function AdminUsersPage() {
         search,
         ...(role !== "all" && { role }),
       });
-      const response = await fetch(`${apiRoutes.admin.users}?${params}`);
+      const response = await adminFetch(`${apiRoutes.admin.users}?${params}`);
       if (!response.ok) throw new Error("Failed to fetch users");
       return (await response.json()) as ApiResponse;
     },
@@ -90,11 +95,13 @@ export default function AdminUsersPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(`${apiRoutes.admin.users}?userId=${deleteDialog.id}`, {
+      const response = await adminFetch(apiRoutes.admin.users, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: deleteDialog.id }),
       });
       if (response.ok) {
-        toast.success("تم حذف المحارب من السجلات");
+        toast.success("تم حذف المستخدم من السجلات بنجاح");
         refetch();
       } else {
         toast.error("فشل في حذف السجل");
@@ -107,6 +114,31 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleImpersonate = async () => {
+    if (!impersonateDialog.user) return;
+    setImpersonating(true);
+    try {
+      const res = await adminFetch(apiRoutes.admin.impersonate, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: impersonateDialog.user.id }),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        toast.success('تم تبديل الهوية، جاري التوجيه...');
+        window.location.href = '/';
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'فشل في تبديل الهوية');
+      }
+    } catch (_error) {
+      toast.error('خطأ في الاتصال');
+    } finally {
+      setImpersonating(false);
+      setImpersonateDialog({ open: false, user: null });
+    }
+  };
+
   const handleExportCSV = () => {
     if (!data?.data?.users || data.data.users.length === 0) {
       toast.error('لا توجد بيانات للتصدير');
@@ -115,8 +147,8 @@ export default function AdminUsersPage() {
     const exportColumns: ExportColumn<UserModel>[] = [
       { header: 'الاسم', accessor: (u) => u.name || u.username || "بدون اسم" },
       { header: 'البريد الإلكتروني', accessor: 'email' },
-      { header: 'الرتبة', accessor: 'role' },
-      { header: 'القوة (XP)', accessor: (u) => u.totalXP || 0 },
+      { header: 'الدور', accessor: 'role' },
+      { header: 'النقاط', accessor: (u) => u.totalXP || 0 },
       { header: 'تاريخ الالتحاق', accessor: (u) => new Date(u.createdAt).toLocaleDateString('ar-EG') },
       { header: 'آخر دخول', accessor: (u) => u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ar-EG') : 'لم يسجل دخول' },
     ];
@@ -148,7 +180,7 @@ export default function AdminUsersPage() {
     },
     {
       accessorKey: "name",
-      header: "المحارب",
+      header: "المستخدم",
       cell: ({ row }) => {
         const user = row.original;
         return (
@@ -176,27 +208,27 @@ export default function AdminUsersPage() {
     },
     {
       accessorKey: "role",
-      header: "الرتبة العسكرية",
+      header: "الدور الوظيفي",
       cell: ({ row }) => <RoleBadge role={row.original.role} />,
     },
     {
       accessorKey: "totalXP",
-      header: "القوة (XP)",
+      header: "نقاط التفاعل",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-black text-amber-500 flex items-center gap-1">
-            <Zap className="w-3 h-3 fill-amber-500" />
-            {(row.original.totalXP || 0).toLocaleString()} XP
+          <span className="font-black text-primary flex items-center gap-1">
+            <Zap className="w-3 h-3 fill-primary" />
+            {(row.original.totalXP || 0).toLocaleString()} نقطة
           </span>
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
-            {row.original._count?.tasks || 0} مهمة مكتملة
+            {row.original._count?.tasks || 0} نشاط مكتمل
           </span>
         </div>
       ),
     },
     {
       accessorKey: "createdAt",
-      header: "تاريخ الالتحاق",
+      header: "تاريخ الانضمام",
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="text-sm font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
@@ -213,7 +245,7 @@ export default function AdminUsersPage() {
     },
     {
       id: "actions",
-      header: "العمليات",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
@@ -221,30 +253,10 @@ export default function AdminUsersPage() {
           onEdit={(u) => router.push(`/admin/users/${u.id}/edit`)}
           onDelete={(u) => setDeleteDialog({ open: true, id: u.id })}
           extraActions={[
-            { icon: Mail, label: "رسالة ملكية", onClick: (u) => setMessageDialog({ open: true, users: [u] }) },
-            { icon: Shield, label: "صلاحيات القائد", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
+            { icon: Mail, label: "إرسال رسالة", onClick: (u) => setMessageDialog({ open: true, users: [u] }) },
+            { icon: Shield, label: "إدارة الصلاحيات", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
             {
-              icon: Shield, label: "تقمص شخصية", onClick: async (u) => {
-                if (window.confirm("هل أنت متأكد من تقمص شخصية هذا المستخدم؟ سيتم تسجيل دخولك كهذا المستخدم.")) {
-                  try {
-                    const res = await fetch('/api/admin/impersonate', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ targetUserId: u.id }),
-                      credentials: 'include'
-                    });
-                    if (res.ok) {
-                      toast.success('تم تقمص الشخصية، جاري التوجيه...');
-                      window.location.href = '/';
-                    } else {
-                      const data = await res.json();
-                      toast.error(data.error || 'فشل في تقمص الشخصية');
-                    }
-                  } catch (_error) {
-                    toast.error('خطأ في الاتصال');
-                  }
-                }
-              }
+              icon: LogIn, label: "تسجيل الدخول كـ", onClick: (u) => setImpersonateDialog({ open: true, user: u })
             },
           ]}
         />
@@ -255,61 +267,59 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="سجلات جيش المملكة ⚔️"
-        description="إدارة جميع المحاربين، رتبهم العسكرية، وصلاحياتهم داخل الإمبراطورية."
+        title="إدارة مستخدمي المنصة ⚙️"
+        description="إدارة جميع مستخدمي المنصة، أدوارهم، وصلاحياتهم داخل النظام التعليمي."
       >
         <div className="flex items-center gap-3">
-          <AdminButton variant="outline" icon={Download} onClick={handleExportCSV}>
-            تصدير المستخدمين CSV
+          <AdminButton variant="outline" icon={Download} onClick={handleExportCSV} className="rounded-2xl border-white/10">
+            تصدير البيانات CSV
           </AdminButton>
-          <AdminButton icon={UserPlus} onClick={() => router.push("/admin/users/create")}>
-            تجنيد محارب جديد
+          <AdminButton variant="premium" icon={UserPlus} onClick={() => router.push("/admin/users/create")} className="rounded-2xl shadow-xl">
+            إضافة مستخدم جديد
           </AdminButton>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AdminStatsCard
-          title="إجمالي المحاربين"
+          title="إجمالي المستخدمين"
           value={data?.data?.summary?.totalUsers || 0}
           icon={Users}
           color="blue"
-          description="جندي في المملكة"
+          description="مستخدم في المنصة"
         />
 
         <AdminStatsCard
-          title="القادة والنبلاء"
+          title="حسابات المسؤولين"
           value={data?.data?.summary?.totalAdmins || 0}
-          icon={Crown}
+          icon={Shield}
           color="yellow"
           description="حساب إداري فعال"
         />
 
         <AdminStatsCard
-          title="محاربين متمرسين"
+          title="المستخدمين النشطين"
           value={data?.data?.summary?.powerUsers || 0}
           icon={Zap}
           color="green"
-          description="رتبة محارب متمرس"
+          description="تفاعل عالي هذا الأسبوع"
         />
       </div>
 
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+      <div
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         <AdminDataTable
           columns={columns}
           data={data?.data?.users || []}
           loading={isLoading}
           searchKey="name"
-          searchPlaceholder="ابحث في سجلات الجيش..."
+          searchPlaceholder="ابحث في سجلات المستخدمين..."
           serverSide
           selectable
           bulkActions={[
             {
-              label: "إرسال مرسوم ملكي",
+              label: "إرسال رسالة جماعية",
               icon: Send,
               onClick: (rows) => setMessageDialog({ open: true, users: rows })
             },
@@ -344,18 +354,28 @@ export default function AdminUsersPage() {
             </div>
           }
         />
-      </m.div>
+      </div>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="تجريد محارب من رتبته؟"
-        description="هل أنت متأكد من حذف هذا السجل؟ سيتم مسح جميع إنجازات المحارب ونقاط القوة (XP) الخاصة به نهائياً."
+        title="حذف حساب مستخدم؟"
+        description="هل أنت متأكد من حذف هذا السجل؟ سيتم مسح جميع بيانات المستخدم وإنجازاته نهائياً من النظام."
         confirmText="تأكيد الحذف النهائي"
         variant="destructive"
         onConfirm={handleDelete}
       />
-      <RoyalMessageModal
+      <AdminConfirm
+        open={impersonateDialog.open}
+        onOpenChange={(open) => setImpersonateDialog({ open, user: null })}
+        title="تبديل الهوية (Impersonate)"
+        description={`أنت على وشك الدخول بهوية المستخدم ${impersonateDialog.user?.name || 'المختار'}. ستتمكن من رؤية المنصة تماماً كما يراها.`}
+        confirmText="تأكيد الدخول"
+        variant="premium"
+        onConfirm={handleImpersonate}
+        loading={impersonating}
+      />
+      <MessageModal
         open={messageDialog.open}
         onOpenChange={(open) => setMessageDialog({ open, users: open ? messageDialog.users : [] })}
         users={messageDialog.users}

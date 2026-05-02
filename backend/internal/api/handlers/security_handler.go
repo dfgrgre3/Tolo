@@ -7,8 +7,8 @@ import (
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
 
-	"github.com/gin-gonic/gin"
 	"fmt"
+	"github.com/gin-gonic/gin"
 )
 
 var securityLogRepo *repository.SecurityLogRepository

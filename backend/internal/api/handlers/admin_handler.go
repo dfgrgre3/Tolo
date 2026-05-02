@@ -23,7 +23,7 @@ func GetCategories(c *gin.Context) {
 	}
 
 	if err := query.Find(&categories).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch categories"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to fetch categories")
 		return
 	}
 
@@ -71,13 +71,13 @@ func GetCategories(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, categories)
+	apiresponse.Success(c, categories)
 }
 
 func GetTeachers(c *gin.Context) {
 	var teachers []models.User
 	if err := db.DB.Where("role = ?", "TEACHER").Find(&teachers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch teachers"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to fetch teachers")
 		return
 	}
 
@@ -107,7 +107,7 @@ func GetTeachers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, teachers)
+	apiresponse.Success(c, teachers)
 }
 
 func CreateCategory(c *gin.Context) {
@@ -119,7 +119,7 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -132,11 +132,11 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&category).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create category"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to create category")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"category": category}})
+	apiresponse.Created(c, gin.H{"category": category})
 }
 
 func UpdateCategory(c *gin.Context) {
@@ -149,13 +149,13 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var category models.Category
 	if err := db.DB.First(&category, "id = ?", input.ID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		apiresponse.Error(c, http.StatusNotFound, "Category not found")
 		return
 	}
 
@@ -171,11 +171,11 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&category).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update category")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	apiresponse.Success(c, nil)
 }
 
 func DeleteCategory(c *gin.Context) {
@@ -183,23 +183,23 @@ func DeleteCategory(c *gin.Context) {
 		ID string `json:"id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var count int64
 	db.DB.Model(&models.Subject{}).Where("\"categoryId\" = ?", input.ID).Count(&count)
 	if count > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Category is linked to courses"})
+		apiresponse.Error(c, http.StatusBadRequest, "Category is linked to courses")
 		return
 	}
 
 	if err := db.DB.Delete(&models.Category{}, "id = ?", input.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to delete category")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	apiresponse.Success(c, nil)
 }
 
 func CreateTeacher(c *gin.Context) {
@@ -210,7 +210,7 @@ func CreateTeacher(c *gin.Context) {
 		Notes     *string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -223,7 +223,7 @@ func CreateTeacher(c *gin.Context) {
 	randomPassword := hex.EncodeToString(randomBytes)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(randomPassword), 12)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate password"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to generate password")
 		return
 	}
 
@@ -237,11 +237,11 @@ func CreateTeacher(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&teacher).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create teacher"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to create teacher")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"teacher": teacher}})
+	apiresponse.Created(c, gin.H{"teacher": teacher})
 }
 
 func UpdateTeacher(c *gin.Context) {
@@ -252,13 +252,13 @@ func UpdateTeacher(c *gin.Context) {
 		Notes     *string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var teacher models.User
 	if err := db.DB.Where("id = ? AND role = ?", input.ID, models.RoleTeacher).First(&teacher).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Teacher not found"})
+		apiresponse.Error(c, http.StatusNotFound, "Teacher not found")
 		return
 	}
 
@@ -271,11 +271,11 @@ func UpdateTeacher(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&teacher).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update teacher"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update teacher")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	apiresponse.Success(c, nil)
 }
 
 func DeleteTeacher(c *gin.Context) {
@@ -283,16 +283,16 @@ func DeleteTeacher(c *gin.Context) {
 		ID string `json:"id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiresponse.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := db.DB.Delete(&models.User{}, "id = ? AND role = ?", input.ID, models.RoleTeacher).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete teacher"})
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to delete teacher")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	apiresponse.Success(c, nil)
 }
 
 func buildSlug(name string, explicit *string) string {

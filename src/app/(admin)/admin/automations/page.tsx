@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,8 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { RuleCard } from "./components/rule-card";
 import { createNewRule, normalizeRule } from "./constants";
 import { Rule } from "./types";
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 
 export default function AutomationsPage() {
   const queryClient = useQueryClient();
@@ -18,9 +20,10 @@ export default function AutomationsPage() {
   const { data, isLoading } = useQuery<{ success: boolean; rules: Rule[] }>({
     queryKey: ["admin", "automations"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/automations");
+      const res = await adminFetch(apiRoutes.admin.automations);
       if (!res.ok) throw new Error("Failed to load");
-      return res.json();
+      const json = await res.json();
+      return { success: json.success, rules: json.data?.rules || json.data?.items || json.rules || [] };
     },
   });
 
@@ -32,8 +35,9 @@ export default function AutomationsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (rule: Rule) => {
-      const method = rule.isNew ? "POST" : "PUT";
-      const res = await fetch("/api/admin/automations", {
+      const method = rule.isNew ? "POST" : "PATCH";
+      const url = rule.isNew ? apiRoutes.admin.automations : `${apiRoutes.admin.automations}/${rule.id}`;
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(rule),
@@ -49,7 +53,7 @@ export default function AutomationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/automations?id=${id}`, {
+      const res = await adminFetch(`${apiRoutes.admin.automations}/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete rule");

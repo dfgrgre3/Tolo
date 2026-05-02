@@ -1,22 +1,25 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/MicahParks/keyfunc/v2"
+	"github.com/gin-gonic/gin"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"thanawy-backend/internal/services"
 )
 
 var (
 	cachedConfig *config.Config
-	configOnce  sync.Once
+	configOnce   sync.Once
+	jwksOnce     sync.Once
+	jwks         *keyfunc.JWKS
 )
 
 func getConfig() *config.Config {
@@ -26,117 +29,83 @@ func getConfig() *config.Config {
 	return cachedConfig
 }
 
+func getJWKS() (*keyfunc.JWKS, error) {
+	var err error
+	jwksOnce.Do(func() {
+		// Read from env, fallback to hardcoded if not set
+		jwksURL := os.Getenv("CLERK_JWKS_URL")
+		if jwksURL == "" {
+			jwksURL = "https://winning-tetra-97.clerk.accounts.dev/.well-known/jwks.json"
+		}
+		options := keyfunc.Options{
+			RefreshInterval:  time.Hour,
+			RefreshRateLimit: time.Minute * 5,
+			RefreshTimeout:   time.Second * 10,
+		}
+		jwks, err = keyfunc.Get(jwksURL, options)
+	})
+	return jwks, err
+}
+
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := ""
-		authHeader := c.GetHeader("Authorization")
-		
-		if authHeader != "" {
-			tokenString = strings.Replace(authHeader, "Bearer ", "", 1)
-		} else {
-			// Try to get from cookie
-			cookie, err := c.Cookie("access_token")
-			if err == nil {
-				tokenString = cookie
+		tokenString, err := c.Cookie("access_token")
+		if err != nil || strings.TrimSpace(tokenString) == "" {
+			authHeader := c.GetHeader("Authorization")
+			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				tokenString = strings.TrimSpace(authHeader[len("Bearer "):])
 			}
 		}
 
 		if tokenString == "" {
-			tokenString = c.Query("token")
-		}
-
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			return
 		}
 
-		cfg := getConfig()
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Validate the signing method to prevent algorithm confusion attacks
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(cfg.JWTSecret), nil
-		})
-
-		if err != nil {
-			if strings.Contains(err.Error(), "token is expired") {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
-			} else {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token", "details": err.Error()})
-			}
-			c.Abort()
+		tokenService := &services.TokenService{}
+		claims, err := tokenService.ValidateToken(tokenString)
+		if err != nil || claims.Subject == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 
-		if !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token invalid"})
-			c.Abort()
-			return
-		}
+		c.Set("userId", claims.Subject)
+		c.Set("role", claims.Role)
+		c.Set("jti", claims.JTI)
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
-			return
-		}
-
-	// Advanced Session Validation (JTI Check)
-	jti, hasJTI := claims["jti"].(string)
-	if !hasJTI {
-		jti, _ = claims["id"].(string) // Fallback for old tokens or refresh tokens
-	}
-
-	if jti != "" {
-		// Use Redis for session validation (Stateless JWT with Redis session store)
-		sessionStore := db.NewRedisSessionStore()
-		if sessionStore != nil {
-			// Check if session exists in Redis
-			active, err := sessionStore.IsSessionActive(jti)
-			if err != nil || !active {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
-				c.Abort()
-				return
-			}
-			
-			// Update last active time in background (non-blocking)
-			go func() {
-				if err := sessionStore.UpdateLastAccessed(jti); err != nil {
-					// Log error but don't fail the request
-					fmt.Printf("Failed to update session last accessed: %v\n", err)
+		// Impersonation support: If user is admin, check for impersonation cookie
+		if claims.Role == "ADMIN" {
+			if impersonatedID, err := c.Cookie("impersonate_user_id"); err == nil && impersonatedID != "" {
+				// Verify the impersonated user exists
+				var targetUser models.User
+				if err := db.DB.First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
+					c.Set("originalAdminId", claims.Subject)
+					c.Set("userId", impersonatedID)
+					c.Set("role", string(targetUser.Role))
+					c.Set("isImpersonating", true)
+					
+					// Update claims for granular permissions
+					claims.Subject = impersonatedID
+					claims.Role = string(targetUser.Role)
 				}
-			}()
-		} else {
-			// Fallback to database if Redis is not available (graceful degradation)
-			var session models.UserSession
-			if err := db.DB.Where("id = ? AND \"isActive\" = ?", jti, true).First(&session).Error; err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session revoked or invalid"})
-				c.Abort()
-				return
 			}
-			// Update last active in background
-			go func(id string) {
-				db.DB.Model(&models.UserSession{}).Where("id = ?", id).Update("lastAccessed", time.Now())
-			}(jti)
 		}
-	}
 
-		c.Set("userId", claims["sub"])
-		c.Set("role", claims["role"])
-		c.Set("jti", jti)
+		// Fetch permissions for granular control
+		var permissions []string
+		if err := db.DB.Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &permissions).Error; err == nil {
+			c.Set("permissions", permissions)
+		}
+
 		c.Next()
 	}
 }
 
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, exists := c.Get("role")
-		if !exists || role != "ADMIN" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
-			c.Abort()
+		role, _ := c.Get("role")
+		if role != "ADMIN" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
 			return
 		}
 		c.Next()
@@ -145,27 +114,45 @@ func AdminRequired() gin.HandlerFunc {
 
 func RoleRequired(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, exists := c.Get("role")
-		if !exists {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-			c.Abort()
-			return
-		}
-
-		authorized := false
+		currentRole, _ := c.Get("role")
 		for _, role := range roles {
-			if userRole == role {
-				authorized = true
-				break
+			if currentRole == role {
+				c.Next()
+				return
 			}
 		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+	}
+}
 
-		if !authorized {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-			c.Abort()
+func PermissionRequired(permission string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, _ := c.Get("role")
+		if role == "ADMIN" {
+			c.Next()
 			return
 		}
-		c.Next()
+
+		perms, exists := c.Get("permissions")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "No permissions assigned"})
+			return
+		}
+
+		userPermissions := perms.([]string)
+		
+		// Create a temporary user object to use the HasPermission logic
+		user := &models.User{
+			Role:        models.UserRole(role.(string)),
+			Permissions: models.JSONStringArray(userPermissions),
+		}
+
+		if user.HasPermission(permission) {
+			c.Next()
+			return
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Missing required permission: " + permission})
 	}
 }
 
@@ -202,7 +189,7 @@ func CORS() gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Dev-Admin-Bypass, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
 

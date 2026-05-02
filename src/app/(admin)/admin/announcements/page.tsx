@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Megaphone, Calendar, 
   AlertTriangle, CheckCircle, Info, ShieldAlert, Zap, Send, Search,
-  Hammer, Sparkles
+  Edit, Sparkles, Trash2
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
@@ -59,8 +59,8 @@ interface AnnouncementsResponse {
 }
 
 const announcementSchema = z.object({
-  title: z.string().min(1, "عنوان البلاغ مطلوب"),
-  content: z.string().min(1, "محتوى المنشور مطلوب"),
+  title: z.string().min(1, "عنوان الإعلان مطلوب"),
+  content: z.string().min(1, "محتوى الإعلان مطلوب"),
   type: z.string(),
   priority: z.number(),
   isActive: z.boolean(),
@@ -92,7 +92,8 @@ export default function AdminAnnouncementsPage() {
       }
 
       const response = await fetch(`${apiRoutes.admin.announcements}?${params.toString()}`);
-      return (await response.json()) as AnnouncementsResponse;
+      const json = await response.json();
+      return (json.data || json) as AnnouncementsResponse;
     },
   });
 
@@ -148,11 +149,11 @@ export default function AdminAnnouncementsPage() {
       });
 
       if (response.ok) {
-        toast.success(editingAnnouncement ? "تم تعديل البلاغ الملكي" : "تم نشر البلاغ في أرجاء المملكة");
+        toast.success(editingAnnouncement ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان للمستخدمين بنجاح");
         setDialogOpen(false);
         refetch();
       } else {
-        toast.error("فشل في حفظ البلاغ");
+        toast.error("فشل في حفظ الإعلان");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -169,10 +170,10 @@ export default function AdminAnnouncementsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم سحب البلاغ وحرقه");
+        toast.success("تم حذف الإعلان بنجاح");
         refetch();
       } else {
-        toast.error("فشل في السحب");
+        toast.error("فشل في حذف الإعلان");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -182,16 +183,16 @@ export default function AdminAnnouncementsPage() {
   };
 
   const typeConfig: Record<string, { label: string, color: "blue" | "green" | "yellow" | "red" | "purple" | "default", icon: React.ComponentType<{ className?: string }> }> = {
-    INFO: { label: "بلاغ عام", color: "blue", icon: Info },
-    SUCCESS: { label: "بشرى سارة", color: "green", icon: CheckCircle },
+    INFO: { label: "إعلان عام", color: "blue", icon: Info },
+    SUCCESS: { label: "خبر سار", color: "green", icon: CheckCircle },
     WARNING: { label: "تنبيه هام", color: "yellow", icon: AlertTriangle },
-    ERROR: { label: "تحذير قصوى", color: "red", icon: ShieldAlert },
+    ERROR: { label: "تحذير عاجل", color: "red", icon: ShieldAlert },
   };
 
   const columns: ColumnDef<Announcement>[] = [
     {
       accessorKey: "title",
-      header: "البلاغ المنشور",
+      header: "الإعلان",
       cell: ({ row }) => {
         const announcement = row.original;
         const config = typeConfig[announcement.type] || typeConfig.INFO;
@@ -215,7 +216,7 @@ export default function AdminAnnouncementsPage() {
     },
     {
       accessorKey: "type",
-      header: "الرتبة والدلالة",
+      header: "نوع الإعلان",
       cell: ({ row }) => {
         const type = row.original.type;
         const config = typeConfig[type] || typeConfig.INFO;
@@ -232,14 +233,14 @@ export default function AdminAnnouncementsPage() {
     },
     {
       accessorKey: "isActive",
-      header: "الحالة الآن",
+      header: "الحالة",
       cell: ({ row }) => {
         const active = row.original.isActive;
         return (
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
-              {active ? "منشور بوضوح" : "مخفي في السجلات"}
+              {active ? "نشط" : "مخفي"}
             </span>
           </div>
         );
@@ -247,7 +248,7 @@ export default function AdminAnnouncementsPage() {
     },
     {
       accessorKey: "createdAt",
-      header: "توقيت الإطلاق",
+      header: "تاريخ النشر",
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="text-xs font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
@@ -257,14 +258,14 @@ export default function AdminAnnouncementsPage() {
     },
     {
       id: "actions",
-      header: "التحكم الإمبراطوري",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
           onEdit={handleOpenDialog}
           onDelete={(a) => setDeleteDialog({ open: true, id: a.id })}
           extraActions={[
-            { icon: Send, label: "إعادة إرسال كـ Notification", onClick: (a) => toast.info(`قريباً: دفع البلاغ ${a.title} للأجهزة`) },
+            { icon: Send, label: "إعادة إرسال كإشعار", onClick: (a) => toast.info(`قريباً: دفع الإعلان ${a.title} كإشعار لحظي`) },
           ]}
         />
       ),
@@ -274,49 +275,49 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="منصة البلاغات الملكية (Herald) 📢"
-        description="إدارة التواصل العام مع المحاربين، نشر الأخبار، التحذيرات، والاحتفالات الكبرى بالمملكة."
+        title="إدارة الإعلانات والتنبيهات 📢"
+        description="إدارة التواصل العام مع المستخدمين، نشر الأخبار، التحذيرات، والفعاليات القادمة."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          صياغة بلاغ جديد
+          إضافة إعلان جديد
         </AdminButton>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <AdminStatsCard 
-          title="إجمالي المنشورات" 
+          title="إجمالي الإعلانات" 
           value={pagination?.total || 0} 
           icon={Megaphone} 
           color="blue"
-          description="رسالة في سجلات المملكة"
+          description="إعلان في سجلات النظام"
         />
         <AdminStatsCard 
-          title="بلاغات نشطة" 
+          title="إعلانات نشطة" 
           value={announcements.filter(a => a.isActive).length} 
           icon={Zap} 
           color="green"
-          description="تظهر حالياً للأبطال"
+          description="تظهر حالياً للمستخدمين"
         />
         <AdminStatsCard 
-          title="بلاغات الأسبوع" 
+          title="إعلانات الأسبوع" 
           value={announcements.filter(a => new Date(a.createdAt) > new Date(Date.now() - 7 * 86400000)).length} 
           icon={Calendar} 
           color="purple"
-          description="آخر 7 أيام من الزمان"
+          description="آخر 7 أيام"
         />
         <AdminStatsCard 
           title="تنبيهات عاجلة" 
           value={announcements.filter(a => a.type === "WARNING" || a.type === "ERROR").length} 
           icon={AlertTriangle} 
           color="red"
-          description="حالات تستوجب الحذر"
+          description="حالات تستوجب المتابعة"
         />
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         <AdminDataTable
           columns={columns}
@@ -337,7 +338,7 @@ export default function AdminAnnouncementsPage() {
                 type="text"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="ابحث في سجلات البلاغات..."
+                placeholder="ابحث في سجلات الإعلانات..."
                 className="h-12 w-80 rounded-2xl border border-white/10 bg-white/5 pr-12 pl-6 text-sm font-bold outline-none ring-primary transition focus:ring-1 focus:bg-white/10"
               />
             </div>
@@ -353,18 +354,18 @@ export default function AdminAnnouncementsPage() {
               <DialogTitle className="text-2xl font-black flex items-center gap-3">
                 {editingAnnouncement ? (
                   <>
-                    <Hammer className="w-7 h-7 text-indigo-500" />
-                    تنقيح نص البلاغ
+                    <Edit className="w-7 h-7 text-indigo-500" />
+                    تعديل نص الإعلان
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-7 h-7 text-blue-500" />
-                    صياغة مرسوم ملكي
+                    إضافة إعلان جديد
                   </>
                 )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                اختر نبرة الصوت المناسبة (النوع) واكتب النص بعناية لتصل الرسالة للجنود بوضوح.
+                قم باختيار نوع الإعلان وكتابة المحتوى بعناية ليظهر للمستخدمين.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -374,7 +375,7 @@ export default function AdminAnnouncementsPage() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مانشيت البلاغ (العنوان)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان الإعلان</FormLabel>
                       <FormControl><Input {...field} placeholder="تنبيه هام بخصوص..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -386,8 +387,8 @@ export default function AdminAnnouncementsPage() {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تفاصيل المرسوم (المحتوى)</FormLabel>
-                      <FormControl><Textarea {...field} placeholder="أبناء الإمبراطورية الأعزاء..." className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 font-medium" /></FormControl>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">محتوى الإعلان</FormLabel>
+                      <FormControl><Textarea {...field} placeholder="أعزائي الطلاب والمستخدمين..." className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 font-medium" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -399,7 +400,7 @@ export default function AdminAnnouncementsPage() {
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نبرة البلاغ</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نوع الإعلان</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-12">
@@ -407,10 +408,10 @@ export default function AdminAnnouncementsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="rounded-xl border-white/10">
-                            <SelectItem value="INFO" className="cursor-pointer py-3 font-bold">بلاغ عام (معلومة)</SelectItem>
-                            <SelectItem value="SUCCESS" className="cursor-pointer py-3 font-bold text-emerald-500">بشرى (نجاح)</SelectItem>
+                            <SelectItem value="INFO" className="cursor-pointer py-3 font-bold">إعلان عام (معلومة)</SelectItem>
+                            <SelectItem value="SUCCESS" className="cursor-pointer py-3 font-bold text-emerald-500">خبر سار (نجاح)</SelectItem>
                             <SelectItem value="WARNING" className="cursor-pointer py-3 font-bold text-amber-500">تنبيه (هام)</SelectItem>
-                            <SelectItem value="ERROR" className="cursor-pointer py-3 font-bold text-red-500">تحذير (قصوى)</SelectItem>
+                            <SelectItem value="ERROR" className="cursor-pointer py-3 font-bold text-red-500">تحذير (عاجل)</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -422,7 +423,7 @@ export default function AdminAnnouncementsPage() {
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الظهور</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الأولوية</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -444,7 +445,7 @@ export default function AdminAnnouncementsPage() {
                     <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                       <div>
                         <FormLabel className="font-black text-xs">نشر فوري؟</FormLabel>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">تفعيل الظهور في لوحة الأبطال</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">تفعيل الظهور في لوحة المستخدمين</p>
                       </div>
                       <FormControl>
                         <Switch
@@ -457,8 +458,8 @@ export default function AdminAnnouncementsPage() {
                 />
 
                 <DialogFooter className="pt-4">
-                  <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl" icon={editingAnnouncement ? Hammer : Send}>
-                    {editingAnnouncement ? "تحديث البلاغ" : "إخطار المملكة الآن"}
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl" icon={editingAnnouncement ? Edit : Send}>
+                    {editingAnnouncement ? "تحديث الإعلان" : "نشر الإعلان الآن"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -467,12 +468,12 @@ export default function AdminAnnouncementsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حرق البلاغ نهائياً؟"
-        description="أنت على وشك حذف هذا البلاغ الملكي من جميع السجلات العامة والخاصة. هذا القرار لا يمكن الرجوع عنه."
-        confirmText="نعم، احرقه"
+        title="حذف الإعلان نهائياً؟"
+        description="هل أنت متأكد من حذف هذا الإعلان من جميع السجلات؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete}
       />

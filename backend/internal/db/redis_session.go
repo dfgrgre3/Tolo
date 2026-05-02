@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"thanawy-backend/internal/models"
 	"time"
 
@@ -34,7 +35,7 @@ func NewRedisSessionStore() *RedisSessionStore {
 	}
 }
 
-// StoreSession stores a session in Redis
+// StoreSession stores a session in Redis with DB fallback
 func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 	if s == nil || s.client == nil {
 		return fmt.Errorf("redis session store not initialized")
@@ -47,6 +48,14 @@ func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 		return fmt.Errorf("failed to marshal session: %w", err)
 	}
 
+	// Persist to DB first as the source of truth
+	if DB != nil {
+		if err := DB.Save(session).Error; err != nil {
+			log.Printf("Failed to persist session to DB: %v", err)
+			// Continue to Redis anyway
+		}
+	}
+
 	// Calculate TTL based on session expiry
 	ttl := time.Until(session.ExpiresAt)
 	if ttl <= 0 {
@@ -56,7 +65,7 @@ func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 	return s.client.Set(s.ctx, key, data, ttl).Err()
 }
 
-// GetSession retrieves a session from Redis
+// GetSession retrieves a session from Redis with DB fallback
 func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) {
 	if s == nil || s.client == nil {
 		return nil, fmt.Errorf("redis session store not initialized")
@@ -64,26 +73,45 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 
 	key := SessionKeyPrefix + jti
 
+	// 1. Try Redis first (fast path)
 	data, err := s.client.Get(s.ctx, key).Bytes()
-	if err != nil {
-		if err == redis.Nil {
-			return nil, fmt.Errorf("session not found")
+	if err == nil {
+		var session models.UserSession
+		if err := json.Unmarshal(data, &session); err == nil {
+			return &session, nil
 		}
-		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	var session models.UserSession
-	if err := json.Unmarshal(data, &session); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal session: %w", err)
+	// 2. Fallback to DB if not found in Redis or unmarshal failed
+	if DB != nil {
+		var session models.UserSession
+		if err := DB.First(&session, "id = ?", jti).Error; err == nil {
+			// Check if expired
+			if time.Now().After(session.ExpiresAt) {
+				return nil, fmt.Errorf("session expired")
+			}
+
+			// Restore to Redis for future requests
+			ttl := time.Until(session.ExpiresAt)
+			data, _ := json.Marshal(session)
+			s.client.Set(s.ctx, key, data, ttl)
+
+			return &session, nil
+		}
 	}
 
-	return &session, nil
+	return nil, fmt.Errorf("session not found")
 }
 
-// RevokeSession revokes a session in Redis
+// RevokeSession revokes a session in Redis and DB
 func (s *RedisSessionStore) RevokeSession(jti string) error {
 	if s == nil || s.client == nil {
 		return fmt.Errorf("redis session store not initialized")
+	}
+
+	// Delete from DB
+	if DB != nil {
+		DB.Delete(&models.UserSession{}, "id = ?", jti)
 	}
 
 	key := SessionKeyPrefix + jti
@@ -96,16 +124,20 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 		return fmt.Errorf("redis session store not initialized")
 	}
 
-	// Use SCAN instead of KEYS to avoid blocking Redis at scale
+	// Delete from DB
+	if DB != nil {
+		DB.Delete(&models.UserSession{}, "\"userId\" = ?", userID)
+	}
+
+	// Clear from Redis (using scan for safety)
 	pattern := SessionKeyPrefix + "*"
 	var cursor uint64
 	for {
 		keys, nextCursor, err := s.client.Scan(s.ctx, cursor, pattern, 100).Result()
 		if err != nil {
-			return fmt.Errorf("failed to scan session keys: %w", err)
+			break
 		}
 
-		// Filter keys by userID (we need to check the session data)
 		for _, key := range keys {
 			data, err := s.client.Get(s.ctx, key).Bytes()
 			if err != nil {
@@ -113,11 +145,7 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 			}
 
 			var session models.UserSession
-			if err := json.Unmarshal(data, &session); err != nil {
-				continue
-			}
-
-			if session.UserID == userID {
+			if err := json.Unmarshal(data, &session); err == nil && session.UserID == userID {
 				s.client.Del(s.ctx, key)
 			}
 		}
@@ -133,50 +161,33 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 
 // UpdateLastAccessed updates the last accessed time for a session
 func (s *RedisSessionStore) UpdateLastAccessed(jti string) error {
-	if s == nil || s.client == nil {
-		return fmt.Errorf("redis session store not initialized")
-	}
-
-	key := SessionKeyPrefix + jti
-
-	data, err := s.client.Get(s.ctx, key).Bytes()
+	session, err := s.GetSession(jti)
 	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
-
-	var session models.UserSession
-	if err := json.Unmarshal(data, &session); err != nil {
-		return fmt.Errorf("failed to unmarshal session: %w", err)
+		return err
 	}
 
 	session.LastAccessed = time.Now()
 
-	newData, err := json.Marshal(session)
-	if err != nil {
-		return fmt.Errorf("failed to marshal session: %w", err)
+	// Update in DB
+	if DB != nil {
+		DB.Model(&models.UserSession{}).Where("id = ?", jti).Update("lastAccessed", session.LastAccessed)
 	}
 
-	// Reset TTL
+	// Update in Redis
+	data, _ := json.Marshal(session)
 	ttl := time.Until(session.ExpiresAt)
 	if ttl <= 0 {
 		ttl = SessionTTL
 	}
-
-	return s.client.Set(s.ctx, key, newData, ttl).Err()
+	return s.client.Set(s.ctx, SessionKeyPrefix+jti, data, ttl).Err()
 }
 
 // IsSessionActive checks if a session is active (exists and not expired)
 func (s *RedisSessionStore) IsSessionActive(jti string) (bool, error) {
-	if s == nil || s.client == nil {
-		return false, fmt.Errorf("redis session store not initialized")
-	}
-
-	key := SessionKeyPrefix + jti
-
-	exists, err := s.client.Exists(s.ctx, key).Result()
+	session, err := s.GetSession(jti)
 	if err != nil {
-		return false, fmt.Errorf("failed to check session: %w", err)
+		return false, nil // Treat not found as inactive
 	}
 
-	return exists > 0, nil
+	return time.Now().Before(session.ExpiresAt), nil
 }

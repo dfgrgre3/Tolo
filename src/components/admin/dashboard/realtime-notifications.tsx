@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -180,8 +180,10 @@ const NotificationItem = React.memo(function NotificationItem({
   );
 });
 
+const EMPTY_ARRAY: any[] = [];
+
 export function RealtimeNotifications({
-  notifications,
+  notifications = EMPTY_ARRAY,
   className,
   onMarkAsRead,
   onMarkAllAsRead,

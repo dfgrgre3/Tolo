@@ -59,7 +59,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    ensureUser(controller.signal).then(setUserId);
+    ensureUser().then(setUserId);
     const fetchEvents = async () => {
       setLoading(true);
       const { data } = await safeFetch<Event[]>("/api/events", { signal: controller.signal });

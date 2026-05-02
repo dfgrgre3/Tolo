@@ -36,7 +36,7 @@ export default function PermissionsPage() {
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["admin", "staff-users"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/users?role=ADMIN&limit=100"); // Getting Admins for now, will filter/add others
+      const res = await fetch("/api/admin/users?role=ADMIN&limit=100");
       const admins = await res.json();
 
       const res2 = await fetch("/api/admin/users?role=TEACHER&limit=100");
@@ -64,7 +64,7 @@ export default function PermissionsPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast.success("تم تحديث صلاحيات المحارب بنجاح!");
+      toast.success("تم تحديث صلاحيات المستخدم بنجاح!");
       queryClient.invalidateQueries({ queryKey: ["admin", "staff-users"] });
       setIsDialogOpen(false);
     },
@@ -86,7 +86,7 @@ export default function PermissionsPage() {
   const columns: ColumnDef<User>[] = [
   {
     accessorKey: "name",
-    header: "المحارب",
+    header: "المستخدم",
     cell: ({ row }) =>
     <div className="flex flex-col">
           <span className="font-black text-sm">{row.original.name}</span>
@@ -96,7 +96,7 @@ export default function PermissionsPage() {
   },
   {
     accessorKey: "role",
-    header: "الرتبة العسكرية",
+    header: "الدور الوظيفي",
     cell: ({ row }) => {
       const role = row.original.role;
       const colors: Record<string, string> = {
@@ -105,9 +105,9 @@ export default function PermissionsPage() {
         MODERATOR: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
       };
       const labels: Record<string, string> = {
-        ADMIN: "قائد أعلى",
-        TEACHER: "قائد كتيبة",
-        MODERATOR: "مراقب ملكي"
+        ADMIN: "مدير النظام",
+        TEACHER: "معلم",
+        MODERATOR: "مشرف"
       };
       return (
         <Badge className={`rounded-full px-3 py-0.5 text-[10px] font-black uppercase ${colors[role] || ""}`}>
@@ -118,21 +118,21 @@ export default function PermissionsPage() {
   },
   {
     accessorKey: "permissions",
-    header: "الصلاحيات النشطة",
+    header: "الصلاحيات المخصصة",
     cell: ({ row }) =>
     <div className="flex flex-wrap gap-1">
           <Badge variant="outline" className="text-[10px] border-white/5 opacity-60">
             {row.original.permissions?.length || 0} استثناءات
           </Badge>
           {row.original.role === "ADMIN" &&
-      <Badge className="bg-amber-500/10 text-amber-500 text-[10px] font-bold border-none">كل الصلاحيات (Admin Override)</Badge>
+      <Badge className="bg-amber-500/10 text-amber-500 text-[10px] font-bold border-none">كامل الصلاحيات (Admin Override)</Badge>
       }
         </div>
 
   },
   {
     id: "actions",
-    header: "إدارة",
+    header: "الإجراءات",
     cell: ({ row }) =>
     <AdminButton
       size="sm"
@@ -162,11 +162,11 @@ export default function PermissionsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مصفوفة الصلاحيات (Kingdom Guard) ⚔️"
-        description="إدارة رتب الأبطال والقادة، منح وتجريد الصلاحيات من القادة والمراقبين.">
+        title="مصفوفة الصلاحيات"
+        description="إدارة أدوار وصلاحيات فريق العمل، منح وتعديل صلاحيات المشرفين والمعلمين.">
         
         <AdminButton icon={ShieldAlert} variant="outline" className="opacity-70 group hover:opacity-100">
-           إعادة تعيين كافة الرتب
+           إعادة تعيين كافة الصلاحيات
         </AdminButton>
       </PageHeader>
 
@@ -175,7 +175,7 @@ export default function PermissionsPage() {
         data={usersData || []}
         loading={isLoading}
         searchKey="name"
-        searchPlaceholder="ابحث عن قائد أو مراقب..." />
+        searchPlaceholder="ابحث عن عضو فريق..." />
       
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -187,7 +187,7 @@ export default function PermissionsPage() {
                </div>
                <div>
                   <DialogTitle className="text-2xl font-black">إدارة صلاحيات: {selectedUser?.name}</DialogTitle>
-                  <DialogDescription className="font-bold">يمكنك تخصيص الصلاحيات لهذا المحارب بشكل فردي فوق صلاحياته الافتراضية.</DialogDescription>
+                  <DialogDescription className="font-bold">يمكنك تخصيص الصلاحيات لهذا المستخدم بشكل فردي فوق صلاحياته الافتراضية.</DialogDescription>
                </div>
             </div>
           </DialogHeader>
@@ -216,7 +216,7 @@ export default function PermissionsPage() {
                             checked={isActive}
                             disabled={isDefault}
                             onCheckedChange={() => togglePermission(p)}
-                            title={isDefault ? "هذه الصلاحية تأتي تلقائياً مع الرتبة" : ""} />
+                            title={isDefault ? "هذه الصلاحية تأتي تلقائياً مع الدور" : ""} />
                           
                                </div>);
 
@@ -235,7 +235,7 @@ export default function PermissionsPage() {
                 onClick={() => selectedUser && updatePermissionsMutation.mutate({ userId: selectedUser.id, permissions: editingPermissions })}
                 loading={updatePermissionsMutation.isPending}>
                 
-                  حفظ الصلاحيات الملكية 🏛️
+                  حفظ تغييرات الصلاحيات
                 </AdminButton>
                 <AdminButton
                 variant="outline"

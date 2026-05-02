@@ -1,7 +1,11 @@
 package models
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -15,39 +19,49 @@ const (
 )
 
 type Subject struct {
-	ID                     string    `gorm:"primaryKey;type:text" json:"id"`
-	Name                   string    `gorm:"uniqueIndex;not null;index" json:"name"`
-	NameAr                 *string   `gorm:"index" json:"nameAr"`
-	Code                   *string   `gorm:"uniqueIndex;index" json:"code"`
-	Description            *string   `json:"description"`
-	Icon                   *string   `json:"icon"`
-	Color                  *string   `gorm:"default:'#3b82f6'" json:"color"`
-	IsActive               bool      `gorm:"default:true;index" json:"isActive"`
-	IsPublished            bool      `gorm:"default:false;index" json:"isPublished"`
-	Price                  float64   `gorm:"default:0;index" json:"price"`
-	Rating                 float64   `gorm:"default:0" json:"rating"`
-	EnrolledCount          int       `gorm:"default:0" json:"enrolledCount"`
-	ThumbnailUrl           *string   `json:"thumbnailUrl"`
-	TrailerUrl             *string   `json:"trailerUrl"`
-	TrailerDurationMinutes int       `gorm:"default:0" json:"trailerDurationMinutes"`
-	Slug                   *string   `gorm:"uniqueIndex" json:"slug"`
-	Level                  Level     `gorm:"default:'INTERMEDIATE';index" json:"level"`
-	InstructorName         *string   `json:"instructorName"`
-	InstructorId           *string   `gorm:"index" json:"instructorId"`
-	CategoryId             *string   `gorm:"index" json:"categoryId"`
-	DurationHours          int       `gorm:"default:0" json:"durationHours"`
-	Requirements           *string   `json:"requirements"`
-	LearningObjectives     *string   `json:"learningObjectives"`
-	SeoTitle               *string   `json:"seoTitle"`
-	SeoDescription         *string   `json:"seoDescription"`
-	IsFeatured             bool      `gorm:"default:false;index" json:"isFeatured"`
-	Language               string    `gorm:"default:'ar';index" json:"language"`
-	CreatedAt              time.Time `gorm:"index" json:"createdAt"`
-	UpdatedAt              time.Time `json:"updatedAt"`
-	
+	ID                     string  `gorm:"primaryKey;type:text" json:"id"`
+	Name                   string  `gorm:"uniqueIndex;not null;index" json:"name"`
+	NameAr                 *string `gorm:"index" json:"nameAr"`
+	Code                   *string `gorm:"uniqueIndex;index" json:"code"`
+	Description            *string `json:"description"`
+	Icon                   *string `json:"icon"`
+	Color                  *string `gorm:"default:'#3b82f6'" json:"color"`
+	IsActive               bool    `gorm:"default:true;index" json:"isActive"`
+	IsPublished            bool    `gorm:"default:false;index" json:"isPublished"`
+	Price                  float64 `gorm:"default:0;index" json:"price"`
+	Rating                 float64 `gorm:"default:0" json:"rating"`
+	EnrolledCount          int     `gorm:"default:0" json:"enrolledCount"`
+	ThumbnailUrl           *string `json:"thumbnailUrl"`
+	TrailerUrl             *string `json:"trailerUrl"`
+	TrailerDurationMinutes int     `gorm:"default:0" json:"trailerDurationMinutes"`
+	Slug                   *string `gorm:"uniqueIndex" json:"slug"`
+	Level                  Level   `gorm:"default:'INTERMEDIATE';index" json:"level"`
+	InstructorName         *string `json:"instructorName"`
+	InstructorId           *string `gorm:"index" json:"instructorId"`
+	CategoryId             *string `gorm:"index" json:"categoryId"`
+	DurationHours          int     `gorm:"default:0" json:"durationHours"`
+	Requirements           *string `json:"requirements"`
+	LearningObjectives     *string `json:"learningObjectives"`
+	SeoTitle               *string `json:"seoTitle"`
+	SeoDescription         *string `json:"seoDescription"`
+	IsFeatured             bool    `gorm:"default:false;index" json:"isFeatured"`
+	Language               string  `gorm:"default:'ar';index" json:"language"`
+
+	// New fields to match DB and frontend
+	CoursePrerequisites StringArray `gorm:"type:text[]" json:"coursePrerequisites"`
+	TargetAudience      StringArray `gorm:"type:text[]" json:"targetAudience"`
+	WhatYouLearn        StringArray `gorm:"type:text[]" json:"whatYouLearn"`
+	CompletionRate      float64     `gorm:"default:0" json:"completionRate"`
+	VideoCount          int         `gorm:"default:0" json:"videoCount"`
+	Type                string      `gorm:"default:'COURSE'" json:"type"`
+	LastContentUpdate   *time.Time  `json:"lastContentUpdate"`
+
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+
 	// Relations
-	Topics         []Topic   `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"topics,omitempty"`
-	Enrollments   []Enrollment `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"-"`
+	Topics      []Topic      `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"topics,omitempty"`
+	Enrollments []Enrollment `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 type Topic struct {
@@ -58,9 +72,9 @@ type Topic struct {
 	Order       int       `gorm:"default:0;index" json:"order"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
-	
+
 	// Relations
-	SubTopics   []SubTopic `gorm:"foreignKey:TopicID;constraint:OnDelete:CASCADE" json:"subTopics,omitempty"`
+	SubTopics []SubTopic `gorm:"foreignKey:TopicID;constraint:OnDelete:CASCADE" json:"subTopics,omitempty"`
 }
 
 type SubTopicType string
@@ -89,7 +103,7 @@ type SubTopic struct {
 
 	// Relations
 	Attachments []LessonAttachment `gorm:"foreignKey:SubTopicID;constraint:OnDelete:CASCADE" json:"attachments,omitempty"`
-	Exam        *Exam             `gorm:"foreignKey:ExamID" json:"exam,omitempty"`
+	Exam        *Exam              `gorm:"foreignKey:ExamID" json:"exam,omitempty"`
 }
 
 type LessonAttachment struct {
@@ -171,3 +185,58 @@ func (cr *CourseReview) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+type StringArray []string
+
+func (a *StringArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			*a = []string{}
+			return nil
+		}
+		// Handle Postgres array format: {val1,val2}
+		if strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}") {
+			v = strings.Trim(v, "{}")
+			if v == "" {
+				*a = []string{}
+				return nil
+			}
+			// This is a simple split, doesn't handle quoted strings with commas
+			// but should be enough for most cases
+			*a = strings.Split(v, ",")
+			return nil
+		}
+		// Handle JSON array format: ["val1","val2"]
+		if strings.HasPrefix(v, "[") && strings.HasSuffix(v, "]") {
+			return json.Unmarshal([]byte(v), a)
+		}
+		// Fallback: single string
+		*a = []string{v}
+		return nil
+	case []byte:
+		return a.Scan(string(v))
+	case []interface{}:
+		res := make([]string, len(v))
+		for i, val := range v {
+			res[i] = fmt.Sprint(val)
+		}
+		*a = res
+		return nil
+	default:
+		// If it's already a slice or something GORM can handle
+		rv := fmt.Sprint(v)
+		return a.Scan(rv)
+	}
+}
+
+func (a StringArray) Value() (interface{}, error) {
+	if a == nil {
+		return nil, nil
+	}
+	return json.Marshal(a)
+}

@@ -8,16 +8,19 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
+	"github.com/gin-gonic/gin/binding"
 )
 
 const (
 	// Default rate limit: 5 attempts per minute per IP
 	DefaultRateLimit = 5
-	DefaultWindow   = 1 * time.Minute
+	DefaultWindow    = 1 * time.Minute
 	// Strict rate limit for auth endpoints: 3 attempts per minute per IP
 	AuthRateLimit = 3
-	AuthWindow   = 1 * time.Minute
+	AuthWindow    = 1 * time.Minute
+	// Admin rate limit: 10 requests per minute per IP
+	AdminRateLimit = 10
+	AdminWindow    = 1 * time.Minute
 )
 
 // RateLimiter middleware for rate limiting using Redis
@@ -40,23 +43,36 @@ func RateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
 		key := "rate_limit:" + identifier + ":" + c.FullPath()
 
 		ctx := context.Background()
-		
-		// Use sliding window rate limiting with Redis
-		now := time.Now().UnixNano()
-		windowStart := now - int64(window)
+		now := time.Now().UnixNano() / int64(time.Millisecond) // Use milliseconds for precision
+		windowMs := int64(window.Milliseconds())
+		windowStart := now - windowMs
 
-		// Remove old entries
-		db.Redis.ZRemRangeByScore(ctx, key, "0", string(rune(windowStart)))
+		// LUA script for atomic sliding window rate limiting
+		// KEYS[1] = key
+		// ARGV[1] = windowStart
+		// ARGV[2] = now
+		// ARGV[3] = maxRequests
+		// ARGV[4] = windowSeconds
+		script := `
+			redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+			local count = redis.call('ZCARD', KEYS[1])
+			if count < tonumber(ARGV[3]) then
+				redis.call('ZADD', KEYS[1], ARGV[2], ARGV[2])
+				redis.call('EXPIRE', KEYS[1], ARGV[4])
+				return 1
+			else
+				return 0
+			end
+		`
 
-		// Count requests in current window
-		count, err := db.Redis.ZCard(ctx, key).Result()
+		result, err := db.Redis.Eval(ctx, script, []string{key}, windowStart, now, maxRequests, int(window.Seconds())).Int()
 		if err != nil {
-			// If Redis fails, allow the request (fail open)
+			// If Redis fails, allow the request (fail open) but log it
 			c.Next()
 			return
 		}
 
-		if count >= int64(maxRequests) {
+		if result == 0 {
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "Rate limit exceeded. Please try again later.",
 				"retry_after": window.Seconds(),
@@ -65,15 +81,6 @@ func RateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
 			return
 		}
 
-		// Add current request
-		db.Redis.ZAdd(ctx, key, redis.Z{
-			Score:  float64(now),
-			Member: now,
-		})
-
-		// Set expiry on the key
-		db.Redis.Expire(ctx, key, window)
-
 		c.Next()
 	}
 }
@@ -81,6 +88,11 @@ func RateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
 // AuthRateLimiter is a stricter rate limiter for authentication endpoints
 func AuthRateLimiter() gin.HandlerFunc {
 	return RateLimiter(AuthRateLimit, AuthWindow)
+}
+
+// AdminRateLimiter protects admin routes from brute force
+func AdminRateLimiter() gin.HandlerFunc {
+	return RateLimiter(AdminRateLimit, AdminWindow)
 }
 
 // LoginRateLimiter specifically for login endpoint to prevent CPU exhaustion attacks
@@ -94,14 +106,14 @@ func LoginRateLimiter() gin.HandlerFunc {
 
 		// Get identifier - use IP and email combination for login attempts
 		ip := getClientIP(c)
-		email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
-		
-		// If no email in form, try JSON body
-		if email == "" {
+
+		// Attempt to get email from body using the official Gin way to support multiple reads
+		var email string
+		if c.Request.Method == http.MethodPost {
 			var body struct {
 				Email string `json:"email"`
 			}
-			if err := c.ShouldBindJSON(&body); err == nil {
+			if err := c.ShouldBindBodyWith(&body, binding.JSON); err == nil {
 				email = strings.ToLower(strings.TrimSpace(body.Email))
 			}
 		}
@@ -115,24 +127,28 @@ func LoginRateLimiter() gin.HandlerFunc {
 		}
 
 		ctx := context.Background()
-		
-		// Use fixed window rate limiting for simplicity
-		count, err := db.Redis.Incr(ctx, key).Result()
+
+		// Use atomic INCR and EXPIRE for login rate limiting
+		// We use a LUA script here too to ensure atomicity of INCR + EXPIRE
+		script := `
+			local count = redis.call('INCR', KEYS[1])
+			if count == 1 then
+				redis.call('EXPIRE', KEYS[1], ARGV[1])
+			end
+			return count
+		`
+
+		count, err := db.Redis.Eval(ctx, script, []string{key}, int(AuthWindow.Seconds())).Int()
 		if err != nil {
 			// If Redis fails, allow the request (fail open)
 			c.Next()
 			return
 		}
 
-		// Set expiry on first request
-		if count == 1 {
-			db.Redis.Expire(ctx, key, AuthWindow)
-		}
-
 		if count > AuthRateLimit {
 			// Get TTL for retry-after header
 			ttl, _ := db.Redis.TTL(ctx, key).Result()
-			
+
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "Too many login attempts. Please try again later.",
 				"retry_after": ttl.Seconds(),

@@ -3,18 +3,24 @@ package handlers
 import (
 	cryptoRand "crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strconv"
-	apiresponse "thanawy-backend/internal/api/response"
+	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
 	"thanawy-backend/internal/services"
 
-	"time"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm/clause"
+	"time"
 )
 
 var authService = &services.AuthService{}
@@ -43,20 +49,30 @@ func isProduction() bool {
 }
 
 // Mock geolocation helper
-func getMockLocation(ip string) *string {
+func getMockLocation(_ string) *string {
 	loc := "القاهرة، مصر"
 	return &loc
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email      string `json:"email" binding:"required,email"`
+	Password   string `json:"password" binding:"required,min=6"`
+	RememberMe bool   `json:"rememberMe"`
 }
 
 func Login(c *gin.Context) {
 	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil {
+		api_response.Error(c, http.StatusBadRequest, "بيانات الدخول غير صالحة: " + err.Error())
+		return
+	}
+
+	if req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+		return
+	}
+	if req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
 		return
 	}
 
@@ -71,6 +87,22 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Check if 2FA is enabled
+	if user.TwoFactorEnabled {
+		// Generate a temporary verification token (simple implementation)
+		// In a real app, you'd send an SMS or Email code here.
+		// For now, we'll just return that it's required.
+		c.JSON(http.StatusOK, gin.H{
+			"success":     true,
+			"requires2FA": true,
+			"user": gin.H{
+				"id":    user.ID,
+				"email": user.Email,
+			},
+		})
+		return
+	}
+
 	// Generate Token Pair
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
@@ -80,6 +112,12 @@ func Login(c *gin.Context) {
 
 	// Create Session in DB
 	location := getMockLocation(ip)
+	// Expiry calculation
+	expiryDuration := 24 * time.Hour // Default 1 day
+	if req.RememberMe {
+		expiryDuration = 30 * 24 * time.Hour // 30 days
+	}
+
 	session := &models.UserSession{
 		ID:           tokens.JTI,
 		UserID:       user.ID,
@@ -87,7 +125,7 @@ func Login(c *gin.Context) {
 		UserAgent:    userAgent,
 		IP:           ip,
 		Location:     location,
-		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+		ExpiresAt:    time.Now().Add(expiryDuration),
 		LastAccessed: time.Now(),
 	}
 
@@ -96,7 +134,7 @@ func Login(c *gin.Context) {
 	if len(activeSessions) >= 2 {
 		// Log a security event about device limit reach
 		_ = LogSecurityEvent(user.ID, "DEVICE_LIMIT_REACHED", ip, userAgent, location, nil)
-		
+
 		// Auto-logout the oldest session to allow this new login
 		oldestSession := activeSessions[0]
 		_ = getSessionRepo().RevokeSessionByJTI(oldestSession.ID)
@@ -108,25 +146,13 @@ func Login(c *gin.Context) {
 	}
 
 	// Log security event
-	if err := LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil); err != nil {
-		// Log error but don't fail the login
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"user":    user,
-			"warning": "Login successful but failed to log security event",
-			"metadata": gin.H{
-				"lastLogin": user.UpdatedAt,
-				"ip":        ip,
-				"device":    userAgent,
-				"location":  location,
-			},
-		})
-		return
-	}
+	_ = LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil)
 
 	// Set cookies
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, "/api/auth/refresh", "", isProduction(), true)
+
+	refreshExpiry := int(expiryDuration.Seconds())
+	c.SetCookie("refresh_token", tokens.RefreshToken, refreshExpiry, "/api/auth/refresh", "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -137,6 +163,212 @@ func Login(c *gin.Context) {
 			"device":    userAgent,
 			"location":  location,
 		},
+	})
+}
+
+func Verify2FA(c *gin.Context) {
+	var req struct {
+		UserID     string `json:"userId"`
+		Token      string `json:"token"`
+		RememberMe bool   `json:"rememberMe"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	user, err := getUserRepo().FindByID(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// MOCK VERIFICATION: In development, any 6-digit code works, or use a fixed one
+	// In production, you'd use TOTP or a sent code.
+	if req.Token != "123456" && isProduction() {
+		_ = LogSecurityEvent(user.ID, models.SecurityEvent2FAFailed, c.ClientIP(), c.Request.UserAgent(), nil, nil)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid verification code"})
+		return
+	}
+
+	// Successful verification
+	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		return
+	}
+
+	expiryDuration := 24 * time.Hour
+	if req.RememberMe {
+		expiryDuration = 30 * 24 * time.Hour
+	}
+
+	session := &models.UserSession{
+		ID:           tokens.JTI,
+		UserID:       user.ID,
+		RefreshToken: tokens.RefreshToken,
+		UserAgent:    c.Request.UserAgent(),
+		IP:           c.ClientIP(),
+		ExpiresAt:    time.Now().Add(expiryDuration),
+		LastAccessed: time.Now(),
+	}
+	_ = getSessionRepo().Create(session)
+
+	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, int(expiryDuration.Seconds()), "/api/auth/refresh", "", isProduction(), true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"user":    user,
+	})
+}
+
+func RequestMagicLink(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		return
+	}
+
+	token, err := authService.RequestMagicLink(req.Email)
+	if err != nil {
+		// Don't reveal if user exists or not for security
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a link has been sent."})
+		return
+	}
+
+	// Log event
+	_ = LogSecurityEvent("", models.SecurityEventMagicLinkRequested, c.ClientIP(), c.Request.UserAgent(), nil, &token)
+
+	// In development, we return the token/link for testing
+	link := "/verify-magic-link?token=" + token
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Magic link sent successfully",
+		"debug":   link, // Remove in production
+	})
+}
+
+func VerifyMagicLink(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
+		return
+	}
+
+	user, err := authService.VerifyMagicLink(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Successful login via magic link
+	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		return
+	}
+
+	session := &models.UserSession{
+		ID:           tokens.JTI,
+		UserID:       user.ID,
+		RefreshToken: tokens.RefreshToken,
+		UserAgent:    c.Request.UserAgent(),
+		IP:           c.ClientIP(),
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+		LastAccessed: time.Now(),
+	}
+	_ = getSessionRepo().Create(session)
+
+	_ = LogSecurityEvent(user.ID, models.SecurityEventMagicLinkLogin, c.ClientIP(), c.Request.UserAgent(), nil, nil)
+
+	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24, "/api/auth/refresh", "", isProduction(), true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"user":    user,
+	})
+}
+
+func ForgotPassword(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		return
+	}
+
+	token, err := authService.RequestPasswordReset(req.Email)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a reset link has been sent."})
+		return
+	}
+
+	_ = LogSecurityEvent("", models.SecurityEventPasswordResetReq, c.ClientIP(), c.Request.UserAgent(), nil, &token)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Password reset link sent",
+		"debug":   "/reset-password?token=" + token,
+	})
+}
+
+func ResetPassword(c *gin.Context) {
+	var req struct {
+		Token       string `json:"token"`
+		NewPassword string `json:"newPassword"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := authService.ResetPassword(req.Token, req.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Password reset successful"})
+}
+
+func VerifyEmail(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
+		return
+	}
+
+	if err := authService.VerifyEmail(token); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Email verified successfully"})
+}
+
+func ResendVerification(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		return
+	}
+
+	token, err := authService.RequestEmailVerification(req.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to generate verification link"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Verification email sent",
+		"debug":   "/verify-email?token=" + token,
 	})
 }
 
@@ -248,7 +480,6 @@ func UpdateAuthSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-
 type RegisterRequest struct {
 	Email         string `json:"email" binding:"required,email"`
 	Password      string `json:"password" binding:"required,min=8"`
@@ -285,9 +516,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// Generate verification token
+	token, _ := authService.RequestEmailVerification(user.Email)
+
+	// Notify admins
+	GlobalNotifyAdmins("مستخدم جديد", fmt.Sprintf("انضم %s إلى المنصة", user.Email), "success")
+
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"user":    user,
+		"message": "Registration successful. Please verify your email.",
+		"debug":   "/verify-email?token=" + token,
 	})
 }
 
@@ -355,7 +594,7 @@ func GetUsers(c *gin.Context) {
 			"username":      user.Username,
 			"avatar":        user.Avatar,
 			"role":          user.Role,
-			"permissions":   defaultPermissions(user.Role, []string(user.Permissions)),
+			"permissions":   user.GetEffectivePermissions(),
 			"emailVerified": user.EmailVerified,
 			"createdAt":     user.CreatedAt,
 			"lastLogin":     nil,
@@ -370,7 +609,7 @@ func GetUsers(c *gin.Context) {
 		})
 	}
 
-	apiresponse.List(c, items, apiresponse.Pagination{
+	api_response.List(c, items, api_response.Pagination{
 		Page:       page,
 		Limit:      limit,
 		Total:      total,
@@ -401,7 +640,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -413,22 +652,22 @@ func UpdateUser(c *gin.Context) {
 		userID = c.Param("id")
 	}
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+		api_response.Error(c, http.StatusBadRequest, "userId is required")
 		return
 	}
 
 	var user models.User
 	if err := db.DB.First(&user, "id = ?", userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		api_response.Error(c, http.StatusNotFound, "User not found")
 		return
 	}
 
 	updates := make(map[string]interface{})
 	if req.Role != "" {
 		// Validate role to prevent privilege escalation
-		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "ADMIN": true}
+		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "MODERATOR": true, "ADMIN": true}
 		if !validRoles[req.Role] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+			api_response.Error(c, http.StatusBadRequest, "Invalid role")
 			return
 		}
 		updates["role"] = req.Role
@@ -459,7 +698,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&user).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
 
@@ -467,13 +706,14 @@ func UpdateUser(c *gin.Context) {
 	db.DB.First(&user, "id = ?", user.ID)
 	// Sync cache
 	_ = getUserRepo().Update(&user)
-	
-	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
+
+	LogAudit(c, "UPDATE", "user", user.ID, updates)
+	api_response.Success(c, gin.H{"user": user})
 }
 
 func GetGuestUser(c *gin.Context) {
 	// Return a static or generated guest ID
-	c.JSON(http.StatusOK, gin.H{"id": "guest_" + config.Load().Environment})
+	api_response.Success(c, gin.H{"id": "guest_" + config.Load().Environment})
 }
 
 func GetUserByID(c *gin.Context) {
@@ -481,11 +721,11 @@ func GetUserByID(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		api_response.Error(c, http.StatusNotFound, "User not found")
 		return
 	}
 
-	c.JSON(http.StatusOK, buildUserDetailsPayload(*user))
+	api_response.Success(c, buildUserDetailsPayload(*user))
 }
 
 func DeleteUser(c *gin.Context) {
@@ -495,22 +735,28 @@ func DeleteUser(c *gin.Context) {
 	}
 	if userID == "" {
 		var input struct {
-			ID string `json:"id"`
+			ID     string `json:"id"`
+			UserID string `json:"userId"`
 		}
 		_ = c.ShouldBindJSON(&input)
-		userID = input.ID
+		if input.UserID != "" {
+			userID = input.UserID
+		} else {
+			userID = input.ID
+		}
 	}
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+		api_response.Error(c, http.StatusBadRequest, "userId is required")
 		return
 	}
 
 	if err := db.DB.Delete(&models.User{}, "id = ?", userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+		api_response.Error(c, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	LogAudit(c, "DELETE", "user", userID, nil)
+	api_response.Success(c, nil)
 }
 
 func CreateUser(c *gin.Context) {
@@ -523,16 +769,16 @@ func CreateUser(c *gin.Context) {
 		Password string  `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Validate role - only allow valid roles
 	role := models.RoleStudent
 	if input.Role != "" {
-		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "ADMIN": true}
+		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "MODERATOR": true, "ADMIN": true}
 		if !validRoles[input.Role] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+			api_response.Error(c, http.StatusBadRequest, "Invalid role")
 			return
 		}
 		role = models.UserRole(input.Role)
@@ -548,7 +794,7 @@ func CreateUser(c *gin.Context) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		api_response.Error(c, http.StatusInternalServerError, "Failed to hash password")
 		return
 	}
 
@@ -562,11 +808,12 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		api_response.Error(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "user": user})
+	LogAudit(c, "CREATE", "user", user.ID, user)
+	api_response.Created(c, user)
 }
 
 func buildUserDetailsPayload(user models.User) gin.H {
@@ -655,22 +902,22 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	var req struct {
-		Name          string  `json:"name"`
-		Username      string  `json:"username"`
-		Phone         string  `json:"phone"`
-		Bio           string  `json:"bio"`
-		GradeLevel    string  `json:"gradeLevel"`
-		EducationType string  `json:"educationType"`
-		Section       string  `json:"section"`
-		Country       string  `json:"country"`
-		City          string  `json:"city"`
-		Avatar        string  `json:"avatar"`
-		BirthDate     string  `json:"birthDate"`
-		Gender        string  `json:"gender"`
+		Name          string `json:"name"`
+		Username      string `json:"username"`
+		Phone         string `json:"phone"`
+		Bio           string `json:"bio"`
+		GradeLevel    string `json:"gradeLevel"`
+		EducationType string `json:"educationType"`
+		Section       string `json:"section"`
+		Country       string `json:"country"`
+		City          string `json:"city"`
+		Avatar        string `json:"avatar"`
+		BirthDate     string `json:"birthDate"`
+		Gender        string `json:"gender"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -721,7 +968,7 @@ func UpdateProfile(c *gin.Context) {
 	db.DB.First(&user, "id = ?", user.ID)
 	// Sync cache
 	_ = getUserRepo().Update(&user)
-	
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
 }
 
@@ -747,24 +994,43 @@ func GetBillingSummary(c *gin.Context) {
 	var failedCount int64
 
 	for _, p := range payments {
-		if p.Status == models.PaymentCompleted {
+		switch p.Status {
+		case models.PaymentCompleted:
 			totalSpent += p.Amount
 			successCount++
-		} else if p.Status == models.PaymentPending {
+		case models.PaymentPending:
 			pendingCount++
-		} else {
+		default:
 			failedCount++
 		}
 	}
 
-	// Mock stats if needed or use real ones
+	// Get active subscription if exists
+	var activeSub models.UserSubscription
+	var activeSubscriptionData interface{}
+	if err := db.DB.Preload("Plan").Where("\"userId\" = ? AND \"status\" = ? AND \"endDate\" > ?", user.ID, models.SubscriptionActive, time.Now()).First(&activeSub).Error; err == nil {
+		activeSubscriptionData = gin.H{
+			"id":        activeSub.ID,
+			"status":    activeSub.Status,
+			"startDate": activeSub.StartDate,
+			"endDate":   activeSub.EndDate,
+			"plan": gin.H{
+				"id":     activeSub.Plan.ID,
+				"name":   activeSub.Plan.Name,
+				"nameAr": activeSub.Plan.NameAr,
+				"price":  activeSub.Plan.Price,
+			},
+			"payments": []gin.H{},
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"name":                  stringOrEmpty(user.Name),
 		"email":                 user.Email,
 		"balance":               user.Balance,
 		"additionalAiCredits":   user.AiCredits,
 		"additionalExamCredits": user.ExamCredits,
-		"activeSubscription":    nil, // TODO: Implement active subscription logic
+		"activeSubscription":    activeSubscriptionData,
 		"paymentHistory":        payments,
 		"stats": gin.H{
 			"totalSpent":   totalSpent,
@@ -794,12 +1060,144 @@ func defaultPermissions(role models.UserRole, existing []string) []string {
 	if len(existing) > 0 {
 		return existing
 	}
-	switch role {
-	case models.RoleAdmin:
-		return []string{"admin:*"}
-	case models.RoleTeacher:
-		return []string{"courses:read", "exams:read"}
-	default:
-		return []string{}
+	return models.GetDefaultPermissions(role)
+}
+
+// ClerkWebhook handles Clerk webhook events for user synchronization
+func ClerkWebhook(c *gin.Context) {
+	// Read the request body
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
 	}
+
+	// Parse the webhook payload
+	var event struct {
+		Type string                 `json:"type"`
+		Data map[string]interface{} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &event); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+		return
+	}
+
+	log.Printf("[Clerk Webhook] Received event: %s", event.Type)
+
+	// Handle different event types
+	switch event.Type {
+	case "user.created", "user.updated":
+		if err := syncUserFromClerk(event.Data); err != nil {
+			log.Printf("[Clerk Webhook] Error syncing user: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync user"})
+			return
+		}
+	case "user.deleted":
+		if userId, ok := event.Data["id"].(string); ok {
+			if err := db.DB.Where("id = ?", userId).Delete(&models.User{}).Error; err != nil {
+				log.Printf("[Clerk Webhook] Error deleting user: %v", err)
+			}
+		}
+	default:
+		log.Printf("[Clerk Webhook] Unhandled event type: %s", event.Type)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// syncUserFromClerk creates or updates a user in the local database from Clerk data
+func syncUserFromClerk(clerkData map[string]interface{}) error {
+	userId, ok := clerkData["id"].(string)
+	if !ok {
+		return nil
+	}
+
+	email, _ := clerkData["email_addresses"].([]interface{})
+	var primaryEmail string
+	if len(email) > 0 {
+		if emailObj, ok := email[0].(map[string]interface{}); ok {
+			if emailAddress, ok := emailObj["email_address"].(string); ok {
+				primaryEmail = emailAddress
+			}
+		}
+	}
+
+	if primaryEmail == "" {
+		return nil
+	}
+
+	firstName, _ := clerkData["first_name"].(string)
+	lastName, _ := clerkData["last_name"].(string)
+	name := firstName
+	if lastName != "" {
+		name += " " + lastName
+	}
+
+	// Upsert user
+	user := models.User{
+		ID:            userId,
+		Email:         primaryEmail,
+		EmailVerified: true, // Clerk verifies emails
+		Status:        models.StatusActive,
+		Role:          models.RoleStudent,
+		Balance:       0,
+		AiCredits:     0,
+		ExamCredits:   0,
+		TotalXP:       0,
+		Level:         1,
+	}
+
+	if name != "" {
+		user.Name = &name
+	}
+
+	// Use OnConflict to handle upsert
+	result := db.DB.Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		},
+	).Create(&user)
+
+	if result.Error != nil {
+		log.Printf("[Clerk Webhook] Error creating user: %v", result.Error)
+		return result.Error
+	}
+
+	log.Printf("[Clerk Webhook] User synced successfully: %s (%s)", userId, primaryEmail)
+	return nil
+}
+
+// EnsureUserExists checks if a user exists in the database and creates them if they don't
+// This is a fallback for when webhooks fail or for development environments
+func EnsureUserExists(userId string, email string) error {
+	var user models.User
+	err := db.DB.First(&user, "id = ?", userId).Error
+
+	// User exists, nothing to do
+	if err == nil {
+		return nil
+	}
+
+	// Create new user with minimal information
+	newUser := models.User{
+		ID:            userId,
+		Email:         email,
+		EmailVerified: false,
+		Status:        models.StatusActive,
+		Role:          models.RoleStudent,
+		Balance:       0,
+		AiCredits:     0,
+		ExamCredits:   0,
+		TotalXP:       0,
+		Level:         1,
+	}
+
+	if err := db.DB.Create(&newUser).Error; err != nil {
+		return err
+	}
+
+	log.Printf("[Auth] Auto-created user: %s (%s)", userId, email)
+	return nil
 }

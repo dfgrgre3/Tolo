@@ -98,12 +98,12 @@ const CacheService = {
     },
 
     async getOrSet<T = any>(key: string, fetchFn: () => Promise<T>, ttlSeconds?: number): Promise<T> {
-        const cached = await this.get<T>(key);
+        const cached = await CacheService.get<T>(key);
         if (cached !== null) {
             return cached;
         }
         const value = await fetchFn();
-        await this.set(key, value, ttlSeconds);
+        await CacheService.set(key, value, ttlSeconds);
         return value;
     },
 };
@@ -116,4 +116,4 @@ enum CachePrefixes {
   AUTH_SESSION = 'auth:session',
 }
 
-
+

@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type PaymentStatus string
@@ -19,11 +19,18 @@ type Payment struct {
 	ID        string        `gorm:"primaryKey;type:text" json:"id"`
 	UserID    string        `gorm:"not null;index:idx_payment_user_subject,priority:1;type:text" json:"userId"`
 	SubjectID string        `gorm:"index:idx_payment_user_subject,priority:2;type:text" json:"subjectId"`
+	PlanID    string        `gorm:"index;type:text" json:"planId"`
 	Amount    float64       `gorm:"not null;check:amount >= 0" json:"amount"`
 	Currency  string        `gorm:"not null;default:'EGP'" json:"currency"`
 	Status    PaymentStatus `gorm:"not null;default:'PENDING';index" json:"status"`
 	Method    string        `gorm:"not null" json:"method"` // PAYMOB, WALLET, etc.
 	Reference string        `gorm:"uniqueIndex;not null" json:"reference"`
+	
+	// Paymob specific fields
+	PaymobOrderID int64     `gorm:"index" json:"paymobOrderId"`
+	ExternalTxnID string    `gorm:"index" json:"externalTxnId"`
+	CompletedAt   time.Time `json:"completedAt"`
+
 	CreatedAt time.Time     `gorm:"index" json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
 

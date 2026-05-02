@@ -236,7 +236,12 @@ export default function CourseDetailPage() {
         return;
       }
       if (course) setCourse({ ...course, enrolled: true, progress: 0 });
-    } catch (err) {
+    } catch (err: any) {
+      // Check if this is a payment required error (HTTP 402)
+      if (err?.status === 402 || err?.data?.requiresPayment) {
+        router.push(`/courses/${courseId}/checkout`);
+        return;
+      }
       logger.error("Error in handleEnroll", err);
     } finally {
       setEnrolling(false);

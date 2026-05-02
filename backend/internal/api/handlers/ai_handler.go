@@ -14,7 +14,7 @@ import (
 func AIExamProxy(c *gin.Context) {
 	var body interface{}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -24,10 +24,10 @@ func AIExamProxy(c *gin.Context) {
 
 	// Simplified proxy logic: convert internal request to OpenRouter/OpenAI format
 	// For a real implementation, we would construct a prompt based on subject/year/lesson
-	
+
 	// Mock response for now to ensure compatibility without burning credits during setup
 	// In a real system, we would call the external API here.
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"examId": "ai-gen-" + fmt.Sprint(os.Getpid()),
 		"questions": []gin.H{

@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type TaskStatus string
@@ -103,4 +103,3 @@ func (r *Reminder) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return
 }
-

@@ -26,26 +26,24 @@ import {
   Mail,
   Phone,
   Share2,
-  Gamepad2,
   Wrench,
   RefreshCw,
   Save,
   Download,
   AlertTriangle,
   Clock,
-  Crown,
   Zap,
   Lock,
   Layout,
   Server,
   Users,
-  Trophy,
   MessageCircle,
   Target,
-  TrendingUp
+  TrendingUp,
+  Sparkles,
+  Star
 } from "lucide-react";
 import { SettingsSkeleton } from "@/components/admin/ui/loading-skeleton";
-import { m, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
 
 const settingsSchema = z.object({
@@ -63,16 +61,16 @@ const settingsSchema = z.object({
   features: z.object({
     registration: z.boolean(),
     emailVerification: z.boolean(),
-    gamification: z.boolean(),
+    engagement: z.boolean(),
     forum: z.boolean(),
     blog: z.boolean(),
     events: z.boolean(),
     aiAssistant: z.boolean(),
   }),
-  gamification: z.object({
-    xpPerTask: z.number().min(0),
-    xpPerStudySession: z.number().min(0),
-    xpPerExam: z.number().min(0),
+  engagement: z.object({
+    pointsPerTask: z.number().min(0),
+    pointsPerStudySession: z.number().min(0),
+    pointsPerExam: z.number().min(0),
     streakBonus: z.number().min(0),
   }),
   limits: z.object({
@@ -106,16 +104,16 @@ export default function AdminSettingsPage() {
       features: {
         registration: true,
         emailVerification: true,
-        gamification: true,
+        engagement: true,
         forum: true,
         blog: true,
         events: true,
         aiAssistant: true,
       },
-      gamification: {
-        xpPerTask: 10,
-        xpPerStudySession: 5,
-        xpPerExam: 20,
+      engagement: {
+        pointsPerTask: 10,
+        pointsPerStudySession: 5,
+        pointsPerExam: 20,
         streakBonus: 2,
       },
       limits: {
@@ -142,7 +140,7 @@ export default function AdminSettingsPage() {
         siteKeywords: settings.siteKeywords?.join(", ") || "",
       });
     } catch (err: unknown) {
-      toast.error("حدث خطأ أثناء جلب مرسوم الإعدادات");
+      toast.error("حدث خطأ أثناء جلب الإعدادات");
       logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
@@ -166,14 +164,14 @@ export default function AdminSettingsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم ختم المرسوم وحفظ الإعدادات الملكية");
+        toast.success("تم حفظ إعدادات النظام بنجاح");
         setLastSaved(new Date());
         setHasChanges(false);
       } else {
-        toast.error("فشل في ختم المرسوم");
+        toast.error("فشل في حفظ الإعدادات");
       }
     } catch (err: unknown) {
-      toast.error("خطأ في الاتصال بالسيرفر الملكي");
+      toast.error("خطأ في الاتصال بالخادم");
       logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
@@ -194,7 +192,7 @@ export default function AdminSettingsPage() {
           ...data.settings,
           siteKeywords: data.settings.siteKeywords?.join(", ") || "",
         });
-        toast.success("تمت العودة للقيم الأساسية للمملكة");
+        toast.success("تمت العودة للقيم الافتراضية");
       }
     } catch (err: unknown) {
       toast.error("فشل في استعادة القيم الأصلية");
@@ -208,9 +206,9 @@ export default function AdminSettingsPage() {
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `kingdom-legacy-${new Date().toISOString().split('T')[0]}.json`);
+    linkElement.setAttribute('download', `system-settings-${new Date().toISOString().split('T')[0]}.json`);
     linkElement.click();
-    toast.success("تم تصدير نسخة من قوانين المملكة");
+    toast.success("تم تصدير نسخة من إعدادات المنصة");
   };
 
   React.useEffect(() => {
@@ -225,36 +223,29 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="قوانين وأعراف المملكة 📜"
-        description="تعديل القوانين الأساسية، تفعيل المزايا السحرية، وإدارة شؤون الصيانة العامة."
+        title="إعدادات المنصة المركزية"
+        description="إدارة التكوينات الأساسية، تفعيل المزايا التعليمية، وشؤون الصيانة العامة للنظام."
       >
         <div className="flex items-center gap-3">
-          <AnimatePresence>
-            {hasChanges && (
-              <m.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-              >
-                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-8 px-4 px-3 rounded-xl animate-pulse">
-                  تعديلات غير مختومة ✍️
-                </Badge>
-              </m.div>
-            )}
-          </AnimatePresence>
+          {hasChanges && (
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-8 px-4 rounded-xl">
+              تعديلات معلقة
+            </Badge>
+          )}
           
           <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl shadow-2xl">
-            <SettingsIconButton icon={Download} onClick={handleExportSettings} title="تصدير القوانين" />
-            <SettingsIconButton icon={RefreshCw} onClick={handleReset} title="استعادة الجذور" />
+            <SettingsIconButton icon={Download} onClick={handleExportSettings} title="تصدير الإعدادات" />
+            <SettingsIconButton icon={RefreshCw} onClick={handleReset} title="استعادة الافتراضي" />
             <div className="w-px h-6 bg-white/10 self-center mx-1" />
             <AdminButton 
+              variant="premium"
               size="sm" 
               onClick={form.handleSubmit(handleSave)} 
               disabled={saving || !hasChanges} 
-              className="h-9 px-6 rounded-xl font-black bg-primary/20 text-primary hover:bg-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]"
+              className="h-9 px-6 rounded-xl font-black shadow-xl"
+              icon={Save}
             >
-              <Save className="ml-2 h-4 w-4" />
-              {saving ? "جاري الختم..." : "ختم المرسوم"}
+              {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
             </AdminButton>
           </div>
         </div>
@@ -266,11 +257,11 @@ export default function AdminSettingsPage() {
             <TabsList className="flex flex-wrap h-auto bg-card/50 backdrop-blur-xl border border-white/10 p-2 rounded-[2rem] gap-2 items-center justify-center">
               {[
                 { value: "general", label: "الهوية العامة", icon: Globe, color: "blue" },
-                { value: "features", label: "القوى والمزايا", icon: Zap, color: "amber" },
-                { value: "gamification", label: "نظام التطور", icon: Gamepad2, color: "purple" },
-                { value: "limits", label: "موازين القدرة", icon: Wrench, color: "emerald" },
+                { value: "features", label: "المزايا والخصائص", icon: Zap, color: "amber" },
+                { value: "engagement", label: "نظام التحفيز", icon: Star, color: "purple" },
+                { value: "limits", label: "حدود النظام", icon: Wrench, color: "emerald" },
                 { value: "social", label: "روابط التواصل", icon: Share2, color: "pink" },
-                { value: "maintenance", label: "مقر الإصلاح", icon: Server, color: "red" },
+                { value: "maintenance", label: "وضع الصيانة", icon: Server, color: "red" },
               ].map((tab) => (
                 <TabsTrigger 
                   key={tab.value} 
@@ -290,8 +281,8 @@ export default function AdminSettingsPage() {
                     <Globe className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black">هوية المملكة الرقمية</h3>
-                    <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">تحديد الاسم، الوصف، والكلمات الدليلية للانتشار.</p>
+                    <h3 className="text-xl font-black">الهوية الرقمية للمنصة</h3>
+                    <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">تحديد الاسم، الوصف، والكلمات الدليلية لمحركات البحث.</p>
                   </div>
                 </div>
 
@@ -301,7 +292,7 @@ export default function AdminSettingsPage() {
                     name="siteName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسم المملكة الرسمي</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسم المنصة الرسمي</FormLabel>
                         <FormControl><Input {...field} className="h-14 rounded-2xl border-white/10 bg-white/5 text-lg font-black px-6" /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -312,7 +303,7 @@ export default function AdminSettingsPage() {
                     name="siteDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">توصيف المملكة (Meta Description)</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف المنصة (SEO Description)</FormLabel>
                         <FormControl><Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 text-sm font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -324,7 +315,7 @@ export default function AdminSettingsPage() {
                       name="contactEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الحمام الزاجل (البريد الرسمي)</FormLabel>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">بريد التواصل الرسمي</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Mail className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -340,7 +331,7 @@ export default function AdminSettingsPage() {
                       name="supportPhone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">خط الاستدعاء (الدعم الفني)</FormLabel>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">هاتف الدعم الفني</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Phone className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -359,12 +350,12 @@ export default function AdminSettingsPage() {
             <TabsContent value="features" className="focus-visible:outline-none">
               <div className="grid md:grid-cols-2 gap-6">
                 {[
-                  { key: "registration", label: "بوابة التجنيد", icon: Users, desc: "السماح بانضمام محاربين جدد للمملكة" },
-                  { key: "emailVerification", label: "ختم التحقق", icon: Lock, desc: "طلب التأكد من هوية المحارب عبر البريد" },
-                  { key: "gamification", label: "قوانين التطور", icon: Trophy, desc: "تفعيل نظام الـ XP والمستويات والبطولات" },
-                  { key: "forum", label: "ميدان النقاش", icon: MessageCircle, desc: "تفعيل ساحات الحوار والتبادل العلمي" },
-                  { key: "blog", label: "المكتبة الإخبارية", icon: Layout, desc: "تفعيل تدوينات القادة والمقالات التعليمية" },
-                  { key: "aiAssistant", label: "المستشار الملكي (AI)", icon: Crown, desc: "تفعيل الذكاء الاصطناعي لمساعدة الطلاب" },
+                  { key: "registration", label: "تسجيل المستخدمين", icon: Users, desc: "السماح بانضمام مستخدمين جدد للمنصة" },
+                  { key: "emailVerification", label: "التحقق من البريد", icon: Lock, desc: "طلب التأكد من هوية المستخدم عبر البريد" },
+                  { key: "engagement", label: "نظام التحفيز والتقدير", icon: Star, desc: "تفعيل نظام النقاط والمستويات للطلاب" },
+                  { key: "forum", label: "منتدى النقاش العلمي", icon: MessageCircle, desc: "تفعيل ساحات الحوار والتبادل المعرفي" },
+                  { key: "blog", label: "المدونة الأكاديمية", icon: Layout, desc: "تفعيل التدوينات والمقالات التعليمية" },
+                  { key: "aiAssistant", label: "المساعد التعليمي (AI)", icon: Sparkles, desc: "تفعيل الذكاء الاصطناعي لمساعدة الطلاب" },
                 ].map((feature) => (
                   <FormField
                     key={feature.key}
@@ -395,29 +386,29 @@ export default function AdminSettingsPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="gamification" className="focus-visible:outline-none">
+            <TabsContent value="engagement" className="focus-visible:outline-none">
               <AdminCard variant="glass" className="p-8">
                 <div className="flex items-center gap-4 mb-10">
-                  <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                    <Gamepad2 className="w-6 h-6" />
+                  <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 border border-purple-500/20 shadow-sm">
+                    <Star className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black">موازين الخبرة وتطوير الذات</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">تحديد نقاط الـ XP الممنوحة مقابل كل إنجاز يقوم به المحارب.</p>
+                    <h3 className="text-xl font-black">إعدادات نقاط التفاعل</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">تحديد وزن النقاط الممنوحة مقابل الأنشطة التعليمية.</p>
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
                   {[
-                    { key: "xpPerTask", label: "مبارزة (مهمة)", icon: Zap, color: "amber" },
-                    { key: "xpPerStudySession", label: "خلوة علمية", icon: Clock, color: "blue" },
-                    { key: "xpPerExam", label: "اختبار ملكي", icon: Target, color: "red" },
-                    { key: "streakBonus", label: "مكافأة التتابع %", icon: TrendingUp, color: "emerald" },
+                    { key: "pointsPerTask", label: "إتمام مهمة", icon: Zap, color: "amber" },
+                    { key: "pointsPerStudySession", label: "جلسة دراسية", icon: Clock, color: "blue" },
+                    { key: "pointsPerExam", label: "اجتياز اختبار", icon: Target, color: "red" },
+                    { key: "streakBonus", label: "مكافأة الاستمرارية %", icon: TrendingUp, color: "emerald" },
                   ].map((field) => (
                     <FormField
                       key={field.key}
                       control={form.control}
-                      name={`gamification.${field.key}` as Path<SettingsFormValues>}
+                      name={`engagement.${field.key}` as Path<SettingsFormValues>}
                       render={({ field: inputField }) => (
                         <FormItem className="text-center group">
                           <div className={`mx-auto p-4 rounded-3xl bg-${field.color}-500/5 border border-${field.color}-500/10 group-hover:scale-110 transition-transform mb-4`}>
@@ -445,12 +436,12 @@ export default function AdminSettingsPage() {
               <AdminCard variant="glass" className="p-8 border-red-500/20 bg-red-500/5">
                 <div className="flex items-center justify-between mb-10 border-b border-red-500/10 pb-6">
                   <div className="flex gap-4 items-center">
-                    <div className="p-4 rounded-3xl bg-red-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] animate-pulse">
+                    <div className="p-4 rounded-3xl bg-red-500 text-white shadow-lg animate-pulse">
                       <AlertTriangle className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-red-500">مقر الإصلاحات الطارئة</h3>
-                      <p className="text-xs font-bold text-red-500/60 uppercase">عند تفعيل هذا المرسوم، سيتم إغلاق أبواب المملكة أمام الجميع فيما عدا القادة الكبار.</p>
+                      <h3 className="text-2xl font-black text-red-500">وضع الصيانة والنظام</h3>
+                      <p className="text-xs font-bold text-red-500/60 uppercase">عند التفعيل، سيتم إغلاق المنصة أمام الطلاب والاكتفاء بدخول المسؤولين فقط.</p>
                     </div>
                   </div>
                   <FormField
@@ -473,11 +464,11 @@ export default function AdminSettingsPage() {
                   name="maintenance.message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest text-red-500/60">رسالة تظهر للمحاربين أثناء الصيانة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest text-red-500/60">رسالة تنبيه المستخدمين</FormLabel>
                       <FormControl>
                         <Textarea 
                           {...field} 
-                          placeholder="المملكة في مرحلة تطوير دفاعي.. سنعود أقوى قريبًا!" 
+                          placeholder="المنصة تحت الصيانة الدورية حالياً.. سنعود قريباً لخدمتكم." 
                           className="rounded-3xl border-red-500/10 bg-red-500/5 min-h-[150px] p-8 text-lg font-black text-red-500/80 placeholder:text-red-500/30"
                         />
                       </FormControl>

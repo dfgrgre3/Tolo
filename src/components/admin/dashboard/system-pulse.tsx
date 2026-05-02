@@ -3,6 +3,7 @@
 import * as React from "react";
 import { m } from "framer-motion";
 import { Activity, Database, Cpu, Zap, Shield, HardDrive } from "lucide-react";
+import { adminFetch } from "@/lib/api/admin-api";
 
 interface PulseItemProps {
   label: string;
@@ -72,7 +73,7 @@ export function SystemPulse() {
 
   const fetchStats = React.useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/infrastructure/stats');
+      const response = await adminFetch('infrastructure/stats');
       const data = await response.json();
       if (data.success && data.data) {
         // Parse "123 MiB" string or similar if needed, or just use raw values if backend is updated

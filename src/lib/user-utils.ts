@@ -30,7 +30,30 @@ function normalizeUserId(value: unknown): string | null {
  * Ensure user ID exists, create guest user if needed
  */
 export async function ensureUser(): Promise<string> {
+  try {
+    const response = await fetch('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store'
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const authenticatedId = normalizeUserId(data?.user?.id);
+      if (authenticatedId) {
+        safeSetItem(LOCAL_USER_KEY, authenticatedId);
+        return authenticatedId;
+      }
+    }
+  } catch (error) {
+    logger.warn('Unexpected error reading authenticated user:', error);
+  }
+
   let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
+
+  if (id === 'dev-user-id' || id === 'default-user') {
+    clearUserId();
+    id = null;
+  }
   
   if (!id) {
     try {

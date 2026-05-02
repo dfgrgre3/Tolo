@@ -68,7 +68,7 @@ export abstract class BaseWorker<T = any> {
 
         this.queue = new Queue(queueName, {
             connection,
-            skipConfigCheck: true,
+            skipVersionCheck: true,
         });
 
         this.worker = new Worker(
@@ -84,7 +84,7 @@ export abstract class BaseWorker<T = any> {
             {
                 connection,
                 concurrency: options?.concurrency || 10,
-                skipConfigCheck: true,
+                skipVersionCheck: true,
             }
         );
 
@@ -119,7 +119,7 @@ class AppQueue {
         const connection = getQueueConnection();
         this.queue = new Queue(name, {
             connection,
-            skipConfigCheck: true,
+            skipVersionCheck: true,
         });
     }
 

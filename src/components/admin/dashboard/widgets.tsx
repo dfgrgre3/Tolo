@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -21,12 +21,13 @@ import {
   ChevronLeft,
   Sparkles,
   RefreshCw,
+  ClipboardList,
 } from "lucide-react";
 
 // Activity Feed Widget
 interface ActivityItem {
   id: string;
-  type: "user" | "exam" | "achievement" | "challenge" | "post" | "comment";
+  type: "user" | "exam" | "achievement" | "task" | "post" | "comment";
   title: string;
   description?: string;
   user?: {
@@ -52,7 +53,7 @@ const activityConfig: Record<ActivityItem["type"], { icon: React.ElementType; co
   user: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", label: "مستخدم جديد" },
   exam: { icon: Target, color: "text-green-500", bg: "bg-green-500/10", label: "امتحان" },
   achievement: { icon: Award, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "إنجاز" },
-  challenge: { icon: Trophy, color: "text-purple-500", bg: "bg-purple-500/10", label: "تحدي" },
+  task: { icon: ClipboardList, color: "text-purple-500", bg: "bg-purple-500/10", label: "مهمة تعليمية" },
   post: { icon: FileText, color: "text-cyan-500", bg: "bg-cyan-500/10", label: "منشور" },
   comment: { icon: MessageSquare, color: "text-pink-500", bg: "bg-pink-500/10", label: "تعليق" },
 };
@@ -317,35 +318,35 @@ interface UpcomingEventsProps {
 }
 
 const eventConfig = {
-  exam: { icon: Target, color: "text-red-500", bg: "bg-red-500/10", label: "اختبار ملكي" },
-  event: { icon: Calendar, color: "text-green-500", bg: "bg-green-500/10", label: "احتفالية" },
+  exam: { icon: Target, color: "text-red-500", bg: "bg-red-500/10", label: "اختبار" },
+  event: { icon: Calendar, color: "text-green-500", bg: "bg-green-500/10", label: "فعالية" },
   deadline: { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "موعد نهائي" },
-  meeting: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", label: "اجتماع القادة" },
+  meeting: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", label: "اجتماع إداري" },
 };
 
 export function UpcomingEvents({
   events,
-  title = "التقويم الإمبراطوري",
+  title = "جدول المواعيد",
   maxItems = 4,
   className,
 }: UpcomingEventsProps) {
   const displayEvents = events.slice(0, maxItems);
 
   return (
-    <div className={cn("rpg-glass p-8 border-primary/10", className)}>
+    <div className={cn("admin-glass p-8 border-primary/10", className)}>
       <div className="flex items-center justify-between mb-8">
         <h3 className="font-black text-xl flex items-center gap-3">
           <Calendar className="h-6 w-6 text-primary" />
           <span>{title}</span>
         </h3>
         <div className="p-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black tracking-widest text-primary uppercase">
-           {events.length} عمليات
+           {events.length} موعد
         </div>
       </div>
 
       <div className="space-y-4">
         {displayEvents.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 font-bold italic">لا توجد تحركات مرتقبة في الأفق...</div>
+          <div className="text-center py-10 text-gray-500 font-bold italic">لا توجد مواعيد قادمة حالياً...</div>
         ) : (
           displayEvents.map((event) => {
             const config = eventConfig[event.type];
@@ -412,16 +413,16 @@ interface TopPerformersProps {
   className?: string;
 }
 
-function TopPerformers({
+export function TopPerformers({
   performers,
-  title = "قاعة المشاهير - Hall of Fame",
+  title = "لوحة المتميزين",
   className,
 }: TopPerformersProps) {
   return (
-    <div className={cn("rpg-glass p-8 border-yellow-500/10", className)}>
+    <div className={cn("admin-glass p-8 border-yellow-500/10", className)}>
       <div className="flex items-center justify-between mb-8">
         <h3 className="font-black text-xl flex items-center gap-3">
-          <Trophy className="h-6 w-6 text-yellow-500" />
+          <Award className="h-6 w-6 text-yellow-500" />
           <span>{title}</span>
         </h3>
       </div>
@@ -457,7 +458,7 @@ function TopPerformers({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black truncate">{performer.name}</p>
               <div className="flex items-center gap-2 mt-1">
-                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">Level {performer.level}</span>
+                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">المستوى {performer.level}</span>
                  <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: '65%' }} />
                  </div>
@@ -466,7 +467,7 @@ function TopPerformers({
 
             <div className="text-left bg-black/20 p-2 px-3 rounded-xl border border-white/5">
               <p className="text-xs font-black text-yellow-500 font-mono">{formatNumber(performer.xp)}</p>
-              <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">EXP Points</p>
+              <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">نقطة تفاعل</p>
             </div>
           </div>
         ))}
@@ -492,7 +493,7 @@ interface ProgressOverviewProps {
 
 export function ProgressOverview({
   items,
-  title = "لوحة المهام والتقدم",
+  title = "لوحة المتابعة والتقدم",
   className,
 }: ProgressOverviewProps) {
   const barColors = {
@@ -507,7 +508,7 @@ export function ProgressOverview({
   };
 
   return (
-    <div className={cn("rpg-glass p-8 border-primary/10", className)}>
+    <div className={cn("admin-glass p-8 border-primary/10", className)}>
       <div className="flex items-center justify-between mb-8">
         <h3 className="font-black text-xl flex items-center gap-3">
           <TrendingUp className="h-6 w-6 text-primary" />
@@ -545,7 +546,7 @@ export function ProgressOverview({
               </div>
               
               <div className="flex justify-between items-center px-1">
-                 <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Progress</span>
+                 <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">التقدم</span>
                  <span className="text-[10px] font-black text-gray-400 font-mono">{percentage}%</span>
               </div>
             </div>

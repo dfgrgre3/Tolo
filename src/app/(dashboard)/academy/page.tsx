@@ -70,6 +70,8 @@ export default function GamifiedCoursesDashboard() {
   const masteryLevel = user?.level || 1;
   const examsPassedCount = user?.examsPassed || 0;
   const currentStreak = user?.currentStreak || 0;
+  const tasksCompletedCount = user?.tasksCompleted || 0;
+  const studyTimeHours = Math.round((user?.totalStudyTime || 0) / 60);
 
   if (loading) {
     return (

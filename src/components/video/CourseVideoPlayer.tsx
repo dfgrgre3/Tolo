@@ -70,6 +70,8 @@ import type {
   YouTubeRuntimePlayer,
 } from "./player/types";
 
+export type { CourseVideoPlayerApi } from "./player/types";
+
 // Utils
 import {
   clamp,
@@ -825,4 +827,3 @@ export function CourseVideoPlayer({
     </div>
   );
 }
-

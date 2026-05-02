@@ -1,0 +1,7 @@
+﻿{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://agentrouter.org/",
+    "ANTHROPIC_API_KEY": "sk-5z5s4LHxaxBwtSoHKeb0tHSfvz6oFaYxfvtn1Vh1Y9bOOItw",
+    "ANTHROPIC_MODEL": "deepseek-v3.2"
+  }
+}

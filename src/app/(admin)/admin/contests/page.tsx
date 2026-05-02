@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import {
-  Gamepad2,
+  Trophy,
   Play,
   Users,
   Timer,
@@ -14,7 +14,8 @@ import {
   Settings2,
   StopCircle,
   QrCode,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -141,19 +142,19 @@ export default function ContestsPage() {
   const currentQuestion = activeLobby && activeLobby.currentQuestion > 0 ? activeLobby.questions[activeLobby.currentQuestion - 1] : undefined;
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10" dir="rtl">
       <PageHeader
-        title="المسابقات الحية (Live Contests Arena)"
-        description="نظام Kahoot المُصغر لبناء قاعات المسابقات، واختبار التفاعل الحيّ بين مجموعات المحاربين مع نظام نقاط فوري."
+        title="إدارة المسابقات التفاعلية"
+        description="نظام إدارة قاعات المسابقات التفاعلية لبناء بيئة تعليمية محفزة مع نظام نقاط فوري وتفاعل مباشر."
       >
         {!activeLobby || activeLobby.status === "FINISHED" ? (
           <AdminButton onClick={() => setShowConfig(!showConfig)} icon={Plus}>
-             إنشاء ساحة معركة جديدة
+             إطلاق مسابقة جديدة
           </AdminButton>
         ) : (
           <div className="flex bg-accent rounded-xl p-1 border">
              <div className="px-4 py-2 bg-background shadow-sm rounded-lg text-sm font-bold flex items-center gap-2 text-primary">
-                <Gamepad2 className="w-4 h-4" />
+                <Trophy className="w-4 h-4" />
                 توجد مسابقة نشطة حالياً
              </div>
           </div>
@@ -204,7 +205,7 @@ export default function ContestsPage() {
                                <div className="flex items-center gap-1">
                                   <Users className="w-3 h-3" />
                                   <span>{contest.participantsCount || 0} مشارك</span>
-                               </div>
+                                </div>
                             </div>
                          </div>
                       ))
@@ -240,7 +241,7 @@ export default function ContestsPage() {
                           {activeLobby.pinCode}
                        </div>
                        <div className="flex flex-col">
-                         <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">غرفة التحدي النشطة</span>
+                         <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">غرفة المسابقة النشطة</span>
                          <h2 className="font-bold text-lg leading-none mt-1">{activeLobby.title}</h2>
                        </div>
                     </div>
@@ -294,14 +295,14 @@ export default function ContestsPage() {
                                 </m.div>
                              ))}
                              {activeLobby.players.length === 0 && (
-                                <p className="text-muted-foreground font-bold animate-pulse text-sm">بانتظار دخول المحاربين...</p>
+                                <p className="text-muted-foreground font-bold animate-pulse text-sm">بانتظار انضمام المشاركين...</p>
                              )}
                           </div>
                           
                           {activeLobby.players.length > 0 && (
                              <div className="mt-12 flex justify-center">
                                <AdminButton size="lg" icon={Play} onClick={startGame} className="h-16 px-12 rounded-full text-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)]">
-                                 ابدأ المعركة! (Start Game)
+                                 ابدأ المسابقة الآن!
                                </AdminButton>
                              </div>
                           )}

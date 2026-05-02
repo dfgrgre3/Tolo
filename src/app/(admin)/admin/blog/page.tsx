@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -8,14 +8,14 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Eye, FileText, Calendar, Globe, 
-  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight, Search
+  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight, Search, Edit, Trash2
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
@@ -63,9 +63,9 @@ interface BlogPostsResponse {
 }
 
 const blogPostSchema = z.object({
-  title: z.string().min(1, "عنوان المخطوطة مطلوب"),
-  slug: z.string().min(1, "رمز الاستدعاء (Slug) مطلوب"),
-  content: z.string().min(1, "متن المخطوطة مطلوب"),
+  title: z.string().min(1, "عنوان المقال مطلوب"),
+  slug: z.string().min(1, "الرابط المختصر (Slug) مطلوب"),
+  content: z.string().min(1, "محتوى المقال مطلوب"),
   excerpt: z.string().optional(),
   isPublished: z.boolean(),
 });
@@ -152,11 +152,11 @@ export default function AdminBlogPage() {
       });
 
       if (response.ok) {
-        toast.success(editingPost ? "تم تحديث المخطوطة" : "تم حفظ المخطوطة في المكتبة الملكية");
+        toast.success(editingPost ? "تم تحديث المقال بنجاح" : "تم حفظ المقال في المدونة بنجاح");
         setDialogOpen(false);
         refetch();
       } else {
-        toast.error("فشل في حفظ المخطوطة");
+        toast.error("فشل في حفظ المقال");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -173,10 +173,10 @@ export default function AdminBlogPage() {
       });
 
       if (response.ok) {
-        toast.success("تم إتلاف المخطوطة بنجاح");
+        toast.success("تم حذف المقال بنجاح");
         refetch();
       } else {
-        toast.error("فشل في الإتلاف");
+        toast.error("فشل في حذف المقال");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -188,7 +188,7 @@ export default function AdminBlogPage() {
   const columns: ColumnDef<BlogPost>[] = [
     {
       accessorKey: "title",
-      header: "المخطوطة (المقال)",
+      header: "المقال",
       cell: ({ row }) => {
         const post = row.original;
         return (
@@ -211,7 +211,7 @@ export default function AdminBlogPage() {
     },
     {
       id: "stats",
-      header: "إحصائيات القراء",
+      header: "الإحصائيات",
       cell: ({ row }) => {
         const post = row.original;
         return (
@@ -242,14 +242,14 @@ export default function AdminBlogPage() {
                 : "bg-amber-500/5 text-amber-500 border-amber-500/20"
             }`}
           >
-            {published ? "منشور للعامة" : "مسودة خاصة"}
+            {published ? "منشور" : "مسودة"}
           </Badge>
         );
       },
     },
     {
       accessorKey: "createdAt",
-      header: "تاريخ التدوين",
+      header: "تاريخ النشر",
       cell: ({ row }) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-3.5 h-3.5" />
@@ -259,14 +259,14 @@ export default function AdminBlogPage() {
     },
     {
       id: "actions",
-      header: "التحكم بالعلم",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
           onEdit={handleOpenDialog}
           onDelete={(p) => setDeleteDialog({ open: true, id: p.id })}
           extraActions={[
-            { icon: ArrowUpRight, label: "معاينة في المدونة", onClick: (p) => window.open(`/blog/${p.slug}`, "_blank") },
+            { icon: ArrowUpRight, label: "معاينة المقال", onClick: (p) => window.open(`/blog/${p.slug}`, "_blank") },
           ]}
         />
       ),
@@ -276,20 +276,20 @@ export default function AdminBlogPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مكتبة المخطوطات الملكية (Blog) 📚"
-        description="دون المعرفة، شارك القصص، والهم المحاربين بمقالاتك الفريدة في أرجاء المملكة."
+        title="إدارة المدونة التعليمية 📚"
+        description="إدارة المقالات، الأخبار، والمحتوى التعليمي للمنصة."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          تدوين مخطوطة جديدة
+          إضافة مقال جديد
         </AdminButton>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "إجمالي المخطوطات", value: posts.length, icon: BookOpen, color: "blue" },
-          { label: "مخطوطات منشورة", value: posts.filter(p => p.isPublished).length, icon: Globe, color: "emerald" },
-          { label: "إجمالي القراءات", value: posts.reduce((acc, p) => acc + p.views, 0), icon: TrendingUp, color: "purple" },
-          { label: "مسودات قيد العمل", value: posts.filter(p => !p.isPublished).length, icon: Lock, color: "amber" },
+          { label: "إجمالي المقالات", value: posts.length, icon: BookOpen, color: "blue" },
+          { label: "مقالات منشورة", value: posts.filter(p => p.isPublished).length, icon: Globe, color: "emerald" },
+          { label: "إجمالي المشاهدات", value: posts.reduce((acc, p) => acc + p.views, 0), icon: TrendingUp, color: "purple" },
+          { label: "مسودات", value: posts.filter(p => !p.isPublished).length, icon: Lock, color: "amber" },
         ].map((stat, i) => (
           <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
             <div className="flex items-center gap-4">
@@ -324,7 +324,7 @@ export default function AdminBlogPage() {
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="???? ?? ????? ???????"
+              placeholder="ابحث عن مقال..."
               className="h-10 w-72 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
             />
           </div>
@@ -337,10 +337,10 @@ export default function AdminBlogPage() {
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-2xl font-black">
-                {editingPost ? "تنقيح المخطوطة" : "تدوين علم جديد"}
+                {editingPost ? "تعديل المقال" : "إضافة مقال جديد"}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                اكتب كلماتك بدقة، فالمعرفة هي أعظم سلاح في مملكتنا.
+                قم بكتابة وتنسيق المقال التعليمي لنشره للطلاب.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -351,8 +351,8 @@ export default function AdminBlogPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان المخطوطة</FormLabel>
-                        <FormControl><Input {...field} placeholder="أسرار المحارب القديم..." className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان المقال</FormLabel>
+                        <FormControl><Input {...field} placeholder="أسرار النجاح في..." className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -362,8 +362,8 @@ export default function AdminBlogPage() {
                     name="slug"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رمز الاستدعاء (Slug)</FormLabel>
-                        <FormControl><Input {...field} dir="ltr" placeholder="secrets-of-warrior" className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الرابط المختصر (Slug)</FormLabel>
+                        <FormControl><Input {...field} dir="ltr" placeholder="article-slug-here" className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -375,7 +375,7 @@ export default function AdminBlogPage() {
                   name="excerpt"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">موجز قصير (الملخص)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">ملخص المقال</FormLabel>
                       <FormControl><Textarea {...field} rows={2} className="rounded-2xl border-white/10 bg-white/5 p-4 font-medium" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -387,7 +387,7 @@ export default function AdminBlogPage() {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">متن العلم (المحتوى)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">محتوى المقال</FormLabel>
                       <FormControl><Textarea {...field} rows={10} className="rounded-2xl border-white/10 bg-white/5 p-6 font-medium leading-relaxed" /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -401,7 +401,7 @@ export default function AdminBlogPage() {
                     <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5">
                       <div>
                         <FormLabel className="font-black text-xs">نشر للعامة؟</FormLabel>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل الظهور في مكتبة المملكة الآن</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل ظهور المقال في المدونة الآن</p>
                       </div>
                       <FormControl>
                         <Switch
@@ -415,7 +415,7 @@ export default function AdminBlogPage() {
 
                 <DialogFooter className="pt-4">
                   <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
-                    {editingPost ? "تحديث المخطوطة" : "حفظ في المكتبة"}
+                    {editingPost ? "تحديث المقال" : "حفظ المقال"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -424,12 +424,12 @@ export default function AdminBlogPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="إتلاف المخطوطة؟"
-        description="هل أنت متأكد من حرق هذه المخطوطة؟ لن يتمكن أي باحث عن العلم من قراءتها مجدداً."
-        confirmText="نعم، احرقها"
+        title="حذف المقال نهائياً؟"
+        description="هل أنت متأكد من حذف هذا المقال؟ سيتم إزالته من السجلات ولن يتمكن الطلاب من قراءته مجدداً."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete}
       />

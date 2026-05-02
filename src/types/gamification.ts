@@ -61,6 +61,9 @@ export interface CustomGoal {
   targetValue: number;
   currentValue: number;
   type: string;
+  unit?: string;
+  category?: string;
+  xpReward?: number;
   isCompleted: boolean;
   deadline?: string;
   createdAt: string;

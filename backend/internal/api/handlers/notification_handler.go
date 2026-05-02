@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 
-	"github.com/gin-gonic/gin"
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 )
 
 func GetNotifications(c *gin.Context) {
@@ -16,8 +17,20 @@ func GetNotifications(c *gin.Context) {
 		return
 	}
 
+	limitStr := c.DefaultQuery("limit", "20")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 20
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
 	var notifications []models.Notification
-	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Find(&notifications).Error; err != nil {
+	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(limit).Offset(offset).Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
 		return
 	}
@@ -36,7 +49,7 @@ func MarkNotificationRead(c *gin.Context) {
 		ID string `json:"id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

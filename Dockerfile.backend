@@ -1,32 +1,33 @@
 # Build stage
 FROM golang:1.23-alpine AS builder
 
+# Install build dependencies
+RUN apk add --no-cache git
+
 WORKDIR /app
 
-# Copy go mod and sum files
+# Cache dependencies
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 # Copy the source code
 COPY backend/ .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api/main.go
+# Build with optimizations
+# -ldflags="-s -w" reduces binary size by removing symbol table and debug info
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o main ./cmd/api/main.go
 
-# Final stage
-FROM alpine:latest
+# Final stage: Use distroless for minimum size and maximum security
+FROM gcr.io/distroless/static:latest
 
 WORKDIR /app
-
-# Install curl for healthcheck
-RUN apk add --no-cache curl
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
 
-# Copy .env if needed (though env vars are usually passed via docker-compose)
-# COPY backend/.env .
+# Use non-root user for security
+USER nonroot:nonroot
 
 EXPOSE 8080
 
-CMD ["./main"]
+ENTRYPOINT ["./main"]

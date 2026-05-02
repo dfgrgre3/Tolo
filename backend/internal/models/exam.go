@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type ExamType string
@@ -23,7 +23,7 @@ type Exam struct {
 	MaxScore  float64   `gorm:"default:100" json:"maxScore"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
-	
+
 	// Relations
 	Subject   Subject    `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"subject,omitempty"`
 	Questions []Question `gorm:"foreignKey:ExamID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
@@ -34,8 +34,8 @@ type Question struct {
 	ExamID  string `gorm:"not null;index;type:text" json:"examId"`
 	Text    string `gorm:"not null;type:text" json:"text"`
 	Type    string `gorm:"default:'MCQ'" json:"type"` // MCQ, TRUE_FALSE, TEXT
-	Options string `gorm:"type:text" json:"options"` // JSON string of options
-	Answer  string `gorm:"not null" json:"-"` // Hidden from API responses for security
+	Options string `gorm:"type:text" json:"options"`  // JSON string of options
+	Answer  string `gorm:"not null" json:"-"`         // Hidden from API responses for security
 }
 
 func (Question) TableName() string {

@@ -72,6 +72,68 @@ const getDeviceInfo = () => {
 
 // --- Sub-components ---
 
+function SecurityBit({ delay = 0 }) {
+  return (
+    <m.div
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ 
+        opacity: [0, 0.2, 0],
+        scale: [0.5, 1.2, 0.5],
+        y: [-20, -100],
+        x: [0, Math.random() * 40 - 20]
+      }}
+      transition={{ 
+        duration: 4, 
+        repeat: Infinity, 
+        delay,
+        ease: "linear"
+      }}
+      className="w-1 h-1 bg-primary/40 rounded-full blur-[1px]"
+    />
+  );
+}
+
+function ProcessingState() {
+  return (
+    <div className="flex flex-col items-center justify-center space-y-12 py-20">
+      <div className="relative">
+        <m.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="w-48 h-48 rounded-full border-2 border-primary/10 border-t-primary/40"
+        />
+        <m.div 
+          animate={{ rotate: -360 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-4 rounded-full border-2 border-white/5 border-b-primary/30"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <m.div
+            animate={{ 
+              scale: [1, 1.1, 1],
+              opacity: [0.5, 1, 0.5]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-20 h-20 rounded-[2rem] bg-primary/10 border border-primary/30 flex items-center justify-center shadow-[0_0_50px_rgba(255,109,0,0.2)]"
+          >
+            <ShieldCheck className="text-primary w-10 h-10" />
+          </m.div>
+        </div>
+      </div>
+      <div className="text-center space-y-4">
+        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">جاري المصادقة الآمنة</h2>
+        <div className="flex items-center justify-center gap-3">
+          <span className="flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+          </span>
+          <p className="text-primary/50 text-[10px] font-black uppercase tracking-[0.4em]">Establishing Neural Link</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OTPInput({ value, onChange, disabled }: { value: string, onChange: (val: string) => void, disabled?: boolean }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   
@@ -135,23 +197,26 @@ function PremiumInput({
   const [hasValue, setHasValue] = useState(false);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 group/input">
       <m.div 
         animate={{ 
-          borderColor: isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.1)",
-          backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.05)"
+          borderColor: error ? "rgba(239,68,68,0.4)" : (isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.08)"),
+          backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+          scale: isFocused ? 1.01 : 1,
         }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         className={cn(
-          "relative border rounded-2xl overflow-hidden transition-shadow duration-300",
-          isFocused ? "ring-4 ring-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" : "",
-          error ? "border-red-500/50" : ""
+          "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
+          isFocused ? "shadow-[0_0_25px_rgba(255,109,0,0.15)]" : "shadow-sm",
+          error ? "ring-2 ring-red-500/20" : ""
         )}
       >
         <div className={cn(
-          "absolute right-4 top-1/2 -translate-y-1/2 transition-colors duration-300",
-          isFocused ? "text-primary" : "text-gray-500"
+          "absolute right-5 top-1/2 -translate-y-1/2 transition-all duration-300 z-10",
+          isFocused ? "text-primary scale-110" : "text-gray-500",
+          error ? "text-red-400" : ""
         )}>
-          <Icon size={20} strokeWidth={2.5} />
+          <Icon size={22} strokeWidth={2.5} />
         </div>
         
         <input
@@ -169,7 +234,7 @@ function PremiumInput({
           }}
           placeholder=" "
           className={cn(
-            "peer w-full h-16 pr-12 pl-6 text-white text-base font-bold outline-none bg-transparent"
+            "peer w-full h-16 pr-14 pl-6 text-white text-base font-bold outline-none bg-transparent relative z-0"
           )}
         />
         
@@ -177,10 +242,11 @@ function PremiumInput({
           animate={{
             y: (isFocused || hasValue) ? -18 : 0,
             scale: (isFocused || hasValue) ? 0.75 : 1,
-            color: isFocused ? "rgba(255,109,0,0.8)" : "rgba(107,114,128,1)"
+            x: (isFocused || hasValue) ? 10 : 0,
+            color: error ? "rgba(239,68,68,1)" : (isFocused ? "rgba(255,109,0,0.9)" : "rgba(107,114,128,1)")
           }}
           className={cn(
-            "absolute right-12 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all",
+            "absolute right-14 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all z-10",
             (isFocused || hasValue) ? "text-[10px]" : "text-sm"
           )}
         >
@@ -191,22 +257,22 @@ function PremiumInput({
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2.5 z-20"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         )}
       </m.div>
       <AnimatePresence>
         {error && (
           <m.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="flex items-center gap-1 px-2 overflow-hidden"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="flex items-center gap-2 px-3 overflow-hidden"
           >
-            <ShieldAlert size={12} className="text-red-500" />
-            <p className="text-[10px] font-black text-red-500 uppercase tracking-tight">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <p className="text-[11px] font-black text-red-400 uppercase tracking-tight">
               {error.message}
             </p>
           </m.div>
@@ -221,7 +287,7 @@ function PremiumInput({
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA } = useAuth();
+  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA, requestMagicLink, resendVerification } = useAuth();
   
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -311,19 +377,14 @@ function LoginForm() {
 
     try {
       const email = getValues('email');
-      const res = await fetch('/api/auth/magic-link/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const result = await requestMagicLink(email);
+      
+      if (result.success) {
         toast.success('تم إرسال رابط الدخول السحري');
         setErrorStatus('تفقد بريدك الإلكتروني للحصول على رابط الدخول السريع.');
       } else {
-        setErrorStatus(data.error || 'فشل إرسال رابط الدخول.');
-        toast.error(data.error || 'حدث خطأ أثناء طلب الرابط');
+        setErrorStatus(result.error || 'فشل إرسال رابط الدخول.');
+        toast.error(result.error || 'حدث خطأ أثناء طلب الرابط');
       }
     } catch (_err) {
       toast.error('خطأ في الاتصال بالخادم');
@@ -354,30 +415,15 @@ function LoginForm() {
 
   if (isAuthLoading || isAuthenticated) {
     return (
-      <m.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex min-h-screen flex-col items-center justify-center space-y-12 text-center bg-[#050505]"
-      >
-        <div className="relative">
-          <m.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="h-40 w-40 rounded-full border-[10px] border-primary/10 border-t-primary shadow-[0_0_80px_rgba(var(--primary),0.3)]" 
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-             <Bot className="h-16 w-16 text-primary animate-pulse" />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-4xl font-black text-white tracking-[0.3em] uppercase">المعالجة الآمنة</h2>
-          <div className="text-[12px] font-black text-primary/60 uppercase tracking-[0.5em] flex items-center justify-center gap-4">
-            <span className="w-24 h-px bg-primary/20" />
-            جاري المزامنة مع النظام
-            <span className="w-24 h-px bg-primary/20" />
-          </div>
-        </div>
-      </m.div>
+      <div className="min-h-screen bg-[#020202] flex items-center justify-center p-4">
+        <m.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-[600px]"
+        >
+          <ProcessingState />
+        </m.div>
+      </div>
     );
   }
 
@@ -387,78 +433,94 @@ function LoginForm() {
       <div className="absolute inset-0 pointer-events-none">
         <m.div 
           animate={{ 
-            opacity: [0.1, 0.2, 0.1],
-            scale: [1, 1.1, 1]
+            opacity: [0.1, 0.15, 0.1],
+            scale: [1, 1.05, 1]
           }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(255,109,0,0.1),transparent_40%)]" 
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(255,109,0,0.12),transparent_45%)]" 
         />
-        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.05),transparent_40%)]" />
+        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
+        
+        {/* Animated Security Bits */}
+        <div className="absolute inset-0 overflow-hidden">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div key={i} className="absolute" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}>
+              <SecurityBit delay={Math.random() * 5} />
+            </div>
+          ))}
+        </div>
+
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
         
         {/* Decorative Grid */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
       </div>
 
       <m.div 
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        initial={{ opacity: 0, y: 20, scale: 0.99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden rounded-[2.5rem] border border-white/5 bg-black/60 backdrop-blur-3xl shadow-[0_40px_120px_rgba(0,0,0,0.9)]"
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)]"
       >
         
         {/* Left Panel: Visual/Security Context (Visible on Desktop) */}
-        <div className="hidden lg:flex flex-col justify-between p-16 bg-gradient-to-br from-white/[0.02] to-transparent border-l border-white/5">
-          <div className="space-y-12">
+        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-16 bg-gradient-to-br from-white/[0.03] to-transparent border-l border-white/5 relative group">
+          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          
+          <div className="space-y-16 relative z-10">
             <m.div 
-              initial={{ x: 20, opacity: 0 }}
+              initial={{ x: 30, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center gap-4"
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-5"
             >
-              <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                <ShieldCheck className="text-primary w-6 h-6" />
+              <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(255,109,0,0.2)]">
+                <ShieldCheck className="text-primary w-7 h-7" />
               </div>
               <div>
-                <h4 className="text-white font-black text-lg">نظام تولو الموحد</h4>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">TLS 1.3 | SHA-256 AES</p>
+                <h4 className="text-white font-black text-xl tracking-tight">نظام تولو الموحد</h4>
+                <p className="text-primary/50 text-[10px] font-black uppercase tracking-[0.3em]">Quantum-Ready Auth</p>
               </div>
             </m.div>
 
-            <div className="space-y-10">
+            <div className="space-y-12">
               <m.div 
-                initial={{ y: 20, opacity: 0 }}
+                initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="space-y-4"
+                transition={{ delay: 0.4 }}
+                className="space-y-6"
               >
-                <h2 className="text-5xl font-black text-white leading-tight">
-                  ولوج آمن<br />
-                  <span className="text-primary">لهويتك الرقمية</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-2">
+                  <Sparkles size={12} />
+                  إصدار 2.5 المستقر
+                </div>
+                <h2 className="text-6xl font-black text-white leading-[1.1] tracking-tighter">
+                  ولوج ذكي<br />
+                  <span className="text-primary">لمستقبلك</span>
                 </h2>
                 <p className="text-gray-400 text-lg font-medium leading-relaxed max-w-sm">
-                  استخدم مفاتيح التشفير المتقدمة للوصول إلى كافة خدمات المنصة التعليمية بخصوصية تامة.
+                  استمتع بتجربة تعليمية فريدة مدعومة بأقوى أنظمة التشفير والحماية العالمية.
                 </p>
               </m.div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-5">
                 {[
-                  { icon: Fingerprint, label: "بصمة رقمية", sub: "مشفرة بالكامل" },
-                  { icon: Globe, label: "وصول عالمي", sub: "سحابة موزعة" },
-                  { icon: Zap, label: "أداء فائق", sub: "استجابة فورية" },
-                  { icon: History, label: "سجل الأمان", sub: "مراقبة حية" }
+                  { icon: Fingerprint, label: "بصمة رقمية", sub: "AES-256 GCM" },
+                  { icon: Globe, label: "سحابة تولو", sub: "Edge Network" },
+                  { icon: Zap, label: "ذكاء اصطناعي", sub: "Adaptive Security" },
+                  { icon: History, label: "سجل الأمان", sub: "Live Monitoring" }
                 ].map((item, idx) => (
                   <m.div 
                     key={idx}
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.4 + idx * 0.1 }}
-                    className="p-5 rounded-3xl bg-white/5 border border-white/5 space-y-3 hover:bg-white/10 transition-colors cursor-default"
+                    transition={{ delay: 0.5 + idx * 0.1 }}
+                    className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4 hover:bg-white/10 hover:border-primary/20 transition-all cursor-default group/card"
                   >
-                    <item.icon className="text-primary w-6 h-6" />
+                    <item.icon className="text-primary w-6 h-6 group-hover/card:scale-110 transition-transform" />
                     <div>
                       <div className="text-white font-bold text-sm">{item.label}</div>
-                      <div className="text-gray-500 text-[10px] uppercase font-black tracking-widest">{item.sub}</div>
+                      <div className="text-gray-500 text-[9px] uppercase font-black tracking-widest group-hover/card:text-primary/60 transition-colors">{item.sub}</div>
                     </div>
                   </m.div>
                 ))}
@@ -467,60 +529,81 @@ function LoginForm() {
           </div>
 
           <m.div 
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="flex items-center gap-6 p-6 rounded-3xl bg-primary/5 border border-primary/10"
+            transition={{ delay: 0.9 }}
+            className="flex items-center gap-6 p-7 rounded-[2rem] bg-primary/5 border border-primary/10 backdrop-blur-md"
           >
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-              <Cpu className="text-primary w-5 h-5 animate-pulse" />
+            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 border border-primary/20 shadow-inner">
+              <Cpu className="text-primary w-6 h-6 animate-pulse" />
             </div>
-            <div className="space-y-1">
-              <p className="text-white font-black text-xs">سجل الولوج الحالي</p>
-              <p className="text-gray-400 text-[10px] font-medium leading-none">
-                {deviceInfo.browser} على {deviceInfo.os} | TR-Node-X1
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-white font-black text-xs uppercase tracking-wider">الجهاز موثوق</p>
+              </div>
+              <p className="text-gray-500 text-[10px] font-bold leading-none">
+                {deviceInfo.browser} / {deviceInfo.os} | <span className="text-primary/40">Secure Node #781</span>
               </p>
             </div>
           </m.div>
         </div>
 
         {/* Right Panel: Login Form */}
-        <div className="p-8 md:p-16 lg:p-20 bg-[#080808]/40">
-          <div className="max-w-[420px] mx-auto space-y-10">
+        <div className="lg:col-span-7 p-10 md:p-16 lg:p-24 bg-[#080808]/50 flex flex-col justify-center">
+          <div className="max-w-[440px] mx-auto w-full space-y-12">
             {/* Mobile Header */}
-            <div className="lg:hidden text-center space-y-4 mb-8">
-               <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                  <ShieldCheck className="text-primary w-8 h-8" />
+            <div className="lg:hidden text-center space-y-6 mb-12">
+               <div className="mx-auto w-20 h-20 rounded-[2rem] bg-primary/20 border border-primary/30 flex items-center justify-center shadow-2xl">
+                  <ShieldCheck className="text-primary w-10 h-10" />
                </div>
-               <h1 className="text-3xl font-black text-white">بوابة تولو</h1>
+               <div className="space-y-2">
+                 <h1 className="text-4xl font-black text-white">تولو التعليمية</h1>
+                 <p className="text-primary/60 text-xs font-black uppercase tracking-[0.4em]">Integrated Learning</p>
+               </div>
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-3xl font-black text-white tracking-tight">تسجيل الدخول</h3>
-              <p className="text-gray-500 font-bold text-sm">أدخل بيانات الهوية للمتابعة</p>
+            <div className="space-y-3">
+              <m.h3 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-4xl font-black text-white tracking-tight"
+              >
+                تسجيل الدخول
+              </m.h3>
+              <m.p 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-gray-500 font-bold text-sm"
+              >
+                أدخل بيانات الهوية الرقمية للمتابعة إلى حسابك
+              </m.p>
             </div>
 
             <AnimatePresence mode="wait">
               {!requires2FA ? (
                 <m.div 
                   key="login-form"
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 30 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-8"
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.4, ease: "circOut" }}
+                  className="space-y-10"
                 >
                   {/* Error Banner */}
                   <AnimatePresence>
                     {errorStatus && (
                       <m.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-3"
+                        className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-4 shadow-2xl backdrop-blur-xl"
                       >
-                        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                        <div className="flex-1 space-y-1">
+                        <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+                          <AlertCircle className="h-6 w-6" />
+                        </div>
+                        <div className="flex-1 space-y-2 pt-1">
                           <p>{errorStatus}</p>
                           {errorStatus.includes('تفعيل') && (
                             <button
@@ -531,20 +614,16 @@ function LoginForm() {
                                   toast.error('يرجى إدخال البريد الإلكتروني أولاً');
                                   return;
                                 }
-                                const promise = fetch('/api/auth/resend-verification', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ email })
-                                });
+                                const promise = resendVerification(email);
                                 toast.promise(promise, {
                                   loading: 'جاري إرسال رابط التفعيل...',
                                   success: 'تم إرسال الرابط بنجاح!',
                                   error: 'فشل إرسال الرابط.'
                                 });
                               }}
-                              className="text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary transition-colors"
+                              className="text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
                             >
-                              إعادة إرسال الرابط
+                              إعادة إرسال الرابط <ArrowRight size={10} className="rotate-180" />
                             </button>
                           )}
                         </div>
@@ -555,7 +634,7 @@ function LoginForm() {
                   <form 
                     noValidate
                     onSubmit={handleSubmit(onSubmit)} 
-                    className="space-y-6"
+                    className="space-y-7"
                   >
                     <PremiumInput
                       label="البريد الإلكتروني"
@@ -569,13 +648,16 @@ function LoginForm() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2 overflow-hidden"
+                        className="space-y-3 overflow-hidden"
                       >
                         <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">تشفير AES-256</span>
+                          <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Lock size={10} className="text-primary/40" />
+                            تشفير طرف لـ طرف
+                          </span>
                           <Link 
                             href="/forgot-password" 
-                            className="text-[10px] font-black text-primary/60 hover:text-primary transition-colors uppercase tracking-widest"
+                            className="text-[10px] font-black text-primary/60 hover:text-primary transition-colors uppercase tracking-widest border-b border-primary/10 hover:border-primary"
                           >
                             نسيت كلمة السر؟
                           </Link>
@@ -594,21 +676,25 @@ function LoginForm() {
                     )}
 
                     <div className="flex items-center justify-between px-2">
-                      <label className="flex items-center gap-3 cursor-pointer group select-none">
+                      <label className="flex items-center gap-4 cursor-pointer group select-none">
                         <div className="relative">
                           <input
                             {...register('rememberMe')}
                             type="checkbox"
                             className="peer sr-only"
                           />
-                          <div className="w-6 h-6 rounded-lg border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center">
+                          <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
                             <m.div 
-                              animate={{ scale: getValues('rememberMe') ? 1 : 0, opacity: getValues('rememberMe') ? 1 : 0 }}
-                              className="w-3 h-3 rounded-sm bg-primary shadow-[0_0_10px_rgba(255,109,0,0.5)]" 
+                              animate={{ 
+                                scale: getValues('rememberMe') ? 1 : 0, 
+                                opacity: getValues('rememberMe') ? 1 : 0,
+                                rotate: getValues('rememberMe') ? 0 : -45
+                              }}
+                              className="w-3.5 h-3.5 rounded-md bg-primary shadow-[0_0_15px_rgba(255,109,0,0.6)]" 
                             />
                           </div>
                         </div>
-                        <span className="text-[11px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-widest transition-colors">
+                        <span className="text-[11px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-[0.2em] transition-colors">
                           تذكر هويتي
                         </span>
                       </label>
@@ -616,7 +702,7 @@ function LoginForm() {
                       <button
                         type="button"
                         onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
-                        className="flex items-center gap-2 text-[11px] font-black text-primary/70 hover:text-primary uppercase tracking-widest transition-colors group"
+                        className="flex items-center gap-3 text-[11px] font-black text-primary/70 hover:text-primary uppercase tracking-[0.15em] transition-all group px-4 py-2 rounded-xl bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20"
                       >
                         {loginMode === 'password' ? (
                           <>
@@ -632,116 +718,129 @@ function LoginForm() {
                       </button>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-6">
                       <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="h-16 w-full rounded-2xl bg-primary text-black font-black text-lg relative overflow-hidden transition-all active:scale-[0.98] shadow-[0_15px_30px_rgba(255,109,0,0.2)]"
+                        className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl relative overflow-hidden transition-all active:scale-[0.97] shadow-[0_20px_40px_rgba(255,109,0,0.3)] hover:shadow-primary/40 group"
                       >
                         <m.div 
-                          className="absolute inset-0 bg-white/20"
-                          initial={{ y: "100%" }}
-                          whileHover={{ y: 0 }}
-                          transition={{ duration: 0.3 }}
+                          className="absolute inset-0 bg-white/30"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: "100%" }}
+                          transition={{ duration: 0.6 }}
                         />
                         {isSubmitting ? (
-                          <div className="flex items-center justify-center gap-3">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            <span>جاري التحقق...</span>
+                          <div className="flex items-center justify-center gap-4">
+                            <Loader2 className="h-7 w-7 animate-spin" />
+                            <span className="uppercase tracking-widest">جاري التحقق...</span>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-4 relative z-10">
-                            <span className="uppercase tracking-[0.2em]">
+                          <div className="flex items-center justify-center gap-5 relative z-10">
+                            <span className="uppercase tracking-[0.3em]">
                               {loginMode === 'password' ? 'تأكيـد الـولـوج' : 'إرسـال رابـط الـولـوج'}
                             </span>
-                            <ArrowRight className="h-5 w-5 rotate-180 group-hover:-translate-x-2 transition-transform" />
+                            <m.div
+                              animate={{ x: [0, -5, 0] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                            >
+                              <ArrowRight className="h-6 w-6 rotate-180" />
+                            </m.div>
                           </div>
                         )}
                       </Button>
                     </div>
                   </form>
 
-                  <div className="relative py-4">
-                    <div className="absolute inset-x-0 top-1/2 h-px bg-white/5" />
-                    <span className="relative block mx-auto w-fit bg-[#080808] px-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-600">
+                  <div className="relative py-2">
+                    <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
+                    <span className="relative block mx-auto w-fit bg-[#080808] px-6 text-[11px] font-black uppercase tracking-[0.4em] text-gray-600">
                       أو عبر المنصات
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-5">
                     <m.button
-                      whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.1)" }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
-                      className="flex items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5 h-16 transition-colors"
+                      className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
                     >
                       <Chrome className="h-5 w-5 text-red-500" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Google</span>
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Google</span>
                     </m.button>
                     <m.button
-                      whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.1)" }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
-                      className="flex items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5 h-16 transition-colors"
+                      className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
                     >
                       <Github className="h-5 w-5 text-white" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Github</span>
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Github</span>
                     </m.button>
                   </div>
                 </m.div>
               ) : (
                 <m.div 
                   key="2fa-form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-10"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.4, ease: "backOut" }}
+                  className="space-y-12"
                 >
-                  <div className="text-center space-y-6">
+                  <div className="text-center space-y-8">
                     <m.div 
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="mx-auto h-24 w-24 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center"
+                      animate={{ 
+                        boxShadow: ["0 0 20px rgba(255,109,0,0.2)", "0 0 50px rgba(255,109,0,0.4)", "0 0 20px rgba(255,109,0,0.2)"],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="mx-auto h-28 w-28 rounded-[2.5rem] bg-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-xl"
                     >
-                      <Zap className="h-12 w-12 text-primary" />
+                      <Zap className="h-14 w-14 text-primary" />
                     </m.div>
-                    <div className="space-y-2">
-                      <h3 className="text-3xl font-black text-white uppercase tracking-tight">الدرع المزدوج</h3>
-                      <p className="text-gray-400 font-medium">أدخل رمز الحماية المكون من 6 أرقام</p>
+                    <div className="space-y-3">
+                      <h3 className="text-4xl font-black text-white uppercase tracking-tight">الدرع المزدوج</h3>
+                      <p className="text-gray-400 font-medium">أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية</p>
                     </div>
                   </div>
 
-                  <form onSubmit={onVerify2FA} className="space-y-10">
+                  <form onSubmit={onVerify2FA} className="space-y-12">
                     <OTPInput 
                       value={twoFactorCode} 
                       onChange={setTwoFactorCode} 
                       disabled={isSubmitting} 
                     />
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <Button
                         type="submit"
                         disabled={isSubmitting || twoFactorCode.length < 6}
-                        className="h-16 w-full rounded-2xl bg-primary text-black font-black text-lg shadow-2xl transition-all active:scale-[0.98] group relative overflow-hidden"
+                        className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl shadow-[0_25px_50px_rgba(255,109,0,0.3)] transition-all active:scale-[0.97] group relative overflow-hidden"
                       >
                          <m.div 
-                            className="absolute inset-0 bg-white/20"
+                            className="absolute inset-0 bg-white/30"
                             initial={{ y: "100%" }}
                             whileHover={{ y: 0 }}
                             transition={{ duration: 0.3 }}
                           />
-                         <span className="relative z-10">
-                          {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "تحقق وآمن"}
+                         <span className="relative z-10 flex items-center justify-center gap-3">
+                          {isSubmitting ? <Loader2 className="h-7 w-7 animate-spin" /> : (
+                            <>
+                              <Shield size={22} />
+                              تحقق وآمن
+                            </>
+                          )}
                          </span>
                       </Button>
 
                       <button
                         type="button"
                         onClick={() => setRequires2FA(false)}
-                        className="w-full text-[11px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.3em]"
+                        className="w-full text-[12px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center justify-center gap-2"
                       >
-                        العودة للخلف
+                        <ArrowRight size={14} /> العودة للخلف
                       </button>
                     </div>
                   </form>
@@ -753,24 +852,29 @@ function LoginForm() {
             <m.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="pt-10 border-t border-white/5 text-center space-y-6"
+              transition={{ delay: 1.2 }}
+              className="pt-12 border-t border-white/5 text-center space-y-8"
             >
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-loose">
-                لا تمتلك هوية رقمية؟<br />
-                <Link href="/register" className="font-black text-white hover:text-primary transition-all border-b border-white/20 hover:border-primary pb-0.5">
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-loose">
+                  لا تمتلك هوية رقمية في تولو؟
+                </p>
+                <Link 
+                  href="/register" 
+                  className="inline-block px-8 py-3 rounded-xl bg-white/5 border border-white/10 font-black text-white hover:text-primary hover:bg-primary/5 transition-all hover:border-primary shadow-sm"
+                >
                   انشـئ هويتك الآن
                 </Link>
-              </p>
+              </div>
               
-              <div className="flex items-center justify-center gap-6 opacity-30">
-                <div className="flex items-center gap-2">
-                   <Shield size={12} className="text-primary" />
-                   <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Security Encrypted</span>
+              <div className="flex items-center justify-center gap-10 opacity-25 grayscale hover:grayscale-0 hover:opacity-50 transition-all duration-500">
+                <div className="flex items-center gap-3">
+                   <Shield size={14} className="text-primary" />
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">End-to-End SSL</span>
                 </div>
-                <div className="flex items-center gap-2">
-                   <Smartphone size={12} className="text-primary" />
-                   <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Device Verified</span>
+                <div className="flex items-center gap-3">
+                   <Fingerprint size={14} className="text-primary" />
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">ID Protection</span>
                 </div>
               </div>
             </m.div>

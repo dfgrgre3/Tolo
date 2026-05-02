@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -85,6 +85,7 @@ export function CommandPalette() {
     { id: "action-add-user", title: "تجنيد طالب جديد", description: "إضافة ملف طالب للقاعدة", group: "إجراءات ميدانية", icon: UserPlus, onSelect: () => router.push("/admin/users?add=true") },
     { id: "action-add-subject", title: "إنشاء مادة دراسية", description: "بناء مسار تعليمي جديد", group: "إجراءات ميدانية", icon: Plus, onSelect: () => router.push("/admin/subjects?add=true") },
     { id: "action-send-notif", title: "إصدار نداء عام (إعلان)", description: "إرسال تنبيه لجميع المحاربين", group: "إجراءات ميدانية", icon: Bell, onSelect: () => router.push("/admin/announcements/new") },
+    { id: "action-royal-call", title: "نداء ملكي عاجل", description: "إرسال رسالة فورية لجميع المحاربين", group: "إجراءات ميدانية", icon: Zap, onSelect: () => { setOpen(false); window.dispatchEvent(new CustomEvent("open-royal-call")); } },
     { id: "action-gen-report", title: "استخراج تقرير الحالة", description: "توليد ملف PDF للأداء العام", group: "إجراءات ميدانية", icon: FileText, onSelect: () => router.push("/admin/reports") },
     
     // AI Commands
@@ -228,7 +229,7 @@ export function CommandPalette() {
             <input
               autoFocus
               className="flex-1 bg-transparent border-none outline-none text-xl placeholder:text-muted-foreground/40 pr-0 font-black tracking-tight"
-              placeholder="???????? ?????????? ???????????? ???? ???????? ???? ??????????????..."
+              placeholder="ابحث في السجلات، المواد، أو الإجراءات الملكية..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="بحث في لوحة الأوامر"
@@ -324,7 +325,7 @@ export function CommandPalette() {
                 <div className="space-y-2 px-10">
                   <p className="font-black text-2xl text-foreground">المخطوطات مفقودة!</p>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto font-bold opacity-60 italic">
-                    &ldquo;???? ?????? ?????????? ?????? ???????? ?????? ???? ?????????? ?????????????? ??????????????..&rdquo;
+                    &ldquo;لم نجد أي سجلات تطابق بحثك الحالي، ربما عليك تغيير كلمات الاستدعاء..&rdquo;
                   </p>
                 </div>
               </div>

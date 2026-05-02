@@ -44,9 +44,16 @@ import {
   Trash2,
   Lock,
   Edit,
-  Save } from
-"lucide-react";
+  Save,
+  Crown,
+  ShieldAlert,
+  Flame
+} from "lucide-react";
 import { toast } from "sonner";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminBadge } from "@/components/admin/ui/admin-badge";
+import { usePremiumSounds } from "@/hooks/use-premium-sounds";
 import { logger } from '@/lib/logger';
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -174,6 +181,8 @@ export default function UserDetailPage() {
   const [, setIsEditing] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("overview");
   const [editedUser, setEditedUser] = React.useState<Partial<UserDetails>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const { playSound } = usePremiumSounds();
 
   const fetchUser = React.useCallback(async () => {
     try {
@@ -220,33 +229,7 @@ export default function UserDetailPage() {
     }
   };
 
-  const _handleRoleChange = async (role: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role })
-      });
-
-      if (response.ok) {
-        toast.success("تم تحديث دور المستخدم بنجاح");
-        if (user) {
-          setUser({ ...user, role });
-        }
-      } else {
-        toast.error("حدث خطأ أثناء تحديث دور المستخدم");
-      }
-    } catch (error) {
-      logger.error("Error updating user role:", error);
-      toast.error("حدث خطأ أثناء تحديث دور المستخدم");
-    }
-  };
-
   const handleDelete = async () => {
-    if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.")) {
-      return;
-    }
-
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "DELETE"
@@ -260,7 +243,9 @@ export default function UserDetailPage() {
       }
     } catch (error) {
       logger.error("Error deleting user:", error);
-      toast.error("حدث خطأ أثناء حذف المستخدم");
+      toast.error("حدث خطأ في الاتصال بالخادم");
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -310,7 +295,7 @@ export default function UserDetailPage() {
   const levelProgress = user.totalXP % 1000 / 1000 * 100;
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10" dir="rtl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
           title={user.name || "تفاصيل المستخدم"}
@@ -318,27 +303,29 @@ export default function UserDetailPage() {
           className="p-0" />
         
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl" onClick={() => router.push("/admin/users")}>
-            <ArrowRight className="ml-2 h-4 w-4" />
-            العودة للقائمة
-          </Button>
-          <Button
+          <AdminButton variant="outline" className="rounded-2xl border-white/10" onClick={() => router.push("/admin/users")} icon={ArrowRight}>
+            قائمة المستخدمين
+          </AdminButton>
+          <AdminButton
             variant="destructive"
-            className="rounded-xl shadow-lg shadow-danger/20"
-            onClick={handleDelete}>
-            
-            <Trash2 className="ml-2 h-4 w-4" />
-            حذف الحساب
-          </Button>
+            className="rounded-2xl shadow-xl shadow-danger/20"
+            onClick={() => setDeleteDialogOpen(true)}
+            icon={Trash2}
+          >
+            حذف المستخدم
+          </AdminButton>
         </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-4">
         {/* Profile Sidebar */}
         <div className="lg:col-span-1 space-y-8">
-          <Card className="border-none shadow-xl bg-gradient-to-b from-card to-card/50 overflow-hidden">
-            <div className="h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
-            <CardContent className="-mt-12 flex flex-col items-center text-center p-8">
+          <Card className="border-none shadow-2xl bg-gradient-to-b from-card to-card/50 overflow-hidden admin-glass">
+            <div className="h-32 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent relative overflow-hidden">
+               <div className="absolute inset-0 opacity-10 bg-[url('/patterns/topography.svg')] bg-repeat" />
+               <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+            </div>
+            <div className="px-6 pb-8 text-center -mt-16 flex flex-col items-center">
               <div className="relative group">
                 <Avatar className="h-32 w-32 border-4 border-background shadow-2xl transition-transform duration-300 group-hover:scale-105">
                   <AvatarImage src={user.avatar || undefined} className="object-cover" />
@@ -364,13 +351,13 @@ export default function UserDetailPage() {
 
               <div className="mt-6 w-full space-y-4">
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Badge variant="outline" className={`${roleColors[user.role]} px-4 py-1.5 rounded-full border-none font-semibold`}>
+                  <AdminBadge color={user.role === 'ADMIN' ? 'red' : user.role === 'TEACHER' ? 'blue' : 'green'} variant="solid" className="px-4 py-1.5 rounded-full font-black uppercase tracking-widest text-[10px]">
                     {roleLabels[user.role] || user.role}
-                  </Badge>
+                  </AdminBadge>
                   {user.gradeLevel &&
-                  <Badge variant="secondary" className="px-4 py-1.5 rounded-full font-semibold">
+                    <AdminBadge color="purple" variant="outline" className="px-4 py-1.5 rounded-full font-black text-[10px] border-white/10">
                       {gradeLabels[user.gradeLevel] || user.gradeLevel}
-                    </Badge>
+                    </AdminBadge>
                   }
                 </div>
 
@@ -418,7 +405,7 @@ export default function UserDetailPage() {
                 </div>
                 <Progress value={levelProgress} className="h-2 rounded-full bg-primary/10" />
               </div>
-            </CardContent>
+            </div>
           </Card>
 
           {/* Quick Actions Card */}
@@ -442,7 +429,7 @@ export default function UserDetailPage() {
                 <Lock className="h-4 w-4" />
                 تغيير كلمة المرور
               </Button>
-              <Button variant="outline" className="w-full justify-start rounded-xl gap-2 h-11">
+              <Button variant="outline" className="w-full justify-start rounded-xl gap-2 h-11" onClick={() => router.push("/admin/users/permissions")}>
                 <ShieldCheck className="h-4 w-4" />
                 إدارة الصلاحيات
               </Button>
@@ -455,22 +442,22 @@ export default function UserDetailPage() {
           {/* Dashboard Stats */}
           <div className="grid gap-6 md:grid-cols-4">
             {[
-            { label: "إجمالي XP", value: user.totalXP.toLocaleString(), icon: Star, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-            { label: "تتابع الأيام", value: user.currentStreak, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
-            { label: "ساعات الدراسة", value: Math.floor(user.totalStudyTime / 60), icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { label: "امتحانات مكتملة", value: user.examsPassed, icon: Award, color: "text-green-500", bg: "bg-green-500/10" }].
+            { label: "إجمالي الخبرة (XP)", value: user.totalXP.toLocaleString(), icon: Flame, color: "text-amber-500", bg: "bg-amber-500/10" },
+            { label: "التتابع الحالي", value: user.currentStreak, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
+            { label: "ساعات المذاكرة", value: Math.floor(user.totalStudyTime / 60), icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
+            { label: "الاختبارات المجتازة", value: user.examsPassed, icon: Crown, color: "text-purple-500", bg: "bg-purple-500/10" }].
             map((stat, i) =>
-            <Card key={i} className="border-none shadow-lg overflow-hidden relative group hover:scale-[1.02] transition-all duration-300">
+            <Card key={i} className="border-none shadow-xl bg-card/50 backdrop-blur-md overflow-hidden relative group hover:scale-[1.02] transition-all duration-300">
                 <CardContent className="p-6">
-                  <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} w-fit mb-4 group-hover:scale-110 transition-transform`}>
-                    <stat.icon className="h-6 w-6" />
+                  <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} w-fit mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                    <stat.icon className="h-7 w-7" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold tracking-tight">{stat.value}</h3>
-                    <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
+                    <h3 className="text-3xl font-black tracking-tight">{stat.value}</h3>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</p>
                   </div>
                 </CardContent>
-                <div className={`absolute bottom-0 left-0 h-1 w-full scale-x-0 group-hover:scale-x-100 transition-transform origin-right ${stat.bg.replace('/10', '')}`} />
+                <div className={`absolute bottom-0 left-0 h-1.5 w-full scale-x-0 group-hover:scale-x-100 transition-transform origin-right ${stat.bg.replace('/10', '')} opacity-50`} />
               </Card>
             )}
           </div>
@@ -1010,6 +997,16 @@ export default function UserDetailPage() {
           </Tabs>
         </div>
       </div>
+      
+      <AdminConfirm
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="حذف المستخدم نهائياً؟"
+        description="هل أنت متأكد من حذف هذا المستخدم؟ سيتم مسح جميع بياناته ونشاطه من المنصة ولا يمكن التراجع عن هذا الإجراء."
+        confirmText="تأكيد الحذف"
+        variant="destructive"
+      />
     </div>);
 
 }

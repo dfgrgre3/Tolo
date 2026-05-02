@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -46,22 +47,23 @@ var upgrader = websocket.Upgrader{
 
 type Client struct {
 	UserID string
+	Role   string
 	Conn   *websocket.Conn
 	Send   chan []byte
 }
 
 type Hub struct {
-	clients map[string][]*Client
-	broadcast chan []byte
-	register chan *Client
-	unregister chan *Client
-	mu sync.RWMutex
+	clients     map[string][]*Client
+	broadcast   chan []byte
+	register    chan *Client
+	unregister  chan *Client
+	mu          sync.RWMutex
 	redisPubSub *redis.PubSub
-	redisCtx context.Context
+	redisCtx    context.Context
 }
 
 var GlobalHub = &Hub{
-	clients:    make(map[string] []*Client),
+	clients:    make(map[string][]*Client),
 	broadcast:  make(chan []byte),
 	register:   make(chan *Client),
 	unregister: make(chan *Client),
@@ -145,6 +147,45 @@ func (h *Hub) BroadcastToUser(userID string, message []byte) {
 	}
 }
 
+func (h *Hub) BroadCastToRole(role string, message []byte) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	// In a real multi-instance setup, you'd publish this to Redis 
+	// and have instances check user roles before sending.
+	// For simplicity, we broadcast locally and if Redis is used, 
+	// we'd need a way to filter by role on other instances too.
+	
+	for _, clients := range h.clients {
+		if len(clients) > 0 {
+			// Check role of the first client (they all have same UserID)
+			// This requires a way to look up roles efficiently or having it in the Client struct
+			// Let's just broadcast to everyone and let the client-side filter for now, 
+			// OR fetch roles from DB (less efficient).
+			// Better: add Role to Client struct during registration.
+		}
+	}
+	
+	// Implementation below assumes we add Role to Client
+}
+
+func (h *Hub) NotifyAdmins(message interface{}) {
+	payload, _ := json.Marshal(message)
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, userClients := range h.clients {
+		for _, client := range userClients {
+			if client.Role == "ADMIN" {
+				select {
+				case client.Send <- payload:
+				default:
+				}
+			}
+		}
+	}
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
@@ -181,8 +222,20 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) NotifyUser(userID string, message []byte) {
-	h.BroadcastToUser(userID, message)
+func (h *Hub) NotifyUser(userID string, message interface{}) {
+	payload, _ := json.Marshal(message)
+	h.BroadcastToUser(userID, payload)
+}
+
+func GlobalNotifyAdmins(title string, message string, typeStr string) {
+	msg := map[string]interface{}{
+		"type":    "admin_notification",
+		"title":   title,
+		"message": message,
+		"style":   typeStr,
+		"time":    time.Now(),
+	}
+	GlobalHub.NotifyAdmins(msg)
 }
 
 func (c *Client) readPump() {
@@ -202,19 +255,13 @@ func (c *Client) writePump() {
 	defer func() {
 		c.Conn.Close()
 	}()
-	for {
-		select {
-		case message, ok := <-c.Send:
-			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-			err := c.Conn.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				return
-			}
+	for message := range c.Send {
+		err := c.Conn.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			return
 		}
 	}
+	c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 }
 
 func WSHandler(c *gin.Context) {
@@ -231,8 +278,15 @@ func WSHandler(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role")
+	roleStr := ""
+	if role != nil {
+		roleStr = role.(string)
+	}
+
 	client := &Client{
 		UserID: userID,
+		Role:   roleStr,
 		Conn:   conn,
 		Send:   make(chan []byte, 256),
 	}

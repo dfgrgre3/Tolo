@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	apiresponse "thanawy-backend/internal/api/response"
+	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 
@@ -53,7 +53,7 @@ func GetAdminPayments(c *gin.Context) {
 		Offset(offset).
 		Limit(limit).
 		Find(&payments).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch payments")
 		return
 	}
 
@@ -113,7 +113,7 @@ func GetAdminPayments(c *gin.Context) {
 	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentPending).Count(&pendingCount)
 	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentFailed).Count(&failedCount)
 
-	apiresponse.Success(c, gin.H{
+	api_response.Success(c, gin.H{
 		"payments": items,
 		"summary": gin.H{
 			"totalPayments":  total,
@@ -161,7 +161,6 @@ func GetAdminRevenue(c *gin.Context) {
 
 	// Chart data - last 6 months
 	chartData := make([]gin.H, 0, 6)
-	months := []string{"يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"}
 
 	for i := 5; i >= 0; i-- {
 		d := now.AddDate(0, -i, 0)
@@ -174,9 +173,8 @@ func GetAdminRevenue(c *gin.Context) {
 				models.PaymentCompleted, startMonth, endMonth).
 			Select("COALESCE(SUM(amount), 0)").Scan(&revenue)
 
-		monthIdx := int(d.Month()) - 1
 		chartData = append(chartData, gin.H{
-			"name":    months[monthIdx],
+			"month": int(d.Month()), // Send index for i18n
 			"revenue": revenue,
 		})
 	}
@@ -224,7 +222,7 @@ func GetAdminRevenue(c *gin.Context) {
 		topPlans = []gin.H{}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	api_response.Success(c, gin.H{
 		"summary": gin.H{
 			"today":             todayRevenue,
 			"thisMonth":         monthRevenue,

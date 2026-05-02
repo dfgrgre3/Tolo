@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-function useFormPersistence<T extends Record<string, any>>(
+export function useFormPersistence<T extends Record<string, any>>(
 formId: string,
 initialFormValues: T,
 _options: {

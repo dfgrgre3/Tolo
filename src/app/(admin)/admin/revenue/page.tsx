@@ -100,7 +100,6 @@ export default function AdminRevenuePage() {
     a.href = url;
     a.download = `revenue-report-${period}-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
-    URL.revokeObjectURL(url);
     toast.success("تم تصدير التقرير المالي بنجاح");
   };
 
@@ -127,8 +126,8 @@ export default function AdminRevenuePage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="التحليل المالي والإيرادات 💰"
-        description="متابعة الأرباح، المعاملات المالية، ومعدلات التحويل للمنصة بشكل مباشر ومفصل."
+        title="التقارير المالية والإيرادات 💰"
+        description="متابعة الإيرادات، المعاملات المالية، ومعدلات التحويل للمنصة بشكل مباشر ومفصل."
       >
         <div className="flex items-center gap-3">
           <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
@@ -147,8 +146,8 @@ export default function AdminRevenuePage() {
             </SelectContent>
           </Select>
 
-          <AdminButton variant="outline" icon={Download} onClick={handleExport}>
-            تصدير التقرير
+          <AdminButton variant="premium" icon={Download} onClick={handleExport} className="rounded-2xl shadow-xl">
+            تصدير التقرير المالي
           </AdminButton>
           <AdminButton variant="outline" icon={RefreshCw} onClick={() => refetch()} loading={isFetching}>
             تحديث
@@ -160,20 +159,20 @@ export default function AdminRevenuePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
           <AdminStatsCard
-            title="أرباح اليوم"
+            title="إيرادات اليوم"
             value={safeStats.summary.today}
             icon={DollarSign}
             color="blue"
-            description="ج.م تم تحصيلها اليوم"
+            description="تم تحصيلها اليوم"
           />
         </m.div>
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <AdminStatsCard
-            title="أرباح الشهر"
+            title="إيرادات الشهر"
             value={safeStats.summary.thisMonth}
             icon={TrendingUp}
             color="green"
-            description="ج.م إجمالي الشهر الحالي"
+            description="إجمالي الشهر الحالي"
           />
         </m.div>
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -182,11 +181,11 @@ export default function AdminRevenuePage() {
             value={safeStats.summary.totalTransactions}
             icon={CreditCard}
             color="purple"
-            description="عملية دفع تمت بنجاح"
+            description="عملية دفع ناجحة"
           />
         </m.div>
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <div className="rpg-glass-light dark:rpg-glass p-6 rounded-[2rem] border border-white/10 h-full">
+          <div className="admin-glass p-6 rounded-[2rem] border border-white/10 h-full">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500 border border-orange-500/20">
                 <Users className="w-5 h-5" />
@@ -206,7 +205,7 @@ export default function AdminRevenuePage() {
               معدل التحويل (CR)
             </p>
             <p className="text-3xl font-black">{safeStats.summary.conversionRate}</p>
-            <p className="text-[10px] font-bold text-muted-foreground mt-1">نسبة تحول الزوار لمشترين</p>
+            <p className="text-[10px] font-bold text-muted-foreground mt-1">نسبة تحول الزوار لمشتركين</p>
           </div>
         </m.div>
       </div>
@@ -218,7 +217,7 @@ export default function AdminRevenuePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-2 rpg-glass-light dark:rpg-glass p-8 rounded-[2rem] border border-white/10"
+          className="lg:col-span-2 admin-glass p-8 rounded-[2rem] border border-white/10"
         >
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-black flex items-center gap-3">
@@ -287,7 +286,7 @@ export default function AdminRevenuePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="rpg-glass-light dark:rpg-glass p-8 rounded-[2rem] border border-white/10"
+          className="admin-glass p-8 rounded-[2rem] border border-white/10"
         >
           <h3 className="text-xl font-black mb-8 flex items-center gap-3">
             <Package className="w-5 h-5 text-purple-500" />
@@ -333,7 +332,7 @@ export default function AdminRevenuePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="rpg-glass-light dark:rpg-glass p-8 rounded-[2rem] border border-white/10 flex items-center justify-between"
+          className="admin-glass p-8 rounded-[2rem] border border-white/10 flex items-center justify-between"
         >
           <div>
             <h4 className="text-lg font-black mb-2">أداء صفحة الدفع (Checkout)</h4>
@@ -349,7 +348,7 @@ export default function AdminRevenuePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="rpg-glass-light dark:rpg-glass p-8 rounded-[2rem] border border-white/10 flex items-center justify-between"
+          className="admin-glass p-8 rounded-[2rem] border border-white/10 flex items-center justify-between"
         >
           <div>
             <h4 className="text-lg font-black mb-2">إجمالي الاشتراكات المفعلة</h4>

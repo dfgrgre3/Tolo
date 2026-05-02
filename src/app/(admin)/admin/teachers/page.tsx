@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
-import { apiClient } from "@/lib/api/api-client";
+import { adminApi } from "@/lib/api/admin-api";
 import {
   Plus, GraduationCap, MessageCircle, Star, Users, School, Hammer, Send, Globe
 } from "lucide-react";
@@ -30,7 +30,6 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { m } from "framer-motion";
-import { apiRoutes } from "@/lib/api/routes";
 
 interface Teacher {
   id: string;
@@ -80,15 +79,14 @@ export default function AdminTeachersPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "teachers"],
     queryFn: async () => {
-      const data = await apiClient.get<TeachersResponse>(apiRoutes.admin.teachers.replace("/api", ""));
-      return data;
+      return adminApi.get<TeachersResponse>("teachers");
     }
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
-      const result = await apiClient.get<SubjectsListResponse>(`${apiRoutes.admin.subjects.replace("/api", "")}?limit=100`);
+      const result = await adminApi.get<SubjectsListResponse>("subjects", { limit: 100 });
       return result.data?.subjects || [];
     }
   });
@@ -141,9 +139,9 @@ export default function AdminTeachersPage() {
   const handleSubmit = async (values: TeacherFormValues) => {
     try {
       if (editingTeacher) {
-        await apiClient.patch(apiRoutes.admin.teachers.replace("/api", ""), { ...values, id: editingTeacher.id });
+        await adminApi.patch("teachers", { ...values, id: editingTeacher.id });
       } else {
-        await apiClient.post(apiRoutes.admin.teachers.replace("/api", ""), values);
+        await adminApi.post("teachers", values);
       }
 
       toast.success(editingTeacher ? "تم تحديث رتبة المعلم" : "تم تعيين قائد علمي جديد");
@@ -157,7 +155,7 @@ export default function AdminTeachersPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      await apiClient.delete(apiRoutes.admin.teachers.replace("/api", ""), { body: JSON.stringify({ id: deleteDialog.id }) });
+      await adminApi.delete("teachers", { body: JSON.stringify({ id: deleteDialog.id }) });
       toast.success("تم عزل المعلم من هيئة التدريس");
       refetch();
     } catch (_error) {

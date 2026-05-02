@@ -3,7 +3,8 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	apiresponse "thanawy-backend/internal/api/response"
+	"fmt"
+	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"time"
@@ -80,7 +81,7 @@ func GetExams(c *gin.Context) {
 		})
 	}
 
-	apiresponse.List(c, items, apiresponse.Pagination{
+	api_response.List(c, items, api_response.Pagination{
 		Page:       page,
 		Limit:      limit,
 		Total:      total,
@@ -232,6 +233,11 @@ func SubmitExam(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
 		return
 	}
+
+	// Notify admins about exam completion
+	statusStr := "فشل"
+	if passed { statusStr = "نجح" }
+	GlobalNotifyAdmins("اكتمال اختبار", fmt.Sprintf("أكمل المستخدم اختبار %s بنتيجة %.1f (%s)", exam.Title, score, statusStr), "info")
 
 	c.JSON(http.StatusOK, result)
 }

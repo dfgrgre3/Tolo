@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -48,6 +48,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { logger } from '@/lib/logger';
 
 interface ForumCategory {
@@ -113,8 +115,8 @@ export default function AdminForumPage() {
     setLoading(true);
     try {
       const [postsRes, categoriesRes] = await Promise.all([
-        fetch("/api/admin/forum"),
-        fetch("/api/admin/forum-categories"),
+        adminFetch(apiRoutes.admin.forum),
+        adminFetch(apiRoutes.admin.forumCategories),
       ]);
 
       if (!postsRes.ok || !categoriesRes.ok) {
@@ -123,8 +125,8 @@ export default function AdminForumPage() {
 
       const postsData = await postsRes.json();
       const categoriesData = await categoriesRes.json();
-      setPosts(postsData.posts || []);
-      setCategories(categoriesData.categories || []);
+      setPosts(postsData.data?.topics || postsData.data?.items || postsData.topics || []);
+      setCategories(categoriesData.data?.categories || categoriesData.data?.items || categoriesData.categories || []);
     } catch (error) {
       logger.error("Error fetching forum posts:", error);
       toast.error("حدث خطأ أثناء جلب مواضيع المنتدى");
@@ -162,11 +164,11 @@ export default function AdminForumPage() {
 
   const handleSubmit = async (values: ForumPostFormValues) => {
     try {
-      const url = "/api/admin/forum";
+      const url = editingPost ? `${apiRoutes.admin.forum}/${editingPost.id}` : apiRoutes.admin.forum;
       const method = editingPost ? "PATCH" : "POST";
       const body = editingPost ? { ...values, id: editingPost.id } : values;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -189,7 +191,7 @@ export default function AdminForumPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/forum", {
+      const response = await adminFetch(apiRoutes.admin.forum, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),

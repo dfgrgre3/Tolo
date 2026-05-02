@@ -41,7 +41,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	// from hitting the database/cache simultaneously
 	val, err, _ := r.sf.Do(cacheKey, func() (interface{}, error) {
 		var user models.User
-		
+
 		// Try cache first
 		if db.Redis != nil {
 			cachedVal, err := db.Redis.Get(context.Background(), cacheKey).Result()
@@ -66,12 +66,18 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	return val.(*models.User), nil
 }
 
+func (r *UserRepository) FindByEmailNoCache(email string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("email = ?", email).First(&user).Error
+	return &user, err
+}
+
 func (r *UserRepository) FindByID(id string) (*models.User, error) {
 	cacheKey := fmt.Sprintf("%sid:%s", UserCachePrefix, id)
 
 	val, err, _ := r.sf.Do(cacheKey, func() (interface{}, error) {
 		var user models.User
-		
+
 		// Try cache first
 		if db.Redis != nil {
 			cachedVal, err := db.Redis.Get(context.Background(), cacheKey).Result()
@@ -97,8 +103,19 @@ func (r *UserRepository) FindByID(id string) (*models.User, error) {
 }
 
 func (r *UserRepository) Update(user *models.User) error {
+	var oldEmail string
+	if user.ID != "" {
+		var existing models.User
+		if err := r.db.Select("email").First(&existing, "id = ?", user.ID).Error; err == nil {
+			oldEmail = existing.Email
+		}
+	}
+
 	err := r.db.Save(user).Error
 	if err == nil {
+		if oldEmail != "" && oldEmail != user.Email && db.Redis != nil {
+			db.Redis.Del(context.Background(), fmt.Sprintf("%semail:%s", UserCachePrefix, oldEmail))
+		}
 		r.cacheUser(user)
 	}
 	return err

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
@@ -17,11 +17,13 @@ import {
   BarChart3,
   LineChart,
   RefreshCw,
-  Crown,
   Calendar,
   Target,
   Award,
-  Zap
+  Zap,
+  LayoutDashboard,
+  ShieldCheck,
+  PieChart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminCard, AdminStatsCard, AdminGridCard } from '@/components/admin/ui/admin-card';
@@ -126,10 +128,10 @@ interface UserReport {
 }
 
 const STYLES = {
-  glass: "rpg-glass-light dark:rpg-glass p-8 md:p-12",
-  card: "rpg-card h-full p-6 transition-all",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+  glass: "admin-glass p-8 md:p-12",
+  card: "admin-card h-full p-6 transition-all",
+  neonText: "font-black tracking-tight",
+  goldText: "text-primary font-black"
 };
 
 export default function AdminReportsPage() {
@@ -255,14 +257,14 @@ export default function AdminReportsPage() {
 
         <div className="space-y-4 text-center lg:text-right flex-1 relative z-10">
           <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
-            <Crown className="h-5 w-5" />
-            <span>تقارير المملكة - Dungeon Master</span>
+            <LayoutDashboard className="h-5 w-5" />
+            <span>نظام التقارير الإدارية المتكامل</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
             <span className={STYLES.neonText}>التقارير والبيانات</span> 🏛️
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl font-bold">
-            تحليل شامل لأداء المملكة، تتبع التفاعل، ومراقبة نمو الجيش الكان.
+            تحليل شامل لأداء المنصة، تتبع التفاعل، ومراقبة نمو قاعدة المستخدمين والطلاب.
           </p>
         </div>
 
@@ -281,9 +283,9 @@ export default function AdminReportsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 bg-card/50 backdrop-blur-xl border border-white/10 p-2 rounded-2xl">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold">نظرة عامة</TabsTrigger>
-          <TabsTrigger value="books" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold">الكتب</TabsTrigger>
-          <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold">المستخدمين</TabsTrigger>
+          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold px-6 py-2 transition-all">نظرة عامة</TabsTrigger>
+          <TabsTrigger value="books" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold px-6 py-2 transition-all">الكتب والمصادر</TabsTrigger>
+          <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl font-bold px-6 py-2 transition-all">المستخدمين</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -372,14 +374,14 @@ export default function AdminReportsPage() {
           </AdminGridCard>
 
           {/* User Registration Trend */}
-          <AdminGridCard title="اتجاه تسجيل المستخدمين (آخر 7 أيام)" subtitle="تحليل نمو الجيش الكان">
+          <AdminGridCard title="اتجاه تسجيل المستخدمين (آخر 7 أيام)" subtitle="تحليل نمو قاعدة المستخدمين النشطين">
             <div className="h-[200px] flex items-end gap-3">
               {overview?.trends?.userRegistrations?.map((item) => {
                 const maxCount = Math.max(...(overview?.trends?.userRegistrations?.map(d => d.count) || [1]));
                 return (
                   <div key={item.date} className="flex-1 flex flex-col items-center gap-2">
                     <div
-                      className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t-lg hover:from-primary/80 transition-all"
+                      className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t-lg hover:from-primary/80 transition-all shadow-[0_0_15px_rgba(var(--primary),0.2)]"
                       style={{ height: `${(item.count / maxCount) * 180}px` }}
                     />
                     <span className="text-xs text-muted-foreground font-bold">
@@ -393,7 +395,7 @@ export default function AdminReportsPage() {
         </TabsContent>
 
         <TabsContent value="books">
-          <AdminGridCard title="تقرير الكتب" extra={
+          <AdminGridCard title="تقرير الكتب والمصادر" extra={
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-black">
                 إجمالي: {booksReport?.stats?.totalBooks || 0}
@@ -462,7 +464,7 @@ export default function AdminReportsPage() {
         </TabsContent>
 
         <TabsContent value="users">
-          <AdminGridCard title="تقرير المستخدمين" extra={
+          <AdminGridCard title="تقرير المستخدمين والطلاب" extra={
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-black">
                 إجمالي: {usersReport?.stats?.totalUsers || 0}
@@ -522,7 +524,7 @@ export default function AdminReportsPage() {
               <AdminGridCard title="توزيع الأدوار">
                 <div className="space-y-3">
                   {usersReport.stats.byRole?.map((item) => (
-                    <div key={item.role} className="flex justify-between items-center p-3 bg-accent/20 rounded-xl">
+                    <div key={item.role} className="flex justify-between items-center p-3 bg-accent/20 rounded-xl border border-white/5">
                       <span className="font-bold">{item.role}</span>
                       <Badge className="font-black text-lg">{item.count}</Badge>
                     </div>

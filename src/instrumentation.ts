@@ -57,20 +57,26 @@ export async function register() {
       }, 30);
 
       // 5. Global Console Bridge (Ensures all errors are captured by Unified Logger)
-      if (process.env.NODE_ENV === 'production') {
-        const originalError = console.error;
-        const originalWarn = console.warn;
-        
-        console.error = (...args) => {
+      const originalError = console.error;
+      const originalWarn = console.warn;
+      
+      console.error = (...args) => {
+        if (process.env.NODE_ENV === 'production') {
           logger.error('Intercepted Console Error', new Error(args.map(a => String(a)).join(' ')));
-          originalError.apply(console, args);
-        };
-        
-        console.warn = (...args) => {
+        }
+        originalError.apply(console, args);
+      };
+      
+      console.warn = (...args) => {
+        const warnMsg = args.map(a => String(a)).join(' ');
+        if (warnMsg.includes('Eviction policy is volatile-lru')) {
+          return; // Suppress BullMQ eviction policy warning
+        }
+        if (process.env.NODE_ENV === 'production') {
           logger.warn('Intercepted Console Warning', { details: args });
-          originalWarn.apply(console, args);
-        };
-      }
+        }
+        originalWarn.apply(console, args);
+      };
 
       logger.info('System Foundation: Environment validated, Notification Workers active.');
     } catch (error) {

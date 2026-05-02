@@ -76,7 +76,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   price,
   rating,
   enrolledCount,
-  tags,
+  tags = [],
   enrolled,
   progress,
   lessonsCount,

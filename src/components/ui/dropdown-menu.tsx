@@ -27,7 +27,7 @@ const DropdownMenuTrigger = React.forwardRef<
       const { asChild: _asChild, ...restProps } = props as {asChild?: boolean;[key: string]: unknown;};
       return (
         <div
-          ref={ref as React.LegacyRef<HTMLDivElement>}
+          ref={ref as unknown as React.LegacyRef<HTMLDivElement>}
           className={cn("inline-flex items-center justify-center", className)}
           {...restProps as React.HTMLAttributes<HTMLDivElement>} />);
 

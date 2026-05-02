@@ -32,18 +32,22 @@ const RETRY_DELAY = 1000;
 class ApiError extends Error {
     public status: number;
     public code?: string;
+    public data?: any;
 
-    constructor(message: string, status: number, code?: string) {
+    constructor(message: string, status: number, code?: string, data?: any) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
         this.code = code;
+        this.data = data;
     }
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api')).replace(/\/+$/, '');
+export const DEFAULT_API_URL = 'http://127.0.0.1:8080/api';
+
+const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)).replace(/\/+$/, '');
 
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';
@@ -76,6 +80,68 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
 }
 
 class ApiClient {
+    public async fetch(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<Response> {
+        const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
+
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+
+        const headers = new Headers({
+            ...(customOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+            ...customOptions.headers,
+        });
+
+        try {
+            const url = normalizeEndpoint(endpoint);
+            const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
+            const response = await fetch(url, {
+                ...customOptions,
+                headers,
+                credentials: 'include',
+                signal: controller.signal,
+            });
+            timer.stop();
+            clearTimeout(id);
+
+            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login') && retryCount < 1) {
+                const refreshed = await this.refreshToken();
+                if (refreshed) {
+                    return this.fetch(endpoint, options, retryCount + 1);
+                }
+
+                if (typeof window !== 'undefined') {
+                    import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
+                        useAuthStore.getState().reset();
+                    }).catch(() => {});
+                }
+            }
+
+            const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
+            if (shouldRetry) {
+                await sleep(RETRY_DELAY * Math.pow(2, retryCount));
+                return this.fetch(endpoint, options, retryCount + 1);
+            }
+
+            return response;
+        } catch (error: unknown) {
+            clearTimeout(id);
+
+            const errName = (error as { name?: string })?.name;
+            const errMsg = (error as { message?: string })?.message;
+
+            if ((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries) {
+                await sleep(RETRY_DELAY * Math.pow(2, retryCount));
+                return this.fetch(endpoint, options, retryCount + 1);
+            }
+
+            import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
+                errorManager.handleNetworkError(error, endpoint);
+            }).catch(() => {});
+
+            throw error;
+        }
+    }
+
     private async request<T>(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<T> {
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
 
@@ -86,6 +152,20 @@ class ApiClient {
             'Content-Type': 'application/json',
             ...customOptions.headers,
         });
+
+        // Developer Bypass for Admin Routes
+        // Disabled by default to allow real authentication to work.
+        /*
+        const isDev = process.env.NODE_ENV === 'development' || 
+                      (typeof window !== 'undefined' && (
+                        window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1'
+                      ));
+
+        if (isDev) {
+            headers.set('X-Dev-Admin-Bypass', 'true');
+        }
+        */
 
         try {
             const url = normalizeEndpoint(endpoint);
@@ -120,10 +200,12 @@ class ApiClient {
             if (!response.ok) {
                 let errorMessage = `Server error: ${response.statusText}`;
                 let errorCode = 'HTTP_ERROR';
+                let errorData: any = null;
+                
                 // Read response body once as text to avoid "body stream already read" errors
                 const responseText = await response.text();
                 try {
-                    const errorData = JSON.parse(responseText);
+                    errorData = JSON.parse(responseText);
                     errorMessage = errorData.error || errorData.message || errorMessage;
                     errorCode = errorData.code || errorCode;
                 } catch {
@@ -137,7 +219,7 @@ class ApiClient {
                     return this.request<T>(endpoint, options, retryCount + 1);
                 }
 
-                throw new ApiError(errorMessage, response.status, errorCode);
+                throw new ApiError(errorMessage, response.status, errorCode, errorData);
             }
 
             // Check for empty response

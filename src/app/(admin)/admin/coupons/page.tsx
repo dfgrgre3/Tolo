@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -51,7 +52,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { m } from "framer-motion";
 
 interface Coupon {
@@ -98,9 +100,18 @@ export default function AdminCouponsPage() {
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ["admin", "coupons"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/coupons");
+      const res = await adminFetch(apiRoutes.admin.coupons);
       if (!res.ok) throw new Error("Failed to fetch coupons");
-      return (await res.json()) as Coupon[];
+      const json = await res.json();
+      if (Array.isArray(json)) return json as Coupon[];
+      
+      const data = json.data || json;
+      if (Array.isArray(data)) return data as Coupon[];
+      if (data && typeof data === 'object') {
+        if (Array.isArray(data.coupons)) return data.coupons;
+        if (Array.isArray(data.items)) return data.items;
+      }
+      return [] as Coupon[];
     },
   });
 
@@ -121,8 +132,8 @@ export default function AdminCouponsPage() {
   const createMutation = useMutation({
     mutationFn: async (values: CouponFormValues) => {
       const method = editingCoupon ? "PATCH" : "POST";
-      const url = editingCoupon ? `/api/admin/coupons/${editingCoupon.id}` : "/api/admin/coupons";
-      const res = await fetch(url, {
+      const url = editingCoupon ? `${apiRoutes.admin.coupons}/${editingCoupon.id}` : apiRoutes.admin.coupons;
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingCoupon ? { ...values, id: editingCoupon.id } : values),
@@ -145,7 +156,7 @@ export default function AdminCouponsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
+      const res = await adminFetch(`${apiRoutes.admin.coupons}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("فشل الحذف");
     },
     onSuccess: () => {
@@ -159,7 +170,7 @@ export default function AdminCouponsPage() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const res = await fetch(`/api/admin/coupons/${id}`, {
+      const res = await adminFetch(`${apiRoutes.admin.coupons}/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive }),
@@ -217,7 +228,8 @@ export default function AdminCouponsPage() {
   };
 
   // Filter coupons
-  const filteredCoupons = coupons.filter((c) => {
+  const couponsList = Array.isArray(coupons) ? coupons : [];
+  const filteredCoupons = couponsList.filter((c) => {
     const matchesSearch = c.code.toLowerCase().includes(search.toLowerCase()) ||
       (c.description || "").toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
@@ -227,10 +239,10 @@ export default function AdminCouponsPage() {
   });
 
   const stats = {
-    total: coupons.length,
-    active: coupons.filter((c) => c.isActive).length,
-    totalUses: coupons.reduce((sum, c) => sum + (c._count?.payments || c.usedCount), 0),
-    expired: coupons.filter(
+    total: couponsList.length,
+    active: couponsList.filter((c) => c.isActive).length,
+    totalUses: couponsList.reduce((sum, c) => sum + (c._count?.payments || c.usedCount), 0),
+    expired: couponsList.filter(
       (c) => c.expiryDate && new Date(c.expiryDate) < new Date()
     ).length,
   };

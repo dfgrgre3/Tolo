@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -33,18 +33,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { 
-  Plus, Trophy, Download, Upload, Target, 
-  Zap, Users, Flame, Swords, Hammer, Sparkles, Send
+  Plus, Target, Download, Upload, 
+  Zap, Users, ClipboardList, Edit, Sparkles, Send, Trash2, Calendar
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { m } from "framer-motion";
 
+import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { logger } from '@/lib/logger';
 
 interface Subject {
@@ -76,8 +78,8 @@ interface Challenge {
 }
 
 const challengeSchema = z.object({
-  title: z.string().min(1, "عنوان التحدي مطلوب"),
-  description: z.string().min(1, "وصف التحدي مطلوب"),
+  title: z.string().min(1, "عنوان المهمة مطلوب"),
+  description: z.string().min(1, "وصف المهمة مطلوب"),
   type: z.string().min(1, "النوع مطلوب"),
   category: z.string().min(1, "الفئة مطلوبة"),
   xpReward: z.number().min(0, "المكافأة يجب أن تكون صفر أو أكثر"),
@@ -91,24 +93,24 @@ const challengeSchema = z.object({
 type ChallengeFormValues = z.infer<typeof challengeSchema>;
 
 const challengeTypes = [
-  { value: "daily", label: "مبارزة يومية" },
-  { value: "weekly", label: "حملة أسبوعية" },
-  { value: "monthly", label: "ملحمة شهرية" },
-  { value: "special", label: "بطولة خاصة" },
+  { value: "daily", label: "مهمة يومية" },
+  { value: "weekly", label: "مهمة أسبوعية" },
+  { value: "monthly", label: "مهمة شهرية" },
+  { value: "special", label: "نشاط خاص" },
 ];
 
 const difficultyOptions = [
-  { value: "EASY", label: "تدريب مبتدئ" },
-  { value: "MEDIUM", label: "مستوى جندي" },
-  { value: "HARD", label: "رتبة فارس" },
-  { value: "EXPERT", label: "مستوى أسطوري" },
+  { value: "EASY", label: "أساسي" },
+  { value: "MEDIUM", label: "متوسط" },
+  { value: "HARD", label: "متقدم" },
+  { value: "EXPERT", label: "خبير" },
 ];
 
-const difficultyColors: Record<string, { color: "green" | "blue" | "yellow" | "red" | "purple" | "default", label: string }> = {
-  EASY: { color: "green", label: "تدريب مبتدئ" },
-  MEDIUM: { color: "blue", label: "مستوى جندي" },
-  HARD: { color: "yellow", label: "رتبة فارس" },
-  EXPERT: { color: "red", label: "مستوى أسطوري" },
+const difficultyColors: Record<string, { color: string, label: string }> = {
+  EASY: { color: "slate", label: "أساسي" },
+  MEDIUM: { color: "blue", label: "متوسط" },
+  HARD: { color: "amber", label: "متقدم" },
+  EXPERT: { color: "rose", label: "خبير" },
 };
 
 export default function AdminChallengesPage() {
@@ -142,16 +144,16 @@ export default function AdminChallengesPage() {
     setLoading(true);
     try {
       const [challengesRes, subjectsRes] = await Promise.all([
-        fetch("/api/admin/challenges"),
-        fetch("/api/admin/subjects?limit=100"),
+        adminFetch(apiRoutes.admin.challenges),
+        adminFetch(`${apiRoutes.admin.subjects}?limit=100`),
       ]);
       const challengesData = await challengesRes.json();
       const subjectsData = await subjectsRes.json();
-      setChallenges(challengesData.challenges || []);
-      setSubjects(subjectsData.subjects || []);
+      setChallenges(challengesData.data?.challenges || challengesData.data?.items || challengesData.challenges || []);
+      setSubjects(subjectsData.data?.subjects || subjectsData.data?.items || subjectsData.subjects || []);
     } catch (error) {
-      logger.error("Error fetching challenges:", error);
-      toast.error("حدث خطأ في استدعاء سجلات المبارزات");
+      logger.error("Error fetching tasks:", error);
+      toast.error("حدث خطأ في استدعاء سجلات المهام");
     } finally {
       setLoading(false);
     }
@@ -196,22 +198,22 @@ export default function AdminChallengesPage() {
 
   const handleSubmit = async (values: ChallengeFormValues) => {
     try {
-      const url = "/api/admin/challenges";
+      const url = editingChallenge ? `${apiRoutes.admin.challenges}/${editingChallenge.id}` : apiRoutes.admin.challenges;
       const method = editingChallenge ? "PATCH" : "POST";
       const body = editingChallenge ? { ...values, id: editingChallenge.id } : values;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success(editingChallenge ? "تم تحديث خطة المبارزة" : "تم نقش مبارزة جديدة في ساحة القتال");
+        toast.success(editingChallenge ? "تم تحديث المهمة بنجاح" : "تم إضافة مهمة تعليمية جديدة بنجاح");
         setDialogOpen(false);
         fetchChallenges();
       } else {
-        toast.error("فشل في تثبيت المبارزة");
+        toast.error("فشل في حفظ المهمة");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال بالخادم");
@@ -222,17 +224,17 @@ export default function AdminChallengesPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/challenges", {
+      const response = await adminFetch(apiRoutes.admin.challenges, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
       });
 
       if (response.ok) {
-        toast.success("تم مسح المبارزة من السجلات");
+        toast.success("تم حذف المهمة من السجلات");
         fetchChallenges();
       } else {
-        toast.error("فشل في الإتلاف");
+        toast.error("فشل في حذف المهمة");
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -256,12 +258,12 @@ export default function AdminChallengesPage() {
     }));
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = `challenges-empire-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `educational-tasks-${new Date().toISOString().split('T')[0]}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-    toast.success("تم تصدير سجلات المبارزات بنجاح");
+    toast.success("تم تصدير سجلات المهام بنجاح");
   };
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,13 +275,13 @@ export default function AdminChallengesPage() {
       try {
         const imported = JSON.parse(e.target?.result as string);
         if (!Array.isArray(imported)) {
-          throw new Error("تنسيق المخطوطة غير صالح");
+          throw new Error("تنسيق البيانات غير صالح");
         }
         
         let importedCount = 0;
         for (const challenge of imported) {
           try {
-            const response = await fetch("/api/admin/challenges", {
+            const response = await adminFetch(apiRoutes.admin.challenges, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(challenge),
@@ -290,10 +292,10 @@ export default function AdminChallengesPage() {
           }
         }
         
-        toast.success(`تم استدعاء ${importedCount} مبارزة جديدة للمملكة`);
+        toast.success(`تم استيراد ${importedCount} مهمة تعليمية جديدة بنجاح`);
         fetchChallenges();
       } catch {
-        toast.error("فشل في قراءة المخطوطات المستوردة");
+        toast.error("فشل في قراءة البيانات المستوردة");
       }
     };
     reader.readAsText(file);
@@ -303,13 +305,13 @@ export default function AdminChallengesPage() {
   const columns: ColumnDef<Challenge>[] = [
     {
       accessorKey: "title",
-      header: "المبارزة / التحدي",
+      header: "المهمة التعليمية",
       cell: ({ row }) => {
         const challenge = row.original;
         return (
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)] transition-transform hover:scale-105">
-              <Swords className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-primary/10 text-primary border border-primary/20 shadow-sm transition-transform hover:scale-105">
+              <ClipboardList className="h-6 w-6" />
             </div>
             <div>
               <p className="font-black text-sm tracking-tight">{challenge.title}</p>
@@ -324,15 +326,14 @@ export default function AdminChallengesPage() {
     },
     {
       accessorKey: "difficulty",
-      header: "مستوى الصعوبة",
+      header: "المستوى",
       cell: ({ row }) => {
         const diff = row.original.difficulty;
         const config = difficultyColors[diff] || difficultyColors.MEDIUM;
         return (
           <Badge 
             variant="outline" 
-            className="font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-white/5"
-            style={{ color: `oklch(var(--${config.color}))`, borderColor: `oklch(var(--${config.color}) / 0.3)` }}
+            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-${config.color}-500/10 text-${config.color}-500 border-${config.color}-500/20`}
           >
             {config.label}
           </Badge>
@@ -341,34 +342,34 @@ export default function AdminChallengesPage() {
     },
     {
       accessorKey: "xpReward",
-      header: "مكافأة النصر",
+      header: "نقاط التفاعل",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
-          <span className="text-sm font-black">{row.original.xpReward} XP</span>
+          <span className="text-sm font-black">{row.original.xpReward} نقطة</span>
         </div>
       ),
     },
     {
       id: "completions",
-      header: "جيش المشاركين",
+      header: "المشاركون",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Users className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-black">{row.original._count?.completions || 0} محارب اجتازها</span>
+          <span className="text-xs font-black">{row.original._count?.completions || 0} طالب أنجزه</span>
         </div>
       ),
     },
     {
       accessorKey: "isActive",
-      header: "الحالة الآن",
+      header: "الحالة",
       cell: ({ row }) => {
         const active = row.original.isActive;
         return (
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
-              {active ? "متاحة للقتال" : "خارج الخدمة"}
+              {active ? "نشط" : "غير نشط"}
             </span>
           </div>
         );
@@ -376,7 +377,7 @@ export default function AdminChallengesPage() {
     },
     {
       id: "actions",
-      header: "التحكم الإمبراطوري",
+      header: "الإجراءات",
       cell: ({ row }) => (
         <RowActions
           row={row.original}
@@ -390,12 +391,12 @@ export default function AdminChallengesPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title=" ساحة التحديات والمبارزات ⚔️"
-        description="إدارة المهمات اليومية، البطولات الملحمية، وتوزيع هالات الـ XP للمحاربين المميزين."
+        title="إدارة المهام والأنشطة التعليمية"
+        description="إدارة المهام اليومية، الأنشطة المنهجية، وتوزيع نقاط التفاعل للطلاب المتميزين."
       >
         <div className="flex items-center gap-3">
           <AdminButton variant="outline" icon={Download} onClick={handleExport}>
-            تصدير المخطوطات
+            تصدير البيانات
           </AdminButton>
           <div className="relative">
             <input
@@ -405,50 +406,50 @@ export default function AdminChallengesPage() {
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <AdminButton variant="outline" icon={Upload}>
-              استيراد سجلات
+              استيراد البيانات
             </AdminButton>
           </div>
           <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-            إعلان مبارزة جديدة
+            إضافة مهمة جديدة
           </AdminButton>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <AdminStatsCard 
-          title="إجمالي التحديات" 
+          title="إجمالي المهام" 
           value={challenges.length} 
-          icon={Trophy} 
-          color="yellow"
-          description="مهمة في ساحات المعارك"
+          icon={ClipboardList} 
+          color="blue"
+          description="مهمة في سجلات المنصة"
         />
         <AdminStatsCard 
-          title="تحديات نشطة" 
+          title="مهام نشطة" 
           value={challenges.filter(c => c.isActive).length} 
-          icon={Flame} 
-          color="red"
-          description="تنتظر المحاربين الآن"
-        />
-        <AdminStatsCard 
-          title="إجمالي الانتصارات" 
-          value={challenges.reduce((acc, c) => acc + (c._count?.completions || 0), 0)} 
           icon={Target} 
           color="green"
-          description="عملية اجتياز ناجحة"
+          description="تنتظر الطلاب الآن"
         />
         <AdminStatsCard 
-          title="متوسط الـ XP" 
+          title="إجمالي المنجزات" 
+          value={challenges.reduce((acc, c) => acc + (c._count?.completions || 0), 0)} 
+          icon={Users} 
+          color="purple"
+          description="عملية إنجاز ناجحة"
+        />
+        <AdminStatsCard 
+          title="متوسط المكافأة" 
           value={Math.round(challenges.reduce((acc, c) => acc + c.xpReward, 0) / (challenges.length || 1))} 
           icon={Zap} 
-          color="blue"
-          description="هالة المكافأة لكل مهمة"
+          color="yellow"
+          description="نقطة تفاعل لكل مهمة"
         />
       </div>
 
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+        className="admin-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         {loading ? (
           <TableSkeleton rows={8} cols={7} />
@@ -457,7 +458,7 @@ export default function AdminChallengesPage() {
             columns={columns}
             data={challenges}
             searchKey="title"
-            searchPlaceholder="ابحث في سجلات المبارزات..."
+            searchPlaceholder="ابحث في سجلات المهام..."
             actions={{ onRefresh: () => fetchChallenges() }}
           />
         )}
@@ -466,24 +467,24 @@ export default function AdminChallengesPage() {
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
-          <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-500" />
+          <div className="h-1.5 bg-gradient-to-r from-primary/80 via-primary to-primary/40" />
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-2xl font-black flex items-center gap-3">
                 {editingChallenge ? (
                   <>
-                    <Hammer className="w-7 h-7 text-indigo-500" />
-                    تنقيح ميثاق المبارزة
+                    <Edit className="w-7 h-7 text-primary" />
+                    تعديل تفاصيل المهمة
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-7 h-7 text-orange-500" />
-                    بناء تحدي ملحمي جديد
+                    <Plus className="w-7 h-7 text-primary" />
+                    إضافة مهمة تعليمية جديدة
                   </>
                 )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
-                أدخل بيانات المبارزة بدقة لضمان عدالة القتال بين المحاربين.
+                أدخل بيانات المهمة بدقة لضمان تحسين تجربة الطلاب التعليمية.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -493,9 +494,9 @@ export default function AdminChallengesPage() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسـم المبارزة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسـم المهمة</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="تحدي فرسان القمة..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" />
+                        <Input {...field} placeholder="نشاط تعليمي لـ..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -506,9 +507,9 @@ export default function AdminChallengesPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تفاصيل المهمة</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف المهمة</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="يجب على المحارب..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px] font-medium" />
+                        <Textarea {...field} placeholder="يجب على الطالب القيام بـ..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px] font-medium" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -520,7 +521,7 @@ export default function AdminChallengesPage() {
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">دورة القتال</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">دورة المهمة</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -544,7 +545,7 @@ export default function AdminChallengesPage() {
                     name="difficulty"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">درجة الخطورة</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الصعوبة</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -570,7 +571,7 @@ export default function AdminChallengesPage() {
                     name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الفئة العسكرية</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الفئة</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="مثال: MATH" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
                         </FormControl>
@@ -583,7 +584,7 @@ export default function AdminChallengesPage() {
                     name="xpReward"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">هالة المكافأة (XP)</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نقاط التفاعل</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -602,7 +603,7 @@ export default function AdminChallengesPage() {
                   name="subjectId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">العلم التابع له (اختياري)</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">المادة التابع لها (اختياري)</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -627,7 +628,7 @@ export default function AdminChallengesPage() {
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">بداية الحملة</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تاريخ البداية</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 font-bold" />
                         </FormControl>
@@ -640,7 +641,7 @@ export default function AdminChallengesPage() {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نهاية الحملة</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تاريخ النهاية</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 font-bold" />
                         </FormControl>
@@ -655,8 +656,8 @@ export default function AdminChallengesPage() {
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                       <div className="space-y-0.5">
-                        <FormLabel className="font-black text-xs">تفعيل النزاع المسلح؟</FormLabel>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">المبارزات النشطة تظهر فوراً للجيش</p>
+                        <FormLabel className="font-black text-xs">تفعيل المهمة؟</FormLabel>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">المهام النشطة تظهر فوراً للطلاب</p>
                       </div>
                       <FormControl>
                         <Switch
@@ -668,8 +669,8 @@ export default function AdminChallengesPage() {
                   )}
                 />
                 <DialogFooter className="pt-4">
-                  <AdminButton type="submit" icon={editingChallenge ? Hammer : Send} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
-                    {editingChallenge ? "تحديث ميثاق المبارزة" : "نشر المبارزة في الإمبراطورية"}
+                  <AdminButton type="submit" icon={editingChallenge ? Edit : Send} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                    {editingChallenge ? "تحديث المهمة" : "نشر المهمة للمنصة"}
                   </AdminButton>
                 </DialogFooter>
               </form>
@@ -678,15 +679,16 @@ export default function AdminChallengesPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="إلغاء المبارزة وحرق السجل؟"
-        description="أنت على وشك مسح هذه المبارزة من تاريخ المملكة. هل أنت متأكد؟"
-        confirmText="نعم، احذف المبارزة"
+        title="حذف المهمة نهائياً؟"
+        description="هل أنت متأكد من حذف هذه المهمة من السجلات؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="تأكيد الحذف"
         variant="destructive"
         onConfirm={handleDelete}
       />
     </div>
   );
 }
+
