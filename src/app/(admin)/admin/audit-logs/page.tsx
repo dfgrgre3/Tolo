@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { adminApi } from "@/lib/api/admin-api";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable } from "@/components/admin/ui/admin-table";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +106,7 @@ export default function AdminAuditLogsPage() {
       if (eventTypeFilter && eventTypeFilter !== "all") params.append("eventType", eventTypeFilter);
       if (searchQuery) params.append("userId", searchQuery);
 
-      const response = await fetch(`/api/admin/audit-logs?${params}`);
+      const response = await adminApi.fetch(`/admin/audit-logs?${params}`);
       const data = await response.json();
       setLogs(data.data?.logs || data.data?.items || data.logs || []);
       setEventTypes(data.data?.eventTypes || data.eventTypes || []);

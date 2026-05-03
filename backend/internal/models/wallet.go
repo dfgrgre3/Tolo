@@ -17,16 +17,16 @@ const (
 )
 
 type WalletTransaction struct {
-	ID          string          `gorm:"primaryKey;type:text" json:"id"`
-	UserID      string          `gorm:"not null;index;type:text;constraint:OnDelete:CASCADE" json:"userId"`
-	Type        TransactionType `gorm:"not null;index" json:"type"`
-	Amount      float64         `gorm:"not null" json:"amount"`      // Positive or negative
-	Currency    string          `gorm:"not null;default:'EGP'" json:"currency"`
-	WalletType  string          `gorm:"not null;default:'BALANCE'" json:"walletType"` // BALANCE, AI_CREDITS, EXAM_CREDITS
-	Description string          `json:"description"`
-	ReferenceID *string         `gorm:"index;type:text" json:"referenceId"`    // e.g. PaymentID, ExamResultID, AIConversationID
-	CreatedAt   time.Time       `gorm:"index" json:"createdAt"`
-	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"-"`
+	ID          string          `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID      string          `gorm:"not null;index;type:uuid;column:user_id;constraint:OnDelete:CASCADE" json:"userId"`
+	Type        TransactionType `gorm:"not null;index;column:type" json:"type"`
+	Amount      float64         `gorm:"not null;column:amount" json:"amount"`
+	Currency    string          `gorm:"not null;default:'EGP';column:currency" json:"currency"`
+	WalletType  string          `gorm:"not null;default:'BALANCE';column:wallet_type" json:"walletType"`
+	Description string          `gorm:"column:description" json:"description"`
+	ReferenceID *string         `gorm:"index;type:uuid;column:reference_id" json:"referenceId"`
+	CreatedAt   time.Time       `gorm:"index;column:created_at" json:"createdAt"`
+	DeletedAt   gorm.DeletedAt  `gorm:"index;column:deleted_at" json:"-"`
 
 	// Relations
 	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`

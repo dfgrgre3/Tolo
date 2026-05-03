@@ -2,6 +2,9 @@ package handlers
 
 import (
 	cryptoRand "crypto/rand"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
@@ -62,8 +66,8 @@ type LoginRequest struct {
 
 func Login(c *gin.Context) {
 	var req LoginRequest
-	if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil {
-		api_response.Error(c, http.StatusBadRequest, "بيانات الدخول غير صالحة: " + err.Error())
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api_response.Error(c, http.StatusBadRequest, "بيانات الدخول غير صالحة: "+err.Error())
 		return
 	}
 
@@ -81,17 +85,13 @@ func Login(c *gin.Context) {
 
 	user, err := authService.Login(req.Email, req.Password, ip, userAgent)
 	if err != nil {
-		// Log failed login attempt
+		services.GetAuditService().LogAsync("", services.AuditEventLoginFailed, "auth", req.Email, map[string]interface{}{"error": err.Error()}, ip, userAgent)
 		_ = LogSecurityEvent("", models.SecurityEventLoginFailed, ip, userAgent, nil, nil)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Check if 2FA is enabled
 	if user.TwoFactorEnabled {
-		// Generate a temporary verification token (simple implementation)
-		// In a real app, you'd send an SMS or Email code here.
-		// For now, we'll just return that it's required.
 		c.JSON(http.StatusOK, gin.H{
 			"success":     true,
 			"requires2FA": true,
@@ -103,19 +103,16 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate Token Pair
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens", "details": err.Error()})
 		return
 	}
 
-	// Create Session in DB
 	location := getMockLocation(ip)
-	// Expiry calculation
-	expiryDuration := 24 * time.Hour // Default 1 day
+	expiryDuration := 24 * time.Hour
 	if req.RememberMe {
-		expiryDuration = 30 * 24 * time.Hour // 30 days
+		expiryDuration = 30 * 24 * time.Hour
 	}
 
 	session := &models.UserSession{
@@ -129,13 +126,9 @@ func Login(c *gin.Context) {
 		LastAccessed: time.Now(),
 	}
 
-	// Device Limiting: Ensure only 2 devices
 	activeSessions, _ := getSessionRepo().GetActiveSessions(user.ID)
 	if len(activeSessions) >= 2 {
-		// Log a security event about device limit reach
 		_ = LogSecurityEvent(user.ID, "DEVICE_LIMIT_REACHED", ip, userAgent, location, nil)
-
-		// Auto-logout the oldest session to allow this new login
 		oldestSession := activeSessions[0]
 		_ = getSessionRepo().RevokeSessionByJTI(oldestSession.ID)
 	}
@@ -145,12 +138,10 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Log security event
 	_ = LogSecurityEvent(user.ID, models.SecurityEventLoginSuccess, ip, userAgent, location, nil)
+	services.GetAuditService().LogAsync(user.ID, services.AuditEventLogin, "auth", user.ID, map[string]interface{}{"ip": ip}, ip, userAgent)
 
-	// Set cookies
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
-
 	refreshExpiry := int(expiryDuration.Seconds())
 	c.SetCookie("refresh_token", tokens.RefreshToken, refreshExpiry, "/api/auth/refresh", "", isProduction(), true)
 
@@ -183,15 +174,30 @@ func Verify2FA(c *gin.Context) {
 		return
 	}
 
-	// MOCK VERIFICATION: In development, any 6-digit code works, or use a fixed one
-	// In production, you'd use TOTP or a sent code.
-	if req.Token != "123456" && isProduction() {
+	tokenValid := false
+
+	if user.TwoFactorEnabled && user.TwoFactorSecret != nil && *user.TwoFactorSecret != "" {
+		if validateTOTP(*user.TwoFactorSecret, req.Token) {
+			tokenValid = true
+		}
+	}
+
+	if !tokenValid && user.VerificationToken != nil && *user.VerificationToken == req.Token {
+		if user.VerificationExpires != nil && user.VerificationExpires.After(time.Now()) {
+			tokenValid = true
+			db.DB.Model(&user).Updates(map[string]interface{}{
+				"verification_token":  nil,
+				"verification_expires": nil,
+			})
+		}
+	}
+
+	if !tokenValid {
 		_ = LogSecurityEvent(user.ID, models.SecurityEvent2FAFailed, c.ClientIP(), c.Request.UserAgent(), nil, nil)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid verification code"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired verification code"})
 		return
 	}
 
-	// Successful verification
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
@@ -214,6 +220,8 @@ func Verify2FA(c *gin.Context) {
 	}
 	_ = getSessionRepo().Create(session)
 
+	_ = LogSecurityEvent(user.ID, "2FA_SUCCESS", c.ClientIP(), c.Request.UserAgent(), nil, nil)
+
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
 	c.SetCookie("refresh_token", tokens.RefreshToken, int(expiryDuration.Seconds()), "/api/auth/refresh", "", isProduction(), true)
 
@@ -221,6 +229,46 @@ func Verify2FA(c *gin.Context) {
 		"success": true,
 		"user":    user,
 	})
+}
+
+func validateTOTP(secretBase32 string, token string) bool {
+	secret := strings.ToUpper(secretBase32)
+	secretBytes, err := base32.StdEncoding.DecodeString(secret)
+	if err != nil {
+		return false
+	}
+
+	timeStep := time.Now().Unix() / 30
+
+	for _, offset := range []int64{-1, 0, 1} {
+		expectedToken := generateTOTP(secretBytes, timeStep+offset)
+		if expectedToken == token {
+			return true
+		}
+	}
+
+	return false
+}
+
+func generateTOTP(secret []byte, timeStep int64) string {
+	msg := make([]byte, 8)
+	for i := 7; i >= 0; i-- {
+		msg[i] = byte(timeStep & 0xff)
+		timeStep >>= 8
+	}
+
+	mac := hmac.New(sha1.New, secret)
+	mac.Write(msg)
+	hash := mac.Sum(nil)
+
+	offset := hash[len(hash)-1] & 0x0f
+	truncated := ((int(hash[offset]) & 0x7f) << 24) |
+		((int(hash[offset+1]) & 0xff) << 16) |
+		((int(hash[offset+2]) & 0xff) << 8) |
+		(int(hash[offset+3]) & 0xff)
+
+	code := truncated % 1000000
+	return fmt.Sprintf("%06d", code)
 }
 
 func RequestMagicLink(c *gin.Context) {
@@ -234,20 +282,17 @@ func RequestMagicLink(c *gin.Context) {
 
 	token, err := authService.RequestMagicLink(req.Email)
 	if err != nil {
-		// Don't reveal if user exists or not for security
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a link has been sent."})
 		return
 	}
 
-	// Log event
 	_ = LogSecurityEvent("", models.SecurityEventMagicLinkRequested, c.ClientIP(), c.Request.UserAgent(), nil, &token)
 
-	// In development, we return the token/link for testing
 	link := "/verify-magic-link?token=" + token
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Magic link sent successfully",
-		"debug":   link, // Remove in production
+		"debug":   link,
 	})
 }
 
@@ -264,7 +309,6 @@ func VerifyMagicLink(c *gin.Context) {
 		return
 	}
 
-	// Successful login via magic link
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
@@ -303,6 +347,11 @@ func ForgotPassword(c *gin.Context) {
 	}
 
 	token, err := authService.RequestPasswordReset(req.Email)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a reset link has been sent."})
+		return
+	}
+
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a reset link has been sent."})
 		return
@@ -396,14 +445,12 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Generate new access token (Keep the same JTI/Session for simplicity or rotate)
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
 		return
 	}
 
-	// Revoke old session and create new one (Token Rotation)
 	_ = getSessionRepo().RevokeSessionByJTI(session.ID)
 
 	newSession := &models.UserSession{
@@ -421,15 +468,14 @@ func RefreshToken(c *gin.Context) {
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
 	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, "/api/auth/refresh", "", isProduction(), true)
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 func Logout(c *gin.Context) {
 	if token, err := c.Cookie("access_token"); err == nil {
 		if claims, err := tokenService.ValidateToken(token); err == nil {
 			_ = getSessionRepo().RevokeSessionByJTI(claims.JTI)
+			services.GetAuditService().LogAsync(claims.Subject, services.AuditEventLogout, "auth", claims.Subject, nil, c.ClientIP(), c.Request.UserAgent())
 		}
 	}
 
@@ -455,7 +501,6 @@ func DeleteAuthSession(c *gin.Context) {
 		return
 	}
 
-	// SECURITY: Verify the session belongs to the authenticated user
 	userID, exists := c.Get("userId")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -476,7 +521,6 @@ func DeleteAuthSession(c *gin.Context) {
 }
 
 func UpdateAuthSession(c *gin.Context) {
-	// Example: Mark device as trusted or similar
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
@@ -501,7 +545,7 @@ func Register(c *gin.Context) {
 		Email:         req.Email,
 		Username:      req.Username,
 		Password:      req.Password,
-		Role:          models.RoleStudent, // Default to Student for safety
+		Role:          models.RoleStudent,
 		Phone:         req.Phone,
 		GradeLevel:    req.GradeLevel,
 		EducationType: req.EducationType,
@@ -516,10 +560,9 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// Generate verification token
 	token, _ := authService.RequestEmailVerification(user.Email)
 
-	// Notify admins
+	services.GetAuditService().LogAsync(user.ID, "user.register", "user", user.ID, nil, c.ClientIP(), c.Request.UserAgent())
 	GlobalNotifyAdmins("مستخدم جديد", fmt.Sprintf("انضم %s إلى المنصة", user.Email), "success")
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -543,8 +586,6 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	// Wrap in { user: ... } for frontend compatibility if needed
-	// The frontend AuthContext.tsx:217 expects { user: data.user }
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
@@ -664,7 +705,6 @@ func UpdateUser(c *gin.Context) {
 
 	updates := make(map[string]interface{})
 	if req.Role != "" {
-		// Validate role to prevent privilege escalation
 		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "MODERATOR": true, "ADMIN": true}
 		if !validRoles[req.Role] {
 			api_response.Error(c, http.StatusBadRequest, "Invalid role")
@@ -702,9 +742,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Reload user to get fresh data (avoid stale cache write)
 	db.DB.First(&user, "id = ?", user.ID)
-	// Sync cache
 	_ = getUserRepo().Update(&user)
 
 	LogAudit(c, "UPDATE", "user", user.ID, updates)
@@ -712,7 +750,6 @@ func UpdateUser(c *gin.Context) {
 }
 
 func GetGuestUser(c *gin.Context) {
-	// Return a static or generated guest ID
 	api_response.Success(c, gin.H{"id": "guest_" + config.Load().Environment})
 }
 
@@ -773,7 +810,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Validate role - only allow valid roles
 	role := models.RoleStudent
 	if input.Role != "" {
 		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "MODERATOR": true, "ADMIN": true}
@@ -784,7 +820,6 @@ func CreateUser(c *gin.Context) {
 		role = models.UserRole(input.Role)
 	}
 
-	// Generate a random temporary password if none provided
 	password := input.Password
 	if password == "" {
 		b := make([]byte, 16)
@@ -835,8 +870,6 @@ func buildUserDetailsPayload(user models.User) gin.H {
 	db.DB.Model(&models.ExamResult{}).Where("\"userId\" = ?", user.ID).Count(&examResultsCount)
 	db.DB.Model(&models.Notification{}).Where("\"userId\" = ? AND \"isRead\" = ?", user.ID, false).Count(&unreadNotifications)
 	db.DB.Model(&models.Enrollment{}).Where("\"userId\" = ?", user.ID).Count(&totalEnrollments)
-	// Add achievements count if table exists, else 0
-	// db.DB.Model(&models.Achievement{}).Where("\"userId\" = ?", user.ID).Count(&achievementsCount)
 
 	return gin.H{
 		"id":                 user.ID,
@@ -854,7 +887,7 @@ func buildUserDetailsPayload(user models.User) gin.H {
 		"lastLogin":          nil,
 		"totalXP":            user.TotalXP,
 		"level":              user.Level,
-		"currentStreak":      0, // Streak logic requires a separate daily activity tracking table or complex query
+		"currentStreak":      0,
 		"longestStreak":      0,
 		"totalStudyTime":     totalStudyTime,
 		"tasksCompleted":     tasksCompleted,
@@ -964,9 +997,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Reload user to get fresh data before caching (avoid stale cache write)
 	db.DB.First(&user, "id = ?", user.ID)
-	// Sync cache
 	_ = getUserRepo().Update(&user)
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
@@ -1005,7 +1036,6 @@ func GetBillingSummary(c *gin.Context) {
 		}
 	}
 
-	// Get active subscription if exists
 	var activeSub models.UserSubscription
 	var activeSubscriptionData interface{}
 	if err := db.DB.Preload("Plan").Where("\"userId\" = ? AND \"status\" = ? AND \"endDate\" > ?", user.ID, models.SubscriptionActive, time.Now()).First(&activeSub).Error; err == nil {
@@ -1063,16 +1093,13 @@ func defaultPermissions(role models.UserRole, existing []string) []string {
 	return models.GetDefaultPermissions(role)
 }
 
-// ClerkWebhook handles Clerk webhook events for user synchronization
 func ClerkWebhook(c *gin.Context) {
-	// Read the request body
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
 		return
 	}
 
-	// Parse the webhook payload
 	var event struct {
 		Type string                 `json:"type"`
 		Data map[string]interface{} `json:"data"`
@@ -1085,7 +1112,6 @@ func ClerkWebhook(c *gin.Context) {
 
 	log.Printf("[Clerk Webhook] Received event: %s", event.Type)
 
-	// Handle different event types
 	switch event.Type {
 	case "user.created", "user.updated":
 		if err := syncUserFromClerk(event.Data); err != nil {
@@ -1106,7 +1132,6 @@ func ClerkWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-// syncUserFromClerk creates or updates a user in the local database from Clerk data
 func syncUserFromClerk(clerkData map[string]interface{}) error {
 	userId, ok := clerkData["id"].(string)
 	if !ok {
@@ -1134,11 +1159,10 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 		name += " " + lastName
 	}
 
-	// Upsert user
 	user := models.User{
 		ID:            userId,
 		Email:         primaryEmail,
-		EmailVerified: true, // Clerk verifies emails
+		EmailVerified: true,
 		Status:        models.StatusActive,
 		Role:          models.RoleStudent,
 		Balance:       0,
@@ -1152,7 +1176,6 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 		user.Name = &name
 	}
 
-	// Use OnConflict to handle upsert
 	result := db.DB.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
@@ -1169,18 +1192,14 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 	return nil
 }
 
-// EnsureUserExists checks if a user exists in the database and creates them if they don't
-// This is a fallback for when webhooks fail or for development environments
 func EnsureUserExists(userId string, email string) error {
 	var user models.User
 	err := db.DB.First(&user, "id = ?", userId).Error
 
-	// User exists, nothing to do
 	if err == nil {
 		return nil
 	}
 
-	// Create new user with minimal information
 	newUser := models.User{
 		ID:            userId,
 		Email:         email,

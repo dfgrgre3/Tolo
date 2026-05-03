@@ -71,6 +71,7 @@ import {
 "@/components/ui/select";
 import { cn, formatPrice } from "@/lib/utils";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -306,7 +307,7 @@ export default function AdminCoursesPage() {
       if (filterStatus === "ACTIVE") params.set("isActive", "true");else
       if (filterStatus === "INACTIVE") params.set("isActive", "false");
 
-      const response = await fetch(`${apiRoutes.admin.courses}?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.courses}?${params.toString()}`);
       if (!response.ok) throw new Error("فشل تحميل الدورات");
       return (await response.json()) as CoursesResponse;
     },
@@ -324,7 +325,7 @@ export default function AdminCoursesPage() {
   const { data: teachers = [] } = useQuery({
     queryKey: ["admin", "teachers"],
     queryFn: async () => {
-      const response = await fetch(apiRoutes.admin.teachers);
+      const response = await adminFetch(apiRoutes.admin.teachers);
       const result = await response.json();
       return (result.data?.teachers || []) as Array<{id: string;name: string;}>;
     },
@@ -334,7 +335,7 @@ export default function AdminCoursesPage() {
   const { data: categories = [], refetch: refetchCategories } = useQuery({
     queryKey: ["admin", "course-categories"],
     queryFn: async () => {
-      const response = await fetch(apiRoutes.admin.courseCategories);
+      const response = await adminFetch(apiRoutes.admin.courseCategories);
       const result = await response.json();
       return (result.data?.categories || []) as CourseCategory[];
     },
@@ -432,7 +433,7 @@ export default function AdminCoursesPage() {
         ...(editingCourse ? { id: editingCourse.id } : {})
       };
 
-      const response = await fetch(apiRoutes.admin.courses, {
+      const response = await adminFetch(apiRoutes.admin.courses, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -469,7 +470,7 @@ export default function AdminCoursesPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(apiRoutes.admin.courses, {
+      const response = await adminFetch(apiRoutes.admin.courses, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })
@@ -490,7 +491,7 @@ export default function AdminCoursesPage() {
 
   const handleToggleStatus = async (course: Course) => {
     try {
-      const response = await fetch(apiRoutes.admin.courses, {
+      const response = await adminFetch(apiRoutes.admin.courses, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: course.id, isPublished: !course.isPublished })
@@ -511,7 +512,7 @@ export default function AdminCoursesPage() {
     try {
       const method = editingCategory ? "PATCH" : "POST";
       const payload = editingCategory ? { ...values, id: editingCategory.id } : values;
-      const response = await fetch(apiRoutes.admin.courseCategories, {
+      const response = await adminFetch(apiRoutes.admin.courseCategories, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -535,7 +536,7 @@ export default function AdminCoursesPage() {
   const handleCategoryDelete = async () => {
     if (!categoryDeleteDialog.id) return;
     try {
-      const response = await fetch(apiRoutes.admin.courseCategories, {
+      const response = await adminFetch(apiRoutes.admin.courseCategories, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: categoryDeleteDialog.id })
@@ -557,7 +558,7 @@ export default function AdminCoursesPage() {
 
   const handleDuplicate = async (course: Course) => {
     try {
-      const response = await fetch("/api/admin/courses/duplicate", {
+      const response = await adminFetch("/api/admin/courses/duplicate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id })
@@ -573,7 +574,7 @@ export default function AdminCoursesPage() {
 
   const _handleToggleActive = async (course: Course) => {
     try {
-      const response = await fetch("/api/admin/courses", {
+      const response = await adminFetch("/api/admin/courses", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: course.id, isActive: !course.isActive })
@@ -595,7 +596,7 @@ export default function AdminCoursesPage() {
   {
     if (selectedIds.length === 0) return;
     try {
-      const response = await fetch("/api/admin/courses/batch", {
+      const response = await adminFetch("/api/admin/courses/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: selectedIds, action })

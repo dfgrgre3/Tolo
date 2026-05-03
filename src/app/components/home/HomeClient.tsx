@@ -127,7 +127,7 @@ export function HomeClient({ summary }: HomeClientProps) {
     name: authUser.name || authUser.username || null,
     username: authUser.username || null,
     avatar: authUser.avatar || null,
-    role: authUser.role as UserRole || UserRole.USER,
+    role: authUser.role as UserRole || UserRole.STUDENT,
     status: authUser.status as UserStatus || UserStatus.ACTIVE,
     phone: authUser.phone || null,
     phoneVerified: false,
@@ -151,7 +151,11 @@ export function HomeClient({ summary }: HomeClientProps) {
     examXP: authUser.examXP ?? 0,
     challengeXP: authUser.challengeXP ?? 0,
     questXP: authUser.questXP ?? 0,
-    seasonXP: authUser.seasonXP ?? 0
+    seasonXP: authUser.seasonXP ?? 0,
+    balance: 0,
+    aiCredits: 0,
+    examCredits: 0,
+    permissions: authUser.permissions ?? [],
   };
 
   return (

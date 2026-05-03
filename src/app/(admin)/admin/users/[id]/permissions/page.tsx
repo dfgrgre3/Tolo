@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { LockKeyhole, Save, ShieldCheck } from "lucide-react";
@@ -158,7 +159,7 @@ export default function UserPermissionsPage() {
   React.useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch(`/api/admin/users/${userId}`);
+        const response = await adminFetch(`/admin/users/${userId}`);
         if (!response.ok) {
           toast.error("تعذر تحميل بيانات المستخدم");
           router.push("/admin/users");
@@ -189,7 +190,7 @@ export default function UserPermissionsPage() {
     if (!user) return;
     setIsSaving(true);
     try {
-      const response = await fetch("/api/admin/users", {
+      const response = await adminFetch("/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -231,7 +232,7 @@ export default function UserPermissionsPage() {
     return null;
   }
 
-  const defaultPermissions = new Set(DEFAULT_ROLE_PERMISSIONS[user.role] ?? []);
+  const defaultPermissions = new Set<string>((DEFAULT_ROLE_PERMISSIONS as any)[user.role] ?? []);
 
   return (
     <div className="space-y-6" dir="rtl">

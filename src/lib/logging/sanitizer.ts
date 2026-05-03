@@ -67,7 +67,7 @@ function isSensitiveField(key: string): boolean {
 /**
  * تنقية القيمة بناءً على الأنماط الحساسة
  */
-function sanitizeValue(value: any): any {
+function sanitizeValue(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value;
   }
@@ -83,7 +83,7 @@ function sanitizeValue(value: any): any {
 /**
  * تنقية الكائن من البيانات الحساسة (بشكل عميق)
  */
-function sanitizeObject(obj: any, depth: number = 0): any {
+function sanitizeObject(obj: unknown, depth: number = 0): unknown {
   // منع التكرار اللانهائي
   if (depth > 10) {
     return '[MAX_DEPTH]';
@@ -104,14 +104,15 @@ function sanitizeObject(obj: any, depth: number = 0): any {
   }
 
   // إذا كانت القيمة كائناً
-  if (typeof obj === 'object') {
-    const sanitized: any = {};
+  if (typeof obj === 'object' && obj !== null) {
+    const sanitized: Record<string, unknown> = {};
+    const objAsRecord = obj as Record<string, unknown>;
     
-    for (const key of Object.keys(obj)) {
+    for (const key of Object.keys(objAsRecord)) {
       if (isSensitiveField(key)) {
         sanitized[key] = MASKED_VALUE;
       } else {
-        sanitized[key] = sanitizeObject(obj[key], depth + 1);
+        sanitized[key] = sanitizeObject(objAsRecord[key], depth + 1);
       }
     }
     
@@ -135,7 +136,7 @@ export function sanitizeErrorMessage(message: string): string {
 /**
  * تنقية الـ context قبل التسجيل
  */
-export function sanitizeLogContext(context: any): any {
+export function sanitizeLogContext(context: unknown): unknown {
   if (!context) return context;
   
   try {
@@ -151,7 +152,7 @@ export function sanitizeLogContext(context: any): any {
 /**
  * التحقق مما إذا كانت الرسالة تحتوي على بيانات حساسة
  */
-export function containsSensitiveData(message: string, context?: any): boolean {
+export function containsSensitiveData(message: string, context?: unknown): boolean {
   const checkStr = message + JSON.stringify(context || {});
     
   for (const pattern of SENSITIVE_PATTERNS) {

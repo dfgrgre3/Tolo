@@ -38,7 +38,13 @@ func PaymobWebhook(c *gin.Context) {
 	txnIDFloat, _ := obj["id"].(float64)
 	txnID := int64(txnIDFloat)
 
-	// In a real app, verify HMAC here using services.NewPaymobService().HMACSecret
+	// Verify HMAC to ensure the webhook is legitimate
+	paymobSvc := services.NewPaymobService()
+	if !paymobSvc.VerifyHMAC(payload) {
+		fmt.Println("Paymob Webhook: HMAC verification failed")
+		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid signature"})
+		return
+	}
 
 	if pending {
 		// Payment is still processing (e.g. Fawry)
@@ -161,12 +167,16 @@ case models.IntervalYearly:
 		})
 
 		if err != nil {
+			services.GetAuditService().LogAsync(payment.UserID, services.AuditEventPaymentFailed, "payment", payment.ID, map[string]interface{}{"error": err.Error(), "orderId": orderID}, c.ClientIP(), c.Request.UserAgent())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update record"})
 			return
 		}
+
+		services.GetAuditService().LogAsync(payment.UserID, services.AuditEventPaymentSuccess, "payment", payment.ID, map[string]interface{}{"amount": payment.Amount, "orderId": orderID}, c.ClientIP(), c.Request.UserAgent())
 	} else {
 		// Mark payment as failed
 		db.DB.Model(&payment).Update("status", models.PaymentFailed)
+		services.GetAuditService().LogAsync(payment.UserID, services.AuditEventPaymentFailed, "payment", payment.ID, map[string]interface{}{"reason": "provider_failed", "orderId": orderID}, c.ClientIP(), c.Request.UserAgent())
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "received"})
@@ -247,6 +257,8 @@ func CreatePayment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment"})
 		return
 	}
+
+	services.GetAuditService().LogAsync(userId.(string), services.AuditEventPaymentStarted, "payment", payment.ID, map[string]interface{}{"amount": req.Amount, "method": req.Method}, c.ClientIP(), c.Request.UserAgent())
 
 	c.JSON(http.StatusCreated, payment)
 }
@@ -421,6 +433,8 @@ func PurchaseAddon(c *gin.Context) {
 		return
 	}
 
+	services.GetAuditService().LogAsync(userId.(string), services.AuditEventAdminAction, "addon", req.AddonID, map[string]interface{}{"price": price}, c.ClientIP(), c.Request.UserAgent())
+
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
@@ -471,6 +485,8 @@ func HandleWalletDeposit(c *gin.Context) {
 	if err := db.DB.Create(&payment).Error; err != nil {
 		// Log but don't fail — the deposit itself succeeded
 		fmt.Printf("Warning: failed to create payment audit record for user %s: %v\n", userId, err)
+	} else {
+		services.GetAuditService().LogAsync(userId.(string), services.AuditEventPaymentSuccess, "wallet_topup", payment.ID, map[string]interface{}{"amount": req.Amount}, c.ClientIP(), c.Request.UserAgent())
 	}
 
 	// Reload user for fresh balance

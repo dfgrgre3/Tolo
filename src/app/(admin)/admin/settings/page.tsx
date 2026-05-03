@@ -45,6 +45,8 @@ import {
 } from "lucide-react";
 import { SettingsSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { logger } from '@/lib/logger';
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 const settingsSchema = z.object({
   siteName: z.string().min(1, "اسم الموقع مطلوب"),
@@ -131,7 +133,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/settings");
+      const response = await adminFetch(apiRoutes.admin.settings);
       const data = await response.json();
       const settings = data.settings;
       
@@ -154,7 +156,7 @@ export default function AdminSettingsPage() {
   const handleSave = async (values: SettingsFormValues) => {
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/settings", {
+      const response = await adminFetch(apiRoutes.admin.settings, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -180,7 +182,7 @@ export default function AdminSettingsPage() {
 
   const handleReset = async () => {
     try {
-      const response = await fetch("/api/admin/settings", {
+      const response = await adminFetch(apiRoutes.admin.settings, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reset: true }),

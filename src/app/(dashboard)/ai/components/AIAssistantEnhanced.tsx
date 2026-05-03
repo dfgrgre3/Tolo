@@ -92,11 +92,11 @@ export default function AIAssistantEnhanced({
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        setIsListening(false);
-      };
+       recognition.onresult = (event: SpeechRecognitionEvent) => {
+         const transcript = event.results[0][0].transcript;
+         setInput(transcript);
+         setIsListening(false);
+       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         logger.error('Speech recognition error:', event.error);

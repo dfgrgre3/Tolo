@@ -36,9 +36,9 @@ import { logger } from '@/lib/logger';
 const taskSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
   description: z.string().optional(),
-  subject: z.nativeEnum(SubjectType).optional(),
+  subjectId: z.nativeEnum(SubjectType).optional(),
   dueAt: z.string().optional(),
-  priority: z.number().int().min(0).max(2).optional()
+  priority: z.string().optional()
 });
 
 const STYLES = {
@@ -116,13 +116,14 @@ export default function TasksPage() {
       result = result.filter((task) =>
       task.title.toLowerCase().includes(term) ||
       task.description && task.description.toLowerCase().includes(term) ||
-      task.subject && task.subject.toLowerCase().includes(term)
+      task.subjectId && task.subjectId.toLowerCase().includes(term)
       );
     }
 
     result.sort((a, b) => {
       if (sortBy === 'priority') {
-        return b.priority - a.priority;
+        const priorityOrder: Record<string, number> = { 'HIGH': 2, 'MEDIUM': 1, 'LOW': 0 };
+        return (priorityOrder[b.priority] ?? 0) - (priorityOrder[a.priority] ?? 0);
       }
       if (sortBy === 'dueAt') {
         if (!a.dueAt) return 1;
@@ -251,14 +252,17 @@ export default function TasksPage() {
     setEditingTask(task);
     setValue('title', task.title);
     setValue('description', task.description || '');
-    setValue('subject', task.subject || undefined);
+    setValue('subjectId', (task.subjectId as SubjectType) || undefined);
     setValue('dueAt', task.dueAt ? new Date(task.dueAt).toISOString().substring(0, 16) : '');
     setValue('priority', task.priority);
     setIsEditDialogOpen(true);
   };
 
-  const getPriorityBadge = (priority: number) => {
-    switch (priority) {
+  const getPriorityBadge = (priority: string | number) => {
+    const level = typeof priority === 'string' 
+      ? (priority === 'HIGH' ? 2 : priority === 'MEDIUM' ? 1 : 0)
+      : priority;
+    switch (level) {
       case 2:
         return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 font-black">أهمية ملحمية</Badge>;
       case 1:

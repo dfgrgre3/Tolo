@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -19,6 +19,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface ContentReport {
   id: string;
@@ -48,7 +50,7 @@ export default function ContentReportsPage() {
   const { data: reports = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", "content-reports"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/reports/content");
+      const res = await adminFetch(apiRoutes.admin.reportsContent);
       const result = await res.json();
       return (result.data || []) as ContentReport[];
     }
@@ -56,7 +58,7 @@ export default function ContentReportsPage() {
 
   const updateReportMutation = useMutation({
     mutationFn: async ({ id, status, adminNote }: { id: string, status: string, adminNote?: string }) => {
-      const res = await fetch("/api/admin/reports/content", {
+      const res = await adminFetch(apiRoutes.admin.reportsContent, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status, adminNote }),

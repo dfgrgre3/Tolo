@@ -69,7 +69,7 @@ func (r *AIConversationRepo) Update(conversation *models.AIConversation) error {
 
 // Delete soft-deletes a conversation (sets isActive to false)
 func (r *AIConversationRepo) Delete(id string) error {
-	return r.db.Model(&models.AIConversation{}).Where("id = ?", id).Update("isActive", false).Error
+	return r.db.Model(&models.AIConversation{}).Where("id = ?", id).Update("\"isActive\"", false).Error
 }
 
 // AddMessage adds a message to a conversation
@@ -84,7 +84,7 @@ func (r *AIConversationRepo) AddMessage(message *models.AIMessage) error {
 			return err
 		}
 		// Update conversation's updatedAt
-		return tx.Model(&models.AIConversation{}).Where("id = ?", message.ConversationID).Update("updatedAt", time.Now()).Error
+		return tx.Model(&models.AIConversation{}).Where("id = ?", message.ConversationID).Update("\"updatedAt\"", time.Now()).Error
 	})
 }
 

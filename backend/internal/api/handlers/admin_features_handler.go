@@ -488,3 +488,87 @@ func AdminDeleteBook(c *gin.Context) {
 	LogAudit(c, "DELETE", "book", id, nil)
 	api_response.Success(c, nil)
 }
+
+// AB Testing CRUD
+func AdminCreateABTest(c *gin.Context) {
+	var item models.ABExperiment
+	if err := c.ShouldBindJSON(&item); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	db.DB.Create(&item)
+	api_response.Created(c, item)
+}
+
+func AdminUpdateABTest(c *gin.Context) {
+	id := c.Param("id")
+	var item models.ABExperiment
+	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+		api_response.Error(c, http.StatusNotFound, "AB Test not found")
+		return
+	}
+	c.ShouldBindJSON(&item)
+	db.DB.Save(&item)
+	api_response.Success(c, item)
+}
+
+func AdminDeleteABTest(c *gin.Context) {
+	db.DB.Delete(&models.ABExperiment{}, "id = ?", c.Param("id"))
+	api_response.Success(c, nil)
+}
+
+// Public Blog Endpoints
+func GetPublicBlogPosts(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 { page = 1 }
+	if limit <= 0 { limit = 10 }
+
+	var posts []models.BlogPost
+	var total int64
+	query := db.DB.Model(&models.BlogPost{}).Where("status = ?", "PUBLISHED")
+	query.Count(&total)
+	query.Preload("Author").Order("\"publishedAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&posts)
+
+	api_response.Success(c, gin.H{
+		"posts": posts,
+		"pagination": gin.H{
+			"page": page, "limit": limit, "total": total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
+}
+
+func GetPublicBlogPost(c *gin.Context) {
+	slug := c.Param("slug")
+	var post models.BlogPost
+	if err := db.DB.Preload("Author").Where("slug = ? AND status = ?", slug, "PUBLISHED").First(&post).Error; err != nil {
+		api_response.Error(c, http.StatusNotFound, "Blog post not found")
+		return
+	}
+	// Increment views
+	db.DB.Model(&post).UpdateColumn("views", post.Views+1)
+	api_response.Success(c, post)
+}
+
+// Public Events Endpoint
+func GetPublicEvents(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 { page = 1 }
+	if limit <= 0 { limit = 10 }
+
+	var events []models.Event
+	var total int64
+	query := db.DB.Model(&models.Event{}).Where("\"isActive\" = ?", true)
+	query.Count(&total)
+	query.Order("\"startDate\" ASC").Limit(limit).Offset((page-1)*limit).Find(&events)
+
+	api_response.Success(c, gin.H{
+		"events": events,
+		"pagination": gin.H{
+			"page": page, "limit": limit, "total": total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
+}

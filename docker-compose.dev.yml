@@ -5,20 +5,37 @@ services:
     image: postgres:15-alpine
     container_name: thanawy-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Khaled@2008
-      POSTGRES_DB: thanawy
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    container_name: thanawy-backend-dev
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - DATABASE_URL=${DATABASE_URL:?}
+      - JWT_SECRET=${JWT_SECRET:?}
+      - REDIS_URL=${REDIS_URL:?}
+      - DB_AUTO_MIGRATE=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
-

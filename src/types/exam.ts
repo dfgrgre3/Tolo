@@ -1,14 +1,27 @@
 export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
 
+export interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect?: boolean;
+}
+
+export interface UserAnswer {
+  questionId: string;
+  selectedOptionId?: string;
+  textAnswer?: string;
+  isCorrect?: boolean;
+}
+
 export interface Question {
   id: string;
   examId: string;
   text: string;
-  type: string;
+  type: 'MCQ' | 'TRUE_FALSE' | 'TEXT';
   difficulty: DifficultyLevel;
   points: number;
   explanation?: string;
-  options?: any; // JSON object for choices
+  options?: QuestionOption[] | Record<string, any>; 
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -18,7 +31,7 @@ export interface Exam {
   subjectId: string;
   title: string;
   description?: string;
-  type: string;
+  type: 'QUIZ' | 'MIDTERM' | 'FINAL';
   durationMinutes: number;
   totalPoints: number;
   passingScore: number;
@@ -36,7 +49,7 @@ export interface ExamResult {
   score: number;
   passed: boolean;
   timeSpentSeconds: number;
-  answers?: any; // JSON object containing user's answers
+  answers?: UserAnswer[] | Record<string, UserAnswer>;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

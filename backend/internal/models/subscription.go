@@ -24,38 +24,36 @@ const (
 )
 
 type SubscriptionPlan struct {
-	ID          string               `gorm:"primaryKey;type:text" json:"id"`
-	Name        string               `gorm:"not null;uniqueIndex" json:"name"`
-	NameAr      string               `gorm:"not null" json:"nameAr"`
-	Description string               `json:"description"`
-	Price       float64              `gorm:"not null;default:0" json:"price"`
-	Currency    string               `gorm:"not null;default:'EGP'" json:"currency"`
-	Interval    SubscriptionInterval `gorm:"not null;default:'MONTHLY'" json:"interval"`
-	IsActive    bool                 `gorm:"default:true;index" json:"isActive"`
+	ID          string               `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Name        string               `gorm:"not null;uniqueIndex;column:name" json:"name"`
+	NameAr      string               `gorm:"not null;column:name_ar" json:"nameAr"`
+	Description string               `gorm:"column:description" json:"description"`
+	Price       float64              `gorm:"not null;default:0;column:price" json:"price"`
+	Currency    string               `gorm:"not null;default:'EGP';column:currency" json:"currency"`
+	Interval    SubscriptionInterval `gorm:"not null;default:'MONTHLY';column:interval" json:"interval"`
+	IsActive    bool                 `gorm:"default:true;index;column:is_active" json:"isActive"`
 	
-	// Features stored as JSON for flexibility
-	Features    JSONStringArray      `gorm:"type:jsonb" json:"features"`
+	Features    JSONStringArray      `gorm:"type:jsonb;column:features" json:"features"`
 	
-	CreatedAt   time.Time            `json:"createdAt"`
-	UpdatedAt   time.Time            `json:"updatedAt"`
+	CreatedAt   time.Time            `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time            `gorm:"column:updated_at" json:"updatedAt"`
 }
 
 type UserSubscription struct {
-	ID          string             `gorm:"primaryKey;type:text" json:"id"`
-	UserID      string             `gorm:"not null;index;type:text" json:"userId"`
-	PlanID      string             `gorm:"not null;index;type:text" json:"planId"`
-	Status      SubscriptionStatus `gorm:"not null;default:'PENDING';index" json:"status"`
+	ID          string             `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID      string             `gorm:"not null;index;type:uuid;column:user_id" json:"userId"`
+	PlanID      string             `gorm:"not null;index;type:uuid;column:plan_id" json:"planId"`
+	Status      SubscriptionStatus `gorm:"not null;default:'PENDING';index;column:status" json:"status"`
 	
-	StartDate   time.Time          `gorm:"not null" json:"startDate"`
-	EndDate     time.Time          `gorm:"not null;index" json:"endDate"`
+	StartDate   time.Time          `gorm:"not null;column:start_date" json:"startDate"`
+	EndDate     time.Time          `gorm:"not null;index;column:end_date" json:"endDate"`
 	
-	AutoRenew   bool               `gorm:"default:true" json:"autoRenew"`
+	AutoRenew   bool               `gorm:"default:true;column:auto_renew" json:"autoRenew"`
 	
-	// Paymob specific
-	PaymobSubscriptionID *string   `gorm:"index" json:"paymobSubscriptionId"`
+	PaymobSubscriptionID *string   `gorm:"index;column:paymob_subscription_id" json:"paymobSubscriptionId"`
 	
-	CreatedAt   time.Time          `json:"createdAt"`
-	UpdatedAt   time.Time          `json:"updatedAt"`
+	CreatedAt   time.Time          `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time          `gorm:"column:updated_at" json:"updatedAt"`
 
 	// Relations
 	User User             `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`

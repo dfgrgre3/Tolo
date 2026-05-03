@@ -7,29 +7,29 @@ import (
 )
 
 type Contest struct {
-	ID                string            `gorm:"primaryKey;type:text" json:"id"`
-	Title             string            `gorm:"not null" json:"title"`
-	Description       *string           `json:"description"`
-	Category          *string           `json:"category"`
-	QuestionsCount    int               `gorm:"default:0" json:"questionsCount"`
-	ParticipantsCount int               `gorm:"default:0" json:"participantsCount"`
-	PinCode           *string           `json:"pinCode"`
-	Status            string            `gorm:"default:'DRAFT';index" json:"status"` // DRAFT, WAITING, IN_PROGRESS, FINISHED
+	ID                string            `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Title             string            `gorm:"not null;column:title" json:"title"`
+	Description       *string           `gorm:"column:description" json:"description"`
+	Category          *string           `gorm:"column:category" json:"category"`
+	QuestionsCount    int               `gorm:"default:0;column:questions_count" json:"questionsCount"`
+	ParticipantsCount int               `gorm:"default:0;column:participants_count" json:"participantsCount"`
+	PinCode           *string           `gorm:"column:pin_code" json:"pinCode"`
+	Status            string            `gorm:"default:'DRAFT';index;column:status" json:"status"`
 	Questions         []ContestQuestion `gorm:"foreignKey:ContestID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
-	CreatedAt         time.Time         `json:"createdAt"`
-	UpdatedAt         time.Time         `json:"updatedAt"`
-	DeletedAt         gorm.DeletedAt    `gorm:"index" json:"-"`
+	CreatedAt         time.Time         `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt         time.Time         `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt         gorm.DeletedAt    `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type ContestQuestion struct {
-	ID            string `gorm:"primaryKey;type:text" json:"id"`
-	ContestID     string `gorm:"not null;index;type:text" json:"contestId"`
-	Question      string `gorm:"type:text;not null" json:"question"`
-	CorrectAnswer string `gorm:"type:text;not null" json:"-"` // Hidden from API
-	Options       string `gorm:"type:text;not null" json:"options"` // JSON array string
-	Duration      int    `gorm:"default:30" json:"duration"` // seconds
-	Points        int    `gorm:"default:10" json:"points"`
-	Order         int    `gorm:"default:0" json:"order"`
+	ID            string `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	ContestID     string `gorm:"not null;index;type:uuid;column:contest_id" json:"contestId"`
+	Question      string `gorm:"type:text;not null;column:question" json:"question"`
+	CorrectAnswer string `gorm:"type:text;not null;column:correct_answer" json:"-"`
+	Options       string `gorm:"type:text;not null;column:options" json:"options"`
+	Duration      int    `gorm:"default:30;column:duration" json:"duration"`
+	Points        int    `gorm:"default:10;column:points" json:"points"`
+	Order         int    `gorm:"default:0;column:order" json:"order"`
 }
 
 func (Contest) TableName() string { return "Contest" }

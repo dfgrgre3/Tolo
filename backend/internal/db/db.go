@@ -92,14 +92,14 @@ func Connect(dsn string) (*gorm.DB, error) {
 	}
 
 	// Register DBResolver with connection pool configuration
-	// Default values are conservative to prevent connection pool explosion
-	// In Kubernetes with 3 replicas, 50 connections per instance = 150 total
-	// This is well within PostgreSQL's default max_connections (100)
-	// and works well with PgBouncer
-	maxIdleConns := 10
-	maxOpenConns := 50
-	connMaxLifetime := time.Hour
-	connMaxIdleTime := 30 * time.Minute
+	// Tuned for production scalability
+	// These values should be adjusted based on deployment environment
+	// For 1K concurrent users: ~200 connections recommended
+	// For 10K concurrent users: ~500 connections or implement PgBouncer
+	maxIdleConns := 20  // Increased from 10 for better concurrency
+	maxOpenConns := 200 // Increased from 50 to handle 1K+ concurrent users
+	connMaxLifetime := 5 * time.Minute  // Refreshed more frequently
+	connMaxIdleTime := 2 * time.Minute   // Close idle connections faster
 
 	// Allow override via environment variables
 	if v := os.Getenv("DB_MAX_IDLE_CONNS"); v != "" {
@@ -284,6 +284,9 @@ func Migrate() error {
 		&models.AIMessage{},
 		&models.Contest{},
 		&models.ContestQuestion{},
+		&models.Event{},
+		&models.Campaign{},
+		&models.ContentReport{},
 	)
 }
 // Seed populates the database with initial data

@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
+import { SettingsProvider } from '@/contexts/settings-context';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
 import { NotificationsProvider } from '@/providers/notifications-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,30 +57,32 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
   return (
     <ErrorBoundary variant="global">
       <Suspense fallback={null}>
-        <EfficiencyProvider>
-          <ClientLayoutProvider>
-            <HydrationFix />
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider initialAuthHint={initialAuthHint}>
-                <GlobalSettingsApplier>
-                    <WebSocketProvider>
-                      <NotificationsProvider>
-                        <TooltipProvider>
-                          <LazyMotion features={domAnimation} strict>
-                            <PerformanceProvider>
-                              {children}
-                            </PerformanceProvider>
-                            <Footer />
-                          </LazyMotion>
-                          <Toaster richColors closeButton position="top-center" />
-                        </TooltipProvider>
-                      </NotificationsProvider>
-                    </WebSocketProvider>
-                  </GlobalSettingsApplier>
-                </AuthProvider>
-              </QueryClientProvider>
-          </ClientLayoutProvider>
-        </EfficiencyProvider>
+        <SettingsProvider>
+          <EfficiencyProvider>
+            <ClientLayoutProvider>
+              <HydrationFix />
+              <QueryClientProvider client={queryClient}>
+                <AuthProvider initialAuthHint={initialAuthHint}>
+                  <GlobalSettingsApplier>
+                      <WebSocketProvider>
+                        <NotificationsProvider>
+                          <TooltipProvider>
+                            <LazyMotion features={domAnimation} strict>
+                              <PerformanceProvider>
+                                {children}
+                              </PerformanceProvider>
+                              <Footer />
+                            </LazyMotion>
+                            <Toaster richColors closeButton position="top-center" />
+                          </TooltipProvider>
+                        </NotificationsProvider>
+                      </WebSocketProvider>
+                    </GlobalSettingsApplier>
+                  </AuthProvider>
+                </QueryClientProvider>
+            </ClientLayoutProvider>
+          </EfficiencyProvider>
+        </SettingsProvider>
       </Suspense>
     </ErrorBoundary>
   );

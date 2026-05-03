@@ -27,15 +27,15 @@ const (
 )
 
 type SecurityLog struct {
-	ID        string            `gorm:"primaryKey;type:text" json:"id"`
-	UserID    string            `gorm:"type:text;not null;index:idx_security_logs_user_created,priority:1" json:"userId"`
-	EventType SecurityEventType `gorm:"not null;index" json:"eventType"`
+	ID        string            `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID    string            `gorm:"type:uuid;not null;index:idx_security_logs_user_created,priority:1;column:user_id" json:"userId"`
+	EventType SecurityEventType `gorm:"not null;index;column:event_type" json:"eventType"`
 	IP        string            `gorm:"column:ip;not null" json:"ip"`
-	UserAgent string            `gorm:"type:text" json:"userAgent"`
-	Location  *string           `json:"location"`
-	Metadata  *string           `gorm:"type:text" json:"metadata"` // JSON string for additional data
-	CreatedAt time.Time         `gorm:"not null;index:idx_security_logs_user_created,priority:2" json:"createdAt"`
-	UpdatedAt time.Time         `json:"updatedAt"`
+	UserAgent string            `gorm:"type:text;column:user_agent" json:"userAgent"`
+	Location  *string           `gorm:"column:location" json:"location"`
+	Metadata  *string           `gorm:"type:text;column:metadata" json:"metadata"`
+	CreatedAt time.Time         `gorm:"not null;index:idx_security_logs_user_created,priority:2;column:created_at" json:"createdAt"`
+	UpdatedAt time.Time         `gorm:"column:updated_at" json:"updatedAt"`
 }
 
 func (SecurityLog) TableName() string {

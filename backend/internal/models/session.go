@@ -7,19 +7,19 @@ import (
 )
 
 type UserSession struct {
-	ID           string         `gorm:"primaryKey;type:text" json:"id"`
-	UserID       string         `gorm:"not null;type:text;index" json:"userId"`
-	RefreshToken string         `gorm:"uniqueIndex;not null" json:"-"`
-	UserAgent    string         `gorm:"type:text" json:"userAgent"`
+	ID           string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID       string         `gorm:"not null;type:uuid;index;column:user_id" json:"userId"`
+	RefreshToken string         `gorm:"uniqueIndex;not null;column:refresh_token" json:"-"`
+	UserAgent    string         `gorm:"type:text;column:user_agent" json:"userAgent"`
 	IP           string         `gorm:"not null;column:ip" json:"ip"`
-	Location     *string        `json:"location"`
-	DeviceType   string         `json:"deviceType"` // e.g., mobile, desktop
-	IsActive     bool           `gorm:"default:true;index" json:"isActive"`
-	LastAccessed time.Time      `json:"lastActive"`
-	ExpiresAt    time.Time      `gorm:"index" json:"expiresAt"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Location     *string        `gorm:"column:location" json:"location"`
+	DeviceType   string         `gorm:"column:device_type" json:"deviceType"`
+	IsActive     bool           `gorm:"default:true;index;column:is_active" json:"isActive"`
+	LastAccessed time.Time      `gorm:"column:last_accessed" json:"lastActive"`
+	ExpiresAt    time.Time      `gorm:"index;column:expires_at" json:"expiresAt"`
+	CreatedAt    time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt    time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt    gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (UserSession) TableName() string {

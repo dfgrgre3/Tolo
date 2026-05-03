@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { m, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 
 interface Subject {
@@ -98,7 +100,7 @@ export default function AdminAIPage() {
   const { data, isLoading: _isLoading } = useQuery<AiResponseData>({
     queryKey: ["admin", "ai_state"],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/ai`);
+      const res = await adminFetch("/api/admin/ai");
       if (!res.ok) throw new Error("Failed to fetch AI data");
       return res.json();
     }
@@ -106,7 +108,7 @@ export default function AdminAIPage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/admin/ai", {
+      const response = await adminFetch("/api/admin/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,7 +134,7 @@ export default function AdminAIPage() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ id, decision }: { id: string; decision: "approve" | "reject" }) => {
-      const response = await fetch("/api/admin/ai", {
+      const response = await adminFetch("/api/admin/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "review_content", id, decision }),
@@ -150,7 +152,7 @@ export default function AdminAIPage() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ type, params }: { type: string; params: Record<string, unknown> }) => {
-      const response = await fetch("/api/admin/ai", {
+      const response = await adminFetch("/api/admin/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "execute_action", type, params }),

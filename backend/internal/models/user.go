@@ -28,7 +28,7 @@ const (
 )
 
 type User struct {
-	ID           string         `gorm:"primaryKey;type:text" json:"id"`
+	ID           string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
 	Email        string         `gorm:"uniqueIndex;not null" json:"email"`
 	Name         *string        `gorm:"index" json:"name"`
 	Username     *string        `gorm:"uniqueIndex" json:"username"`
@@ -79,7 +79,7 @@ type User struct {
 	Version     int     `gorm:"default:1" json:"-"` // Optimistic locking for balances
 
 	// Subscriptions
-	ActiveSubscriptionID *string    `gorm:"index;type:text" json:"activeSubscriptionId"`
+	ActiveSubscriptionID *string    `gorm:"index;type:uuid;column:active_subscription_id" json:"activeSubscriptionId"`
 	SubscriptionExpiresAt *time.Time `gorm:"index" json:"subscriptionExpiresAt"`
 
 	// Security & Auth

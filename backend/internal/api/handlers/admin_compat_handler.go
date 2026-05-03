@@ -168,20 +168,24 @@ func AdminSettings(c *gin.Context) {
 			"message": "",
 		},
 	}
-
-	// Try to fetch from DB
 	var dbSetting models.SystemSetting
-	settings := make(gin.H)
+	var settings map[string]interface{}
 
-	if err := db.DB.Where("key = ?", "admin_settings").First(&dbSetting).Error; err == nil {
-		// Found in DB, unmarshal
-		if err := json.Unmarshal([]byte(dbSetting.Value), &settings); err != nil {
-			// If unmarshal fails, use defaults
+	// Safe DB access
+	if db.DB == nil {
+		log.Printf("ERROR: Database connection is not initialized in AdminSettings")
+		settings = defaultSettings
+	} else {
+		if err := db.DB.Where("key = ?", "admin_settings").First(&dbSetting).Error; err == nil {
+			// Found in DB, unmarshal
+			if err := json.Unmarshal([]byte(dbSetting.Value), &settings); err != nil {
+				log.Printf("WARN: Failed to unmarshal admin_settings in AdminSettings: %v", err)
+				settings = defaultSettings
+			}
+		} else {
+			// Not found, use defaults
 			settings = defaultSettings
 		}
-	} else {
-		// Not found, use defaults
-		settings = defaultSettings
 	}
 
 	// Handle PATCH/PUT requests
@@ -257,33 +261,134 @@ func AdminAutomations(c *gin.Context) {
 }
 
 func AdminReportsContent(c *gin.Context) {
-	api_response.Success(c, gin.H{
-		"reports": []gin.H{},
-		"items":   []gin.H{},
-		"stats": gin.H{
-			"pending":  0,
-			"resolved": 0,
-			"total":    0,
-		},
-	})
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 { page = 1 }
+	if limit <= 0 { limit = 10 }
+
+	switch c.Request.Method {
+	case http.MethodGet:
+		var reports []models.ContentReport
+		var total int64
+		var pending int64
+		var resolved int64
+
+		query := db.DB.Model(&models.ContentReport{})
+		if status := c.Query("status"); status != "" && status != "all" {
+			query = query.Where("status = ?", status)
+		}
+		query.Count(&total)
+		db.DB.Model(&models.ContentReport{}).Where("status = ?", "PENDING").Count(&pending)
+		db.DB.Model(&models.ContentReport{}).Where("status = ?", "RESOLVED").Count(&resolved)
+
+		query.Preload("Reporter").Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&reports)
+
+		api_response.Success(c, gin.H{
+			"reports": reports,
+			"items":   reports,
+			"stats": gin.H{
+				"pending":  pending,
+				"resolved": resolved,
+				"total":    total,
+			},
+			"pagination": gin.H{
+				"page": page, "limit": limit, "total": total,
+				"totalPages": (total + int64(limit) - 1) / int64(limit),
+			},
+		})
+
+	case http.MethodPatch:
+		var input struct {
+			ID     string `json:"id" binding:"required"`
+			Status string `json:"status"`
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			api_response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		updates := map[string]interface{}{"status": input.Status}
+		if input.Status == "RESOLVED" || input.Status == "DISMISSED" {
+			now := time.Now()
+			updates["resolvedAt"] = &now
+			if userId, exists := c.Get("userId"); exists {
+				uid := userId.(string)
+				updates["resolvedBy"] = &uid
+			}
+		}
+		db.DB.Model(&models.ContentReport{}).Where("id = ?", input.ID).Updates(updates)
+		api_response.Success(c, nil)
+
+	default:
+		api_response.Success(c, gin.H{"reports": []interface{}{}, "stats": gin.H{"pending": 0, "resolved": 0, "total": 0}})
+	}
 }
 
 func AdminBookReviews(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 { page = 1 }
+	if limit <= 0 { limit = 10 }
+
 	switch c.Request.Method {
 	case http.MethodGet:
-		api_response.Success(c, gin.H{
-			"reviews":    []gin.H{},
-			"views":      []gin.H{},
-			"items":      []gin.H{},
-			"pagination": emptyPagination(c),
-			"stats": gin.H{
-				"totalReviews": 0,
-				"avgRating":    0,
-				"totalViews":   0,
-			},
-		})
-	case http.MethodPatch, http.MethodPut, http.MethodDelete:
+		// Check which endpoint was called
+		isViewsEndpoint := c.FullPath() == "/api/admin/books/views"
+
+		if isViewsEndpoint {
+			// Return book view statistics from the Book model
+			var books []models.Book
+			var total int64
+			db.DB.Model(&models.Book{}).Count(&total)
+			db.DB.Order("views DESC").Limit(limit).Offset((page-1)*limit).Find(&books)
+
+			var totalViews int64
+			db.DB.Model(&models.Book{}).Select("COALESCE(SUM(views), 0)").Scan(&totalViews)
+
+			items := make([]gin.H, 0, len(books))
+			for _, b := range books {
+				items = append(items, gin.H{
+					"id": b.ID, "title": b.Title, "author": b.Author,
+					"views": b.Views, "downloads": b.Downloads,
+					"coverUrl": b.CoverUrl, "createdAt": b.CreatedAt,
+				})
+			}
+			api_response.Success(c, gin.H{
+				"views": items, "items": items,
+				"pagination": gin.H{
+					"page": page, "limit": limit, "total": total,
+					"totalPages": (total + int64(limit) - 1) / int64(limit),
+				},
+				"stats": gin.H{"totalViews": totalViews},
+			})
+		} else {
+			// Return course reviews (which also cover books)
+			var reviews []models.CourseReview
+			var total int64
+			db.DB.Model(&models.CourseReview{}).Count(&total)
+			db.DB.Preload("User").Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&reviews)
+
+			var avgRating float64
+			db.DB.Model(&models.CourseReview{}).Select("COALESCE(AVG(rating), 0)").Scan(&avgRating)
+
+			api_response.Success(c, gin.H{
+				"reviews": reviews, "items": reviews,
+				"pagination": gin.H{
+					"page": page, "limit": limit, "total": total,
+					"totalPages": (total + int64(limit) - 1) / int64(limit),
+				},
+				"stats": gin.H{"totalReviews": total, "avgRating": avgRating},
+			})
+		}
+
+	case http.MethodDelete:
+		var input struct { ID string `json:"id"` }
+		if err := c.ShouldBindJSON(&input); err != nil || input.ID == "" {
+			api_response.Error(c, http.StatusBadRequest, "ID is required")
+			return
+		}
+		db.DB.Delete(&models.CourseReview{}, "id = ?", input.ID)
 		api_response.Success(c, nil)
+
 	default:
 		api_response.Error(c, http.StatusMethodNotAllowed, "Method not allowed")
 	}
@@ -326,15 +431,68 @@ func DatabasePartitions(c *gin.Context) {
 }
 
 func Marketing(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page <= 0 { page = 1 }
+	if limit <= 0 { limit = 10 }
+
 	switch c.Request.Method {
 	case http.MethodGet:
-		api_response.Success(c, gin.H{"campaigns": []gin.H{}, "items": []gin.H{}})
-	case http.MethodPost, http.MethodPatch, http.MethodPut:
-		body := requestBodyOrEmpty(c)
-		if body["id"] == nil || body["id"] == "" {
-			body["id"] = uuid.NewString()
+		var campaigns []models.Campaign
+		var total int64
+		db.DB.Model(&models.Campaign{}).Count(&total)
+		db.DB.Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&campaigns)
+
+		pagination := gin.H{
+			"page": page, "limit": limit, "total": total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
 		}
-		api_response.Success(c, body)
+		api_response.Success(c, gin.H{
+			"campaigns": campaigns, "items": campaigns,
+			"pagination": pagination,
+		})
+
+	case http.MethodPost:
+		var item models.Campaign
+		if err := c.ShouldBindJSON(&item); err != nil {
+			api_response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := db.DB.Create(&item).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to create campaign")
+			return
+		}
+		api_response.Created(c, item)
+
+	case http.MethodPatch, http.MethodPut:
+		var input map[string]interface{}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			api_response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		id, _ := input["id"].(string)
+		if id == "" {
+			api_response.Error(c, http.StatusBadRequest, "ID is required")
+			return
+		}
+		var item models.Campaign
+		if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+			api_response.Error(c, http.StatusNotFound, "Campaign not found")
+			return
+		}
+		delete(input, "id")
+		db.DB.Model(&item).Updates(input)
+		api_response.Success(c, item)
+
+	case http.MethodDelete:
+		var input struct { ID string `json:"id"` }
+		if err := c.ShouldBindJSON(&input); err != nil || input.ID == "" {
+			api_response.Error(c, http.StatusBadRequest, "ID is required")
+			return
+		}
+		db.DB.Delete(&models.Campaign{}, "id = ?", input.ID)
+		api_response.Success(c, nil)
+
 	default:
 		api_response.Error(c, http.StatusMethodNotAllowed, "Method not allowed")
 	}

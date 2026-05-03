@@ -1,4 +1,5 @@
 ﻿"use client";
+import { adminFetch } from "@/lib/api/admin-api";
 
 import * as React from "react";
 import { 
@@ -100,7 +101,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
 
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/exams/bulk", {
+      const response = await adminFetch("/admin/exams/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

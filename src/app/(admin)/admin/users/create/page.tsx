@@ -1,4 +1,5 @@
 ﻿"use client";
+import { adminFetch } from "@/lib/api/admin-api";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,7 @@ export default function CreateUserPage() {
   const handleSubmit = async (values: CreateUserValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/admin/users", {
+      const response = await adminFetch("/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

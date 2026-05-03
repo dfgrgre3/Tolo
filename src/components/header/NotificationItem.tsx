@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Clock, Info, CheckCircle, AlertCircle, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,10 +48,10 @@ export function NotificationItem({ notification, markAsRead }: NotificationItemP
 							<p className="text-xs text-muted-foreground mt-1 line-clamp-2">
 								{notification.message}
 							</p>
-							{notification.time && (
+							{notification.createdAt && (
 								<p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
 									<Clock className="h-3 w-3" />
-									{notification.time}
+									{new Date(notification.createdAt).toLocaleString('ar-EG')}
 								</p>
 							)}
 						</div>

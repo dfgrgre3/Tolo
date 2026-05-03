@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -186,7 +187,7 @@ export default function UserDetailPage() {
 
   const fetchUser = React.useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`);
+      const response = await adminFetch(`/admin/users/${userId}`);
       if (response.ok) {
         const data = await response.json();
         setUser(data);
@@ -209,7 +210,7 @@ export default function UserDetailPage() {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await adminFetch(`/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editedUser)
@@ -231,7 +232,7 @@ export default function UserDetailPage() {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await adminFetch(`/admin/users/${userId}`, {
         method: "DELETE"
       });
 

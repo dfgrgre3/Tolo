@@ -124,6 +124,20 @@ func (r *SubjectRepository) cacheSubject(subject *models.Subject) {
 func (r *SubjectRepository) InvalidateSubjectCache(id string) {
 	if db.Redis != nil {
 		ctx := context.Background()
-		db.Redis.Del(ctx, fmt.Sprintf("%sid:%s", SubjectCachePrefix, id))
+		// Delete both the single subject cache and any list caches that might contain it
+		db.Redis.Del(ctx, fmt.Sprintf("%s%s", SubjectCachePrefix, id))
+		db.Redis.Del(ctx, fmt.Sprintf("%slist:*", SubjectCachePrefix))
+	}
+}
+
+// InvalidateAllSubjectCache clears all subject-related cache (call on bulk updates)
+func (r *SubjectRepository) InvalidateAllSubjectCache() {
+	if db.Redis != nil {
+		ctx := context.Background()
+		iter := db.Redis.Scan(ctx, 0, fmt.Sprintf("%s*", SubjectCachePrefix), 100).Iterator()
+		for iter.Next(ctx) {
+			db.Redis.Del(ctx, iter.Val())
+		}
+		// No Close method needed for ScanIterator
 	}
 }

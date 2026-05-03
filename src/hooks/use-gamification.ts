@@ -101,7 +101,7 @@ export function useGamification({
   // Update user progress
   const updateProgress = useCallback(async (
     action: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): Promise<UserProgress | null> => {
     if (!userId) return null;
 

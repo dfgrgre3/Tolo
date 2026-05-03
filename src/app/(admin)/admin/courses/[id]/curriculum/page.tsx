@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -261,7 +262,7 @@ export default function CourseCurriculumPage() {
   useEffect(() => {
     const fetchCurriculum = async () => {
       try {
-        const response = await fetch(`/api/admin/courses/${courseId}/curriculum`);
+        const response = await adminFetch(`/admin/courses/${courseId}/curriculum`);
         const result = await response.json();
 
         if (!response.ok) {
@@ -384,7 +385,7 @@ export default function CourseCurriculumPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/admin/courses/${courseId}/curriculum`, {
+      const response = await adminFetch(`/admin/courses/${courseId}/curriculum`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ curriculum: chapters }),

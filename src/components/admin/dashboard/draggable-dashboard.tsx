@@ -75,7 +75,7 @@ const EMPTY_ARRAY: any[] = [];
 
 export function DraggableDashboard({ children: initialChildren, onOrderChange, ...props }: DraggableDashboardProps & { sections?: any }) {
   const children = initialChildren || (props as any).sections || EMPTY_ARRAY;
-  const [items, setItems] = React.useState(() => children.map((c: any) => c.id));
+  const [items, setItems] = React.useState<string[]>(() => children.map((c: any) => String(c.id)));
   const { playSound } = usePremiumSounds();
 
   React.useEffect(() => {

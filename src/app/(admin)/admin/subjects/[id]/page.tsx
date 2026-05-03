@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -124,7 +125,7 @@ export default function SubjectDetailPage() {
   React.useEffect(() => {
     const fetchSubject = async () => {
       try {
-        const response = await fetch(`/api/admin/subjects/${subjectId}`);
+        const response = await adminFetch(`/admin/subjects/${subjectId}`);
         if (response.ok) {
           const data = await response.json();
           setSubject(data.data);

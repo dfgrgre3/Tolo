@@ -130,9 +130,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.DASHBOARD_VIEW,
   ],
   
-  USER: [
-    PERMISSIONS.DASHBOARD_VIEW,
-  ],
+
 };
 
 /**

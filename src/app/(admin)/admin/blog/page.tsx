@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface BlogPost {
   id: string;
@@ -95,7 +97,7 @@ export default function AdminBlogPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`/api/admin/blog?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.blog}?${params.toString()}`);
       return (await response.json()) as BlogPostsResponse;
     },
   });
@@ -145,7 +147,7 @@ export default function AdminBlogPage() {
     try {
       const method = editingPost ? "PATCH" : "POST";
       const body = editingPost ? { ...values, id: editingPost.id } : values;
-      const response = await fetch("/api/admin/blog", {
+      const response = await adminFetch(apiRoutes.admin.blog, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -166,7 +168,7 @@ export default function AdminBlogPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/blog", {
+      const response = await adminFetch(apiRoutes.admin.blog, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),

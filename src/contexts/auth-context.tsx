@@ -3,31 +3,25 @@
 import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
-// Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
-const buildLoginUrl = (redirect?: string) => {
-  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
-};
-const sanitizeRedirectPath = (path: string, fallback: string = '/') => {
-  if (!path || path.includes('//') || !path.startsWith('/')) return fallback;
-  return path;
-};
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { apiRoutes } from '@/lib/api/routes';
-
 import { logger } from '@/lib/logger';
+
+// Local definition of buildLoginUrl (was previously imported incorrectly)
+const buildLoginUrl = (redirect?: string): string => {
+  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+};
 
 /**
  * AuthContext - Client-side authentication state management.
  * (Now backed by Zustand for better performance and smaller context size)
  */
 
-;
-
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean;requires2FA?: boolean;userId?: string;error?: string;}>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   register: (
   data: {
     email: string;
@@ -47,17 +41,17 @@ interface AuthContextType {
     subjectsTaught?: string[];
     classesTaught?: string[];
     experienceYears?: string;
-  })
-  => Promise<{success: boolean;error?: string;message?: string;autoLoggedIn?: boolean;}>;
+  }
+  ) => Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}>;
   logout: (allDevices?: boolean) => Promise<void>;
-  verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean;error?: string;}>;
+  verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean; error?: string;}>;
   refreshUser: (options?: {clearOnFailure?: boolean;}) => Promise<boolean>;
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
-  forgotPassword: (email: string) => Promise<{success: boolean;error?: string;message?: string;}>;
-  resetPassword: (token: string, newPassword: string) => Promise<{success: boolean;error?: string;}>;
-  verifyEmail: (token: string) => Promise<{success: boolean;error?: string;}>;
-  resendVerification: (email: string) => Promise<{success: boolean;error?: string;}>;
-  requestMagicLink: (email: string) => Promise<{success: boolean;error?: string;}>;
+  forgotPassword: (email: string) => Promise<{success: boolean; error?: string; message?: string;}>;
+  resetPassword: (token: string, newPassword: string) => Promise<{success: boolean; error?: string;}>;
+  verifyEmail: (token: string) => Promise<{success: boolean; error?: string;}>;
+  resendVerification: (email: string) => Promise<{success: boolean; error?: string;}>;
+  requestMagicLink: (email: string) => Promise<{success: boolean; error?: string;}>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,10 +63,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({
   children,
   initialAuthHint = true
-
-
-
-}: {children: React.ReactNode;initialAuthHint?: boolean;}) {
+}: {children: React.ReactNode; initialAuthHint?: boolean;}) {
   const {
     user,
     isLoading,
@@ -114,9 +105,10 @@ export function AuthProvider({
     isRefreshing.current = true;
 
     refreshPromise.current = (async () => {
+      let timeoutId: any;
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           try {
             controller.abort('timeout');
           } catch (e) {
@@ -130,11 +122,18 @@ export function AuthProvider({
           signal: controller.signal
         });
 
-        clearTimeout(timeout);
+        if (timeoutId) clearTimeout(timeoutId);
         return response.ok;
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          logger.warn('refreshToken timed out');
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        const isTimeout = error === 'timeout' || 
+          (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
+        
+        if (isTimeout) {
+          logger.warn('refreshToken timed out after 10s');
+        } else {
+          logger.error('refreshToken unexpected error:', error);
         }
         return false;
       } finally {
@@ -176,8 +175,8 @@ export function AuthProvider({
         const fullPath = `${window.location.pathname}${window.location.search}`;
         const redirectPath = sanitizeRedirectPath(fullPath, '/');
         const loginUrl = redirectPath === '/login' ?
-        '/login' :
-        `/login?redirect=${encodeURIComponent(redirectPath)}`;
+          '/login' :
+          `/login?redirect=${encodeURIComponent(redirectPath)}`;
         router.replace(loginUrl);
       } else {
         router.replace('/login');
@@ -189,7 +188,7 @@ export function AuthProvider({
 
   /**
    * Fetch current user profile from the server.
-   * centralizes auth state restoration.
+   * Centralizes auth state restoration.
    */
   const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
     const clearOnFailure = options?.clearOnFailure ?? true;
@@ -201,6 +200,7 @@ export function AuthProvider({
     }
 
     _userFetchPromise.current = (async () => {
+      let timeoutId: any;
       try {
         // Priority: if we're already refreshing tokens, wait for that first
         if (isRefreshing.current && refreshPromise.current) {
@@ -212,7 +212,7 @@ export function AuthProvider({
         }
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           try {
             controller.abort('timeout');
           } catch (e) {
@@ -221,82 +221,78 @@ export function AuthProvider({
           }
         }, 10000);
 
-        try {
-          const response = await fetch('/api/auth/me', {
-            credentials: 'include',
-            cache: 'no-store',
-            signal: controller.signal
-          });
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal
+        });
 
-          // If it returns 401, it might be because the access token is expired
-          // but the server-side /api/auth/me didn't auto-refresh (or failed).
-          // We should try one explicit refresh if we haven't already.
-          if (response.status === 401) {
-            clearTimeout(timeout);
-            const refreshed = await refreshToken();
-            if (refreshed) {
-              // Retry getting user with new tokens
-              const retryController = new AbortController();
-              const retryTimeout = setTimeout(() => {
-                try {
-                  retryController.abort('timeout');
-                } catch (e) {
-                  retryController.abort();
-                }
-              }, 10000);
-
+        // If it returns 401, it might be because the access token is expired
+        // but the server-side /api/auth/me didn't auto-refresh (or failed).
+        // We should try one explicit refresh if we haven't already.
+        if (response.status === 401) {
+          if (timeoutId) clearTimeout(timeoutId);
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            // Retry getting user with new tokens
+            const retryController = new AbortController();
+            const retryTimeout = setTimeout(() => {
               try {
-                const retryResponse = await fetch('/api/auth/me', {
-                  credentials: 'include',
-                  cache: 'no-store',
-                  signal: retryController.signal
-                });
+                retryController.abort('timeout');
+              } catch (e) {
+                retryController.abort();
+              }
+            }, 10000);
 
-                clearTimeout(retryTimeout);
-                if (retryResponse.ok) {
-                  const data = await retryResponse.json();
-                  setUser(data.user);
-                  return true;
-                }
-              } catch (retryError) {
-                clearTimeout(retryTimeout);
-                if (retryError instanceof Error && retryError.name === 'AbortError') {
-                  logger.warn('refreshUser retry timed out');
-                } else {
-                  throw retryError;
-                }
+            try {
+              const retryResponse = await fetch('/api/auth/me', {
+                credentials: 'include',
+                cache: 'no-store',
+                signal: retryController.signal
+              });
+
+              if (retryTimeout) clearTimeout(retryTimeout);
+              if (retryResponse.ok) {
+                const data = await retryResponse.json();
+                setUser(data.user);
+                return true;
+              }
+            } catch (retryError) {
+              if (retryTimeout) clearTimeout(retryTimeout);
+              const isRetryTimeout = retryError === 'timeout' || 
+                (retryError instanceof Error && (retryError.name === 'AbortError' || retryError.message.includes('timeout')));
+              
+              if (isRetryTimeout) {
+                logger.warn('refreshUser retry timed out');
+              } else {
+                throw retryError;
               }
             }
-          } else if (response.ok) {
-            clearTimeout(timeout);
-            const data = await response.json();
-            setUser(data.user);
-            return true;
           }
-
-          clearTimeout(timeout);
-          if (clearOnFailure) {
-            setUser(null);
-            clearUserId();
-          }
-          return false;
-        } catch (fetchError) {
-          clearTimeout(timeout);
-          
-          // Handle timeout/abort specifically to avoid noisy error logs for known timeouts
-          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-            logger.warn('refreshUser fetch timed out or was aborted');
-            if (clearOnFailure) {
-              setUser(null);
-              clearUserId();
-            }
-            return false;
-          }
-          
-          throw fetchError;
+        } else if (response.ok) {
+          if (timeoutId) clearTimeout(timeoutId);
+          const data = await response.json();
+          setUser(data.user);
+          return true;
         }
+
+        if (timeoutId) clearTimeout(timeoutId);
+        if (clearOnFailure) {
+          setUser(null);
+          clearUserId();
+        }
+        return false;
       } catch (error) {
-        logger.error('refreshUser error:', error);
+        if (timeoutId) clearTimeout(timeoutId);
+        const isTimeout = error === 'timeout' || 
+          (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
+        
+        if (isTimeout) {
+          logger.warn('refreshUser timed out or was aborted (background check)');
+        } else {
+          logger.error('refreshUser error:', error);
+        }
+
         if (clearOnFailure) {
           setUser(null);
           clearUserId();
@@ -314,10 +310,10 @@ export function AuthProvider({
    * Login function - authenticates with the API and updates state.
    */
   const login = useCallback(async (
-  email: string,
-  password: string,
-  rememberMe: boolean = false)
-  : Promise<{success: boolean;requires2FA?: boolean;userId?: string;error?: string;}> => {
+    email: string,
+    password: string,
+    rememberMe: boolean = false
+  ): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -384,10 +380,10 @@ export function AuthProvider({
    * Verify 2FA token and complete login.
    */
   const verify2FA = useCallback(async (
-  userId: string,
-  token: string,
-  rememberMe: boolean = false)
-  : Promise<{success: boolean;error?: string;}> => {
+    userId: string,
+    token: string,
+    rememberMe: boolean = false
+  ): Promise<{success: boolean; error?: string;}> => {
     try {
       const response = await fetch('/api/auth/2fa/verify', {
         method: 'POST',
@@ -429,26 +425,26 @@ export function AuthProvider({
    * Register function - creates account via API.
    */
   const register = useCallback(async (
-  dataPayload: {
-    email: string;
-    password: string;
-    username?: string;
-    role?: string;
-    country?: string;
-    dateOfBirth?: string | null;
-    gender?: string;
-    phone?: string;
-    alternativePhone?: string;
-    gradeLevel?: string;
-    educationType?: string;
-    section?: string;
-    interestedSubjects?: string[];
-    studyGoal?: string;
-    subjectsTaught?: string[];
-    classesTaught?: string[];
-    experienceYears?: string;
-  })
-  : Promise<{success: boolean;error?: string;message?: string;autoLoggedIn?: boolean;}> => {
+    dataPayload: {
+      email: string;
+      password: string;
+      username?: string;
+      role?: string;
+      country?: string;
+      dateOfBirth?: string | null;
+      gender?: string;
+      phone?: string;
+      alternativePhone?: string;
+      gradeLevel?: string;
+      educationType?: string;
+      section?: string;
+      interestedSubjects?: string[];
+      studyGoal?: string;
+      subjectsTaught?: string[];
+      classesTaught?: string[];
+      experienceYears?: string;
+    }
+  ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -532,7 +528,6 @@ export function AuthProvider({
         signal: AbortSignal.timeout(5000) // 5s timeout for logout
       });
     } catch {
-
       // Even if API call fails, clear local state
     }
     setUser(null);
@@ -571,6 +566,11 @@ export function AuthProvider({
       clearTimeout(safetyTimer);
     };
   }, [refreshUser, setIsLoading]);
+
+  const sanitizeRedirectPath = (path: string, fallback: string = '/'): string => {
+    if (!path || path.includes('//') || !path.startsWith('/')) return fallback;
+    return path;
+  };
 
   const value: AuthContextType = {
     user,
@@ -647,9 +647,9 @@ export function AuthProvider({
 
   return (
     <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>);
-
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 /**
@@ -665,4 +665,3 @@ export function useAuth(): AuthContextType {
 
   return context;
 }
-

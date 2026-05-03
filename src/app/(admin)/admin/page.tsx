@@ -138,7 +138,7 @@ export default function AdminDashboardPage() {
   const { playSound } = usePremiumSounds();
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = React.useState("today");
-  const { lastMessage } = useWebSocket();
+  const { } = useWebSocket();
   const [isBroadcastOpen, setIsBroadcastOpen] = React.useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery<DashboardData>({
@@ -162,8 +162,8 @@ export default function AdminDashboardPage() {
   const safeStats = data.stats || { totalUsers: 0, totalSubjects: 0, totalExams: 0, totalResources: 0, activeChallenges: 0, newUsersToday: 0, newUsersThisWeek: 0 };
   const safeTrends = data.trends || { userGrowth: 0, studyTime: 0 };
   const safeActivity = data.activity || { tasksCompleted: 0, examsTaken: 0, achievementsEarned: 0, studyMinutes: 0 };
-  const safeRecentActivity = data.recentActivity || [];
-  const safeUpcomingEvents = data.upcomingEvents || [];
+  const safeRecentActivity = (data.recentActivity || []).map((a: any) => ({ ...a, timestamp: a.createdAt || a.timestamp || new Date().toISOString() }));
+  const safeUpcomingEvents = (data.upcomingEvents || []).map((e: any) => ({ ...e, date: e.date ? new Date(e.date) : new Date() }));
   const safeCharts = data.charts || {
     userGrowth: [],
     activity: []
@@ -351,7 +351,7 @@ export default function AdminDashboardPage() {
             >
               تحديث البيانات
             </AdminButton>
-            <RealtimeNotifications />
+            <RealtimeNotifications notifications={[]} />
         </div>
       </header>
 

@@ -80,9 +80,42 @@ func AdminAIPost(c *gin.Context) {
 
 	switch req.Action {
 	case "copilot":
-		api_response.Success(c, gin.H{
-			"message": "أنا مستشار المملكة الذكي. هذه ميزة تجريبية وسأكون متاحاً قريباً بشكل كامل.",
-		})
+		apiKey := os.Getenv("OPENROUTER_API_KEY")
+		if apiKey == "" {
+			api_response.Success(c, gin.H{
+				"message": "أنا مستشار المملكة الذكي. هذه ميزة تجريبية وسأكون متاحاً قريباً بشكل كامل.",
+			})
+			return
+		}
+
+		// Build admin context
+		var totalUsers int64
+		var totalSubjects int64
+		db.DB.Model(&models.User{}).Count(&totalUsers)
+		db.DB.Model(&models.Subject{}).Count(&totalSubjects)
+
+		systemPrompt := fmt.Sprintf(`أنت مستشار ذكي لإدارة منصة "ثانوي" التعليمية.
+لديك حالياً %d مستخدم و %d مادة دراسية.
+ساعد المدير في اتخاذ القرارات وتحليل البيانات وتقديم الاقتراحات.
+أجب بالعربية بشكل مختصر ومفيد.`, totalUsers, totalSubjects)
+
+		messages := []map[string]interface{}{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": req.Prompt},
+		}
+
+		// Use the same AI calling pattern as AIChatProxy
+		aiHandler := NewAIHandler()
+		reply, _, err := aiHandler.callAIWithRetryCustom(messages, "google/gemini-2.0-flash-001")
+		if err != nil {
+			api_response.Success(c, gin.H{
+				"message": "عذراً، حدث خطأ في الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.",
+			})
+			return
+		}
+
+		api_response.Success(c, gin.H{"message": reply})
+
 	case "generate_content":
 		api_response.Success(c, gin.H{"message": "تم إنشاء المحتوى بنجاح"})
 	case "review_content":
@@ -636,6 +669,7 @@ func SubscriptionCheckout(c *gin.Context) {
 	var req struct {
 		PlanID        string `json:"planId" binding:"required"`
 		PaymentMethod string `json:"paymentMethod" binding:"required"`
+		CouponCode    string `json:"couponCode"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -653,6 +687,37 @@ func SubscriptionCheckout(c *gin.Context) {
 	if !ok {
 		api_response.Error(c, http.StatusBadRequest, "Invalid plan ID")
 		return
+	}
+
+	// Apply coupon discount if provided
+	var appliedCoupon *models.Coupon
+	if req.CouponCode != "" {
+		var coupon models.Coupon
+		if err := db.DB.Where("code = ? AND \"isActive\" = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
+			// Validate coupon
+			valid := true
+			if coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now()) {
+				valid = false
+			}
+			if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {
+				valid = false
+			}
+			if coupon.MinOrderAmount > 0 && price < coupon.MinOrderAmount {
+				valid = false
+			}
+
+			if valid {
+				if coupon.DiscountType == "PERCENTAGE" {
+					price = price * (1 - coupon.DiscountValue/100)
+				} else {
+					price = price - coupon.DiscountValue
+				}
+				if price < 0 {
+					price = 0
+				}
+				appliedCoupon = &coupon
+			}
+		}
 	}
 
 	paymobSvc := services.NewPaymobService()
@@ -720,6 +785,11 @@ func SubscriptionCheckout(c *gin.Context) {
 	if err := db.DB.Create(&payment).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to save payment record")
 		return
+	}
+
+	// Increment coupon used count
+	if appliedCoupon != nil {
+		db.DB.Model(appliedCoupon).UpdateColumn("usedCount", appliedCoupon.UsedCount+1)
 	}
 
 	if req.PaymentMethod == "wallet" {
@@ -835,10 +905,23 @@ func GetAdminDashboard(c *gin.Context) {
 	var recentTasks []models.Task
 	db.DB.Order("\"createdAt\" desc").Limit(10).Find(&recentTasks)
 
+	// Batch fetch users for recent tasks to avoid N+1 queries
+	taskUserIDs := make([]string, 0, len(recentTasks))
+	for _, t := range recentTasks {
+		taskUserIDs = append(taskUserIDs, t.UserID)
+	}
+	var taskUsers []models.User
+	if len(taskUserIDs) > 0 {
+		db.DB.Where("id IN ?", taskUserIDs).Find(&taskUsers)
+	}
+	userMap := make(map[string]models.User, len(taskUsers))
+	for _, u := range taskUsers {
+		userMap[u.ID] = u
+	}
+
 	recentActivityItems := make([]gin.H, 0, len(recentTasks))
 	for _, t := range recentTasks {
-		var user models.User
-		db.DB.First(&user, "id = ?", t.UserID)
+		user := userMap[t.UserID]
 		recentActivityItems = append(recentActivityItems, gin.H{
 			"id":          t.ID,
 			"userId":      t.UserID,
@@ -952,6 +1035,45 @@ func GetAdminLive(c *gin.Context) {
 	var examResults []models.ExamResult
 	_ = db.DB.Where("\"takenAt\" >= ?", cutoff).Find(&examResults).Error
 
+	// Batch-preload exams and subjects to avoid N+1 queries
+	examIDs := make([]string, 0, len(examResults))
+	for _, r := range examResults {
+		examIDs = append(examIDs, r.ExamID)
+	}
+	examMap := make(map[string]models.Exam)
+	subjectMap := make(map[string]models.Subject)
+	if len(examIDs) > 0 {
+		var exams []models.Exam
+		db.DB.Where("id IN ?", examIDs).Find(&exams)
+		subjectIDs := make([]string, 0, len(exams))
+		for _, e := range exams {
+			examMap[e.ID] = e
+			subjectIDs = append(subjectIDs, e.SubjectID)
+		}
+		if len(subjectIDs) > 0 {
+			var subjects []models.Subject
+			db.DB.Where("id IN ?", subjectIDs).Find(&subjects)
+			for _, s := range subjects {
+				subjectMap[s.ID] = s
+			}
+		}
+	}
+
+	// Batch-preload subjects for study sessions
+	sessionSubjectIDs := make([]string, 0, len(studySessions))
+	for _, s := range studySessions {
+		if s.SubjectID != nil && *s.SubjectID != "" {
+			sessionSubjectIDs = append(sessionSubjectIDs, *s.SubjectID)
+		}
+	}
+	if len(sessionSubjectIDs) > 0 {
+		var subjects []models.Subject
+		db.DB.Where("id IN ?", sessionSubjectIDs).Find(&subjects)
+		for _, s := range subjects {
+			subjectMap[s.ID] = s
+		}
+	}
+
 	type subjectSummary struct {
 		ID     string `json:"id"`
 		Name   string `json:"name"`
@@ -996,10 +1118,9 @@ func GetAdminLive(c *gin.Context) {
 				continue
 			}
 
-			var exam models.Exam
-			var subject models.Subject
-			if err := db.DB.First(&exam, "id = ?", result.ExamID).Error; err == nil {
-				_ = db.DB.First(&subject, "id = ?", exam.SubjectID).Error
+			exam, examFound := examMap[result.ExamID]
+			if examFound {
+				subject := subjectMap[exam.SubjectID]
 
 				var examPayload examSummary
 				examPayload.ID = exam.ID
@@ -1029,7 +1150,7 @@ func GetAdminLive(c *gin.Context) {
 
 				var subject models.Subject
 				if session.SubjectID != nil && *session.SubjectID != "" {
-					_ = db.DB.First(&subject, "id = ?", *session.SubjectID).Error
+					subject = subjectMap[*session.SubjectID]
 				}
 
 				activityDetails = gin.H{

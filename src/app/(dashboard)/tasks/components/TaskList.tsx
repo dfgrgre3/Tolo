@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FC } from 'react';
 import { Task, TaskStatus } from '@/types/tasks';
@@ -23,7 +23,7 @@ interface TaskListProps {
   onStatusChange: (id: string, status: TaskStatus) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
-  getPriorityBadge: (priority: number) => React.ReactNode;
+  getPriorityBadge: (priority: string | number) => React.ReactNode;
   getStatusIcon: (status: TaskStatus) => React.ReactNode;
   isOverdue: (dueAt: string | null | undefined) => boolean;
 }
@@ -95,9 +95,9 @@ export const TaskList: FC<TaskListProps> = ({
 
                        <div className="flex flex-wrap items-center gap-3">
                           {getPriorityBadge(task.priority)}
-                          {task.subject &&
+                          {task.subjectId &&
                       <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-bold px-3 py-1 hover:bg-blue-500/20 transition-colors cursor-default">
-                                {task.subject}
+                                {task.subjectId}
                              </Badge>
                       }
                           {task.dueAt &&

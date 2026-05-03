@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -17,6 +17,8 @@ import { Send, Target, Sparkles, Gift, BellRing, Users, MailOpen } from "lucide-
 import { toast } from "sonner";
 import { m } from "framer-motion";
 import { logger } from '@/lib/logger';
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 export default function MarketingPage() {
   const [audience, setAudience] = React.useState("challenge_winners");
@@ -34,7 +36,7 @@ export default function MarketingPage() {
   React.useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("/api/marketing");
+        const res = await adminFetch("/api/admin/marketing");
         const result = await res.json();
         if (result.stats) setStats(result.stats);
       } catch (error: unknown) {
@@ -48,7 +50,7 @@ export default function MarketingPage() {
     e.preventDefault();
     setIsSending(true);
     try {
-      const res = await fetch("/api/marketing", {
+      const res = await adminFetch("/api/admin/marketing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

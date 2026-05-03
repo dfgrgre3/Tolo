@@ -183,7 +183,7 @@ function safeClearStorage(storageType: StorageType = 'local'): boolean {
  * Hook للوصول الآمن إلى localStorage مع المزامنة التلقائية
  * Hook for safe localStorage access with automatic sync
  */
-export function useSafeLocalStorage<T = any>(
+export function useSafeLocalStorage<T = unknown>(
 key: string,
 initialValue: T)
 : [T, (value: T | ((prev: T) => T)) => void, boolean] {
@@ -223,7 +223,7 @@ initialValue: T)
  * Hook للوصول الآمن إلى sessionStorage مع المزامنة التلقائية
  * Hook for safe sessionStorage access with automatic sync
  */
-function useSafeSessionStorage<T = any>(
+function useSafeSessionStorage<T = unknown>(
 key: string,
 initialValue: T)
 : [T, (value: T | ((prev: T) => T)) => void, boolean] {
@@ -465,7 +465,7 @@ async function refreshAuthSession(): Promise<boolean> {
   }
 }
 
-async function safeJsonParse<T = any>(
+async function safeJsonParse<T = unknown>(
 response: Response,
 fallback: T | null = null)
 : Promise<T | null> {
@@ -559,7 +559,7 @@ fallback: T | null = null)
  * استدعاء fetch مع معالجة آمنة للأخطاء والـ JSON
  * Safe fetch with error handling and JSON parsing
  */
-export async function safeFetch<T = any>(
+export async function safeFetch<T = unknown>(
 url: string,
 options?: RequestInit,
 fallback: T | null = null)

@@ -24,12 +24,12 @@ export const authClient = createClient(AuthService, transport);
 export const analyticsClient = createClient(AnalyticsService, transport);
 
 // Helper for caching server-side gRPC requests across different users (SSR Cache Stampede fix)
-let serverCacheWrapper = <T extends (...args: any[]) => Promise<any>>(fn: T, method: string): T => fn;
+let serverCacheWrapper = <T extends (...args: unknown[]) => Promise<unknown>>(fn: T, method: string): T => fn;
 if (!isBrowser) {
   try {
     const { unstable_cache } = require('next/cache');
-    serverCacheWrapper = ((fn: any, method: string) => 
-      async (...args: any[]) => {
+    serverCacheWrapper = ((fn: (...args: unknown[]) => Promise<unknown>, method: string) => 
+      async (...args: unknown[]) => {
         // Create a stable cache key based on the method and serialized arguments
         const cacheKey = [method, JSON.stringify(args)];
         
@@ -51,12 +51,12 @@ if (!isBrowser) {
 
 // Implement SSR request deduplication using React cache and Next.js unstable_cache
 export const cachedGetCourse = cache(serverCacheWrapper(
-  async (req: any) => await courseClient.getCourse(req),
+  async (req: Parameters<typeof courseClient.getCourse>[0]) => await courseClient.getCourse(req),
   'getCourse'
 ));
 
 export const cachedGetCourses = cache(serverCacheWrapper(
-  async (req: any) => await courseClient.getCourses(req),
+  async (req: Parameters<typeof courseClient.getCourses>[0]) => await courseClient.getCourses(req),
   'getCourses'
 ));
 

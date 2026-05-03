@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
@@ -238,7 +239,7 @@ export default function CurriculumEditorPage() {
   useEffect(() => {
     const fetchCurriculum = async () => {
       try {
-        const res = await fetch(`/api/admin/courses/${subjectId}/curriculum`);
+        const res = await adminFetch(`/admin/courses/${subjectId}/curriculum`);
         if (res.ok) {
           const payload = await res.json();
           // Normalize names to handle backend/frontend differences if any
@@ -361,7 +362,7 @@ export default function CurriculumEditorPage() {
   const handleSave = async () => {
      setIsSaving(true);
      try {
-       const res = await fetch(`/api/admin/courses/${subjectId}/curriculum`, {
+       const res = await adminFetch(`/admin/courses/${subjectId}/curriculum`, {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ topics: chapters }),

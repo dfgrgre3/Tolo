@@ -36,8 +36,9 @@ export default function MistakeExplainer({
 
       const data = await response.json();
       setExplanation(data.explanation);
-    } catch (err: any) {
-      setError(err.message || 'حدث خطأ غير متوقع');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -47,8 +47,11 @@ export function useProgressPersistence({
   // Track active time when player is playing
   useEffect(() => {
     const unsubscribe = useCourseVideoPlayerStore.subscribe(
-      (state) => state.isPlaying,
-      (isPlaying) => {
+      (state, prevState) => {
+        const isPlaying = state.isPlaying;
+        const prevIsPlaying = prevState?.isPlaying;
+        if (isPlaying === prevIsPlaying) return;
+        
         const now = Date.now();
         if (isPlaying) {
           sessionStartTimeRef.current = now;
@@ -145,7 +148,7 @@ export function useProgressPersistence({
       });
 
       if (response.ok) {
-        const payload = await response.json();
+        const data = await response.json();
         const serverPosition =
           typeof data.lastWatchedPosition === "number" ? data.lastWatchedPosition : (typeof data.lastVideoPosition === "number" ? data.lastVideoPosition : null);
         const serverUpdatedAt = data.updatedAt

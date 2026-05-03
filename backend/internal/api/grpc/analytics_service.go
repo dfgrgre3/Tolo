@@ -2,7 +2,9 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"thanawy-backend/internal/db"
+	"thanawy-backend/internal/middleware"
 	"thanawy-backend/internal/models"
 	thanawyv1 "thanawy-backend/internal/proto/thanawy/v1"
 	"thanawy-backend/internal/proto/thanawy/v1/thanawyv1connect"
@@ -15,9 +17,27 @@ type AnalyticsServiceServer struct {
 	thanawyv1.UnimplementedAnalyticsServiceServer
 }
 
+// extractUserIDFromContext extracts and validates user ID from gRPC context
+func extractUserIDFromContext(ctx context.Context) (string, error) {
+	userID := ctx.Value(middleware.UserContextKey)
+	if userID == nil {
+		return "", fmt.Errorf("user_id not found in context - authentication required")
+	}
+
+	id, ok := userID.(string)
+	if !ok || id == "" {
+		return "", fmt.Errorf("invalid user_id in context")
+	}
+
+	return id, nil
+}
+
 func (s *AnalyticsServiceServer) GetProgressSummary(ctx context.Context, req *thanawyv1.GetProgressSummaryRequest) (*thanawyv1.GetProgressSummaryResponse, error) {
-	// In a real app, we'd get userId from context
-	userId := "TODO_FROM_CONTEXT"
+	// Extract user ID from authenticated context
+	userId, err := extractUserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required: %w", err))
+	}
 
 	type Stats struct {
 		TotalMinutes int
@@ -46,7 +66,11 @@ func (s *AnalyticsServiceServer) GetProgressSummary(ctx context.Context, req *th
 }
 
 func (s *AnalyticsServiceServer) GetWeeklyAnalytics(ctx context.Context, req *thanawyv1.GetWeeklyAnalyticsRequest) (*thanawyv1.GetWeeklyAnalyticsResponse, error) {
-	userId := "TODO_FROM_CONTEXT"
+	// Extract user ID from authenticated context
+	userId, err := extractUserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required: %w", err))
+	}
 
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
 	var sessions []models.StudySession

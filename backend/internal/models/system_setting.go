@@ -7,12 +7,12 @@ import (
 )
 
 type SystemSetting struct {
-	ID        string         `gorm:"primaryKey;type:text" json:"id"`
-	Key       string         `gorm:"uniqueIndex;not null" json:"key"`
-	Value     string         `gorm:"type:text" json:"value"` // JSON serialized value
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Key       string         `gorm:"uniqueIndex;not null;column:key" json:"key"`
+	Value     string         `gorm:"type:text;column:value" json:"value"` // JSON serialized value
+	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (SystemSetting) TableName() string {

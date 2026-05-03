@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 
 interface ActiveUser {
    userId: string;
@@ -59,7 +60,7 @@ interface LiveStats {
 }
 
 export default function LiveMonitoringPage() {
-   const { fetchWithAuth } = useAuth();
+
    const [activeUsers, setActiveUsers] = React.useState<ActiveUser[]>([]);
    const [stats, setStats] = React.useState<LiveStats | null>(null);
    const [loading, setLoading] = React.useState(true);
@@ -70,7 +71,7 @@ export default function LiveMonitoringPage() {
    const fetchLiveData = React.useCallback(async () => {
       try {
          setLoading(true);
-         const response = await fetchWithAuth(`${apiRoutes.admin.live}?type=${filter}&minutes=5`);
+         const response = await adminFetch(`${apiRoutes.admin.live}?type=${filter}&minutes=5`);
          if (!response.ok) {
             throw new Error('Failed to fetch live data');
          }
@@ -88,7 +89,7 @@ export default function LiveMonitoringPage() {
       } finally {
          setLoading(false);
       }
-   }, [filter, fetchWithAuth]);
+   }, [filter]);
 
    // Initial fetch and auto-refresh
    React.useEffect(() => {
@@ -113,7 +114,7 @@ export default function LiveMonitoringPage() {
       if (!confirm('هل أنت متأكد من إنهاء هذه الجلسة؟')) return;
 
       try {
-         const response = await fetchWithAuth(`${apiRoutes.auth.sessions}?id=${sessionId}`, {
+         const response = await adminFetch(`${apiRoutes.auth.sessions}?id=${sessionId}`, {
             method: 'DELETE',
          });
          if (response.ok) {

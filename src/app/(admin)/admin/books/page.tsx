@@ -28,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface Book {
   id: string;
@@ -105,7 +107,7 @@ export default function AdminBooksPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`/api/admin/books?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.books}?${params.toString()}`);
       const json = await response.json();
       return (json.data || json) as BooksResponse;
     },
@@ -114,7 +116,7 @@ export default function AdminBooksPage() {
   const { data: subjects = [] } = useQuery({
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/subjects?limit=100");
+      const response = await adminFetch(`${apiRoutes.admin.subjects}?limit=100`);
       const result = (await response.json()) as SubjectsListResponse;
       return result.data?.subjects || [];
     },
@@ -171,7 +173,7 @@ export default function AdminBooksPage() {
     try {
       const method = editingBook ? "PATCH" : "POST";
       const body = editingBook ? { ...values, id: editingBook.id } : values;
-      const response = await fetch("/api/admin/books", {
+      const response = await adminFetch(apiRoutes.admin.books, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -193,7 +195,7 @@ export default function AdminBooksPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/books", {
+      const response = await adminFetch(apiRoutes.admin.books, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),

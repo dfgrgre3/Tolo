@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,8 +20,13 @@ import (
 var (
 	cachedConfig *config.Config
 	configOnce   sync.Once
-	jwksOnce     sync.Once
-	jwks         *keyfunc.JWKS
+
+	// JWKS cache with TTL to allow refresh
+	jwksCache     *keyfunc.JWKS
+	jwksCacheErr  error
+	jwksLastLoad  time.Time
+	jwksMutex     sync.RWMutex
+	jwksTTL       = 1 * time.Hour // Default TTL, can be overridden by JWKS_CACHE_TTL_HOURS env var
 )
 
 func getConfig() *config.Config {
@@ -30,30 +37,74 @@ func getConfig() *config.Config {
 }
 
 func getJWKS() (*keyfunc.JWKS, error) {
-	var err error
-	jwksOnce.Do(func() {
-		// Read from env, fallback to hardcoded if not set
-		jwksURL := os.Getenv("CLERK_JWKS_URL")
-		if jwksURL == "" {
-			jwksURL = "https://winning-tetra-97.clerk.accounts.dev/.well-known/jwks.json"
+	// Check cache with read lock first
+	jwksMutex.RLock()
+	if jwksCache != nil && jwksCacheErr == nil && time.Since(jwksLastLoad) < jwksTTL {
+		cached := jwksCache
+		err := jwksCacheErr
+		jwksMutex.RUnlock()
+		return cached, err
+	}
+	jwksMutex.RUnlock()
+
+	// Cache expired or invalid, acquire write lock to reload
+	jwksMutex.Lock()
+	defer jwksMutex.Unlock()
+
+	// Double-check after acquiring write lock to avoid redundant reloads
+	if jwksCache != nil && jwksCacheErr == nil && time.Since(jwksLastLoad) < jwksTTL {
+		return jwksCache, jwksCacheErr
+	}
+
+	// Reload JWKS
+	jwksURL := os.Getenv("CLERK_JWKS_URL")
+	if jwksURL == "" {
+		jwksCacheErr = fmt.Errorf("CLERK_JWKS_URL environment variable is not set")
+		jwksCache = nil
+		jwksLastLoad = time.Now()
+		return nil, jwksCacheErr
+	}
+
+	// Allow TTL override via environment variable
+	ttl := jwksTTL
+	if ttlStr := os.Getenv("JWKS_CACHE_TTL_HOURS"); ttlStr != "" {
+		if hours, err := strconv.Atoi(ttlStr); err == nil && hours > 0 {
+			ttl = time.Duration(hours) * time.Hour
 		}
-		options := keyfunc.Options{
-			RefreshInterval:  time.Hour,
-			RefreshRateLimit: time.Minute * 5,
-			RefreshTimeout:   time.Second * 10,
-		}
-		jwks, err = keyfunc.Get(jwksURL, options)
-	})
-	return jwks, err
+	}
+
+	options := keyfunc.Options{
+		RefreshInterval:  ttl,
+		RefreshRateLimit: time.Minute * 5,
+		RefreshTimeout:   time.Second * 10,
+	}
+
+	newJwks, err := keyfunc.Get(jwksURL, options)
+	if err != nil {
+		jwksCacheErr = err
+		jwksCache = nil
+	} else {
+		jwksCache = newJwks
+		jwksCacheErr = nil
+	}
+	jwksLastLoad = time.Now()
+
+	return jwksCache, jwksCacheErr
 }
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString, err := c.Cookie("access_token")
-		if err != nil || strings.TrimSpace(tokenString) == "" {
-			authHeader := c.GetHeader("Authorization")
-			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-				tokenString = strings.TrimSpace(authHeader[len("Bearer "):])
+		var tokenString string
+		// Check Authorization header first to prevent cookie tossing attacks
+		authHeader := c.GetHeader("Authorization")
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			tokenString = strings.TrimSpace(authHeader[len("Bearer "):])
+		}
+		// Fall back to cookie if header is not present or invalid
+		if tokenString == "" {
+			cookieToken, err := c.Cookie("access_token")
+			if err == nil && strings.TrimSpace(cookieToken) != "" {
+				tokenString = strings.TrimSpace(cookieToken)
 			}
 		}
 
@@ -83,7 +134,7 @@ func Auth() gin.HandlerFunc {
 					c.Set("userId", impersonatedID)
 					c.Set("role", string(targetUser.Role))
 					c.Set("isImpersonating", true)
-					
+
 					// Update claims for granular permissions
 					claims.Subject = impersonatedID
 					claims.Role = string(targetUser.Role)
@@ -148,7 +199,7 @@ func PermissionRequired(permission string) gin.HandlerFunc {
 		}
 
 		userPermissions := perms.([]string)
-		
+
 		// Create a temporary user object to use the HasPermission logic
 		user := &models.User{
 			Role:        models.UserRole(role.(string)),
@@ -171,6 +222,7 @@ func CORS() gin.HandlerFunc {
 
 		isDevelopment := cfg.Environment == "development" || cfg.Environment == ""
 
+		// Strict allowed origins - never allow all origins in production
 		allowedOrigins := []string{
 			"http://localhost:3000",
 			"http://localhost:3001",
@@ -179,8 +231,27 @@ func CORS() gin.HandlerFunc {
 		}
 
 		isAllowed := false
+
+		// In development, only allow localhost origins, not any origin
 		if isDevelopment && origin != "" {
-			isAllowed = true
+			// Check if origin is localhost or LAN IP
+			if strings.HasPrefix(origin, "http://localhost:") || 
+			   strings.HasPrefix(origin, "https://localhost:") ||
+			   strings.HasPrefix(origin, "http://127.0.0.1:") ||
+			   strings.HasPrefix(origin, "http://192.168.") ||
+			   strings.HasPrefix(origin, "http://172.") ||
+			   strings.HasPrefix(origin, "http://10.") {
+				isAllowed = true
+			} else {
+				// In development, you might also want to allow specific dev domains
+				// But never allow arbitrary origins
+				for _, o := range allowedOrigins {
+					if origin == o {
+						isAllowed = true
+						break
+					}
+				}
+			}
 		} else {
 			for _, o := range allowedOrigins {
 				if origin == o {
@@ -190,11 +261,13 @@ func CORS() gin.HandlerFunc {
 			}
 		}
 
+		// Set CORS headers only for allowed origins
 		if origin != "" && isAllowed {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		} else if isDevelopment && origin == "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin == "" && isDevelopment {
+			// No origin header - allow simple requests in development
+			// But don't set wildcard for requests with origin
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Dev-Admin-Bypass, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
@@ -202,7 +275,7 @@ func CORS() gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
 
 		if c.Request.Method == "OPTIONS" {
-			if isAllowed || isDevelopment {
+			if isAllowed || (origin == "" && isDevelopment) {
 				c.AbortWithStatus(204)
 			} else {
 				c.AbortWithStatus(403)

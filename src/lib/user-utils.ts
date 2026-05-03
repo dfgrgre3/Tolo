@@ -7,7 +7,6 @@
 
 import { safeGetItem, safeSetItem } from './safe-client-utils';
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
@@ -58,12 +57,18 @@ export async function ensureUser(): Promise<string> {
   if (!id) {
     try {
       // The Go backend uses GET /api/users/guest
-      const data = await apiClient.get<any>('/users/guest');
+      const response = await fetch('/api/auth/guest', {
+        method: 'GET',
+        cache: 'no-store'
+      });
       
-      if (data?.id) {
-        id = normalizeUserId(data.id);
-        if (id) {
-          safeSetItem(LOCAL_USER_KEY, id);
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.id) {
+          id = normalizeUserId(data.id);
+          if (id) {
+            safeSetItem(LOCAL_USER_KEY, id);
+          }
         }
       }
     } catch (error) {
@@ -73,7 +78,6 @@ export async function ensureUser(): Promise<string> {
   
   return id || '';
 }
-
 
 /**
  * الحصول على معرف المستخدم من التخزين فقط

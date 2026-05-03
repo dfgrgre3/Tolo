@@ -1,36 +1,27 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"thanawy-backend/internal/db"
-	"thanawy-backend/internal/models"
-
+	"thanawy-backend/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
-// LogAudit logs an administrative action
+// LogAudit logs an administrative action asynchronously
 func LogAudit(c *gin.Context, action string, resource string, resourceId string, metadata interface{}) {
 	userId, _ := c.Get("userId")
 	userIdStr := ""
 	if userId != nil {
-		userIdStr = userId.(string)
+		if id, ok := userId.(string); ok {
+			userIdStr = id
+		}
 	}
 
-	metadataJSON, _ := json.Marshal(metadata)
-
-	auditLog := models.AuditLog{
-		UserID:     userIdStr,
-		EventType:  action,
-		Action:     action,
-		Resource:   resource,
-		ResourceID: resourceId,
-		Metadata:   string(metadataJSON),
-		IP:         c.ClientIP(),
-		UserAgent:  c.GetHeader("User-Agent"),
-	}
-
-	if err := db.DB.Create(&auditLog).Error; err != nil {
-		log.Printf("[Audit] Failed to save audit log: %v", err)
-	}
+	services.GetAuditService().LogAsync(
+		userIdStr,
+		action,
+		resource,
+		resourceId,
+		metadata,
+		c.ClientIP(),
+		c.Request.UserAgent(),
+	)
 }

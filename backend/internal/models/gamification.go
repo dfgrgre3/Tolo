@@ -7,88 +7,88 @@ import (
 )
 
 type Achievement struct {
-	ID            string         `gorm:"primaryKey;type:text" json:"id"`
-	Key           string         `gorm:"uniqueIndex;not null" json:"key"`
-	Title         string         `gorm:"not null" json:"title"`
-	Description   string         `json:"description"`
-	Icon          string         `json:"icon"`
-	Rarity        string         `gorm:"default:'common'" json:"rarity"`
-	XpReward      int            `gorm:"default:0" json:"xpReward"`
-	IsSecret      bool           `gorm:"default:false" json:"isSecret"`
-	Category      string         `json:"category"`
-	Difficulty    string         `gorm:"default:'EASY'" json:"difficulty"`
-	UnlockedCount int            `gorm:"default:0" json:"unlockedCount"`
-	Criteria      string         `gorm:"type:text" json:"criteria"` // JSON string of criteria
-	CreatedAt     time.Time      `json:"createdAt"`
-	UpdatedAt     time.Time      `json:"updatedAt"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	ID            string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Key           string         `gorm:"uniqueIndex;not null;column:key" json:"key"`
+	Title         string         `gorm:"not null;column:title" json:"title"`
+	Description   string         `gorm:"column:description" json:"description"`
+	Icon          string         `gorm:"column:icon" json:"icon"`
+	Rarity        string         `gorm:"default:'common';column:rarity" json:"rarity"`
+	XpReward      int            `gorm:"default:0;column:xp_reward" json:"xpReward"`
+	IsSecret      bool           `gorm:"default:false;column:is_secret" json:"isSecret"`
+	Category      string         `gorm:"column:category" json:"category"`
+	Difficulty    string         `gorm:"default:'EASY';column:difficulty" json:"difficulty"`
+	UnlockedCount int            `gorm:"default:0;column:unlocked_count" json:"unlockedCount"`
+	Criteria      string         `gorm:"type:text;column:criteria" json:"criteria"`
+	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type Reward struct {
-	ID          string         `gorm:"primaryKey;type:text" json:"id"`
-	Title       string         `gorm:"not null" json:"title"`
-	Description string         `json:"description"`
-	Cost        int            `gorm:"default:0" json:"cost"`
-	Stock       int            `gorm:"default:-1" json:"stock"` // -1 for unlimited
-	Image       string         `json:"image"`
-	Type        string         `gorm:"default:'VIRTUAL'" json:"type"` // VIRTUAL, PHYSICAL
-	IsActive    bool           `gorm:"default:true" json:"isActive"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Title       string         `gorm:"not null;column:title" json:"title"`
+	Description string         `gorm:"column:description" json:"description"`
+	Cost        int            `gorm:"default:0;column:cost" json:"cost"`
+	Stock       int            `gorm:"default:-1;column:stock" json:"stock"`
+	Image       string         `gorm:"column:image" json:"image"`
+	Type        string         `gorm:"default:'VIRTUAL';column:type" json:"type"`
+	IsActive    bool           `gorm:"default:true;column:is_active" json:"isActive"`
+	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type Season struct {
-	ID          string         `gorm:"primaryKey;type:text" json:"id"`
-	Title       string         `gorm:"not null" json:"title"`
-	Description string         `json:"description"`
-	StartDate   time.Time      `json:"startDate"`
-	EndDate     time.Time      `json:"endDate"`
-	IsActive    bool           `gorm:"default:false" json:"isActive"`
-	Rewards     string         `gorm:"type:text" json:"rewards"` // JSON string of rewards associated with season
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Title       string         `gorm:"not null;column:title" json:"title"`
+	Description string         `gorm:"column:description" json:"description"`
+	StartDate   time.Time      `gorm:"column:start_date" json:"startDate"`
+	EndDate     time.Time      `gorm:"column:end_date" json:"endDate"`
+	IsActive    bool           `gorm:"default:false;column:is_active" json:"isActive"`
+	Rewards     string         `gorm:"type:text;column:rewards" json:"rewards"`
+	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type Challenge struct {
-	ID          string         `gorm:"primaryKey;type:text" json:"id"`
-	Title       string         `gorm:"not null" json:"title"`
-	Description string         `json:"description"`
-	Type        string         `gorm:"default:'daily'" json:"type"` // daily, weekly, monthly, special
-	Category    string         `json:"category"`
-	XpReward    int            `gorm:"default:0" json:"xpReward"`
-	Difficulty  string         `gorm:"default:'EASY'" json:"difficulty"` // EASY, MEDIUM, HARD, EXPERT
-	IsActive    bool           `gorm:"default:true" json:"isActive"`
-	StartDate   *time.Time     `json:"startDate"`
-	EndDate     *time.Time     `json:"endDate"`
-	SubjectID   *string        `gorm:"index;type:text;constraint:OnDelete:SET NULL" json:"subjectId"`
+	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Title       string         `gorm:"not null;column:title" json:"title"`
+	Description string         `gorm:"column:description" json:"description"`
+	Type        string         `gorm:"default:'daily';column:type" json:"type"`
+	Category    string         `gorm:"column:category" json:"category"`
+	XpReward    int            `gorm:"default:0;column:xp_reward" json:"xpReward"`
+	Difficulty  string         `gorm:"default:'EASY';column:difficulty" json:"difficulty"`
+	IsActive    bool           `gorm:"default:true;column:is_active" json:"isActive"`
+	StartDate   *time.Time     `gorm:"column:start_date" json:"startDate"`
+	EndDate     *time.Time     `gorm:"column:end_date" json:"endDate"`
+	SubjectID   *string        `gorm:"index;type:uuid;column:subject_id;constraint:OnDelete:SET NULL" json:"subjectId"`
 	Subject     *Subject       `json:"subject"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type UserAchievement struct {
-	ID            string         `gorm:"primaryKey;type:text" json:"id"`
-	UserID        string         `gorm:"index;type:text;not null" json:"userId"`
-	AchievementID string         `gorm:"index;type:text;not null" json:"achievementId"`
-	UnlockedAt    time.Time      `json:"unlockedAt"`
+	ID            string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID        string         `gorm:"index;type:uuid;not null;column:user_id" json:"userId"`
+	AchievementID string         `gorm:"index;type:uuid;not null;column:achievement_id" json:"achievementId"`
+	UnlockedAt    time.Time      `gorm:"column:unlocked_at" json:"unlockedAt"`
 	User          *User          `json:"user"`
 	Achievement   *Achievement   `json:"achievement"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type UserChallenge struct {
-	ID          string         `gorm:"primaryKey;type:text" json:"id"`
-	UserID      string         `gorm:"index;type:text;not null" json:"userId"`
-	ChallengeID string         `gorm:"index;type:text;not null" json:"challengeId"`
-	Progress    int            `gorm:"default:0" json:"progress"`
-	IsCompleted bool           `gorm:"default:false" json:"isCompleted"`
-	CompletedAt *time.Time     `json:"completedAt"`
+	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	UserID      string         `gorm:"index;type:uuid;not null;column:user_id" json:"userId"`
+	ChallengeID string         `gorm:"index;type:uuid;not null;column:challenge_id" json:"challengeId"`
+	Progress    int            `gorm:"default:0;column:progress" json:"progress"`
+	IsCompleted bool           `gorm:"default:false;column:is_completed" json:"isCompleted"`
+	CompletedAt *time.Time     `gorm:"column:completed_at" json:"completedAt"`
 	User        *User          `json:"user"`
 	Challenge   *Challenge     `json:"challenge"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (Achievement) TableName() string { return "Achievement" }

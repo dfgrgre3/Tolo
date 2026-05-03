@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +66,7 @@ export default function CourseStudentsPage() {
   const { data: enrollmentsData, isLoading } = useQuery({
     queryKey: ["admin", "courses", courseId, "enrollments"],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/courses/${courseId}/enrollments`);
+      const response = await adminFetch(`/admin/courses/${courseId}/enrollments`);
       if (!response.ok) throw new Error("Failed to load enrollments");
       const result = await response.json();
       return result.data?.enrollments as Enrollment[];
@@ -76,7 +77,7 @@ export default function CourseStudentsPage() {
     queryKey: ["admin", "users", "search", userSearch],
     queryFn: async () => {
       if (!userSearch) return [];
-      const response = await fetch(`/api/admin/users?search=${userSearch}`);
+      const response = await adminFetch(`/admin/users?search=${userSearch}`);
       const result = await response.json();
       return result.data?.users || result.users || [];
     },
@@ -86,7 +87,7 @@ export default function CourseStudentsPage() {
   // Mutations
   const enrollMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`/api/admin/courses/${courseId}/enrollments`, {
+      const response = await adminFetch(`/admin/courses/${courseId}/enrollments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -110,7 +111,7 @@ export default function CourseStudentsPage() {
 
   const unenrollMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`/api/admin/courses/${courseId}/enrollments/${userId}`, {
+      const response = await adminFetch(`/admin/courses/${courseId}/enrollments/${userId}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to unenroll user");

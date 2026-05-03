@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { adminApi } from "@/lib/api/admin-api";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -84,7 +85,7 @@ export default function AdminRevenuePage() {
   const { data: stats, isLoading, refetch, isFetching, error } = useQuery({
     queryKey: ["admin", "revenue", period],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/analytics/revenue?period=${period}`);
+      const res = await adminApi.fetch(`/admin/analytics/revenue?period=${period}`);
       if (!res.ok) throw new Error("Failed to fetch revenue data");
       return (await res.json()) as RevenueStats;
     },

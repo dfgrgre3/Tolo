@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { adminApi } from "@/lib/api/admin-api";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -125,7 +126,7 @@ export default function AdminPaymentsPage() {
       if (deferredSearch) params.set("search", deferredSearch);
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      const response = await fetch(`/api/admin/payments?${params.toString()}`);
+      const response = await adminApi.fetch(`/admin/payments?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch payments");
       return (await response.json()) as PaymentsResponse;
     },

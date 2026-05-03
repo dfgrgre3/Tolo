@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/api/admin-api";
 import { useState, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
     setIsSending(true);
 
     try {
-      const response = await fetch("/api/admin/users/bulk-send-message", {
+      const response = await adminFetch("/admin/users/bulk-send-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

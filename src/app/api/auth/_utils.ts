@@ -5,11 +5,19 @@ type HeaderWithSetCookie = Headers & {
   raw?: () => Record<string, string[]>;
 };
 
-export const BACKEND_URL = (
-  process.env.INTERNAL_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://127.0.0.1:8082'
-).replace(/\/api$/, '');
+export const BACKEND_URL = (() => {
+  const url = (
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://127.0.0.1:8082'
+  ).replace(/\/api$/, '');
+  
+  // Ensure protocol
+  if (!url.startsWith('http')) {
+    return `http://${url}`;
+  }
+  return url;
+})();
 
 function splitCombinedSetCookie(value: string): string[] {
   return value.split(/,(?=\s*[^;,]+=)/).map((cookie) => cookie.trim()).filter(Boolean);
@@ -37,6 +45,10 @@ export async function backendJsonResponse(response: Response): Promise<NextRespo
     } catch {
       payload = { error: text };
     }
+  }
+
+  if (!response.ok) {
+    console.error(`[API Proxy] Backend returned error ${response.status}: ${text.substring(0, 100)}`);
   }
 
   const nextResponse = NextResponse.json(payload, { status: response.status });

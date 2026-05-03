@@ -15,15 +15,15 @@ const (
 )
 
 type Exam struct {
-	ID        string    `gorm:"primaryKey;type:text" json:"id"`
-	SubjectID string    `gorm:"not null;index;type:text" json:"subjectId"`
-	Title     string    `gorm:"not null" json:"title"`
-	Type      ExamType  `gorm:"default:'QUIZ';index" json:"type"`
-	Duration  int       `json:"duration"` // in minutes
-	MaxScore  float64   `gorm:"default:100" json:"maxScore"`
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	SubjectID string    `gorm:"not null;index;type:uuid;column:subject_id" json:"subjectId"`
+	Title     string    `gorm:"not null;column:title" json:"title"`
+	Type      ExamType  `gorm:"default:'QUIZ';index;column:type" json:"type"`
+	Duration  int       `gorm:"column:duration" json:"duration"`
+	MaxScore  float64   `gorm:"default:100;column:max_score" json:"maxScore"`
+	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 
 	// Relations
 	Subject   Subject    `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"subject,omitempty"`
@@ -31,13 +31,13 @@ type Exam struct {
 }
 
 type Question struct {
-	ID      string `gorm:"primaryKey;type:text" json:"id"`
-	ExamID  string `gorm:"not null;index;type:text" json:"examId"`
-	Text    string `gorm:"not null;type:text" json:"text"`
-	Type    string `gorm:"default:'MCQ'" json:"type"` // MCQ, TRUE_FALSE, TEXT
-	Options   string         `gorm:"type:text" json:"options"`  // JSON string of options
-	Answer    string         `gorm:"not null" json:"-"`         // Hidden from API responses for security
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID      string `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	ExamID  string `gorm:"not null;index;type:uuid;column:exam_id" json:"examId"`
+	Text    string `gorm:"not null;type:text;column:text" json:"text"`
+	Type    string `gorm:"default:'MCQ';column:type" json:"type"`
+	Options   string         `gorm:"type:text;column:options" json:"options"`
+	Answer    string         `gorm:"not null;column:answer" json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (Question) TableName() string {
@@ -45,15 +45,15 @@ func (Question) TableName() string {
 }
 
 type ExamResult struct {
-	ID        string    `gorm:"primaryKey;type:text" json:"id"`
-	ExamID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:1;type:text" json:"examId"`
-	UserID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:2;type:text" json:"userId"`
-	Score     float64   `json:"score"`
-	Passed    bool      `json:"passed"`
-	Answers   string    `gorm:"type:text" json:"answers"` // JSON string of user answers
-	TakenAt   time.Time `gorm:"index" json:"takenAt"`
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
+	ID        string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	ExamID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:1;type:uuid;column:exam_id" json:"examId"`
+	UserID    string    `gorm:"not null;index:idx_exam_results_exam_user,priority:2;type:uuid;column:user_id" json:"userId"`
+	Score     float64   `gorm:"column:score" json:"score"`
+	Passed    bool      `gorm:"column:passed" json:"passed"`
+	Answers   string    `gorm:"type:text;column:answers" json:"answers"`
+	TakenAt   time.Time `gorm:"index;column:taken_at" json:"takenAt"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations

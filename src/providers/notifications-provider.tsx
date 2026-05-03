@@ -7,6 +7,18 @@ import { apiClient } from '@/lib/api/api-client';
 // import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
+import { useAuth } from '@/contexts/auth-context';
+
+interface NotificationsResponse {
+  notifications: Notification[];
+  unreadCount: number;
+  hasMore: boolean;
+}
+
+interface MarkReadResponse {
+  success: boolean;
+  unreadCount?: number;
+}
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -60,7 +72,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         offset: currentOffset.toString()
       });
 
-      const response = await apiClient.get<any>(`/notifications?${params}`);
+      const response = await apiClient.get<NotificationsResponse | Notification[]>(`/notifications?${params}`);
       
       const payload = response?.data ?? response;
       const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : (Array.isArray(payload) ? payload : []);
@@ -102,7 +114,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const response = await apiClient.post<any>('/notifications/mark-read', { 
+      const response = await apiClient.post<MarkReadResponse>('/notifications/mark-read', { 
         id: notificationIds ? notificationIds[0] : "", // Go backend handles 'id'
         all 
       });
@@ -133,6 +145,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, []);
 
   const { socket, isConnected } = useWebSocket();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -162,11 +175,13 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [socket, isConnected, fetchNotifications]);
 
   useEffect(() => {
-    fetchNotifications(true);
+    if (isAuthenticated) {
+      fetchNotifications(true);
+    }
 
     // Poll for notifications every 60 seconds as a fallback for WebSocket
     const pollInterval = setInterval(() => {
-      if (!isConnected) {
+      if (isAuthenticated && !isConnected) {
         fetchNotifications(true);
       }
     }, 60000);
@@ -174,7 +189,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [fetchNotifications, isConnected]);
+  }, [fetchNotifications, isConnected, isAuthenticated]);
 
   const value = useMemo(() => ({
     notifications,

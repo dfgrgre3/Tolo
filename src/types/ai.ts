@@ -1,4 +1,4 @@
-export type AIMessageRole = 'USER' | 'ASSISTANT' | 'SYSTEM';
+export type AIMessageRole = 'user' | 'assistant' | 'system';
 
 export interface AIMessage {
   id: string;
@@ -6,7 +6,7 @@ export interface AIMessage {
   role: AIMessageRole;
   content: string;
   tokensUsed?: number;
-  metadata?: any; // JSON object for additional data
+  metadata?: Record<string, unknown>;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

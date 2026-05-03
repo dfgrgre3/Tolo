@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -49,6 +49,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SearchInput } from "@/components/admin/ui/admin-input";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 import { logger } from '@/lib/logger';
 
@@ -117,7 +119,7 @@ export default function AdminEventsPage() {
   const fetchEvents = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/events?limit=100");
+      const response = await adminFetch(`${apiRoutes.admin.events}?limit=100`);
       const data = await response.json();
       setEvents(data.data?.events || []);
     } catch (error) {
@@ -163,11 +165,10 @@ export default function AdminEventsPage() {
 
   const handleSubmit = async (values: EventFormValues) => {
     try {
-      const url = "/api/admin/events";
       const method = editingEvent ? "PATCH" : "POST";
       const body = editingEvent ? { ...values, id: editingEvent.id } : values;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(apiRoutes.admin.events, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -190,7 +191,7 @@ export default function AdminEventsPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/events", {
+      const response = await adminFetch(apiRoutes.admin.events, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),

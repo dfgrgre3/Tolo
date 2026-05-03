@@ -15,15 +15,15 @@ const (
 )
 
 type Category struct {
-	ID          string       `gorm:"primaryKey" json:"id"`
-	Name        string       `gorm:"not null" json:"name"`
-	Slug        string       `gorm:"uniqueIndex;not null" json:"slug"`
-	Type        CategoryType `gorm:"default:'COURSE'" json:"type"`
-	Description *string      `json:"description"`
-	Icon        *string      `json:"icon"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          string       `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Name        string       `gorm:"not null;column:name" json:"name"`
+	Slug        string       `gorm:"uniqueIndex;not null;column:slug" json:"slug"`
+	Type        CategoryType `gorm:"default:'COURSE';column:type" json:"type"`
+	Description *string      `gorm:"column:description" json:"description"`
+	Icon        *string      `gorm:"column:icon" json:"icon"`
+	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (Category) TableName() string {

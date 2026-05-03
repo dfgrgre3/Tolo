@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -271,3 +273,104 @@ func UpdateSettings(c *gin.Context) {
 
 		api_response.Success(c, gin.H{"settings": settings})
 	}
+
+// GetSystemSettings retrieves public system settings (feature toggles, etc)
+func GetSystemSettings(c *gin.Context) {
+	// Initialize defaults outside the closure so they are accessible to recover()
+	defaultSettings := map[string]interface{}{
+		"siteName":        "Thanawy",
+		"siteDescription": "منصة تعليمية لإدارة التعلم والمحتوى.",
+		"features": map[string]interface{}{
+			"registration": true,
+			"engagement":   true,
+			"forum":        true,
+			"blog":         true,
+			"events":       true,
+			"aiAssistant":  true,
+		},
+		"maintenance": map[string]interface{}{
+			"enabled": false,
+			"message": "",
+		},
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("CRITICAL: Panic in GetSystemSettings: %v", r)
+			// Return a clean success response with defaults even after a panic
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"data": gin.H{
+					"settings": defaultSettings,
+				},
+			})
+			c.Abort()
+		}
+	}()
+
+	// Safe DB access
+	if db.DB == nil {
+		log.Printf("WARN: Database connection is not initialized in GetSystemSettings, returning defaults")
+		api_response.Success(c, gin.H{"settings": defaultSettings})
+		return
+	}
+
+	var dbSetting models.SystemSetting
+	var settings map[string]interface{}
+
+	// Attempt to fetch from DB
+	err := db.DB.Where("key = ?", "admin_settings").First(&dbSetting).Error
+	if err == nil {
+		if err := json.Unmarshal([]byte(dbSetting.Value), &settings); err != nil || settings == nil {
+			log.Printf("WARN: Failed to unmarshal admin_settings from DB: %v. Using defaults.", err)
+			settings = defaultSettings
+		}
+	} else {
+		// Record not found is expected if not seeded yet
+		if err != gorm.ErrRecordNotFound {
+			log.Printf("ERROR: Failed to fetch admin_settings from DB: %v. Using defaults.", err)
+		}
+		settings = defaultSettings
+	}
+
+	// Double safety check
+	if settings == nil {
+		settings = defaultSettings
+	}
+
+	// Safely extract and filter public settings
+	// Use type-safe fallbacks to avoid panics during type assertion
+	siteNameFallback, _ := defaultSettings["siteName"].(string)
+	siteDescriptionFallback, _ := defaultSettings["siteDescription"].(string)
+	featuresFallback, _ := defaultSettings["features"].(map[string]interface{})
+	maintenanceFallback, _ := defaultSettings["maintenance"].(map[string]interface{})
+
+	publicSettings := gin.H{
+		"siteName":        extractString(settings, "siteName", siteNameFallback),
+		"siteDescription": extractString(settings, "siteDescription", siteDescriptionFallback),
+		"features":        extractMap(settings, "features", featuresFallback),
+		"maintenance":     extractMap(settings, "maintenance", maintenanceFallback),
+	}
+
+	api_response.Success(c, gin.H{"settings": publicSettings})
+}
+
+// Helper to safely extract string from map
+func extractString(m map[string]interface{}, key string, fallback string) string {
+	if val, ok := m[key]; ok {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return fallback
+}
+
+// Helper to safely extract map from map
+func extractMap(m map[string]interface{}, key string, fallback map[string]interface{}) map[string]interface{} {
+	if val, ok := m[key]; ok {
+		if res, ok := val.(map[string]interface{}); ok {
+			return res
+		}
+	}
+	return fallback
+}

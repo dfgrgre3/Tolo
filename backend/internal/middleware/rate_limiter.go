@@ -1,81 +1,51 @@
 package middleware
 
 import (
-	"context"
+	"fmt"
 	"net/http"
-	"strings"
-	"thanawy-backend/internal/db"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
+	"github.com/redis/go-redis/v9"
 )
 
-const (
-	// Default rate limit: 5 attempts per minute per IP
-	DefaultRateLimit = 5
-	DefaultWindow    = 1 * time.Minute
-	// Strict rate limit for auth endpoints: 3 attempts per minute per IP
-	AuthRateLimit = 3
-	AuthWindow    = 1 * time.Minute
-	// Admin rate limit: 10 requests per minute per IP
-	AdminRateLimit = 10
-	AdminWindow    = 1 * time.Minute
-)
+// RateLimiter holds Redis client for distributed rate limiting
+type RateLimiter struct {
+	client *redis.Client
+}
 
-// RateLimiter middleware for rate limiting using Redis
-func RateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
+// NewRateLimiter creates a new rate limiter instance
+func NewRateLimiter(redisClient *redis.Client) *RateLimiter {
+	return &RateLimiter{client: redisClient}
+}
+
+// RateLimitByIP creates a rate limiting middleware by IP address
+// limit: requests per window
+// window: time window duration
+func (rl *RateLimiter) RateLimitByIP(limit int, window time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip if Redis is not available
-		if db.Redis == nil {
-			c.Next()
-			return
-		}
+		ip := c.ClientIP()
+		key := fmt.Sprintf("rate_limit:ip:%s", ip)
 
-		// Get identifier (IP address)
-		identifier := getClientIP(c)
-		if identifier == "" {
-			c.Next()
-			return
-		}
-
-		// Create Redis key
-		key := "rate_limit:" + identifier + ":" + c.FullPath()
-
-		ctx := context.Background()
-		now := time.Now().UnixNano() / int64(time.Millisecond) // Use milliseconds for precision
-		windowMs := int64(window.Milliseconds())
-		windowStart := now - windowMs
-
-		// LUA script for atomic sliding window rate limiting
-		// KEYS[1] = key
-		// ARGV[1] = windowStart
-		// ARGV[2] = now
-		// ARGV[3] = maxRequests
-		// ARGV[4] = windowSeconds
-		script := `
-			redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
-			local count = redis.call('ZCARD', KEYS[1])
-			if count < tonumber(ARGV[3]) then
-				redis.call('ZADD', KEYS[1], ARGV[2], ARGV[2])
-				redis.call('EXPIRE', KEYS[1], ARGV[4])
-				return 1
-			else
-				return 0
-			end
-		`
-
-		result, err := db.Redis.Eval(ctx, script, []string{key}, windowStart, now, maxRequests, int(window.Seconds())).Int()
+		count, err := rl.incrementCounter(key, window)
 		if err != nil {
-			// If Redis fails, allow the request (fail open) but log it
-			c.Next()
+			// If Redis fails, FAIL CLOSED for security (deny request)
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "rate limiter unavailable, please try again later",
+			})
 			return
 		}
 
-		if result == 0 {
+		// Set rate limit headers
+		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
+
+		if count > limit {
+			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "Rate limit exceeded. Please try again later.",
-				"retry_after": window.Seconds(),
+				"error":       "rate limit exceeded",
+				"retry_after": int(window.Seconds()),
 			})
 			c.Abort()
 			return
@@ -85,73 +55,37 @@ func RateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
 	}
 }
 
-// AuthRateLimiter is a stricter rate limiter for authentication endpoints
-func AuthRateLimiter() gin.HandlerFunc {
-	return RateLimiter(AuthRateLimit, AuthWindow)
-}
-
-// AdminRateLimiter protects admin routes from brute force
-func AdminRateLimiter() gin.HandlerFunc {
-	return RateLimiter(AdminRateLimit, AdminWindow)
-}
-
-// LoginRateLimiter specifically for login endpoint to prevent CPU exhaustion attacks
-func LoginRateLimiter() gin.HandlerFunc {
+// RateLimitByUser creates a rate limiting middleware by authenticated user ID
+// limit: requests per window
+// window: time window duration
+func (rl *RateLimiter) RateLimitByUser(limit int, window time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip if Redis is not available
-		if db.Redis == nil {
+		userID, exists := c.Get("user_id")
+		if !exists {
+			// Not authenticated, skip user-level rate limiting
 			c.Next()
 			return
 		}
 
-		// Get identifier - use IP and email combination for login attempts
-		ip := getClientIP(c)
-
-		// Attempt to get email from body using the official Gin way to support multiple reads
-		var email string
-		if c.Request.Method == http.MethodPost {
-			var body struct {
-				Email string `json:"email"`
-			}
-			if err := c.ShouldBindBodyWith(&body, binding.JSON); err == nil {
-				email = strings.ToLower(strings.TrimSpace(body.Email))
-			}
-		}
-
-		// Create Redis key based on IP and email
-		var key string
-		if email != "" {
-			key = "login_rate_limit:email:" + email
-		} else {
-			key = "login_rate_limit:ip:" + ip
-		}
-
-		ctx := context.Background()
-
-		// Use atomic INCR and EXPIRE for login rate limiting
-		// We use a LUA script here too to ensure atomicity of INCR + EXPIRE
-		script := `
-			local count = redis.call('INCR', KEYS[1])
-			if count == 1 then
-				redis.call('EXPIRE', KEYS[1], ARGV[1])
-			end
-			return count
-		`
-
-		count, err := db.Redis.Eval(ctx, script, []string{key}, int(AuthWindow.Seconds())).Int()
+		key := fmt.Sprintf("rate_limit:user:%s", userID)
+		count, err := rl.incrementCounter(key, window)
 		if err != nil {
-			// If Redis fails, allow the request (fail open)
-			c.Next()
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "rate limiter unavailable, please try again later",
+			})
 			return
 		}
 
-		if count > AuthRateLimit {
-			// Get TTL for retry-after header
-			ttl, _ := db.Redis.TTL(ctx, key).Result()
+		// Set rate limit headers
+		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
 
+		if count > limit {
+			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "Too many login attempts. Please try again later.",
-				"retry_after": ttl.Seconds(),
+				"error":       "user rate limit exceeded",
+				"retry_after": int(window.Seconds()),
 			})
 			c.Abort()
 			return
@@ -161,22 +95,194 @@ func LoginRateLimiter() gin.HandlerFunc {
 	}
 }
 
-// getClientIP extracts the real client IP from headers or connection
-func getClientIP(c *gin.Context) string {
-	// Check X-Forwarded-For header (common with proxies/load balancers)
-	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, take the first one
-		ips := strings.Split(xff, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
+// RateLimitByEndpoint creates per-endpoint rate limiting
+// endpoint: unique identifier for the endpoint
+// limit: requests per window
+// window: time window duration
+func (rl *RateLimiter) RateLimitByEndpoint(endpoint string, limit int, window time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// If user is authenticated, include user ID for stricter per-user limits
+		if userID, exists := c.Get("user_id"); exists {
+			endpoint = fmt.Sprintf("%s:user:%s", endpoint, userID)
 		}
+
+		key := fmt.Sprintf("rate_limit:endpoint:%s", endpoint)
+
+		count, err := rl.incrementCounter(key, window)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "rate limiter unavailable, please try again later",
+			})
+			return
+		}
+
+		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
+
+		if count > limit {
+			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":       "endpoint rate limit exceeded",
+				"retry_after": int(window.Seconds()),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// incrementCounter increments a counter in Redis and returns the new count
+// Uses INCR + EXPIRE for atomicity
+func (rl *RateLimiter) incrementCounter(key string, window time.Duration) (int, error) {
+	// Fail closed if Redis client is nil
+	if rl.client == nil {
+		return 0, fmt.Errorf("redis client is nil")
+	}
+	
+	ctx := rl.client.Context()
+
+	// INCR is atomic
+	val, err := rl.client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
 	}
 
-	// Check X-Real-IP header
-	if xri := c.GetHeader("X-Real-IP"); xri != "" {
-		return strings.TrimSpace(xri)
+	// Set expiration on first request (TTL = window)
+	if val == 1 {
+		rl.client.Expire(ctx, key, window)
 	}
 
-	// Fall back to remote address
-	return c.ClientIP()
+	return int(val), nil
+}
+
+// SlidingWindowRateLimit uses sliding window algorithm (more accurate)
+// Useful for APIs that need precise rate limiting
+func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if rl.client == nil {
+			// Fail closed - if Redis is unavailable, deny requests
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "rate limiter unavailable",
+			})
+			return
+		}
+
+		ctx := rl.client.Context()
+		now := time.Now().UnixMilli()
+		windowStart := now - window.Milliseconds()
+
+		// Remove old entries outside the window
+		rl.client.ZRemRangeByScore(ctx, key, "-inf", fmt.Sprintf("%d", windowStart))
+
+		// Count requests in current window
+		count, err := rl.client.ZCard(ctx, key).Result()
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "rate limiter unavailable",
+			})
+			return
+		}
+
+		if count >= int64(limit) {
+			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limit exceeded"})
+			c.Abort()
+			return
+		}
+
+		// Add current request
+		rl.client.ZAdd(ctx, key, redis.Z{
+			Score:  float64(now),
+			Member: fmt.Sprintf("%d", now),
+		})
+		rl.client.Expire(ctx, key, window)
+
+		c.Next()
+	}
+}
+
+// CircuitBreaker pattern for external APIs
+type CircuitBreaker struct {
+	client    *redis.Client
+	threshold int       // failure threshold
+	timeout   time.Duration
+}
+
+// NewCircuitBreaker creates a new circuit breaker
+func NewCircuitBreaker(redisClient *redis.Client, threshold int, timeout time.Duration) *CircuitBreaker {
+	return &CircuitBreaker{
+		client:    redisClient,
+		threshold: threshold,
+		timeout:   timeout,
+	}
+}
+
+// CheckCircuitBreaker returns true if the circuit is open (failing)
+func (cb *CircuitBreaker) CheckCircuitBreaker(serviceName string) (isOpen bool, err error) {
+	ctx := cb.client.Context()
+	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
+
+	count, err := cb.client.Get(ctx, key).Int()
+	if err == redis.Nil {
+		return false, nil // Circuit is closed (normal)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return count >= cb.threshold, nil
+}
+
+// RecordSuccess resets the circuit breaker
+func (cb *CircuitBreaker) RecordSuccess(serviceName string) error {
+	ctx := cb.client.Context()
+	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
+	return cb.client.Del(ctx, key).Err()
+}
+
+// RecordFailure increments failure counter
+func (cb *CircuitBreaker) RecordFailure(serviceName string) error {
+	ctx := cb.client.Context()
+	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
+
+	err := cb.client.Incr(ctx, key).Err()
+	if err != nil {
+		return err
+	}
+
+	// Set expiration
+	cb.client.Expire(ctx, key, cb.timeout)
+	return nil
+}
+
+// CircuitBreakerMiddleware wraps a service call with circuit breaker protection
+func (cb *CircuitBreaker) CircuitBreakerMiddleware(serviceName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isOpen, err := cb.CheckCircuitBreaker(serviceName)
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		if isOpen {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":   "service temporarily unavailable",
+				"service": serviceName,
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -45,6 +45,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { m } from "framer-motion";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
 import { logger } from '@/lib/logger';
 
@@ -118,7 +120,7 @@ export default function AdminResourcesPage() {
   const fetchResources = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/resources");
+      const response = await adminFetch(apiRoutes.admin.resources);
       const data = await response.json();
       setResources(data.resources || []);
     } catch (error) {
@@ -131,7 +133,7 @@ export default function AdminResourcesPage() {
 
   const fetchSubjects = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/subjects?limit=100");
+      const response = await adminFetch(`${apiRoutes.admin.subjects}?limit=100`);
       const data = await response.json();
       setSubjects(data.subjects || []);
     } catch (error) {
@@ -177,7 +179,7 @@ export default function AdminResourcesPage() {
       const method = editingResource ? "PATCH" : "POST";
       const body = editingResource ? { ...values, id: editingResource.id } : values;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(apiRoutes.admin.resources, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
@@ -200,7 +202,7 @@ export default function AdminResourcesPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/resources", {
+      const response = await adminFetch(apiRoutes.admin.resources, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })
@@ -377,7 +379,7 @@ export default function AdminResourcesPage() {
               const ids = rows.map((r) => r.id);
               if (confirm(`هل أنت متأكد من مسح ${ids.length} مورد من التاريخ؟`)) {
                 try {
-                  const res = await fetch("/api/admin/resources", {
+                  const res = await adminFetch(apiRoutes.admin.resources, {
                     method: "DELETE",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ids })
@@ -398,7 +400,7 @@ export default function AdminResourcesPage() {
             onClick: async (rows) => {
               const ids = rows.map((r) => r.id);
               try {
-                const res = await fetch("/api/admin/resources", {
+                const res = await adminFetch(apiRoutes.admin.resources, {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ ids, free: true })
