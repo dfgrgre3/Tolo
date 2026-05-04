@@ -261,7 +261,7 @@ func (s *AIService) GenerateQuiz(ctx context.Context, topic string, difficulty s
 
 	systemPrompt := "أنت مدرس خبير. أنشئ أسئلة اختيار من متعدد دقيقة ومناسبة لمستوى الطلاب."
 
-	response, err := s.callAI(ctx, systemPrompt, prompt, 0.7, count*200)
+	_, err := s.callAI(ctx, systemPrompt, prompt, 0.7, count*200)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, user
 	// Use circuit breaker to prevent cascading failures
 	service := GetCircuitBreakerService()
 	
-	var result string
+	var apiResult string
 	err := service.CallExternalAPI("openai-openrouter", func() error {
 		payload := map[string]interface{}{
 			"model": "google/gemini-2.0-flash-001", // Default for OpenRouter
@@ -364,11 +364,11 @@ func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, user
 		}
 
 		resultContent := result.Choices[0].Message.Content
-		result = resultContent
+		apiResult = resultContent
 		return nil
 	})
 
-	return result, err
+	return apiResult, err
 }
 
 func (s *AIService) callOpenAICompatibleWithMessages(ctx context.Context, messages []map[string]interface{}, model string) (string, error) {
@@ -448,7 +448,7 @@ func (s *AIService) callGemini(ctx context.Context, systemPrompt, userMessage st
 	// Use circuit breaker to prevent cascading failures
 	service := GetCircuitBreakerService()
 	
-	var result string
+	var apiResult string
 	err := service.CallExternalAPI("gemini-api", func() error {
 		url := s.apiURL + "?key=" + s.apiKey
 
@@ -512,11 +512,11 @@ func (s *AIService) callGemini(ctx context.Context, systemPrompt, userMessage st
 		}
 
 		resultContent := result.Candidates[0].Content.Parts[0].Text
-		result = resultContent
+		apiResult = resultContent
 		return nil
 	})
 
-	return result, err
+	return apiResult, err
 }
 
 // LogAIInteraction logs AI usage for analytics and cost tracking

@@ -56,6 +56,7 @@ const (
 	PermAiManage         = "ai:manage"
 	PermLiveMonitorView  = "live_monitor:view"
 	PermMarketingView    = "marketing:view"
+	PermMarketingManage  = "marketing:manage"
 	PermAbTestingView    = "ab_testing:view"
 	PermSettingsView     = "settings:view"
 	PermSeasonsView      = "seasons:view"

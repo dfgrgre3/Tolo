@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
+import { buildAppUserWebSocketUrl } from '@/lib/realtime/build-ws-url';
 import { useAuth } from './auth-context';
 
 
@@ -80,8 +81,8 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       if (!WEBSOCKET_ENABLED || !currentUserId) return;
 
       try {
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/api/ws?userId=${encodeURIComponent(currentUserId)}`;
+        const wsUrl = buildAppUserWebSocketUrl(currentUserId);
+        if (!wsUrl) return;
 
         ws = new WebSocket(wsUrl);
 

@@ -17,8 +17,7 @@ import {
 import { MoreHorizontal, Plus, Edit, Trash2, Calendar, Users } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import {
   Dialog,
   DialogContent,
@@ -357,23 +356,20 @@ export default function AdminEventsPage() {
         </AdminCard>
       </div>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={7} />
-      ) : (
-        <AdminDataTable
-          columns={columns}
-          data={filteredEvents}
-          actions={{ onRefresh: fetchEvents }}
-          toolbar={
-            <SearchInput
-              placeholder="البحث عن حدث..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="w-72"
-            />
-          }
-        />
-      )}
+      <AdminDataTable
+        columns={columns}
+        data={filteredEvents}
+        loading={loading}
+        actions={{ onRefresh: fetchEvents }}
+        toolbar={
+          <SearchInput
+            placeholder="البحث عن حدث..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="w-72"
+          />
+        }
+      />
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -525,7 +521,7 @@ export default function AdminEventsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
         title="حذف الحدث"

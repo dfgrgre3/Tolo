@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { AdminButton } from "../ui/admin-button";
 import { AdminBadge } from "../ui/admin-badge";
@@ -75,20 +75,6 @@ const alertConfig = {
     iconColor: "text-blue-500",
   },
 };
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  if (days < 7) return `منذ ${days} يوم`;
-  return new Date(date).toLocaleDateString("ar-EG");
-}
 
 export function SmartAlerts({
   alerts,

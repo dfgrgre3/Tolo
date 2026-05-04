@@ -1,7 +1,7 @@
 "use client";
 
 import { adminFetch } from "@/lib/api/admin-api";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -14,10 +14,22 @@ import { BroadcastPreview } from "./broadcast-preview";
 import { BroadcastAudience } from "./broadcast-audience";
 import { UserModel, BroadcastFormData, MessageTemplate } from "./types";
 
+export interface UserSegment {
+  id: string;
+  name: string;
+  count: number;
+  filters: Record<string, unknown>;
+}
+
 interface BroadcastModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   users: UserModel[];
+  segments?: UserSegment[];
+  selectedSegment?: string | null;
+  onSelectSegment?: (segmentId: string | null) => void;
+  onSearch?: (query: string) => void;
+  isLoading?: boolean;
 }
 
 type Step = "templates" | "editor" | "audience" | "preview";
@@ -29,10 +41,29 @@ const STEPS: { id: Step; label: string; icon: any; description: string }[] = [
   { id: "preview", label: "المعاينة النهائية", icon: Zap, description: "تحقق من شكل الرسالة قبل البدء في عملية البث" },
 ];
 
-export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProps) {
+export function BroadcastModal({ 
+  open, 
+  onOpenChange, 
+  users,
+  segments = [],
+  selectedSegment,
+  onSelectSegment,
+  onSearch,
+  isLoading = false,
+}: BroadcastModalProps) {
   const [activeStep, setActiveStep] = useState<Step>("templates");
   const [isSending, setIsSending] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("custom");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  // Initialize selected users when users prop changes
+  useEffect(() => {
+    if (users.length > 0 && selectedUserIds.length === 0) {
+      // Auto-select all users by default
+      setSelectedUserIds(users.map(u => u.id));
+    }
+  }, [users, selectedUserIds.length]);
 
   const [formData, setFormData] = useState<BroadcastFormData>({
     title: "",
@@ -89,6 +120,22 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
     setActiveStep("editor");
   };
 
+  const handleToggleUser = useCallback((userId: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedUserIds(users.map(u => u.id));
+  }, [users]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedUserIds([]);
+  }, []);
+
   const handleSend = async () => {
     if (!formData.title.trim() || !formData.message.trim()) {
       toast.error("يرجى ملء كافة البيانات المطلوبة");
@@ -104,6 +151,11 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
       return;
     }
 
+    if (selectedUserIds.length === 0) {
+      toast.error("يجب اختيار مستخدم واحد على الأقل");
+      return;
+    }
+
     setIsSending(true);
 
     try {
@@ -111,7 +163,7 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userIds: users.map(u => u.id),
+          userIds: selectedUserIds,
           title: formData.title,
           message: formData.message,
           type: formData.type,
@@ -137,6 +189,7 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
           channels: { app: true, email: false, sms: false },
         });
         setSelectedTemplateId("custom");
+        setSelectedUserIds([]);
       } else {
         toast.error(data.error || "فشل إرسال الرسالة");
       }
@@ -180,7 +233,8 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
                     مركز البث المركزي
                   </DialogTitle>
                   <DialogDescription className="text-gray-400 font-bold text-base uppercase tracking-widest flex items-center justify-center gap-2">
-                    إرسال تنبيه جماعي لـ {users.length} مستهدف
+                    إرسال تنبيه جماعي لـ {selectedUserIds.length > 0 ? selectedUserIds.length : users.length} مستهدف 
+                    {selectedUserIds.length > 0 && selectedUserIds.length !== users.length && ` (من أصل ${users.length})`}
                   </DialogDescription>
                 </div>
               </div>
@@ -256,18 +310,28 @@ export function BroadcastModal({ open, onOpenChange, users }: BroadcastModalProp
                 )}
 
                 {activeStep === "audience" && (
-                  <div className="max-w-5xl mx-auto">
-                    <BroadcastAudience users={users} />
+                  <div className="max-w-5xl mx-auto h-full">
+                    <BroadcastAudience 
+                      users={users}
+                      selectedUserIds={selectedUserIds}
+                      onToggleUser={handleToggleUser}
+                      onSelectAll={handleSelectAll}
+                      onDeselectAll={handleDeselectAll}
+                      segments={segments}
+                      selectedSegment={selectedSegment}
+                      onSelectSegment={onSelectSegment}
+                    />
                   </div>
                 )}
 
                 {activeStep === "preview" && (
-                  <div className="max-w-4xl mx-auto">
+                  <div className="max-w-5xl mx-auto">
                     <BroadcastPreview
                       title={formData.title}
                       message={formData.message}
                       type={formData.type}
                       actionUrl={formData.actionUrl}
+                      selectedUsers={users.filter(u => selectedUserIds.includes(u.id))}
                     />
                   </div>
                 )}

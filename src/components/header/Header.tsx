@@ -103,14 +103,6 @@ export default function Header() {
     enableProgress: true,
   });
 
-  // Focus mode REMOVED - hardcoded visibility
-  const focusVisibility = {
-    headerVisible: true,
-    showNavigation: true,
-    showSearch: true,
-    showNotifications: true,
-    showUserMenu: true,
-  };
 
   const { user, isLoading } = useAuth();
 
@@ -120,24 +112,15 @@ export default function Header() {
 
   const headerRef = useRef<HTMLElement>(null);
 
-  // Measure header height for MegaMenu positioning
+  // Measure header height once on mount - simplified
   useEffect(() => {
     if (!mounted) return;
-    
-    const updateHeight = () => {
-      const height = headerRef.current?.offsetHeight;
-      if (height) {
-        document.documentElement.style.setProperty('--header-height', `${height}px`);
-      }
-    };
-    
-    updateHeight();
-    const resizeObserver = new ResizeObserver(updateHeight);
-    if (headerRef.current) resizeObserver.observe(headerRef.current);
-    
-    // Also update on scroll/shrink
-    return () => resizeObserver.disconnect();
-  }, [mounted, isShrunk, pathname]);
+
+    const height = headerRef.current?.offsetHeight;
+    if (height) {
+      document.documentElement.style.setProperty('--header-height', `${height}px`);
+    }
+  }, [mounted]); // Only run once when mounted
 
   // Header preferences REMOVED - hardcoded preferences
   const headerPreferences = {
@@ -166,26 +149,14 @@ export default function Header() {
     return pathname.startsWith(href);
   }, [pathname]);
 
-  // Memoized header classes
+  // Memoized header classes - minimal dependencies
   const computedHeaderClasses = useMemo(() => {
-    const base = cn(
-      "sticky top-0 z-50 w-full transition-all duration-500 ease-in-out border-b backdrop-blur-md bg-background/70 dark:bg-background/80 shadow-[0_4px_30px_rgba(0,0,0,0.05)]",
-      focusVisibility.headerVisible && (!isHidden || !!openMegaMenu) ? "translate-y-0" : "-translate-y-full",
-      isScrolled && "bg-background/90 shadow-[0_4px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.35)] border-primary/20",
-      isShrunk && headerPreferences.compactMode && "py-0",
-      isMounted && user && !isScrolled && "bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-primary/10",
+    return cn(
+      "sticky top-0 z-50 w-full transition-colors duration-200 border-b bg-background/95",
+      isScrolled && "shadow-sm border-primary/20",
+      isMounted && user && !isScrolled && "border-primary/10",
     );
-    return base;
-  }, [
-    isScrolled,
-    isShrunk,
-    isHidden,
-    isMounted,
-    user,
-    headerPreferences.compactMode,
-    focusVisibility.headerVisible,
-    openMegaMenu,
-  ]);
+  }, [isScrolled, isMounted, user]); // Reduced dependencies
 
   // Container height based on shrink state
   const containerHeight = useMemo(() => {
@@ -210,18 +181,9 @@ export default function Header() {
         />
       )}
 
-      <m.header
+      <header
         ref={headerRef}
         className={computedHeaderClasses}
-        initial={false}
-        animate={{
-          y: focusVisibility.headerVisible && (!isHidden || !!openMegaMenu) ? 0 : -100,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 30,
-        }}
         role="banner"
         aria-label="رأس الصفحة الرئيسي"
       >
@@ -231,15 +193,13 @@ export default function Header() {
             <MemoizedHeaderLogo />
 
             {/* Desktop Navigation */}
-            {focusVisibility.showNavigation && (
-              <MemoizedHeaderNavigation
-                openMegaMenu={openMegaMenu}
-                setOpenMegaMenu={setOpenMegaMenu}
-                isActiveRoute={isActiveRoute}
-                mounted={mounted}
-                user={user as any}
-              />
-            )}
+            <MemoizedHeaderNavigation
+              openMegaMenu={openMegaMenu}
+              setOpenMegaMenu={setOpenMegaMenu}
+              isActiveRoute={isActiveRoute}
+              mounted={mounted}
+              user={user as any}
+            />
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
@@ -258,16 +218,14 @@ export default function Header() {
               )}
 
               {/* Smart Navigation Suggestions */}
-              {headerPreferences.showSuggestions && focusVisibility.showNavigation && (
+              {headerPreferences.showSuggestions && (
                 <div className="hidden lg:block">
                   <SmartNavigationSuggestions />
                 </div>
               )}
 
               {/* Search */}
-              {focusVisibility.showSearch && (
-                <MemoizedHeaderSearch />
-              )}
+              <MemoizedHeaderSearch />
 
               {/* Quick Actions */}
               <div className="hidden md:block">
@@ -294,7 +252,7 @@ export default function Header() {
               )}
 
               {/* Notifications */}
-              {isMounted && focusVisibility.showNotifications && (
+              {isMounted && (
                   <HeaderNotifications user={user as any} mounted={mounted} />
               )}
 
@@ -375,7 +333,7 @@ export default function Header() {
         {/* Breadcrumbs */}
         {!isShrunk && <MemoizedHeaderBreadcrumbs />}
 
-      </m.header>
+      </header>
 
       {/* Mobile Menu */}
       <HeaderMobileMenuEnhanced

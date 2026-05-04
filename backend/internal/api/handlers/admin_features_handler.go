@@ -517,6 +517,46 @@ func AdminDeleteABTest(c *gin.Context) {
 	api_response.Success(c, nil)
 }
 
+// Campaign CRUD
+func AdminGetCampaigns(c *gin.Context) {
+	var campaigns []models.Campaign
+	listItems(c, &campaigns, "campaigns")
+}
+
+func AdminCreateCampaign(c *gin.Context) {
+	var item models.Campaign
+	if err := c.ShouldBindJSON(&item); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if item.Name == "" {
+		api_response.Error(c, http.StatusBadRequest, "Campaign name is required")
+		return
+	}
+	if err := db.DB.Create(&item).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to create campaign")
+		return
+	}
+	api_response.Created(c, item)
+}
+
+func AdminUpdateCampaign(c *gin.Context) {
+	id := c.Param("id")
+	var item models.Campaign
+	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+		api_response.Error(c, http.StatusNotFound, "Campaign not found")
+		return
+	}
+	c.ShouldBindJSON(&item)
+	db.DB.Save(&item)
+	api_response.Success(c, item)
+}
+
+func AdminDeleteCampaign(c *gin.Context) {
+	db.DB.Delete(&models.Campaign{}, "id = ?", c.Param("id"))
+	api_response.Success(c, nil)
+}
+
 // Public Blog Endpoints
 func GetPublicBlogPosts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

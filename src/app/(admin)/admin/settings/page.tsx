@@ -434,6 +434,93 @@ export default function AdminSettingsPage() {
               </AdminCard>
             </TabsContent>
 
+            <TabsContent value="social" className="focus-visible:outline-none">
+              <AdminCard variant="glass" className="p-8 space-y-8">
+                <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                  <div className="p-3 rounded-2xl bg-pink-500/10 text-pink-500">
+                    <Share2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">روابط التواصل الاجتماعي</h3>
+                    <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">روابط حسابات المنصة على منصات التواصل.</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-8">
+                  {[
+                    { key: "facebook", label: "فيسبوك", placeholder: "https://facebook.com/..." },
+                    { key: "twitter", label: "تويتر (X)", placeholder: "https://twitter.com/..." },
+                    { key: "instagram", label: "إنستغرام", placeholder: "https://instagram.com/..." },
+                    { key: "youtube", label: "يوتيوب", placeholder: "https://youtube.com/..." },
+                  ].map((social) => (
+                    <FormField
+                      key={social.key}
+                      control={form.control}
+                      name={`socialLinks.${social.key}` as Path<SettingsFormValues>}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">{social.label}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={typeof field.value === 'string' ? field.value : ''}
+                              dir="ltr"
+                              placeholder={social.placeholder}
+                              className="h-14 rounded-2xl border-white/10 bg-white/5 px-6 font-bold text-left"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </AdminCard>
+            </TabsContent>
+
+            <TabsContent value="limits" className="focus-visible:outline-none">
+              <AdminCard variant="glass" className="p-8 space-y-8">
+                <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500">
+                    <Wrench className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">حدود النظام والقيود</h3>
+                    <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">تحديد الحدود القصوى للملفات والجلسات والاختبارات.</p>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-8">
+                  {[
+                    { key: "maxUploadSize", label: "حجم الرفع الأقصى (MB)", icon: Wrench, color: "emerald" },
+                    { key: "maxStudySessionDuration", label: "مدة الجلسة القصوى (دقيقة)", icon: Clock, color: "blue" },
+                    { key: "examTimeLimit", label: "وقت الاختبار الافتراضي (دقيقة)", icon: Target, color: "amber" },
+                  ].map((field) => (
+                    <FormField
+                      key={field.key}
+                      control={form.control}
+                      name={`limits.${field.key}` as Path<SettingsFormValues>}
+                      render={({ field: inputField }) => (
+                        <FormItem className="text-center">
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">{field.label}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              className="h-14 rounded-2xl border-white/10 bg-white/5 text-center font-black text-xl"
+                              {...inputField}
+                              value={typeof inputField.value === 'number' || typeof inputField.value === 'string' ? inputField.value : ""}
+                              onChange={(e) => inputField.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </AdminCard>
+            </TabsContent>
+
             <TabsContent value="maintenance" className="focus-visible:outline-none">
               <AdminCard variant="glass" className="p-8 border-red-500/20 bg-red-500/5">
                 <div className="flex items-center justify-between mb-10 border-b border-red-500/10 pb-6">

@@ -1,90 +1,141 @@
 /**
  * AB Testing Service
- * 
- * Provides a client-side AB testing service backed by localStorage
- * for experiments management. In production, replace with real API calls.
+ *
+ * Provides AB testing management via the backend API.
  */
 
 import { Experiment, CreateExperimentData } from "@/types/ab-testing";
+import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 
-const STORAGE_KEY = "ab_experiments";
-
-function getStoredExperiments(): Experiment[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+interface BackendABExperiment {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  variants: string;
+  trafficPct: number;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-function saveExperiments(experiments: Experiment[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(experiments));
+const statusMap: Record<string, Experiment["status"]> = {
+  DRAFT: "draft",
+  RUNNING: "active",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+};
+
+const reverseStatusMap: Record<Experiment["status"], string> = {
+  draft: "DRAFT",
+  active: "RUNNING",
+  paused: "PAUSED",
+  completed: "COMPLETED",
+};
+
+function mapBackendToFrontend(item: BackendABExperiment): Experiment {
+  let variants: { name: string; views: number; completionRate: number }[] = [];
+  try {
+    variants = item.variants ? JSON.parse(item.variants) : [];
+  } catch {
+    variants = [];
+  }
+
+  return {
+    id: item.id,
+    title: item.name,
+    description: item.description || "",
+    status: statusMap[item.status] || "draft",
+    variantA: variants[0] || { name: "A", views: 0, completionRate: 0 },
+    variantB: variants[1] || { name: "B", views: 0, completionRate: 0 },
+    startDate: item.startDate || item.createdAt,
+    endDate: item.endDate || undefined,
+    createdBy: "Admin",
+    sampleSize: item.trafficPct,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
 }
 
 const getAllExperiments = async (): Promise<Experiment[]> => {
-  // In production: return (await fetch('/api/admin/ab-testing')).json();
-  return getStoredExperiments();
+  const response = await adminFetch(apiRoutes.admin.abTesting);
+  if (!response.ok) throw new Error("Failed to fetch AB experiments");
+  const json = await response.json();
+  const items: BackendABExperiment[] = json.data?.experiments || json.experiments || [];
+  return items.map(mapBackendToFrontend);
 };
 
 const createExperiment = async (data: CreateExperimentData): Promise<Experiment> => {
-  const experiments = getStoredExperiments();
-  const newExp: Experiment = {
-    id: `exp_${Date.now()}`,
-    title: data.title,
-    description: data.description,
-    status: "draft",
-    variantA: { name: data.variantAName, views: 0, completionRate: 0 },
-    variantB: { name: data.variantBName, views: 0, completionRate: 0 },
-    startDate: new Date().toISOString(),
-    createdBy: "Admin",
-    sampleSize: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  experiments.unshift(newExp);
-  saveExperiments(experiments);
-  return newExp;
+  const variants = JSON.stringify([
+    { name: data.variantAName, views: 0, completionRate: 0 },
+    { name: data.variantBName, views: 0, completionRate: 0 },
+  ]);
+
+  const response = await adminFetch(apiRoutes.admin.abTesting, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: data.title,
+      description: data.description,
+      status: "DRAFT",
+      variants,
+      trafficPct: 100,
+    }),
+  });
+
+  if (!response.ok) throw new Error("Failed to create experiment");
+  const json = await response.json();
+  const item: BackendABExperiment = json.data?.experiment || json.experiment || json;
+  return mapBackendToFrontend(item);
 };
 
 const updateExperimentStatus = async (
   id: string,
   newStatus: "active" | "paused" | "completed"
 ): Promise<Experiment> => {
-  const experiments = getStoredExperiments();
-  const idx = experiments.findIndex((e) => e.id === id);
-  if (idx === -1) throw new Error("Experiment not found");
+  const backendStatus = reverseStatusMap[newStatus];
+  const response = await adminFetch(`${apiRoutes.admin.abTesting}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      status: backendStatus,
+      ...(newStatus === "completed" ? { endDate: new Date().toISOString() } : {}),
+    }),
+  });
 
-  experiments[idx] = {
-    ...experiments[idx],
-    status: newStatus,
-    updatedAt: new Date().toISOString(),
-    ...(newStatus === "completed" ? { endDate: new Date().toISOString() } : {}),
-  };
-  saveExperiments(experiments);
-  return experiments[idx];
+  if (!response.ok) throw new Error("Failed to update experiment status");
+  const json = await response.json();
+  const item: BackendABExperiment = json.data?.experiment || json.experiment || json;
+  return mapBackendToFrontend(item);
 };
 
 const declareWinner = async (id: string, winner: "A" | "B"): Promise<Experiment> => {
-  const experiments = getStoredExperiments();
-  const idx = experiments.findIndex((e) => e.id === id);
-  if (idx === -1) throw new Error("Experiment not found");
+  const response = await adminFetch(`${apiRoutes.admin.abTesting}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      status: "COMPLETED",
+      endDate: new Date().toISOString(),
+      winner,
+    }),
+  });
 
-  experiments[idx] = {
-    ...experiments[idx],
-    winner,
-    status: "completed",
-    endDate: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  saveExperiments(experiments);
-  return experiments[idx];
+  if (!response.ok) throw new Error("Failed to declare winner");
+  const json = await response.json();
+  const item: BackendABExperiment = json.data?.experiment || json.experiment || json;
+  return mapBackendToFrontend(item);
+};
+
+const deleteExperiment = async (id: string): Promise<void> => {
+  const response = await adminFetch(`${apiRoutes.admin.abTesting}/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete experiment");
 };
 
 const getExperimentVariant = async (experimentId: string, userId: string): Promise<string> => {
-  // Simple hash-based variant assignment
   const hash = (experimentId + userId).split("").reduce((a, b) => {
     a = ((a << 5) - a + b.charCodeAt(0)) | 0;
     return a;
@@ -97,8 +148,11 @@ const trackExperimentEvent = async (
   userId: string,
   event: string
 ): Promise<void> => {
-  // In production: POST to backend
-  console.log(`[AB] Track: ${experimentId} / ${userId} / ${event}`);
+  await adminFetch(`${apiRoutes.admin.abTesting}/${experimentId}/track`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, event }),
+  });
 };
 
 const abTestingService = {
@@ -106,6 +160,7 @@ const abTestingService = {
   createExperiment,
   updateExperimentStatus,
   declareWinner,
+  deleteExperiment,
   getExperimentVariant,
   trackExperimentEvent,
 };

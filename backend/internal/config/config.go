@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -41,12 +40,15 @@ func Load() *Config {
 
 // generateRandomString generates a random string for dev secrets
 func generateRandomString(n int) string {
-	b := make([]byte, n)
 	if _, err := uuid.NewRandom(); err != nil {
 		return uuid.New().String()
 	}
 	// Use uuid to generate random string
-	return uuid.New().String()[:n]
+	result := uuid.New().String()
+	if len(result) > n {
+		return result[:n]
+	}
+	return result
 }
 
 func getEnv(key, fallback string) string {

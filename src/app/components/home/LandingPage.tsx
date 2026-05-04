@@ -1,51 +1,66 @@
 "use client";
 
-import React from "react";
-import { m, useScroll, useTransform } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { m, LazyMotion, domAnimation } from "framer-motion";
 import {
   Crown,
   Shield,
   Sword,
   Zap,
   Target,
-
   Users,
   ArrowRight,
-
   ChevronDown,
-
   Map,
   Compass,
-  Star } from
-
-"lucide-react";
+  Star
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   scrollVariants,
-
   HIGHLIGHT_CARDS,
-  FEATURES_LIST } from
-"./constants";
+  FEATURES_LIST
+} from "./constants";
 
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl ring-1 ring-white/5",
   neonText: "rpg-neon-text font-black",
   goldText: "rpg-gold-text font-black"
 };
 
+// Check for reduced motion preference - lightweight version
+function useReducedMotion() {
+  const [shouldReduce, setShouldReduce] = useState(true); // Default to true for SSR
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setShouldReduce(mql.matches);
+
+    const handler = () => setShouldReduce(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  return shouldReduce;
+}
+
 export default function LandingPage() {
-  const { scrollYProgress } = useScroll();
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
+    <LazyMotion features={domAnimation} strict>
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden pb-40" dir="rtl">
-      {/* --- Cinematic Background --- */}
+      {/* --- Static Background - No scroll listeners --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <m.div style={{ y: y1 }} className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full opacity-30" />
-        <m.div style={{ y: y2 }} className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-purple-600/15 blur-[150px] rounded-full opacity-20" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)]" />
+        <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 rounded-full opacity-20" />
+        <div className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full opacity-10" />
       </div>
 
       {/* --- Navigation / Quick Link --- */}
@@ -60,36 +75,37 @@ export default function LandingPage() {
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 pb-20 px-4 flex flex-col items-center justify-center text-center">
          <m.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5 }}
+          className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-sm">
           
            <Shield className="h-5 w-5" />
            <span>TOLO: عصر جديد في التعلم</span>
          </m.div>
 
          <m.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.5 }}
           className="text-6xl md:text-9xl font-black tracking-tighter leading-[1.1] mb-8">
           
            حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> 🏆
          </m.h1>
 
          <m.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.3, duration: 0.5 }}
           className="text-xl md:text-2xl text-gray-400 font-medium max-w-3xl mb-16 leading-relaxed">
           
            لا تكتفي بمذاكرة الدروس. انطلق في <span className={STYLES.goldText}>رحلة بطل</span>، اجمع نقاط القوة، ارفع مستواك الدراسي، وسيطر على لوحة الشرف الملكية.
          </m.p>
 
          <m.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.4, duration: 0.5 }}
           className="flex flex-col sm:flex-row gap-6 items-center">
           
            <Link href="/register">
@@ -106,13 +122,14 @@ export default function LandingPage() {
            </Link>
          </m.div>
 
+         {!shouldReduceMotion && (
          <m.div
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="mt-20 opacity-30">
-          
             <ChevronDown className="h-10 w-10 text-primary" />
          </m.div>
+         )}
       </section>
 
       {/* --- THE REALM FEATURES --- */}
@@ -174,40 +191,48 @@ export default function LandingPage() {
                </div>
 
                <div className="relative w-full max-w-md lg:max-w-lg aspect-square">
-                  <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-                  <m.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-                className="absolute inset-0 border-[2px] border-dashed border-white/5 rounded-full" />
-              
-                  <div className="absolute inset-4 border border-white/10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
-                     <Crown className="w-32 h-32 text-primary shadow-[0_0_40px_rgba(var(--primary),0.5)]" />
+                  <div className="absolute inset-0 bg-primary/10 rounded-full" />
+                  <div className="absolute inset-0 border-[2px] border-dashed border-white/5 rounded-full" />
+
+                  <div className="absolute inset-4 border border-white/10 rounded-full flex items-center justify-center bg-black/40 shadow-2xl">
+                     <Crown className="w-32 h-32 text-primary" />
                   </div>
-                  
-                  {/* Floating Icons around */}
-                  {[Zap, Target, Shield, Users].map((Icon, idx) =>
-              <m.div
-                key={idx}
-                animate={{
-                  y: [0, idx % 2 === 0 ? 30 : -30, 0],
-                  rotate: [0, 10, -10, 0]
-                }}
-                transition={{
-                  duration: 8 + idx * 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute p-6 rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl z-20"
-                style={{
-                  top: idx === 0 ? "10%" : idx === 1 ? "10%" : "auto",
-                  bottom: idx === 2 ? "10%" : idx === 3 ? "10%" : "auto",
-                  left: idx === 0 || idx === 2 ? "10%" : "auto",
-                  right: idx === 1 || idx === 3 ? "10%" : "auto"
-                }}>
-                
-                       <Icon className="w-8 h-8 text-white/40" />
-                    </m.div>
-              )}
+
+                  {/* Static Icons around - only animate after mount and if not reduced motion */}
+                  {mounted && !shouldReduceMotion && (
+                    [Zap, Target, Shield, Users].map((Icon, idx) =>
+                      <m.div
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="absolute p-6 rounded-3xl bg-white/5 border border-white/10 shadow-2xl z-20"
+                        style={{
+                          top: idx === 0 ? "10%" : idx === 1 ? "10%" : "auto",
+                          bottom: idx === 2 ? "10%" : idx === 3 ? "10%" : "auto",
+                          left: idx === 0 || idx === 2 ? "10%" : "auto",
+                          right: idx === 1 || idx === 3 ? "10%" : "auto"
+                        }}>
+                        <Icon className="w-8 h-8 text-white/40" />
+                      </m.div>
+                    )
+                  )}
+                  {/* Static icons for SSR/reduced motion */}
+                  {(!mounted || shouldReduceMotion) && (
+                    [Zap, Target, Shield, Users].map((Icon, idx) =>
+                      <div
+                        key={`static-${idx}`}
+                        className="absolute p-6 rounded-3xl bg-white/5 border border-white/10 shadow-2xl z-20"
+                        style={{
+                          top: idx === 0 ? "10%" : idx === 1 ? "10%" : "auto",
+                          bottom: idx === 2 ? "10%" : idx === 3 ? "10%" : "auto",
+                          left: idx === 0 || idx === 2 ? "10%" : "auto",
+                          right: idx === 1 || idx === 3 ? "10%" : "auto"
+                        }}>
+                        <Icon className="w-8 h-8 text-white/40" />
+                      </div>
+                    )
+                  )}
                </div>
             </div>
          </div>
@@ -295,6 +320,7 @@ export default function LandingPage() {
             <Link href="/privacy" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-colors">ميثاق الخصوصية</Link>
          </div>
       </div>
-    </div>);
-
+    </div>
+    </LazyMotion>
+  );
 }

@@ -586,7 +586,11 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	// Expose effective permissions (role defaults + DB overrides) so the client matches PermissionRequired.
+	profile := *user
+	profile.Permissions = models.JSONStringArray(user.GetEffectivePermissions())
+
+	c.JSON(http.StatusOK, gin.H{"user": &profile})
 }
 
 func GetUsers(c *gin.Context) {

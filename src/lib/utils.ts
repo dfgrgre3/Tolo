@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format date with validation and error handling
  */
-function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -35,7 +35,7 @@ function formatDate(date: Date | string | null | undefined): string {
 /**
  * Format date and time with validation and error handling
  */
-function formatDateTime(date: Date | string | null | undefined): string {
+export function formatDateTime(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -64,7 +64,7 @@ function formatDateTime(date: Date | string | null | undefined): string {
 /**
  * Format relative time with validation and error handling
  */
-function formatRelativeTime(date: Date | string | null | undefined): string {
+export function formatRelativeTime(date: Date | string | null | undefined): string {
   // Validate input
   if (!date) {
     return 'تاريخ غير صحيح';
@@ -176,11 +176,26 @@ function generateId(): string {
 /**
  * Format number with consistent locale to avoid hydration errors
  */
-export function formatNumber(number: number | string | null | undefined): string {
+export function formatNumber(number: number | string | null | undefined, decimals?: number): string {
   if (number === null || number === undefined) return "0";
   const num = typeof number === "string" ? parseFloat(number) : number;
   if (isNaN(num)) return "0";
+  if (decimals !== undefined) {
+    return num.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
   return num.toLocaleString("en-US");
+}
+
+export function formatCurrency(amount: number | string | null | undefined, currency = "EGP"): string {
+  const formatted = formatNumber(amount);
+  return `${formatted} ${currency}`;
+}
+
+export function formatPercentage(value: number | string | null | undefined, decimals = 1): string {
+  if (value === null || value === undefined) return "0%";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "0%";
+  return `${num.toFixed(decimals)}%`;
 }
 
 /**

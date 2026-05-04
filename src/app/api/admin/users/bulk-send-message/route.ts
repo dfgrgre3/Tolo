@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, backendJsonResponse } from '@/app/api/auth/_utils';
+import {
+  BACKEND_URL,
+  backendJsonResponse,
+  upstreamAuthHeaders,
+} from '@/app/api/auth/_utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +23,10 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Cookie: request.headers.get('cookie') || '',
+        ...upstreamAuthHeaders(request),
       },
       body: JSON.stringify(backendPayload),
-      credentials: 'include',
+      cache: 'no-store',
     });
 
     return backendJsonResponse(response);

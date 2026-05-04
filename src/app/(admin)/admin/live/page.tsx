@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
+import { readApiErrorMessage } from "@/lib/api/api-error-utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
 
@@ -73,7 +74,8 @@ export default function LiveMonitoringPage() {
          setLoading(true);
          const response = await adminFetch(`${apiRoutes.admin.live}?type=${filter}&minutes=5`);
          if (!response.ok) {
-            throw new Error('Failed to fetch live data');
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(readApiErrorMessage(errBody, "تعذر جلب بيانات المراقبة الحية"));
          }
          const data = await response.json();
          if (data.success) {
@@ -81,11 +83,12 @@ export default function LiveMonitoringPage() {
             setStats(data.stats || null);
             setError(null);
          } else {
-            throw new Error(data.error || 'Unknown error');
+            throw new Error(readApiErrorMessage(data, "خطأ من الخادم"));
          }
-      } catch (err: any) {
-         setError(err.message || 'Failed to fetch live data');
-         toast.error('فشل في جلب بيانات المراقبة الحية');
+      } catch (err: unknown) {
+         const msg = err instanceof Error ? err.message : "تعذر جلب بيانات المراقبة الحية";
+         setError(msg);
+         toast.error(msg);
       } finally {
          setLoading(false);
       }
@@ -121,10 +124,12 @@ export default function LiveMonitoringPage() {
             toast.success('تم إنهاء الجلسة بنجاح');
             fetchLiveData();
          } else {
-            throw new Error('Failed to terminate session');
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(readApiErrorMessage(errBody, "فشل في إنهاء الجلسة"));
          }
-      } catch (err) {
-         toast.error('فشل في إنهاء الجلسة');
+      } catch (err: unknown) {
+         const msg = err instanceof Error ? err.message : "فشل في إنهاء الجلسة";
+         toast.error(msg);
       }
    };
 

@@ -4,9 +4,11 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type UserRole string
@@ -108,14 +110,24 @@ type User struct {
 	WalletTransactions []WalletTransaction `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-func (u *User) HasPermission(permission string) bool {
-	if u.Role == RoleAdmin {
-		return true // Admin bypass
+func permissionGrantMatches(grant, required string) bool {
+	if grant == required || grant == PermAdminBypass {
+		return true
 	}
+	if grant == "*:manage" {
+		return strings.HasSuffix(required, ":manage")
+	}
+	if len(grant) > 2 && strings.HasSuffix(grant, ":*") {
+		mod := grant[:len(grant)-2]
+		return strings.HasPrefix(required, mod+":")
+	}
+	return false
+}
 
+func (u *User) HasPermission(permission string) bool {
 	effective := u.GetEffectivePermissions()
 	for _, p := range effective {
-		if p == permission || p == "*:*" || p == "*:manage" || (len(p) > 2 && p[len(p)-2:] == ":*" && len(p) <= len(permission) && p[:len(p)-1] == permission[:len(p)-1]) {
+		if permissionGrantMatches(p, permission) {
 			return true
 		}
 	}
@@ -123,6 +135,16 @@ func (u *User) HasPermission(permission string) bool {
 }
 
 func (u *User) GetEffectivePermissions() []string {
+	if u.Role == RoleAdmin {
+		dbPerms := []string(u.Permissions)
+		if len(dbPerms) == 0 {
+			return []string{PermAdminBypass}
+		}
+		out := make([]string, len(dbPerms))
+		copy(out, dbPerms)
+		return out
+	}
+
 	perms := []string(u.Permissions)
 
 	// Add default permissions based on role if not already present

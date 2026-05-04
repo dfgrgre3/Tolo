@@ -127,10 +127,10 @@ function sanitizeObject(obj: unknown, depth: number = 0): unknown {
  */
 export function sanitizeErrorMessage(message: string): string {
   if (typeof message !== 'string') {
-    return message;
+    return String(message);
   }
   
-  return sanitizeValue(message);
+  return String(sanitizeValue(message));
 }
 
 /**

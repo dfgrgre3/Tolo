@@ -17,6 +17,7 @@ import {
   Crown } from
 "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { isStaffAdminPanelRole } from "@/lib/auth/admin-panel-roles";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -110,12 +111,18 @@ export function UserMenu() {
           <div className="flex flex-col space-y-1 py-2">
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold leading-none">{user.name || user.username}</p>
-              {user.role === "ADMIN" &&
+              {user.role === "ADMIN" && (
               <Badge variant="destructive" className="text-xs px-1.5 py-0">
                   <Crown className="h-2.5 w-2.5 ml-1" />
                   مسؤول
                 </Badge>
-              }
+              )}
+              {user.role === "MODERATOR" && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  <Shield className="h-2.5 w-2.5 ml-1" />
+                  مراقب
+                </Badge>
+              )}
               {user.role === "PREMIUM" &&
               <Badge variant="default" className="text-xs px-1.5 py-0 bg-gradient-to-r from-amber-500 to-amber-600">
                   مميز
@@ -136,7 +143,7 @@ export function UserMenu() {
         <DropdownMenuGroup>
 
 
-          {user.role === "ADMIN" &&
+          {isStaffAdminPanelRole(user.role) && (
           <Link href="/admin">
               <DropdownMenuItem className="cursor-pointer gap-2.5 py-2.5 font-bold text-red-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-manipulation">
                 <Shield className="h-4 w-4 animate-pulse text-red-500" />
@@ -144,7 +151,7 @@ export function UserMenu() {
                 <ChevronRight className="h-3.5 w-3.5 ml-auto" />
               </DropdownMenuItem>
             </Link>
-          }
+          )}
 
           <Link href="/settings">
             <DropdownMenuItem className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">

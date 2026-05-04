@@ -72,11 +72,45 @@ interface DraggableDashboardProps {
 }
 
 const EMPTY_ARRAY: any[] = [];
+const STORAGE_KEY = "admin-dashboard-layout";
 
 export function DraggableDashboard({ children: initialChildren, onOrderChange, ...props }: DraggableDashboardProps & { sections?: any }) {
   const children = initialChildren || (props as any).sections || EMPTY_ARRAY;
-  const [items, setItems] = React.useState<string[]>(() => children.map((c: any) => String(c.id)));
   const { playSound } = usePremiumSounds();
+
+  // Load saved layout from localStorage on mount
+  const [items, setItems] = React.useState<string[]>(() => {
+    const defaultOrder = children.map((c: any) => String(c.id));
+
+    if (typeof window === "undefined") return defaultOrder;
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const savedOrder = JSON.parse(saved) as string[];
+        // Validate saved order matches current children
+        const currentIds = new Set(defaultOrder);
+        const validSavedOrder = savedOrder.filter((id) => currentIds.has(id));
+        // Add any new children not in saved order
+        const newIds = defaultOrder.filter((id) => !savedOrder.includes(id));
+        return [...validSavedOrder, ...newIds];
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+    return defaultOrder;
+  });
+
+  // Save layout to localStorage whenever it changes
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [items]);
 
   React.useEffect(() => {
     const newIds = children.map((c: any) => c.id);
@@ -108,10 +142,10 @@ export function DraggableDashboard({ children: initialChildren, onOrderChange, .
 
     if (active.id !== over?.id) {
       playSound('transition');
-      setItems((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over?.id as string);
-        const newLayout = arrayMove(items, oldIndex, newIndex);
+      setItems((currentItems) => {
+        const oldIndex = currentItems.indexOf(active.id as string);
+        const newIndex = currentItems.indexOf(over?.id as string);
+        const newLayout = arrayMove(currentItems, oldIndex, newIndex);
         onOrderChange?.(newLayout);
         return newLayout;
       });
@@ -120,24 +154,44 @@ export function DraggableDashboard({ children: initialChildren, onOrderChange, .
     }
   };
 
+  // Reset layout to default order
+  const resetLayout = React.useCallback(() => {
+    const defaultOrder = children.map((c: any) => String(c.id));
+    setItems(defaultOrder);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [children]);
+
   const orderedContents = items.map(id => children.find(c => c.id === id)).filter(Boolean);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <div className="space-y-12">
-          {orderedContents.map((item) => (
-            <SortableItem key={item!.id} id={item!.id}>
-              {item!.content}
-            </SortableItem>
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={resetLayout}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          title="إعادة ترتيب الأقسام للوضع الافتراضي"
+        >
+          إعادة الترتيب الافتراضي
+        </button>
+      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={items} strategy={verticalListSortingStrategy}>
+          <div className="space-y-12">
+            {orderedContents.map((item) => (
+              <SortableItem key={item!.id} id={item!.id}>
+                {item!.content}
+              </SortableItem>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </>
   );
 }

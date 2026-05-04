@@ -288,10 +288,8 @@ func ReadinessCheck(c *gin.Context) {
 	})
 }
 
-// getRedisClient is a placeholder - replace with your actual Redis client getter
+// getRedisClient returns the singleton Redis client from the db package
 func getRedisClient() *redis.Client {
-	// This should return your singleton Redis client
-	// For now, return nil if not configured
-	return nil
+	return db.Redis
 }
 

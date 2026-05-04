@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -58,7 +59,7 @@ func (ps *PaymentService) ProcessPaymentCompletion(paymentID string, externalTxn
 		}
 
 		return nil
-	}, &gorm.TxOptions{Isolation: gorm.LevelSerializable}) // Use highest isolation level
+	}, &sql.TxOptions{Isolation: sql.LevelSerializable}) // Use highest isolation level
 }
 
 // processPaymentByType routes payment processing based on payment method
@@ -198,7 +199,7 @@ func (ps *PaymentService) processSubscription(tx *gorm.DB, payment models.Paymen
 }
 
 // calculateSubscriptionDuration determines subscription duration based on interval
-func (ps *PaymentService) calculateSubscriptionDuration(interval string) time.Duration {
+func (ps *PaymentService) calculateSubscriptionDuration(interval models.SubscriptionInterval) time.Duration {
 	switch interval {
 	case models.IntervalMonthly:
 		return 30 * 24 * time.Hour
@@ -216,7 +217,7 @@ func (ps *PaymentService) logPaymentAudit(tx *gorm.DB, payment models.Payment, a
 	audit := models.AuditLog{
 		UserID:    payment.UserID,
 		EventType: "PAYMENT_" + action,
-		Details: fmt.Sprintf("Payment ID: %s, Amount: %.2f, Method: %s",
+		Metadata: fmt.Sprintf("Payment ID: %s, Amount: %.2f, Method: %s",
 			payment.ID, payment.Amount, payment.Method),
 	}
 
@@ -266,7 +267,7 @@ func (ps *PaymentService) RefundPayment(paymentID string, reason string) error {
 			// Log refund transaction
 			walletTx := models.WalletTransaction{
 				UserID:      payment.UserID,
-				Type:        models.TxTypeWithdrawal,
+				Type:        models.TxTypeWithdraw,
 				Amount:      payment.Amount,
 				Currency:    "EGP",
 				WalletType:  "BALANCE",
@@ -284,5 +285,5 @@ func (ps *PaymentService) RefundPayment(paymentID string, reason string) error {
 		}
 
 		return nil
-	}, &gorm.TxOptions{Isolation: gorm.LevelSerializable})
+	}, &sql.TxOptions{Isolation: sql.LevelSerializable})
 }

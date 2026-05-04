@@ -155,8 +155,9 @@ func Auth() gin.HandlerFunc {
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("role")
-		if role != "ADMIN" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+		rs, _ := role.(string)
+		if rs != "ADMIN" && rs != "MODERATOR" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin panel access required"})
 			return
 		}
 		c.Next()
@@ -185,13 +186,7 @@ func PermissionRequired(permission string) gin.HandlerFunc {
 			return
 		}
 
-		// Admin has full access
-		if role == "ADMIN" {
-			c.Next()
-			return
-		}
-
-		// Check specific permission
+		// Check specific permission (ADMIN uses same granular checks as other roles)
 		perms, exists := c.Get("permissions")
 		if !exists || perms == nil {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "No permissions assigned"})

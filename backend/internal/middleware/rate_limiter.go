@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -27,7 +28,7 @@ func (rl *RateLimiter) RateLimitByIP(limit int, window time.Duration) gin.Handle
 		ip := c.ClientIP()
 		key := fmt.Sprintf("rate_limit:ip:%s", ip)
 
-		count, err := rl.incrementCounter(key, window)
+		count, err := rl.incrementCounter(c.Request.Context(), key, window)
 		if err != nil {
 			// If Redis fails, FAIL CLOSED for security (deny request)
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
@@ -68,7 +69,7 @@ func (rl *RateLimiter) RateLimitByUser(limit int, window time.Duration) gin.Hand
 		}
 
 		key := fmt.Sprintf("rate_limit:user:%s", userID)
-		count, err := rl.incrementCounter(key, window)
+		count, err := rl.incrementCounter(c.Request.Context(), key, window)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
 				"error": "rate limiter unavailable, please try again later",
@@ -108,7 +109,7 @@ func (rl *RateLimiter) RateLimitByEndpoint(endpoint string, limit int, window ti
 
 		key := fmt.Sprintf("rate_limit:endpoint:%s", endpoint)
 
-		count, err := rl.incrementCounter(key, window)
+		count, err := rl.incrementCounter(c.Request.Context(), key, window)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
 				"error": "rate limiter unavailable, please try again later",
@@ -136,13 +137,11 @@ func (rl *RateLimiter) RateLimitByEndpoint(endpoint string, limit int, window ti
 
 // incrementCounter increments a counter in Redis and returns the new count
 // Uses INCR + EXPIRE for atomicity
-func (rl *RateLimiter) incrementCounter(key string, window time.Duration) (int, error) {
+func (rl *RateLimiter) incrementCounter(ctx context.Context, key string, window time.Duration) (int, error) {
 	// Fail closed if Redis client is nil
 	if rl.client == nil {
 		return 0, fmt.Errorf("redis client is nil")
 	}
-	
-	ctx := rl.client.Context()
 
 	// INCR is atomic
 	val, err := rl.client.Incr(ctx, key).Result()
@@ -170,7 +169,7 @@ func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time
 			return
 		}
 
-		ctx := rl.client.Context()
+		ctx := c.Request.Context()
 		now := time.Now().UnixMilli()
 		windowStart := now - window.Milliseconds()
 
@@ -204,81 +203,6 @@ func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time
 	}
 }
 
-// CircuitBreaker pattern for external APIs
-type CircuitBreaker struct {
-	client    *redis.Client
-	threshold int       // failure threshold
-	timeout   time.Duration
-}
-
-// NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(redisClient *redis.Client, threshold int, timeout time.Duration) *CircuitBreaker {
-	return &CircuitBreaker{
-		client:    redisClient,
-		threshold: threshold,
-		timeout:   timeout,
-	}
-}
-
-// CheckCircuitBreaker returns true if the circuit is open (failing)
-func (cb *CircuitBreaker) CheckCircuitBreaker(serviceName string) (isOpen bool, err error) {
-	ctx := cb.client.Context()
-	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
-
-	count, err := cb.client.Get(ctx, key).Int()
-	if err == redis.Nil {
-		return false, nil // Circuit is closed (normal)
-	}
-	if err != nil {
-		return false, err
-	}
-
-	return count >= cb.threshold, nil
-}
-
-// RecordSuccess resets the circuit breaker
-func (cb *CircuitBreaker) RecordSuccess(serviceName string) error {
-	ctx := cb.client.Context()
-	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
-	return cb.client.Del(ctx, key).Err()
-}
-
-// RecordFailure increments failure counter
-func (cb *CircuitBreaker) RecordFailure(serviceName string) error {
-	ctx := cb.client.Context()
-	key := fmt.Sprintf("circuit_breaker:%s", serviceName)
-
-	err := cb.client.Incr(ctx, key).Err()
-	if err != nil {
-		return err
-	}
-
-	// Set expiration
-	cb.client.Expire(ctx, key, cb.timeout)
-	return nil
-}
-
-// CircuitBreakerMiddleware wraps a service call with circuit breaker protection
-func (cb *CircuitBreaker) CircuitBreakerMiddleware(serviceName string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		isOpen, err := cb.CheckCircuitBreaker(serviceName)
-		if err != nil {
-			c.Next()
-			return
-		}
-
-		if isOpen {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"error":   "service temporarily unavailable",
-				"service": serviceName,
-			})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
 
 func max(a, b int) int {
 	if a > b {

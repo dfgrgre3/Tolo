@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { hasPermission, Permission } from "@/lib/permissions";
+import { hasPermission, Permission, resolvePermissionInput } from "@/lib/permissions";
 import { UserRole } from "@/types/enums";
 
 interface PermissionGuardProps {
-  permission?: Permission;
+  permission?: Permission | string;
   role?: UserRole | UserRole[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
@@ -31,7 +31,10 @@ export function PermissionGuard({
   }
 
   if (hasAccess && permission) {
-    hasAccess = hasPermission(user as Parameters<typeof hasPermission>[0], permission);
+    const resolved = resolvePermissionInput(permission);
+    hasAccess = resolved
+      ? hasPermission(user as Parameters<typeof hasPermission>[0], resolved)
+      : false;
   }
 
   if (!hasAccess) {
@@ -43,9 +46,10 @@ export function PermissionGuard({
 
 export function usePermission() {
   const { user } = useAuth();
-  
+
   return {
-    hasPermission: (permission: Permission) => (user ? hasPermission(user as Parameters<typeof hasPermission>[0], permission) : false),
+    hasPermission: (permission: Permission | string) =>
+      user ? hasPermission(user as Parameters<typeof hasPermission>[0], permission) : false,
     role: user?.role,
     user,
   };

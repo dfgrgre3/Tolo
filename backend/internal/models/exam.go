@@ -19,7 +19,10 @@ type Exam struct {
 	SubjectID string    `gorm:"not null;index;type:uuid;column:subject_id" json:"subjectId"`
 	Title     string    `gorm:"not null;column:title" json:"title"`
 	Type      ExamType  `gorm:"default:'QUIZ';index;column:type" json:"type"`
-	Duration  int       `gorm:"column:duration" json:"duration"`
+	Description string   `gorm:"type:text;column:description" json:"description"`
+	Difficulty  string   `gorm:"size:20;default:'medium';column:difficulty" json:"difficulty"`
+	IsActive    bool     `gorm:"default:true;column:is_active" json:"isActive"`
+	Duration    int       `gorm:"column:duration" json:"duration"`
 	MaxScore  float64   `gorm:"default:100;column:max_score" json:"maxScore"`
 	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
@@ -28,6 +31,9 @@ type Exam struct {
 	// Relations
 	Subject   Subject    `gorm:"foreignKey:SubjectID;constraint:OnDelete:CASCADE" json:"subject,omitempty"`
 	Questions []Question `gorm:"foreignKey:ExamID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
+
+	// Virtual fields
+	QuestionCount int64 `gorm:"-" json:"questionCount"`
 }
 
 type Question struct {

@@ -72,8 +72,8 @@ jobs:
       - name: Run type check
         run: npx tsc --noEmit
 
-      - name: Run tests
-        run: npm test -- --passWithNoTests
+      - name: Run unit tests (Vitest)
+        run: npm run test
 
       - name: Build
         run: npm run build
@@ -82,7 +82,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_dummy' }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_dummy' }}
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/thanawy_test?sslmode=disable' }}
-          NEXT_PUBLIC_API_URL: http://localhost:8080
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8082/api
 
   security:
     name: Security Scan

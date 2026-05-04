@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { AdminBadge } from "../ui/admin-badge";
 import { 
@@ -12,7 +12,8 @@ import {
   X, 
   Wifi, 
   WifiOff, 
-  MoreHorizontal 
+  MoreHorizontal,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,10 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
-interface RealtimeNotification {
+export interface RealtimeNotification {
   id: string;
-  type: "user" | "activity" | "system" | "achievement" | "alert";
+  type: "user" | "activity" | "system" | "achievement" | "alert" | "payment";
   title: string;
   description?: string;
   timestamp: Date;
@@ -43,7 +45,7 @@ interface RealtimeNotificationsProps {
   maxVisible?: number;
 }
 
-const typeConfig = {
+const typeConfig: Record<RealtimeNotification["type"], { icon: typeof Bell; color: string; bg: string; label: string }> = {
   user: {
     icon: Bell,
     color: "text-blue-500",
@@ -74,20 +76,13 @@ const typeConfig = {
     bg: "bg-red-500/10",
     label: "تنبيه",
   },
+  payment: {
+    icon: Bell,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    label: "دفع",
+  },
 };
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - new Date(date).getTime();
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (seconds < 60) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  return new Date(date).toLocaleDateString("ar-EG");
-}
 
 // Memoized notification item for better performance
 const NotificationItem = React.memo(function NotificationItem({
@@ -192,19 +187,26 @@ export function RealtimeNotifications({
   maxVisible = 10,
 }: RealtimeNotificationsProps) {
   const [localNotifications, setLocalNotifications] = React.useState(notifications);
+  const [typeFilter, setTypeFilter] = React.useState<RealtimeNotification["type"] | "all">("all");
 
   // Update local state when props change
   React.useEffect(() => {
     setLocalNotifications(notifications);
   }, [notifications]);
 
+  // Filter notifications by type
+  const filteredNotifications = React.useMemo(() => {
+    if (typeFilter === "all") return localNotifications;
+    return localNotifications.filter(n => n.type === typeFilter);
+  }, [localNotifications, typeFilter]);
+
   const unreadCount = React.useMemo(
     () => localNotifications.filter((n) => !n.read).length,
     [localNotifications]
   );
   const visibleNotifications = React.useMemo(
-    () => localNotifications.slice(0, maxVisible),
-    [localNotifications, maxVisible]
+    () => filteredNotifications.slice(0, maxVisible),
+    [filteredNotifications, maxVisible]
   );
 
   const handleMarkAsRead = (id: string) => {
@@ -222,6 +224,107 @@ export function RealtimeNotifications({
   const handleDismiss = (id: string) => {
     setLocalNotifications((prev) => prev.filter((n) => n.id !== id));
     onDismiss?.(id);
+  };
+
+  // Export ALL notifications to JSON
+  const handleExportAll = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      count: localNotifications.length,
+      filter: "all",
+      notifications: localNotifications.map(n => ({
+        ...n,
+        timestamp: n.timestamp instanceof Date ? n.timestamp.toISOString() : n.timestamp,
+      })),
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notifications-all-${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success("تم تصدير جميع الإشعارات بنجاح");
+  };
+
+  // Export FILTERED notifications to JSON
+  const handleExportFiltered = () => {
+    const suffix = typeFilter !== "all" ? `-${typeFilter}` : "";
+    
+    const data = {
+      exportedAt: new Date().toISOString(),
+      count: filteredNotifications.length,
+      filter: typeFilter,
+      notifications: filteredNotifications.map(n => ({
+        ...n,
+        timestamp: n.timestamp instanceof Date ? n.timestamp.toISOString() : n.timestamp,
+      })),
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notifications${suffix}-${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success(typeFilter !== "all" ? `تم تصدير إشعارات ${typeFilter} بنجاح` : "تم تصدير الإشعارات المعروضة بنجاح");
+  };
+
+  // Export to CSV helpers
+  const generateCSV = (notificationsToExport: RealtimeNotification[], fileSuffix: string) => {
+    const headers = ["ID", "Type", "Title", "Description", "Timestamp", "Read"];
+    const rows = notificationsToExport.map(n => [
+      n.id,
+      n.type,
+      n.title,
+      n.description || "",
+      n.timestamp instanceof Date ? n.timestamp.toISOString() : String(n.timestamp),
+      n.read ? "Yes" : "No",
+    ]);
+    
+    const escapeCsv = (field: unknown) => {
+      const str = String(field);
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    
+    const csv = [
+      headers.join(","), 
+      ...rows.map(r => r.map(escapeCsv).join(","))
+    ].join("\n");
+    
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notifications${fileSuffix}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export ALL to CSV
+  const handleExportCSVAll = () => {
+    generateCSV(localNotifications, "-all");
+    toast.success("تم تصدير جميع الإشعارات بصيغة CSV");
+  };
+
+  // Export FILTERED to CSV
+  const handleExportCSVFiltered = () => {
+    const suffix = typeFilter !== "all" ? `-${typeFilter}` : "";
+    generateCSV(filteredNotifications, suffix);
+    toast.success(typeFilter !== "all" ? `تم تصدير إشعارات ${typeFilter} بصيغة CSV` : "تم تصدير الإشعارات المعروضة بصيغة CSV");
   };
 
   return (
@@ -262,6 +365,57 @@ export function RealtimeNotifications({
               </>
             )}
           </div>
+
+          {/* Type Filter */}
+          {localNotifications.length > 0 && (
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as RealtimeNotification["type"] | "all")}
+              className="h-8 px-2 text-xs rounded-md border border-white/10 bg-black/20 text-white"
+            >
+              <option value="all">الكل ({localNotifications.length})</option>
+              <option value="user">مستخدمين</option>
+              <option value="activity">أنشطة</option>
+              <option value="system">نظام</option>
+              <option value="achievement">إنجازات</option>
+              <option value="alert">تنبيهات</option>
+              <option value="payment">مدفوعات</option>
+            </select>
+          )}
+
+          {/* Export dropdown */}
+          {localNotifications.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8">
+                  <Download className="h-4 w-4 ml-1" />
+                  تصدير
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportAll}>
+                  <Download className="h-4 w-4 ml-2" />
+                  تصدير الكل JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSVAll}>
+                  <Download className="h-4 w-4 ml-2" />
+                  تصدير الكل CSV
+                </DropdownMenuItem>
+                {typeFilter !== "all" && filteredNotifications.length > 0 && (
+                  <>
+                    <DropdownMenuItem onClick={handleExportFiltered}>
+                      <Download className="h-4 w-4 ml-2 text-primary" />
+                      تصدير {typeFilter} JSON ({filteredNotifications.length})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportCSVFiltered}>
+                      <Download className="h-4 w-4 ml-2 text-primary" />
+                      تصدير {typeFilter} CSV ({filteredNotifications.length})
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Mark all as read */}
           {unreadCount > 0 && (

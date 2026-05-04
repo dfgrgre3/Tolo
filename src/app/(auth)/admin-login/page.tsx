@@ -9,6 +9,7 @@ import { ShieldAlert, Lock, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, Shiel
 import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
+import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
 import {
   sanitizeRedirectPath,
 } from '@/services/auth/navigation';
@@ -51,15 +52,15 @@ export default function AdminLoginPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated && user?.role === 'ADMIN') {
+    if (!isAuthLoading && isAuthenticated && isStaffAdminPanelRole(user?.role)) {
       redirectAfterLogin(redirectUrl);
-    } else if (!isAuthLoading && isAuthenticated && user?.role !== 'ADMIN') {
+    } else if (!isAuthLoading && isAuthenticated && !isStaffAdminPanelRole(user?.role)) {
         setErrorStatus('ليس لديك صلاحيات الوصول للوحة التحكم');
     }
   }, [isAuthLoading, isAuthenticated, user, redirectAfterLogin, redirectUrl]);
 
   const onSubmit = async (data: LoginFormValues) => {
-    if (isAuthLoading || (isAuthenticated && user?.role === 'ADMIN')) return;
+    if (isAuthLoading || (isAuthenticated && isStaffAdminPanelRole(user?.role))) return;
     setIsSubmitting(true);
     setErrorStatus(null);
 

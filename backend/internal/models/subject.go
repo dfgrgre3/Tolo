@@ -1,10 +1,6 @@
 package models
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -189,75 +185,4 @@ func (cr *CourseReview) BeforeCreate(tx *gorm.DB) (err error) {
 		cr.ID = uuid.New().String()
 	}
 	return
-}
-
-type StringArray []string
-
-func (a *StringArray) Scan(value interface{}) error {
-	if value == nil {
-		*a = nil
-		return nil
-	}
-
-	switch v := value.(type) {
-	case string:
-		if v == "" {
-			*a = []string{}
-			return nil
-		}
-		// Handle Postgres array format: {val1,val2}
-		if strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}") {
-			v = strings.Trim(v, "{}")
-			if v == "" {
-				*a = []string{}
-				return nil
-			}
-			// This is a simple split, doesn't handle quoted strings with commas
-			// but should be enough for most cases
-			*a = strings.Split(v, ",")
-			return nil
-		}
-		// Handle JSON array format: ["val1","val2"]
-		if strings.HasPrefix(v, "[") && strings.HasSuffix(v, "]") {
-			return json.Unmarshal([]byte(v), a)
-		}
-		// Fallback: single string
-		*a = []string{v}
-		return nil
-	case []byte:
-		return a.Scan(string(v))
-	case []interface{}:
-		res := make([]string, len(v))
-		for i, val := range v {
-			res[i] = fmt.Sprint(val)
-		}
-		*a = res
-		return nil
-	default:
-		// If it's already a slice or something GORM can handle
-		rv := fmt.Sprint(v)
-		return a.Scan(rv)
-	}
-}
-
-func (a StringArray) Value() (driver.Value, error) {
-	if a == nil || len(a) == 0 {
-		return "{}", nil
-	}
-	
-	// Format as PostgreSQL array: {"val1","val2"}
-	var sb strings.Builder
-	sb.WriteString("{")
-	for i, v := range a {
-		if i > 0 {
-			sb.WriteString(",")
-		}
-		v = strings.ReplaceAll(v, `\`, `\\`)
-		v = strings.ReplaceAll(v, `"`, `\"`)
-		sb.WriteString(`"`)
-		sb.WriteString(v)
-		sb.WriteString(`"`)
-	}
-	sb.WriteString("}")
-	return sb.String(), nil
 }

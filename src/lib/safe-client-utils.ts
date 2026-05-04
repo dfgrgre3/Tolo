@@ -438,7 +438,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api');
+  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
   if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
   if (url.includes('/auth/')) return false;
   return true;
@@ -447,7 +447,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 async function refreshAuthSession(): Promise<boolean> {
   try {
     const isBrowserEnv = typeof window !== 'undefined';
-    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api');
+    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
@@ -566,7 +566,7 @@ fallback: T | null = null)
 : Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
     const isBrowser = typeof window !== 'undefined';
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api';
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
     const finalUrl = url.startsWith('/api/') 
       ? (isBrowser ? url : `${BASE_API_URL}${url.substring(4)}`) 
       : url;

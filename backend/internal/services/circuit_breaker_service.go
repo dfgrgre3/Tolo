@@ -1,16 +1,15 @@
 package services
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
-	"thanawy-backend/internal/middleware"
+	"thanawy-backend/pkg/circuitbreaker"
 )
 
 // CircuitBreakerService wraps external service calls with circuit breakers
 type CircuitBreakerService struct {
-	breakers map[string]*middleware.CircuitBreaker
+	breakers map[string]*circuitbreaker.CircuitBreaker
 	mu       sync.RWMutex
 }
 
@@ -21,7 +20,7 @@ var circuitOnce sync.Once
 func GetCircuitBreakerService() *CircuitBreakerService {
 	circuitOnce.Do(func() {
 		circuitServiceInstance = &CircuitBreakerService{
-			breakers: make(map[string]*middleware.CircuitBreaker),
+			breakers: make(map[string]*circuitbreaker.CircuitBreaker),
 		}
 	})
 	return circuitServiceInstance
@@ -29,7 +28,7 @@ func GetCircuitBreakerService() *CircuitBreakerService {
 
 // CallAIService executes an AI service call with circuit breaker protection
 func (s *CircuitBreakerService) CallAIService(fn func() (string, error)) (string, error) {
-	cb := middleware.GetCircuitBreaker("ai-service", 3, 60*time.Second)
+	cb := circuitbreaker.GetCircuitBreaker("ai-service", 3, 60*time.Second)
 
 	var result string
 	err := cb.Execute(func() error {
@@ -43,14 +42,14 @@ func (s *CircuitBreakerService) CallAIService(fn func() (string, error)) (string
 
 // CallPaymentService executes a payment service call with circuit breaker protection
 func (s *CircuitBreakerService) CallPaymentService(fn func() error) error {
-	cb := middleware.GetCircuitBreaker("payment-service", 5, 30*time.Second)
+	cb := circuitbreaker.GetCircuitBreaker("payment-service", 5, 30*time.Second)
 
 	return cb.Execute(fn)
 }
 
 // CallExternalAPI executes an external API call with circuit breaker protection
 func (s *CircuitBreakerService) CallExternalAPI(name string, fn func() error) error {
-	cb := middleware.GetCircuitBreaker(name, 3, 60*time.Second)
+	cb := circuitbreaker.GetCircuitBreaker(name, 3, 60*time.Second)
 	return cb.Execute(fn)
 }
 
@@ -62,15 +61,15 @@ func (s *CircuitBreakerService) GetStatus() map[string]string {
 	names := []string{"ai-service", "payment-service", "paymob-api", "openrouter-api"}
 	
 	for _, name := range names {
-		cb := middleware.GetCircuitBreaker(name, 0, 0)
+		cb := circuitbreaker.GetCircuitBreaker(name, 0, 0)
 		state := cb.State()
 		var stateStr string
 		switch state {
-		case 0: // StateClosed
+		case circuitbreaker.StateClosed:
 			stateStr = "closed"
-		case 1: // StateOpen
+		case circuitbreaker.StateOpen:
 			stateStr = "open"
-		case 2: // StateHalfOpen
+		case circuitbreaker.StateHalfOpen:
 			stateStr = "half-open"
 		}
 		states[name] = stateStr
@@ -81,7 +80,7 @@ func (s *CircuitBreakerService) GetStatus() map[string]string {
 
 // ResetCircuitBreaker resets a specific circuit breaker
 func (s *CircuitBreakerService) ResetCircuitBreaker(name string) {
-	cb := middleware.GetCircuitBreaker(name, 0, 0)
+	cb := circuitbreaker.GetCircuitBreaker(name, 0, 0)
 	cb.Reset()
 }
 

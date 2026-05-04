@@ -12,6 +12,8 @@ const alexandria = Alexandria({
   display: 'swap',
   preload: true,
   weight: ['400', '600', '700'],
+  adjustFontFallback: true,
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
@@ -46,6 +48,7 @@ export default async function RootLayout({
           <link rel="dns-prefetch" href="https://i.ytimg.com" />
           <meta name="theme-color" content="#f97316" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         </head>
         <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
           <SWRegistration />
@@ -54,6 +57,7 @@ export default async function RootLayout({
             defaultTheme="light"
             enableSystem={false}
             disableTransitionOnChange
+            storageKey="tolo-theme"
           >
             <GlobalProviders initialAuthHint={hasAuthToken}>
               <Suspense fallback={<div className="h-16 w-full animate-pulse bg-background" />}>

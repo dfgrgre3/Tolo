@@ -25,6 +25,10 @@ type Notification struct {
 	Priority  string           `gorm:"default:'MEDIUM';index;column:priority" json:"priority"`
 	Icon      *string          `gorm:"column:icon" json:"icon"`
 	Link      *string          `gorm:"column:link" json:"link"`
+	ActionURL string           `gorm:"-" json:"actionUrl,omitempty"` // For backward compatibility
+	Status    string           `gorm:"default:'pending';index;column:status" json:"status"`
+	Channels  StringArray      `gorm:"type:jsonb;column:channels" json:"channels"`
+	BroadcastID string         `gorm:"type:uuid;index;column:broadcast_id" json:"broadcastId,omitempty"`
 	Actions   JSONStringArray  `gorm:"type:jsonb;column:actions" json:"actions"`
 	IsRead    bool             `gorm:"default:false;index;column:is_read" json:"isRead"`
 	CreatedAt time.Time        `gorm:"index:idx_notifications_user_created,priority:2;column:created_at" json:"createdAt"`

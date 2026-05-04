@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, formatRelativeTime } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { AdminButton, IconButton } from "../ui/admin-button";
 import { AdminBadge, CountBadge } from "../ui/admin-badge";
@@ -57,20 +57,6 @@ const activityConfig: Record<ActivityItem["type"], { icon: React.ElementType; co
   post: { icon: FileText, color: "text-cyan-500", bg: "bg-cyan-500/10", label: "منشور" },
   comment: { icon: MessageSquare, color: "text-pink-500", bg: "bg-pink-500/10", label: "تعليق" },
 };
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  if (days < 7) return `منذ ${days} يوم`;
-  return new Date(date).toLocaleDateString("ar-EG");
-}
 
 export function ActivityFeed({
   activities,

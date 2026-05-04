@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
+import { AdminDataTable } from "@/components/admin/ui/admin-table";
+import { SearchInput } from "@/components/admin/ui/admin-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -45,8 +46,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
@@ -323,16 +323,12 @@ export default function AdminForumPage() {
         </Button>
       </PageHeader>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={6} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={posts}
-          searchKey="title"
-          searchPlaceholder="البحث عن موضوع..."
-        />
-      )}
+      <AdminDataTable
+        columns={columns}
+        data={posts}
+        loading={loading}
+        toolbar={<SearchInput placeholder="البحث عن موضوع..." />}
+      />
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -439,7 +435,7 @@ export default function AdminForumPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
+      <AdminConfirm
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
         title="حذف الموضوع"

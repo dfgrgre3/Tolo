@@ -18,7 +18,11 @@ import { DraggableDashboard } from "@/components/admin/dashboard/draggable-dashb
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
 import { useAuth } from "@/contexts/auth-context";
 import { BroadcastModal } from "@/components/admin/broadcast/broadcast-modal";
+import type { UserSegment } from "@/components/admin/broadcast/broadcast-modal";
 import { adminFetch } from "@/lib/api/admin-api";
+import { useAdminNotifications } from "@/hooks/use-admin-notifications";
+import { useBroadcastUsers } from "@/hooks/use-broadcast-users";
+import type { UserModel } from "@/components/admin/broadcast/types";
 
 const UserGrowthChart = dynamic(() => import("@/components/admin/dashboard/user-growth-chart").then(mod => mod.UserGrowthChart), {
   ssr: false,
@@ -73,6 +77,7 @@ import {
 } from "lucide-react";
 import { AiCommandCenter } from "@/components/admin/dashboard/ai-command-center";
 import { useWebSocket } from "@/contexts/websocket-context";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DashboardData {
   stats: {
@@ -138,8 +143,35 @@ export default function AdminDashboardPage() {
   const { playSound } = usePremiumSounds();
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = React.useState("today");
-  const { } = useWebSocket();
+  const { isConnected: wsConnected } = useWebSocket();
   const [isBroadcastOpen, setIsBroadcastOpen] = React.useState(false);
+
+  // Real-time notifications
+  const {
+    notifications,
+    unreadCount,
+    isLoading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
+    dismiss,
+  } = useAdminNotifications();
+
+  // Broadcast users
+  const {
+    filteredUsers: broadcastUsers,
+    segments,
+    selectedSegment,
+    isLoading: usersLoading,
+    selectSegment,
+    setSearch,
+  } = useBroadcastUsers() as {
+    filteredUsers: UserModel[];
+    segments: UserSegment[];
+    selectedSegment: string | null;
+    isLoading: boolean;
+    selectSegment: (id: string | null) => void;
+    setSearch: (q: string) => void;
+  };
 
   const { data, isLoading, refetch, isFetching } = useQuery<DashboardData>({
     queryKey: ["admin-dashboard", timeFilter],
@@ -149,12 +181,30 @@ export default function AdminDashboardPage() {
       const json = await response.json();
       return json.data || json;
     },
+    staleTime: 2 * 60 * 1000, // 2 minutes - data considered fresh
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  const queryClient = useQueryClient();
 
   const handleRefresh = React.useCallback(() => {
     playSound("click");
     refetch();
   }, [playSound, refetch]);
+
+  // Prefetch common dashboard sections on hover
+  const prefetchSection = React.useCallback((section: string) => {
+    if (section === "users") {
+      queryClient.prefetchQuery({
+        queryKey: ["admin", "users", 1, 10, "", "all"],
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [queryClient]);
 
   if (isLoading) return <DashboardSkeleton />;
   if (!data) return <div>No data found</div>;
@@ -351,16 +401,27 @@ export default function AdminDashboardPage() {
             >
               تحديث البيانات
             </AdminButton>
-            <RealtimeNotifications notifications={[]} />
+            <RealtimeNotifications 
+              notifications={notifications}
+              isConnected={wsConnected}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+              onDismiss={dismiss}
+            />
         </div>
       </header>
 
-      <DraggableDashboard children={sections} onOrderChange={() => {}} />
+      <DraggableDashboard onOrderChange={() => {}}>{sections}</DraggableDashboard>
 
       <BroadcastModal 
         open={isBroadcastOpen} 
         onOpenChange={setIsBroadcastOpen}
-        users={[]} 
+        users={broadcastUsers}
+        segments={segments}
+        selectedSegment={selectedSegment}
+        onSelectSegment={selectSegment}
+        onSearch={setSearch}
+        isLoading={usersLoading}
       />
     </div>
   );

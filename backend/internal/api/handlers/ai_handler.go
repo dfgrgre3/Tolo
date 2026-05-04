@@ -16,6 +16,7 @@ import (
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
+	"thanawy-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -242,4 +243,106 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 		ConversationID: conversation.ID,
 		MessageID:      assistantMessage.ID,
 	})
+}
+
+// Helper methods for AIHandler
+
+func (h *AIHandler) getOrCreateConversation(userID, convID, subjectID, topicID string) (*models.AIConversation, error) {
+	if convID != "" {
+		conv, err := h.conversationRepo.FindByID(convID)
+		if err == nil && conv.UserID == userID {
+			return conv, nil
+		}
+	}
+
+	// Create new conversation
+	conv := &models.AIConversation{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Title:     "New Chat",
+		CreatedAt: time.Now(),
+	}
+	if err := h.conversationRepo.Create(conv); err != nil {
+		return nil, err
+	}
+	return conv, nil
+}
+
+func (h *AIHandler) buildAIMessages(c *gin.Context, userID string, history []models.AIMessage) []map[string]interface{} {
+	messages := []map[string]interface{}{
+		{"role": "system", "content": "You are a helpful educational assistant for the Thanawy platform."},
+	}
+
+	for _, m := range history {
+		messages = append(messages, map[string]interface{}{
+			"role":    m.Role,
+			"content": m.Content,
+		})
+	}
+
+	return messages
+}
+
+func (h *AIHandler) buildCacheKey(messages []map[string]interface{}) string {
+	data, _ := json.Marshal(messages)
+	return fmt.Sprintf("ai_cache:%x", data)
+}
+
+func (h *AIHandler) getCachedResponse(key string) string {
+	val, err := db.Redis.Get(context.Background(), key).Result()
+	if err == nil {
+		return val
+	}
+	return ""
+}
+
+func (h *AIHandler) cacheResponse(key, response string) {
+	db.Redis.Set(context.Background(), key, response, CacheTTL)
+}
+
+func (h *AIHandler) callAIWithRetryCustom(messages []map[string]interface{}, model string) (string, string, error) {
+	var lastErr error
+	for i := 0; i < MaxRetries; i++ {
+		reply, err := h.aiService.GenerateContentWithMessages(context.Background(), messages, model)
+		if err == nil {
+			return reply, model, nil
+		}
+		lastErr = err
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+	}
+	return "", "", lastErr
+}
+
+func (h *AIHandler) handleStreamingChat(c *gin.Context, messages []map[string]interface{}, convID, cacheKey, model string) {
+	// Simple non-streaming fallback for now
+	reply, usedModel, err := h.callAIWithRetryCustom(messages, model)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	assistantMessage := &models.AIMessage{
+		ConversationID: convID,
+		Role:           "assistant",
+		Content:        reply,
+		Model:          stringPtr(usedModel),
+	}
+	h.conversationRepo.AddMessage(assistantMessage)
+	
+	c.JSON(http.StatusOK, ChatResponse{
+		Reply:          reply,
+		ConversationID: convID,
+		MessageID:      assistantMessage.ID,
+	})
+}
+
+func isValidBase64Image(s string) bool {
+	if !strings.HasPrefix(s, "data:image/") {
+		return false
+	}
+	return true // Basic check
+}
+
+func stringPtr(s string) *string {
+	return &s
 }

@@ -50,6 +50,7 @@ import {
   Ticket,
   DollarSign,
   ClipboardList,
+  Database,
 } from "lucide-react";
 import { IconButton } from "@/components/admin/ui/admin-button";
 import {
@@ -335,6 +336,20 @@ const infrastructureNavItems: SidebarNavItem[] = [
     icon: Split,
     color: "bg-indigo-600",
     permission: "SETTINGS_MANAGE",
+  },
+  {
+    title: "النسخ الاحتياطي",
+    href: "/admin/backups",
+    icon: Database,
+    color: "bg-emerald-600",
+    permission: "SETTINGS_MANAGE",
+  },
+  {
+    title: "تذاكر الدعم الفني",
+    href: "/admin/tickets",
+    icon: Ticket,
+    color: "bg-orange-600",
+    permission: "USERS_MANAGE",
   },
   {
     title: "سجلات النظام (Engine)",
@@ -694,9 +709,18 @@ export function AdminSidebar() {
           <div className="space-y-3">
             {[
               { keys: ["Ctrl", "K"], action: "البحث السريع" },
-              { keys: ["?"], action: "عرض الاختصارات" },
-              { keys: ["Esc"], action: "إغلاق النوافذ" },
+              { keys: ["Ctrl", "/"], action: "لوحة الأوامر" },
+              { keys: ["Ctrl", "B"], action: "تبديل الشريط الجانبي" },
+              { keys: ["Ctrl", "H"], action: "الذهاب للرئيسية" },
+              { keys: ["Ctrl", "Shift", "F"], action: "البحث المتقدم" },
+              { keys: ["Alt", "1-9"], action: "الانتقال للقسم (1-9)" },
+              { keys: ["↑", "↓"], action: "التنقل بين العناصر" },
+              { keys: ["Enter"], action: "فتح/اختيار العنصر" },
+              { keys: ["Ctrl", "N"], action: "إنشاء جديد" },
               { keys: ["Ctrl", "S"], action: "حفظ (في النماذج)" },
+              { keys: ["Ctrl", "Shift", "L"], action: "تبديل الوضع الليلي" },
+              { keys: ["Ctrl", "Shift", "?"], action: "عرض الاختصارات" },
+              { keys: ["Esc"], action: "إغلاق القوائم/النوافذ" },
             ].map((shortcut, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
                 <span className="text-sm">{shortcut.action}</span>

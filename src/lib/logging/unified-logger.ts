@@ -182,7 +182,7 @@ class UnifiedLogger {
       level,
       message: sanitizedMessage,
       context: {
-        ...(context ? sanitizeLogContext(context) : {}),
+        ...(context ? (sanitizeLogContext(context) as Record<string, unknown>) : {}),
         requestId: context?.requestId || contextStore?.requestId
       }
     };

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, BookOpen, FileText, Trophy, Target, Activity, Zap, RefreshCw, Download, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart, Award, ClipboardList
+  Users, BookOpen, FileText, Trophy, Target, Activity, Zap, RefreshCw, Download, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart, Award, ClipboardList, CreditCard
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnalyticsSkeleton } from "@/components/admin/ui/loading-skeleton";
@@ -28,12 +28,46 @@ const DailyActiveUsersChart = dynamic(() => import('./charts').then(mod => mod.D
 const DailyRegistrationsChart = dynamic(() => import('./charts').then(mod => mod.DailyRegistrationsChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
 const RoleDistributionChart = dynamic(() => import('./charts').then(mod => mod.RoleDistributionChart), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
 
+interface RevenueData {
+  summary: {
+    today: number;
+    thisMonth: number;
+    totalTransactions: number;
+    conversionRate: string;
+  };
+  chartData: { month: number; revenue: number }[];
+  topPlans: { name: string; count: number }[];
+}
+
+interface AnalyticsData {
+  users: {
+    total: number;
+    new: number;
+    active: number;
+    byRole: Record<string, number>;
+  };
+  content: {
+    subjects: number;
+    exams: number;
+    blogPosts: number;
+  };
+  gamification: {
+    totalXP: number;
+    achievementsEarned: number;
+    challengesCompleted: number;
+  };
+  charts: {
+    dailyActiveUsers: { date: string; count: number }[];
+    dailyRegistrations: { date: string; count: number }[];
+  };
+}
+
 export default function AdminAnalyticsPage() {
   const [period, setPeriod] = React.useState("month");
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [widgetOrder, setWidgetOrder] = React.useState(["users", "activity", "finance", "content"]);
 
-  const { data, isLoading: loading, error: _queryError, refetch } = useQuery({
+  const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError, refetch: refetchAnalytics } = useQuery<AnalyticsData>({
     queryKey: ['admin', 'analytics', period],
     queryFn: async () => {
       const response = await adminFetch(`${apiRoutes.admin.analytics}?period=${period}`);
@@ -42,6 +76,25 @@ export default function AdminAnalyticsPage() {
     },
     refetchInterval: 5 * 60 * 1000,
   });
+
+  const { data: revenueData, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery<RevenueData>({
+    queryKey: ['admin', 'revenue', period],
+    queryFn: async () => {
+      const response = await adminFetch(`${apiRoutes.admin.revenue}?period=${period}`);
+      if (!response.ok) throw new Error("Failed to fetch revenue data");
+      return response.json();
+    },
+    enabled: !!analyticsData, // Only fetch after analytics loads
+  });
+
+  const data = analyticsData;
+  const loading = analyticsLoading;
+  const _queryError = analyticsError;
+
+  const refetch = () => {
+    refetchAnalytics();
+    refetchRevenue();
+  };
 
   const saveLayout = () => {
     setIsEditMode(false);
@@ -54,10 +107,45 @@ export default function AdminAnalyticsPage() {
 
   if (loading && !data) return <AnalyticsSkeleton />;
 
-  const roleChartData = Object.entries(data?.users?.byRole ?? {}).map(([role, count]) => ({
-    name: roleLabels[role] || role,
-    value: typeof count === "number" ? count : Number(count ?? 0),
-  }));
+  const roleChartData = React.useMemo(() => {
+    if (!data?.users?.byRole) return [];
+    return Object.entries(data.users.byRole).map(([role, count]) => ({
+      name: roleLabels[role] || role,
+      value: typeof count === "number" ? count : Number(count ?? 0),
+    }));
+  }, [data?.users?.byRole]);
+
+  // Calculate financial metrics from real data
+  const financialMetrics = React.useMemo(() => {
+    if (!revenueData?.summary) return null;
+    
+    const totalRevenue = revenueData.summary.thisMonth;
+    const totalTransactions = revenueData.summary.totalTransactions;
+    const totalUsers = data?.users?.total || 1;
+    
+    // LTV (Lifetime Value) - average revenue per user
+    const ltv = totalUsers > 0 ? Math.round((totalRevenue / totalUsers) * 10) : 0;
+    
+    // CAC (Customer Acquisition Cost) - estimated based on marketing spend (using 20% of revenue as marketing cost)
+    const marketingSpend = totalRevenue * 0.2;
+    const newUsers = data?.users?.new || 1;
+    const cac = newUsers > 0 ? Math.round(marketingSpend / newUsers) : 0;
+    
+    // ROI (Return on Investment)
+    const roi = marketingSpend > 0 ? Math.round(((totalRevenue - marketingSpend) / marketingSpend) * 100) : 0;
+    
+    // Conversion rate from revenue data
+    const conversionRate = parseFloat(revenueData.summary.conversionRate) || 0;
+    
+    return {
+      ltv,
+      cac,
+      roi,
+      conversionRate,
+      totalRevenue,
+      totalTransactions,
+    };
+  }, [revenueData, data]);
 
   return (
     <div className="space-y-6 pb-20">
@@ -210,6 +298,13 @@ export default function AdminAnalyticsPage() {
             TAB 2: REGIONAL ECONOMICS (FINANCE)
             ==================================== */}
         <TabsContent value="finance" className="space-y-6">
+           {revenueLoading ? (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               {Array.from({ length: 3 }).map((_, i) => (
+                 <div key={i} className="h-32 animate-pulse rounded-2xl bg-white/5 border border-white/10" />
+               ))}
+             </div>
+           ) : (
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
              <AdminCard variant="glass" className="border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
@@ -217,8 +312,8 @@ export default function AdminAnalyticsPage() {
                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0"><DollarSign className="w-6 h-6"/></div>
                    <div>
                       <p className="text-sm font-bold text-muted-foreground">القيمة الدائمة للطالب (LTV)</p>
-                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">450 <span className="text-sm font-bold text-muted-foreground">ج.م</span></h3>
-                      <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3"/> +12% عن الشهر الماضي</p>
+                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">{financialMetrics?.ltv.toLocaleString() || 0} <span className="text-sm font-bold text-muted-foreground">ج.م</span></h3>
+                      <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3"/> متوسط الإنفاق للمستخدم</p>
                    </div>
                 </div>
              </AdminCard>
@@ -228,8 +323,8 @@ export default function AdminAnalyticsPage() {
                    <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center shrink-0"><Users className="w-6 h-6"/></div>
                    <div>
                       <p className="text-sm font-bold text-muted-foreground">تكلفة اكتساب العميل (CAC)</p>
-                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">65 <span className="text-sm font-bold text-muted-foreground">ج.م</span></h3>
-                      <p className="text-xs text-red-500 font-bold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3"/> ارتفعت بسبب حملة الفيسبوك</p>
+                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">{financialMetrics?.cac.toLocaleString() || 0} <span className="text-sm font-bold text-muted-foreground">ج.م</span></h3>
+                      <p className="text-xs text-red-500 font-bold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3"/> لكل مستخدم جديد</p>
                    </div>
                 </div>
              </AdminCard>
@@ -239,75 +334,114 @@ export default function AdminAnalyticsPage() {
                    <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center shrink-0"><Percent className="w-6 h-6"/></div>
                    <div>
                       <p className="text-sm font-bold text-muted-foreground">عائد الاستثمار التسويقي (ROI)</p>
-                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">592 <span className="text-sm font-bold text-muted-foreground">%</span></h3>
-                      <p className="text-xs text-blue-500 font-bold mt-2 flex items-center gap-1">استقرار ممتاز للميزانية</p>
+                      <h3 className="text-3xl font-black mt-1 flex items-baseline gap-1">{financialMetrics?.roi || 0} <span className="text-sm font-bold text-muted-foreground">%</span></h3>
+                      <p className="text-xs text-blue-500 font-bold mt-2 flex items-center gap-1">حسبة تقديرية</p>
                    </div>
                 </div>
              </AdminCard>
            </div>
+           )}
 
            <div className="grid lg:grid-cols-2 gap-6">
               <AdminCard variant="glass">
                  <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-black flex items-center gap-2"><PieChart className="w-5 h-5 text-primary" /> تفصيل الأرباح حسب المادة</h3>
                  </div>
+                 {revenueLoading ? (
+                   <div className="space-y-4">
+                     {Array.from({ length: 3 }).map((_, i) => (
+                       <div key={i} className="h-16 animate-pulse rounded-xl bg-white/5" />
+                     ))}
+                   </div>
+                 ) : revenueData?.topPlans && revenueData.topPlans.length > 0 ? (
                  <div className="space-y-5">
-                    {[
-                      { name: "الفيزياء (مراجعة نهائية)", revenue: 45000, margin: 80 },
-                      { name: "الكيمياء العضوية", revenue: 32000, margin: 65 },
-                      { name: "اللغة الإنجليزية", revenue: 28000, margin: 90 },
-                    ].map((item, i) => (
+                    {revenueData.topPlans.map((item, i) => (
                       <div key={i} className="flex flex-col gap-2">
                          <div className="flex justify-between items-center text-sm font-bold">
                             <span>{item.name}</span>
-                            <span className="text-primary">{item.revenue.toLocaleString()} ج.م</span>
+                            <span className="text-primary">{item.count.toLocaleString()} اشتراك</span>
                          </div>
                          <div className="w-full h-3 bg-secondary rounded-full overflow-hidden flex">
-                            <div className="h-full bg-primary rounded-full relative" style={{ width: `${item.margin}%` }}></div>
+                            <div 
+                              className="h-full bg-primary rounded-full relative" 
+                              style={{ width: `${revenueData.topPlans.length > 0 ? (item.count / revenueData.topPlans[0].count) * 100 : 0}%` }}
+                            ></div>
                          </div>
-                         <p className="text-[10px] text-muted-foreground font-black text-left">هامش الربح {item.margin}%</p>
                       </div>
                     ))}
                  </div>
+                 ) : (
+                   <div className="text-center py-12 text-muted-foreground">
+                     <PieChart className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                     <p className="font-bold">لا توجد بيانات مبيعات بعد</p>
+                   </div>
+                 )}
               </AdminCard>
 
               <AdminCard variant="glass">
                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black flex items-center gap-2"><Wallet className="w-5 h-5 text-amber-500" /> مستحقات المعلمين</h3>
-                    <Select defaultValue="month">
-                       <SelectTrigger className="w-32 h-8 text-xs rounded-lg"><SelectValue/></SelectTrigger>
-                       <SelectContent><SelectItem value="month">هذا الشهر</SelectItem></SelectContent>
-                    </Select>
+                    <h3 className="text-xl font-black flex items-center gap-2"><Wallet className="w-5 h-5 text-amber-500" /> ملخص الإيرادات</h3>
                  </div>
-                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-right">
-                       <thead>
-                          <tr className="border-b border-border/50 text-muted-foreground text-xs uppercase">
-                             <th className="pb-3 px-2 font-bold">المعلم</th>
-                             <th className="pb-3 px-2 font-bold">المبيعات</th>
-                             <th className="pb-3 px-2 font-bold">العمولة</th>
-                             <th className="pb-3 px-2 font-bold">الحالة</th>
-                          </tr>
-                       </thead>
-                       <tbody>
-                          {[
-                             { name: "أ. محمود سالم", sales: 120, comission: 18000, status: "pending" },
-                             { name: "أ. سعاد النمر", sales: 85, comission: 12750, status: "paid" },
-                             { name: "أ. إبراهيم فؤاد", sales: 42, comission: 6300, status: "pending" },
-                          ].map((t, i) => (
-                             <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-accent/10 transition-colors">
-                                <td className="py-4 px-2 font-bold">{t.name}</td>
-                                <td className="py-4 px-2">{t.sales} اشتراك</td>
-                                <td className="py-4 px-2 font-black text-primary">{t.comission.toLocaleString()} ج.م</td>
-                                <td className="py-4 px-2">
-                                   <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${t.status === 'paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                      {t.status === 'paid' ? 'تم الدفع' : 'مستحق'}
-                                   </span>
-                                </td>
-                             </tr>
-                          ))}
-                       </tbody>
-                    </table>
+                 <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                            <DollarSign className="w-5 h-5 text-emerald-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">إيرادات اليوم</p>
+                            <p className="text-xs text-muted-foreground">المحصلة اليوم</p>
+                          </div>
+                       </div>
+                       <span className="text-xl font-black text-emerald-500">
+                         {revenueData?.summary?.today?.toLocaleString() || 0} ج.م
+                       </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-primary/10 rounded-xl border border-primary/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                            <TrendingUp className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">إيرادات الشهر</p>
+                            <p className="text-xs text-muted-foreground">إجمالي الشهر الحالي</p>
+                          </div>
+                       </div>
+                       <span className="text-xl font-black text-primary">
+                         {revenueData?.summary?.thisMonth?.toLocaleString() || 0} ج.م
+                       </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                            <Percent className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">معدل التحويل</p>
+                            <p className="text-xs text-muted-foreground">نسبة الزوار للمشتركين</p>
+                          </div>
+                       </div>
+                       <span className="text-xl font-black text-blue-500">
+                         {revenueData?.summary?.conversionRate || "0%"}
+                       </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                            <CreditCard className="w-5 h-5 text-purple-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">إجمالي المعاملات</p>
+                            <p className="text-xs text-muted-foreground">عمليات الدفع الناجحة</p>
+                          </div>
+                       </div>
+                       <span className="text-xl font-black text-purple-500">
+                         {revenueData?.summary?.totalTransactions?.toLocaleString() || 0}
+                       </span>
+                    </div>
                  </div>
               </AdminCard>
            </div>

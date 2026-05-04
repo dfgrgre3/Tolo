@@ -24,9 +24,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { readApiErrorMessage } from "@/lib/api/api-error-utils";
 import { adminFetch } from "@/lib/api/admin-api";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { apiRoutes } from "@/lib/api/routes";
 
 interface BlogPost {
@@ -36,7 +44,7 @@ interface BlogPost {
   content: string;
   excerpt: string | null;
   views: number;
-  isPublished: boolean;
+  status: "DRAFT" | "PUBLISHED";
   createdAt: string;
   author: {
     id: string;
@@ -51,6 +59,8 @@ interface BlogPost {
     comments: number;
   };
 }
+
+const isPublished = (status: string) => status === "PUBLISHED";
 
 interface BlogPostsResponse {
   data: {
@@ -69,7 +79,7 @@ const blogPostSchema = z.object({
   slug: z.string().min(1, "الرابط المختصر (Slug) مطلوب"),
   content: z.string().min(1, "محتوى المقال مطلوب"),
   excerpt: z.string().optional(),
-  isPublished: z.boolean(),
+  status: z.enum(["DRAFT", "PUBLISHED"]),
 });
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
@@ -116,7 +126,7 @@ export default function AdminBlogPage() {
       slug: "",
       content: "",
       excerpt: "",
-      isPublished: false,
+      status: "DRAFT" as const,
     },
   });
 
@@ -128,7 +138,7 @@ export default function AdminBlogPage() {
         slug: post.slug,
         content: post.content,
         excerpt: post.excerpt || "",
-        isPublished: post.isPublished,
+        status: post.status,
       });
     } else {
       setEditingPost(null);
@@ -137,7 +147,7 @@ export default function AdminBlogPage() {
         slug: "",
         content: "",
         excerpt: "",
-        isPublished: false,
+        status: "DRAFT" as const,
       });
     }
     setDialogOpen(true);
@@ -157,8 +167,14 @@ export default function AdminBlogPage() {
         toast.success(editingPost ? "تم تحديث المقال بنجاح" : "تم حفظ المقال في المدونة بنجاح");
         setDialogOpen(false);
         refetch();
+        const paths = ["/blog"];
+        if (values.slug) paths.push(`/blog/${encodeURIComponent(values.slug)}`);
+        void requestPublicCacheRevalidation(paths).catch(() => {
+          /* ISR اختياري — لا نقطع تجربة الأدمن */
+        });
       } else {
-        toast.error("فشل في حفظ المقال");
+        const errBody = await response.json().catch(() => ({}));
+        toast.error(readApiErrorMessage(errBody, "فشل في حفظ المقال"));
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -177,8 +193,10 @@ export default function AdminBlogPage() {
       if (response.ok) {
         toast.success("تم حذف المقال بنجاح");
         refetch();
+        void requestPublicCacheRevalidation(["/blog"]).catch(() => {});
       } else {
-        toast.error("فشل في حذف المقال");
+        const errBody = await response.json().catch(() => ({}));
+        toast.error(readApiErrorMessage(errBody, "فشل في حذف المقال"));
       }
     } catch (_error) {
       toast.error("خطأ في الاتصال");
@@ -231,10 +249,10 @@ export default function AdminBlogPage() {
       },
     },
     {
-      accessorKey: "isPublished",
+      accessorKey: "status",
       header: "حالة النشر",
       cell: ({ row }) => {
-        const published = row.original.isPublished;
+        const published = isPublished(row.original.status);
         return (
           <Badge 
             variant="outline" 
@@ -289,9 +307,9 @@ export default function AdminBlogPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: "إجمالي المقالات", value: posts.length, icon: BookOpen, color: "blue" },
-          { label: "مقالات منشورة", value: posts.filter(p => p.isPublished).length, icon: Globe, color: "emerald" },
+          { label: "مقالات منشورة", value: posts.filter(p => isPublished(p.status)).length, icon: Globe, color: "emerald" },
           { label: "إجمالي المشاهدات", value: posts.reduce((acc, p) => acc + p.views, 0), icon: TrendingUp, color: "purple" },
-          { label: "مسودات", value: posts.filter(p => !p.isPublished).length, icon: Lock, color: "amber" },
+          { label: "مسودات", value: posts.filter(p => !isPublished(p.status)).length, icon: Lock, color: "amber" },
         ].map((stat, i) => (
           <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
             <div className="flex items-center gap-4">
@@ -398,18 +416,23 @@ export default function AdminBlogPage() {
 
                 <FormField
                   control={form.control}
-                  name="isPublished"
+                  name="status"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5">
                       <div>
-                        <FormLabel className="font-black text-xs">نشر للعامة؟</FormLabel>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل ظهور المقال في المدونة الآن</p>
+                        <FormLabel className="font-black text-xs">حالة النشر</FormLabel>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل ظهور المقال في المدونة</p>
                       </div>
                       <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="w-32 rounded-xl border-white/10 bg-white/5 h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-white/10">
+                            <SelectItem value="PUBLISHED" className="cursor-pointer py-2 font-bold text-emerald-500">منشور</SelectItem>
+                            <SelectItem value="DRAFT" className="cursor-pointer py-2 font-bold text-amber-500">مسودة</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}

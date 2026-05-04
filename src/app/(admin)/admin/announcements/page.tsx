@@ -31,6 +31,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
+import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 
 interface Announcement {
@@ -91,7 +92,7 @@ export default function AdminAnnouncementsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`${apiRoutes.admin.announcements}?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.announcements}?${params.toString()}`);
       const json = await response.json();
       return (json.data || json) as AnnouncementsResponse;
     },
@@ -142,7 +143,7 @@ export default function AdminAnnouncementsPage() {
     try {
       const method = editingAnnouncement ? "PATCH" : "POST";
       const body = editingAnnouncement ? { ...values, id: editingAnnouncement.id } : { ...values, authorId: "admin" };
-      const response = await fetch(apiRoutes.admin.announcements, {
+      const response = await adminFetch(apiRoutes.admin.announcements, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -163,7 +164,7 @@ export default function AdminAnnouncementsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(apiRoutes.admin.announcements, {
+      const response = await adminFetch(apiRoutes.admin.announcements, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),

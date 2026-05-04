@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -129,9 +130,15 @@ func main() {
 	}()
 
 	// Start HTTP Server with graceful shutdown
-	port := os.Getenv("PORT")
+	port := os.Getenv("BACKEND_PORT")
 	if port == "" {
-		port = "8080"
+		port = os.Getenv("PORT")
+	}
+	
+	// If port is 3000, it's likely picking up the Next.js PORT from root .env
+	// We fallback to 8082 to avoid the "address already in use" conflict.
+	if port == "" || port == "3000" {
+		port = "8082"
 	}
 
 	srv := &http.Server{

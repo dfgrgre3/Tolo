@@ -23,16 +23,13 @@ const UserHome = dynamic(() => import("@/app/components/home/UserHome").then((mo
   ssr: true
 });
 
+// Simple CSS-based loader - no JS animations
 function HomeLoader() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-       <m.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)]" />
-      
-    </div>);
-
+      <div className="h-12 w-12 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
 }
 
 interface HomeClientProps {
@@ -45,7 +42,7 @@ export function HomeClient({ summary }: HomeClientProps) {
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
-  // --- Data Fetching Logic for Performance ---
+  // --- Data Fetching Logic for Performance - Deferred for initial load ---
   useEffect(() => {
     if (isLoading) {
       return;
@@ -94,9 +91,22 @@ export function HomeClient({ summary }: HomeClientProps) {
       }
     }
 
-    fetchPerformance();
+    // Defer data fetching to not block initial render
+    let deferTime: ReturnType<typeof setTimeout> | number | undefined;
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        deferTime = window.requestIdleCallback(() => fetchPerformance(), { timeout: 2000 });
+      } else {
+        deferTime = setTimeout(fetchPerformance, 1500);
+      }
+    }
+
     return () => {
       cancelled = true;
+      if (deferTime !== undefined) {
+        clearTimeout(deferTime);
+        window.cancelIdleCallback?.(deferTime as number);
+      }
     };
   }, [isLoading, isAuthenticated]);
 

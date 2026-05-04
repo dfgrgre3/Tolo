@@ -67,6 +67,8 @@ export interface UserModel {
   phone?: string | null;
   avatar?: string | null;
   level?: number;
+  role?: string;
+  lastLogin?: string | null;
 }
 
 export interface BroadcastFormData {

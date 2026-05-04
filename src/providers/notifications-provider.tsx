@@ -74,10 +74,21 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
       const response = await apiClient.get<NotificationsResponse | Notification[]>(`/notifications?${params}`);
       
-      const payload = response?.data ?? response;
-      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : (Array.isArray(payload) ? payload : []);
-      const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
-      const nextHasMore = typeof payload?.hasMore === 'boolean' ? payload.hasMore : nextNotifications.length === limit;
+      let nextNotifications: Notification[] = [];
+      let nextUnreadCount = 0;
+      let nextHasMore = false;
+      
+      if (response && typeof response === 'object') {
+        if (Array.isArray(response)) {
+          nextNotifications = response;
+          nextUnreadCount = response.filter((n: Notification) => !n.isRead).length;
+          nextHasMore = response.length === limit;
+        } else if ('notifications' in response && Array.isArray(response.notifications)) {
+          nextNotifications = response.notifications;
+          nextUnreadCount = response.unreadCount ?? 0;
+          nextHasMore = response.hasMore ?? (response.notifications.length === limit);
+        }
+      }
 
       if (reset) {
         setNotifications(nextNotifications);

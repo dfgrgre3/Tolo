@@ -1,3 +1,4 @@
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 type HeaderWithSetCookie = Headers & {
@@ -18,6 +19,16 @@ export const BACKEND_URL = (() => {
   }
   return url;
 })();
+
+/** Forward browser session / bearer token to the Go API (matches client `apiClient` + `credentials: 'include'`). */
+export function upstreamAuthHeaders(request: NextRequest): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const cookie = request.headers.get('cookie');
+  if (cookie) headers.Cookie = cookie;
+  const authorization = request.headers.get('authorization');
+  if (authorization) headers.Authorization = authorization;
+  return headers;
+}
 
 function splitCombinedSetCookie(value: string): string[] {
   return value.split(/,(?=\s*[^;,]+=)/).map((cookie) => cookie.trim()).filter(Boolean);

@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { BulkUploadDialog } from "@/components/admin/exams/bulk-upload-dialog";
 import { m } from "framer-motion";
+import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 
 interface Exam {
@@ -102,7 +103,7 @@ export default function AdminExamsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`${apiRoutes.admin.exams}?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.exams}?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch exams");
       return (await response.json()) as ExamsResponse;
     },
@@ -118,7 +119,7 @@ export default function AdminExamsPage() {
   const { data: subjects = [] } = useQuery({
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
-      const response = await fetch(`${apiRoutes.admin.subjects}?limit=100`);
+      const response = await adminFetch(`${apiRoutes.admin.subjects}?limit=100`);
       const result = await response.json();
       return (result.data?.subjects || []) as Subject[];
     },

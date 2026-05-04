@@ -18,6 +18,43 @@ const nextConfig = {
     ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
   },
 
+  // Optimize CSS in production
+  experimental: {
+    optimizeCss: process.env.NODE_ENV === 'production',
+    optimizePackageImports: [
+      'react-hook-form',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-navigation-menu',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-radio-group',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tooltip',
+      'chart.js',
+      'react-chartjs-2',
+      'recharts',
+      'date-fns',
+      'zod',
+      '@tanstack/react-table',
+      'sonner',
+      'clsx',
+      'tailwind-merge',
+      'uuid',
+      'lodash',
+      'axios',
+      'lucide-react',
+      'framer-motion',
+    ],
+    proxyClientMaxBodySize: '35mb',
+    scrollRestoration: true,
+  },
+
   // Optimize images
   images: {
     remotePatterns: [
@@ -49,8 +86,18 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Performance optimizations
-    unoptimized: process.env.NODE_ENV === 'development', // Skip optimization in dev for speed
+    unoptimized: process.env.NODE_ENV === 'development',
   },
+
+  // Font optimization
+  fontLoaders: [
+    {
+      loader: 'next/font/google',
+      options: {
+        subsets: ['latin'],
+      },
+    },
+  ],
 
   // Enable compression
   compress: true,
@@ -59,11 +106,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080/api'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
       },
       {
         source: '/uploads/:path*',
-        destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api').replace('/api', '')}/uploads/:path*`,
+        destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api').replace('/api', '')}/uploads/:path*`,
       },
     ];
   },
@@ -71,40 +118,6 @@ const nextConfig = {
   // Remove powered by header
   poweredByHeader: false,
 
-  // Optimize package imports - reduces bundle size significantly
-  experimental: {
-    optimizePackageImports: [
-      'react-hook-form',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-select',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-navigation-menu',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-radio-group',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tooltip',
-      'chart.js',
-      'react-chartjs-2',
-      'recharts',
-      'date-fns',
-      'zod',
-      '@tanstack/react-table',
-      'sonner',
-      'clsx',
-      'tailwind-merge',
-      'uuid',
-      'lodash',
-      'axios',
-      'lucide-react'
-    ],
-    proxyClientMaxBodySize: '35mb',
-    scrollRestoration: true,
-  },
 
   onDemandEntries: {
     maxInactiveAge: 60 * 60 * 1000,

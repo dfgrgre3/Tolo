@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
+import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 
 interface Subject {
@@ -113,7 +114,7 @@ export default function AdminSubjectsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`${apiRoutes.admin.subjects}?${params.toString()}`);
+      const response = await adminFetch(`${apiRoutes.admin.subjects}?${params.toString()}`);
       return (await response.json()) as SubjectsResponse;
     },
   });

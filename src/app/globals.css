@@ -255,21 +255,19 @@
 }
 
 .dark .rpg-glass {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 backdrop-blur-2xl ring-1 ring-white/10;
+  @apply relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/60 ring-1 ring-white/10;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  /* backdrop-blur removed for performance - added via JS only when needed */
 }
 
 .rpg-glass-light {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/60 backdrop-blur-2xl ring-1 ring-black/[0.05];
+  @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/80 ring-1 ring-black/[0.05];
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
 }
 
 .dark .rpg-glass-premium {
-  @apply relative overflow-hidden bg-black/40 backdrop-blur-3xl ring-1 ring-white/10;
+  @apply relative overflow-hidden bg-black/60 ring-1 ring-white/10;
   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
-  background-image:
-    radial-gradient(closest-side at 0 0, hsla(26, 100%, 50%, 0.15) 0px, transparent 50%),
-    radial-gradient(closest-side at 100% 100%, hsla(234, 100%, 40%, 0.1) 0px, transparent 50%);
 }
 
 .efficiency-mode .rpg-glass,
@@ -301,7 +299,7 @@
 }
 
 .rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 backdrop-blur-md transition-none;
+  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 transition-none;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
@@ -311,7 +309,7 @@
 }
 
 .dark .rpg-card {
-  @apply border-white/5 bg-white/[0.03];
+  @apply border-white/5 bg-white/[0.05];
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
@@ -353,11 +351,11 @@
 /* Animations Removed */
 
 .glass-morphism {
-  @apply bg-white/10 backdrop-blur-md border border-white/20;
+  @apply bg-white/20 border border-white/20;
 }
 
 .dark .glass-morphism {
-  @apply bg-black/20 backdrop-blur-md border border-white/5;
+  @apply bg-black/30 border border-white/5;
 }
 
 .gradient-border {
