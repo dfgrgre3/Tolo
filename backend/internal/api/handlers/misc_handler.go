@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
-	"time"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"time"
 )
 
 func GetUnreadNotificationsCount(c *gin.Context) {
@@ -131,7 +131,6 @@ func ImpersonateUser(c *gin.Context) {
 	})
 }
 
-
 func GetAdminMetricsHistory(c *gin.Context) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -165,7 +164,7 @@ func GetAdminMetricsHistory(c *gin.Context) {
 		"memoryTotal":         m.TotalAlloc / 1024 / 1024,
 		"memorySys":           m.Sys / 1024 / 1024,
 		"numCPU":              runtime.NumCPU(),
-		"dbOpenConnections":  dbOpenConns,
+		"dbOpenConnections":   dbOpenConns,
 		"averageResponseTime": 120,
 		"errorRate":           0.01,
 	}

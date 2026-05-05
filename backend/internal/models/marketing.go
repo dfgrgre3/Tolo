@@ -22,26 +22,26 @@ type Coupon struct {
 }
 
 type Automation struct {
-	ID          string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	Name        string    `gorm:"not null;column:name" json:"name"`
-	Description string    `gorm:"column:description" json:"description"`
-	Event       string    `gorm:"not null;column:event" json:"event"`
-	Trigger     string    `gorm:"column:trigger" json:"trigger"`
-	Conditions  string    `gorm:"type:text;column:conditions" json:"conditions"`
-	Actions     string    `gorm:"type:text;column:actions" json:"actions"`
-	IsActive    bool      `gorm:"default:true;column:is_active" json:"isActive"`
+	ID          string     `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Name        string     `gorm:"not null;column:name" json:"name"`
+	Description string     `gorm:"column:description" json:"description"`
+	Event       string     `gorm:"not null;column:event" json:"event"`
+	Trigger     string     `gorm:"column:trigger" json:"trigger"`
+	Conditions  string     `gorm:"type:text;column:conditions" json:"conditions"`
+	Actions     string     `gorm:"type:text;column:actions" json:"actions"`
+	IsActive    bool       `gorm:"default:true;column:is_active" json:"isActive"`
 	LastRunAt   *time.Time `gorm:"column:last_run_at" json:"lastRunAt"`
 	CreatedAt   time.Time  `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt   time.Time  `gorm:"column:updated_at" json:"updatedAt"`
 }
 
 type ABExperiment struct {
-	ID          string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	Name        string    `gorm:"not null;column:name" json:"name"`
-	Description string    `gorm:"column:description" json:"description"`
-	Status      string    `gorm:"default:'DRAFT';column:status" json:"status"`
-	Variants    string    `gorm:"type:text;column:variants" json:"variants"`
-	TrafficPct  int       `gorm:"default:100;column:traffic_pct" json:"trafficPct"`
+	ID          string     `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Name        string     `gorm:"not null;column:name" json:"name"`
+	Description string     `gorm:"column:description" json:"description"`
+	Status      string     `gorm:"default:'DRAFT';column:status" json:"status"`
+	Variants    string     `gorm:"type:text;column:variants" json:"variants"`
+	TrafficPct  int        `gorm:"default:100;column:traffic_pct" json:"trafficPct"`
 	StartDate   *time.Time `gorm:"column:start_date" json:"startDate"`
 	EndDate     *time.Time `gorm:"column:end_date" json:"endDate"`
 	CreatedAt   time.Time  `gorm:"column:created_at" json:"createdAt"`
@@ -50,18 +50,18 @@ type ABExperiment struct {
 
 // Campaign represents a marketing campaign
 type Campaign struct {
-	ID          string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	Name        string    `gorm:"not null;column:name" json:"name"`
-	Description string    `gorm:"column:description" json:"description"`
-	Type        string    `gorm:"default:'email';column:type" json:"type"`
-	Status      string    `gorm:"default:'DRAFT';column:status" json:"status"`
-	TargetRole  string    `gorm:"column:target_role" json:"targetRole"`
-	Content     string    `gorm:"type:text;column:content" json:"content"`
+	ID          string     `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	Name        string     `gorm:"not null;column:name" json:"name"`
+	Description string     `gorm:"column:description" json:"description"`
+	Type        string     `gorm:"default:'email';column:type" json:"type"`
+	Status      string     `gorm:"default:'DRAFT';column:status" json:"status"`
+	TargetRole  string     `gorm:"column:target_role" json:"targetRole"`
+	Content     string     `gorm:"type:text;column:content" json:"content"`
 	StartDate   *time.Time `gorm:"column:start_date" json:"startDate"`
 	EndDate     *time.Time `gorm:"column:end_date" json:"endDate"`
-	SentCount   int       `gorm:"default:0;column:sent_count" json:"sentCount"`
-	OpenCount   int       `gorm:"default:0;column:open_count" json:"openCount"`
-	ClickCount  int       `gorm:"default:0;column:click_count" json:"clickCount"`
+	SentCount   int        `gorm:"default:0;column:sent_count" json:"sentCount"`
+	OpenCount   int        `gorm:"default:0;column:open_count" json:"openCount"`
+	ClickCount  int        `gorm:"default:0;column:click_count" json:"clickCount"`
 	CreatedAt   time.Time  `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt   time.Time  `gorm:"column:updated_at" json:"updatedAt"`
 }
@@ -85,30 +85,40 @@ type ContentReport struct {
 
 func (Coupon) TableName() string { return "Coupon" }
 func (c *Coupon) BeforeCreate(tx *gorm.DB) error {
-	if c.ID == "" { c.ID = uuid.New().String() }
+	if c.ID == "" {
+		c.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (Automation) TableName() string { return "Automation" }
 func (a *Automation) BeforeCreate(tx *gorm.DB) error {
-	if a.ID == "" { a.ID = uuid.New().String() }
+	if a.ID == "" {
+		a.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (ABExperiment) TableName() string { return "ABExperiment" }
 func (a *ABExperiment) BeforeCreate(tx *gorm.DB) error {
-	if a.ID == "" { a.ID = uuid.New().String() }
+	if a.ID == "" {
+		a.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (Campaign) TableName() string { return "Campaign" }
 func (c *Campaign) BeforeCreate(tx *gorm.DB) error {
-	if c.ID == "" { c.ID = uuid.New().String() }
+	if c.ID == "" {
+		c.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (ContentReport) TableName() string { return "ContentReport" }
 func (cr *ContentReport) BeforeCreate(tx *gorm.DB) error {
-	if cr.ID == "" { cr.ID = uuid.New().String() }
+	if cr.ID == "" {
+		cr.ID = uuid.New().String()
+	}
 	return nil
 }

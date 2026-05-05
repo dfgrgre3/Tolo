@@ -21,40 +21,40 @@ func (r *SessionRepository) Create(session *models.UserSession) error {
 
 func (r *SessionRepository) FindByRefreshToken(token string) (*models.UserSession, error) {
 	var session models.UserSession
-	err := r.db.Where("\"refreshToken\" = ? AND \"isActive\" = ?", token, true).First(&session).Error
+	err := r.db.Where("refresh_token = ? AND is_active = ?", token, true).First(&session).Error
 	return &session, err
 }
 
 func (r *SessionRepository) RevokeAllUserSessions(userID string) error {
 	return r.db.Model(&models.UserSession{}).
-		Where("\"userId\" = ? AND \"isActive\" = ?", userID, true).
-		Update("\"isActive\"", false).Error
+		Where("user_id = ? AND is_active = ?", userID, true).
+		Update("is_active", false).Error
 }
 
 func (r *SessionRepository) RevokeSessionByJTI(jti string) error {
 	return r.db.Model(&models.UserSession{}).
 		Where("id = ?", jti).
-		Update("\"isActive\"", false).Error
+		Update("is_active", false).Error
 }
 
 func (r *SessionRepository) UpdateActivity(id string) error {
 	return r.db.Model(&models.UserSession{}).
 		Where("id = ?", id).
-		Update("\"lastAccessed\"", time.Now()).Error
+		Update("last_accessed", time.Now()).Error
 }
 
 func (r *SessionRepository) CountActiveSessions(userID string) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.UserSession{}).
-		Where("\"userId\" = ? AND \"isActive\" = ? AND \"expiresAt\" > ?", userID, true, time.Now()).
+		Where("user_id = ? AND is_active = ? AND expires_at > ?", userID, true, time.Now()).
 		Count(&count).Error
 	return count, err
 }
 
 func (r *SessionRepository) GetActiveSessions(userID string) ([]models.UserSession, error) {
 	var sessions []models.UserSession
-	err := r.db.Where("\"userId\" = ? AND \"isActive\" = ? AND \"expiresAt\" > ?", userID, true, time.Now()).
-		Order("\"lastAccessed\" asc").
+	err := r.db.Where("user_id = ? AND is_active = ? AND expires_at > ?", userID, true, time.Now()).
+		Order("last_accessed asc").
 		Find(&sessions).Error
 	return sessions, err
 }

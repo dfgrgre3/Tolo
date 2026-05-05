@@ -74,8 +74,8 @@ func IPWhitelistMiddleware() gin.HandlerFunc {
 			}
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "Access denied: IP not whitelisted",
-				"ip":      clientIP,
+				"error": "Access denied: IP not whitelisted",
+				"ip":    clientIP,
 			})
 			c.Abort()
 			return

@@ -19,7 +19,7 @@ type Broadcast struct {
 	SuccessCount int            `json:"successCount"`
 	FailureCount int            `json:"failureCount"`
 	Status       string         `gorm:"size:20;default:'draft'" json:"status"` // draft, scheduled, sending, completed, cancelled
-	ScheduledFor *time.Time    `json:"scheduledFor,omitempty"`
+	ScheduledFor *time.Time     `json:"scheduledFor,omitempty"`
 	SentAt       *time.Time     `json:"sentAt,omitempty"`
 	CreatedBy    string         `gorm:"type:uuid;not null" json:"createdBy"`
 	CancelledBy  *string        `gorm:"type:uuid" json:"cancelledBy,omitempty"`

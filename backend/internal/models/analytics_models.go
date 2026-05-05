@@ -33,7 +33,7 @@ type UserJourneyStep struct {
 	JourneyID string         `gorm:"type:uuid;not null;index" json:"journeyId"`
 	UserID    string         `gorm:"type:uuid;not null;index" json:"userId"`
 	SessionID string         `gorm:"size:100;not null" json:"sessionId"`
-	Page      string         `gorm:"size:500;not null" json:"page"` // URL path
+	Page      string         `gorm:"size:500;not null" json:"page"`   // URL path
 	Action    string         `gorm:"size:100;not null" json:"action"` // page_view, click, scroll, etc.
 	Metadata  JSONMap        `gorm:"type:jsonb" json:"metadata,omitempty"`
 	Timestamp time.Time      `gorm:"not null;index" json:"timestamp"`
@@ -52,10 +52,10 @@ type ConversionEvent struct {
 	SessionID    string         `gorm:"size:100;not null;index" json:"sessionId"`
 	JourneyID    *string        `gorm:"type:uuid" json:"journeyId,omitempty"`
 	Goal         string         `gorm:"size:100;not null" json:"goal"` // signup, purchase, exam_complete, etc.
-	Value        float64        `json:"value,omitempty"` // monetary value or score
+	Value        float64        `json:"value,omitempty"`               // monetary value or score
 	Currency     string         `gorm:"size:3" json:"currency,omitempty"`
 	Timestamp    time.Time      `gorm:"not null;index" json:"timestamp"`
-	JourneySteps int            `json:"journeySteps"` // number of steps before conversion
+	JourneySteps int            `json:"journeySteps"`                     // number of steps before conversion
 	Source       string         `gorm:"size:100" json:"source,omitempty"` // organic, referral, campaign, etc.
 	CampaignID   *string        `gorm:"type:uuid" json:"campaignId,omitempty"`
 	Metadata     JSONMap        `gorm:"type:jsonb" json:"metadata,omitempty"`
@@ -70,17 +70,17 @@ type ConversionEvent struct {
 
 // PageView aggregates page view statistics
 type PageView struct {
-	ID            string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Page          string         `gorm:"size:500;not null;uniqueIndex:idx_page_date" json:"page"`
-	Date          time.Time      `gorm:"type:date;not null;uniqueIndex:idx_page_date" json:"date"`
-	Views         int64          `gorm:"default:0" json:"views"`
-	UniqueVisitors int64         `gorm:"default:0" json:"uniqueVisitors"`
-	AvgDuration   float64        `json:"avgDuration"`
-	Bounces       int64          `gorm:"default:0" json:"bounces"`
-	Exits         int64          `gorm:"default:0" json:"exits"`
-	CreatedAt     time.Time      `json:"createdAt"`
-	UpdatedAt     time.Time      `json:"updatedAt"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	ID             string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Page           string         `gorm:"size:500;not null;uniqueIndex:idx_page_date" json:"page"`
+	Date           time.Time      `gorm:"type:date;not null;uniqueIndex:idx_page_date" json:"date"`
+	Views          int64          `gorm:"default:0" json:"views"`
+	UniqueVisitors int64          `gorm:"default:0" json:"uniqueVisitors"`
+	AvgDuration    float64        `json:"avgDuration"`
+	Bounces        int64          `gorm:"default:0" json:"bounces"`
+	Exits          int64          `gorm:"default:0" json:"exits"`
+	CreatedAt      time.Time      `json:"createdAt"`
+	UpdatedAt      time.Time      `json:"updatedAt"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // UserFlow aggregates user flow statistics (page transitions)
@@ -97,17 +97,17 @@ type UserFlow struct {
 
 // ActiveUserStats tracks daily/weekly/monthly active users
 type ActiveUserStats struct {
-	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Date            time.Time `gorm:"type:date;not null;uniqueIndex" json:"date"`
-	DailyActive     int64     `gorm:"default:0" json:"dailyActive"`
-	WeeklyActive    int64     `gorm:"default:0" json:"weeklyActive"`
-	MonthlyActive   int64     `gorm:"default:0" json:"monthlyActive"`
-	NewUsers        int64     `gorm:"default:0" json:"newUsers"`
-	ReturningUsers  int64     `gorm:"default:0" json:"returningUsers"`
-	AvgSessionDuration float64 `json:"avgSessionDuration"`
-	TotalSessions   int64     `gorm:"default:0" json:"totalSessions"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Date               time.Time `gorm:"type:date;not null;uniqueIndex" json:"date"`
+	DailyActive        int64     `gorm:"default:0" json:"dailyActive"`
+	WeeklyActive       int64     `gorm:"default:0" json:"weeklyActive"`
+	MonthlyActive      int64     `gorm:"default:0" json:"monthlyActive"`
+	NewUsers           int64     `gorm:"default:0" json:"newUsers"`
+	ReturningUsers     int64     `gorm:"default:0" json:"returningUsers"`
+	AvgSessionDuration float64   `json:"avgSessionDuration"`
+	TotalSessions      int64     `gorm:"default:0" json:"totalSessions"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 }
 
 // TableName returns the table name for UserJourney

@@ -16,23 +16,23 @@ func SetupPublicRoutes(router *gin.Engine) {
 	router.GET("/api/categories", handlers.GetCategories)
 	router.GET("/api/courses/categories", handlers.GetCategories)
 	router.GET("/api/teachers", handlers.GetTeachers)
-	
+
 	// Public settings route
 	router.GET("/api/settings", handlers.GetSystemSettings)
-	
+
 	// Public blog route (published posts only)
 	router.GET("/api/blog", handlers.GetPublicBlogPosts)
 	router.GET("/api/blog/:slug", handlers.GetPublicBlogPost)
-	
+
 	// Public events route
 	router.GET("/api/events", handlers.GetPublicEvents)
-	
+
 	// Public Exam routes (read-only)
 	router.GET("/api/exams", handlers.GetExams)
 	router.GET("/api/exams/results", handlers.GetExamResults)
-	
+
 	// Activity routes moved to protected group
-	
+
 	// AI routes (require auth)
 	ai := router.Group("/api/ai")
 	ai.Use(middleware.Auth())
@@ -51,20 +51,20 @@ func SetupPublicRoutes(router *gin.Engine) {
 		ai.GET("/recommendations", handlers.GetAIRecommendations)
 		ai.POST("/recommendations/track", handlers.TrackAIRecommendation)
 	}
-	
+
 	// Guest User
 	router.Any("/api/users/guest", handlers.GetGuestUser)
-	
+
 	// Paymob Webhook
 	router.POST("/api/payments/paymob/callback", handlers.PaymobWebhook)
 	router.GET("/api/payments/paymob/callback", handlers.PaymobWebhook)
-	
+
 	// Clerk Webhook
 	router.POST("/api/webhooks/clerk", handlers.ClerkWebhook)
-	
+
 	// WebSocket
 	router.GET("/api/ws", middleware.Auth(), handlers.WSHandler)
-	
+
 	// Public Library routes
 	router.GET("/api/library/categories", handlers.GetLibraryCategories)
 }

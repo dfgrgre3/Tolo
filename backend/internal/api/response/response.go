@@ -60,9 +60,9 @@ func List(c *gin.Context, items interface{}, pagination Pagination, aliases gin.
 // AdminList responds with admin-specific list format including stats
 func AdminList(c *gin.Context, items interface{}, pagination Pagination, stats gin.H) {
 	data := gin.H{
-		"items": items,
+		"items":      items,
 		"pagination": pagination,
-		"stats": stats,
+		"stats":      stats,
 	}
 
 	Success(c, data)

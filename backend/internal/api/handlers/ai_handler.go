@@ -1,22 +1,20 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
+	"strconv"
 	"strings"
 	"sync"
-	"time"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
 	"thanawy-backend/internal/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -26,8 +24,8 @@ import (
 const (
 	AIRequestTimeout   = 60 * time.Second
 	MaxContextMessages = 20
-	CacheTTL         = 24 * time.Hour
-	MaxRetries       = 3
+	CacheTTL           = 24 * time.Hour
+	MaxRetries         = 3
 )
 
 type AIHandler struct {
@@ -170,7 +168,7 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 
 	// Build messages for AI API
 	aiMessages := h.buildAIMessages(c, userIDStr, messages)
-	
+
 	// If it's a vision request, we need to modify the last message
 	if req.Image != "" {
 		aiMessages[len(aiMessages)-1]["content"] = userContent
@@ -245,6 +243,95 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 	})
 }
 
+// AIExamProxy handles exam-related AI requests
+func (h *AIHandler) AIExamProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// AISuggestProxy handles content suggestion requests
+func (h *AIHandler) AISuggestProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// AITipsProxy handles study tips requests
+func (h *AIHandler) AITipsProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// GetConversations returns all AI conversations for the user
+func (h *AIHandler) GetConversations(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	convs, total, err := h.conversationRepo.FindByUserID(userID.(string), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch conversations"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"conversations": convs,
+		"total":         total,
+		"limit":         limit,
+		"offset":        offset,
+	})
+}
+
+// GetConversation returns a single AI conversation with messages
+func (h *AIHandler) GetConversation(c *gin.Context) {
+	id := c.Param("id")
+	conv, err := h.conversationRepo.FindByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Conversation not found"})
+		return
+	}
+	messages, _ := h.conversationRepo.GetRecentMessages(id, 100)
+	c.JSON(http.StatusOK, gin.H{"conversation": conv, "messages": messages})
+}
+
+// DeleteConversation removes an AI conversation
+func (h *AIHandler) DeleteConversation(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.conversationRepo.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete conversation"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Conversation deleted"})
+}
+
+// ExplainMistakeProxy handles requests to explain an exam mistake
+func (h *AIHandler) ExplainMistakeProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// GenerateStudyPlanProxy handles study plan generation
+func (h *AIHandler) GenerateStudyPlanProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// SummarizeLessonProxy handles lesson summarization
+func (h *AIHandler) SummarizeLessonProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// GradeEssayProxy handles essay grading requests
+func (h *AIHandler) GradeEssayProxy(c *gin.Context) {
+	h.AIChatProxy(c)
+}
+
+// Package-level wrappers
+func AIChatProxy(c *gin.Context)            { GetAIHandler().AIChatProxy(c) }
+func AIExamProxy(c *gin.Context)            { GetAIHandler().AIExamProxy(c) }
+func AISuggestProxy(c *gin.Context)         { GetAIHandler().AISuggestProxy(c) }
+func AITipsProxy(c *gin.Context)            { GetAIHandler().AITipsProxy(c) }
+func GetConversations(c *gin.Context)       { GetAIHandler().GetConversations(c) }
+func GetConversation(c *gin.Context)        { GetAIHandler().GetConversation(c) }
+func DeleteConversation(c *gin.Context)     { GetAIHandler().DeleteConversation(c) }
+func ExplainMistakeProxy(c *gin.Context)    { GetAIHandler().ExplainMistakeProxy(c) }
+func GenerateStudyPlanProxy(c *gin.Context) { GetAIHandler().GenerateStudyPlanProxy(c) }
+func SummarizeLessonProxy(c *gin.Context)   { GetAIHandler().SummarizeLessonProxy(c) }
+func GradeEssayProxy(c *gin.Context)        { GetAIHandler().GradeEssayProxy(c) }
+
 // Helper methods for AIHandler
 
 func (h *AIHandler) getOrCreateConversation(userID, convID, subjectID, topicID string) (*models.AIConversation, error) {
@@ -283,12 +370,40 @@ func (h *AIHandler) buildAIMessages(c *gin.Context, userID string, history []mod
 	return messages
 }
 
+// contentToString safely extracts a string from an interface{} that may be a string or an array
+func contentToString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	// If content is an array (e.g. vision messages), extract text parts
+	if arr, ok := v.([]interface{}); ok {
+		var parts []string
+		for _, item := range arr {
+			if m, ok := item.(map[string]interface{}); ok {
+				if t, ok := m["type"].(string); ok && t == "text" {
+					if text, ok := m["text"].(string); ok {
+						parts = append(parts, text)
+					}
+				}
+			}
+		}
+		return strings.Join(parts, " ")
+	}
+	return fmt.Sprintf("%v", v)
+}
+
 func (h *AIHandler) buildCacheKey(messages []map[string]interface{}) string {
 	data, _ := json.Marshal(messages)
 	return fmt.Sprintf("ai_cache:%x", data)
 }
 
 func (h *AIHandler) getCachedResponse(key string) string {
+	if db.Redis == nil {
+		return ""
+	}
 	val, err := db.Redis.Get(context.Background(), key).Result()
 	if err == nil {
 		return val
@@ -297,6 +412,9 @@ func (h *AIHandler) getCachedResponse(key string) string {
 }
 
 func (h *AIHandler) cacheResponse(key, response string) {
+	if db.Redis == nil {
+		return
+	}
 	db.Redis.Set(context.Background(), key, response, CacheTTL)
 }
 
@@ -328,7 +446,7 @@ func (h *AIHandler) handleStreamingChat(c *gin.Context, messages []map[string]in
 		Model:          stringPtr(usedModel),
 	}
 	h.conversationRepo.AddMessage(assistantMessage)
-	
+
 	c.JSON(http.StatusOK, ChatResponse{
 		Reply:          reply,
 		ConversationID: convID,

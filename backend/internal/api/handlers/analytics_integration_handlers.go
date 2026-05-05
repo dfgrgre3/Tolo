@@ -12,14 +12,14 @@ import (
 
 // UserJourneyRequest represents a user journey tracking request
 type UserJourneyRequest struct {
-	UserID       string                `json:"userId" binding:"required"`
-	SessionID    string                `json:"sessionId" binding:"required"`
-	StartedAt    time.Time             `json:"startedAt" binding:"required"`
-	EndedAt      *time.Time            `json:"endedAt,omitempty"`
-	Steps        []UserJourneyStep     `json:"steps" binding:"required"`
-	TotalDuration int64                `json:"totalDuration"`
-	ConversionGoal string              `json:"conversionGoal,omitempty"`
-	Completed    bool                  `json:"completed"`
+	UserID         string            `json:"userId" binding:"required"`
+	SessionID      string            `json:"sessionId" binding:"required"`
+	StartedAt      time.Time         `json:"startedAt" binding:"required"`
+	EndedAt        *time.Time        `json:"endedAt,omitempty"`
+	Steps          []UserJourneyStep `json:"steps" binding:"required"`
+	TotalDuration  int64             `json:"totalDuration"`
+	ConversionGoal string            `json:"conversionGoal,omitempty"`
+	Completed      bool              `json:"completed"`
 }
 
 // UserJourneyStep represents a single step in the user journey
@@ -36,12 +36,12 @@ type UserJourneyStep struct {
 
 // ConversionEventRequest represents a conversion event
 type ConversionEventRequest struct {
-	UserID       string  `json:"userId" binding:"required"`
-	SessionID    string  `json:"sessionId" binding:"required"`
-	Goal         string  `json:"goal" binding:"required"`
-	Value        float64 `json:"value,omitempty"`
+	UserID       string    `json:"userId" binding:"required"`
+	SessionID    string    `json:"sessionId" binding:"required"`
+	Goal         string    `json:"goal" binding:"required"`
+	Value        float64   `json:"value,omitempty"`
 	Timestamp    time.Time `json:"timestamp" binding:"required"`
-	JourneySteps int     `json:"journeySteps"`
+	JourneySteps int       `json:"journeySteps"`
 }
 
 // TrackUserJourney saves a complete user journey for analysis
@@ -243,20 +243,20 @@ func GetActivityMetrics(c *gin.Context) {
 
 // calculateActivityMetrics calculates various activity metrics
 type ActivityMetrics struct {
-	DailyActiveUsers     int64                              `json:"dailyActiveUsers"`
-	WeeklyActiveUsers  int64                              `json:"weeklyActiveUsers"`
-	MonthlyActiveUsers int64                              `json:"monthlyActiveUsers"`
-	AverageSessionDuration float64                        `json:"averageSessionDuration"`
-	BounceRate           float64                          `json:"bounceRate"`
-	TopPages             []PageStats                      `json:"topPages"`
-	UserFlows            []FlowStats                      `json:"userFlows"`
-	ConversionRates      map[string]float64               `json:"conversionRates"`
+	DailyActiveUsers       int64              `json:"dailyActiveUsers"`
+	WeeklyActiveUsers      int64              `json:"weeklyActiveUsers"`
+	MonthlyActiveUsers     int64              `json:"monthlyActiveUsers"`
+	AverageSessionDuration float64            `json:"averageSessionDuration"`
+	BounceRate             float64            `json:"bounceRate"`
+	TopPages               []PageStats        `json:"topPages"`
+	UserFlows              []FlowStats        `json:"userFlows"`
+	ConversionRates        map[string]float64 `json:"conversionRates"`
 }
 
 type PageStats struct {
-	Page           string `json:"page"`
-	Views          int64  `json:"views"`
-	UniqueVisitors int64  `json:"uniqueVisitors"`
+	Page           string  `json:"page"`
+	Views          int64   `json:"views"`
+	UniqueVisitors int64   `json:"uniqueVisitors"`
 	AvgDuration    float64 `json:"avgDuration"`
 }
 
@@ -339,8 +339,8 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 
 	// Conversion rates by goal
 	var goals []struct {
-		Goal  string
-		Total int64
+		Goal     string
+		Total    int64
 		Achieved int64
 	}
 	db.DB.Raw(`
@@ -379,9 +379,9 @@ func ExportJourneys(c *gin.Context) {
 	}
 
 	var filters struct {
-		UserID    string    `json:"userId"`
-		From      time.Time `json:"from"`
-		To        time.Time `json:"to"`
+		UserID string    `json:"userId"`
+		From   time.Time `json:"from"`
+		To     time.Time `json:"to"`
 	}
 
 	if err := c.ShouldBindJSON(&filters); err != nil {
@@ -452,7 +452,13 @@ func formatJourneyRow(journey models.UserJourney, step models.UserJourneyStep) s
 		journey.StartedAt.Format(time.RFC3339) + "," +
 		journey.EndedAt.Format(time.RFC3339) + "," +
 		string(rune(journey.TotalDuration)) + "," +
-		func() string { if journey.Completed { return "true" } else { return "false" } }() + "," +
+		func() string {
+			if journey.Completed {
+				return "true"
+			} else {
+				return "false"
+			}
+		}() + "," +
 		journey.ConversionGoal + "," +
 		step.ID + "," +
 		step.Page + "," +

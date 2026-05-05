@@ -151,21 +151,21 @@ func (h *Hub) BroadCastToRole(role string, message []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// In a real multi-instance setup, you'd publish this to Redis 
+	// In a real multi-instance setup, you'd publish this to Redis
 	// and have instances check user roles before sending.
-	// For simplicity, we broadcast locally and if Redis is used, 
+	// For simplicity, we broadcast locally and if Redis is used,
 	// we'd need a way to filter by role on other instances too.
-	
+
 	for _, clients := range h.clients {
 		if len(clients) > 0 {
 			// Check role of the first client (they all have same UserID)
 			// This requires a way to look up roles efficiently or having it in the Client struct
-			// Let's just broadcast to everyone and let the client-side filter for now, 
+			// Let's just broadcast to everyone and let the client-side filter for now,
 			// OR fetch roles from DB (less efficient).
 			// Better: add Role to Client struct during registration.
 		}
 	}
-	
+
 	// Implementation below assumes we add Role to Client
 }
 

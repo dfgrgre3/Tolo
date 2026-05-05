@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"thanawy-backend/internal/db"
 )
 
 // RateLimiter holds Redis client for distributed rate limiting
@@ -203,10 +204,31 @@ func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time
 	}
 }
 
-
 func max(a, b int) int {
 	if a > b {
 		return a
 	}
 	return b
+}
+
+// LoginRateLimiter provides rate limiting for login attempts
+func LoginRateLimiter() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db.Redis == nil {
+			c.Next()
+			return
+		}
+		NewRateLimiter(db.Redis).RateLimitByIP(20, time.Minute)(c)
+	}
+}
+
+// AuthRateLimiter provides rate limiting for authentication-related requests
+func AuthRateLimiter() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db.Redis == nil {
+			c.Next()
+			return
+		}
+		NewRateLimiter(db.Redis).RateLimitByIP(60, time.Minute)(c)
+	}
 }

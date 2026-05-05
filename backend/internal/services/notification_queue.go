@@ -46,7 +46,7 @@ func (s *NotificationQueueService) processQueue() {
 	for notification := range s.queue {
 		// Process notification (send push, email, etc.)
 		log.Printf("Processing notification: %s for user %s", notification.Title, notification.UserID)
-		
+
 		// Here you would call other services like EmailService or PushNotificationService
 		// For now, we just log it
 	}

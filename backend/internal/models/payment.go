@@ -9,10 +9,11 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentPending   PaymentStatus = "PENDING"
-	PaymentCompleted PaymentStatus = "COMPLETED"
-	PaymentFailed    PaymentStatus = "FAILED"
-	PaymentRefunded  PaymentStatus = "REFUNDED"
+	PaymentPending   PaymentStatus = "pending"
+	PaymentCompleted PaymentStatus = "completed"
+	PaymentFailed    PaymentStatus = "failed"
+	PaymentRefunded  PaymentStatus = "refunded"
+	PaymentCancelled PaymentStatus = "cancelled"
 )
 
 type Payment struct {
@@ -22,10 +23,10 @@ type Payment struct {
 	PlanID    string        `gorm:"index;type:uuid;column:plan_id" json:"planId"`
 	Amount    float64       `gorm:"not null;check:amount >= 0;column:amount" json:"amount"`
 	Currency  string        `gorm:"not null;default:'EGP';column:currency" json:"currency"`
-	Status    PaymentStatus `gorm:"not null;default:'PENDING';index;column:status" json:"status"`
+	Status    PaymentStatus `gorm:"not null;default:'pending';index;column:status" json:"status"`
 	Method    string        `gorm:"not null;column:method" json:"method"` // PAYMOB, WALLET, etc.
 	Reference string        `gorm:"uniqueIndex;not null;column:reference" json:"reference"`
-	
+
 	// Paymob specific fields
 	PaymobOrderID int64     `gorm:"index;column:paymob_order_id" json:"paymobOrderId"`
 	ExternalTxnID string    `gorm:"index;column:external_txn_id" json:"externalTxnId"`
@@ -36,16 +37,16 @@ type Payment struct {
 	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 
 	// Relations
-	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	User    User     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Subject *Subject `gorm:"foreignKey:SubjectID;constraint:OnDelete:SET NULL" json:"subject,omitempty"`
 }
 
 type Invoice struct {
-	ID            string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	PaymentID     string    `gorm:"uniqueIndex;not null;type:uuid;column:payment_id" json:"paymentId"`
-	UserID        string    `gorm:"index;not null;type:uuid;column:user_id" json:"userId"`
-	InvoiceNumber string    `gorm:"uniqueIndex;not null;column:invoice_number" json:"invoiceNumber"`
-	PdfUrl        string    `gorm:"column:pdf_url" json:"pdfUrl"`
+	ID            string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	PaymentID     string         `gorm:"uniqueIndex;not null;type:uuid;column:payment_id" json:"paymentId"`
+	UserID        string         `gorm:"index;not null;type:uuid;column:user_id" json:"userId"`
+	InvoiceNumber string         `gorm:"uniqueIndex;not null;column:invoice_number" json:"invoiceNumber"`
+	PdfUrl        string         `gorm:"column:pdf_url" json:"pdfUrl"`
 	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`

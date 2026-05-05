@@ -59,7 +59,7 @@ func (s *CircuitBreakerService) GetStatus() map[string]string {
 
 	// List of known circuit breakers
 	names := []string{"ai-service", "payment-service", "paymob-api", "openrouter-api"}
-	
+
 	for _, name := range names {
 		cb := circuitbreaker.GetCircuitBreaker(name, 0, 0)
 		state := cb.State()
@@ -87,14 +87,14 @@ func (s *CircuitBreakerService) ResetCircuitBreaker(name string) {
 // WrapAICall wraps the AI service call with circuit breaker
 func WrapAICall(provider string, callFn func() (string, error)) (string, error) {
 	service := GetCircuitBreakerService()
-	
+
 	var result string
 	err := service.CallExternalAPI("ai-"+provider, func() error {
 		var err error
 		result, err = callFn()
 		return err
 	})
-	
+
 	return result, err
 }
 

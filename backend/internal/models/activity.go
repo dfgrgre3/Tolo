@@ -26,7 +26,7 @@ type Task struct {
 	SubjectID     *string        `gorm:"index;type:uuid;column:subject_id" json:"subjectId"`
 	Subject       *Subject       `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
 	EstimatedTime int            `gorm:"column:estimated_time" json:"estimatedTime"` // in minutes
-	ActualTime    int            `gorm:"column:actual_time" json:"actualTime"`    // in minutes
+	ActualTime    int            `gorm:"column:actual_time" json:"actualTime"`       // in minutes
 	CreatedAt     time.Time      `gorm:"index;column:created_at" json:"createdAt"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`

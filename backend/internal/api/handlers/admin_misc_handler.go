@@ -563,7 +563,7 @@ func MarkActivityRead(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.Notification{}).Where("id = ? AND \"userId\" = ?", activityID, userId).Update("\"isRead\"", true).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where("id = ? AND user_id = ?", activityID, userId).Update("is_read", true).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update activity")
 		return
 	}
@@ -578,7 +578,7 @@ func MarkAllActivitiesRead(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.Notification{}).Where("\"userId\" = ?", userId).Update("\"isRead\"", true).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where("user_id = ?", userId).Update("is_read", true).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update activities")
 		return
 	}
@@ -627,7 +627,7 @@ func ValidateCoupon(c *gin.Context) {
 	}
 
 	var coupon models.Coupon
-	if err := db.DB.Where("code = ? AND \"isActive\" = ?", req.Code, true).First(&coupon).Error; err != nil {
+	if err := db.DB.Where("code = ? AND is_active = ?", req.Code, true).First(&coupon).Error; err != nil {
 		api_response.Success(c, gin.H{
 			"valid":   false,
 			"message": "كود الخصم غير صالح",
@@ -693,7 +693,7 @@ func SubscriptionCheckout(c *gin.Context) {
 	var appliedCoupon *models.Coupon
 	if req.CouponCode != "" {
 		var coupon models.Coupon
-		if err := db.DB.Where("code = ? AND \"isActive\" = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
+		if err := db.DB.Where("code = ? AND is_active = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
 			// Validate coupon
 			valid := true
 			if coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now()) {
@@ -789,7 +789,7 @@ func SubscriptionCheckout(c *gin.Context) {
 
 	// Increment coupon used count
 	if appliedCoupon != nil {
-		db.DB.Model(appliedCoupon).UpdateColumn("usedCount", appliedCoupon.UsedCount+1)
+		db.DB.Model(appliedCoupon).UpdateColumn("used_count", appliedCoupon.UsedCount+1)
 	}
 
 	if req.PaymentMethod == "wallet" {

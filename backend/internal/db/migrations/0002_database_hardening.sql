@@ -31,14 +31,17 @@ SET
 	"estimatedTime" = GREATEST("estimatedTime", 0),
 	"actualTime" = GREATEST("actualTime", 0);
 
+-- Remove duplicate CourseReviews (keep first by createdAt)
 DELETE FROM "CourseReview"
-WHERE id NOT IN (
-	SELECT MIN(id) FROM "CourseReview" GROUP BY "userId", "subjectId"
+WHERE id IN (
+	SELECT id FROM (
+		SELECT id, ROW_NUMBER() OVER (PARTITION BY "userId", "subjectId" ORDER BY "createdAt") as rn
+		FROM "CourseReview"
+	) sub WHERE rn > 1
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_course_review_user_subject_unique ON "CourseReview" ("userId", "subjectId");
 CREATE INDEX IF NOT EXISTS idx_session_refresh_token_active ON "Session" ("refreshToken") WHERE "isActive" = true;
-CREATE INDEX IF NOT EXISTS idx_payment_completed_subject_user ON "Payment" ("userId", "subjectId", status) WHERE status = 'COMPLETED';
 
 DO $$
 BEGIN

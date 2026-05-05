@@ -13,7 +13,7 @@ import (
 // DatabaseFixRunner automates the database fix and optimization process
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	
+
 	// Get database connection string from environment
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -68,7 +68,7 @@ func main() {
 		fmt.Println("   2. Tested in staging environment")
 		fmt.Println("   3. Scheduled during low-traffic hours")
 		fmt.Println()
-		
+
 		// For now, we'll proceed automatically
 		// In production, add proper user input handling
 		log.Println("Proceeding with migration (AUTO_CONFIRM=true or non-interactive mode)...")
@@ -77,20 +77,20 @@ func main() {
 	// Execute migration
 	fmt.Println("Step 4: Executing database fix...")
 	startTime := time.Now()
-	
+
 	// Split SQL into statements and execute
 	err = db.Exec(string(sqlContent)).Error
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
-	
+
 	duration := time.Since(startTime)
 	fmt.Printf("   ✓ Migration completed in %v\n", duration)
 	fmt.Println()
 
 	// Verify migration
 	fmt.Println("Step 5: Verifying migration...")
-	
+
 	// Check constraint count
 	var constraintCount int
 	db.Raw(`

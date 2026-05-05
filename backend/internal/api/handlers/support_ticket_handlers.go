@@ -13,19 +13,19 @@ import (
 
 // CreateTicketRequest represents a request to create a support ticket
 type CreateTicketRequest struct {
-	UserID           string `json:"userId" binding:"required"`
-	Subject          string `json:"subject" binding:"required,max=200"`
-	Description      string `json:"description" binding:"required,max=5000"`
-	Category         string `json:"category" binding:"required,oneof=technical billing content account other"`
-	Priority         string `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
+	UserID            string `json:"userId" binding:"required"`
+	Subject           string `json:"subject" binding:"required,max=200"`
+	Description       string `json:"description" binding:"required,max=5000"`
+	Category          string `json:"category" binding:"required,oneof=technical billing content account other"`
+	Priority          string `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
 	RelatedEntityType string `json:"relatedEntityType,omitempty"`
-	RelatedEntityID  string `json:"relatedEntityId,omitempty"`
+	RelatedEntityID   string `json:"relatedEntityId,omitempty"`
 }
 
 // SendMessageRequest represents a message to be sent
 type SendMessageRequest struct {
-	Message    string   `json:"message" binding:"required,max=5000"`
-	IsInternal bool     `json:"isInternal"`
+	Message    string `json:"message" binding:"required,max=5000"`
+	IsInternal bool   `json:"isInternal"`
 }
 
 // UpdateTicketStatusRequest represents a status update
@@ -118,10 +118,10 @@ func CreateSupportTicket(c *gin.Context) {
 
 	// Notify user
 	services.GetNotificationService().QueueNotification(models.Notification{
-		UserID:  req.UserID,
-		Title:   "New Support Ticket",
-		Message: "A support ticket has been created for you: " + req.Subject,
-		Type:    "info",
+		UserID:   req.UserID,
+		Title:    "New Support Ticket",
+		Message:  "A support ticket has been created for you: " + req.Subject,
+		Type:     "info",
 		Channels: []string{"in-app", "email"},
 	})
 
@@ -291,10 +291,10 @@ func SendTicketMessage(c *gin.Context) {
 	// Notify user if not internal
 	if !req.IsInternal {
 		services.GetNotificationService().QueueNotification(models.Notification{
-			UserID:  ticket.UserID,
-			Title:   "New Response on Your Ticket",
-			Message: "Admin has responded to your ticket: " + ticket.Subject,
-			Type:    "info",
+			UserID:   ticket.UserID,
+			Title:    "New Response on Your Ticket",
+			Message:  "Admin has responded to your ticket: " + ticket.Subject,
+			Type:     "info",
 			Channels: []string{"in-app", "email"},
 		})
 	}
@@ -354,10 +354,10 @@ func UpdateTicketStatus(c *gin.Context) {
 
 	// Notify user of status change
 	services.GetNotificationService().QueueNotification(models.Notification{
-		UserID:  ticket.UserID,
-		Title:   "Ticket Status Updated",
-		Message: "Your ticket '" + ticket.Subject + "' is now " + req.Status,
-		Type:    "info",
+		UserID:   ticket.UserID,
+		Title:    "Ticket Status Updated",
+		Message:  "Your ticket '" + ticket.Subject + "' is now " + req.Status,
+		Type:     "info",
 		Channels: []string{"in-app"},
 	})
 
@@ -427,9 +427,9 @@ func AssignTicket(c *gin.Context) {
 	if err := db.DB.Model(&models.SupportTicket{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"assigned_to":       req.AdminID,
-			"assigned_to_name":  admin.GetName(),
-			"updated_at":        time.Now(),
+			"assigned_to":      req.AdminID,
+			"assigned_to_name": admin.GetName(),
+			"updated_at":       time.Now(),
 		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign ticket"})
 		return
@@ -474,13 +474,13 @@ func CloseTicket(c *gin.Context) {
 // @Router /api/admin/tickets/stats [get]
 func GetTicketStats(c *gin.Context) {
 	var stats struct {
-		Total       int64 `json:"total"`
-		Open        int64 `json:"open"`
-		InProgress  int64 `json:"inProgress"`
-		Resolved    int64 `json:"resolved"`
-		Closed      int64 `json:"closed"`
-		Unassigned  int64 `json:"unassigned"`
-		Urgent      int64 `json:"urgent"`
+		Total      int64 `json:"total"`
+		Open       int64 `json:"open"`
+		InProgress int64 `json:"inProgress"`
+		Resolved   int64 `json:"resolved"`
+		Closed     int64 `json:"closed"`
+		Unassigned int64 `json:"unassigned"`
+		Urgent     int64 `json:"urgent"`
 	}
 
 	db.DB.Model(&models.SupportTicket{}).Count(&stats.Total)
@@ -502,7 +502,7 @@ func GetTicketStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"overview":            stats,
+			"overview":          stats,
 			"avgResolutionTime": avgResolutionTime,
 		},
 	})

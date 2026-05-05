@@ -5,14 +5,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"time"
 )
 
 type AuthService struct {
@@ -93,8 +94,10 @@ func (s *AuthService) Login(email, password, ip, userAgent string) (*models.User
 	}
 
 	// Check password
+	log.Printf("Login attempt: email=%s found=%v hash_len=%d", email, user != nil, len(user.PasswordHash))
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
+		log.Printf("Password mismatch for user: %s", email)
 		return nil, errors.New("invalid email or password")
 	}
 

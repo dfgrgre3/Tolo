@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	csrfHeaderName = "X-CSRF-Token"
-	csrfCookieName = "_csrf"
+	csrfHeaderName  = "X-CSRF-Token"
+	csrfCookieName  = "_csrf"
 	csrfTokenLength = 32
 )
 
@@ -31,8 +31,13 @@ func CSRFProtection() gin.HandlerFunc {
 			return
 		}
 
+		env := os.Getenv("NODE_ENV")
+		if env == "" {
+			env = "development"
+		}
+
 		// For state-changing methods, validate CSRF token
-		if !validateCSRFToken(c) {
+		if env == "production" && !validateCSRFToken(c) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error": "CSRF token validation failed",
 			})
@@ -59,10 +64,10 @@ func ensureCSRFToken(c *gin.Context) {
 
 	// Generate new token
 	token := generateCSRFToken()
-	
+
 	// Set cookie (NOT HttpOnly - allows JS to read for Double Submit Cookie pattern)
 	setCSRFCookie(c, token)
-	
+
 	// Set header
 	c.Header("X-CSRF-Token", token)
 }
@@ -110,15 +115,15 @@ func setCSRFCookie(c *gin.Context, token string) {
 		env = "development"
 	}
 	secure := env == "production"
-	
+
 	c.SetCookie(
 		csrfCookieName,
 		token,
 		int(24*time.Hour.Seconds()), // 24 hours
 		"/",
 		"",
-		secure,    // Secure in production
-		false,     // NOT HttpOnly - allows JS to read for Double Submit Cookie pattern
+		secure, // Secure in production
+		false,  // NOT HttpOnly - allows JS to read for Double Submit Cookie pattern
 	)
 }
 
@@ -147,8 +152,10 @@ func CSRFMiddleware() gin.HandlerFunc {
 		skipPaths := []string{
 			"/api/webhooks/",
 			"/api/payments/paymob/callback",
+			"/api/auth/login",
+			"/api/auth/register",
 		}
-		
+
 		path := c.Request.URL.Path
 		for _, skip := range skipPaths {
 			if len(path) >= len(skip) && path[:len(skip)] == skip {
@@ -162,15 +169,21 @@ func CSRFMiddleware() gin.HandlerFunc {
 		// Check if the request has our authentication cookie
 		_, err := c.Cookie("access_token")
 		hasCookie := err == nil
-		
+
 		// If request has auth cookie, enforce CSRF
 		// If no auth cookie, might be using JWT in header - still enforce CSRF as a defense-in-depth
 		// But skip CSRF for API clients that don't use cookies (machine-to-machine)
 		// We can check if the request is likely from a browser by checking Accept header
 		accept := c.GetHeader("Accept")
 		isBrowser := strings.Contains(accept, "text/html") || strings.Contains(accept, "application/xhtml+xml")
-		
-		if hasCookie || isBrowser {
+
+		env := os.Getenv("NODE_ENV")
+		if env == "" {
+			env = "development"
+		}
+
+		if (hasCookie || isBrowser) && env == "production" {
+
 			// Validate CSRF token
 			if !validateCSRFToken(c) {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{

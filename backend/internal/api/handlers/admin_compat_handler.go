@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
-	api_response "thanawy-backend/internal/api/response"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -68,25 +68,25 @@ func AdminCollection(modelType string) gin.HandlerFunc {
 		case http.MethodGet:
 			var total int64
 			var items interface{}
-			
+
 			// Fetch from database based on modelType
 			switch modelType {
 			case "resources":
 				var resources []models.SubTopic
 				db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&total)
-				db.DB.Where("type != ?", models.SubTopicQuiz).Limit(limit).Offset((page-1)*limit).Order("\"createdAt\" DESC").Find(&resources)
+				db.DB.Where("type != ?", models.SubTopicQuiz).Limit(limit).Offset((page - 1) * limit).Order("\"createdAt\" DESC").Find(&resources)
 				items = resources
 			default:
 				items = []interface{}{}
 			}
-			
+
 			pagination := gin.H{
 				"page":       page,
 				"limit":      limit,
 				"total":      total,
 				"totalPages": (total + int64(limit) - 1) / int64(limit),
 			}
-			
+
 			api_response.Success(c, gin.H{
 				modelType:    items,
 				"items":      items,
@@ -264,8 +264,12 @@ func AdminAutomations(c *gin.Context) {
 func AdminReportsContent(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 
 	switch c.Request.Method {
 	case http.MethodGet:
@@ -282,7 +286,7 @@ func AdminReportsContent(c *gin.Context) {
 		db.DB.Model(&models.ContentReport{}).Where("status = ?", "PENDING").Count(&pending)
 		db.DB.Model(&models.ContentReport{}).Where("status = ?", "RESOLVED").Count(&resolved)
 
-		query.Preload("Reporter").Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&reports)
+		query.Preload("Reporter").Order("\"createdAt\" DESC").Limit(limit).Offset((page - 1) * limit).Find(&reports)
 
 		api_response.Success(c, gin.H{
 			"reports": reports,
@@ -327,8 +331,12 @@ func AdminReportsContent(c *gin.Context) {
 func AdminBookReviews(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 
 	switch c.Request.Method {
 	case http.MethodGet:
@@ -340,7 +348,7 @@ func AdminBookReviews(c *gin.Context) {
 			var books []models.Book
 			var total int64
 			db.DB.Model(&models.Book{}).Count(&total)
-			db.DB.Order("views DESC").Limit(limit).Offset((page-1)*limit).Find(&books)
+			db.DB.Order("views DESC").Limit(limit).Offset((page - 1) * limit).Find(&books)
 
 			var totalViews int64
 			db.DB.Model(&models.Book{}).Select("COALESCE(SUM(views), 0)").Scan(&totalViews)
@@ -366,7 +374,7 @@ func AdminBookReviews(c *gin.Context) {
 			var reviews []models.CourseReview
 			var total int64
 			db.DB.Model(&models.CourseReview{}).Count(&total)
-			db.DB.Preload("User").Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&reviews)
+			db.DB.Preload("User").Order("\"createdAt\" DESC").Limit(limit).Offset((page - 1) * limit).Find(&reviews)
 
 			var avgRating float64
 			db.DB.Model(&models.CourseReview{}).Select("COALESCE(AVG(rating), 0)").Scan(&avgRating)
@@ -382,7 +390,9 @@ func AdminBookReviews(c *gin.Context) {
 		}
 
 	case http.MethodDelete:
-		var input struct { ID string `json:"id"` }
+		var input struct {
+			ID string `json:"id"`
+		}
 		if err := c.ShouldBindJSON(&input); err != nil || input.ID == "" {
 			api_response.Error(c, http.StatusBadRequest, "ID is required")
 			return
@@ -434,15 +444,19 @@ func DatabasePartitions(c *gin.Context) {
 func Marketing(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 
 	switch c.Request.Method {
 	case http.MethodGet:
 		var campaigns []models.Campaign
 		var total int64
 		db.DB.Model(&models.Campaign{}).Count(&total)
-		db.DB.Order("\"createdAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&campaigns)
+		db.DB.Order("\"createdAt\" DESC").Limit(limit).Offset((page - 1) * limit).Find(&campaigns)
 
 		pagination := gin.H{
 			"page": page, "limit": limit, "total": total,
@@ -486,7 +500,9 @@ func Marketing(c *gin.Context) {
 		api_response.Success(c, item)
 
 	case http.MethodDelete:
-		var input struct { ID string `json:"id"` }
+		var input struct {
+			ID string `json:"id"`
+		}
 		if err := c.ShouldBindJSON(&input); err != nil || input.ID == "" {
 			api_response.Error(c, http.StatusBadRequest, "ID is required")
 			return
@@ -513,13 +529,13 @@ func Contests(c *gin.Context) {
 	case http.MethodGet:
 		var contests []models.Contest
 		var total int64
-		
+
 		db.DB.Model(&models.Contest{}).Count(&total)
-		if err := db.DB.Limit(limit).Offset((page-1)*limit).Order("\"createdAt\" DESC").Find(&contests).Error; err != nil {
+		if err := db.DB.Limit(limit).Offset((page - 1) * limit).Order("\"createdAt\" DESC").Find(&contests).Error; err != nil {
 			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch contests")
 			return
 		}
-		
+
 		items := make([]gin.H, 0, len(contests))
 		for _, contest := range contests {
 			items = append(items, gin.H{
@@ -534,20 +550,20 @@ func Contests(c *gin.Context) {
 				"createdAt":         contest.CreatedAt,
 			})
 		}
-		
+
 		pagination := gin.H{
 			"page":       page,
 			"limit":      limit,
 			"total":      total,
 			"totalPages": (total + int64(limit) - 1) / int64(limit),
 		}
-		
+
 		api_response.Success(c, gin.H{
-			"contests": items,
-			"items":    items,
-			"data":     gin.H{"contests": items, "items": items, "pagination": pagination},
+			"contests":   items,
+			"items":      items,
+			"data":       gin.H{"contests": items, "items": items, "pagination": pagination},
 			"pagination": pagination,
-			"stats":    gin.H{},
+			"stats":      gin.H{},
 		})
 
 	case http.MethodPost:
@@ -560,19 +576,19 @@ func Contests(c *gin.Context) {
 			api_response.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		
+
 		contest := models.Contest{
 			Title:       input.Title,
 			Description: input.Description,
 			Category:    input.Category,
 			Status:      "DRAFT",
 		}
-		
+
 		if err := db.DB.Create(&contest).Error; err != nil {
 			api_response.Error(c, http.StatusInternalServerError, "Failed to create contest")
 			return
 		}
-		
+
 		LogAudit(c, "CREATE", "contest", contest.ID, contest)
 		api_response.Created(c, contest)
 
@@ -589,13 +605,13 @@ func Contests(c *gin.Context) {
 			api_response.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		
+
 		var contest models.Contest
 		if err := db.DB.First(&contest, "id = ?", id).Error; err != nil {
 			api_response.Error(c, http.StatusNotFound, "Contest not found")
 			return
 		}
-		
+
 		updates := make(map[string]interface{})
 		if input.Title != nil {
 			updates["title"] = *input.Title
@@ -612,12 +628,12 @@ func Contests(c *gin.Context) {
 		if input.PinCode != nil {
 			updates["pinCode"] = input.PinCode
 		}
-		
+
 		if err := db.DB.Model(&contest).Updates(updates).Error; err != nil {
 			api_response.Error(c, http.StatusInternalServerError, "Failed to update contest")
 			return
 		}
-		
+
 		LogAudit(c, "UPDATE", "contest", id, updates)
 		api_response.Success(c, nil)
 
@@ -627,7 +643,7 @@ func Contests(c *gin.Context) {
 			api_response.Error(c, http.StatusInternalServerError, "Failed to delete contest")
 			return
 		}
-		
+
 		LogAudit(c, "DELETE", "contest", id, nil)
 		api_response.Success(c, nil)
 

@@ -77,7 +77,7 @@ func (r *AIConversationRepo) AddMessage(message *models.AIMessage) error {
 	if message.ID == "" {
 		message.ID = uuid.New().String()
 	}
-	
+
 	// Use transaction to add message and update conversation timestamp
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(message).Error; err != nil {
@@ -91,18 +91,18 @@ func (r *AIConversationRepo) AddMessage(message *models.AIMessage) error {
 // GetMessages gets messages for a conversation with limit
 func (r *AIConversationRepo) GetMessages(conversationID string, limit int) ([]models.AIMessage, error) {
 	var messages []models.AIMessage
-	
+
 	query := r.db.Where("\"conversationId\" = ?", conversationID).Order("\"createdAt\" ASC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	err := query.Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return messages, nil
 }
 
@@ -115,7 +115,7 @@ func (r *AIConversationRepo) DeleteOldConversations(olderThan time.Duration) err
 // GetRecentMessages gets the most recent messages for context (last N messages)
 func (r *AIConversationRepo) GetRecentMessages(conversationID string, count int) ([]models.AIMessage, error) {
 	var messages []models.AIMessage
-	
+
 	err := r.db.Where("\"conversationId\" = ?", conversationID).
 		Order("\"createdAt\" DESC").
 		Limit(count).
@@ -123,11 +123,11 @@ func (r *AIConversationRepo) GetRecentMessages(conversationID string, count int)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Reverse to get chronological order
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
-	
+
 	return messages, nil
-}
+}

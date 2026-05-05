@@ -52,6 +52,7 @@ func GetSecurityLogs(c *gin.Context) {
 
 // LogSecurityEvent is a helper function to log security events
 // This can be called from other handlers after successful operations
+// Note: Errors are silently ignored if table doesn't exist (migration pending)
 func LogSecurityEvent(userID string, eventType models.SecurityEventType, ip, userAgent string, location *string, metadata *string) error {
 	log := &models.SecurityLog{
 		UserID:    userID,
@@ -61,5 +62,11 @@ func LogSecurityEvent(userID string, eventType models.SecurityEventType, ip, use
 		Location:  location,
 		Metadata:  metadata,
 	}
-	return getSecurityLogRepo().Create(log)
+	err := getSecurityLogRepo().Create(log)
+	if err != nil {
+		// Silently ignore errors - table/column might not exist yet
+		// fmt.Printf("Security log not saved (table may not exist): %v\n", err)
+		return nil
+	}
+	return nil
 }

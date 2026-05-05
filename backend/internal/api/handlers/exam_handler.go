@@ -6,11 +6,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -74,9 +74,9 @@ func GetExams(c *gin.Context) {
 	// Only query results if we have exams, avoiding potential SQL syntax errors (e.g. "IN ()")
 	if len(examIDs) > 0 {
 		if err := db.DB.Model(&models.ExamResult{}).
-			Select("\"examId\", count(*) as count").
-			Where("\"examId\" IN ?", examIDs).
-			Group("\"examId\"").
+			Select("exam_id, count(*) as count").
+			Where("exam_id IN ?", examIDs).
+			Group("exam_id").
 			Scan(&counts).Error; err != nil {
 			log.Printf("[GetExams] Warning: Error scanning exam result counts: %v", err)
 			// Non-critical, we can continue with zero counts
@@ -234,14 +234,14 @@ func SubmitExam(c *gin.Context) {
 		return
 	}
 
-    // 1. Fetch exam with questions (only load necessary fields to reduce memory usage)
-    var exam models.Exam
-    if err := db.DB.Preload("Questions", func(db *gorm.DB) *gorm.DB {
-        return db.Select("id", "answer")
-    }).First(&exam, "id = ?", examId).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
-        return
-    }
+	// 1. Fetch exam with questions (only load necessary fields to reduce memory usage)
+	var exam models.Exam
+	if err := db.DB.Preload("Questions", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "answer")
+	}).First(&exam, "id = ?", examId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
+		return
+	}
 
 	// 2. Grade the exam
 	correctCount := 0
@@ -268,42 +268,44 @@ func SubmitExam(c *gin.Context) {
 	// 4. Determine if passed (passing threshold: 50% of max score)
 	passed := score >= (exam.MaxScore * 0.5)
 
-    // 5. Save result in a transaction to ensure consistency
-    answersJSON, _ := json.Marshal(submission.Answers)
-    result := models.ExamResult{
-        UserID:  userId.(string),
-        ExamID:  examId,
-        Score:   score,
-        Passed:  passed,
-        Answers: string(answersJSON),
-        TakenAt: time.Now(),
-    }
+	// 5. Save result in a transaction to ensure consistency
+	answersJSON, _ := json.Marshal(submission.Answers)
+	result := models.ExamResult{
+		UserID:  userId.(string),
+		ExamID:  examId,
+		Score:   score,
+		Passed:  passed,
+		Answers: string(answersJSON),
+		TakenAt: time.Now(),
+	}
 
-    tx := db.DB.Begin()
-    defer func() {
-        if r := recover(); r != nil {
-            tx.Rollback()
-        }
-    }()
+	tx := db.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-    if err := tx.Create(&result).Error; err != nil {
-        tx.Rollback()
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
-        return
-    }
+	if err := tx.Create(&result).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
+		return
+	}
 
-    // Commit the transaction
-    if err := tx.Commit().Error; err != nil {
-        tx.Rollback()
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
-        return
-    }
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
+		return
+	}
 
 	services.GetAuditService().LogAsync(userId.(string), services.AuditEventExamFinished, "exam", examId, map[string]interface{}{"score": score, "passed": passed}, c.ClientIP(), c.Request.UserAgent())
 
 	// Notify admins about exam completion
 	statusStr := "فشل"
-	if passed { statusStr = "نجح" }
+	if passed {
+		statusStr = "نجح"
+	}
 	GlobalNotifyAdmins("اكتمال اختبار", fmt.Sprintf("أكمل المستخدم اختبار %s بنتيجة %.1f (%s)", exam.Title, score, statusStr), "info")
 
 	c.JSON(http.StatusOK, result)
@@ -321,7 +323,7 @@ func GetExamResults(c *gin.Context) {
 	}
 
 	var results []models.ExamResult
-	if err := db.DB.Preload("Exam.Subject").Preload("Exam.Questions").Where("\"userId\" = ?", userId).Order("\"takenAt\" desc").Find(&results).Error; err != nil {
+	if err := db.DB.Preload("Exam.Subject").Preload("Exam.Questions").Where("user_id = ?", userId).Order("taken_at desc").Find(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch results"})
 		return
 	}

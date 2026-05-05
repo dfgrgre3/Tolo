@@ -76,10 +76,10 @@ func CreateScheduledItem(c *gin.Context) {
 
 	// Log operation
 	middleware.LogCriticalOperation(c, "scheduler_create", map[string]interface{}{
-		"type":       req.Type,
-		"title":      req.Title,
-		"scheduled":  req.ScheduledFor,
-		"frequency":  req.Frequency,
+		"type":      req.Type,
+		"title":     req.Title,
+		"scheduled": req.ScheduledFor,
+		"frequency": req.Frequency,
 	})
 
 	// If scheduled for immediate execution (within 1 minute), process now

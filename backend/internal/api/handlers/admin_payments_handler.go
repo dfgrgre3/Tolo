@@ -174,7 +174,7 @@ func GetAdminRevenue(c *gin.Context) {
 			Select("COALESCE(SUM(amount), 0)").Scan(&revenue)
 
 		chartData = append(chartData, gin.H{
-			"month": int(d.Month()), // Send index for i18n
+			"month":   int(d.Month()), // Send index for i18n
 			"revenue": revenue,
 		})
 	}

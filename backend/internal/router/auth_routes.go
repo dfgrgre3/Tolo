@@ -21,7 +21,7 @@ func SetupAuthRoutes(router *gin.Engine) {
 		auth.POST("/reset-password", handlers.ResetPassword)
 		auth.GET("/verify-email", handlers.VerifyEmail)
 		auth.POST("/resend-verification", middleware.AuthRateLimiter(), handlers.ResendVerification)
-		
+
 		// Protected auth routes
 		auth.Use(middleware.Auth())
 		{

@@ -11,7 +11,7 @@ type AuditLog struct {
 	UserID     string    `gorm:"index;type:uuid;column:user_id" json:"userId"`
 	User       *User     `json:"user"`
 	EventType  string    `gorm:"index;not null;column:event_type" json:"eventType"` // alias for Action
-	Action     string    `gorm:"column:action" json:"action"`                        // legacy support
+	Action     string    `gorm:"column:action" json:"action"`                       // legacy support
 	Resource   string    `gorm:"column:resource" json:"resource"`
 	ResourceID string    `gorm:"column:resource_id" json:"resourceId"`
 	Changes    string    `gorm:"type:text;column:changes" json:"changes"`
@@ -25,7 +25,11 @@ type AuditLog struct {
 
 func (AuditLog) TableName() string { return "AuditLog" }
 func (a *AuditLog) BeforeCreate(tx *gorm.DB) error {
-	if a.ID == "" { a.ID = uuid.New().String() }
-	if a.CreatedAt.IsZero() { a.CreatedAt = time.Now() }
+	if a.ID == "" {
+		a.ID = uuid.New().String()
+	}
+	if a.CreatedAt.IsZero() {
+		a.CreatedAt = time.Now()
+	}
 	return nil
 }

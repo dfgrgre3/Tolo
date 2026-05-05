@@ -11,396 +11,437 @@ BEGIN;
 -- SET session_replication_role = replica;
 
 -- ============================================
--- Step 1: Drop all foreign key constraints
+-- Step 0: Helper functions for safe migration
 -- ============================================
+CREATE OR REPLACE FUNCTION text_to_uuid(t text) RETURNS uuid AS $$
+BEGIN
+    IF t IS NULL OR t = '' THEN
+        RETURN NULL;
+    END IF;
+    -- Check if it's already a valid UUID (with or without hyphens)
+    IF t ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' OR t ~ '^[0-9a-fA-F]{32}$' THEN
+        RETURN t::uuid;
+    ELSE
+        -- Convert to MD5 and cast to UUID (deterministic conversion)
+        RETURN md5(t)::uuid;
+    END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
--- User related foreign keys
-ALTER TABLE "UserSettings" DROP CONSTRAINT IF EXISTS "fk_user_settings_user_id";
-ALTER TABLE "UserSession" DROP CONSTRAINT IF EXISTS "fk_user_sessions_user_id";
-ALTER TABLE "SecurityLog" DROP CONSTRAINT IF EXISTS "fk_security_logs_user_id";
-ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "fk_notifications_user_id";
-ALTER TABLE "WalletTransaction" DROP CONSTRAINT IF EXISTS "fk_wallet_transactions_user_id";
-ALTER TABLE "Payment" DROP CONSTRAINT IF EXISTS "fk_payments_user_id";
-ALTER TABLE "Invoice" DROP CONSTRAINT IF EXISTS "fk_invoices_user_id";
-ALTER TABLE "Enrollment" DROP CONSTRAINT IF EXISTS "fk_enrollments_user_id";
-ALTER TABLE "LessonProgress" DROP CONSTRAINT IF EXISTS "fk_lesson_progresses_user_id";
-ALTER TABLE "StudySession" DROP CONSTRAINT IF EXISTS "fk_study_sessions_user_id";
-ALTER TABLE "Schedule" DROP CONSTRAINT IF EXISTS "fk_schedules_user_id";
-ALTER TABLE "Reminder" DROP CONSTRAINT IF EXISTS "fk_reminders_user_id";
-ALTER TABLE "Task" DROP CONSTRAINT IF EXISTS "fk_tasks_user_id";
-ALTER TABLE "ExamResult" DROP CONSTRAINT IF EXISTS "fk_exam_results_user_id";
-ALTER TABLE "UserSubscription" DROP CONSTRAINT IF EXISTS "fk_user_subscriptions_user_id";
-ALTER TABLE "UserAchievement" DROP CONSTRAINT IF EXISTS "fk_user_achievements_user_id";
-ALTER TABLE "UserChallenge" DROP CONSTRAINT IF EXISTS "fk_user_challenges_user_id";
-ALTER TABLE "Activity" DROP CONSTRAINT IF EXISTS "fk_activities_user_id";
-ALTER TABLE "AIConversation" DROP CONSTRAINT IF EXISTS "fk_ai_conversations_user_id";
+CREATE OR REPLACE FUNCTION text_to_uuid(u uuid) RETURNS uuid AS $$
+BEGIN
+    RETURN u;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
--- Subject related foreign keys
-ALTER TABLE "Topic" DROP CONSTRAINT IF EXISTS "fk_topics_subject_id";
-ALTER TABLE "CourseReview" DROP CONSTRAINT IF EXISTS "fk_course_reviews_subject_id";
-ALTER TABLE "Enrollment" DROP CONSTRAINT IF EXISTS "fk_enrollments_subject_id";
-ALTER TABLE "LessonProgress" DROP CONSTRAINT IF EXISTS "fk_lesson_progresses_lesson_id"; -- Actually lesson_id references SubTopic
-ALTER TABLE "StudySession" DROP CONSTRAINT IF EXISTS "fk_study_sessions_subject_id";
-ALTER TABLE "Task" DROP CONSTRAINT IF EXISTS "fk_tasks_subject_id";
-ALTER TABLE "Exam" DROP CONSTRAINT IF EXISTS "fk_exams_subject_id";
-ALTER TABLE "BlogPost" DROP CONSTRAINT IF EXISTS "fk_blog_posts_subject_id";
-ALTER TABLE "LiveEvent" DROP CONSTRAINT IF EXISTS "fk_live_events_subject_id";
-ALTER TABLE "Book" DROP CONSTRAINT IF EXISTS "fk_books_subject_id";
-ALTER TABLE "Challenge" DROP CONSTRAINT IF EXISTS "fk_challenges_subject_id";
-ALTER TABLE "Contest" DROP CONSTRAINT IF EXISTS "fk_contests_subject_id";
-ALTER TABLE "Activity" DROP CONSTRAINT IF EXISTS "fk_activities_subject_id";
+CREATE OR REPLACE FUNCTION safe_migrate_column(t_name text, old_col text, new_col text, new_type text) RETURNS void AS $$
+DECLARE
+    current_type text;
+    is_partition_key boolean;
+BEGIN
+    -- If old column exists, try to alter its type and rename it
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = t_name AND column_name = old_col) THEN
+        SELECT data_type INTO current_type FROM information_schema.columns WHERE table_name = t_name AND column_name = old_col;
+        
+        -- Check if it's a partition key (cannot be altered directly)
+        SELECT EXISTS (
+            SELECT 1 FROM pg_partitioned_table pt 
+            JOIN pg_class c ON pt.partrelid = c.oid 
+            JOIN pg_attribute a ON a.attrelid = c.oid
+            WHERE c.relname = t_name AND a.attname = old_col
+            AND a.attnum = ANY(pt.partattrs)
+        ) INTO is_partition_key;
 
--- Exam related foreign keys
-ALTER TABLE "Question" DROP CONSTRAINT IF EXISTS "fk_questions_exam_id";
-ALTER TABLE "ExamResult" DROP CONSTRAINT IF EXISTS "fk_exam_results_exam_id";
-ALTER TABLE "UserChallenge" DROP CONSTRAINT IF EXISTS "fk_user_challenges_exam_id";
+        -- Alter type using deterministic conversion if target is uuid
+        IF new_type = 'uuid' AND current_type != 'uuid' THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE uuid USING text_to_uuid(%I::text)', t_name, old_col, old_col);
+        ELSIF NOT is_partition_key AND current_type != new_type 
+              AND NOT (new_type = 'timestamptz' AND current_type = 'timestamp with time zone')
+              AND NOT (new_type = 'timestamp with time zone' AND current_type = 'timestamptz') THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE %s USING %I::%s', t_name, old_col, new_type, old_col, new_type);
+        END IF;
+        
+        -- Rename if names are different
+        IF old_col != new_col THEN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = t_name AND column_name = new_col) THEN
+                EXECUTE format('ALTER TABLE %I RENAME COLUMN %I TO %I', t_name, old_col, new_col);
+            END IF;
+        END IF;
+    ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = t_name AND column_name = new_col) THEN
+        -- Old column doesn't exist, but new column does. Just ensure type is correct.
+        SELECT data_type INTO current_type FROM information_schema.columns WHERE table_name = t_name AND column_name = new_col;
+        
+        -- Check if it's a partition key
+        SELECT EXISTS (
+            SELECT 1 FROM pg_partitioned_table pt 
+            JOIN pg_class c ON pt.partrelid = c.oid 
+            JOIN pg_attribute a ON a.attrelid = c.oid
+            WHERE c.relname = t_name AND a.attname = new_col
+            AND a.attnum = ANY(pt.partattrs)
+        ) INTO is_partition_key;
 
--- Other foreign keys
-ALTER TABLE "SubTopic" DROP CONSTRAINT IF EXISTS "fk_sub_topics_topic_id";
-ALTER TABLE "LessonAttachment" DROP CONSTRAINT IF EXISTS "fk_lesson_attachments_sub_topic_id";
-ALTER TABLE "UserSubscription" DROP CONSTRAINT IF EXISTS "fk_user_subscriptions_plan_id";
-ALTER TABLE "Payment" DROP CONSTRAINT IF EXISTS "fk_payments_subject_id";
-ALTER TABLE "Payment" DROP CONSTRAINT IF EXISTS "fk_payments_plan_id";
-ALTER TABLE "Invoice" DROP CONSTRAINT IF EXISTS "fk_invoices_payment_id";
-ALTER TABLE "WalletTransaction" DROP CONSTRAINT IF EXISTS "fk_wallet_transactions_reference_id";
-ALTER TABLE "AIMessage" DROP CONSTRAINT IF EXISTS "fk_ai_messages_conversation_id";
-ALTER TABLE "UserAchievement" DROP CONSTRAINT IF EXISTS "fk_user_achievements_achievement_id";
-ALTER TABLE "UserChallenge" DROP CONSTRAINT IF EXISTS "fk_user_challenges_challenge_id";
-ALTER TABLE "ContestQuestion" DROP CONSTRAINT IF EXISTS "fk_contest_questions_contest_id";
-ALTER TABLE "ForumTopic" DROP CONSTRAINT IF EXISTS "fk_forum_topics_author_id";
-ALTER TABLE "ForumTopic" DROP CONSTRAINT IF EXISTS "fk_forum_topics_category_id";
-ALTER TABLE "BlogPost" DROP CONSTRAINT IF EXISTS "fk_blog_posts_author_id";
-ALTER TABLE "CourseReview" DROP CONSTRAINT IF EXISTS "fk_course_reviews_user_id";
+        IF new_type = 'uuid' AND current_type != 'uuid' THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE uuid USING text_to_uuid(%I::text)', t_name, new_col, new_col);
+        ELSIF NOT is_partition_key AND current_type != new_type 
+              AND NOT (new_type = 'timestamptz' AND current_type = 'timestamp with time zone')
+              AND NOT (new_type = 'timestamp with time zone' AND current_type = 'timestamptz') THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE %s USING %I::%s', t_name, new_col, new_type, new_col, new_type);
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
--- ============================================
--- Step 2: Alter primary key columns from text to uuid
--- ============================================
-
--- User table
-ALTER TABLE "User" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Payment table
-ALTER TABLE "Payment" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Invoice table
-ALTER TABLE "Invoice" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- UserSettings table
-ALTER TABLE "UserSettings" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- SystemSetting table
-ALTER TABLE "SystemSetting" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- SubscriptionPlan table
-ALTER TABLE "SubscriptionPlan" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- UserSubscription table
-ALTER TABLE "UserSubscription" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Subject table
-ALTER TABLE "Subject" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Topic table
-ALTER TABLE "Topic" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- SubTopic table
-ALTER TABLE "SubTopic" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- LessonAttachment table
-ALTER TABLE "LessonAttachment" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- CourseReview table
-ALTER TABLE "CourseReview" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- UserSession table
-ALTER TABLE "UserSession" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- SecurityLog table
-ALTER TABLE "SecurityLog" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Notification table
-ALTER TABLE "Notification" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- WalletTransaction table
-ALTER TABLE "WalletTransaction" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Achievement table
-ALTER TABLE "Achievement" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Reward table
-ALTER TABLE "Reward" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Season table
-ALTER TABLE "Season" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Challenge table
-ALTER TABLE "Challenge" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- UserAchievement table
-ALTER TABLE "UserAchievement" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- UserChallenge table
-ALTER TABLE "UserChallenge" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Exam table (already uuid, but just in case)
-ALTER TABLE "Exam" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Question table (already uuid, but just in case)
-ALTER TABLE "Question" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- ExamResult table (already uuid, but just in case)
-ALTER TABLE "ExamResult" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Enrollment table
-ALTER TABLE "Enrollment" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- LessonProgress table
-ALTER TABLE "LessonProgress" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- StudySession table
-ALTER TABLE "StudySession" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Schedule table
-ALTER TABLE "Schedule" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Reminder table
-ALTER TABLE "Reminder" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Task table
-ALTER TABLE "Task" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Contest table
-ALTER TABLE "Contest" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- ContestQuestion table
-ALTER TABLE "ContestQuestion" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- BlogPost table
-ALTER TABLE "BlogPost" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- ForumCategory table
-ALTER TABLE "ForumCategory" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- ForumTopic table
-ALTER TABLE "ForumTopic" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- LiveEvent table
-ALTER TABLE "LiveEvent" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Book table
-ALTER TABLE "Book" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Event table
-ALTER TABLE "Event" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- Activity table
-ALTER TABLE "Activity" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- AIConversation table
-ALTER TABLE "AIConversation" ALTER COLUMN id TYPE uuid USING id::uuid;
-
--- AIMessage table
-ALTER TABLE "AIMessage" ALTER COLUMN id TYPE uuid USING id::uuid;
+CREATE OR REPLACE FUNCTION safe_add_constraint(t_name text, c_name text, c_def text) RETURNS void AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t_name) THEN
+        BEGIN
+            EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I %s', t_name, c_name, c_def);
+        EXCEPTION WHEN others THEN
+            RAISE NOTICE 'Could not add constraint % on table %: %', c_name, t_name, SQLERRM;
+        END;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================
--- Step 3: Alter foreign key columns from text to uuid
+-- Step 1: Drop views and foreign key constraints safely
 -- ============================================
 
--- -- Step 3 & 4 Combined Logic for Snake Case
--- User related renames and constraints
-ALTER TABLE "UserSettings" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "UserSettings" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "UserSettings" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "UserSettings" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "UserSettings" ADD CONSTRAINT "fk_user_settings_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+-- Drop views that depend on columns we are about to alter
+DROP VIEW IF EXISTS "ActiveUsers";
+DROP VIEW IF EXISTS "ActivePayments";
+DROP VIEW IF EXISTS "ActiveEnrollments";
 
-ALTER TABLE "UserSession" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "UserSession" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "UserSession" RENAME COLUMN "refreshToken" TO refresh_token;
-ALTER TABLE "UserSession" RENAME COLUMN "userAgent" TO user_agent;
-ALTER TABLE "UserSession" RENAME COLUMN "deviceType" TO device_type;
-ALTER TABLE "UserSession" RENAME COLUMN "isActive" TO is_active;
-ALTER TABLE "UserSession" RENAME COLUMN "lastAccessed" TO last_accessed;
-ALTER TABLE "UserSession" RENAME COLUMN "expiresAt" TO expires_at;
-ALTER TABLE "UserSession" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "UserSession" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "UserSession" ADD CONSTRAINT "fk_user_sessions_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+DO $$
+DECLARE
+    t_name text;
+    c_name text;
+BEGIN
+    -- Drop ALL foreign key constraints in the entire database.
+    -- This is necessary because we are changing primary key types from TEXT to UUID 
+    -- across the entire schema, and any referencing foreign key will block this change.
+    FOR t_name, c_name IN 
+        SELECT r.relname, c.conname 
+        FROM pg_constraint c 
+        JOIN pg_class r ON r.oid = c.conrelid 
+        WHERE c.contype = 'f' 
+    LOOP
+        EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', t_name, c_name);
+    END LOOP;
+END $$;
 
-ALTER TABLE "SecurityLog" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "SecurityLog" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "SecurityLog" RENAME COLUMN "eventType" TO event_type;
-ALTER TABLE "SecurityLog" RENAME COLUMN "userAgent" TO user_agent;
-ALTER TABLE "SecurityLog" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "SecurityLog" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "SecurityLog" ADD CONSTRAINT "fk_security_logs_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+-- ============================================
+-- Step 2: Alter primary key columns from text to uuid (Safe Version)
+-- ============================================
+-- ============================================
+-- Step 2: Alter primary key columns from text to uuid (Safe Version)
+-- ============================================
 
-ALTER TABLE "Notification" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Notification" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Notification" RENAME COLUMN "isActive" TO is_active;
-ALTER TABLE "Notification" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Notification" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Notification" ADD CONSTRAINT "fk_notifications_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+CREATE OR REPLACE FUNCTION safe_alter_pk(t_name text) RETURNS void AS $$
+DECLARE
+    current_type text;
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t_name) THEN
+        SELECT data_type INTO current_type FROM information_schema.columns WHERE table_name = t_name AND column_name = 'id';
+        
+        IF current_type != 'uuid' THEN
+            EXECUTE format('ALTER TABLE %I ALTER COLUMN id TYPE uuid USING text_to_uuid(id::text)', t_name);
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
-ALTER TABLE "WalletTransaction" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "WalletTransaction" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "WalletTransaction" RENAME COLUMN "walletType" TO wallet_type;
-ALTER TABLE "WalletTransaction" ALTER COLUMN "referenceId" TYPE uuid USING "referenceId"::uuid;
-ALTER TABLE "WalletTransaction" RENAME COLUMN "referenceId" TO reference_id;
-ALTER TABLE "WalletTransaction" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "WalletTransaction" ADD CONSTRAINT "fk_wallet_transactions_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+SELECT safe_alter_pk('User');
+SELECT safe_alter_pk('Subject');
+SELECT safe_alter_pk('Category');
+SELECT safe_alter_pk('SystemSetting');
+SELECT safe_alter_pk('SubscriptionPlan');
+SELECT safe_alter_pk('UserSettings');
+SELECT safe_alter_pk('UserSession');
+SELECT safe_alter_pk('SecurityLog');
+SELECT safe_alter_pk('Notification');
+SELECT safe_alter_pk('WalletTransaction');
+SELECT safe_alter_pk('Payment');
+SELECT safe_alter_pk('Invoice');
+SELECT safe_alter_pk('Enrollment');
+SELECT safe_alter_pk('SubjectEnrollment');
+SELECT safe_alter_pk('LessonProgress');
+SELECT safe_alter_pk('StudySession');
+SELECT safe_alter_pk('Schedule');
+SELECT safe_alter_pk('Reminder');
+SELECT safe_alter_pk('Task');
+SELECT safe_alter_pk('Topic');
+SELECT safe_alter_pk('SubTopic');
+SELECT safe_alter_pk('LessonAttachment');
+SELECT safe_alter_pk('Exam');
+SELECT safe_alter_pk('Question');
+SELECT safe_alter_pk('ExamResult');
+SELECT safe_alter_pk('UserSubscription');
+SELECT safe_alter_pk('Achievement');
+SELECT safe_alter_pk('UserAchievement');
+SELECT safe_alter_pk('Challenge');
+SELECT safe_alter_pk('UserChallenge');
+SELECT safe_alter_pk('Activity');
+SELECT safe_alter_pk('AIConversation');
+SELECT safe_alter_pk('AIMessage');
+SELECT safe_alter_pk('Season');
+SELECT safe_alter_pk('Contest');
+SELECT safe_alter_pk('ContestQuestion');
+SELECT safe_alter_pk('BlogPost');
+SELECT safe_alter_pk('ForumCategory');
+SELECT safe_alter_pk('ForumTopic');
+SELECT safe_alter_pk('LiveEvent');
+SELECT safe_alter_pk('Book');
+SELECT safe_alter_pk('Event');
+SELECT safe_alter_pk('Reward');
+SELECT safe_alter_pk('Coupon');
+SELECT safe_alter_pk('Automation');
+SELECT safe_alter_pk('ABExperiment');
+SELECT safe_alter_pk('AuditLog');
+SELECT safe_alter_pk('Campaign');
+SELECT safe_alter_pk('ContentReport');
+SELECT safe_alter_pk('ScheduledItem');
+SELECT safe_alter_pk('Backup');
+SELECT safe_alter_pk('SupportTicket');
 
-ALTER TABLE "Payment" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Payment" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Payment" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Payment" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Payment" ALTER COLUMN "planId" TYPE uuid USING "planId"::uuid;
-ALTER TABLE "Payment" RENAME COLUMN "planId" TO plan_id;
-ALTER TABLE "Payment" RENAME COLUMN "paymobOrderId" TO paymob_order_id;
-ALTER TABLE "Payment" RENAME COLUMN "paymobTransactionId" TO paymob_transaction_id;
-ALTER TABLE "Payment" RENAME COLUMN "paymentMethod" TO payment_method;
-ALTER TABLE "Payment" RENAME COLUMN "isSuccessful" TO is_successful;
-ALTER TABLE "Payment" RENAME COLUMN "failureReason" TO failure_reason;
-ALTER TABLE "Payment" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Payment" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Payment" ADD CONSTRAINT "fk_payments_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+DROP FUNCTION IF EXISTS safe_alter_pk(text);
 
-ALTER TABLE "Invoice" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Invoice" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Invoice" ALTER COLUMN "paymentId" TYPE uuid USING "paymentId"::uuid;
-ALTER TABLE "Invoice" RENAME COLUMN "paymentId" TO payment_id;
-ALTER TABLE "Invoice" RENAME COLUMN "invoiceNumber" TO invoice_number;
-ALTER TABLE "Invoice" RENAME COLUMN "invoiceDate" TO invoice_date;
-ALTER TABLE "Invoice" RENAME COLUMN "dueDate" TO due_date;
-ALTER TABLE "Invoice" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Invoice" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Invoice" ADD CONSTRAINT "fk_invoices_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+-- ============================================
+-- Step 3: Alter foreign key columns and rename (Safe Version)
+-- ============================================
 
-ALTER TABLE "Enrollment" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Enrollment" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Enrollment" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Enrollment" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Enrollment" RENAME COLUMN "enrolledAt" TO enrolled_at;
-ALTER TABLE "Enrollment" ADD CONSTRAINT "fk_enrollments_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "Enrollment" ADD CONSTRAINT "fk_enrollments_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE;
+DO $$ 
+BEGIN
+    -- UserSettings
+    PERFORM safe_migrate_column('UserSettings', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('UserSettings', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('UserSettings', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('UserSettings', 'fk_user_settings_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "LessonProgress" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "LessonProgress" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "LessonProgress" ALTER COLUMN "lessonId" TYPE uuid USING "lessonId"::uuid;
-ALTER TABLE "LessonProgress" RENAME COLUMN "lessonId" TO lesson_id;
-ALTER TABLE "LessonProgress" RENAME COLUMN "isCompleted" TO is_completed;
-ALTER TABLE "LessonProgress" RENAME COLUMN "completedAt" TO completed_at;
-ALTER TABLE "LessonProgress" RENAME COLUMN "lastAccessedAt" TO last_accessed_at;
-ALTER TABLE "LessonProgress" ADD CONSTRAINT "fk_lesson_progresses_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+    -- UserSession
+    PERFORM safe_migrate_column('UserSession', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('UserSession', 'refreshToken', 'refresh_token', 'text');
+    PERFORM safe_migrate_column('UserSession', 'userAgent', 'user_agent', 'text');
+    PERFORM safe_migrate_column('UserSession', 'deviceType', 'device_type', 'text');
+    PERFORM safe_migrate_column('UserSession', 'isActive', 'is_active', 'boolean');
+    PERFORM safe_migrate_column('UserSession', 'lastAccessed', 'last_accessed', 'timestamptz');
+    PERFORM safe_migrate_column('UserSession', 'expiresAt', 'expires_at', 'timestamptz');
+    PERFORM safe_migrate_column('UserSession', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('UserSession', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('UserSession', 'fk_user_sessions_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "StudySession" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "StudySession" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "StudySession" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "StudySession" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "StudySession" RENAME COLUMN "durationMin" TO duration_min;
-ALTER TABLE "StudySession" RENAME COLUMN "focusScore" TO focus_score;
-ALTER TABLE "StudySession" RENAME COLUMN "startTime" TO start_time;
-ALTER TABLE "StudySession" RENAME COLUMN "endTime" TO end_time;
-ALTER TABLE "StudySession" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "StudySession" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "StudySession" ADD CONSTRAINT "fk_study_sessions_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "StudySession" ADD CONSTRAINT "fk_study_sessions_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL;
+    -- SecurityLog
+    PERFORM safe_migrate_column('SecurityLog', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('SecurityLog', 'eventType', 'event_type', 'text');
+    PERFORM safe_migrate_column('SecurityLog', 'userAgent', 'user_agent', 'text');
+    PERFORM safe_migrate_column('SecurityLog', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('SecurityLog', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('SecurityLog', 'fk_security_logs_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Schedule" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Schedule" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Schedule" RENAME COLUMN "planJson" TO plan_json;
-ALTER TABLE "Schedule" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Schedule" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Schedule" ADD CONSTRAINT "fk_schedules_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+    -- Notification
+    PERFORM safe_migrate_column('Notification', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Notification', 'isActive', 'is_active', 'boolean');
+    PERFORM safe_migrate_column('Notification', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Notification', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Notification', 'fk_notifications_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Reminder" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Reminder" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Reminder" RENAME COLUMN "remindAt" TO remind_at;
-ALTER TABLE "Reminder" RENAME COLUMN "isActive" TO is_active;
-ALTER TABLE "Reminder" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Reminder" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Reminder" ADD CONSTRAINT "fk_reminders_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+    -- WalletTransaction
+    PERFORM safe_migrate_column('WalletTransaction', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('WalletTransaction', 'walletType', 'wallet_type', 'text');
+    PERFORM safe_migrate_column('WalletTransaction', 'referenceId', 'reference_id', 'uuid');
+    PERFORM safe_migrate_column('WalletTransaction', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_add_constraint('WalletTransaction', 'fk_wallet_transactions_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Task" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Task" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Task" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Task" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Task" RENAME COLUMN "dueAt" TO due_at;
-ALTER TABLE "Task" RENAME COLUMN "estimatedTime" TO estimated_time;
-ALTER TABLE "Task" RENAME COLUMN "actualTime" TO actual_time;
-ALTER TABLE "Task" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Task" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Task" ADD CONSTRAINT "fk_tasks_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "Task" ADD CONSTRAINT "fk_tasks_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL;
+    -- Payment
+    PERFORM safe_migrate_column('Payment', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Payment', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_migrate_column('Payment', 'planId', 'plan_id', 'uuid');
+    PERFORM safe_migrate_column('Payment', 'paymobOrderId', 'paymob_order_id', 'text');
+    PERFORM safe_migrate_column('Payment', 'paymobTransactionId', 'paymob_transaction_id', 'text');
+    PERFORM safe_migrate_column('Payment', 'paymentMethod', 'payment_method', 'text');
+    PERFORM safe_migrate_column('Payment', 'isSuccessful', 'is_successful', 'boolean');
+    PERFORM safe_migrate_column('Payment', 'failureReason', 'failure_reason', 'text');
+    PERFORM safe_migrate_column('Payment', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Payment', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Payment', 'fk_payments_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Exam" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Exam" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Exam" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "Exam" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "Exam" ADD CONSTRAINT "fk_exams_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE;
+    -- Invoice
+    PERFORM safe_migrate_column('Invoice', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Invoice', 'paymentId', 'payment_id', 'uuid');
+    PERFORM safe_migrate_column('Invoice', 'invoiceNumber', 'invoice_number', 'text');
+    PERFORM safe_migrate_column('Invoice', 'invoiceDate', 'invoice_date', 'timestamptz');
+    PERFORM safe_migrate_column('Invoice', 'dueDate', 'due_date', 'timestamptz');
+    PERFORM safe_migrate_column('Invoice', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Invoice', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Invoice', 'fk_invoices_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Question" ALTER COLUMN "examId" TYPE uuid USING "examId"::uuid;
-ALTER TABLE "Question" RENAME COLUMN "examId" TO exam_id;
-ALTER TABLE "Question" ADD CONSTRAINT "fk_questions_exam_id" FOREIGN KEY (exam_id) REFERENCES "Exam"(id) ON DELETE CASCADE;
+    -- Enrollment
+    PERFORM safe_migrate_column('Enrollment', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Enrollment', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_migrate_column('Enrollment', 'enrolledAt', 'enrolled_at', 'timestamptz');
+    PERFORM safe_add_constraint('Enrollment', 'fk_enrollments_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('Enrollment', 'fk_enrollments_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE');
 
-ALTER TABLE "ExamResult" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "ExamResult" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "ExamResult" ALTER COLUMN "examId" TYPE uuid USING "examId"::uuid;
-ALTER TABLE "ExamResult" RENAME COLUMN "examId" TO exam_id;
-ALTER TABLE "ExamResult" RENAME COLUMN "takenAt" TO taken_at;
-ALTER TABLE "ExamResult" RENAME COLUMN "createdAt" TO created_at;
-ALTER TABLE "ExamResult" RENAME COLUMN "updatedAt" TO updated_at;
-ALTER TABLE "ExamResult" ADD CONSTRAINT "fk_exam_results_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "ExamResult" ADD CONSTRAINT "fk_exam_results_exam_id" FOREIGN KEY (exam_id) REFERENCES "Exam"(id) ON DELETE CASCADE;
+    -- LessonProgress
+    PERFORM safe_migrate_column('LessonProgress', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('LessonProgress', 'lessonId', 'lesson_id', 'uuid');
+    PERFORM safe_migrate_column('LessonProgress', 'isCompleted', 'is_completed', 'boolean');
+    PERFORM safe_migrate_column('LessonProgress', 'completedAt', 'completed_at', 'timestamptz');
+    PERFORM safe_migrate_column('LessonProgress', 'lastAccessedAt', 'last_accessed_at', 'timestamptz');
+    PERFORM safe_add_constraint('LessonProgress', 'fk_lesson_progresses_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
--- Subject renames and other foreign keys
-ALTER TABLE "Topic" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Topic" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Topic" ADD CONSTRAINT "fk_topics_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE;
+    -- StudySession
+    PERFORM safe_migrate_column('StudySession', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('StudySession', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_migrate_column('StudySession', 'durationMin', 'duration_min', 'integer');
+    PERFORM safe_migrate_column('StudySession', 'focusScore', 'focus_score', 'integer');
+    PERFORM safe_migrate_column('StudySession', 'startTime', 'start_time', 'timestamptz');
+    PERFORM safe_migrate_column('StudySession', 'endTime', 'end_time', 'timestamptz');
+    PERFORM safe_migrate_column('StudySession', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('StudySession', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('StudySession', 'fk_study_sessions_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('StudySession', 'fk_study_sessions_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL');
 
-ALTER TABLE "SubTopic" ALTER COLUMN "topicId" TYPE uuid USING "topicId"::uuid;
-ALTER TABLE "SubTopic" RENAME COLUMN "topicId" TO topic_id;
-ALTER TABLE "SubTopic" ADD CONSTRAINT "fk_sub_topics_topic_id" FOREIGN KEY (topic_id) REFERENCES "Topic"(id) ON DELETE CASCADE;
+    -- Schedule
+    PERFORM safe_migrate_column('Schedule', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Schedule', 'planJson', 'plan_json', 'text');
+    PERFORM safe_migrate_column('Schedule', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Schedule', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Schedule', 'fk_schedules_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "UserSubscription" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "UserSubscription" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "UserSubscription" ALTER COLUMN "planId" TYPE uuid USING "planId"::uuid;
-ALTER TABLE "UserSubscription" RENAME COLUMN "planId" TO plan_id;
-ALTER TABLE "UserSubscription" ADD CONSTRAINT "fk_user_subscriptions_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "UserSubscription" ADD CONSTRAINT "fk_user_subscriptions_plan_id" FOREIGN KEY (plan_id) REFERENCES "SubscriptionPlan"(id) ON DELETE SET NULL;
+    -- Reminder
+    PERFORM safe_migrate_column('Reminder', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Reminder', 'remindAt', 'remind_at', 'timestamptz');
+    PERFORM safe_migrate_column('Reminder', 'isActive', 'is_active', 'boolean');
+    PERFORM safe_migrate_column('Reminder', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Reminder', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Reminder', 'fk_reminders_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
 
-ALTER TABLE "UserAchievement" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "UserAchievement" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "UserAchievement" ALTER COLUMN "achievementId" TYPE uuid USING "achievementId"::uuid;
-ALTER TABLE "UserAchievement" RENAME COLUMN "achievementId" TO achievement_id;
-ALTER TABLE "UserAchievement" ADD CONSTRAINT "fk_user_achievements_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+    -- Task
+    PERFORM safe_migrate_column('Task', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Task', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_migrate_column('Task', 'dueAt', 'due_at', 'timestamptz');
+    PERFORM safe_migrate_column('Task', 'estimatedTime', 'estimated_time', 'integer');
+    PERFORM safe_migrate_column('Task', 'actualTime', 'actual_time', 'integer');
+    PERFORM safe_migrate_column('Task', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Task', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Task', 'fk_tasks_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('Task', 'fk_tasks_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL');
 
-ALTER TABLE "UserChallenge" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "UserChallenge" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "UserChallenge" ALTER COLUMN "challengeId" TYPE uuid USING "challengeId"::uuid;
-ALTER TABLE "UserChallenge" RENAME COLUMN "challengeId" TO challenge_id;
-ALTER TABLE "UserChallenge" ALTER COLUMN "examId" TYPE uuid USING "examId"::uuid;
-ALTER TABLE "UserChallenge" RENAME COLUMN "examId" TO exam_id;
-ALTER TABLE "UserChallenge" ADD CONSTRAINT "fk_user_challenges_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "UserChallenge" ADD CONSTRAINT "fk_user_challenges_challenge_id" FOREIGN KEY (challenge_id) REFERENCES "Challenge"(id) ON DELETE CASCADE;
+    -- Exam
+    PERFORM safe_migrate_column('Exam', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_migrate_column('Exam', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('Exam', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('Exam', 'fk_exams_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE');
 
-ALTER TABLE "Activity" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "Activity" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "Activity" ALTER COLUMN "subjectId" TYPE uuid USING "subjectId"::uuid;
-ALTER TABLE "Activity" RENAME COLUMN "subjectId" TO subject_id;
-ALTER TABLE "Activity" ADD CONSTRAINT "fk_activities_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
-ALTER TABLE "Activity" ADD CONSTRAINT "fk_activities_subject_id" FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL;
+    -- Question
+    PERFORM safe_migrate_column('Question', 'examId', 'exam_id', 'uuid');
+    PERFORM safe_add_constraint('Question', 'fk_questions_exam_id', 'FOREIGN KEY (exam_id) REFERENCES "Exam"(id) ON DELETE CASCADE');
 
-ALTER TABLE "AIConversation" ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid;
-ALTER TABLE "AIConversation" RENAME COLUMN "userId" TO user_id;
-ALTER TABLE "AIConversation" ADD CONSTRAINT "fk_ai_conversations_user_id" FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE;
+    -- ExamResult
+    PERFORM safe_migrate_column('ExamResult', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('ExamResult', 'examId', 'exam_id', 'uuid');
+    PERFORM safe_migrate_column('ExamResult', 'takenAt', 'taken_at', 'timestamptz');
+    PERFORM safe_migrate_column('ExamResult', 'createdAt', 'created_at', 'timestamptz');
+    PERFORM safe_migrate_column('ExamResult', 'updatedAt', 'updated_at', 'timestamptz');
+    PERFORM safe_add_constraint('ExamResult', 'fk_exam_results_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('ExamResult', 'fk_exam_results_exam_id', 'FOREIGN KEY (exam_id) REFERENCES "Exam"(id) ON DELETE CASCADE');
 
-ALTER TABLE "User" RENAME COLUMN "emailVerified" TO email_verified;
-ALTER TABLE "User" RENAME COLUMN "phoneVerified" TO phone_verified;
-ALTER TABLE "User" RENAME COLUMN "activeSubscriptionId" TYPE uuid USING "activeSubscriptionId"::uuid;
-ALTER TABLE "User" RENAME COLUMN "activeSubscriptionId" TO active_subscription_id;
-ALTER TABLE "User" ADD CONSTRAINT "fk_user_active_subscription" FOREIGN KEY (active_subscription_id) REFERENCES "UserSubscription"(id) ON DELETE SET NULL;
+    -- Topic
+    PERFORM safe_migrate_column('Topic', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_add_constraint('Topic', 'fk_topics_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE');
 
--- Final Step: Re-enable triggers (Step 5)
+    -- SubTopic
+    PERFORM safe_migrate_column('SubTopic', 'topicId', 'topic_id', 'uuid');
+    PERFORM safe_add_constraint('SubTopic', 'fk_sub_topics_topic_id', 'FOREIGN KEY (topic_id) REFERENCES "Topic"(id) ON DELETE CASCADE');
+
+    -- UserSubscription
+    PERFORM safe_migrate_column('UserSubscription', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('UserSubscription', 'planId', 'plan_id', 'uuid');
+    PERFORM safe_add_constraint('UserSubscription', 'fk_user_subscriptions_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('UserSubscription', 'fk_user_subscriptions_plan_id', 'FOREIGN KEY (plan_id) REFERENCES "SubscriptionPlan"(id) ON DELETE SET NULL');
+
+    -- UserAchievement
+    PERFORM safe_migrate_column('UserAchievement', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('UserAchievement', 'achievementId', 'achievement_id', 'uuid');
+    PERFORM safe_add_constraint('UserAchievement', 'fk_user_achievements_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+
+    -- UserChallenge
+    PERFORM safe_migrate_column('UserChallenge', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('UserChallenge', 'challengeId', 'challenge_id', 'uuid');
+    PERFORM safe_migrate_column('UserChallenge', 'examId', 'exam_id', 'uuid');
+    PERFORM safe_add_constraint('UserChallenge', 'fk_user_challenges_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('UserChallenge', 'fk_user_challenges_challenge_id', 'FOREIGN KEY (challenge_id) REFERENCES "Challenge"(id) ON DELETE CASCADE');
+
+    -- Activity
+    PERFORM safe_migrate_column('Activity', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('Activity', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_add_constraint('Activity', 'fk_activities_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('Activity', 'fk_activities_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE SET NULL');
+
+    -- AIConversation
+    PERFORM safe_migrate_column('AIConversation', 'userId', 'user_id', 'uuid');
+    PERFORM safe_add_constraint('AIConversation', 'fk_ai_conversations_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+
+    -- User renames
+    PERFORM safe_migrate_column('User', 'emailVerified', 'email_verified', 'boolean');
+    PERFORM safe_migrate_column('User', 'phoneVerified', 'phone_verified', 'boolean');
+    PERFORM safe_migrate_column('User', 'activeSubscriptionId', 'active_subscription_id', 'uuid');
+    PERFORM safe_migrate_column('User', 'referredById', 'referred_by_id', 'uuid');
+    PERFORM safe_add_constraint('User', 'fk_user_active_subscription', 'FOREIGN KEY (active_subscription_id) REFERENCES "UserSubscription"(id) ON DELETE SET NULL');
+    PERFORM safe_add_constraint('User', 'fk_user_referred_by_id', 'FOREIGN KEY (referred_by_id) REFERENCES "User"(id) ON DELETE SET NULL');
+
+    -- EventAttendee
+    PERFORM safe_migrate_column('EventAttendee', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('EventAttendee', 'eventId', 'event_id', 'uuid');
+    PERFORM safe_add_constraint('EventAttendee', 'fk_event_attendee_user', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('EventAttendee', 'fk_event_attendee_event', 'FOREIGN KEY (event_id) REFERENCES "Event"(id) ON DELETE CASCADE');
+
+    -- SubjectEnrollment (Alternative name for Enrollment)
+    PERFORM safe_migrate_column('SubjectEnrollment', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('SubjectEnrollment', 'subjectId', 'subject_id', 'uuid');
+    PERFORM safe_add_constraint('SubjectEnrollment', 'fk_subject_enrollments_user_id', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('SubjectEnrollment', 'fk_subject_enrollments_subject_id', 'FOREIGN KEY (subject_id) REFERENCES "Subject"(id) ON DELETE CASCADE');
+
+    -- TopicProgress
+    PERFORM safe_migrate_column('TopicProgress', 'userId', 'user_id', 'uuid');
+    PERFORM safe_migrate_column('TopicProgress', 'subTopicId', 'sub_topic_id', 'uuid');
+    PERFORM safe_add_constraint('TopicProgress', 'fk_topic_progress_user', 'FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE');
+    PERFORM safe_add_constraint('TopicProgress', 'fk_topic_progress_subtopic', 'FOREIGN KEY (sub_topic_id) REFERENCES "SubTopic"(id) ON DELETE CASCADE');
+END $$;
+
+-- ============================================
+-- Step 4: Recreate views dropped in Step 1
+-- ============================================
+DO $$
+DECLARE
+    d_col text;
+BEGIN
+    -- ActiveUsers
+    SELECT column_name INTO d_col FROM information_schema.columns WHERE LOWER(table_name) = 'user' AND LOWER(column_name) IN ('deletedat', 'deleted_at') ORDER BY (column_name = 'deletedAt') DESC LIMIT 1;
+    IF d_col IS NOT NULL THEN
+        EXECUTE format('CREATE OR REPLACE VIEW "ActiveUsers" AS SELECT * FROM "User" WHERE %I IS NULL', d_col);
+    END IF;
+
+    -- ActivePayments
+    SELECT column_name INTO d_col FROM information_schema.columns WHERE LOWER(table_name) = 'payment' AND LOWER(column_name) IN ('deletedat', 'deleted_at') ORDER BY (column_name = 'deletedAt') DESC LIMIT 1;
+    IF d_col IS NOT NULL THEN
+        EXECUTE format('CREATE OR REPLACE VIEW "ActivePayments" AS SELECT * FROM "Payment" WHERE %I IS NULL', d_col);
+    END IF;
+
+    -- ActiveEnrollments
+    SELECT column_name INTO d_col FROM information_schema.columns WHERE LOWER(table_name) = 'subjectenrollment' AND LOWER(column_name) IN ('deletedat', 'deleted_at') ORDER BY (column_name = 'deletedAt') DESC LIMIT 1;
+    IF d_col IS NOT NULL THEN
+        EXECUTE format('CREATE OR REPLACE VIEW "ActiveEnrollments" AS SELECT * FROM "SubjectEnrollment" WHERE %I IS NULL', d_col);
+    END IF;
+END $$;
+
+-- Final Step: Clean up helper functions
+DROP FUNCTION IF EXISTS safe_migrate_column(text, text, text, text);
+DROP FUNCTION IF EXISTS safe_add_constraint(text, text, text);
+DROP FUNCTION IF EXISTS text_to_uuid(text);
+DROP FUNCTION IF EXISTS text_to_uuid(uuid);
+
 COMMIT;
 
 -- ============================================

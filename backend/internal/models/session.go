@@ -14,16 +14,19 @@ type UserSession struct {
 	IP           string         `gorm:"not null;column:ip" json:"ip"`
 	Location     *string        `gorm:"column:location" json:"location"`
 	DeviceType   string         `gorm:"column:device_type" json:"deviceType"`
+	Status       string         `gorm:"default:'active';column:status" json:"status"` // active, expired, revoked
 	IsActive     bool           `gorm:"default:true;index;column:is_active" json:"isActive"`
 	LastAccessed time.Time      `gorm:"column:last_accessed" json:"lastActive"`
 	ExpiresAt    time.Time      `gorm:"index;column:expires_at" json:"expiresAt"`
+	RevokedAt    *time.Time     `gorm:"column:revoked_at" json:"revokedAt,omitempty"`
+	RevokedBy    *string        `gorm:"type:uuid;column:revoked_by" json:"revokedBy,omitempty"`
 	CreatedAt    time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt    gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (UserSession) TableName() string {
-	return "Session"
+	return "UserSession"
 }
 
 func (s *UserSession) BeforeCreate(tx *gorm.DB) (err error) {

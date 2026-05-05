@@ -31,18 +31,18 @@ type RateLimitConfig struct {
 // DefaultRateLimitConfig returns default rate limiting configuration
 func DefaultRateLimitConfig() RateLimitConfig {
 	return RateLimitConfig{
-		// Reads: 100 requests per minute, burst of 20
-		ReadLimit:  100,
+		// Reads: 500 requests per minute
+		ReadLimit:  500,
 		ReadWindow: time.Minute,
-		ReadBurst:  20,
+		ReadBurst:  50,
 
-		// Writes: 30 requests per minute, burst of 5
-		WriteLimit:  30,
+		// Writes: 200 requests per minute
+		WriteLimit:  200,
 		WriteWindow: time.Minute,
-		WriteBurst:  5,
+		WriteBurst:  20,
 
-		// Critical: 10 requests per minute
-		CriticalLimit:  10,
+		// Critical: 50 requests per minute
+		CriticalLimit:  50,
 		CriticalWindow: time.Minute,
 	}
 }

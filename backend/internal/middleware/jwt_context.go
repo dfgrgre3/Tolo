@@ -13,8 +13,8 @@ import (
 
 // Claims represents JWT claims
 type Claims struct {
-	UserID string         `json:"user_id"`
-	Email  string         `json:"email"`
+	UserID string          `json:"user_id"`
+	Email  string          `json:"email"`
 	Role   models.UserRole `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -23,11 +23,11 @@ type Claims struct {
 type ContextKey string
 
 const (
-	UserContextKey    ContextKey = "user_id"
-	RoleContextKey    ContextKey = "user_role"
-	EmailContextKey   ContextKey = "user_email"
-	RequestIDKey      ContextKey = "request_id"
-	TraceIDKey        ContextKey = "trace_id"
+	UserContextKey  ContextKey = "user_id"
+	RoleContextKey  ContextKey = "user_role"
+	EmailContextKey ContextKey = "user_email"
+	RequestIDKey    ContextKey = "request_id"
+	TraceIDKey      ContextKey = "trace_id"
 )
 
 // JWTAuthMiddleware validates JWT tokens from Authorization header

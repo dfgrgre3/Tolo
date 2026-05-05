@@ -19,7 +19,8 @@ func (r *SecurityLogRepository) Create(log *models.SecurityLog) error {
 
 func (r *SecurityLogRepository) FindByUserID(userID string, limit int) ([]models.SecurityLog, error) {
 	var logs []models.SecurityLog
-	query := r.db.Where("\"userId\" = ?", userID).Order("\"createdAt\" desc")
+	// Note: Using user_id (snake_case) to match GORM column naming
+	query := r.db.Where("user_id = ?", userID).Order("created_at desc")
 	if limit > 0 {
 		query = query.Limit(limit)
 	}

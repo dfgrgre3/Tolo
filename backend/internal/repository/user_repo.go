@@ -52,8 +52,8 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 			}
 		}
 
-		// Hit Database
-		err := r.db.Where("email = ?", email).First(&user).Error
+		// Hit Database (Unscoped to bypass soft delete until deleted_at column is added)
+		err := r.db.Unscoped().Where("email ILIKE ?", email).First(&user).Error
 		if err == nil && db.Redis != nil {
 			r.cacheUser(&user)
 		}
@@ -68,7 +68,8 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 
 func (r *UserRepository) FindByEmailNoCache(email string) (*models.User, error) {
 	var user models.User
-	err := r.db.Where("email = ?", email).First(&user).Error
+	// Note: Using Unscoped() to bypass soft delete until deleted_at column is added
+	err := r.db.Unscoped().Where("email ILIKE ?", email).First(&user).Error
 	return &user, err
 }
 
@@ -88,8 +89,8 @@ func (r *UserRepository) FindByID(id string) (*models.User, error) {
 			}
 		}
 
-		// Hit Database
-		err := r.db.First(&user, "id = ?", id).Error
+		// Hit Database (Unscoped to bypass soft delete until deleted_at column is added)
+		err := r.db.Unscoped().First(&user, "id = ?", id).Error
 		if err == nil && db.Redis != nil {
 			r.cacheUser(&user)
 		}

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -266,13 +265,13 @@ func UpdateSettings(c *gin.Context) {
 		settings.VibrationEnabled = v
 	}
 
-		if err := db.DB.Save(&settings).Error; err != nil {
-			api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
-			return
-		}
-
-		api_response.Success(c, gin.H{"settings": settings})
+	if err := db.DB.Save(&settings).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
+		return
 	}
+
+	api_response.Success(c, gin.H{"settings": settings})
+}
 
 // GetSystemSettings retrieves public system settings (feature toggles, etc)
 func GetSystemSettings(c *gin.Context) {

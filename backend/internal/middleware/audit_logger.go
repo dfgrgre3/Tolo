@@ -157,14 +157,14 @@ func (al *AdminAuditLogger) logOperation(
 
 	// Build metadata
 	metadata := map[string]interface{}{
-		"method":       c.Request.Method,
-		"path":         c.Request.URL.Path,
-		"query":        c.Request.URL.RawQuery,
-		"status_code":  writer.statusCode,
-		"duration_ms":  duration.Milliseconds(),
-		"user_agent":   c.Request.UserAgent(),
-		"ip":           c.ClientIP(),
-		"user_role":    userRole,
+		"method":      c.Request.Method,
+		"path":        c.Request.URL.Path,
+		"query":       c.Request.URL.RawQuery,
+		"status_code": writer.statusCode,
+		"duration_ms": duration.Milliseconds(),
+		"user_agent":  c.Request.UserAgent(),
+		"ip":          c.ClientIP(),
+		"user_role":   userRole,
 	}
 
 	// Add request body if present
@@ -274,12 +274,12 @@ func LogCriticalOperation(c *gin.Context, operation string, details map[string]i
 	}
 
 	metadata := map[string]interface{}{
-		"operation":   operation,
-		"details":     details,
-		"timestamp":   time.Now().Unix(),
-		"critical":    true,
-		"ip":          c.ClientIP(),
-		"user_agent":  c.Request.UserAgent(),
+		"operation":  operation,
+		"details":    details,
+		"timestamp":  time.Now().Unix(),
+		"critical":   true,
+		"ip":         c.ClientIP(),
+		"user_agent": c.Request.UserAgent(),
 	}
 
 	// Synchronous logging for critical operations

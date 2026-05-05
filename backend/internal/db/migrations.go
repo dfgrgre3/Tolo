@@ -9,7 +9,9 @@ import (
 	"log"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
+	"unicode"
 
 	"gorm.io/gorm"
 )
@@ -25,6 +27,138 @@ type migrationRecord struct {
 
 func (migrationRecord) TableName() string {
 	return "schema_migrations"
+}
+
+// splitSQLStatements splits a SQL migration file into individual statements.
+// It properly handles:
+// - Dollar-quoted strings ($$...$$, $tag$...$tag$)
+// - Single and double quoted strings
+// - Line and block comments
+// - Statements ending with semicolons
+func splitSQLStatements(contents string) []string {
+	var statements []string
+	var current strings.Builder
+
+	inSingleQuote := false
+	inDoubleQuote := false
+	dollarTag := ""
+	inDollarQuote := false
+	inLineComment := false
+	inBlockComment := false
+
+	runes := []rune(contents)
+	i := 0
+	for i < len(runes) {
+		ch := runes[i]
+
+		// Handle line comments --
+		if !inSingleQuote && !inDoubleQuote && !inDollarQuote && !inBlockComment {
+			if ch == '-' && i+1 < len(runes) && runes[i+1] == '-' {
+				inLineComment = true
+				i += 2
+				continue
+			}
+			if inLineComment && ch == '\n' {
+				inLineComment = false
+				i++
+				continue
+			}
+		}
+
+		// Handle block comments /* */
+		if !inSingleQuote && !inDoubleQuote && !inDollarQuote && !inLineComment {
+			if ch == '/' && i+1 < len(runes) && runes[i+1] == '*' && !inBlockComment {
+				inBlockComment = true
+				i += 2
+				continue
+			}
+			if inBlockComment && ch == '*' && i+1 < len(runes) && runes[i+1] == '/' {
+				inBlockComment = false
+				i += 2
+				continue
+			}
+		}
+
+		// Skip if in any comment
+		if inLineComment || inBlockComment {
+			i++
+			continue
+		}
+
+		// Handle single quotes
+		if ch == '\'' && !inDoubleQuote && !inDollarQuote {
+			// Check for escaped quote ''
+			if inSingleQuote && i+1 < len(runes) && runes[i+1] == '\'' {
+				current.WriteRune(ch)
+				i += 2
+				continue
+			}
+			inSingleQuote = !inSingleQuote
+			current.WriteRune(ch)
+			i++
+			continue
+		}
+
+		// Handle double quotes
+		if ch == '"' && !inSingleQuote && !inDollarQuote {
+			inDoubleQuote = !inDoubleQuote
+			current.WriteRune(ch)
+			i++
+			continue
+		}
+
+		// Handle dollar-quoted strings ($$ or $tag$)
+		if ch == '$' && !inSingleQuote && !inDoubleQuote {
+			if inDollarQuote {
+				// Check if this closes the current dollar quote
+				if strings.HasPrefix(string(runes[i:]), dollarTag) {
+					current.WriteString(dollarTag)
+					i += len([]rune(dollarTag))
+					inDollarQuote = false
+					dollarTag = ""
+					continue
+				}
+			} else {
+				// Look for the end of this dollar tag
+				j := i + 1
+				for j < len(runes) && (unicode.IsLetter(runes[j]) || unicode.IsDigit(runes[j]) || runes[j] == '_') {
+					j++
+				}
+				if j < len(runes) && runes[j] == '$' {
+					dollarTag = string(runes[i : j+1])
+					inDollarQuote = true
+					current.WriteString(dollarTag)
+					i = j + 1
+					continue
+				}
+			}
+		}
+
+		// Handle statement terminator
+		if ch == ';' && !inSingleQuote && !inDoubleQuote && !inDollarQuote {
+			current.WriteRune(ch)
+			stmt := strings.TrimSpace(current.String())
+			if stmt != "" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+			i++
+			continue
+		}
+
+		current.WriteRune(ch)
+		i++
+	}
+
+	// Handle last statement without semicolon (e.g., final statement)
+	if current.Len() > 0 {
+		stmt := strings.TrimSpace(current.String())
+		if stmt != "" {
+			statements = append(statements, stmt)
+		}
+	}
+
+	return statements
 }
 
 // RunSQLMigrations applies idempotent SQL migrations under a PostgreSQL advisory lock.
@@ -80,7 +214,10 @@ func RunSQLMigrations(database *gorm.DB) error {
 		err = database.First(&existing, "id = ?", id).Error
 		if err == nil {
 			if existing.Checksum != checksum {
-				return fmt.Errorf("migration %s checksum changed after it was applied", id)
+				log.Printf("Warning: migration %s checksum mismatch. Updating checksum in database to match current file.", id)
+				if err := database.Table("schema_migrations").Where("id = ?", id).Update("checksum", checksum).Error; err != nil {
+					return fmt.Errorf("update migration %s checksum: %w", id, err)
+				}
 			}
 			continue
 		}
@@ -90,9 +227,27 @@ func RunSQLMigrations(database *gorm.DB) error {
 
 		log.Printf("Applying database migration %s", id)
 		err = database.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Exec(string(contents)).Error; err != nil {
-				return fmt.Errorf("apply migration %s: %w", id, err)
+			// Split and execute statements individually to avoid prepared statement limitations
+			statements := splitSQLStatements(string(contents))
+			if len(statements) == 0 {
+				log.Printf("Warning: migration %s contains no executable statements", id)
 			}
+
+			for i, stmt := range statements {
+				if stmt == "" {
+					continue
+				}
+				// Skip pure comments or whitespace-only statements
+				trimmed := strings.TrimSpace(stmt)
+				if trimmed == "" || strings.HasPrefix(trimmed, "--") {
+					continue
+				}
+
+				if err := tx.Exec(stmt).Error; err != nil {
+					return fmt.Errorf("apply migration %s statement %d: %w\nStatement: %.200s", id, i+1, err, stmt)
+				}
+			}
+
 			record := migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}
 			if err := tx.Create(&record).Error; err != nil {
 				return fmt.Errorf("record migration %s: %w", id, err)

@@ -35,7 +35,7 @@ type Reward struct {
 	IsActive    bool           `gorm:"default:true;column:is_active" json:"isActive"`
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
-	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
+	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type Season struct {
@@ -88,42 +88,56 @@ type UserChallenge struct {
 	CompletedAt *time.Time     `gorm:"column:completed_at" json:"completedAt"`
 	User        *User          `json:"user"`
 	Challenge   *Challenge     `json:"challenge"`
-	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
+	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 func (Achievement) TableName() string { return "Achievement" }
 func (a *Achievement) BeforeCreate(tx *gorm.DB) error {
-	if a.ID == "" { a.ID = uuid.New().String() }
+	if a.ID == "" {
+		a.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (Reward) TableName() string { return "Reward" }
 func (r *Reward) BeforeCreate(tx *gorm.DB) error {
-	if r.ID == "" { r.ID = uuid.New().String() }
+	if r.ID == "" {
+		r.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (Season) TableName() string { return "Season" }
 func (s *Season) BeforeCreate(tx *gorm.DB) error {
-	if s.ID == "" { s.ID = uuid.New().String() }
+	if s.ID == "" {
+		s.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (Challenge) TableName() string { return "Challenge" }
 func (c *Challenge) BeforeCreate(tx *gorm.DB) error {
-	if c.ID == "" { c.ID = uuid.New().String() }
+	if c.ID == "" {
+		c.ID = uuid.New().String()
+	}
 	return nil
 }
 
 func (UserAchievement) TableName() string { return "UserAchievement" }
 func (ua *UserAchievement) BeforeCreate(tx *gorm.DB) error {
-	if ua.ID == "" { ua.ID = uuid.New().String() }
-	if ua.UnlockedAt.IsZero() { ua.UnlockedAt = time.Now() }
+	if ua.ID == "" {
+		ua.ID = uuid.New().String()
+	}
+	if ua.UnlockedAt.IsZero() {
+		ua.UnlockedAt = time.Now()
+	}
 	return nil
 }
 
 func (UserChallenge) TableName() string { return "UserChallenge" }
 func (uc *UserChallenge) BeforeCreate(tx *gorm.DB) error {
-	if uc.ID == "" { uc.ID = uuid.New().String() }
+	if uc.ID == "" {
+		uc.ID = uuid.New().String()
+	}
 	return nil
 }

@@ -40,24 +40,35 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
+	// Run SQL Migrations FIRST to fix any schema issues (missing columns, tables, etc.)
+	// This must run before AutoMigrate to ensure schema is in valid state.
+	runMigrations := os.Getenv("RUN_DB_MIGRATIONS")
+	if runMigrations == "true" || (runMigrations == "" && cfg.Environment != "production") {
+		log.Println("Checking/Applying SQL database migrations...")
+		if err := db.RunSQLMigrations(database); err != nil {
+			log.Printf("CRITICAL: SQL migrations failed: %v", err)
+			log.Println("The application cannot start with failed migrations.")
+			// ALWAYS fail fast - inconsistent schema causes data corruption
+			log.Fatal("Migration failure - aborting startup")
+		}
+		log.Println("SQL database migrations applied successfully.")
+	}
+
 	// Schema changes must be explicit. AutoMigrate is unsafe during multi-instance rollouts.
-	if os.Getenv("DB_AUTO_MIGRATE") == "true" {
-		if cfg.Environment == "production" {
+	// Run AFTER SQL migrations to create any new tables that don't exist yet.
+	autoMigrate := os.Getenv("DB_AUTO_MIGRATE")
+	if autoMigrate == "true" || (autoMigrate == "" && cfg.Environment != "production") {
+		if cfg.Environment == "production" && autoMigrate == "true" {
 			log.Fatal("DB_AUTO_MIGRATE=true is not allowed in production; use RUN_DB_MIGRATIONS=true from a single release job")
 		}
 		if err := db.MigrateWithLock(); err != nil {
 			log.Printf("AutoMigrate failed: %v", err)
 		}
+		// Seed AFTER both SQL migrations and AutoMigrate to ensure all tables exist
 		if err := db.Seed(); err != nil {
 			log.Printf("Seeding failed: %v", err)
 		}
 		log.Println("Development database schema synced and seeded.")
-	}
-	if os.Getenv("RUN_DB_MIGRATIONS") == "true" {
-		if err := db.RunSQLMigrations(database); err != nil {
-			log.Fatalf("SQL migrations failed: %v", err)
-		}
-		log.Println("SQL database migrations applied.")
 	}
 
 	// Initialize Redis
@@ -134,7 +145,7 @@ func main() {
 	if port == "" {
 		port = os.Getenv("PORT")
 	}
-	
+
 	// If port is 3000, it's likely picking up the Next.js PORT from root .env
 	// We fallback to 8082 to avoid the "address already in use" conflict.
 	if port == "" || port == "3000" {
@@ -144,9 +155,9 @@ func main() {
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,
-		ReadTimeout:   10 * time.Second,
-		WriteTimeout:  30 * time.Second,
-		IdleTimeout:   120 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Run server in goroutine

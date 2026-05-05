@@ -19,8 +19,12 @@ import (
 func listItems(c *gin.Context, model interface{}, key string, preloads ...string) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 	offset := (page - 1) * limit
 
 	var total int64
@@ -32,7 +36,7 @@ func listItems(c *gin.Context, model interface{}, key string, preloads ...string
 	}
 
 	if err := query.Find(model).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch " + key)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch "+key)
 		return
 	}
 
@@ -222,20 +226,24 @@ func AdminDeleteChallenge(c *gin.Context) {
 // Audit Logs
 func AdminGetAuditLogs(c *gin.Context) {
 	var logs []models.AuditLog
-	
+
 	// Handle eventTypes list for filter
 	var eventTypes []string
 	db.DB.Model(&models.AuditLog{}).Distinct().Pluck("event_type", &eventTypes)
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 	offset := (page - 1) * limit
 
 	var total int64
 	query := db.DB.Model(&models.AuditLog{})
-	
+
 	if et := c.Query("eventType"); et != "" && et != "all" {
 		query = query.Where("event_type = ?", et)
 	}
@@ -258,7 +266,7 @@ func AdminGetAuditLogs(c *gin.Context) {
 	}
 
 	api_response.List(c, logs, pagination, gin.H{
-		"logs": logs,
+		"logs":       logs,
 		"eventTypes": eventTypes,
 	})
 }
@@ -364,7 +372,7 @@ func AdminGetBooks(c *gin.Context) {
 
 func AdminCreateBook(c *gin.Context) {
 	var book models.Book
-	
+
 	// Handle multipart form if there are files
 	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
 		book.Title = c.PostForm("title")
@@ -374,11 +382,11 @@ func AdminCreateBook(c *gin.Context) {
 		if subjectId != "" {
 			book.SubjectID = &subjectId
 		}
-		
+
 		price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
 		book.Price = price
 		book.IsFree = c.PostForm("isFree") == "true"
-		
+
 		// Handle cover image
 		cover, err := c.FormFile("cover")
 		if err == nil {
@@ -389,7 +397,7 @@ func AdminCreateBook(c *gin.Context) {
 				book.CoverUrl = "/uploads/" + filename
 			}
 		}
-		
+
 		// Handle book file
 		file, err := c.FormFile("file")
 		if err == nil {
@@ -436,13 +444,13 @@ func AdminUpdateBook(c *gin.Context) {
 		updates["author"] = c.PostForm("author")
 		updates["description"] = c.PostForm("description")
 		updates["subjectId"] = c.PostForm("subjectId")
-		
+
 		if priceStr := c.PostForm("price"); priceStr != "" {
 			price, _ := strconv.ParseFloat(priceStr, 64)
 			updates["price"] = price
 		}
 		updates["isFree"] = c.PostForm("isFree") == "true"
-		
+
 		// Handle cover image
 		cover, err := c.FormFile("cover")
 		if err == nil {
@@ -453,7 +461,7 @@ func AdminUpdateBook(c *gin.Context) {
 				updates["coverUrl"] = "/uploads/" + filename
 			}
 		}
-		
+
 		// Handle book file
 		file, err := c.FormFile("file")
 		if err == nil {
@@ -561,14 +569,18 @@ func AdminDeleteCampaign(c *gin.Context) {
 func GetPublicBlogPosts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 
 	var posts []models.BlogPost
 	var total int64
 	query := db.DB.Model(&models.BlogPost{}).Where("status = ?", "PUBLISHED")
 	query.Count(&total)
-	query.Preload("Author").Order("\"publishedAt\" DESC").Limit(limit).Offset((page-1)*limit).Find(&posts)
+	query.Preload("Author").Order("\"publishedAt\" DESC").Limit(limit).Offset((page - 1) * limit).Find(&posts)
 
 	api_response.Success(c, gin.H{
 		"posts": posts,
@@ -595,14 +607,18 @@ func GetPublicBlogPost(c *gin.Context) {
 func GetPublicEvents(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page <= 0 { page = 1 }
-	if limit <= 0 { limit = 10 }
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 
 	var events []models.Event
 	var total int64
 	query := db.DB.Model(&models.Event{}).Where("\"isActive\" = ?", true)
 	query.Count(&total)
-	query.Order("\"startDate\" ASC").Limit(limit).Offset((page-1)*limit).Find(&events)
+	query.Order("\"startDate\" ASC").Limit(limit).Offset((page - 1) * limit).Find(&events)
 
 	api_response.Success(c, gin.H{
 		"events": events,

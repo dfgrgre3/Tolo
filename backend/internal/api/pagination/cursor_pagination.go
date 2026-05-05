@@ -33,11 +33,11 @@ type CursorData struct {
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
 	Pagination struct {
-		NextCursor  string `json:"next_cursor,omitempty"`
-		PrevCursor  string `json:"prev_cursor,omitempty"`
-		HasMore     bool   `json:"has_more"`
-		TotalCount  int64  `json:"total_count,omitempty"`
-		Count       int    `json:"count"`
+		NextCursor string `json:"next_cursor,omitempty"`
+		PrevCursor string `json:"prev_cursor,omitempty"`
+		HasMore    bool   `json:"has_more"`
+		TotalCount int64  `json:"total_count,omitempty"`
+		Count      int    `json:"count"`
 	} `json:"pagination"`
 }
 

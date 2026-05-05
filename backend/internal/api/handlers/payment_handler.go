@@ -1,14 +1,14 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"net/http"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/services"
 	"time"
-	"fmt"
-	"crypto/rand"
-	"encoding/hex"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -65,17 +65,17 @@ func PaymobWebhook(c *gin.Context) {
 		// Mark payment as completed
 		err := db.DB.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Model(&payment).Updates(map[string]interface{}{
-				"status":           models.PaymentCompleted,
-				"externalTxnId":   fmt.Sprintf("%d", txnID),
-				"completedAt":      time.Now(),
+				"status":        models.PaymentCompleted,
+				"externalTxnId": fmt.Sprintf("%d", txnID),
+				"completedAt":   time.Now(),
 			}).Error; err != nil {
 				return err
 			}
 
-		// If it's a course payment, auto-enroll
-		if payment.SubjectID != nil && *payment.SubjectID != "" {
+			// If it's a course payment, auto-enroll
+			if payment.SubjectID != nil && *payment.SubjectID != "" {
 				enrollment := models.Enrollment{
-					UserID:    payment.UserID,
+					UserID:     payment.UserID,
 					SubjectID:  *payment.SubjectID,
 					EnrolledAt: time.Now(),
 				}
@@ -122,7 +122,7 @@ func PaymobWebhook(c *gin.Context) {
 				// Calculate duration
 				duration := 30 * 24 * time.Hour
 				switch plan.Interval {
-case models.IntervalYearly:
+				case models.IntervalYearly:
 					duration = 365 * 24 * time.Hour
 				case models.IntervalForever:
 					duration = 100 * 365 * 24 * time.Hour
@@ -133,11 +133,11 @@ case models.IntervalYearly:
 
 				// Create user subscription
 				sub := models.UserSubscription{
-					UserID:    payment.UserID,
-					PlanID:    plan.ID,
-					Status:    models.SubscriptionActive,
-					StartDate: startDate,
-					EndDate:   endDate,
+					UserID:               payment.UserID,
+					PlanID:               plan.ID,
+					Status:               models.SubscriptionActive,
+					StartDate:            startDate,
+					EndDate:              endDate,
 					PaymobSubscriptionID: &payment.Reference,
 				}
 				if err := tx.Create(&sub).Error; err != nil {
@@ -146,7 +146,7 @@ case models.IntervalYearly:
 
 				// Update user's active subscription
 				if err := tx.Model(&models.User{}).Where("id = ?", payment.UserID).Updates(map[string]interface{}{
-					"activeSubscriptionId":   sub.ID,
+					"activeSubscriptionId":  sub.ID,
 					"subscriptionExpiresAt": endDate,
 				}).Error; err != nil {
 					return fmt.Errorf("failed to update user subscription: %w", err)
@@ -474,12 +474,12 @@ func HandleWalletDeposit(c *gin.Context) {
 
 	// Create payment record for audit trail
 	payment := models.Payment{
-		UserID:    userId.(string),
-		Amount:    req.Amount,
-		Currency:  "EGP",
-		Method:    "WALLET_TOPUP",
-		Status:    models.PaymentCompleted,
-		Reference: generateSecureReference("TOPUP"),
+		UserID:      userId.(string),
+		Amount:      req.Amount,
+		Currency:    "EGP",
+		Method:      "WALLET_TOPUP",
+		Status:      models.PaymentCompleted,
+		Reference:   generateSecureReference("TOPUP"),
 		CompletedAt: time.Now(),
 	}
 	if err := db.DB.Create(&payment).Error; err != nil {

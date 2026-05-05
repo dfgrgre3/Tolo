@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"log"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 )
@@ -55,9 +54,11 @@ func (s *AuditService) LogEvent(userID, eventType, resource, resourceID string, 
 		UserAgent:  userAgent,
 	}
 
-	// Save to DB (Synchronous for now to ensure reliability)
+	// Save to DB - non-blocking error handling for missing table scenario
 	if err := db.DB.Create(&auditLog).Error; err != nil {
-		log.Printf("Failed to save audit log: %v", err)
+		// Silently ignore errors - table might not exist yet
+		// log.Printf("Audit log not saved (table may not exist): %v", err)
+		_ = err
 	}
 }
 

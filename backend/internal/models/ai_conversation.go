@@ -9,29 +9,29 @@ import (
 
 // AIConversation represents a chat conversation with the AI
 type AIConversation struct {
-	ID        string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	UserID    string    `gorm:"not null;type:uuid;index;column:user_id" json:"userId"`
-	SubjectID *string   `gorm:"type:uuid;index;column:subject_id" json:"subjectId,omitempty"`
-	TopicID   *string   `gorm:"type:uuid;index;column:topic_id" json:"topicId,omitempty"`
-	Title     string    `gorm:"type:text;column:title" json:"title"`
-	Messages  []AIMessage `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE" json:"messages,omitempty"`
-	IsActive  bool      `gorm:"default:true;index;column:is_active" json:"isActive"`
-	CreatedAt time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"column:updated_at" json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
+	ID        string         `gorm:"primaryKey;type:uuid" json:"id"`
+	UserID    string         `gorm:"not null;type:uuid;index" json:"userId"`
+	SubjectID *string        `gorm:"type:uuid;index" json:"subjectId,omitempty"`
+	TopicID   *string        `gorm:"type:uuid;index" json:"topicId,omitempty"`
+	Title     string         `gorm:"type:text" json:"title"`
+	Messages  []AIMessage    `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE" json:"messages,omitempty"`
+	IsActive  bool           `gorm:"default:true;index" json:"isActive"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // AIMessage represents a single message in a conversation
 type AIMessage struct {
-	ID             string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	ConversationID string    `gorm:"not null;type:uuid;index;column:conversation_id" json:"conversationId"`
-	Role           string    `gorm:"not null;type:text;column:role" json:"role"` // "user" or "assistant"
-	Content        string    `gorm:"not null;type:text;column:content" json:"content"`
-	Model          *string   `gorm:"type:text;column:model" json:"model,omitempty"`
-	TokensUsed     *int      `gorm:"type:integer;column:tokens_used" json:"tokensUsed,omitempty"`
-	Latency        *int64    `gorm:"type:bigint;column:latency" json:"latency,omitempty"` // in milliseconds
-	CreatedAt      time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt      time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	ID             string    `gorm:"primaryKey;type:uuid" json:"id"`
+	ConversationID string    `gorm:"not null;type:uuid;index" json:"conversationId"`
+	Role           string    `gorm:"not null;type:text" json:"role"` // "user" or "assistant"
+	Content        string    `gorm:"not null;type:text" json:"content"`
+	Model          *string   `gorm:"type:text" json:"model,omitempty"`
+	TokensUsed     *int      `gorm:"type:integer" json:"tokensUsed,omitempty"`
+	Latency        *int64    `gorm:"type:bigint" json:"latency,omitempty"` // in milliseconds
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 // TableName sets the table name for AIConversation

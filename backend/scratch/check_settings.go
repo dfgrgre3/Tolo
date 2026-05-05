@@ -1,12 +1,14 @@
+//go:build ignore
+
 package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
-	"github.com/joho/godotenv"
 )
 
 func main() {

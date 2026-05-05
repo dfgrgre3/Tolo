@@ -11,19 +11,19 @@ import (
 type CircuitState int
 
 const (
-	StateClosed CircuitState = iota // Normal operation
-	StateOpen                        // Failing, reject requests
-	StateHalfOpen                    // Testing if service recovered
+	StateClosed   CircuitState = iota // Normal operation
+	StateOpen                         // Failing, reject requests
+	StateHalfOpen                     // Testing if service recovered
 )
 
 // CircuitBreaker implements the circuit breaker pattern
 type CircuitBreaker struct {
-	name          string
-	state         CircuitState
-	failureCount  int
-	successCount  int
-	lastFailure   time.Time
-	mu            sync.Mutex
+	name         string
+	state        CircuitState
+	failureCount int
+	successCount int
+	lastFailure  time.Time
+	mu           sync.Mutex
 
 	// Configuration
 	failureThreshold int           // Failures before opening
@@ -42,9 +42,9 @@ func NewCircuitBreaker(name string, failureThreshold int, timeout time.Duration)
 	return &CircuitBreaker{
 		name:             name,
 		state:            StateClosed,
-		failureThreshold:  failureThreshold,
-		timeout:           timeout,
-		successThreshold:  2,
+		failureThreshold: failureThreshold,
+		timeout:          timeout,
+		successThreshold: 2,
 	}
 }
 

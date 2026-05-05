@@ -1,3 +1,5 @@
+//go:build ignore
+
 package main
 
 import (
@@ -10,7 +12,7 @@ import (
 func main() {
 	// Set environment variables for migration
 	os.Setenv("RUN_DB_MIGRATIONS", "true")
-	
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "postgresql://postgres:Khaled%402008@127.0.0.1:5432/thanawy?client_encoding=UTF8"

@@ -38,7 +38,7 @@ func NewPaymobService() *PaymobService {
 // 1. Authentication with circuit breaker protection
 func (s *PaymobService) Authenticate() (string, error) {
 	service := GetCircuitBreakerService()
-	
+
 	var result string
 	err := service.CallExternalAPI("paymob-api", func() error {
 		payload := map[string]string{"api_key": s.APIKey}
@@ -68,7 +68,7 @@ func (s *PaymobService) Authenticate() (string, error) {
 		result = resultStruct.Token
 		return nil
 	})
-	
+
 	return result, err
 }
 

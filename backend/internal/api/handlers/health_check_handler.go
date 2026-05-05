@@ -16,10 +16,10 @@ import (
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
-	Status    string            `json:"status"` // "ok", "degraded", "critical"
-	Timestamp string            `json:"timestamp"`
-	Checks    map[string]Check  `json:"checks"`
-	Message   string            `json:"message,omitempty"`
+	Status    string           `json:"status"` // "ok", "degraded", "critical"
+	Timestamp string           `json:"timestamp"`
+	Checks    map[string]Check `json:"checks"`
+	Message   string           `json:"message,omitempty"`
 }
 
 // Check represents individual health check result
@@ -260,7 +260,7 @@ func checkResponseTimeHealth(c *gin.Context) Check {
 // Used by Kubernetes liveness probes
 func LivenessCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "alive",
+		"status":    "alive",
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
@@ -275,15 +275,15 @@ func ReadinessCheck(c *gin.Context) {
 	var result int
 	if err := db.DB.WithContext(ctx).Raw("SELECT 1").Scan(&result).Error; err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "not_ready",
-			"reason":  "database_unavailable",
-			"error":   err.Error(),
+			"status": "not_ready",
+			"reason": "database_unavailable",
+			"error":  err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ready",
+		"status":    "ready",
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
@@ -292,4 +292,3 @@ func ReadinessCheck(c *gin.Context) {
 func getRedisClient() *redis.Client {
 	return db.Redis
 }
-

@@ -63,19 +63,31 @@ CREATE INDEX IF NOT EXISTS idx_exam_result_user_taken_desc ON "ExamResult" ("use
 CREATE INDEX IF NOT EXISTS idx_exam_result_exam_taken_desc ON "ExamResult" ("examId", "takenAt" DESC);
 CREATE INDEX IF NOT EXISTS idx_exam_result_taken_desc ON "ExamResult" ("takenAt" DESC);
 
+-- Remove duplicate UserSettings (keep the first one by created_at for each user)
 DELETE FROM "UserSettings"
-WHERE id NOT IN (
-	SELECT MIN(id) FROM "UserSettings" GROUP BY "userId"
+WHERE id IN (
+	SELECT id FROM (
+		SELECT id, ROW_NUMBER() OVER (PARTITION BY "userId" ORDER BY "createdAt") as rn
+		FROM "UserSettings"
+	) sub WHERE rn > 1
 );
 
+-- Remove duplicate SubjectEnrollments (keep the first one by enrolledAt for each user+subject)
 DELETE FROM "SubjectEnrollment"
-WHERE id NOT IN (
-	SELECT MIN(id) FROM "SubjectEnrollment" GROUP BY "userId", "subjectId"
+WHERE id IN (
+	SELECT id FROM (
+		SELECT id, ROW_NUMBER() OVER (PARTITION BY "userId", "subjectId" ORDER BY "enrolledAt") as rn
+		FROM "SubjectEnrollment"
+	) sub WHERE rn > 1
 );
 
+-- Remove duplicate TopicProgress (keep the first one by createdAt for each user+subTopic)
 DELETE FROM "TopicProgress"
-WHERE id NOT IN (
-	SELECT MIN(id) FROM "TopicProgress" GROUP BY "userId", "subTopicId"
+WHERE id IN (
+	SELECT id FROM (
+		SELECT id, ROW_NUMBER() OVER (PARTITION BY "userId", "subTopicId" ORDER BY "createdAt") as rn
+		FROM "TopicProgress"
+	) sub WHERE rn > 1
 );
 
 DO $$

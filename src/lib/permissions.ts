@@ -74,7 +74,7 @@ export const PERMISSIONS = {
   AB_TESTING_VIEW: "ab_testing:view",
 
   SETTINGS_VIEW: "settings:view",
-  SETTINGS_MANAGE: "settings:manage",
+  // Note: SETTINGS_MANAGE is intentionally omitted - backend uses SETTINGS_VIEW for all settings operations
   AUDIT_LOGS_VIEW: "audit_logs:view",
 } as const;
 
@@ -111,7 +111,11 @@ const PERMISSION_KEY_ALIASES: Record<string, Permission> = {
   LIVE_MONITOR_VIEW: PERMISSIONS.LIVE_MONITOR_VIEW,
   AUDIT_LOGS_VIEW: PERMISSIONS.AUDIT_LOGS_VIEW,
   SETTINGS_VIEW: PERMISSIONS.SETTINGS_VIEW,
-  /** Legacy sidebar key — Go uses `settings:view` for backups / infrastructure. */
+  /**
+   * Legacy sidebar key — mapped to SETTINGS_VIEW because backend uses
+   * `settings:view` (PermSettingsView) for both viewing and managing settings.
+   * The backend does not have a separate `settings:manage` permission.
+   */
   SETTINGS_MANAGE: PERMISSIONS.SETTINGS_VIEW,
 };
 

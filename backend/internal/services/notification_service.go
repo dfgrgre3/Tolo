@@ -39,7 +39,7 @@ func (s *NotificationService) MarkAsSent(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
 		Where("id = ?", notificationID).
 		Updates(map[string]interface{}{
-			"status": "sent",
+			"status":  "sent",
 			"sent_at": "NOW()",
 		}).Error
 }
@@ -49,7 +49,7 @@ func (s *NotificationService) MarkAsDelivered(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
 		Where("id = ?", notificationID).
 		Updates(map[string]interface{}{
-			"status": "delivered",
+			"status":       "delivered",
 			"delivered_at": "NOW()",
 		}).Error
 }
@@ -59,7 +59,7 @@ func (s *NotificationService) MarkAsRead(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
 		Where("id = ?", notificationID).
 		Updates(map[string]interface{}{
-			"status": "read",
+			"status":  "read",
 			"read_at": "NOW()",
 		}).Error
 }
@@ -70,7 +70,7 @@ func (s *NotificationService) MarkAsFailed(notificationID string, errorMsg strin
 		Where("id = ?", notificationID).
 		Updates(map[string]interface{}{
 			"status": "failed",
-			"error": errorMsg,
+			"error":  errorMsg,
 		}).Error
 }
 

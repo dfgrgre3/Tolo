@@ -17,7 +17,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.GET("/analytics/performance", handlers.GetWeeklyAnalytics)
 		protected.GET("/analytics/predictions", handlers.GetWeeklyAnalytics)
 		protected.GET("/recommendations", handlers.GetAIRecommendations)
-		
+
 		// Protected Activity routes
 		protected.GET("/schedule", handlers.GetSchedule)
 		protected.GET("/tasks", handlers.GetTasks)
@@ -33,25 +33,25 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.DELETE("/tasks/:id", handlers.DeleteTask)
 		protected.POST("/study-sessions", handlers.CreateStudySession)
 		protected.POST("/reminders", handlers.CreateReminder)
-		
+
 		// Notifications
 		protected.GET("/notifications", handlers.GetNotifications)
 		protected.GET("/notifications/unread-count", handlers.GetUnreadNotificationsCount)
 		protected.POST("/notifications/mark-read", handlers.MarkNotificationRead)
-		
+
 		// Settings
 		protected.GET("/settings/preferences", handlers.GetSettings)
 		protected.PATCH("/settings/preferences", handlers.UpdateSettings)
-		
+
 		// Profile
 		protected.GET("/users/billing-summary", handlers.GetBillingSummary)
 		protected.PATCH("/users/profile", handlers.UpdateProfile)
-		
+
 		// Activities
 		protected.GET("/activities/recent", handlers.GetRecentActivities)
 		protected.POST("/activities/:id/read", handlers.MarkActivityRead)
 		protected.POST("/activities/read-all", handlers.MarkAllActivitiesRead)
-		
+
 		// Billing & Subscriptions
 		protected.GET("/billing/wallet", handlers.GetWalletBalance)
 		protected.POST("/billing/wallet", handlers.HandleWalletDeposit)
@@ -65,10 +65,10 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/subscriptions/cancel", handlers.CancelSubscription)
 		protected.POST("/subscriptions/renew", handlers.RenewSubscription)
 		protected.POST("/coupons/validate", handlers.ValidateCoupon)
-		
+
 		// User Subjects
 		protected.GET("/subjects", handlers.GetUserSubjects)
-		
+
 		// Search
 		protected.GET("/search", handlers.GlobalSearch)
 		protected.GET("/database-partitions", handlers.DatabasePartitions)
@@ -78,29 +78,29 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/contests", handlers.Contests)
 		protected.PATCH("/contests/:id", handlers.Contests)
 		protected.DELETE("/contests/:id", handlers.Contests)
-		
+
 		// Library
 		protected.GET("/library/books", handlers.GetLibraryBooks)
 		protected.POST("/library/books", handlers.CreateLibraryBook)
-		
+
 		// Enrollment & Progress
 		protected.POST("/courses/:id/enroll", handlers.EnrollCourse)
 		protected.POST("/courses/:id/checkout", handlers.CourseCheckout)
 		protected.GET("/courses/:id/curriculum", handlers.GetSubjectCurriculum)
 		protected.POST("/courses/lessons/:id/progress", handlers.UpdateLessonProgress)
-		
+
 		// Lesson Notes & Reviews
 		protected.GET("/courses/lessons/:id/notes", handlers.GetLessonNotes)
 		protected.POST("/courses/lessons/:id/notes", handlers.CreateLessonNote)
 		protected.POST("/courses/:id/reviews", handlers.CreateCourseReview)
-		
+
 		// Upload
 		protected.POST("/upload", handlers.Upload)
 		protected.Any("/upload/chunked", handlers.UploadChunked)
-		
+
 		// Exam routes
 		protected.POST("/exams/:id/submit", handlers.SubmitExam)
-		
+
 		// Payment routes
 		protected.POST("/payments/create", handlers.CreatePayment)
 		protected.GET("/payments/history", handlers.GetPaymentHistory)

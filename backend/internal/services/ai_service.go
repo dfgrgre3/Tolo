@@ -17,10 +17,18 @@ import (
 )
 
 type AIService struct {
-	apiKey     string
-	apiURL     string
-	enabled    bool
-	provider   string // "openrouter", "gemini", "openai"
+	apiKey   string
+	apiURL   string
+	enabled  bool
+	provider string // "openrouter", "gemini", "openai"
+}
+
+// safeString safely dereferences a string pointer, returning empty string if nil
+func safeString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 var aiServiceInstance *AIService
@@ -52,9 +60,9 @@ func GetAIService() *AIService {
 		}
 
 		aiServiceInstance = &AIService{
-			apiKey:  apiKey,
-			apiURL:  apiURL,
-			enabled: enabled,
+			apiKey:   apiKey,
+			apiURL:   apiURL,
+			enabled:  enabled,
 			provider: provider,
 		}
 	}
@@ -113,12 +121,12 @@ func (s *AIService) GenerateContentWithMessages(ctx context.Context, messages []
 
 	// Use circuit breaker to prevent cascading failures
 	service := GetCircuitBreakerService()
-	
+
 	var result string
 	err := service.CallExternalAPI("ai-service-provider", func() error {
 		var reply string
 		var err error
-		
+
 		switch s.provider {
 		case "openrouter", "openai":
 			reply, err = s.callOpenAICompatibleWithMessages(ctx, messages, model)
@@ -127,7 +135,7 @@ func (s *AIService) GenerateContentWithMessages(ctx context.Context, messages []
 		default:
 			err = fmt.Errorf("unsupported AI provider: %s", s.provider)
 		}
-		
+
 		if err == nil {
 			result = reply
 		}
@@ -159,8 +167,8 @@ func (s *AIService) ReviewContent(ctx context.Context, content string, subject s
 
 	// Parse response to extract structured feedback
 	result := map[string]interface{}{
-		"score":      85,
-		"feedback":   aiResponse,
+		"score":       85,
+		"feedback":    aiResponse,
 		"suggestions": []string{"إضافة أمثلة أكثر", "توضيح النقاط الصعبة", "استخدام وسائل توضيحية"},
 	}
 	return result, nil
@@ -180,7 +188,7 @@ func (s *AIService) GetStudyRecommendations(ctx context.Context, user models.Use
 - مستوى النشاط: %d (مستوى %d)
 
 اقترح خطة دراسية مخصصة.`,
-		user.GradeLevel, user.EducationType, user.Section,
+		safeString(user.GradeLevel), safeString(user.EducationType), safeString(user.Section),
 		user.TotalXP, user.Level, user.CurrentStreak)
 
 	systemPrompt := "أنت مستشار تعليمي. اقترح دروس ومواضيع للدراسة بناءً على بيانات الطالب."
@@ -194,16 +202,16 @@ func (s *AIService) GetStudyRecommendations(ctx context.Context, user models.Use
 	// Parse AI response - for now return structured data
 	recommendations := []map[string]interface{}{
 		{
-			"type":        "subject",
-			"title":       "الفيزياء - الفصل الأول",
-			"reason":      aiResponse,
-			"priority":    "high",
+			"type":     "subject",
+			"title":    "الفيزياء - الفصل الأول",
+			"reason":   aiResponse,
+			"priority": "high",
 		},
 		{
-			"type":        "practice",
-			"title":       "تدريبات كيمياء",
-			"reason":      "لتحسين درجاتك",
-			"priority":    "medium",
+			"type":     "practice",
+			"title":    "تدريبات كيمياء",
+			"reason":   "لتحسين درجاتك",
+			"priority": "medium",
 		},
 	}
 	return recommendations, nil
@@ -273,7 +281,7 @@ func (s *AIService) GenerateQuiz(ctx context.Context, topic string, difficulty s
 			"question": fmt.Sprintf("سؤال رقم %d حول %s", i+1, topic),
 			"options":  []string{"خيار 1", "خيار 2", "خيار 3", "خيار 4"},
 			"answer":   "خيار 1",
-			"score":   10,
+			"score":    10,
 		})
 	}
 
@@ -296,7 +304,7 @@ func (s *AIService) callAI(ctx context.Context, systemPrompt, userMessage string
 func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error) {
 	// Use circuit breaker to prevent cascading failures
 	service := GetCircuitBreakerService()
-	
+
 	var apiResult string
 	err := service.CallExternalAPI("openai-openrouter", func() error {
 		payload := map[string]interface{}{
@@ -305,14 +313,14 @@ func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, user
 				{"role": "system", "content": systemPrompt},
 				{"role": "user", "content": userMessage},
 			},
-			"temperature":  temperature,
+			"temperature": temperature,
 			"max_tokens":  maxTokens,
 			"stream":      false,
 		}
 
 		var jsonData []byte
 		var err error
-		
+
 		jsonData, err = json.Marshal(payload)
 		if err != nil {
 			return err
@@ -447,7 +455,7 @@ func (s *AIService) callGeminiWithMessages(ctx context.Context, messages []map[s
 func (s *AIService) callGemini(ctx context.Context, systemPrompt, userMessage string, temperature float64, maxTokens int) (string, error) {
 	// Use circuit breaker to prevent cascading failures
 	service := GetCircuitBreakerService()
-	
+
 	var apiResult string
 	err := service.CallExternalAPI("gemini-api", func() error {
 		url := s.apiURL + "?key=" + s.apiKey
@@ -468,7 +476,7 @@ func (s *AIService) callGemini(ctx context.Context, systemPrompt, userMessage st
 
 		var jsonData []byte
 		var err error
-		
+
 		jsonData, err = json.Marshal(payload)
 		if err != nil {
 			return err
@@ -534,11 +542,11 @@ func (s *AIService) LogAIInteraction(action string, userID string, input string,
 
 	// Create a message for the conversation
 	message := models.AIMessage{
-		ID:            uuid.New().String(),
+		ID:             uuid.New().String(),
 		ConversationID: interaction.ID,
-		Role:         "user",
-		Content:      input,
-		CreatedAt:     time.Now(),
+		Role:           "user",
+		Content:        input,
+		CreatedAt:      time.Now(),
 	}
 
 	// Save conversation and first message
@@ -563,11 +571,11 @@ func (s *AIService) LogAIInteraction(action string, userID string, input string,
 	// Add assistant response if provided
 	if output != "" {
 		assistantMsg := models.AIMessage{
-			ID:            uuid.New().String(),
+			ID:             uuid.New().String(),
 			ConversationID: interaction.ID,
-			Role:         "assistant",
-			Content:      output,
-			CreatedAt:     time.Now(),
+			Role:           "assistant",
+			Content:        output,
+			CreatedAt:      time.Now(),
 		}
 		if err := tx.Create(&assistantMsg).Error; err != nil {
 			tx.Rollback()

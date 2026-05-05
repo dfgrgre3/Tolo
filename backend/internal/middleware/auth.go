@@ -22,11 +22,11 @@ var (
 	configOnce   sync.Once
 
 	// JWKS cache with TTL to allow refresh
-	jwksCache     *keyfunc.JWKS
-	jwksCacheErr  error
-	jwksLastLoad  time.Time
-	jwksMutex     sync.RWMutex
-	jwksTTL       = 1 * time.Hour // Default TTL, can be overridden by JWKS_CACHE_TTL_HOURS env var
+	jwksCache    *keyfunc.JWKS
+	jwksCacheErr error
+	jwksLastLoad time.Time
+	jwksMutex    sync.RWMutex
+	jwksTTL      = 1 * time.Hour // Default TTL, can be overridden by JWKS_CACHE_TTL_HOURS env var
 )
 
 func getConfig() *config.Config {
@@ -127,9 +127,9 @@ func Auth() gin.HandlerFunc {
 		// Impersonation support: If user is admin, check for impersonation cookie
 		if claims.Role == "ADMIN" {
 			if impersonatedID, err := c.Cookie("impersonate_user_id"); err == nil && impersonatedID != "" {
-				// Verify the impersonated user exists
+				// Verify the impersonated user exists (Unscoped to bypass soft delete)
 				var targetUser models.User
-				if err := db.DB.First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
+				if err := db.DB.Unscoped().First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
 					c.Set("originalAdminId", claims.Subject)
 					c.Set("userId", impersonatedID)
 					c.Set("role", string(targetUser.Role))
@@ -142,9 +142,9 @@ func Auth() gin.HandlerFunc {
 			}
 		}
 
-		// Fetch permissions for granular control
+		// Fetch permissions for granular control (Unscoped to bypass soft delete)
 		var perms models.JSONStringArray
-		if err := db.DB.Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &perms).Error; err == nil {
+		if err := db.DB.Unscoped().Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &perms).Error; err == nil {
 			c.Set("permissions", []string(perms))
 		}
 
@@ -230,12 +230,12 @@ func CORS() gin.HandlerFunc {
 		// In development, only allow localhost origins, not any origin
 		if isDevelopment && origin != "" {
 			// Check if origin is localhost or LAN IP
-			if strings.HasPrefix(origin, "http://localhost:") || 
-			   strings.HasPrefix(origin, "https://localhost:") ||
-			   strings.HasPrefix(origin, "http://127.0.0.1:") ||
-			   strings.HasPrefix(origin, "http://192.168.") ||
-			   strings.HasPrefix(origin, "http://172.") ||
-			   strings.HasPrefix(origin, "http://10.") {
+			if strings.HasPrefix(origin, "http://localhost:") ||
+				strings.HasPrefix(origin, "https://localhost:") ||
+				strings.HasPrefix(origin, "http://127.0.0.1:") ||
+				strings.HasPrefix(origin, "http://192.168.") ||
+				strings.HasPrefix(origin, "http://172.") ||
+				strings.HasPrefix(origin, "http://10.") {
 				isAllowed = true
 			} else {
 				// In development, you might also want to allow specific dev domains

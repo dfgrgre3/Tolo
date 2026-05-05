@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	cryptoRand "crypto/rand"
 	"crypto/hmac"
+	cryptoRand "crypto/rand"
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/hex"
@@ -21,7 +21,6 @@ import (
 	"thanawy-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm/clause"
 	"time"
@@ -186,7 +185,7 @@ func Verify2FA(c *gin.Context) {
 		if user.VerificationExpires != nil && user.VerificationExpires.After(time.Now()) {
 			tokenValid = true
 			db.DB.Model(&user).Updates(map[string]interface{}{
-				"verification_token":  nil,
+				"verification_token":   nil,
 				"verification_expires": nil,
 			})
 		}
@@ -352,11 +351,6 @@ func ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists, a reset link has been sent."})
-		return
-	}
-
 	_ = LogSecurityEvent("", models.SecurityEventPasswordResetReq, c.ClientIP(), c.Request.UserAgent(), nil, &token)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -487,7 +481,7 @@ func Logout(c *gin.Context) {
 func GetAuthSessions(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	var sessions []models.UserSession
-	if err := db.DB.Where("\"userId\" = ? AND \"isActive\" = ?", userID, true).Find(&sessions).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND is_active = ?", userID, true).Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sessions"})
 		return
 	}
@@ -508,7 +502,7 @@ func DeleteAuthSession(c *gin.Context) {
 	}
 
 	var session models.UserSession
-	if err := db.DB.Where("id = ? AND \"userId\" = ?", sessionID, userID).First(&session).Error; err != nil {
+	if err := db.DB.Where("id = ? AND user_id = ?", sessionID, userID).First(&session).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found or access denied"})
 		return
 	}

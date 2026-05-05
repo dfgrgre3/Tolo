@@ -63,11 +63,11 @@ type Subject struct {
 }
 
 type Topic struct {
-	ID          string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	SubjectID   string    `gorm:"not null;index;type:uuid;constraint:OnDelete:CASCADE;column:subject_id" json:"subjectId"`
-	Title       string    `gorm:"default:'';index;column:title" json:"title"`
-	Description *string   `gorm:"column:description" json:"description"`
-	Order       int       `gorm:"default:0;index;column:order" json:"order"`
+	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	SubjectID   string         `gorm:"not null;index;type:uuid;constraint:OnDelete:CASCADE;column:subject_id" json:"subjectId"`
+	Title       string         `gorm:"default:'';index;column:title" json:"title"`
+	Description *string        `gorm:"column:description" json:"description"`
+	Order       int            `gorm:"default:0;index;column:order" json:"order"`
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt   gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
@@ -86,17 +86,17 @@ const (
 )
 
 type SubTopic struct {
-	ID              string       `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	TopicID         string       `gorm:"not null;index;type:uuid;constraint:OnDelete:CASCADE;column:topic_id" json:"topicId"`
-	Title           string       `gorm:"default:'';index;column:title" json:"title"`
-	Description     *string      `gorm:"column:description" json:"description"`
-	Content         *string      `gorm:"column:content" json:"content"`
-	VideoUrl        *string      `gorm:"column:video_url" json:"videoUrl"`
-	Type            SubTopicType `gorm:"default:'VIDEO';index;column:type" json:"type"`
-	ExamID          *string      `gorm:"index;type:uuid;column:exam_id" json:"examId"`
-	Order           int          `gorm:"default:0;index;column:order" json:"order"`
-	DurationMinutes int          `gorm:"default:0;column:duration_minutes" json:"durationMinutes"`
-	IsFree          bool         `gorm:"default:false;index;column:is_free" json:"isFree"`
+	ID              string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	TopicID         string         `gorm:"not null;index;type:uuid;constraint:OnDelete:CASCADE;column:topic_id" json:"topicId"`
+	Title           string         `gorm:"default:'';index;column:title" json:"title"`
+	Description     *string        `gorm:"column:description" json:"description"`
+	Content         *string        `gorm:"column:content" json:"content"`
+	VideoUrl        *string        `gorm:"column:video_url" json:"videoUrl"`
+	Type            SubTopicType   `gorm:"default:'VIDEO';index;column:type" json:"type"`
+	ExamID          *string        `gorm:"index;type:uuid;column:exam_id" json:"examId"`
+	Order           int            `gorm:"default:0;index;column:order" json:"order"`
+	DurationMinutes int            `gorm:"default:0;column:duration_minutes" json:"durationMinutes"`
+	IsFree          bool           `gorm:"default:false;index;column:is_free" json:"isFree"`
 	CreatedAt       time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt       time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt       gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
@@ -107,23 +107,23 @@ type SubTopic struct {
 }
 
 type LessonAttachment struct {
-	ID         string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	SubTopicID string    `gorm:"not null;index;type:uuid;column:sub_topic_id;constraint:OnDelete:CASCADE" json:"subTopicId"`
-	Title      string    `gorm:"not null;column:title" json:"title"`
-	FileUrl    string    `gorm:"not null;column:file_url" json:"fileUrl"`
-	FileType   string    `gorm:"column:file_type" json:"fileType"` // PDF, ZIP, etc.
-	FileSize   int64     `gorm:"column:file_size" json:"fileSize"`
+	ID         string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	SubTopicID string         `gorm:"not null;index;type:uuid;column:sub_topic_id;constraint:OnDelete:CASCADE" json:"subTopicId"`
+	Title      string         `gorm:"not null;column:title" json:"title"`
+	FileUrl    string         `gorm:"not null;column:file_url" json:"fileUrl"`
+	FileType   string         `gorm:"column:file_type" json:"fileType"` // PDF, ZIP, etc.
+	FileSize   int64          `gorm:"column:file_size" json:"fileSize"`
 	CreatedAt  time.Time      `gorm:"column:created_at" json:"createdAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 }
 
 type CourseReview struct {
-	ID        string    `gorm:"primaryKey;type:uuid;column:id" json:"id"`
-	SubjectID string    `gorm:"not null;index:idx_user_subject_review,unique;type:uuid;column:subject_id;constraint:OnDelete:CASCADE" json:"subjectId"`
-	UserID    string    `gorm:"not null;index:idx_user_subject_review,unique;type:uuid;column:user_id;constraint:OnDelete:CASCADE" json:"userId"`
-	Rating    int       `gorm:"not null;default:5;column:rating" json:"rating"`
-	Comment   string    `gorm:"type:text;column:comment" json:"comment"`
-	IsVisible bool      `gorm:"default:true;column:is_visible" json:"isVisible"`
+	ID        string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
+	SubjectID string         `gorm:"not null;index:idx_user_subject_review,unique;type:uuid;column:subject_id;constraint:OnDelete:CASCADE" json:"subjectId"`
+	UserID    string         `gorm:"not null;index:idx_user_subject_review,unique;type:uuid;column:user_id;constraint:OnDelete:CASCADE" json:"userId"`
+	Rating    int            `gorm:"not null;default:5;column:rating" json:"rating"`
+	Comment   string         `gorm:"type:text;column:comment" json:"comment"`
+	IsVisible bool           `gorm:"default:true;column:is_visible" json:"isVisible"`
 	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`

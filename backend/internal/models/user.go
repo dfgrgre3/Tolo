@@ -38,14 +38,14 @@ type User struct {
 	PasswordHash string         `gorm:"not null" json:"-"`
 	Role         UserRole       `gorm:"default:'STUDENT';index" json:"role"`
 	Status       UserStatus     `gorm:"default:'ACTIVE';index" json:"status"`
-	CreatedAt    time.Time      `gorm:"index" json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt    time.Time      `gorm:"index;column:created_at" json:"createdAt"`
+	UpdatedAt    time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt    gorm.DeletedAt `gorm:"index;column:deleted_at" json:"-"`
 
 	// Profile fields
-	Phone         *string `gorm:"index" json:"phone"`
-	PhoneVerified bool    `gorm:"default:false" json:"phoneVerified"`
-	EmailVerified bool    `gorm:"default:false;index" json:"emailVerified"`
+	Phone         *string `gorm:"index;column:phone" json:"phone"`
+	PhoneVerified bool    `gorm:"default:false;column:phone_verified" json:"phoneVerified"`
+	EmailVerified bool    `gorm:"default:false;index;column:email_verified" json:"emailVerified"`
 	Country       *string `gorm:"index" json:"country"`
 	GradeLevel    *string `gorm:"index" json:"gradeLevel"`
 	EducationType *string `json:"educationType"`
@@ -57,11 +57,11 @@ type User struct {
 	Level   int `gorm:"default:1;index" json:"level"`
 
 	// Gamification (stats - synced periodically or on events)
-	CurrentStreak    int `gorm:"default:0" json:"currentStreak"`
-	LongestStreak    int `gorm:"default:0" json:"longestStreak"`
-	TotalStudyTime   int `gorm:"default:0" json:"totalStudyTime"`   // in minutes
-	TasksCompleted   int `gorm:"default:0" json:"tasksCompleted"`
-	ExamsPassed      int `gorm:"default:0" json:"examsPassed"`
+	CurrentStreak  int `gorm:"default:0" json:"currentStreak"`
+	LongestStreak  int `gorm:"default:0" json:"longestStreak"`
+	TotalStudyTime int `gorm:"default:0" json:"totalStudyTime"` // in minutes
+	TasksCompleted int `gorm:"default:0" json:"tasksCompleted"`
+	ExamsPassed    int `gorm:"default:0" json:"examsPassed"`
 
 	// Multi-layer XP system
 	StudyXP     int `gorm:"default:0" json:"studyXP"`
@@ -81,29 +81,29 @@ type User struct {
 	Version     int     `gorm:"default:1" json:"-"` // Optimistic locking for balances
 
 	// Subscriptions
-	ActiveSubscriptionID *string    `gorm:"index;type:uuid;column:active_subscription_id" json:"activeSubscriptionId"`
+	ActiveSubscriptionID  *string    `gorm:"index;type:uuid;column:active_subscription_id" json:"activeSubscriptionId"`
 	SubscriptionExpiresAt *time.Time `gorm:"index" json:"subscriptionExpiresAt"`
 
 	// Security & Auth
-	LastLogin             *time.Time `gorm:"index" json:"lastLogin"`
-	TwoFactorEnabled      bool       `gorm:"default:false" json:"twoFactorEnabled"`
-	TwoFactorSecret       *string    `json:"-"`
-	ResetPasswordToken    *string    `gorm:"index" json:"-"`
-	ResetPasswordExpires  *time.Time `json:"-"`
-	MagicLinkToken        *string    `gorm:"index" json:"-"`
-	MagicLinkExpires      *time.Time `json:"-"`
-	VerificationToken     *string    `gorm:"index" json:"-"`
-	VerificationExpires   *time.Time `json:"-"`
+	LastLogin            *time.Time `gorm:"index" json:"lastLogin"`
+	TwoFactorEnabled     bool       `gorm:"default:false" json:"twoFactorEnabled"`
+	TwoFactorSecret      *string    `json:"-"`
+	ResetPasswordToken   *string    `gorm:"index" json:"-"`
+	ResetPasswordExpires *time.Time `json:"-"`
+	MagicLinkToken       *string    `gorm:"index" json:"-"`
+	MagicLinkExpires     *time.Time `json:"-"`
+	VerificationToken    *string    `gorm:"index" json:"-"`
+	VerificationExpires  *time.Time `json:"-"`
 
 	// Relations
-	Settings         *UserSettings    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Enrollments      []Enrollment     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	LessonProgresses []LessonProgress `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Tasks            []Task           `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	StudySessions    []StudySession   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Schedules        []Schedule       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Reminders        []Reminder       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Payments         []Payment        `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Settings           *UserSettings       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Enrollments        []Enrollment        `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	LessonProgresses   []LessonProgress    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Tasks              []Task              `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	StudySessions      []StudySession      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Schedules          []Schedule          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Reminders          []Reminder          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Payments           []Payment           `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	ExamResults        []ExamResult        `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Sessions           []UserSession       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	SecurityLogs       []SecurityLog       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
@@ -188,6 +188,14 @@ func GetDefaultPermissions(role UserRole) []string {
 	default:
 		return []string{}
 	}
+}
+
+// GetName returns the user's name or a default value if not set
+func (u *User) GetName() string {
+	if u.Name != nil && *u.Name != "" {
+		return *u.Name
+	}
+	return "Unknown User"
 }
 
 func (User) TableName() string {

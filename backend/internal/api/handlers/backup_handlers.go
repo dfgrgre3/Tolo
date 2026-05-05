@@ -31,12 +31,12 @@ type RestoreBackupRequest struct {
 
 // ScheduleBackupRequest represents a scheduled backup configuration
 type ScheduleBackupRequest struct {
-	Frequency  string `json:"frequency" binding:"required,oneof=daily weekly monthly"`
-	Type       string `json:"type" binding:"required,oneof=full database files incremental"`
-	Time       string `json:"time" binding:"required,datetime=15:04"`
-	DayOfWeek  int    `json:"dayOfWeek,omitempty" binding:"omitempty,min=0,max=6"`
-	DayOfMonth int    `json:"dayOfMonth,omitempty" binding:"omitempty,min=1,max=31"`
-	RetentionDays int `json:"retentionDays" binding:"required,min=1,max=365"`
+	Frequency     string `json:"frequency" binding:"required,oneof=daily weekly monthly"`
+	Type          string `json:"type" binding:"required,oneof=full database files incremental"`
+	Time          string `json:"time" binding:"required,datetime=15:04"`
+	DayOfWeek     int    `json:"dayOfWeek,omitempty" binding:"omitempty,min=0,max=6"`
+	DayOfMonth    int    `json:"dayOfMonth,omitempty" binding:"omitempty,min=1,max=31"`
+	RetentionDays int    `json:"retentionDays" binding:"required,min=1,max=365"`
 }
 
 // CreateBackup creates a new backup
@@ -323,9 +323,9 @@ func GetBackupStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"overview":      stats,
-			"storageUsed":   storageUsed,
-			"storageLimit":  storageLimit,
+			"overview":          stats,
+			"storageUsed":       storageUsed,
+			"storageLimit":      storageLimit,
 			"storagePercentage": float64(storageUsed) / float64(storageLimit) * 100,
 		},
 	})

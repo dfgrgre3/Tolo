@@ -304,12 +304,12 @@ func RequestLogger() gin.HandlerFunc {
 		Info(
 			fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.Path),
 			map[string]interface{}{
-				"request_id":  requestID,
-				"trace_id":    traceID,
-				"method":      c.Request.Method,
-				"path":        c.Request.URL.Path,
-				"ip":          c.ClientIP(),
-				"user_agent":  c.Request.UserAgent(),
+				"request_id": requestID,
+				"trace_id":   traceID,
+				"method":     c.Request.Method,
+				"path":       c.Request.URL.Path,
+				"ip":         c.ClientIP(),
+				"user_agent": c.Request.UserAgent(),
 			},
 		)
 
@@ -336,13 +336,13 @@ func RequestLogger() gin.HandlerFunc {
 			Debug(
 				fmt.Sprintf("%s %s - %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status()),
 				map[string]interface{}{
-					"request_id":   requestID,
-					"trace_id":     traceID,
-					"method":       c.Request.Method,
-					"path":         c.Request.URL.Path,
-					"status":       c.Writer.Status(),
-					"duration_ms":  duration.Milliseconds(),
-					"ip":           c.ClientIP(),
+					"request_id":  requestID,
+					"trace_id":    traceID,
+					"method":      c.Request.Method,
+					"path":        c.Request.URL.Path,
+					"status":      c.Writer.Status(),
+					"duration_ms": duration.Milliseconds(),
+					"ip":          c.ClientIP(),
 				},
 			)
 		}

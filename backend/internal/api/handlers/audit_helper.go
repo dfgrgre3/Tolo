@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"thanawy-backend/internal/services"
 	"github.com/gin-gonic/gin"
+	"thanawy-backend/internal/services"
 )
 
 // LogAudit logs an administrative action asynchronously

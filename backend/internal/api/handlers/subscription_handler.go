@@ -23,7 +23,7 @@ func GetSubscriptionPlans(c *gin.Context) {
 
 func GetUserSubscription(c *gin.Context) {
 	userId, _ := c.Get("userId")
-	
+
 	var user models.User
 	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -42,7 +42,7 @@ func GetUserSubscription(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"active": true,
+		"active":       true,
 		"subscription": sub,
 	})
 }
@@ -216,7 +216,6 @@ func PurchasePlan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-
 // GetInvoice returns invoice data for a specific payment
 func GetInvoice(c *gin.Context) {
 	userId, _ := c.Get("userId")
@@ -242,7 +241,7 @@ func InitiatePlanPayment(c *gin.Context) {
 	var req struct {
 		PlanID        string `json:"planId" binding:"required"`
 		PaymentMethod string `json:"paymentMethod" binding:"required"` // "card", "wallet", "fawry"
-		PhoneNumber   string `json:"phoneNumber"` // Required for wallet payments
+		PhoneNumber   string `json:"phoneNumber"`                      // Required for wallet payments
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -321,13 +320,13 @@ func InitiatePlanPayment(c *gin.Context) {
 
 	// Create payment record in pending state
 	payment := models.Payment{
-		UserID:       user.ID,
-		PlanID:       plan.ID,
-		Amount:       plan.Price,
-		Currency:     plan.Currency,
-		Method:       "PAYMOB_" + req.PaymentMethod,
-		Status:       models.PaymentPending,
-		Reference:    generateSecureReference("PLAN"),
+		UserID:        user.ID,
+		PlanID:        plan.ID,
+		Amount:        plan.Price,
+		Currency:      plan.Currency,
+		Method:        "PAYMOB_" + req.PaymentMethod,
+		Status:        models.PaymentPending,
+		Reference:     generateSecureReference("PLAN"),
 		PaymobOrderID: orderID,
 	}
 	if err := db.DB.Create(&payment).Error; err != nil {
@@ -388,7 +387,7 @@ func CancelSubscription(c *gin.Context) {
 
 		// Clear user's active subscription
 		if err := tx.Model(&user).Updates(map[string]interface{}{
-			"activeSubscriptionId":   nil,
+			"activeSubscriptionId":  nil,
 			"subscriptionExpiresAt": nil,
 		}).Error; err != nil {
 			return err
@@ -492,7 +491,7 @@ func RenewSubscription(c *gin.Context) {
 
 		// 7. Update user active subscription
 		if err := tx.Model(&models.User{}).Where("id = ?", userId).Updates(map[string]interface{}{
-			"activeSubscriptionId":   sub.ID,
+			"activeSubscriptionId":  sub.ID,
 			"subscriptionExpiresAt": endDate,
 		}).Error; err != nil {
 			return err

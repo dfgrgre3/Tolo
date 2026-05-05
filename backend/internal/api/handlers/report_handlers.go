@@ -299,9 +299,9 @@ func ExecuteCustomReport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"result": gin.H{
-				"reportId":    report.ID,
-				"executedAt":  now,
-				"results":     results,
+				"reportId":   report.ID,
+				"executedAt": now,
+				"results":    results,
 			},
 		},
 	})

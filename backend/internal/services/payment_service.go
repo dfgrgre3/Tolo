@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"thanawy-backend/internal/db"
-	"thanawy-backend/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"thanawy-backend/internal/db"
+	"thanawy-backend/internal/models"
 )
 
 // PaymentService handles all payment-related operations with proper transaction management
@@ -93,8 +93,8 @@ func (ps *PaymentService) processCoursePurchase(tx *gorm.DB, payment models.Paym
 
 	// Create enrollment with conflict handling (user already enrolled)
 	enrollment := models.Enrollment{
-		UserID:    payment.UserID,
-		SubjectID: subjectID,
+		UserID:     payment.UserID,
+		SubjectID:  subjectID,
 		EnrolledAt: time.Now(),
 	}
 
@@ -175,11 +175,11 @@ func (ps *PaymentService) processSubscription(tx *gorm.DB, payment models.Paymen
 	startDate := now
 	endDate := startDate.Add(duration)
 	sub := models.UserSubscription{
-		UserID:    payment.UserID,
-		PlanID:    plan.ID,
-		Status:    models.SubscriptionActive,
-		StartDate: startDate,
-		EndDate:   endDate,
+		UserID:               payment.UserID,
+		PlanID:               plan.ID,
+		Status:               models.SubscriptionActive,
+		StartDate:            startDate,
+		EndDate:              endDate,
 		PaymobSubscriptionID: &payment.Reference,
 	}
 
@@ -189,7 +189,7 @@ func (ps *PaymentService) processSubscription(tx *gorm.DB, payment models.Paymen
 
 	// Update user's active subscription atomically
 	if err := tx.Model(&user).Updates(map[string]interface{}{
-		"activeSubscriptionId":   sub.ID,
+		"activeSubscriptionId":  sub.ID,
 		"subscriptionExpiresAt": endDate,
 	}).Error; err != nil {
 		return fmt.Errorf("failed to update user subscription: %w", err)

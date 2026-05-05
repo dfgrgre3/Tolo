@@ -33,9 +33,9 @@ func GetTwoFactorStatus(c *gin.Context) {
 		// No settings found, return disabled status
 		c.JSON(http.StatusOK, gin.H{
 			"data": gin.H{
-				"isEnabled":   false,
-				"method":      nil,
-				"isEnforced":  false,
+				"isEnabled":  false,
+				"method":     nil,
+				"isEnforced": false,
 			},
 		})
 		return
@@ -43,10 +43,10 @@ func GetTwoFactorStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"isEnabled":      settings.IsEnabled,
-			"method":         settings.Method,
-			"lastUsedAt":     settings.LastUsedAt,
-			"isEnforced":     settings.IsEnforced,
+			"isEnabled":       settings.IsEnabled,
+			"method":          settings.Method,
+			"lastUsedAt":      settings.LastUsedAt,
+			"isEnforced":      settings.IsEnforced,
 			"verifiedDevices": settings.VerifiedDevices,
 		},
 	})
@@ -85,7 +85,7 @@ func InitiateTwoFactorSetup(c *gin.Context) {
 
 		// Generate QR code URL
 		qrURL := fmt.Sprintf("otpauth://totp/Thanawy%%20Admin:%s?secret=%s&issuer=Thanawy%%20Admin", userEmail.(string), secretKey)
-		
+
 		response = gin.H{
 			"secret": secretKey,
 			"qrCode": qrURL,
@@ -93,12 +93,12 @@ func InitiateTwoFactorSetup(c *gin.Context) {
 
 		// Store pending setup
 		settings := models.TwoFactorSettings{
-			UserID:        userID.(string),
-			Method:        "authenticator",
-			Secret:        secretKey,
-			IsEnabled:     false, // Not enabled until verified
-			PendingSetup:  true,
-			CreatedAt:     time.Now(),
+			UserID:       userID.(string),
+			Method:       "authenticator",
+			Secret:       secretKey,
+			IsEnabled:    false, // Not enabled until verified
+			PendingSetup: true,
+			CreatedAt:    time.Now(),
 		}
 		db.DB.Where("user_id = ?", userID).Assign(settings).FirstOrCreate(&settings)
 
@@ -164,7 +164,8 @@ func VerifyTwoFactor(c *gin.Context) {
 	settings.IsEnabled = true
 	settings.PendingSetup = false
 	settings.BackupCodes = backupCodes
-	settings.ActivatedAt = time.Now()
+	now := time.Now()
+	settings.ActivatedAt = &now
 	db.DB.Save(&settings)
 
 	// Log
@@ -216,7 +217,8 @@ func DisableTwoFactor(c *gin.Context) {
 	}
 
 	settings.IsEnabled = false
-	settings.DeactivatedAt = time.Now()
+	now := time.Now()
+	settings.DeactivatedAt = &now
 	db.DB.Save(&settings)
 
 	middleware.LogCriticalOperation(c, "2fa_disabled", nil)
@@ -280,7 +282,7 @@ func RegenerateBackupCodes(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/admin/security/sessions [get]
 func GetActiveSessions(c *gin.Context) {
-	userID, exists := c.Get("userId")
+	userID, _ := c.Get("userId")
 	isAdmin := c.GetBool("is_admin")
 
 	query := db.DB.Model(&models.UserSession{}).Where("status = ?", "active")
@@ -324,8 +326,10 @@ func RevokeSession(c *gin.Context) {
 	}
 
 	session.Status = "revoked"
-	session.RevokedAt = time.Now()
-	session.RevokedBy = adminID.(string)
+	now := time.Now()
+	session.RevokedAt = &now
+	adminIDStr := adminID.(string)
+	session.RevokedBy = &adminIDStr
 
 	if err := db.DB.Save(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke session"})
@@ -355,9 +359,9 @@ func RevokeOtherSessions(c *gin.Context) {
 	result := db.DB.Model(&models.UserSession{}).
 		Where("user_id = ? AND id != ? AND status = ?", userID, currentSessionID, "active").
 		Updates(map[string]interface{}{
-			"status":      "revoked",
-			"revoked_at":  time.Now(),
-			"revoked_by":  userID,
+			"status":     "revoked",
+			"revoked_at": time.Now(),
+			"revoked_by": userID,
 		})
 
 	middleware.LogCriticalOperation(c, "sessions_revoked_others", map[string]interface{}{
@@ -388,9 +392,9 @@ func RevokeUserSessions(c *gin.Context) {
 	result := db.DB.Model(&models.UserSession{}).
 		Where("user_id = ? AND status = ?", userID, "active").
 		Updates(map[string]interface{}{
-			"status":      "revoked",
-			"revoked_at":  time.Now(),
-			"revoked_by":  adminID,
+			"status":     "revoked",
+			"revoked_at": time.Now(),
+			"revoked_by": adminID,
 		})
 
 	middleware.LogCriticalOperation(c, "user_sessions_revoked", map[string]interface{}{
