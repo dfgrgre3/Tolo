@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/services"
+	"thanawy-backend/internal/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -280,15 +282,22 @@ func Upload(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	dst := filepath.Join(uploadDir, filename)
+	
+	f, err := file.Open()
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to open file")
+		return
+	}
+	defer f.Close()
 
-	if err := c.SaveUploadedFile(file, dst); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file", "details": err.Error()})
+	url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, file.Size, file.Header.Get("Content-Type"))
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to upload file")
 		return
 	}
 
 	api_response.Success(c, gin.H{
-		"fileUrl": fmt.Sprintf("/uploads/%s", filename),
+		"fileUrl": url,
 	})
 }
 
@@ -369,6 +378,7 @@ func AdminExamsBulkUpload(c *gin.Context) {
 }
 
 func UploadChunked(c *gin.Context) {
+	ctx := c.Request.Context()
 	switch c.Request.Method {
 	case http.MethodPost:
 		var req struct {
@@ -383,34 +393,19 @@ func UploadChunked(c *gin.Context) {
 		}
 
 		uploadID := uuid.New().String()
-		tempDir := filepath.Join("uploads", "temp", uploadID)
-
-		ext := strings.ToLower(filepath.Ext(req.FileName))
-		allowedExts := map[string]bool{
-			".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
-			".pdf": true, ".doc": true, ".docx": true,
-			".mp4": true, ".mp3": true, ".mkv": true, ".mov": true,
-		}
-		if !allowedExts[ext] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "نوع الملف غير مدعوم"})
-			return
-		}
-
-		if err := os.MkdirAll(tempDir, 0755); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temporary directory"})
-			return
-		}
-
-		metadataPath := filepath.Join(tempDir, "metadata.json")
+		
+		// Store metadata in Redis for distributed access
 		metadataBytes, _ := json.Marshal(req)
-		if err := os.WriteFile(metadataPath, metadataBytes, 0644); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store upload metadata"})
-			return
+		if db.Redis != nil {
+			db.Redis.Set(ctx, "upload_metadata:"+uploadID, metadataBytes, 24*time.Hour)
+		} else {
+			// Fallback to local if Redis is missing (not ideal for distributed)
+			tempDir := filepath.Join("uploads", "temp", uploadID)
+			os.MkdirAll(tempDir, 0755)
+			os.WriteFile(filepath.Join(tempDir, "metadata.json"), metadataBytes, 0644)
 		}
 
-		api_response.Success(c, gin.H{
-			"uploadId": uploadID,
-		})
+		api_response.Success(c, gin.H{"uploadId": uploadID})
 
 	case http.MethodPut:
 		uploadID := c.PostForm("uploadId")
@@ -426,15 +421,18 @@ func UploadChunked(c *gin.Context) {
 			return
 		}
 
-		tempDir := filepath.Join("uploads", "temp", uploadID)
-		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
+		f, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open chunk"})
 			return
 		}
+		defer f.Close()
 
-		dst := filepath.Join(tempDir, chunkIndexStr)
-		if err := c.SaveUploadedFile(file, dst); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chunk", "details": err.Error()})
+		// Upload chunk to distributed storage
+		chunkPath := fmt.Sprintf("temp/%s/%s", uploadID, chunkIndexStr)
+		_, err = storage.GlobalStorage.Upload(ctx, chunkPath, f, file.Size, "application/octet-stream")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chunk to storage", "details": err.Error()})
 			return
 		}
 
@@ -449,85 +447,111 @@ func UploadChunked(c *gin.Context) {
 			return
 		}
 
-		tempDir := filepath.Join("uploads", "temp", req.UploadID)
-		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
-			return
-		}
-
-		metadataPath := filepath.Join(tempDir, "metadata.json")
-		metadataBytes, err := os.ReadFile(metadataPath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read upload metadata"})
-			return
-		}
-
+		// Retrieve metadata
 		var metadata struct {
 			FileName string `json:"fileName"`
 			FileType string `json:"fileType"`
 		}
-		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse upload metadata"})
-			return
+		
+		if db.Redis != nil {
+			val, err := db.Redis.Get(ctx, "upload_metadata:"+req.UploadID).Bytes()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
+				return
+			}
+			json.Unmarshal(val, &metadata)
+		} else {
+			// Fallback
+			tempDir := filepath.Join("uploads", "temp", req.UploadID)
+			metadataBytes, err := os.ReadFile(filepath.Join(tempDir, "metadata.json"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
+				return
+			}
+			json.Unmarshal(metadataBytes, &metadata)
 		}
 
-		ext := strings.ToLower(filepath.Ext(metadata.FileName))
-		finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		finalPath := filepath.Join("uploads", finalFilename)
-
-		out, err := os.Create(finalPath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create final file"})
-			return
-		}
-		defer out.Close()
-
-		entries, err := os.ReadDir(tempDir)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list chunks"})
+		// List chunks from distributed storage
+		chunkPrefix := fmt.Sprintf("temp/%s/", req.UploadID)
+		chunkFiles, err := storage.GlobalStorage.List(ctx, chunkPrefix)
+		if err != nil || len(chunkFiles) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No chunks found for this upload"})
 			return
 		}
 
 		type chunkEntry struct {
 			index int
-			name  string
+			path  string
 		}
 		var chunks []chunkEntry
-		for _, entry := range entries {
-			if entry.Name() == "metadata.json" {
-				continue
-			}
-			idx, err := strconv.Atoi(entry.Name())
-			if err != nil {
-				continue
-			}
-			chunks = append(chunks, chunkEntry{index: idx, name: entry.Name()})
+		for _, path := range chunkFiles {
+			// Path usually looks like "temp/{uploadID}/{index}"
+			parts := strings.Split(path, "/")
+			if len(parts) < 3 { continue }
+			idx, err := strconv.Atoi(parts[len(parts)-1])
+			if err != nil { continue }
+			chunks = append(chunks, chunkEntry{index: idx, path: path})
 		}
 
 		sort.Slice(chunks, func(i, j int) bool {
 			return chunks[i].index < chunks[j].index
 		})
 
+		// Join chunks into a temporary local file
+		ext := strings.ToLower(filepath.Ext(metadata.FileName))
+		finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		
+		tempLocalFile, err := os.CreateTemp("", "upload-*"+ext)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create merge buffer"})
+			return
+		}
+		tempLocalPath := tempLocalFile.Name()
+		defer os.Remove(tempLocalPath)
+
 		for _, chunk := range chunks {
-			chunkPath := filepath.Join(tempDir, chunk.name)
-			in, err := os.Open(chunkPath)
+			rc, err := storage.GlobalStorage.Download(ctx, chunk.path)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open chunk %d", chunk.index)})
+				tempLocalFile.Close()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download chunk " + chunk.path})
 				return
 			}
-			if _, err := io.Copy(out, in); err != nil {
-				in.Close()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to copy chunk %d", chunk.index)})
+			_, err = io.Copy(tempLocalFile, rc)
+			rc.Close()
+			if err != nil {
+				tempLocalFile.Close()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join chunk " + chunk.path})
 				return
 			}
-			in.Close()
+		}
+		
+		// Get size for final upload
+		info, _ := tempLocalFile.Stat()
+		size := info.Size()
+		tempLocalFile.Seek(0, 0)
+
+		// Upload final file
+		url, err := storage.GlobalStorage.Upload(ctx, finalFilename, tempLocalFile, size, metadata.FileType)
+		tempLocalFile.Close()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload final file"})
+			return
 		}
 
-		os.RemoveAll(tempDir)
+		// Cleanup
+		go func() {
+			bgCtx := context.Background()
+			for _, chunk := range chunks {
+				storage.GlobalStorage.Delete(bgCtx, chunk.path)
+			}
+			if db.Redis != nil {
+				db.Redis.Del(bgCtx, "upload_metadata:"+req.UploadID)
+			}
+			// Cleanup local temp if fallback was used
+			os.RemoveAll(filepath.Join("uploads", "temp", req.UploadID))
+		}()
 
-		api_response.Success(c, gin.H{
-			"fileUrl": fmt.Sprintf("/uploads/%s", finalFilename),
-		})
+		api_response.Success(c, gin.H{"fileUrl": url})
 
 	default:
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method not allowed"})

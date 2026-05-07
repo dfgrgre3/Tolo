@@ -22,6 +22,7 @@ import (
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/router"
+	"thanawy-backend/internal/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -47,33 +48,40 @@ func main() {
 
 	// Initialize Configuration
 	cfg := config.Load()
+	config.GlobalConfig = cfg
 
 	// Initialize Database
-	database, err := db.Connect(cfg.DatabaseURL)
+	_, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// SQL migrations are the only supported production schema-change path.
-	// In production, run them from a single release job with RUN_DB_MIGRATIONS=true.
-	// In non-production, they run by default before the optional development AutoMigrate path.
-	runMigrations := os.Getenv("RUN_DB_MIGRATIONS")
-	if runMigrations == "true" || (runMigrations == "" && cfg.Environment != "production") {
-		log.Println("Checking/Applying SQL database migrations...")
-		if err := db.RunSQLMigrations(database); err != nil {
-			log.Printf("CRITICAL: SQL migrations failed: %v", err)
-			log.Println("The application cannot start with failed migrations.")
-			// ALWAYS fail fast - inconsistent schema causes data corruption
-			log.Fatal("Migration failure - aborting startup")
+	// Initialize Storage
+	if cfg.StorageType == "s3" {
+		storageSvc, err := storage.NewS3Storage(
+			cfg.S3.Endpoint,
+			cfg.S3.AccessKey,
+			cfg.S3.SecretKey,
+			cfg.S3.Bucket,
+			cfg.S3.Region,
+			cfg.S3.UseSSL,
+			cfg.S3.PublicURL,
+		)
+		if err != nil {
+			log.Fatalf("Failed to initialize S3 storage: %v", err)
 		}
-		log.Println("SQL database migrations applied successfully.")
-
-		// Seed AFTER SQL migrations to ensure all tables exist
-		if err := db.Seed(); err != nil {
-			log.Printf("Seeding failed: %v", err)
-		}
-		log.Println("Database seeded successfully.")
+		storage.GlobalStorage = storageSvc
+		log.Println("Storage initialized with S3 provider")
+	} else {
+		storage.GlobalStorage = storage.NewLocalStorage(
+			cfg.LocalStorage.BasePath,
+			cfg.LocalStorage.BaseURL,
+		)
+		log.Println("Storage initialized with Local provider")
 	}
+
+	// SQL migrations and seeding are now handled by a separate process (cmd/migrate/main.go)
+	// to avoid race conditions in distributed environments.
 
 	// Initialize Redis
 	redisURL := os.Getenv("REDIS_URL")
@@ -100,11 +108,13 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS())
 	r.Use(middleware.PerformanceMonitor())
-	// router.Use(middleware.RateLimiter(200, time.Minute)) // This was invalid
+	r.Use(middleware.GlobalRateLimiter(200, time.Minute))
 	r.Use(middleware.CSRFMiddleware())
 
-	// Serve static files for uploads
-	r.Static("/uploads", "./uploads")
+	// Serve static files for uploads (only if using local storage)
+	if cfg.StorageType == "local" {
+		r.Static("/uploads", cfg.LocalStorage.BasePath)
+	}
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

@@ -232,3 +232,14 @@ func AuthRateLimiter() gin.HandlerFunc {
 		NewRateLimiter(db.Redis).RateLimitByIP(60, time.Minute)(c)
 	}
 }
+
+// GlobalRateLimiter provides rate limiting for all API requests
+func GlobalRateLimiter(limit int, window time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db.Redis == nil {
+			c.Next()
+			return
+		}
+		NewRateLimiter(db.Redis).RateLimitByIP(limit, window)(c)
+	}
+}

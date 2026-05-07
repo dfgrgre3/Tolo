@@ -11,6 +11,7 @@ import (
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"thanawy-backend/internal/storage"
 
 	"github.com/gin-gonic/gin"
 )
@@ -392,9 +393,14 @@ func AdminCreateBook(c *gin.Context) {
 		if err == nil {
 			ext := strings.ToLower(filepath.Ext(cover.Filename))
 			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(cover, dst); err == nil {
-				book.CoverUrl = "/uploads/" + filename
+			
+			f, err := cover.Open()
+			if err == nil {
+				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, cover.Size, cover.Header.Get("Content-Type"))
+				if err == nil {
+					book.CoverUrl = url
+				}
+				f.Close()
 			}
 		}
 
@@ -403,9 +409,14 @@ func AdminCreateBook(c *gin.Context) {
 		if err == nil {
 			ext := strings.ToLower(filepath.Ext(file.Filename))
 			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(file, dst); err == nil {
-				book.DownloadUrl = "/uploads/" + filename
+			
+			f, err := file.Open()
+			if err == nil {
+				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, file.Size, file.Header.Get("Content-Type"))
+				if err == nil {
+					book.DownloadUrl = url
+				}
+				f.Close()
 			}
 		}
 	} else {
@@ -456,9 +467,14 @@ func AdminUpdateBook(c *gin.Context) {
 		if err == nil {
 			ext := strings.ToLower(filepath.Ext(cover.Filename))
 			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(cover, dst); err == nil {
-				updates["coverUrl"] = "/uploads/" + filename
+			
+			f, err := cover.Open()
+			if err == nil {
+				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, cover.Size, cover.Header.Get("Content-Type"))
+				if err == nil {
+					updates["coverUrl"] = url
+				}
+				f.Close()
 			}
 		}
 
@@ -467,9 +483,14 @@ func AdminUpdateBook(c *gin.Context) {
 		if err == nil {
 			ext := strings.ToLower(filepath.Ext(file.Filename))
 			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(file, dst); err == nil {
-				updates["downloadUrl"] = "/uploads/" + filename
+			
+			f, err := file.Open()
+			if err == nil {
+				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, file.Size, file.Header.Get("Content-Type"))
+				if err == nil {
+					updates["downloadUrl"] = url
+				}
+				f.Close()
 			}
 		}
 	} else {

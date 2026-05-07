@@ -7,10 +7,28 @@ import (
 	"github.com/google/uuid"
 )
 
+var GlobalConfig *Config
+
 type Config struct {
 	DatabaseURL string
 	JWTSecret   string
 	Environment string
+
+	// Storage Configuration
+	StorageType  string // "local" or "s3"
+	LocalStorage struct {
+		BasePath string
+		BaseURL  string
+	}
+	S3 struct {
+		Endpoint  string
+		AccessKey string
+		SecretKey string
+		Bucket    string
+		Region    string
+		UseSSL    bool
+		PublicURL string
+	}
 }
 
 func Load() *Config {
@@ -31,11 +49,27 @@ func Load() *Config {
 		jwtSecret = "dev_only_secret_change_in_production_" + generateRandomString(16)
 	}
 
-	return &Config{
+	c := &Config{
 		DatabaseURL: dbURL,
 		JWTSecret:   jwtSecret,
 		Environment: environment,
+		StorageType: getEnv("STORAGE_TYPE", "local"),
 	}
+
+	// Local Storage Config
+	c.LocalStorage.BasePath = getEnv("LOCAL_STORAGE_PATH", "./uploads")
+	c.LocalStorage.BaseURL = getEnv("LOCAL_STORAGE_URL", "/uploads")
+
+	// S3 Storage Config
+	c.S3.Endpoint = getEnv("S3_ENDPOINT", "")
+	c.S3.AccessKey = getEnv("S3_ACCESS_KEY", "")
+	c.S3.SecretKey = getEnv("S3_SECRET_KEY", "")
+	c.S3.Bucket = getEnv("S3_BUCKET", "")
+	c.S3.Region = getEnv("S3_REGION", "us-east-1")
+	c.S3.UseSSL = getEnv("S3_USE_SSL", "true") == "true"
+	c.S3.PublicURL = getEnv("S3_PUBLIC_URL", "")
+
+	return c
 }
 
 // generateRandomString generates a random string for dev secrets
