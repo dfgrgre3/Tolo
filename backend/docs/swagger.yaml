@@ -1,0 +1,2192 @@
+basePath: /api
+definitions:
+  handlers.ConversionEventRequest:
+    properties:
+      goal:
+        type: string
+      journeySteps:
+        type: integer
+      sessionId:
+        type: string
+      timestamp:
+        type: string
+      userId:
+        type: string
+      value:
+        type: number
+    required:
+    - goal
+    - sessionId
+    - timestamp
+    - userId
+    type: object
+  handlers.CreateBackupRequest:
+    properties:
+      includesDatabase:
+        type: boolean
+      includesFiles:
+        type: boolean
+      name:
+        maxLength: 100
+        type: string
+      retentionDays:
+        maximum: 365
+        minimum: 1
+        type: integer
+      tables:
+        items:
+          type: string
+        type: array
+      type:
+        enum:
+        - full
+        - database
+        - files
+        - incremental
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  handlers.CreateTicketRequest:
+    properties:
+      category:
+        enum:
+        - technical
+        - billing
+        - content
+        - account
+        - other
+        type: string
+      description:
+        maxLength: 5000
+        type: string
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        - urgent
+        type: string
+      relatedEntityId:
+        type: string
+      relatedEntityType:
+        type: string
+      subject:
+        maxLength: 200
+        type: string
+      userId:
+        type: string
+    required:
+    - category
+    - description
+    - subject
+    - userId
+    type: object
+  handlers.CustomReportRequest:
+    properties:
+      dateRange:
+        properties:
+          from:
+            type: string
+          to:
+            type: string
+        type: object
+      description:
+        maxLength: 500
+        type: string
+      filters:
+        items:
+          $ref: '#/definitions/handlers.ReportFilter'
+        type: array
+      isPublic:
+        type: boolean
+      name:
+        maxLength: 100
+        type: string
+      schedule:
+        properties:
+          emailTo:
+            items:
+              type: string
+            minItems: 1
+            type: array
+          frequency:
+            enum:
+            - daily
+            - weekly
+            - monthly
+            type: string
+        required:
+        - emailTo
+        - frequency
+        type: object
+      widgets:
+        items:
+          $ref: '#/definitions/handlers.ReportWidget'
+        minItems: 1
+        type: array
+    required:
+    - name
+    - widgets
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      rememberMe:
+        type: boolean
+    required:
+    - email
+    - password
+    type: object
+  handlers.NotificationRequest:
+    properties:
+      actionUrl:
+        type: string
+      channels:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      message:
+        maxLength: 2000
+        type: string
+      priority:
+        enum:
+        - high
+        - normal
+        - low
+        type: string
+      scheduledFor:
+        type: string
+      title:
+        maxLength: 200
+        type: string
+      type:
+        enum:
+        - info
+        - success
+        - warning
+        - error
+        type: string
+      userIds:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - channels
+    - message
+    - title
+    - userIds
+    type: object
+  handlers.NotificationResponse:
+    properties:
+      broadcastId:
+        type: string
+      queued:
+        type: boolean
+      summary:
+        $ref: '#/definitions/handlers.NotificationSummary'
+    type: object
+  handlers.NotificationSummary:
+    properties:
+      failure:
+        type: integer
+      queued:
+        type: integer
+      success:
+        type: integer
+      total:
+        type: integer
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      educationType:
+        type: string
+      email:
+        type: string
+      gradeLevel:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        type: string
+      section:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  handlers.ReportDimension:
+    properties:
+      field:
+        type: string
+      format:
+        enum:
+        - date
+        - text
+        - number
+        type: string
+      label:
+        type: string
+    required:
+    - field
+    - label
+    type: object
+  handlers.ReportFilter:
+    properties:
+      field:
+        type: string
+      operator:
+        enum:
+        - equals
+        - not_equals
+        - contains
+        - greater_than
+        - less_than
+        - between
+        - in
+        type: string
+      value: {}
+    required:
+    - field
+    - operator
+    - value
+    type: object
+  handlers.ReportMetric:
+    properties:
+      aggregation:
+        enum:
+        - count
+        - sum
+        - avg
+        - min
+        - max
+        - distinct_count
+        type: string
+      field:
+        type: string
+      format:
+        enum:
+        - number
+        - currency
+        - percentage
+        - date
+        type: string
+      name:
+        type: string
+    required:
+    - aggregation
+    - field
+    - name
+    type: object
+  handlers.ReportSort:
+    properties:
+      direction:
+        enum:
+        - asc
+        - desc
+        type: string
+      field:
+        type: string
+    required:
+    - direction
+    - field
+    type: object
+  handlers.ReportWidget:
+    properties:
+      dataSource:
+        type: string
+      dimensions:
+        items:
+          $ref: '#/definitions/handlers.ReportDimension'
+        type: array
+      filters:
+        items:
+          $ref: '#/definitions/handlers.ReportFilter'
+        type: array
+      id:
+        type: string
+      layout:
+        additionalProperties: true
+        type: object
+      limit:
+        type: integer
+      metrics:
+        items:
+          $ref: '#/definitions/handlers.ReportMetric'
+        type: array
+      sort:
+        $ref: '#/definitions/handlers.ReportSort'
+      title:
+        type: string
+      type:
+        enum:
+        - table
+        - bar
+        - line
+        - pie
+        - area
+        - metric
+        type: string
+    required:
+    - dataSource
+    - layout
+    - metrics
+    - title
+    - type
+    type: object
+  handlers.RestoreBackupRequest:
+    properties:
+      dryRun:
+        type: boolean
+      skipExisting:
+        type: boolean
+      targetTables:
+        items:
+          type: string
+        type: array
+    type: object
+  handlers.ScheduleBackupRequest:
+    properties:
+      dayOfMonth:
+        maximum: 31
+        minimum: 1
+        type: integer
+      dayOfWeek:
+        maximum: 6
+        minimum: 0
+        type: integer
+      frequency:
+        enum:
+        - daily
+        - weekly
+        - monthly
+        type: string
+      retentionDays:
+        maximum: 365
+        minimum: 1
+        type: integer
+      time:
+        type: string
+      type:
+        enum:
+        - full
+        - database
+        - files
+        - incremental
+        type: string
+    required:
+    - frequency
+    - retentionDays
+    - time
+    - type
+    type: object
+  handlers.ScheduledItemRequest:
+    properties:
+      content:
+        additionalProperties: true
+        type: object
+      description:
+        maxLength: 1000
+        type: string
+      frequency:
+        enum:
+        - once
+        - daily
+        - weekly
+        - monthly
+        type: string
+      maxRetries:
+        maximum: 5
+        minimum: 0
+        type: integer
+      scheduledFor:
+        type: string
+      timezone:
+        type: string
+      title:
+        maxLength: 200
+        type: string
+      type:
+        enum:
+        - announcement
+        - exam
+        - task
+        - post
+        - content
+        type: string
+    required:
+    - content
+    - scheduledFor
+    - title
+    - type
+    type: object
+  handlers.SendMessageRequest:
+    properties:
+      isInternal:
+        type: boolean
+      message:
+        maxLength: 5000
+        type: string
+    required:
+    - message
+    type: object
+  handlers.UpdateTicketPriorityRequest:
+    properties:
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        - urgent
+        type: string
+    required:
+    - priority
+    type: object
+  handlers.UpdateTicketStatusRequest:
+    properties:
+      status:
+        enum:
+        - open
+        - in_progress
+        - resolved
+        - closed
+        - escalated
+        type: string
+    required:
+    - status
+    type: object
+  handlers.UserJourneyRequest:
+    properties:
+      completed:
+        type: boolean
+      conversionGoal:
+        type: string
+      endedAt:
+        type: string
+      sessionId:
+        type: string
+      startedAt:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/handlers.UserJourneyStep'
+        type: array
+      totalDuration:
+        type: integer
+      userId:
+        type: string
+    required:
+    - sessionId
+    - startedAt
+    - steps
+    - userId
+    type: object
+  handlers.UserJourneyStep:
+    properties:
+      action:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      page:
+        type: string
+      sessionId:
+        type: string
+      timestamp:
+        type: string
+      userId:
+        type: string
+    type: object
+  pagination.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        properties:
+          count:
+            type: integer
+          has_more:
+            type: boolean
+          next_cursor:
+            type: string
+          prev_cursor:
+            type: string
+          total_count:
+            type: integer
+        type: object
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: This is the API server for the Thanawy platform.
+  title: Thanawy API
+  version: "1.0"
+paths:
+  /api/admin/analytics/conversion:
+    post:
+      consumes:
+      - application/json
+      description: Track when a user completes a conversion goal
+      parameters:
+      - description: Conversion event data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ConversionEventRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Track conversion event
+      tags:
+      - admin
+      - analytics
+  /api/admin/analytics/journey:
+    post:
+      consumes:
+      - application/json
+      description: Save a complete user journey session for analytics
+      parameters:
+      - description: User journey data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserJourneyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Track user journey
+      tags:
+      - admin
+      - analytics
+  /api/admin/analytics/journeys:
+    get:
+      consumes:
+      - application/json
+      description: Get user journey data with filtering options
+      parameters:
+      - description: Filter by user ID
+        in: query
+        name: userId
+        type: string
+      - description: Filter from date (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Filter to date (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Filter by conversion goal
+        in: query
+        name: goal
+        type: string
+      - description: Filter by completion status
+        in: query
+        name: completed
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get user journeys
+      tags:
+      - admin
+      - analytics
+  /api/admin/analytics/journeys/export:
+    post:
+      consumes:
+      - application/json
+      description: Export user journey data to CSV or JSON
+      parameters:
+      - description: Export format (csv|json)
+        in: query
+        name: format
+        type: string
+      - description: Filter parameters
+        in: body
+        name: request
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Export user journeys
+      tags:
+      - admin
+      - analytics
+  /api/admin/analytics/metrics:
+    get:
+      consumes:
+      - application/json
+      description: Get aggregated user activity metrics
+      parameters:
+      - description: From date (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: To date (RFC3339)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get activity metrics
+      tags:
+      - admin
+      - analytics
+  /api/admin/backups:
+    get:
+      consumes:
+      - application/json
+      description: Get all backups with optional filtering
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get backups
+      tags:
+      - admin
+      - backup
+    post:
+      consumes:
+      - application/json
+      description: Create a manual backup of the system
+      parameters:
+      - description: Backup configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateBackupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a backup permanently
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/{id}/download:
+    get:
+      consumes:
+      - application/json
+      description: Download a backup file
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Download backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/{id}/progress:
+    get:
+      consumes:
+      - application/json
+      description: Get the progress of a running backup operation
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get backup progress
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/{id}/restore:
+    post:
+      consumes:
+      - application/json
+      description: Restore the system from a backup
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Restore options
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RestoreBackupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Restore backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/{id}/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify the integrity of a backup
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Verify backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/schedule:
+    post:
+      consumes:
+      - application/json
+      description: Configure automatic scheduled backups
+      parameters:
+      - description: Schedule configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ScheduleBackupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Schedule backup
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics about backups
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get backup statistics
+      tags:
+      - admin
+      - backup
+  /api/admin/backups/tables:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all database tables available for backup
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get database tables
+      tags:
+      - admin
+      - backup
+  /api/admin/broadcasts:
+    get:
+      consumes:
+      - application/json
+      description: Get all notification broadcasts with optional filtering
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter from date (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Filter to date (RFC3339)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get broadcasts
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/broadcast:
+    post:
+      consumes:
+      - application/json
+      description: Send notifications to multiple users via in-app, email, SMS, or
+        push
+      parameters:
+      - description: Notification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.NotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.NotificationResponse'
+      summary: Send broadcast notification
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/broadcast/{broadcastId}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel a notification that was scheduled for future delivery
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: broadcastId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cancel scheduled broadcast
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/broadcast/{broadcastId}/retry:
+    post:
+      consumes:
+      - application/json
+      description: Retry sending notifications that previously failed
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: broadcastId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.NotificationResponse'
+      summary: Retry failed notifications
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/push:
+    post:
+      consumes:
+      - application/json
+      description: Send push notifications to specific users via FCM/APNs
+      parameters:
+      - description: Push notification details
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Send push notification
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/schedule:
+    post:
+      consumes:
+      - application/json
+      description: Schedule notifications to be sent at a specific time
+      parameters:
+      - description: Notification details with scheduledFor
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.NotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.NotificationResponse'
+      summary: Schedule broadcast notification
+      tags:
+      - admin
+      - notifications
+  /api/admin/notifications/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get aggregated statistics about notification delivery
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get notification statistics
+      tags:
+      - admin
+      - notifications
+  /api/admin/reports:
+    get:
+      consumes:
+      - application/json
+      description: Get all custom reports with optional filtering
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get custom reports
+      tags:
+      - admin
+      - reports
+    post:
+      consumes:
+      - application/json
+      description: Create a new custom report with widgets and filters
+      parameters:
+      - description: Report configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CustomReportRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create custom report
+      tags:
+      - admin
+      - reports
+  /api/admin/reports/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a custom report permanently
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete custom report
+      tags:
+      - admin
+      - reports
+    get:
+      consumes:
+      - application/json
+      description: Get a specific custom report by ID
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get custom report
+      tags:
+      - admin
+      - reports
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing custom report
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated report configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CustomReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update custom report
+      tags:
+      - admin
+      - reports
+  /api/admin/reports/{id}/execute:
+    post:
+      consumes:
+      - application/json
+      description: Execute a custom report and get the results
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute custom report
+      tags:
+      - admin
+      - reports
+  /api/admin/reports/{id}/export:
+    get:
+      consumes:
+      - application/json
+      description: Export a custom report to PDF, Excel, or CSV
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Export format (pdf|excel|csv)
+        in: query
+        name: format
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Export custom report
+      tags:
+      - admin
+      - reports
+  /api/admin/reports/{id}/schedule:
+    post:
+      consumes:
+      - application/json
+      description: Schedule automatic report generation and email delivery
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Schedule configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Schedule report
+      tags:
+      - admin
+      - reports
+  /api/admin/scheduler:
+    get:
+      consumes:
+      - application/json
+      description: Get all scheduled items with optional filtering
+      parameters:
+      - description: Filter by type
+        in: query
+        name: type
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter from date
+        in: query
+        name: from
+        type: string
+      - description: Filter to date
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get scheduled items
+      tags:
+      - admin
+      - scheduler
+    post:
+      consumes:
+      - application/json
+      description: Schedule announcements, exams, tasks, or content for automatic
+        publishing
+      parameters:
+      - description: Schedule details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ScheduledItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Schedule item for future execution
+      tags:
+      - admin
+      - scheduler
+  /api/admin/scheduler/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a scheduled item permanently
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete scheduled item
+      tags:
+      - admin
+      - scheduler
+  /api/admin/scheduler/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel a pending scheduled item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cancel scheduled item
+      tags:
+      - admin
+      - scheduler
+  /api/admin/scheduler/{id}/execute:
+    post:
+      consumes:
+      - application/json
+      description: Execute a scheduled item immediately regardless of scheduled time
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Execute item now
+      tags:
+      - admin
+      - scheduler
+  /api/admin/scheduler/{id}/retry:
+    post:
+      consumes:
+      - application/json
+      description: Retry execution of a failed scheduled item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Retry failed item
+      tags:
+      - admin
+      - scheduler
+  /api/admin/scheduler/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics about scheduled items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get scheduler statistics
+      tags:
+      - admin
+      - scheduler
+  /api/admin/search/content:
+    get:
+      consumes:
+      - application/json
+      description: Search subjects, courses, and exams with filtering and pagination
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        type: string
+      - description: Content type (subject,course,exam,all)
+        in: query
+        name: type
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by subject ID
+        in: query
+        name: filter_subject
+        type: string
+      - description: Filter by grade level
+        in: query
+        name: filter_grade
+        type: string
+      - description: Sort field
+        in: query
+        name: sort
+        type: string
+      - description: Sort order (asc|desc)
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pagination.PaginatedResponse'
+      summary: Search educational content
+      tags:
+      - admin
+      - search
+  /api/admin/search/users:
+    get:
+      consumes:
+      - application/json
+      description: Search users by name, email, or other fields with cursor pagination
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        type: string
+      - description: 'Fields to search (comma-separated: name,email,username)'
+        in: query
+        name: fields
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by role
+        in: query
+        name: filter_role
+        type: string
+      - description: Filter by status
+        in: query
+        name: filter_status
+        type: string
+      - description: 'Sort field (default: created_at)'
+        in: query
+        name: sort
+        type: string
+      - description: 'Sort order (asc|desc, default: desc)'
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pagination.PaginatedResponse'
+      summary: Search users with advanced filtering
+      tags:
+      - admin
+      - search
+  /api/admin/security/2fa/backup-codes:
+    post:
+      consumes:
+      - application/json
+      description: Generate new backup codes for 2FA
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Regenerate backup codes
+      tags:
+      - admin
+      - security
+  /api/admin/security/2fa/disable:
+    post:
+      consumes:
+      - application/json
+      description: Disable two-factor authentication
+      parameters:
+      - description: Verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Disable 2FA
+      tags:
+      - admin
+      - security
+  /api/admin/security/2fa/setup:
+    post:
+      consumes:
+      - application/json
+      description: Start setting up two-factor authentication
+      parameters:
+      - description: Setup method
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Initiate 2FA setup
+      tags:
+      - admin
+      - security
+  /api/admin/security/2fa/status:
+    get:
+      consumes:
+      - application/json
+      description: Get two-factor authentication status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get 2FA status
+      tags:
+      - admin
+      - security
+  /api/admin/security/2fa/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify the 2FA code and activate two-factor authentication
+      parameters:
+      - description: Verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Verify and activate 2FA
+      tags:
+      - admin
+      - security
+  /api/admin/security/ip-whitelist:
+    get:
+      consumes:
+      - application/json
+      description: Get all IP whitelist entries
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get IP whitelist
+      tags:
+      - admin
+      - security
+    post:
+      consumes:
+      - application/json
+      description: Add an IP address to the whitelist
+      parameters:
+      - description: IP details
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Add IP to whitelist
+      tags:
+      - admin
+      - security
+  /api/admin/security/ip-whitelist/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove an IP address from the whitelist
+      parameters:
+      - description: Entry ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove IP from whitelist
+      tags:
+      - admin
+      - security
+  /api/admin/security/ip-whitelist/settings:
+    get:
+      consumes:
+      - application/json
+      description: Get IP whitelist configuration settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get whitelist settings
+      tags:
+      - admin
+      - security
+    patch:
+      consumes:
+      - application/json
+      description: Update IP whitelist configuration
+      parameters:
+      - description: Settings
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update whitelist settings
+      tags:
+      - admin
+      - security
+  /api/admin/security/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get all active sessions for the current user or all users (admin)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get active sessions
+      tags:
+      - admin
+      - security
+  /api/admin/security/sessions/{id}/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Revoke/end a specific session
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Revoke session
+      tags:
+      - admin
+      - security
+  /api/admin/security/sessions/revoke-others:
+    post:
+      consumes:
+      - application/json
+      description: Revoke all other sessions except the current one
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Revoke other sessions
+      tags:
+      - admin
+      - security
+  /api/admin/security/sessions/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics about user sessions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get session statistics
+      tags:
+      - admin
+      - security
+  /api/admin/security/sessions/user/{userId}/revoke-all:
+    post:
+      consumes:
+      - application/json
+      description: Revoke all sessions for a specific user (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Revoke user sessions
+      tags:
+      - admin
+      - security
+  /api/admin/tickets:
+    get:
+      consumes:
+      - application/json
+      description: Get all support tickets with optional filtering
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by assignee
+        in: query
+        name: assignedTo
+        type: string
+      - description: Search in subject/description
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get support tickets
+      tags:
+      - admin
+      - support
+    post:
+      consumes:
+      - application/json
+      description: Create a new support ticket on behalf of a user
+      parameters:
+      - description: Ticket details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create support ticket
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific support ticket with all messages
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get support ticket
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}/assign:
+    post:
+      consumes:
+      - application/json
+      description: Assign a support ticket to an admin
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Admin ID to assign to
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Assign ticket
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}/close:
+    post:
+      consumes:
+      - application/json
+      description: Close a support ticket permanently
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Close ticket
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      description: Send a message on a support ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Message details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Send ticket message
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}/priority:
+    patch:
+      consumes:
+      - application/json
+      description: Update the priority of a support ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Priority update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTicketPriorityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update ticket priority
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a support ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTicketStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update ticket status
+      tags:
+      - admin
+      - support
+  /api/admin/tickets/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics about support tickets
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get ticket statistics
+      tags:
+      - admin
+      - support
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      description: Invalidate user session and clear cookies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User logout
+      tags:
+      - Auth
+  /auth/me:
+    get:
+      description: Get detailed profile of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile details
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Registration successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User registration
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,5 +1,14 @@
 package main
 
+// @title Thanawy API
+// @version 1.0
+// @description This is the API server for the Thanawy platform.
+// @host localhost:8082
+// @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 import (
 	"context"
 	"log"
@@ -23,6 +32,11 @@ import (
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/middleware"
 	thanawyv1 "thanawy-backend/internal/proto/thanawy/v1"
+
+	_ "thanawy-backend/docs"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -85,6 +99,7 @@ func main() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS())
+	r.Use(middleware.PerformanceMonitor())
 	// router.Use(middleware.RateLimiter(200, time.Minute)) // This was invalid
 	r.Use(middleware.CSRFMiddleware())
 
@@ -101,6 +116,9 @@ func main() {
 	r.GET("/api/readyz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ready"})
 	})
+
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Setup route groups
 	router.SetupAuthRoutes(r)

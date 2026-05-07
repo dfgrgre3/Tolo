@@ -101,6 +101,16 @@ type LoginRequest struct {
 	RememberMe bool   `json:"rememberMe"`
 }
 
+// Login handles user authentication
+// @Summary User login
+// @Description Authenticate user with email and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} map[string]interface{} "Login successful"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /auth/login [post]
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -504,6 +514,13 @@ func RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
+// Logout handles user logout
+// @Summary User logout
+// @Description Invalidate user session and clear cookies
+// @Tags Auth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Logout successful"
+// @Router /auth/logout [post]
 func Logout(c *gin.Context) {
 	if token, err := c.Cookie("access_token"); err == nil {
 		if claims, err := tokenService.ValidateToken(token); err == nil {
@@ -567,6 +584,16 @@ type RegisterRequest struct {
 	Section       string `json:"section"`
 }
 
+// Register handles new user registration
+// @Summary User registration
+// @Description Register a new user account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Registration details"
+// @Success 201 {object} map[string]interface{} "Registration successful"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Router /auth/register [post]
 func Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -606,6 +633,15 @@ func Register(c *gin.Context) {
 	})
 }
 
+// GetProfile returns current user profile
+// @Summary Get user profile
+// @Description Get detailed profile of the currently authenticated user
+// @Tags Auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Profile details"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /auth/me [get]
 func GetProfile(c *gin.Context) {
 	userId, exists := c.Get("userId")
 	if !exists {
