@@ -54,10 +54,10 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.POST("/users/bulk-send-message", middleware.PermissionRequired(models.PermUsersManage), handlers.AdminBulkSendMessage)
 
 	// Teacher Management
-	admin.GET("/teachers", middleware.PermissionRequired(models.PermUsersView), handlers.GetTeachers)
-	admin.POST("/teachers", middleware.PermissionRequired(models.PermUsersManage), handlers.CreateTeacher)
-	admin.PATCH("/teachers", middleware.PermissionRequired(models.PermUsersManage), handlers.UpdateTeacher)
-	admin.DELETE("/teachers", middleware.PermissionRequired(models.PermUsersManage), handlers.DeleteTeacher)
+	admin.GET("/teachers", middleware.PermissionRequired(models.PermTeachersView), handlers.GetTeachers)
+	admin.POST("/teachers", middleware.PermissionRequired(models.PermTeachersManage), handlers.CreateTeacher)
+	admin.PATCH("/teachers", middleware.PermissionRequired(models.PermTeachersManage), handlers.UpdateTeacher)
+	admin.DELETE("/teachers", middleware.PermissionRequired(models.PermTeachersManage), handlers.DeleteTeacher)
 
 	// Subject Management
 	admin.GET("/subjects", middleware.PermissionRequired(models.PermSubjectsView), handlers.GetSubjects)
@@ -149,6 +149,8 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.DELETE("/coupons/:id", middleware.PermissionRequired(models.PermMarketingView), handlers.AdminDeleteCoupon)
 
 	// Campaign Management
+	admin.GET("/marketing", middleware.PermissionRequired(models.PermMarketingView), handlers.AdminGetCampaigns)
+	admin.POST("/marketing", middleware.PermissionRequired(models.PermMarketingManage), handlers.AdminCreateCampaign)
 	admin.GET("/marketing/campaigns", middleware.PermissionRequired(models.PermMarketingView), handlers.AdminGetCampaigns)
 	admin.POST("/marketing/campaigns", middleware.PermissionRequired(models.PermMarketingManage), handlers.AdminCreateCampaign)
 	admin.PATCH("/marketing/campaigns/:id", middleware.PermissionRequired(models.PermMarketingManage), handlers.AdminUpdateCampaign)
@@ -180,18 +182,27 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 
 	// Admin Logs & Reporting
 	admin.GET("/audit-logs", middleware.PermissionRequired(models.PermAuditLogsView), handlers.AdminGetAuditLogs)
-	admin.Any("/reports/content", handlers.AdminReportsContent)
-	admin.Any("/books/reviews", handlers.AdminBookReviews)
-	admin.Any("/books/views", handlers.AdminBookReviews)
+	admin.GET("/reports/content", middleware.PermissionRequired(models.PermReportsView), handlers.AdminReportsContent)
+	admin.PATCH("/reports/content", middleware.PermissionRequired(models.PermReportsView), handlers.AdminReportsContent)
+	admin.GET("/books/reviews", middleware.PermissionRequired(models.PermBooksView), handlers.AdminBookReviews)
+	admin.DELETE("/books/reviews", middleware.PermissionRequired(models.PermBooksManage), handlers.AdminBookReviews)
+	admin.GET("/books/views", middleware.PermissionRequired(models.PermBooksView), handlers.AdminBookReviews)
 	admin.GET("/settings", middleware.PermissionRequired(models.PermSettingsView), handlers.AdminSettings)
 	admin.PATCH("/settings", middleware.PermissionRequired(models.PermSettingsView), handlers.AdminSettings)
-	admin.Any("/resources", middleware.PermissionRequired(models.PermResourcesManage), handlers.AdminCollection("resources"))
+	admin.GET("/resources", middleware.PermissionRequired(models.PermResourcesView), handlers.AdminGetResources)
+	admin.POST("/resources", middleware.PermissionRequired(models.PermResourcesManage), handlers.AdminCreateResource)
+	admin.PATCH("/resources", middleware.PermissionRequired(models.PermResourcesManage), handlers.AdminUpdateResource)
+	admin.DELETE("/resources", middleware.PermissionRequired(models.PermResourcesManage), handlers.AdminDeleteResource)
 
 	// Advanced Search Endpoints with Cursor Pagination
 	admin.GET("/search/users", middleware.PermissionRequired(models.PermUsersView), handlers.SearchUsers)
 	admin.GET("/search/content", middleware.PermissionRequired(models.PermSubjectsView), handlers.SearchContent)
 
 	// Unified Notification System
+	admin.GET("/notifications", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.AdminListNotifications)
+	admin.POST("/notifications/:id/read", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.AdminMarkNotificationRead)
+	admin.POST("/notifications/read-all", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.AdminMarkAllNotificationsRead)
+	admin.DELETE("/notifications/:id", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.AdminDeleteNotification)
 	admin.GET("/broadcasts", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.GetBroadcasts)
 	admin.POST("/notifications/broadcast", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.SendNotificationBroadcast)
 	admin.POST("/notifications/schedule", middleware.PermissionRequired(models.PermAnnouncementsManage), handlers.ScheduleNotificationBroadcast)
@@ -234,6 +245,7 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.PATCH("/tickets/:id/status", middleware.PermissionRequired(models.PermUsersManage), handlers.UpdateTicketStatus)
 	admin.PATCH("/tickets/:id/priority", middleware.PermissionRequired(models.PermUsersManage), handlers.UpdateTicketPriority)
 	admin.POST("/tickets/:id/assign", middleware.PermissionRequired(models.PermUsersManage), handlers.AssignTicket)
+	admin.PATCH("/tickets/:id/tags", middleware.PermissionRequired(models.PermUsersManage), handlers.UpdateTicketTags)
 	admin.POST("/tickets/:id/close", middleware.PermissionRequired(models.PermUsersManage), handlers.CloseTicket)
 	admin.GET("/tickets/stats", middleware.PermissionRequired(models.PermUsersManage), handlers.GetTicketStats)
 
@@ -248,32 +260,38 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.GET("/backups/stats", middleware.PermissionRequired(models.PermSettingsView), handlers.GetBackupStats)
 	admin.GET("/backups/tables", middleware.PermissionRequired(models.PermSettingsView), handlers.GetDatabaseTables)
 	admin.POST("/backups/schedule", middleware.PermissionRequired(models.PermSettingsView), handlers.ScheduleBackup)
+	admin.PATCH("/backups/schedule/:id", middleware.PermissionRequired(models.PermSettingsView), handlers.UpdateBackupSchedule)
+	admin.DELETE("/backups/schedule/:id", middleware.PermissionRequired(models.PermSettingsView), handlers.DeleteBackupSchedule)
 
 	// Security - Two-Factor Authentication
-	admin.GET("/security/2fa/status", handlers.GetTwoFactorStatus)
-	admin.POST("/security/2fa/setup", handlers.InitiateTwoFactorSetup)
-	admin.POST("/security/2fa/verify", handlers.VerifyTwoFactor)
-	admin.POST("/security/2fa/disable", handlers.DisableTwoFactor)
-	admin.POST("/security/2fa/backup-codes", handlers.RegenerateBackupCodes)
-	admin.POST("/security/2fa/verify-login", handlers.VerifyTwoFactorLogin)
+	admin.GET("/security/2fa/status", middleware.PermissionRequired(models.PermSettingsView), handlers.GetTwoFactorStatus)
+	admin.POST("/security/2fa/setup", middleware.PermissionRequired(models.PermSettingsView), handlers.InitiateTwoFactorSetup)
+	admin.POST("/security/2fa/verify", middleware.PermissionRequired(models.PermSettingsView), handlers.VerifyTwoFactor)
+	admin.POST("/security/2fa/disable", middleware.PermissionRequired(models.PermSettingsView), handlers.DisableTwoFactor)
+	admin.POST("/security/2fa/backup-codes", middleware.PermissionRequired(models.PermSettingsView), handlers.RegenerateBackupCodes)
+	admin.POST("/security/2fa/verify-login", middleware.PermissionRequired(models.PermSettingsView), handlers.VerifyTwoFactorLogin)
+	admin.POST("/users/:id/2fa/enforce", middleware.PermissionRequired(models.PermUsersManage), handlers.AdminEnforceUserTwoFactor)
+	admin.POST("/users/:id/2fa/reset", middleware.PermissionRequired(models.PermUsersManage), handlers.AdminResetUserTwoFactor)
 
 	// Security - Session Management
-	admin.GET("/security/sessions", handlers.GetActiveSessions)
-	admin.POST("/security/sessions/:id/revoke", handlers.RevokeSession)
-	admin.POST("/security/sessions/revoke-others", handlers.RevokeOtherSessions)
-	admin.POST("/security/sessions/user/:userId/revoke-all", handlers.RevokeUserSessions)
-	admin.GET("/security/sessions/stats", handlers.GetSessionStats)
+	admin.GET("/security/sessions", middleware.PermissionRequired(models.PermSettingsView), handlers.GetActiveSessions)
+	admin.POST("/security/sessions/:id/revoke", middleware.PermissionRequired(models.PermSettingsView), handlers.RevokeSession)
+	admin.POST("/security/sessions/:id/suspend", middleware.PermissionRequired(models.PermSettingsView), handlers.SuspendSession)
+	admin.POST("/security/sessions/revoke-others", middleware.PermissionRequired(models.PermSettingsView), handlers.RevokeOtherSessions)
+	admin.POST("/security/sessions/user/:userId/revoke-all", middleware.PermissionRequired(models.PermUsersManage), handlers.RevokeUserSessions)
+	admin.GET("/security/sessions/stats", middleware.PermissionRequired(models.PermSettingsView), handlers.GetSessionStats)
+	admin.GET("/security/sessions/activity", middleware.PermissionRequired(models.PermSettingsView), handlers.GetSessionActivity)
 
 	// Security - IP Whitelist
-	admin.GET("/security/ip-whitelist", handlers.GetIPWhitelist)
-	admin.POST("/security/ip-whitelist", handlers.AddIPToWhitelist)
-	admin.DELETE("/security/ip-whitelist/:id", handlers.RemoveIPFromWhitelist)
-	admin.PATCH("/security/ip-whitelist/:id", handlers.UpdateIPWhitelistEntry)
-	admin.POST("/security/ip-whitelist/bulk", handlers.BulkAddIPToWhitelist)
-	admin.GET("/security/ip-whitelist/settings", handlers.GetIPWhitelistSettings)
-	admin.PATCH("/security/ip-whitelist/settings", handlers.UpdateIPWhitelistSettings)
-	admin.GET("/security/ip-whitelist/check", handlers.CheckIPWhitelist)
-	admin.GET("/security/ip-whitelist/blocked", handlers.GetBlockedAttempts)
+	admin.GET("/security/ip-whitelist", middleware.PermissionRequired(models.PermSettingsView), handlers.GetIPWhitelist)
+	admin.POST("/security/ip-whitelist", middleware.PermissionRequired(models.PermSettingsView), handlers.AddIPToWhitelist)
+	admin.DELETE("/security/ip-whitelist/:id", middleware.PermissionRequired(models.PermSettingsView), handlers.RemoveIPFromWhitelist)
+	admin.PATCH("/security/ip-whitelist/:id", middleware.PermissionRequired(models.PermSettingsView), handlers.UpdateIPWhitelistEntry)
+	admin.POST("/security/ip-whitelist/bulk", middleware.PermissionRequired(models.PermSettingsView), handlers.BulkAddIPToWhitelist)
+	admin.GET("/security/ip-whitelist/settings", middleware.PermissionRequired(models.PermSettingsView), handlers.GetIPWhitelistSettings)
+	admin.PATCH("/security/ip-whitelist/settings", middleware.PermissionRequired(models.PermSettingsView), handlers.UpdateIPWhitelistSettings)
+	admin.GET("/security/ip-whitelist/check", middleware.PermissionRequired(models.PermSettingsView), handlers.CheckIPWhitelist)
+	admin.GET("/security/ip-whitelist/blocked", middleware.PermissionRequired(models.PermSettingsView), handlers.GetBlockedAttempts)
 }
 
 // SetupAdminRoutes configures admin API endpoints (backward compatible)

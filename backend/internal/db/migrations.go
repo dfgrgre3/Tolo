@@ -206,6 +206,11 @@ func RunSQLMigrations(database *gorm.DB) error {
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", name, err)
 		}
+		
+		if len(contents) == 0 {
+			log.Printf("Skipping empty migration file %s", name)
+			continue
+		}
 
 		sum := sha256.Sum256(contents)
 		checksum := hex.EncodeToString(sum[:])
@@ -214,15 +219,31 @@ func RunSQLMigrations(database *gorm.DB) error {
 		err = database.First(&existing, "id = ?", id).Error
 		if err == nil {
 			if existing.Checksum != checksum {
-				log.Printf("Warning: migration %s checksum mismatch. Updating checksum in database to match current file.", id)
-				if err := database.Table("schema_migrations").Where("id = ?", id).Update("checksum", checksum).Error; err != nil {
-					return fmt.Errorf("update migration %s checksum: %w", id, err)
-				}
+				return fmt.Errorf("migration %s checksum mismatch: applied checksum %s, file checksum %s. Do not edit applied migrations; create a new migration instead.", id, existing.Checksum, checksum)
 			}
 			continue
 		}
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return fmt.Errorf("check migration %s: %w", id, err)
+		}
+
+		// If this is a baseline migration, check if the database already has tables.
+		// If it does, we skip applying the baseline and just record it as applied.
+		if strings.Contains(id, "baseline") {
+			var migrationCount int64
+			database.Model(&migrationRecord{}).Count(&migrationCount)
+			
+			var userTableExists int64
+			database.Raw(`SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'User'`).Scan(&userTableExists)
+
+			if userTableExists > 0 || migrationCount > 0 {
+				log.Printf("Existing database detected. Marking baseline migration %s as applied without executing.", id)
+				record := migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}
+				if err := database.Create(&record).Error; err != nil {
+					return fmt.Errorf("record baseline migration %s: %w", id, err)
+				}
+				continue
+			}
 		}
 
 		log.Printf("Applying database migration %s", id)

@@ -4,7 +4,19 @@ import { BACKEND_URL } from "@/app/api/auth/_utils";
 
 export const dynamic = "force-dynamic";
 
-const ALLOW_PREFIX = ["/blog", "/courses", "/announcements"] as const;
+const ALLOW_PREFIX = [
+  "/blog",
+  "/courses",
+  "/learning",
+  "/announcements",
+  "/exams",
+  "/teacher-exams",
+  "/library",
+  "/events",
+  "/contests",
+  "/subscription",
+  "/billing",
+] as const;
 
 function isAllowedRevalidatePath(p: string): boolean {
   if (p === "/") return true;

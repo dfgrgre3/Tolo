@@ -60,7 +60,6 @@ const permissionGroups = [
       PERMISSIONS.ANALYTICS_VIEW,
       PERMISSIONS.REPORTS_VIEW,
       PERMISSIONS.SETTINGS_VIEW,
-      PERMISSIONS.SETTINGS_MANAGE,
       PERMISSIONS.AI_MANAGE,
       PERMISSIONS.MARKETING_VIEW,
       PERMISSIONS.AB_TESTING_VIEW,
@@ -134,7 +133,6 @@ const permissionLabels: Record<string, string> = {
   [PERMISSIONS.MARKETING_VIEW]: "عرض التسويق",
   [PERMISSIONS.AB_TESTING_VIEW]: "عرض اختبارات A/B",
   [PERMISSIONS.SETTINGS_VIEW]: "عرض الإعدادات",
-  [PERMISSIONS.SETTINGS_MANAGE]: "إدارة الإعدادات",
   [PERMISSIONS.AUDIT_LOGS_VIEW]: "عرض سجل التدقيق",
 };
 

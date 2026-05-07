@@ -33,3 +33,11 @@ export async function throwIfApiError(
   }
   throw new Error(msg);
 }
+
+export async function readJsonOrThrow<T>(
+  response: Response,
+  fallback: string,
+): Promise<T> {
+  await throwIfApiError(response, fallback);
+  return (await response.json()) as T;
+}

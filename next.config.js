@@ -89,31 +89,22 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // Font optimization
-  fontLoaders: [
-    {
-      loader: 'next/font/google',
-      options: {
-        subsets: ['latin'],
-      },
-    },
-  ],
 
   // Enable compression
   compress: true,
 
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
-      },
-      {
-        source: '/uploads/:path*',
-        destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api').replace('/api', '')}/uploads/:path*`,
-      },
-    ];
-  },
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/:path*',
+  //       destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
+  //     },
+  //     {
+  //       source: '/uploads/:path*',
+  //       destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api').replace('/api', '')}/uploads/:path*`,
+  //     },
+  //   ];
+  // },
 
   // Remove powered by header
   poweredByHeader: false,

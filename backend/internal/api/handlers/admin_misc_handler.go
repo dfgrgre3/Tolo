@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -199,42 +200,34 @@ func AdminBulkSendMessage(c *gin.Context) {
 	}
 
 	if len(notifications) > 0 {
-		if err := db.DB.Create(&notifications).Error; err != nil {
-			api_response.Error(c, http.StatusInternalServerError, "Failed to create notifications")
+		if err := db.DB.CreateInBatches(&notifications, 100).Error; err != nil {
+			log.Printf("ERROR: Failed to create notifications in bulk: %v", err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to create notifications: "+err.Error())
 			return
 		}
 	}
 
-	emailService := services.GetEmailService()
-
-	emailCount := 0
-	smsCount := 0
-	appCount := len(notifications)
-
-	for _, u := range targetUsers {
-		if len(req.Channels) == 0 || contains(req.Channels, "email") {
-			if emailService.ValidateEmail(u.Email) {
-				emailBody := emailService.BuildNotificationEmail(req.Title, req.Message, req.ActionURL)
-				if err := emailService.SendEmail(u.Email, req.Title, emailBody, true); err == nil {
-					emailCount++
+	// Send emails in the background to avoid blocking and potential timeouts
+	go func(users []models.User, title, message, url string, channels []string) {
+		emailService := services.GetEmailService()
+		for _, u := range users {
+			if len(channels) == 0 || contains(channels, "email") {
+				if emailService.ValidateEmail(u.Email) {
+					emailBody := emailService.BuildNotificationEmail(title, message, url)
+					_ = emailService.SendEmail(u.Email, title, emailBody, true)
 				}
 			}
 		}
+	}(targetUsers, req.Title, req.Message, req.ActionURL, req.Channels)
 
-		if len(req.Channels) == 0 || contains(req.Channels, "sms") {
-			smsCount++
-		}
-	}
-
-	successCount := appCount + emailCount + smsCount
-	failureCount := (len(targetUsers) * len(req.Channels)) - successCount
+	successCount := len(notifications)
+	failureCount := 0
 
 	LogAudit(c, "BULK_SEND_MESSAGE", "notification", "", gin.H{
 		"targetCount": len(targetUsers),
 		"channels":    req.Channels,
-		"emailCount":  emailCount,
-		"smsCount":    smsCount,
-		"appCount":    appCount,
+		"appCount":    len(notifications),
+		"queued":      true,
 	})
 
 	api_response.Success(c, gin.H{
@@ -893,17 +886,17 @@ func GetAdminDashboard(c *gin.Context) {
 	weekAgo := now.AddDate(0, 0, -7)
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", todayStart).Count(&newUsersToday)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", weekAgo).Count(&newUsersThisWeek)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", todayStart).Count(&newUsersToday)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&newUsersThisWeek)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Task{}).Where("status = ?", models.TaskCompleted).Count(&completedTasks)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
-	db.DB.Model(&models.StudySession{}).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&studyMinutes)
+	db.DB.Model(&models.StudySession{}).Select("COALESCE(SUM(duration_min), 0)").Scan(&studyMinutes)
 	db.DB.Model(&models.ExamResult{}).Count(&examsTaken)
 
 	var recentTasks []models.Task
-	db.DB.Order("\"createdAt\" desc").Limit(10).Find(&recentTasks)
+	db.DB.Order("created_at desc").Limit(10).Find(&recentTasks)
 
 	// Batch fetch users for recent tasks to avoid N+1 queries
 	taskUserIDs := make([]string, 0, len(recentTasks))
@@ -937,7 +930,7 @@ func GetAdminDashboard(c *gin.Context) {
 	}
 
 	var upcomingExams []models.Exam
-	db.DB.Order("\"createdAt\" desc").Limit(5).Find(&upcomingExams)
+	db.DB.Order("created_at desc").Limit(5).Find(&upcomingExams)
 	upcomingEvents := make([]gin.H, 0, len(upcomingExams))
 	for _, e := range upcomingExams {
 		upcomingEvents = append(upcomingEvents, gin.H{
@@ -952,7 +945,7 @@ func GetAdminDashboard(c *gin.Context) {
 	db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&totalResources)
 
 	var activeChallenges int64
-	db.DB.Model(&models.Challenge{}).Where("\"isActive\" = ?", true).Count(&activeChallenges)
+	db.DB.Model(&models.Challenge{}).Where("is_active = ?", true).Count(&activeChallenges)
 
 	var achievementsEarned int64
 	db.DB.Model(&models.UserAchievement{}).Count(&achievementsEarned)
@@ -964,7 +957,7 @@ func GetAdminDashboard(c *gin.Context) {
 		endMonth := startMonth.AddDate(0, 1, 0)
 
 		var count int64
-		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", startMonth, endMonth).Count(&count)
+		db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", startMonth, endMonth).Count(&count)
 
 		userGrowth = append(userGrowth, gin.H{
 			"month": int(d.Month()),
@@ -979,7 +972,7 @@ func GetAdminDashboard(c *gin.Context) {
 		endDay := startDay.AddDate(0, 0, 1)
 
 		var count int64
-		db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ? AND \"startTime\" < ?", startDay, endDay).Count(&count)
+		db.DB.Model(&models.StudySession{}).Where("start_time >= ? AND start_time < ?", startDay, endDay).Count(&count)
 
 		activityChart = append(activityChart, gin.H{
 			"day":      startDay.Format("02/01"),
@@ -1249,7 +1242,7 @@ func GetAdminAnnouncements(c *gin.Context) {
 	query.Count(&total)
 
 	var notifications []models.Notification
-	if err := query.Order("\"createdAt\" desc").Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
+	if err := query.Order("created_at desc").Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch announcements"})
 		return
 	}
@@ -1461,10 +1454,10 @@ func GetAdminReportsOverview(c *gin.Context) {
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", dayAgo).Count(&usersToday)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", weekAgo).Count(&usersWeek)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&usersWeek)
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", monthAgo).Count(&usersMonth)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
-	db.DB.Model(&models.Subject{}).Where("\"isActive\" = ?", true).Count(&activeSubjects)
+	db.DB.Model(&models.Subject{}).Where("is_active = ?", true).Count(&activeSubjects)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
 
@@ -1540,7 +1533,7 @@ func GetAdminReportsUsers(c *gin.Context) {
 	db.DB.Model(&models.User{}).Count(&total)
 
 	var users []models.User
-	if err := db.DB.Order("\"createdAt\" desc").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+	if err := db.DB.Order("created_at desc").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users report"})
 		return
 	}
@@ -1676,8 +1669,8 @@ func calculateUserGrowthTrend() float64 {
 	var thisMonth int64
 	var lastMonth int64
 
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", thisMonthStart).Count(&thisMonth)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", lastMonthStart, thisMonthStart).Count(&lastMonth)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", thisMonthStart).Count(&thisMonth)
+	db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", lastMonthStart, thisMonthStart).Count(&lastMonth)
 
 	if lastMonth == 0 {
 		if thisMonth > 0 {
@@ -1697,8 +1690,8 @@ func calculateStudyTimeTrend() float64 {
 	var thisWeek int64
 	var lastWeek int64
 
-	db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ?", thisWeekStart).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&thisWeek)
-	db.DB.Model(&models.StudySession{}).Where("\"startTime\" >= ? AND \"startTime\" < ?", lastWeekStart, thisWeekStart).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&lastWeek)
+	db.DB.Model(&models.StudySession{}).Where("start_time >= ?", thisWeekStart).Select("COALESCE(SUM(duration_min), 0)").Scan(&thisWeek)
+	db.DB.Model(&models.StudySession{}).Where("start_time >= ? AND start_time < ?", lastWeekStart, thisWeekStart).Select("COALESCE(SUM(duration_min), 0)").Scan(&lastWeek)
 
 	if lastWeek == 0 {
 		if thisWeek > 0 {

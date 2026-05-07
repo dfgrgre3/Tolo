@@ -33,6 +33,8 @@ import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
+import { usePermission } from "@/components/auth/PermissionGuard";
 
 interface Announcement {
   id: string;
@@ -70,6 +72,8 @@ const announcementSchema = z.object({
 type AnnouncementFormValues = z.infer<typeof announcementSchema>;
 
 export default function AdminAnnouncementsPage() {
+  const { hasPermission } = usePermission();
+  const canManageAnnouncements = hasPermission("ANNOUNCEMENTS_MANAGE");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = React.useState<Announcement | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
@@ -152,6 +156,7 @@ export default function AdminAnnouncementsPage() {
       if (response.ok) {
         toast.success(editingAnnouncement ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان للمستخدمين بنجاح");
         setDialogOpen(false);
+        await requestPublicCacheRevalidation(["/announcements"]);
         refetch();
       } else {
         toast.error("فشل في حفظ الإعلان");
@@ -172,6 +177,7 @@ export default function AdminAnnouncementsPage() {
 
       if (response.ok) {
         toast.success("تم حذف الإعلان بنجاح");
+        await requestPublicCacheRevalidation(["/announcements"]);
         refetch();
       } else {
         toast.error("فشل في حذف الإعلان");
@@ -263,8 +269,8 @@ export default function AdminAnnouncementsPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(a) => setDeleteDialog({ open: true, id: a.id })}
+          onEdit={canManageAnnouncements ? handleOpenDialog : undefined}
+          onDelete={canManageAnnouncements ? (a) => setDeleteDialog({ open: true, id: a.id }) : undefined}
           extraActions={[
             { icon: Send, label: "إعادة إرسال كإشعار", onClick: (a) => toast.info(`قريباً: دفع الإعلان ${a.title} كإشعار لحظي`) },
           ]}
@@ -279,9 +285,11 @@ export default function AdminAnnouncementsPage() {
         title="إدارة الإعلانات والتنبيهات 📢"
         description="إدارة التواصل العام مع المستخدمين، نشر الأخبار، التحذيرات، والفعاليات القادمة."
       >
-        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          إضافة إعلان جديد
-        </AdminButton>
+        {canManageAnnouncements && (
+          <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+            إضافة إعلان جديد
+          </AdminButton>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -57,7 +57,7 @@ type ExamResult struct {
 	Score     float64        `gorm:"column:score" json:"score"`
 	Passed    bool           `gorm:"column:passed" json:"passed"`
 	Answers   string         `gorm:"type:text;column:answers" json:"answers"`
-	TakenAt   time.Time      `gorm:"index;column:taken_at" json:"takenAt"`
+	TakenAt   time.Time      `gorm:"primaryKey;index;column:taken_at" json:"takenAt"`
 	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

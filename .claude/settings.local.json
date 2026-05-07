@@ -1,7 +1,7 @@
-﻿{
+{
   "env": {
     "ANTHROPIC_BASE_URL": "https://agentrouter.org/",
-    "ANTHROPIC_API_KEY": "sk-5z5s4LHxaxBwtSoHKeb0tHSfvz6oFaYxfvtn1Vh1Y9bOOItw",
-    "ANTHROPIC_MODEL": "deepseek-v3.2"
+    "ANTHROPIC_API_KEY": "sk-Zg5r2W2D7s666RR9O4lD6gfurdxiCXFZjlj4wovPg5ihFZ51",
+    "ANTHROPIC_MODEL": "claude-haiku-4-5-20251001"
   }
 }

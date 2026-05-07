@@ -30,6 +30,7 @@ const ADMIN_PATH_RULES: { pattern: RegExp; permission: Permission }[] = [
   { pattern: /^\/admin\/marketing/, permission: PERMISSIONS.MARKETING_VIEW },
   { pattern: /^\/admin\/ab-testing/, permission: PERMISSIONS.AB_TESTING_VIEW },
   { pattern: /^\/admin\/coupons/, permission: PERMISSIONS.MARKETING_VIEW },
+  { pattern: /^\/admin\/notifications/, permission: PERMISSIONS.ANNOUNCEMENTS_MANAGE },
   { pattern: /^\/admin\/announcements/, permission: PERMISSIONS.ANNOUNCEMENTS_VIEW },
   { pattern: /^\/admin\/forum/, permission: PERMISSIONS.FORUM_VIEW },
   { pattern: /^\/admin\/blog/, permission: PERMISSIONS.BLOG_VIEW },

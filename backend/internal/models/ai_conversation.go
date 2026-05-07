@@ -30,7 +30,7 @@ type AIMessage struct {
 	Model          *string   `gorm:"type:text" json:"model,omitempty"`
 	TokensUsed     *int      `gorm:"type:integer" json:"tokensUsed,omitempty"`
 	Latency        *int64    `gorm:"type:bigint" json:"latency,omitempty"` // in milliseconds
-	CreatedAt      time.Time `json:"createdAt"`
+	CreatedAt      time.Time `gorm:"primaryKey" json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
 

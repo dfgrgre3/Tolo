@@ -36,6 +36,7 @@ import { readApiErrorMessage } from "@/lib/api/api-error-utils";
 import { adminFetch } from "@/lib/api/admin-api";
 import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { apiRoutes } from "@/lib/api/routes";
+import { usePermission } from "@/components/auth/PermissionGuard";
 
 interface BlogPost {
   id: string;
@@ -85,6 +86,8 @@ const blogPostSchema = z.object({
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
 export default function AdminBlogPage() {
+  const { hasPermission } = usePermission();
+  const canManageBlog = hasPermission("BLOG_MANAGE");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingPost, setEditingPost] = React.useState<BlogPost | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
@@ -283,8 +286,8 @@ export default function AdminBlogPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(p) => setDeleteDialog({ open: true, id: p.id })}
+          onEdit={canManageBlog ? handleOpenDialog : undefined}
+          onDelete={canManageBlog ? (p) => setDeleteDialog({ open: true, id: p.id }) : undefined}
           extraActions={[
             { icon: ArrowUpRight, label: "معاينة المقال", onClick: (p) => window.open(`/blog/${p.slug}`, "_blank") },
           ]}
@@ -299,9 +302,11 @@ export default function AdminBlogPage() {
         title="إدارة المدونة التعليمية 📚"
         description="إدارة المقالات، الأخبار، والمحتوى التعليمي للمنصة."
       >
-        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          إضافة مقال جديد
-        </AdminButton>
+        {canManageBlog && (
+          <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+            إضافة مقال جديد
+          </AdminButton>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

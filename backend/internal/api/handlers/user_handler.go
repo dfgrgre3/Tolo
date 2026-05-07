@@ -24,12 +24,50 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm/clause"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var authService = &services.AuthService{}
 var tokenService = &services.TokenService{}
 var userRepo *repository.UserRepository
 var sessionRepo *repository.SessionRepository
+
+const (
+	MaxLoginAttempts = 5
+	LockoutDuration  = 15 * time.Minute
+)
+
+func getLoginAttemptsKey(email, ip string) string {
+	return fmt.Sprintf("login_attempts:%s:%s", email, ip)
+}
+
+func isIPBlocked(c *gin.Context, email, ip string) bool {
+	if db.Redis == nil {
+		return false
+	}
+	key := getLoginAttemptsKey(email, ip)
+	attempts, err := db.Redis.Get(c.Request.Context(), key).Int()
+	if err != nil && err != redis.Nil {
+		return false
+	}
+	return attempts >= MaxLoginAttempts
+}
+
+func recordLoginAttempt(c *gin.Context, email, ip string, success bool) {
+	if db.Redis == nil {
+		return
+	}
+	key := getLoginAttemptsKey(email, ip)
+	if success {
+		db.Redis.Del(c.Request.Context(), key)
+		return
+	}
+
+	db.Redis.Incr(c.Request.Context(), key)
+	db.Redis.Expire(c.Request.Context(), key, LockoutDuration)
+}
+
 
 func getUserRepo() *repository.UserRepository {
 	if userRepo == nil {
@@ -70,25 +108,26 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if req.Email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
-		return
-	}
-	if req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
-		return
-	}
-
 	ip := c.ClientIP()
 	userAgent := c.Request.UserAgent()
+	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	user, err := authService.Login(req.Email, req.Password, ip, userAgent)
-	if err != nil {
-		services.GetAuditService().LogAsync("", services.AuditEventLoginFailed, "auth", req.Email, map[string]interface{}{"error": err.Error()}, ip, userAgent)
-		_ = LogSecurityEvent("", models.SecurityEventLoginFailed, ip, userAgent, nil, nil)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	if isIPBlocked(c, email, ip) {
+		api_response.Error(c, http.StatusTooManyRequests, "تم حظر محاولات الدخول مؤقتاً بسبب محاولات فاشلة متكررة. يرجى المحاولة بعد 15 دقيقة.")
 		return
 	}
+
+	user, err := authService.Login(email, req.Password, ip, userAgent)
+	if err != nil {
+		recordLoginAttempt(c, email, ip, false)
+		services.GetAuditService().LogAsync("", services.AuditEventLoginFailed, "auth", email, map[string]interface{}{"error": err.Error()}, ip, userAgent)
+		_ = LogSecurityEvent("", models.SecurityEventLoginFailed, ip, userAgent, nil, nil)
+		// Return generic error message for security (prevent user enumeration)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "البريد الإلكتروني أو كلمة المرور غير صحيحة"})
+		return
+	}
+
+	recordLoginAttempt(c, email, ip, true)
 
 	if user.TwoFactorEnabled {
 		c.JSON(http.StatusOK, gin.H{
@@ -860,14 +899,14 @@ func buildUserDetailsPayload(user models.User) gin.H {
 	var totalEnrollments int64
 	var achievementsCount int64
 
-	db.DB.Model(&models.Task{}).Where("\"userId\" = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
-	db.DB.Model(&models.Task{}).Where("\"userId\" = ?", user.ID).Count(&totalTasks)
-	db.DB.Model(&models.StudySession{}).Where("\"userId\" = ?", user.ID).Count(&totalStudySessions)
-	db.DB.Model(&models.StudySession{}).Where("\"userId\" = ?", user.ID).Select("COALESCE(SUM(\"durationMin\"), 0)").Scan(&totalStudyTime)
-	db.DB.Model(&models.ExamResult{}).Where("\"userId\" = ? AND passed = ?", user.ID, true).Count(&examsPassed)
-	db.DB.Model(&models.ExamResult{}).Where("\"userId\" = ?", user.ID).Count(&examResultsCount)
-	db.DB.Model(&models.Notification{}).Where("\"userId\" = ? AND \"isRead\" = ?", user.ID, false).Count(&unreadNotifications)
-	db.DB.Model(&models.Enrollment{}).Where("\"userId\" = ?", user.ID).Count(&totalEnrollments)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
+	db.DB.Model(&models.Task{}).Where("user_id = ?", user.ID).Count(&totalTasks)
+	db.DB.Model(&models.StudySession{}).Where("user_id = ?", user.ID).Count(&totalStudySessions)
+	db.DB.Model(&models.StudySession{}).Where("user_id = ?", user.ID).Select("COALESCE(SUM(duration_min), 0)").Scan(&totalStudyTime)
+	db.DB.Model(&models.ExamResult{}).Where("user_id = ? AND passed = ?", user.ID, true).Count(&examsPassed)
+	db.DB.Model(&models.ExamResult{}).Where("user_id = ?", user.ID).Count(&examResultsCount)
+	db.DB.Model(&models.Notification{}).Where("user_id = ? AND is_read = ?", user.ID, false).Count(&unreadNotifications)
+	db.DB.Model(&models.Enrollment{}).Where("user_id = ?", user.ID).Count(&totalEnrollments)
 
 	return gin.H{
 		"id":                 user.ID,
@@ -1015,7 +1054,7 @@ func GetBillingSummary(c *gin.Context) {
 	}
 
 	var payments []models.Payment
-	db.DB.Where("\"userId\" = ?", user.ID).Order("\"createdAt\" desc").Limit(20).Find(&payments)
+	db.DB.Where("user_id = ?", user.ID).Order("created_at desc").Limit(20).Find(&payments)
 
 	var totalSpent float64
 	var successCount int64
@@ -1036,7 +1075,7 @@ func GetBillingSummary(c *gin.Context) {
 
 	var activeSub models.UserSubscription
 	var activeSubscriptionData interface{}
-	if err := db.DB.Preload("Plan").Where("\"userId\" = ? AND \"status\" = ? AND \"endDate\" > ?", user.ID, models.SubscriptionActive, time.Now()).First(&activeSub).Error; err == nil {
+	if err := db.DB.Preload("Plan").Where("user_id = ? AND status = ? AND end_date > ?", user.ID, models.SubscriptionActive, time.Now()).First(&activeSub).Error; err == nil {
 		activeSubscriptionData = gin.H{
 			"id":        activeSub.ID,
 			"status":    activeSub.Status,

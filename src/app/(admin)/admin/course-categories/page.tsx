@@ -32,6 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 
 interface CourseCategory {
   id: string;
@@ -70,7 +72,7 @@ export default function AdminCourseCategoriesPage() {
   const { data: categories = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", "course-categories", "page"],
     queryFn: async () => {
-      const response = await fetch(apiRoutes.admin.courseCategories);
+      const response = await adminFetch(apiRoutes.admin.courseCategories);
       const result = await response.json();
       return (result.data?.categories || []) as CourseCategory[];
     }
@@ -102,7 +104,7 @@ export default function AdminCourseCategoriesPage() {
     try {
       const method = editingCategory ? "PATCH" : "POST";
       const payload = editingCategory ? { ...values, id: editingCategory.id } : values;
-      const response = await fetch(apiRoutes.admin.courseCategories, {
+      const response = await adminFetch(apiRoutes.admin.courseCategories, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -118,6 +120,7 @@ export default function AdminCourseCategoriesPage() {
       setDialogOpen(false);
       setEditingCategory(null);
       form.reset(defaultValues);
+      await requestPublicCacheRevalidation(["/courses"]);
       await refetch();
     } catch {
       toast.error("حدث خطأ أثناء الاتصال بالخادم");
@@ -128,7 +131,7 @@ export default function AdminCourseCategoriesPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch(apiRoutes.admin.courseCategories, {
+      const response = await adminFetch(apiRoutes.admin.courseCategories, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })
@@ -141,6 +144,7 @@ export default function AdminCourseCategoriesPage() {
       }
 
       toast.success("تم حذف التصنيف بنجاح");
+      await requestPublicCacheRevalidation(["/courses"]);
       await refetch();
     } catch {
       toast.error("حدث خطأ أثناء الاتصال بالخادم");

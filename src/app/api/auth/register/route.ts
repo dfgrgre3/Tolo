@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, backendJsonResponse } from '../_utils';
+import { BACKEND_URL, backendJsonResponse, upstreamAuthHeaders } from '../_utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,11 +9,12 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
+        ...upstreamAuthHeaders(request),
       },
       body: body,
       credentials: 'include',
     });
+
 
     return backendJsonResponse(response);
   } catch (error) {

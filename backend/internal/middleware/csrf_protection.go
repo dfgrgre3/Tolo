@@ -110,11 +110,10 @@ func generateCSRFToken() string {
 // JavaScript needs to read this cookie and set it as the X-CSRF-Token header
 func setCSRFCookie(c *gin.Context, token string) {
 	// Check environment consistently with config
-	env := os.Getenv("NODE_ENV")
-	if env == "" {
-		env = "development"
-	}
-	secure := env == "production"
+  // Prefer secure cookies when the request is over TLS. This allows
+  // local development over HTTP to receive the cookie (so JS can read it)
+  // while still ensuring production deployments using HTTPS get Secure cookies.
+  secure := c.Request.TLS != nil
 
 	c.SetCookie(
 		csrfCookieName,
@@ -148,13 +147,16 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Skip for certain paths (webhooks, etc.)
+		// Skip for certain paths (webhooks, auth handshakes, etc.)
 		skipPaths := []string{
 			"/api/webhooks/",
 			"/api/payments/paymob/callback",
 			"/api/auth/login",
 			"/api/auth/register",
+			"/api/auth/refresh",
+			"/api/auth/logout",
 		}
+
 
 		path := c.Request.URL.Path
 		for _, skip := range skipPaths {

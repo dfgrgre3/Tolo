@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, backendJsonResponse } from '@/app/api/auth/_utils';
+import { BACKEND_URL, backendJsonResponse, upstreamAuthHeaders } from '@/app/api/auth/_utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const cookieHeader = request.headers.get('cookie') || '';
+    const headers = upstreamAuthHeaders(request);
 
     console.log('[AI Chat] Received request:', JSON.stringify(body, null, 2));
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Handle streaming request
     if (backendPayload.stream) {
-      return handleStreamingRequest(backendPayload, cookieHeader);
+      return handleStreamingRequest(request, backendPayload);
     }
 
     // Non-streaming request
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cookie': cookieHeader
+          ...headers
         },
         body: JSON.stringify(backendPayload),
         credentials: 'include',
@@ -143,8 +143,9 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle streaming response from backend
-async function handleStreamingRequest(payload: any, cookieHeader: string) {
+async function handleStreamingRequest(request: NextRequest, payload: any) {
   const backendUrl = BACKEND_URL;
+  const headers = upstreamAuthHeaders(request);
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for streaming
@@ -154,7 +155,7 @@ async function handleStreamingRequest(payload: any, cookieHeader: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': cookieHeader
+        ...headers
       },
       body: JSON.stringify(payload),
       credentials: 'include',
@@ -207,7 +208,7 @@ async function handleStreamingRequest(payload: any, cookieHeader: string) {
 // GET handler for retrieving conversations
 export async function GET(request: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
+    const headers = upstreamAuthHeaders(request);
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest) {
       const response = await fetch(`${backendUrl}/api/ai/conversations`, {
         method: 'GET',
         headers: {
-          'Cookie': cookieHeader
+          ...headers
         },
         credentials: 'include'
       });
@@ -248,7 +249,7 @@ export async function GET(request: NextRequest) {
       const response = await fetch(`${backendUrl}/api/ai/conversation/${conversationId}`, {
         method: 'GET',
         headers: {
-          'Cookie': cookieHeader
+          ...headers
         },
         credentials: 'include'
       });
@@ -281,7 +282,7 @@ export async function GET(request: NextRequest) {
 // DELETE handler for deleting conversations
 export async function DELETE(request: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
+    const headers = upstreamAuthHeaders(request);
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get('id');
 
@@ -297,7 +298,7 @@ export async function DELETE(request: NextRequest) {
     const response = await fetch(`${backendUrl}/api/ai/conversation/${conversationId}`, {
       method: 'DELETE',
       headers: {
-        'Cookie': cookieHeader
+        ...headers
       },
       credentials: 'include'
     });

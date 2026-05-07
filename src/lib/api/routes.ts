@@ -58,6 +58,7 @@ export const apiRoutes = {
     resources: "/api/admin/resources",
     impersonate: "/api/admin/impersonate",
     marketing: "/api/admin/marketing",
+    marketingCampaigns: "/api/admin/marketing/campaigns",
     contests: "/api/admin/contests",
     tickets: "/api/admin/tickets",
     backups: "/api/admin/backups",

@@ -30,6 +30,8 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
+import { usePermission } from "@/components/auth/PermissionGuard";
 
 interface Book {
   id: string;
@@ -85,6 +87,8 @@ const bookSchema = z.object({
 type BookFormValues = z.infer<typeof bookSchema>;
 
 export default function AdminBooksPage() {
+  const { hasPermission } = usePermission();
+  const canManageBooks = hasPermission("BOOKS_MANAGE");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingBook, setEditingBook] = React.useState<Book | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
@@ -182,6 +186,7 @@ export default function AdminBooksPage() {
       if (response.ok) {
         toast.success(editingBook ? "تم تحديث المجلد الملكي" : "تم تدوين كتاب جديد بالمكتبة");
         setDialogOpen(false);
+        await requestPublicCacheRevalidation(["/library"]);
         refetch();
       } else {
         toast.error("فشل في حفظ الكتاب");
@@ -203,6 +208,7 @@ export default function AdminBooksPage() {
 
       if (response.ok) {
         toast.success("تم حرق المجلد من السجلات");
+        await requestPublicCacheRevalidation(["/library"]);
         refetch();
       } else {
         toast.error("فشل في الحذف");
@@ -284,8 +290,8 @@ export default function AdminBooksPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(b) => setDeleteDialog({ open: true, id: b.id })}
+          onEdit={canManageBooks ? handleOpenDialog : undefined}
+          onDelete={canManageBooks ? (b) => setDeleteDialog({ open: true, id: b.id }) : undefined}
           extraActions={[
             { icon: Eye, label: "معاينة المجلد", onClick: (b) => window.open(b.downloadUrl, "_blank") },
             { icon: Download, label: "تحميل المخطوطة", onClick: (b) => window.open(b.downloadUrl, "_blank") },
@@ -301,9 +307,11 @@ export default function AdminBooksPage() {
         title="خزانة الكتب الملكية 📚"
         description="إدارة المراجع العلمية، المذكرات الدراسية، والكتب الخارجية للمحاربين."
       >
-        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          إضافة كتاب جديد
-        </AdminButton>
+        {canManageBooks && (
+          <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+            إضافة كتاب جديد
+          </AdminButton>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

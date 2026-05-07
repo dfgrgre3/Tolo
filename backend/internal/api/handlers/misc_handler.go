@@ -20,7 +20,7 @@ func GetUnreadNotificationsCount(c *gin.Context) {
 	}
 
 	var count int64
-	if err := db.DB.Model(&models.Notification{}).Where("\"userId\" = ? AND \"isRead\" = ?", userId, false).Count(&count).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where("user_id = ? AND \"isRead\" = ?", userId, false).Count(&count).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to count notifications")
 		return
 	}
@@ -36,7 +36,7 @@ func GetRecentActivities(c *gin.Context) {
 	}
 
 	var notifications []models.Notification
-	if err := db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(10).Find(&notifications).Error; err != nil {
+	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Limit(10).Find(&notifications).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch activities")
 		return
 	}
@@ -70,7 +70,7 @@ func GetWalletBalance(c *gin.Context) {
 	}
 
 	var transactions []models.WalletTransaction
-	db.DB.Where("\"userId\" = ?", userId).Order("\"createdAt\" desc").Limit(20).Find(&transactions)
+	db.DB.Where("user_id = ?", userId).Order("created_at desc").Limit(20).Find(&transactions)
 
 	api_response.Success(c, gin.H{
 		"balance":      user.Balance,

@@ -30,7 +30,7 @@ func listItems(c *gin.Context, model interface{}, key string, preloads ...string
 	var total int64
 	db.DB.Model(model).Count(&total)
 
-	query := db.DB.Model(model).Limit(limit).Offset(offset).Order("\"createdAt\" DESC")
+	query := db.DB.Model(model).Limit(limit).Offset(offset).Order("created_at DESC")
 	for _, p := range preloads {
 		query = query.Preload(p)
 	}
@@ -253,7 +253,7 @@ func AdminGetAuditLogs(c *gin.Context) {
 
 	query.Count(&total)
 
-	if err := query.Preload("User").Limit(limit).Offset(offset).Order("\"createdAt\" DESC").Find(&logs).Error; err != nil {
+	if err := query.Preload("User").Limit(limit).Offset(offset).Order("created_at DESC").Find(&logs).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch logs")
 		return
 	}
@@ -580,7 +580,7 @@ func GetPublicBlogPosts(c *gin.Context) {
 	var total int64
 	query := db.DB.Model(&models.BlogPost{}).Where("status = ?", "PUBLISHED")
 	query.Count(&total)
-	query.Preload("Author").Order("\"publishedAt\" DESC").Limit(limit).Offset((page - 1) * limit).Find(&posts)
+	query.Preload("Author").Order("published_at DESC").Limit(limit).Offset((page - 1) * limit).Find(&posts)
 
 	api_response.Success(c, gin.H{
 		"posts": posts,
@@ -616,9 +616,9 @@ func GetPublicEvents(c *gin.Context) {
 
 	var events []models.Event
 	var total int64
-	query := db.DB.Model(&models.Event{}).Where("\"isActive\" = ?", true)
+	query := db.DB.Model(&models.Event{}).Where("is_active = ?", true)
 	query.Count(&total)
-	query.Order("\"startDate\" ASC").Limit(limit).Offset((page - 1) * limit).Find(&events)
+	query.Order("start_date ASC").Limit(limit).Offset((page - 1) * limit).Find(&events)
 
 	api_response.Success(c, gin.H{
 		"events": events,

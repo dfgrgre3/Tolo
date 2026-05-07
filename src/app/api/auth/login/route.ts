@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, backendJsonResponse } from '../_utils';
+import { BACKEND_URL, backendJsonResponse, upstreamAuthHeaders } from '../_utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,17 +21,16 @@ export async function POST(request: NextRequest) {
     const targetUrl = `${BACKEND_URL}/api/auth/login`;
     console.log(`[API Proxy] POST request to: ${targetUrl}`);
 
-    // Forward relevant headers including cookies for CSRF/Session
     const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
-        'X-CSRF-Token': request.headers.get('x-csrf-token') || '',
+        ...upstreamAuthHeaders(request),
       },
       body: body,
       credentials: 'include',
     });
+
 
     console.log(`[API Proxy] Backend responded with status: ${response.status}`);
     return backendJsonResponse(response);

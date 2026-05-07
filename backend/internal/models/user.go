@@ -137,12 +137,18 @@ func (u *User) HasPermission(permission string) bool {
 func (u *User) GetEffectivePermissions() []string {
 	if u.Role == RoleAdmin {
 		dbPerms := []string(u.Permissions)
-		if len(dbPerms) == 0 {
-			return []string{PermAdminBypass}
+		// Admins always get the bypass (*:*) to ensure full access
+		hasBypass := false
+		for _, p := range dbPerms {
+			if p == PermAdminBypass {
+				hasBypass = true
+				break
+			}
 		}
-		out := make([]string, len(dbPerms))
-		copy(out, dbPerms)
-		return out
+		if !hasBypass {
+			return append(dbPerms, PermAdminBypass)
+		}
+		return dbPerms
 	}
 
 	perms := []string(u.Permissions)

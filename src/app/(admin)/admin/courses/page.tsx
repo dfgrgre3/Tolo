@@ -72,6 +72,8 @@ import {
 import { cn, formatPrice } from "@/lib/utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
+import { usePermission } from "@/components/auth/PermissionGuard";
+import { readJsonOrThrow, throwIfApiError } from "@/lib/api/api-error-utils";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -251,6 +253,8 @@ function CourseGridSkeleton() {
 
 export default function AdminCoursesPage() {
   const router = useRouter();
+  const { hasPermission } = usePermission();
+  const canManageCourses = hasPermission("SUBJECTS_MANAGE");
 
   // State
   const [quickCreateOpen, setQuickCreateOpen] = React.useState(false);
@@ -432,36 +436,29 @@ export default function AdminCoursesPage() {
         ...values,
         ...(editingCourse ? { id: editingCourse.id } : {})
       };
-
       const response = await adminFetch(apiRoutes.admin.courses, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result?.message || result?.error || "تعذر حفظ بيانات الدورة");
-        return;
-      }
-
+      const result = await readJsonOrThrow<{
+        data?: { course?: { id?: string } };
+      }>(response, "تعذر حفظ بيانات الدورة");
       const createdCourseId = result?.data?.course?.id as string | undefined;
       toast.success(
         editingCourse ?
-        "✅ تم تحديث الدورة بنجاح" :
-        "✅ تم إنشاء الدورة – سيتم توجيهك لإضافة المنهج الدراسي"
+        "تم تحديث الدورة بنجاح" :
+        "تم إنشاء الدورة وسيتم توجيهك لإضافة المنهج الدراسي"
       );
       setQuickCreateOpen(false);
       setEditingCourse(null);
       quickForm.reset(quickCourseDefaults);
       await refetch();
-
       if (!editingCourse && createdCourseId) {
         router.push(`/admin/courses/${createdCourseId}/curriculum`);
       }
-    } catch {
-      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال بالخادم");
     } finally {
       setIsSubmitting(false);
     }
@@ -475,15 +472,11 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })
       });
-      const result = await response.json();
-      if (!response.ok) {
-        toast.error(result?.message || result?.error || "تعذر حذف الدورة");
-        return;
-      }
+      await throwIfApiError(response, "تعذر حذف الدورة");
       toast.success("تم حذف الدورة بنجاح");
       await refetch();
-    } catch {
-      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال بالخادم");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -496,15 +489,11 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: course.id, isPublished: !course.isPublished })
       });
-      const result = await response.json();
-      if (!response.ok) {
-        toast.error(result?.message || "فشل تحديث الحالة");
-        return;
-      }
+      await throwIfApiError(response, "فشل تحديث الحالة");
       toast.success(course.isPublished ? "تم إخفاء الدورة" : "تم نشر الدورة بنجاح");
       await refetch();
-    } catch {
-      toast.error("فشل تحديث الحالة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "فشل تحديث الحالة");
     }
   };
 
@@ -517,19 +506,15 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const result = await response.json();
-      if (!response.ok) {
-        toast.error(result?.error || result?.message || "تعذر حفظ التصنيف");
-        return;
-      }
+      await throwIfApiError(response, "تعذر حفظ التصنيف");
       toast.success(editingCategory ? "تم تحديث التصنيف" : "تم إنشاء التصنيف");
       setCategoryDialogOpen(false);
       setEditingCategory(null);
       categoryForm.reset(defaultCategoryValues);
       await refetchCategories();
       await refetch();
-    } catch {
-      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال بالخادم");
     }
   };
 
@@ -541,16 +526,12 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: categoryDeleteDialog.id })
       });
-      const result = await response.json();
-      if (!response.ok) {
-        toast.error(result?.error || result?.message || "تعذر حذف التصنيف");
-        return;
-      }
+      await throwIfApiError(response, "تعذر حذف التصنيف");
       toast.success("تم حذف التصنيف");
       await refetchCategories();
       await refetch();
-    } catch {
-      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال بالخادم");
     } finally {
       setCategoryDeleteDialog({ open: false, id: null });
     }
@@ -563,9 +544,8 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "فشل الاستنساخ");
-      toast.success(result.message || "✅ تم استنساخ الدورة بنجاح");
+      const result = await readJsonOrThrow<{ message?: string }>(response, "فشل الاستنساخ");
+      toast.success(result.message || "تم استنساخ الدورة بنجاح");
       await refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
@@ -601,9 +581,8 @@ export default function AdminCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: selectedIds, action })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "فشلت العملية الجماعية");
-      toast.success(result.message);
+      const result = await readJsonOrThrow<{ message?: string }>(response, "فشلت العملية الجماعية");
+      toast.success(result.message || "تم تنفيذ العملية الجماعية");
       setSelectedIds([]);
       await refetch();
     } catch (error) {
@@ -754,8 +733,8 @@ export default function AdminCoursesPage() {
     <RowActions
       row={row.original}
       onView={(course) => router.push(`/admin/courses/${course.id}`)}
-      onEdit={(course) => router.push(`/admin/courses/${course.id}`)}
-      onDelete={(course) => setDeleteDialog({ open: true, id: course.id })}
+      onEdit={canManageCourses ? (course) => router.push(`/admin/courses/${course.id}`) : undefined}
+      onDelete={canManageCourses ? (course) => setDeleteDialog({ open: true, id: course.id }) : undefined}
       extraActions={[
       {
         icon: BookOpen,
@@ -820,7 +799,7 @@ export default function AdminCoursesPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          {canManageCourses && <div className="flex flex-wrap items-center justify-center gap-3">
             <AdminButton 
               variant="outline" 
               className="h-12 rounded-2xl px-6 font-black gap-2 bg-background/50 border-border/50"
@@ -839,7 +818,7 @@ export default function AdminCoursesPage() {
               <Plus className="h-5 w-5" />
               دورة تعليمية جديدة
             </AdminButton>
-          </div>
+          </div>}
         </div>
 
         {/* Stats Grid */}
@@ -948,10 +927,10 @@ export default function AdminCoursesPage() {
         <CourseCard
           key={course.id}
           course={course}
-          onEdit={(c) => router.push(`/admin/courses/${c.id}`)}
-          onDuplicate={handleDuplicate}
-          onDelete={(c) => setDeleteDialog({ open: true, id: c.id })}
-          onToggleStatus={handleToggleStatus} />
+          onEdit={canManageCourses ? (c) => router.push(`/admin/courses/${c.id}`) : undefined}
+          onDuplicate={canManageCourses ? handleDuplicate : undefined}
+          onDelete={canManageCourses ? (c) => setDeleteDialog({ open: true, id: c.id }) : undefined}
+          onToggleStatus={canManageCourses ? handleToggleStatus : undefined} />
 
         )}
           </div> :
@@ -1706,3 +1685,4 @@ export default function AdminCoursesPage() {
     </div>);
 
 }
+

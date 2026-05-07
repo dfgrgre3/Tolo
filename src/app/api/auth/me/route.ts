@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, backendJsonResponse } from '../_utils';
+import { BACKEND_URL, backendJsonResponse, upstreamAuthHeaders } from '../_utils';
 
 export async function GET(request: NextRequest) {
   try {
     const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
       method: 'GET',
-      headers: {
-        Cookie: request.headers.get('cookie') || '',
-      },
+      headers: upstreamAuthHeaders(request),
       credentials: 'include',
       cache: 'no-store',
     });

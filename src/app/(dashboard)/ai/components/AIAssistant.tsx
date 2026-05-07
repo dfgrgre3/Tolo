@@ -130,8 +130,28 @@ export default function AIAssistant({
     }
 
     try {
+      // Read CSRF token from cookie. Some environments may URL-encode the cookie value
+      // or the token may be exposed under alternate cookie names. Be permissive.
+      const getCsrfFromCookie = () => {
+        const cookies = document.cookie.split(';').map(c => c.trim());
+        for (const name of ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token']) {
+          const entry = cookies.find(c => c.startsWith(name + '='));
+          if (entry) {
+            try {
+              return decodeURIComponent(entry.split('=')[1]);
+            } catch (e) {
+              return entry.split('=')[1];
+            }
+          }
+        }
+        return undefined;
+      };
+      const csrfToken = getCsrfFromCookie();
       const response = await fetch(`/api/ai/chat?id=${convId}`, {
         method: 'DELETE',
+        headers: {
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
+        },
         credentials: 'include'
       });
 
@@ -169,11 +189,38 @@ export default function AIAssistant({
     setIsLoading(true);
 
     try {
+      // Robust extraction (same helper as above)
+      const getCsrfFromCookie2 = () => {
+        const cookies = document.cookie.split(';').map(c => c.trim());
+        for (const name of ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token']) {
+          const entry = cookies.find(c => c.startsWith(name + '='));
+          if (entry) {
+            try {
+              return decodeURIComponent(entry.split('=')[1]);
+            } catch (e) {
+              return entry.split('=')[1];
+            }
+          }
+        }
+        return undefined;
+      };
+      let csrfToken = getCsrfFromCookie2();
+      // If no CSRF cookie exists yet, make a GET to the backend endpoint to ensure the server issues the token
+      if (!csrfToken) {
+        try {
+          await fetch('/api/ai/chat?action=conversations', { method: 'GET', credentials: 'include' });
+          csrfToken = getCsrfFromCookie2();
+        } catch (e) {
+          // ignore - we'll proceed without token and surface backend error
+        }
+      }
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
         },
+        credentials: 'include',
         body: JSON.stringify({
           message: userMessage.content,
           conversationId: conversationId,
@@ -186,7 +233,15 @@ export default function AIAssistant({
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        // Try to read response body for more details (helps debug 403/500 responses)
+        let respText = '';
+        try {
+          respText = await response.text();
+        } catch (e) {
+          // ignore
+        }
+        logger.error('AI chat request failed', { status: response.status, body: respText });
+        throw new Error(`Server error: ${response.status}${respText ? ` - ${respText.substring(0, 200)}` : ''}`);
       }
 
       // التحقق مما إذا كانت الاستجابة متدفقة

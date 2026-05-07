@@ -9,7 +9,7 @@ import (
 // UserSettings stores user preferences and settings
 type UserSettings struct {
 	ID     string `gorm:"primaryKey;type:uuid" json:"id"`
-	UserID string `gorm:"type:uuid;not null" json:"userId"`
+	UserID string `gorm:"type:uuid;not null;unique;column:user_id" json:"userId"`
 	User   User   `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 
 	Theme          string `gorm:"default:'light'" json:"theme"`

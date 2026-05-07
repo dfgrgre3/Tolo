@@ -37,7 +37,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const hasAuthToken = cookieStore.has('refresh_token') || cookieStore.has('session_id');
+  const hasAuthToken = cookieStore.has('access_token') || cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
     <ClerkProvider localization={arSA}>

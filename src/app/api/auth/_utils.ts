@@ -27,8 +27,16 @@ export function upstreamAuthHeaders(request: NextRequest): Record<string, string
   if (cookie) headers.Cookie = cookie;
   const authorization = request.headers.get('authorization');
   if (authorization) headers.Authorization = authorization;
+  
+  // Forward CSRF token if present (required for state-changing requests in production)
+  const csrfToken = request.headers.get('x-csrf-token');
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+  
   return headers;
 }
+
 
 function splitCombinedSetCookie(value: string): string[] {
   return value.split(/,(?=\s*[^;,]+=)/).map((cookie) => cookie.trim()).filter(Boolean);
@@ -41,7 +49,13 @@ export function forwardSetCookie(source: Response, target: NextResponse): void {
     headers.raw?.()['set-cookie'] ??
     splitCombinedSetCookie(headers.get('set-cookie') || '');
 
-  for (const cookie of cookies) {
+  for (let cookie of cookies) {
+    // SECURITY/DEV FIX: If we are in development and using HTTP, the browser will reject cookies with the 'Secure' flag.
+    // The backend might be sending it because NODE_ENV is set to 'production' there.
+    if (process.env.NODE_ENV === 'development') {
+      cookie = cookie.replace(/;?\s*Secure/gi, '');
+    }
+    
     target.headers.append('Set-Cookie', cookie);
   }
 }
@@ -59,10 +73,23 @@ export async function backendJsonResponse(response: Response): Promise<NextRespo
   }
 
   if (!response.ok) {
-    console.error(`[API Proxy] Backend returned error ${response.status}: ${text.substring(0, 100)}`);
+    const logMsg = `[API Proxy] Backend returned ${response.status}: ${text.substring(0, 100)}`;
+    if (response.status === 401) {
+      console.warn(logMsg);
+    } else {
+      console.error(logMsg);
+    }
   }
 
   const nextResponse = NextResponse.json(payload, { status: response.status });
+  
+  // Forward X-CSRF-Token if present in backend response
+  const csrfToken = response.headers.get('X-CSRF-Token');
+  if (csrfToken) {
+    nextResponse.headers.set('X-CSRF-Token', csrfToken);
+  }
+  
   forwardSetCookie(response, nextResponse);
   return nextResponse;
 }
+

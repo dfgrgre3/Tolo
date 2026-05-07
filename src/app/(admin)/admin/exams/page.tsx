@@ -31,6 +31,8 @@ import { BulkUploadDialog } from "@/components/admin/exams/bulk-upload-dialog";
 import { m } from "framer-motion";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
+import { usePermission } from "@/components/auth/PermissionGuard";
 
 interface Exam {
   id: string;
@@ -78,6 +80,8 @@ const examSchema = z.object({
 type ExamFormValues = z.infer<typeof examSchema>;
 
 export default function AdminExamsPage() {
+  const { hasPermission } = usePermission();
+  const canManageExams = hasPermission("EXAMS_MANAGE");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingExam, setEditingExam] = React.useState<Exam | null>(null);
   const [previewExam, setPreviewExam] = React.useState<Exam | null>(null);
@@ -163,7 +167,7 @@ export default function AdminExamsPage() {
     try {
       const method = editingExam ? "PATCH" : "POST";
       const body = editingExam ? { ...values, id: editingExam.id } : values;
-      const response = await fetch(apiRoutes.admin.exams, {
+      const response = await adminFetch(apiRoutes.admin.exams, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -172,6 +176,7 @@ export default function AdminExamsPage() {
       if (response.ok) {
         toast.success(editingExam ? "تم تحديث بيانات الامتحان بنجاح" : "تم إضافة امتحان جديد بنجاح");
         setDialogOpen(false);
+        await requestPublicCacheRevalidation(["/exams"]);
         refetch();
       } else {
         toast.error("فشل في حفظ الاختبار");
@@ -184,7 +189,7 @@ export default function AdminExamsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(apiRoutes.admin.exams, {
+      const response = await adminFetch(apiRoutes.admin.exams, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
@@ -192,6 +197,7 @@ export default function AdminExamsPage() {
 
       if (response.ok) {
         toast.success("تم حذف الاختبار من السجلات");
+        await requestPublicCacheRevalidation(["/exams"]);
         refetch();
       } else {
         toast.error("فشل في الحذف");
@@ -260,8 +266,8 @@ export default function AdminExamsPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(e) => setDeleteDialog({ open: true, id: e.id })}
+          onEdit={canManageExams ? handleOpenDialog : undefined}
+          onDelete={canManageExams ? (e) => setDeleteDialog({ open: true, id: e.id }) : undefined}
           extraActions={[
             { icon: Eye, label: "معاينة الاختبار", onClick: (e) => setPreviewExam(e) },
             { icon: ExternalLink, label: "الرابط المرجعي", onClick: (e) => window.open(e.url, "_blank") },
@@ -277,7 +283,7 @@ export default function AdminExamsPage() {
         title="إدارة الاختبارات والامتحانات"
         description="إدارة الاختبارات التعليمية، امتحانات السنوات السابقة، وتقييم مستوى الطلاب."
       >
-        <div className="flex items-center gap-3">
+        {canManageExams && <div className="flex items-center gap-3">
           <AdminButton 
             variant="outline" 
             icon={UploadCloud} 
@@ -288,7 +294,7 @@ export default function AdminExamsPage() {
           <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
             إضافة اختبار جديد
           </AdminButton>
-        </div>
+        </div>}
       </PageHeader>
 
 

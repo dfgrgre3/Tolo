@@ -20,7 +20,7 @@ type AuditLog struct {
 	UserAgent  string    `gorm:"column:user_agent" json:"userAgent"`
 	DeviceInfo string    `gorm:"column:device_info" json:"deviceInfo"`
 	Location   string    `gorm:"column:location" json:"location"`
-	CreatedAt  time.Time `gorm:"default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"`
+	CreatedAt  time.Time `gorm:"primaryKey;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"`
 }
 
 func (AuditLog) TableName() string { return "AuditLog" }

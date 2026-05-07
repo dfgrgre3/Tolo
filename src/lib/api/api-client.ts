@@ -91,6 +91,14 @@ class ApiClient {
             ...customOptions.headers,
         });
 
+        // Add CSRF token for state-changing requests in browser
+        if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET')) {
+            const csrfToken = this.getCookie('_csrf');
+            if (csrfToken) {
+                headers.set('X-CSRF-Token', csrfToken);
+            }
+        }
+
         try {
             const url = normalizeEndpoint(endpoint);
             const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
@@ -100,6 +108,7 @@ class ApiClient {
                 credentials: 'include',
                 signal: controller.signal,
             });
+
             timer.stop();
             clearTimeout(id);
 
@@ -152,6 +161,15 @@ class ApiClient {
             'Content-Type': 'application/json',
             ...customOptions.headers,
         });
+
+        // Add CSRF token for state-changing requests in browser
+        if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET')) {
+            const csrfToken = this.getCookie('_csrf');
+            if (csrfToken) {
+                headers.set('X-CSRF-Token', csrfToken);
+            }
+        }
+
 
         // Developer Bypass for Admin Routes
         // Disabled by default to allow real authentication to work.
@@ -260,12 +278,22 @@ class ApiClient {
 
         this.refreshPromise = (async () => {
             try {
+                const headers: Record<string, string> = {};
+                if (typeof window !== 'undefined') {
+                    const csrfToken = this.getCookie('_csrf');
+                    if (csrfToken) {
+                        headers['X-CSRF-Token'] = csrfToken;
+                    }
+                }
+
                 const response = await fetch(AUTH_REFRESH_ENDPOINT, {
                     method: 'POST',
+                    headers,
                     credentials: 'include',
                 });
                 return response.ok;
             } catch {
+
                 return false;
             } finally {
                 this.refreshPromise = null;
@@ -306,7 +334,16 @@ class ApiClient {
     public delete<T>(endpoint: string, options?: FetchOptions): Promise<T> {
         return this.request<T>(endpoint, { ...options, method: 'DELETE' });
     }
+
+    private getCookie(name: string): string | null {
+        if (typeof document === 'undefined') return null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return null;
+    }
 }
+
 
 export const apiClient = new ApiClient();
 export default apiClient;

@@ -53,7 +53,7 @@ func SetupPublicRoutes(router *gin.Engine) {
 	}
 
 	// Guest User
-	router.Any("/api/users/guest", handlers.GetGuestUser)
+	router.GET("/api/users/guest", handlers.GetGuestUser)
 
 	// Paymob Webhook
 	router.POST("/api/payments/paymob/callback", handlers.PaymobWebhook)

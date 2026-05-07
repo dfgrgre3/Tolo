@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -121,31 +122,43 @@ func Auth() gin.HandlerFunc {
 		}
 
 		c.Set("userId", claims.Subject)
-		c.Set("role", claims.Role)
 		c.Set("jti", claims.JTI)
 
+		// Fetch user from DB to get local role and permissions (Unscoped to bypass soft delete)
+		var user models.User
+		if err := db.DB.Unscoped().Select("role", "permissions").Where("id = ?", claims.Subject).First(&user).Error; err == nil {
+			// Use DB role as it's the source of truth for local permissions
+			c.Set("role", string(user.Role))
+			if user.Permissions == nil {
+				c.Set("permissions", []string{})
+			} else {
+				c.Set("permissions", []string(user.Permissions))
+			}
+		} else {
+			// Fallback to token claims if user not in DB yet
+			c.Set("role", strings.ToUpper(claims.Role))
+			c.Set("permissions", []string{})
+		}
+
 		// Impersonation support: If user is admin, check for impersonation cookie
-		if claims.Role == "ADMIN" {
+		currentRole, _ := c.Get("role")
+		if currentRole == "ADMIN" {
 			if impersonatedID, err := c.Cookie("impersonate_user_id"); err == nil && impersonatedID != "" {
 				// Verify the impersonated user exists (Unscoped to bypass soft delete)
 				var targetUser models.User
-				if err := db.DB.Unscoped().First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
+				if err := db.DB.Unscoped().Select("id", "role", "permissions").First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
 					c.Set("originalAdminId", claims.Subject)
 					c.Set("userId", impersonatedID)
 					c.Set("role", string(targetUser.Role))
 					c.Set("isImpersonating", true)
-
-					// Update claims for granular permissions
-					claims.Subject = impersonatedID
-					claims.Role = string(targetUser.Role)
+					
+					if targetUser.Permissions == nil {
+						c.Set("permissions", []string{})
+					} else {
+						c.Set("permissions", []string(targetUser.Permissions))
+					}
 				}
 			}
-		}
-
-		// Fetch permissions for granular control (Unscoped to bypass soft delete)
-		var perms models.JSONStringArray
-		if err := db.DB.Unscoped().Model(&models.User{}).Where("id = ?", claims.Subject).Pluck("permissions", &perms).Error; err == nil {
-			c.Set("permissions", []string(perms))
 		}
 
 		c.Next()
@@ -186,14 +199,12 @@ func PermissionRequired(permission string) gin.HandlerFunc {
 			return
 		}
 
-		// Check specific permission (ADMIN uses same granular checks as other roles)
-		perms, exists := c.Get("permissions")
-		if !exists || perms == nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "No permissions assigned"})
-			return
+		// Check specific permission
+		perms, _ := c.Get("permissions")
+		var userPermissions []string
+		if perms != nil {
+			userPermissions = perms.([]string)
 		}
-
-		userPermissions := perms.([]string)
 
 		// Create a temporary user object to use the HasPermission logic
 		user := &models.User{
@@ -255,6 +266,10 @@ func CORS() gin.HandlerFunc {
 				}
 			}
 		}
+
+		// DEBUG LOGGING - Remove after diagnosis
+		log.Printf("[CORS DEBUG] Environment: %s, Origin: '%s', IsAllowed: %v, Method: %s, Path: %s",
+			cfg.Environment, origin, isAllowed, c.Request.Method, c.Request.URL.Path)
 
 		// Set CORS headers only for allowed origins
 		if origin != "" && isAllowed {

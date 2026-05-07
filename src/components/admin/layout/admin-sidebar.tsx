@@ -242,7 +242,7 @@ const engagementNavItems: SidebarNavItem[] = [
     href: "/admin/automations",
     icon: Workflow,
     color: "bg-blue-500",
-    permission: "AI_MANAGE",
+    permission: "ADMIN_BYPASS",
   },
   {
     title: "حملات التواصل (CRM)",
@@ -267,6 +267,13 @@ const communityNavItems: SidebarNavItem[] = [
     icon: Bell,
     color: "bg-sky-500",
     permission: "ANNOUNCEMENTS_VIEW",
+  },
+  {
+    title: "إدارة الإشعارات",
+    href: "/admin/notifications",
+    icon: Send,
+    color: "bg-rose-500",
+    permission: "ANNOUNCEMENTS_MANAGE",
   },
   {
     title: "منتدى الحوار",

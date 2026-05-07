@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { apiRoutes } from "@/lib/api/routes";
+import { adminFetch } from "@/lib/api/admin-api";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatPrice } from "@/lib/utils";
@@ -47,7 +48,7 @@ export default function CourseOverviewPage() {
   const { data: courseData, isLoading } = useQuery({
     queryKey: ["admin", "courses", courseId],
     queryFn: async () => {
-      const response = await fetch(`${apiRoutes.admin.courses}/${courseId}`);
+      const response = await adminFetch(`${apiRoutes.admin.courses}/${courseId}`);
       if (!response.ok) throw new Error("Failed to load course");
       const result = await response.json();
       return result.data?.course || result.data || result;

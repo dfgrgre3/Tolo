@@ -17,8 +17,8 @@ const (
 type Category struct {
 	ID          string         `gorm:"primaryKey;type:uuid;column:id" json:"id"`
 	Name        string         `gorm:"not null;column:name" json:"name"`
-	Slug        string         `gorm:"uniqueIndex;not null;column:slug" json:"slug"`
-	Type        CategoryType   `gorm:"default:'COURSE';column:type" json:"type"`
+	Slug        string         `gorm:"uniqueIndex:idx_category_slug_type;not null;column:slug" json:"slug"`
+	Type        CategoryType   `gorm:"uniqueIndex:idx_category_slug_type;default:'COURSE';column:type" json:"type"`
 	Description *string        `gorm:"column:description" json:"description"`
 	Icon        *string        `gorm:"column:icon" json:"icon"`
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`

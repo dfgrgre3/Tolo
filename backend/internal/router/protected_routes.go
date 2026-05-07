@@ -23,9 +23,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.GET("/tasks", handlers.GetTasks)
 		protected.GET("/study-sessions", handlers.GetStudySessions)
 		protected.GET("/reminders", handlers.GetReminders)
-		protected.GET("/resources", func(c *gin.Context) {
-			c.JSON(200, gin.H{"data": []interface{}{}, "success": true})
-		})
+		protected.GET("/resources", handlers.GetResources)
 		protected.POST("/schedule", handlers.UpdateSchedule)
 		protected.POST("/tasks", handlers.CreateTask)
 		protected.PATCH("/tasks/:id", handlers.UpdateTask)
@@ -96,10 +94,16 @@ func SetupProtectedRoutes(router *gin.Engine) {
 
 		// Upload
 		protected.POST("/upload", handlers.Upload)
-		protected.Any("/upload/chunked", handlers.UploadChunked)
+		protected.POST("/upload/chunked", handlers.UploadChunked)
+		protected.PUT("/upload/chunked", handlers.UploadChunked)
+		protected.PATCH("/upload/chunked", handlers.UploadChunked)
 
 		// Exam routes
 		protected.POST("/exams/:id/submit", handlers.SubmitExam)
+
+		// Gamification routes
+		protected.GET("/gamification/leaderboard", handlers.GetLeaderboard)
+		protected.GET("/gamification/achievements", handlers.GetUserAchievements)
 
 		// Payment routes
 		protected.POST("/payments/create", handlers.CreatePayment)

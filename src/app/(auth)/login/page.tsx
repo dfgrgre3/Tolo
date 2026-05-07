@@ -291,6 +291,7 @@ function LoginForm() {
   
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shouldShake, setShouldShake] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginMode, setLoginMode] = useState<'password' | 'magic-link'>('password');
   const [requires2FA, setRequires2FA] = useState(false);
@@ -339,6 +340,7 @@ function LoginForm() {
 
     setIsSubmitting(true);
     setErrorStatus(null);
+    setShouldShake(false);
 
     try {
       const result = await login(
@@ -349,20 +351,33 @@ function LoginForm() {
 
       if (result.success) {
         if (result.requires2FA) {
-          toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج');
+          toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج', {
+            description: 'لقد أرسلنا رمزاً إلى بريدك الإلكتروني لزيادة الأمان.',
+          });
           setRequires2FA(true);
           setUserId2FA(result.userId || null);
           return;
         }
-        toast.success('مرحباً بك مجدداً في تولو');
+        toast.success('مرحباً بك مجدداً في تولو', {
+          description: 'جاري تحضير بيئتك التعليمية...',
+        });
         redirectAfterLogin(redirectUrl);
         return;
       }
 
       setErrorStatus(result.error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
-      toast.error(result.error || 'خطأ في بيانات الدخول');
+      setShouldShake(true);
+      setTimeout(() => setShouldShake(false), 500);
+      
+      toast.error(result.error || 'خطأ في بيانات الدخول', {
+        description: 'تأكد من البريد الإلكتروني وكلمة المرور.',
+      });
     } catch (_err) {
-      toast.error('حدث خطأ غير متوقع');
+      toast.error('حدث خطأ غير متوقع', {
+        description: 'يرجى التحقق من اتصالك بالإنترنت والمحاولة لاحقاً.',
+      });
+      setShouldShake(true);
+      setTimeout(() => setShouldShake(false), 500);
     } finally {
       setIsSubmitting(false);
     }
@@ -458,8 +473,16 @@ function LoginForm() {
 
       <m.div 
         initial={{ opacity: 0, y: 20, scale: 0.99 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        animate={{ 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          x: shouldShake ? [0, -10, 10, -10, 10, 0] : 0
+        }}
+        transition={{ 
+          duration: shouldShake ? 0.4 : 0.8, 
+          ease: shouldShake ? "easeInOut" : [0.16, 1, 0.3, 1] 
+        }}
         className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)]"
       >
         

@@ -36,9 +36,18 @@ export default function MarketingPage() {
   React.useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await adminFetch("/api/admin/marketing");
+        const res = await adminFetch(apiRoutes.admin.marketingCampaigns);
         const result = await res.json();
-        if (result.stats) setStats(result.stats);
+        const campaigns = result.data?.campaigns || result.campaigns || [];
+        if (result.stats) {
+          setStats(result.stats);
+        } else if (Array.isArray(campaigns)) {
+          setStats({
+            delivered: campaigns.reduce((sum: number, campaign: any) => sum + Number(campaign.sentCount || campaign.delivered || 0), 0),
+            opened: campaigns.length > 0 ? `${Math.round(campaigns.reduce((sum: number, campaign: any) => sum + Number(campaign.openRate || 0), 0) / campaigns.length)}%` : "0%",
+            lootsClaimed: campaigns.reduce((sum: number, campaign: any) => sum + Number(campaign.clickCount || campaign.lootsClaimed || 0), 0),
+          });
+        }
       } catch (error: unknown) {
         logger.error("Failed to fetch marketing stats", error instanceof Error ? error.message : String(error));
       }
@@ -50,12 +59,14 @@ export default function MarketingPage() {
     e.preventDefault();
     setIsSending(true);
     try {
-      const res = await adminFetch("/api/admin/marketing", {
+      const res = await adminFetch(apiRoutes.admin.marketingCampaigns, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: title,
           title,
           content,
+          message: content,
           audience,
           rewardType,
           rewardValue

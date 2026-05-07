@@ -541,6 +541,10 @@ export function AuthProvider({
     let mounted = true;
 
     const checkAuth = async () => {
+      if (initialAuthHint === false) {
+        setIsLoading(false);
+        return;
+      }
       try {
         await refreshUser();
       } catch {

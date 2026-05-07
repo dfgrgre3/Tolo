@@ -30,8 +30,8 @@ func GetProgressSummary(c *gin.Context) {
 	}
 	var stats Stats
 	db.DB.Model(&models.StudySession{}).
-		Where("\"userId\" = ?", uid).
-		Select("SUM(\"durationMin\") as total_minutes, AVG(\"focusScore\") as avg_focus, COUNT(*) as count").
+		Where("user_id = ?", uid).
+		Select("SUM(duration_min) as total_minutes, AVG(focus_score) as avg_focus, COUNT(*) as count").
 		Scan(&stats)
 
 	summary.TotalMinutes = stats.TotalMinutes
@@ -39,7 +39,7 @@ func GetProgressSummary(c *gin.Context) {
 
 	// 2. Count completed tasks
 	db.DB.Model(&models.Task{}).
-		Where("\"userId\" = ? AND status = ?", uid, "COMPLETED").
+		Where("user_id = ? AND status = ?", uid, "COMPLETED").
 		Count(&summary.TasksCompleted)
 
 	// 3. Calculate Streak Days (consecutive days with study sessions)
@@ -57,8 +57,8 @@ func calculateStreakDays(userID string) int {
 	}
 	var days []dayResult
 	db.DB.Model(&models.StudySession{}).
-		Select("DISTINCT DATE(\"startTime\") as day").
-		Where("\"userId\" = ? AND \"startTime\" >= ?", userID, time.Now().AddDate(-1, 0, 0)).
+		Select("DISTINCT DATE(start_time) as day").
+		Where("user_id = ? AND start_time >= ?", userID, time.Now().AddDate(-1, 0, 0)).
 		Order("day DESC").
 		Scan(&days)
 
@@ -99,7 +99,7 @@ func GetWeeklyAnalytics(c *gin.Context) {
 	// 1. Get study sessions for the past 7 days
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
 	var sessions []models.StudySession
-	db.DB.Where("\"userId\" = ? AND \"startTime\" >= ?", userId, sevenDaysAgo).Order("\"startTime\" asc").Find(&sessions)
+	db.DB.Where("user_id = ? AND start_time >= ?", userId, sevenDaysAgo).Order("start_time asc").Find(&sessions)
 
 	// 2. Aggregate daily progress
 	dailyProgress := make(map[string]int)
@@ -136,7 +136,7 @@ func GetWeeklyAnalytics(c *gin.Context) {
 
 	// 4. Count skills acquired (completed tasks)
 	var skillsAcquired int64
-	db.DB.Model(&models.Task{}).Where("\"userId\" = ? AND status = ?", userId, "COMPLETED").Count(&skillsAcquired)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND status = ?", userId, "COMPLETED").Count(&skillsAcquired)
 
 	c.JSON(http.StatusOK, gin.H{
 		"progressRate":   progressRate,

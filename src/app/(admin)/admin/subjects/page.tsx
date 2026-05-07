@@ -36,6 +36,9 @@ import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { throwIfApiError } from "@/lib/api/api-error-utils";
+import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
+import { usePermission } from "@/components/auth/PermissionGuard";
 
 interface Subject {
   id: string;
@@ -92,6 +95,8 @@ type SubjectFormValues = z.infer<typeof subjectSchema>;
 
 export default function AdminSubjectsPage() {
   const router = useRouter();
+  const { hasPermission } = usePermission();
+  const canManageSubjects = hasPermission("SUBJECTS_MANAGE");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingSubject, setEditingSubject] = React.useState<Subject | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
@@ -191,40 +196,35 @@ export default function AdminSubjectsPage() {
     try {
       const method = editingSubject ? "PATCH" : "POST";
       const body = editingSubject ? { ...values, id: editingSubject.id } : values;
-      const response = await fetch(apiRoutes.admin.subjects, {
+      const response = await adminFetch(apiRoutes.admin.subjects, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      if (response.ok) {
-        toast.success(editingSubject ? "تم تحديث بيانات المادة بنجاح" : "تمت إضافة مادة جديدة للمنصة");
-        setDialogOpen(false);
-        refetch();
-      } else {
-        toast.error("فشل في حفظ البيانات");
-      }
-    } catch (_error) {
-      toast.error("خطأ في الاتصال");
+      await throwIfApiError(response, "فشل في حفظ البيانات");
+      toast.success(editingSubject ? "تم تحديث بيانات المادة بنجاح" : "تمت إضافة مادة جديدة للمنصة");
+      setDialogOpen(false);
+      await requestPublicCacheRevalidation(["/courses"]);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "خطأ في الاتصال");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(apiRoutes.admin.subjects, {
+      const response = await adminFetch(apiRoutes.admin.subjects, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
       });
-      if (response.ok) {
-        toast.success("تم حذف المادة من السجلات");
-        refetch();
-      } else {
-        toast.error("فشل الحذف");
-      }
-    } catch (_error) {
-      toast.error("خطأ في الخادم");
+      await throwIfApiError(response, "فشل الحذف");
+      toast.success("تم حذف المادة من السجلات");
+      await requestPublicCacheRevalidation(["/courses"]);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "خطأ في الخادم");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -321,8 +321,8 @@ export default function AdminSubjectsPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(s) => setDeleteDialog({ open: true, id: s.id })}
+          onEdit={canManageSubjects ? handleOpenDialog : undefined}
+          onDelete={canManageSubjects ? (s) => setDeleteDialog({ open: true, id: s.id }) : undefined}
           extraActions={[
             { icon: LayoutGrid, label: "صفحة المنهج", onClick: (s) => router.push(`/admin/subjects/${s.id}/curriculum`) },
           ]}
@@ -337,9 +337,11 @@ export default function AdminSubjectsPage() {
         title="إدارة المناهج الدراسية" 
         description="تطوير وإدارة المواد العلمية وخطط التعلم."
       >
-        <AdminButton variant="default" icon={Plus} onClick={() => handleOpenDialog()} className="rounded-2xl shadow-xl">
-          إضافة مادة جديدة
-        </AdminButton>
+        {canManageSubjects && (
+          <AdminButton variant="default" icon={Plus} onClick={() => handleOpenDialog()} className="rounded-2xl shadow-xl">
+            إضافة مادة جديدة
+          </AdminButton>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

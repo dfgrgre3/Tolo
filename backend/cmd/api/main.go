@@ -40,8 +40,9 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Run SQL Migrations FIRST to fix any schema issues (missing columns, tables, etc.)
-	// This must run before AutoMigrate to ensure schema is in valid state.
+	// SQL migrations are the only supported production schema-change path.
+	// In production, run them from a single release job with RUN_DB_MIGRATIONS=true.
+	// In non-production, they run by default before the optional development AutoMigrate path.
 	runMigrations := os.Getenv("RUN_DB_MIGRATIONS")
 	if runMigrations == "true" || (runMigrations == "" && cfg.Environment != "production") {
 		log.Println("Checking/Applying SQL database migrations...")
@@ -52,23 +53,12 @@ func main() {
 			log.Fatal("Migration failure - aborting startup")
 		}
 		log.Println("SQL database migrations applied successfully.")
-	}
 
-	// Schema changes must be explicit. AutoMigrate is unsafe during multi-instance rollouts.
-	// Run AFTER SQL migrations to create any new tables that don't exist yet.
-	autoMigrate := os.Getenv("DB_AUTO_MIGRATE")
-	if autoMigrate == "true" || (autoMigrate == "" && cfg.Environment != "production") {
-		if cfg.Environment == "production" && autoMigrate == "true" {
-			log.Fatal("DB_AUTO_MIGRATE=true is not allowed in production; use RUN_DB_MIGRATIONS=true from a single release job")
-		}
-		if err := db.MigrateWithLock(); err != nil {
-			log.Printf("AutoMigrate failed: %v", err)
-		}
-		// Seed AFTER both SQL migrations and AutoMigrate to ensure all tables exist
+		// Seed AFTER SQL migrations to ensure all tables exist
 		if err := db.Seed(); err != nil {
 			log.Printf("Seeding failed: %v", err)
 		}
-		log.Println("Development database schema synced and seeded.")
+		log.Println("Database seeded successfully.")
 	}
 
 	// Initialize Redis
@@ -86,11 +76,15 @@ func main() {
 	analyticsSvc := &internalgrpc.AnalyticsServiceServer{}
 
 	// Setup Router
-	r := gin.Default()
+	if os.Getenv("GIN_MODE") == "release" || cfg.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	r := gin.New()
 
 	// Apply Middlewares
-	r.Use(middleware.CORS())
+	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(middleware.CORS())
 	// router.Use(middleware.RateLimiter(200, time.Minute)) // This was invalid
 	r.Use(middleware.CSRFMiddleware())
 

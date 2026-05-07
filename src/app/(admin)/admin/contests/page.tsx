@@ -67,7 +67,7 @@ export default function ContestsPage() {
     const fetchContests = async () => {
       setLoading(true);
       try {
-        const res = await adminFetch("/contests");
+        const res = await adminFetch("/admin/contests");
         const json = await res.json();
         // Response format: { success: true, contests: [], items: [], data: { contests: [], ... } }
         const data = json.data || json;
@@ -93,7 +93,7 @@ export default function ContestsPage() {
   const startGame = async () => {
     if (activeLobby) {
       try {
-        await fetch(`/api/contests/${activeLobby.id}`, {
+        await adminFetch(`/admin/contests/${activeLobby.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "IN_PROGRESS" })
@@ -108,7 +108,7 @@ export default function ContestsPage() {
   const endGame = async () => {
     if (activeLobby) {
        try {
-        await fetch(`/api/contests/${activeLobby.id}`, {
+        await adminFetch(`/admin/contests/${activeLobby.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "FINISHED" })
@@ -134,7 +134,7 @@ export default function ContestsPage() {
     });
     
     // Sync to DB
-    fetch(`/api/contests/${contest.id}`, {
+    adminFetch(`/admin/contests/${contest.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinCode: pin, status: "WAITING" })

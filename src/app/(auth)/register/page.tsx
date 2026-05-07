@@ -196,6 +196,21 @@ function RegisterForm() {
 
   const roleValue = useWatch({ control, name: 'role' });
   const interestedSubjects = useWatch({ control, name: 'interestedSubjects', defaultValue: [] }) || [];
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' }) || '';
+
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return 0;
+    let strength = 0;
+    if (pass.length >= 8) strength += 25;
+    if (/[A-Z]/.test(pass)) strength += 25;
+    if (/[0-9]/.test(pass)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(pass)) strength += 25;
+    return strength;
+  };
+
+  const strength = getPasswordStrength(passwordValue);
+  const strengthColor = strength <= 25 ? 'bg-red-500' : strength <= 50 ? 'bg-yellow-500' : strength <= 75 ? 'bg-blue-500' : 'bg-green-500';
+  const strengthText = strength <= 25 ? 'ضعيفة' : strength <= 50 ? 'متوسطة' : strength <= 75 ? 'جيدة' : 'قوية جداً';
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue('phone', formatPhoneNumber(e.target.value), { shouldValidate: true });
@@ -432,18 +447,35 @@ function RegisterForm() {
                         <PremiumInput registration={register('username')} label="اسم المستخدم" icon={<User size={20} />} error={errors.username?.message} />
                         <PremiumInput registration={register('email')} type="email" label="البريد الإلكتروني" icon={<Mail size={20} />} error={errors.email?.message} />
                         
-                        <PremiumInput 
-                          registration={register('password')} 
-                          type={showPassword ? 'text' : 'password'} 
-                          label="كلمة المرور" 
-                          icon={<Lock size={20} />} 
-                          endAdornment={
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
-                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                          } 
-                          error={errors.password?.message} 
-                        />
+                        <div className="space-y-3">
+                          <PremiumInput 
+                            registration={register('password')} 
+                            type={showPassword ? 'text' : 'password'} 
+                            label="كلمة المرور" 
+                            icon={<Lock size={20} />} 
+                            endAdornment={
+                              <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            } 
+                            error={errors.password?.message} 
+                          />
+                          {passwordValue && (
+                            <div className="px-2 space-y-2">
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                <span className="text-gray-500">قوة التشفير</span>
+                                <span className={cn(strength > 50 ? "text-primary" : "text-red-500")}>{strengthText}</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                <m.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${strength}%` }}
+                                  className={cn("h-full transition-all duration-500", strengthColor)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         
                         <PremiumInput 
                           registration={register('confirmPassword')} 

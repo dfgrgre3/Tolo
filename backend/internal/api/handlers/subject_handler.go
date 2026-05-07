@@ -163,8 +163,23 @@ func GetSubject(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	if err := db.DB.Preload("Topics.SubTopics.Attachments").Preload("Topics.SubTopics.Exam").First(&subject, "\"id\" = ?", id).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Subject not found")
+	// Support both ID (UUID) and Slug
+	query := db.DB.Preload("Topics.SubTopics.Attachments").Preload("Topics.SubTopics.Exam")
+	
+	// Check if it's a UUID or Slug
+	if len(id) == 36 && strings.Contains(id, "-") {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where("slug = ? OR id = ?", id, id)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+		} else {
+			log.Printf("Error fetching subject %s: %v", id, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch subject")
+		}
 		return
 	}
 
@@ -182,8 +197,20 @@ func GetCourseLessons(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "\"id\" = ?", id).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Course not found")
+	query := db.DB.Preload("Topics.SubTopics")
+	if len(id) == 36 && strings.Contains(id, "-") {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where("slug = ? OR id = ?", id, id)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Course not found")
+		} else {
+			log.Printf("Error fetching course lessons %s: %v", id, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch course lessons")
+		}
 		return
 	}
 
@@ -247,8 +274,20 @@ func EnrollCourse(c *gin.Context) {
 
 	// Verify subject exists
 	var subject models.Subject
-	if err := db.DB.First(&subject, "\"id\" = ?", courseId).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Subject not found")
+	query := db.DB
+	if len(courseId) == 36 && strings.Contains(courseId, "-") {
+		query = query.Where("id = ?", courseId)
+	} else {
+		query = query.Where("slug = ? OR id = ?", courseId, courseId)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+		} else {
+			log.Printf("Error verifying subject %s for enrollment: %v", courseId, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to verify subject")
+		}
 		return
 	}
 
@@ -320,8 +359,20 @@ func CourseCheckout(c *gin.Context) {
 	}
 
 	var subject models.Subject
-	if err := db.DB.First(&subject, "\"id\" = ?", courseId).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Course not found")
+	query := db.DB
+	if len(courseId) == 36 && strings.Contains(courseId, "-") {
+		query = query.Where("id = ?", courseId)
+	} else {
+		query = query.Where("slug = ? OR id = ?", courseId, courseId)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Course not found")
+		} else {
+			log.Printf("Error fetching course %s for checkout: %v", courseId, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch course")
+		}
 		return
 	}
 
@@ -744,8 +795,20 @@ func GetSubjectCurriculum(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Subject not found")
+	query := db.DB.Preload("Topics.SubTopics")
+	if len(id) == 36 && strings.Contains(id, "-") {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where("slug = ? OR id = ?", id, id)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+		} else {
+			log.Printf("Error fetching curriculum for subject %s: %v", id, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch curriculum")
+		}
 		return
 	}
 
@@ -1004,10 +1067,29 @@ func CreateCourseReview(c *gin.Context) {
 }
 
 func GetCourseReviews(c *gin.Context) {
-	subjectId := c.Param("id")
+	id := c.Param("id")
 	var reviews []models.CourseReview
 
-	if err := db.DB.Preload("User").Where("\"subjectId\" = ? AND \"isVisible\" = ?", subjectId, true).Find(&reviews).Error; err != nil {
+	// Resolve subject first if it's a slug
+	var subject models.Subject
+	query := db.DB.Select("id")
+	if len(id) == 36 && strings.Contains(id, "-") {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where("slug = ? OR id = ?", id, id)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+		} else {
+			log.Printf("Error resolving subject %s for reviews: %v", id, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to resolve subject")
+		}
+		return
+	}
+
+	if err := db.DB.Preload("User").Where("subject_id = ? AND is_visible = ?", subject.ID, true).Find(&reviews).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reviews"})
 		return
 	}
@@ -1020,7 +1102,26 @@ func GetCourseEnrollments(c *gin.Context) {
 	id := c.Param("id")
 	var enrollments []models.Enrollment
 
-	if err := db.DB.Preload("User").Where("\"subjectId\" = ?", id).Order("\"enrolledAt\" desc").Find(&enrollments).Error; err != nil {
+	// Resolve subject first
+	var subject models.Subject
+	query := db.DB.Select("id")
+	if len(id) == 36 && strings.Contains(id, "-") {
+		query = query.Where("id = ?", id)
+	} else {
+		query = query.Where("slug = ? OR id = ?", id, id)
+	}
+
+	if err := query.First(&subject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			api_response.Error(c, http.StatusNotFound, "Subject not found")
+		} else {
+			log.Printf("Error resolving subject %s for enrollments: %v", id, err)
+			api_response.Error(c, http.StatusInternalServerError, "Failed to resolve subject")
+		}
+		return
+	}
+
+	if err := db.DB.Preload("User").Where("subject_id = ?", subject.ID).Order("enrolled_at desc").Find(&enrollments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch enrollments"})
 		return
 	}
