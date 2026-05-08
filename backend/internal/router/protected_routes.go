@@ -36,6 +36,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.GET("/notifications", handlers.GetNotifications)
 		protected.GET("/notifications/unread-count", handlers.GetUnreadNotificationsCount)
 		protected.POST("/notifications/mark-read", handlers.MarkNotificationRead)
+		protected.POST("/notifications/enqueue", handlers.CreateNotificationTask)
 
 		// Settings
 		protected.GET("/settings/preferences", handlers.GetSettings)

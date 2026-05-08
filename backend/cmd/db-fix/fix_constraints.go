@@ -10,21 +10,8 @@ import (
 )
 
 func main() {
-	// Get database connection string from environment (same as db-fix main.go)
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "host=localhost user=postgres password=postgres dbname=thanawy_db port=5432 sslmode=disable"
-		log.Println("Using default DATABASE_URL. Set DATABASE_URL environment variable for production.")
-	}
-	
-	// Connect to database
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
-
-	// Get underlying SQL DB for raw queries
-	sqlDB, err := database.DB()
+	db := connectDB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get underlying SQL DB:", err)
 	}
@@ -32,23 +19,46 @@ func main() {
 
 	fmt.Println("Connected to database successfully")
 
-	// Fix 1: Create UserSettings constraint if it doesn't exist
+	fixUserSettingsConstraint(db)
+	fixCategoryColumns(db)
+	updateCategoryRows(db)
+	addCategoryIndexes(db)
+
+	fmt.Println("\n🎉 All database fixes applied successfully!")
+	fmt.Println("The backend should now start without AutoMigrate errors.")
+}
+
+func connectDB() *gorm.DB {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "host=localhost user=postgres password=postgres dbname=thanawy_db port=5432 sslmode=disable"
+		log.Println("Using default DATABASE_URL. Set DATABASE_URL environment variable for production.")
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	return db
+}
+
+func fixUserSettingsConstraint(db *gorm.DB) {
 	fmt.Println("Fixing UserSettings constraint...")
 	var constraintExists bool
-	result := database.Raw(`
+	err := db.Raw(`
 		SELECT EXISTS (
 			SELECT 1 FROM information_schema.table_constraints 
 			WHERE constraint_name = 'uni_UserSettings_user_id' 
 			AND table_name = 'UserSettings'
 		)
-	`).Scan(&constraintExists)
-	
-	if result.Error != nil {
-		log.Fatal("Error checking UserSettings constraint:", result.Error)
+	`).Scan(&constraintExists).Error
+
+	if err != nil {
+		log.Fatal("Error checking UserSettings constraint:", err)
 	}
 
 	if !constraintExists {
-		err = database.Exec(`
+		err = db.Exec(`
 			ALTER TABLE "UserSettings" 
 			ADD CONSTRAINT "uni_UserSettings_user_id" UNIQUE ("user_id")
 		`).Error
@@ -59,95 +69,66 @@ func main() {
 	} else {
 		fmt.Println("✓ UserSettings constraint already exists")
 	}
+}
 
-	// Fix 2: Add created_at column to Category table if it doesn't exist
-	fmt.Println("Fixing Category created_at column...")
-	var createdAtExists bool
-	result = database.Raw(`
+func fixCategoryColumns(db *gorm.DB) {
+	fmt.Println("Fixing Category columns...")
+	ensureColumn(db, "Category", "created_at", `ALTER TABLE "Category" ADD COLUMN "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+	ensureColumn(db, "Category", "updated_at", `ALTER TABLE "Category" ADD COLUMN "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+}
+
+func ensureColumn(db *gorm.DB, tableName, columnName, alterSQL string) {
+	var exists bool
+	err := db.Raw(`
 		SELECT EXISTS (
 			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'Category' AND column_name = 'created_at'
+			WHERE table_name = ? AND column_name = ?
 		)
-	`).Scan(&createdAtExists)
-	
-	if result.Error != nil {
-		log.Fatal("Error checking Category created_at column:", result.Error)
+	`, tableName, columnName).Scan(&exists).Error
+
+	if err != nil {
+		log.Fatalf("Error checking %s %s column: %v", tableName, columnName, err)
 	}
 
-	if !createdAtExists {
-		err = database.Exec(`
-			ALTER TABLE "Category" ADD COLUMN "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-		`).Error
-		if err != nil {
-			log.Fatal("Error adding Category created_at column:", err)
+	if !exists {
+		if err := db.Exec(alterSQL).Error; err != nil {
+			log.Fatalf("Error adding %s %s column: %v", tableName, columnName, err)
 		}
-		fmt.Println("✓ Added created_at column to Category")
+		fmt.Printf("✓ Added %s column to %s\n", columnName, tableName)
 	} else {
-		fmt.Println("✓ Category created_at column already exists")
+		fmt.Printf("✓ %s %s column already exists\n", tableName, columnName)
 	}
+}
 
-	// Fix 3: Add updated_at column to Category table if it doesn't exist
-	fmt.Println("Fixing Category updated_at column...")
-	var updatedAtExists bool
-	result = database.Raw(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'Category' AND column_name = 'updated_at'
-		)
-	`).Scan(&updatedAtExists)
-	
-	if result.Error != nil {
-		log.Fatal("Error checking Category updated_at column:", result.Error)
-	}
-
-	if !updatedAtExists {
-		err = database.Exec(`
-			ALTER TABLE "Category" ADD COLUMN "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-		`).Error
-		if err != nil {
-			log.Fatal("Error adding Category updated_at column:", err)
-		}
-		fmt.Println("✓ Added updated_at column to Category")
-	} else {
-		fmt.Println("✓ Category updated_at column already exists")
-	}
-
-	// Fix 4: Update existing Category rows with timestamps
+func updateCategoryRows(db *gorm.DB) {
 	fmt.Println("Updating existing Category rows...")
-	result = database.Exec(`
-		UPDATE "Category" 
-		SET "created_at" = CURRENT_TIMESTAMP 
-		WHERE "created_at" IS NULL
-	`)
-	if err != nil {
-		log.Fatal("Error updating Category created_at:", err)
-	}
-	fmt.Printf("✓ Updated %d Category rows with created_at\n", result.RowsAffected)
+	updateRows(db, "Category", "created_at")
+	updateRows(db, "Category", "updated_at")
+}
 
-	result = database.Exec(`
-		UPDATE "Category" 
-		SET "updated_at" = CURRENT_TIMESTAMP 
-		WHERE "updated_at" IS NULL
-	`)
-	if err != nil {
-		log.Fatal("Error updating Category updated_at:", err)
-	}
-	fmt.Printf("✓ Updated %d Category rows with updated_at\n", result.RowsAffected)
+func updateRows(db *gorm.DB, tableName, columnName string) {
+	result := db.Exec(fmt.Sprintf(`
+		UPDATE "%s" 
+		SET "%s" = CURRENT_TIMESTAMP 
+		WHERE "%s" IS NULL
+	`, tableName, columnName, columnName))
 
-	// Fix 5: Add indexes
+	if result.Error != nil {
+		log.Fatalf("Error updating %s %s: %v", tableName, columnName, result.Error)
+	}
+	fmt.Printf("✓ Updated %d %s rows with %s\n", result.RowsAffected, tableName, columnName)
+}
+
+func addCategoryIndexes(db *gorm.DB) {
 	fmt.Println("Adding Category indexes...")
-	err = database.Exec(`CREATE INDEX IF NOT EXISTS idx_category_created_at ON "Category" ("created_at")`).Error
-	if err != nil {
-		log.Fatal("Error creating Category created_at index:", err)
-	}
-	fmt.Println("✓ Added idx_category_created_at index")
+	createIndex(db, "idx_category_created_at", "Category", "created_at")
+	createIndex(db, "idx_category_updated_at", "Category", "updated_at")
+}
 
-	err = database.Exec(`CREATE INDEX IF NOT EXISTS idx_category_updated_at ON "Category" ("updated_at")`).Error
+func createIndex(db *gorm.DB, indexName, tableName, columnName string) {
+	err := db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS %s ON "%s" ("%s")`, indexName, tableName, columnName)).Error
 	if err != nil {
-		log.Fatal("Error creating Category updated_at index:", err)
+		log.Fatalf("Error creating %s index: %v", indexName, err)
 	}
-	fmt.Println("✓ Added idx_category_updated_at index")
-
-	fmt.Println("\n🎉 All database fixes applied successfully!")
-	fmt.Println("The backend should now start without AutoMigrate errors.")
+	fmt.Printf("✓ Added %s index\n", indexName)
 }

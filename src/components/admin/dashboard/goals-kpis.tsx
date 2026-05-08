@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -330,7 +330,7 @@ function KPICard({
             {value.toLocaleString()}
             {unit && <span className="text-sm font-normal"> {unit}</span>}
           </p>
-          {target && (
+          {!!target && (
             <Progress value={progress} className="h-1.5 mt-2 w-24" />
           )}
         </div>

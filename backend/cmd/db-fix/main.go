@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const separator = "==========================================="
+
 // DatabaseFixRunner automates the database fix and optimization process
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -21,9 +23,9 @@ func main() {
 		log.Println("Using default DATABASE_URL. Set DATABASE_URL environment variable for production.")
 	}
 
-	fmt.Println("===========================================")
+	fmt.Println(separator)
 	fmt.Println("Thanawy Database Fix & Optimization Tool")
-	fmt.Println("===========================================")
+	fmt.Println(separator)
 	fmt.Printf("Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
 	fmt.Printf("Database: %s\n", dsn)
 	fmt.Println()
@@ -130,9 +132,9 @@ func main() {
 	fmt.Println()
 
 	// Summary
-	fmt.Println("===========================================")
+	fmt.Println(separator)
 	fmt.Println("Migration Summary")
-	fmt.Println("===========================================")
+	fmt.Println(separator)
 	fmt.Printf("Status: SUCCESS\n")
 	fmt.Printf("Duration: %v\n", duration)
 	fmt.Printf("Constraints: %d total\n", constraintCount)
@@ -152,5 +154,5 @@ func main() {
 	fmt.Println("  - SELECT update_user_level('user-id');")
 	fmt.Println()
 	fmt.Println("✓ Database fix completed successfully!")
-	fmt.Println("===========================================")
+	fmt.Println(separator)
 }

@@ -14,38 +14,68 @@ jobs:
     - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
     
     - name: Setup Node.js
-      uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
+        cache: 'npm'
     
-    - name: Install Dependencies
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        cache-dependency-path: backend/go.sum
+
+    - name: Install Frontend Dependencies
       run: npm ci
     
-    - name: Run Linter
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: go mod download
+
+    - name: Run Frontend Linter
       run: npm run lint
     
-    - name: Run Type Check
+    - name: Run Frontend Type Check
       run: npm run type-check
     
-    - name: Run Tests
+    - name: Run Frontend Tests
       run: npm test
-    
+
+    - name: Run Backend Tests
+      working-directory: ./backend
+      run: go test -v ./...
+
+    - name: Run Backend Linter
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: backend
+
     - name: Security Audit (High and Critical)
       run: npm audit --audit-level=high
       # This will fail the build if high/critical vulnerabilities are found
     
-    - name: Build Docker Image
+    - name: Build Backend
+      working-directory: ./backend
+      run: go build -o main cmd/api/main.go
+
+    - name: Build Frontend Docker Image
       run: docker build -t thanawy-app:${{ github.sha }} .
+    
+    - name: Build Backend Docker Image
+      run: docker build -t thanawy-backend:${{ github.sha }} -f Dockerfile.backend .
     
     - name: Login to Docker Registry
       if: github.ref == 'refs/heads/main'
-      uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - name: Push Docker Image
+    - name: Push Docker Images
       if: github.ref == 'refs/heads/main'
       run: |
         docker tag thanawy-app:${{ github.sha }} thanawy/thanawy-app:latest
         docker push thanawy/thanawy-app:latest
+        docker tag thanawy-backend:${{ github.sha }} thanawy/thanawy-backend:latest
+        docker push thanawy/thanawy-backend:latest

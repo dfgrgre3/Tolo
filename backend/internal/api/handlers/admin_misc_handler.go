@@ -30,7 +30,7 @@ import (
 // AdminAI handles all AI-related admin operations
 func AdminAIGet(c *gin.Context) {
 	var riskStudents []models.User
-	db.DB.Where("status = ?", models.StatusInactive).Limit(5).Find(&riskStudents)
+	db.DB.Where(statusQuery, models.StatusInactive).Limit(5).Find(&riskStudents)
 
 	var subjects []models.Subject
 	db.DB.Limit(10).Find(&subjects)
@@ -144,62 +144,24 @@ func AdminBulkSendMessage(c *gin.Context) {
 		return
 	}
 
-	validChannels := map[string]bool{"app": true, "email": true, "sms": true}
-	if len(req.Channels) > 0 {
-		for _, channel := range req.Channels {
-			if !validChannels[channel] {
-				api_response.Error(c, http.StatusBadRequest, "Invalid channel: "+channel)
-				return
-			}
-		}
-	}
-
-	var targetUsers []models.User
-	query := db.DB.Model(&models.User{})
-	if len(req.UserIDs) > 0 {
-		query = query.Where("id IN ?", req.UserIDs)
-	} else if req.Role != "" {
-		query = query.Where("role = ?", req.Role)
-	}
-
-	if err := query.Find(&targetUsers).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch target users")
+	if err := validateBulkMessageChannels(req.Channels); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	notificationType := models.NotificationInfo
-	switch req.Type {
-	case "success":
-		notificationType = models.NotificationSuccess
-	case "warning":
-		notificationType = models.NotificationWarning
-	case "error":
-		notificationType = models.NotificationError
-	default:
-		notificationType = models.NotificationInfo
+	targetUsers, err := fetchBulkMessageTargetUsers(req.UserIDs, req.Role)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 
+	notificationType := parseNotificationType(req.Type)
 	title := req.Title
 	if title == "" {
 		title = "رسالة من الإدارة"
 	}
 
-	notifications := make([]models.Notification, 0, len(targetUsers))
-	for _, u := range targetUsers {
-		notification := models.Notification{
-			UserID:  u.ID,
-			Title:   title,
-			Message: req.Message,
-			Type:    notificationType,
-		}
-
-		if req.ActionURL != "" && (len(req.Channels) == 0 || contains(req.Channels, "app")) {
-			link := req.ActionURL
-			notification.Link = &link
-		}
-
-		notifications = append(notifications, notification)
-	}
+	notifications := prepareBulkNotifications(targetUsers, title, req.Message, notificationType, req.ActionURL, req.Channels)
 
 	if len(notifications) > 0 {
 		if err := db.DB.CreateInBatches(&notifications, 100).Error; err != nil {
@@ -209,21 +171,7 @@ func AdminBulkSendMessage(c *gin.Context) {
 		}
 	}
 
-	// Send emails in the background to avoid blocking and potential timeouts
-	go func(users []models.User, title, message, url string, channels []string) {
-		emailService := services.GetEmailService()
-		for _, u := range users {
-			if len(channels) == 0 || contains(channels, "email") {
-				if emailService.ValidateEmail(u.Email) {
-					emailBody := emailService.BuildNotificationEmail(title, message, url)
-					_ = emailService.SendEmail(u.Email, title, emailBody, true)
-				}
-			}
-		}
-	}(targetUsers, req.Title, req.Message, req.ActionURL, req.Channels)
-
-	successCount := len(notifications)
-	failureCount := 0
+	sendBulkEmailsBackground(targetUsers, title, req.Message, req.ActionURL, req.Channels)
 
 	LogAudit(c, "BULK_SEND_MESSAGE", "notification", "", gin.H{
 		"targetCount": len(targetUsers),
@@ -234,13 +182,88 @@ func AdminBulkSendMessage(c *gin.Context) {
 
 	api_response.Success(c, gin.H{
 		"summary": gin.H{
-			"success": successCount,
-			"failure": failureCount,
+			"success": len(notifications),
+			"failure": 0,
 			"total":   len(targetUsers),
 		},
-		"message": fmt.Sprintf("تم إرسال %d رسالة بنجاح", successCount),
+		"message": fmt.Sprintf("تم إرسال %d رسالة بنجاح", len(notifications)),
 	})
 	LogAudit(c, "BULK_SEND_MESSAGE", "notification", "", req)
+}
+
+func validateBulkMessageChannels(channels []string) error {
+	if len(channels) == 0 {
+		return nil
+	}
+	validChannels := map[string]bool{"app": true, "email": true, "sms": true}
+	for _, channel := range channels {
+		if !validChannels[channel] {
+			return fmt.Errorf("Invalid channel: %s", channel)
+		}
+	}
+	return nil
+}
+
+func fetchBulkMessageTargetUsers(userIDs []string, role string) ([]models.User, error) {
+	var targetUsers []models.User
+	query := db.DB.Model(&models.User{})
+	if len(userIDs) > 0 {
+		query = query.Where(idInQuery, userIDs)
+	} else if role != "" {
+		query = query.Where("role = ?", role)
+	}
+
+	if err := query.Find(&targetUsers).Error; err != nil {
+		return nil, fmt.Errorf("Failed to fetch target users")
+	}
+	return targetUsers, nil
+}
+
+func parseNotificationType(t string) models.NotificationType {
+	switch t {
+	case "success":
+		return models.NotificationSuccess
+	case "warning":
+		return models.NotificationWarning
+	case "error":
+		return models.NotificationError
+	default:
+		return models.NotificationInfo
+	}
+}
+
+func prepareBulkNotifications(users []models.User, title, message string, nType models.NotificationType, actionURL string, channels []string) []models.Notification {
+	notifications := make([]models.Notification, 0, len(users))
+	shouldAddLink := actionURL != "" && (len(channels) == 0 || contains(channels, "app"))
+
+	for _, u := range users {
+		notification := models.Notification{
+			UserID:  u.ID,
+			Title:   title,
+			Message: message,
+			Type:    nType,
+		}
+		if shouldAddLink {
+			link := actionURL
+			notification.Link = &link
+		}
+		notifications = append(notifications, notification)
+	}
+	return notifications
+}
+
+func sendBulkEmailsBackground(users []models.User, title, message, url string, channels []string) {
+	go func() {
+		emailService := services.GetEmailService()
+		for _, u := range users {
+			if len(channels) == 0 || contains(channels, "email") {
+				if emailService.ValidateEmail(u.Email) {
+					emailBody := emailService.BuildNotificationEmail(title, message, url)
+					_ = emailService.SendEmail(u.Email, title, emailBody, true)
+				}
+			}
+		}
+	}()
 }
 
 func contains(slice []string, item string) bool {
@@ -576,7 +599,7 @@ func MarkActivityRead(c *gin.Context) {
 	}
 
 	if activityID == "" {
-		api_response.Error(c, http.StatusBadRequest, "Activity ID is required")
+		api_response.Error(c, http.StatusBadRequest, msgIDRequired)
 		return
 	}
 
@@ -914,7 +937,7 @@ func GetAdminDashboard(c *gin.Context) {
 	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&newUsersThisWeek)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
-	db.DB.Model(&models.Task{}).Where("status = ?", models.TaskCompleted).Count(&completedTasks)
+	db.DB.Model(&models.Task{}).Where(statusQuery, models.TaskCompleted).Count(&completedTasks)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
 	db.DB.Model(&models.StudySession{}).Select("COALESCE(SUM(duration_min), 0)").Scan(&studyMinutes)
 	db.DB.Model(&models.ExamResult{}).Count(&examsTaken)
@@ -929,7 +952,7 @@ func GetAdminDashboard(c *gin.Context) {
 	}
 	var taskUsers []models.User
 	if len(taskUserIDs) > 0 {
-		db.DB.Where("id IN ?", taskUserIDs).Find(&taskUsers)
+		db.DB.Where(idInQuery, taskUserIDs).Find(&taskUsers)
 	}
 	userMap := make(map[string]models.User, len(taskUsers))
 	for _, u := range taskUsers {
@@ -1041,7 +1064,7 @@ func GetAdminLive(c *gin.Context) {
 	cutoff := time.Now().Add(-time.Duration(minutes) * time.Minute)
 
 	var users []models.User
-	if err := db.DB.Where("status = ?", models.StatusActive).Order("\"updatedAt\" desc").Limit(200).Find(&users).Error; err != nil {
+	if err := db.DB.Where(statusQuery, models.StatusActive).Order("\"updatedAt\" desc").Limit(200).Find(&users).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch active users")
 		return
 	}
@@ -1061,7 +1084,7 @@ func GetAdminLive(c *gin.Context) {
 	subjectMap := make(map[string]models.Subject)
 	if len(examIDs) > 0 {
 		var exams []models.Exam
-		db.DB.Where("id IN ?", examIDs).Find(&exams)
+		db.DB.Where(idInQuery, examIDs).Find(&exams)
 		subjectIDs := make([]string, 0, len(exams))
 		for _, e := range exams {
 			examMap[e.ID] = e
@@ -1069,7 +1092,7 @@ func GetAdminLive(c *gin.Context) {
 		}
 		if len(subjectIDs) > 0 {
 			var subjects []models.Subject
-			db.DB.Where("id IN ?", subjectIDs).Find(&subjects)
+			db.DB.Where(idInQuery, subjectIDs).Find(&subjects)
 			for _, s := range subjects {
 				subjectMap[s.ID] = s
 			}
@@ -1085,7 +1108,7 @@ func GetAdminLive(c *gin.Context) {
 	}
 	if len(sessionSubjectIDs) > 0 {
 		var subjects []models.Subject
-		db.DB.Where("id IN ?", sessionSubjectIDs).Find(&subjects)
+		db.DB.Where(idInQuery, sessionSubjectIDs).Find(&subjects)
 		for _, s := range subjects {
 			subjectMap[s.ID] = s
 		}
@@ -1401,7 +1424,7 @@ func GetAdminAnalytics(c *gin.Context) {
 	var challengesCompleted int64
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("status = ?", models.StatusActive).Count(&activeUsers)
+	db.DB.Model(&models.User{}).Where(statusQuery, models.StatusActive).Count(&activeUsers)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)

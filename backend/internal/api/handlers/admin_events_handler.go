@@ -129,7 +129,6 @@ func AdminCreateEvent(c *gin.Context) {
 	api_response.Created(c, event)
 }
 
-// AdminUpdateEvent updates an existing platform event
 func AdminUpdateEvent(c *gin.Context) {
 	var input struct {
 		ID           string  `json:"id" binding:"required"`
@@ -155,6 +154,29 @@ func AdminUpdateEvent(c *gin.Context) {
 		return
 	}
 
+	updates := mapEventUpdates(input)
+
+	if err := db.DB.Model(&event).Updates(updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update event")
+		return
+	}
+
+	LogAudit(c, "UPDATE", "event", input.ID, updates)
+	api_response.Success(c, nil)
+}
+
+func mapEventUpdates(input struct {
+	ID           string  `json:"id" binding:"required"`
+	Title        *string `json:"title"`
+	Description  *string `json:"description"`
+	Type         *string `json:"type"`
+	StartDate    *string `json:"startDate"`
+	EndDate      *string `json:"endDate"`
+	Location     *string `json:"location"`
+	IsOnline     *bool   `json:"isOnline"`
+	MaxAttendees *int    `json:"maxAttendees"`
+	IsActive     *bool   `json:"isActive"`
+}) map[string]interface{} {
 	updates := make(map[string]interface{})
 	if input.Title != nil {
 		updates["title"] = *input.Title
@@ -166,15 +188,13 @@ func AdminUpdateEvent(c *gin.Context) {
 		updates["type"] = *input.Type
 	}
 	if input.StartDate != nil {
-		startDate, err := parseFlexibleDate(*input.StartDate)
-		if err == nil {
-			updates["startDate"] = startDate
+		if t, err := parseFlexibleDate(*input.StartDate); err == nil {
+			updates["startDate"] = t
 		}
 	}
 	if input.EndDate != nil {
-		endDate, err := parseFlexibleDate(*input.EndDate)
-		if err == nil {
-			updates["endDate"] = endDate
+		if t, err := parseFlexibleDate(*input.EndDate); err == nil {
+			updates["endDate"] = t
 		}
 	}
 	if input.Location != nil {
@@ -189,14 +209,7 @@ func AdminUpdateEvent(c *gin.Context) {
 	if input.IsActive != nil {
 		updates["isActive"] = *input.IsActive
 	}
-
-	if err := db.DB.Model(&event).Updates(updates).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to update event")
-		return
-	}
-
-	LogAudit(c, "UPDATE", "event", input.ID, updates)
-	api_response.Success(c, nil)
+	return updates
 }
 
 // AdminDeleteEvent deletes a platform event

@@ -95,7 +95,7 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
     // Calculate streak days - consecutive days with study sessions
     const sessionDays = studySessions.
     map((s) => new Date(s.startTime).toDateString()).
-    sort().
+    sort((a, b) => a.localeCompare(b)).
     filter((day, index, arr) => arr.indexOf(day) === index); // unique days
 
     let streakDays = 0;

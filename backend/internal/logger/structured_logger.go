@@ -2,12 +2,15 @@ package logger
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,6 +36,7 @@ var levelNames = map[LogLevel]string{
 // StructuredLogger provides structured logging with context correlation
 type StructuredLogger struct {
 	minLevel LogLevel
+	esClient *elasticsearch.Client
 }
 
 var defaultLogger = &StructuredLogger{minLevel: InfoLevel}
@@ -40,6 +44,30 @@ var defaultLogger = &StructuredLogger{minLevel: InfoLevel}
 func init() {
 	if os.Getenv("LOG_LEVEL") == "debug" {
 		defaultLogger.minLevel = DebugLevel
+	}
+
+	if os.Getenv("ELASTICSEARCH_ENABLED") != "false" {
+		esURL := os.Getenv("ELASTICSEARCH_URL")
+		if esURL == "" {
+			esURL = "http://localhost:9200"
+		}
+
+		cfg := elasticsearch.Config{
+			Addresses: []string{esURL},
+		}
+
+		if user := os.Getenv("ELASTICSEARCH_USERNAME"); user != "" {
+			cfg.Username = user
+			cfg.Password = os.Getenv("ELASTICSEARCH_PASSWORD")
+		}
+
+		client, err := elasticsearch.NewClient(cfg)
+		if err == nil {
+			defaultLogger.esClient = client
+			log.Printf("Elasticsearch logger initialized for Go at %s", esURL)
+		} else {
+			log.Printf("Failed to initialize Elasticsearch client: %v", err)
+		}
 	}
 }
 
@@ -102,6 +130,23 @@ func (l *StructuredLogger) log(level LogLevel, message string, fields map[string
 
 	if len(entry.Metadata) > 0 {
 		logStr += fmt.Sprintf(" | Data: %v", entry.Metadata)
+	}
+
+	// Send to Elasticsearch asynchronously
+	if l.esClient != nil {
+		go func(e LogEntry) {
+			data, err := json.Marshal(e)
+			if err != nil {
+				return
+			}
+
+			index := fmt.Sprintf("thanawy-logs-%s", time.Now().Format("2006.01.02"))
+			_, _ = l.esClient.Index(
+				index,
+				strings.NewReader(string(data)),
+				l.esClient.Index.WithContext(context.Background()),
+			)
+		}(entry)
 	}
 
 	switch level {

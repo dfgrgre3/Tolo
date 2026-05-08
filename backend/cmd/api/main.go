@@ -33,8 +33,9 @@ import (
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/middleware"
 	thanawyv1 "thanawy-backend/internal/proto/thanawy/v1"
+	"thanawy-backend/internal/worker"
 
-	_ "thanawy-backend/docs"
+	_ "thanawy-backend/docs" // Required for Swagger documentation generation
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -57,28 +58,7 @@ func main() {
 	}
 
 	// Initialize Storage
-	if cfg.StorageType == "s3" {
-		storageSvc, err := storage.NewS3Storage(
-			cfg.S3.Endpoint,
-			cfg.S3.AccessKey,
-			cfg.S3.SecretKey,
-			cfg.S3.Bucket,
-			cfg.S3.Region,
-			cfg.S3.UseSSL,
-			cfg.S3.PublicURL,
-		)
-		if err != nil {
-			log.Fatalf("Failed to initialize S3 storage: %v", err)
-		}
-		storage.GlobalStorage = storageSvc
-		log.Println("Storage initialized with S3 provider")
-	} else {
-		storage.GlobalStorage = storage.NewLocalStorage(
-			cfg.LocalStorage.BasePath,
-			cfg.LocalStorage.BaseURL,
-		)
-		log.Println("Storage initialized with Local provider")
-	}
+	initStorage(cfg)
 
 	// SQL migrations and seeding are now handled by a separate process (cmd/migrate/main.go)
 	// to avoid race conditions in distributed environments.
@@ -98,68 +78,16 @@ func main() {
 	analyticsSvc := &internalgrpc.AnalyticsServiceServer{}
 
 	// Setup Router
-	if os.Getenv("GIN_MODE") == "release" || cfg.Environment == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-	r := gin.New()
-
-	// Apply Middlewares
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
-	r.Use(middleware.CORS())
-	r.Use(middleware.PerformanceMonitor())
-	r.Use(middleware.GlobalRateLimiter(200, time.Minute))
-	r.Use(middleware.CSRFMiddleware())
-
-	// Serve static files for uploads (only if using local storage)
-	if cfg.StorageType == "local" {
-		r.Static("/uploads", cfg.LocalStorage.BasePath)
-	}
-
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "UP"})
-	})
-	r.GET("/api/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-	r.GET("/api/readyz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ready"})
-	})
-
-	// Swagger documentation
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// Setup route groups
-	router.SetupAuthRoutes(r)
-	router.SetupPublicRoutes(r)
-	router.SetupProtectedRoutes(r)
-	router.SetupAdminRoutes(r)
+	r := setupRouter(cfg)
 
 	// Start gRPC Server
-	var grpcServer *grpc.Server
+	grpcServer := startGRPCServer(courseSvc, authSvc, analyticsSvc)
+
+
+	// Start Background Worker
 	go func() {
-		grpcPort := os.Getenv("GRPC_PORT")
-		if grpcPort == "" {
-			grpcPort = "50051"
-		}
-		lis, err := net.Listen("tcp", ":"+grpcPort)
-		if err != nil {
-			log.Printf("Failed to listen for gRPC: %v", err)
-			return
-		}
-		grpcServer = grpc.NewServer()
-		thanawyv1.RegisterCourseServiceServer(grpcServer, courseSvc)
-		thanawyv1.RegisterAuthServiceServer(grpcServer, authSvc)
-		thanawyv1.RegisterAnalyticsServiceServer(grpcServer, analyticsSvc)
-
-		// Register reflection service on gRPC server
-		reflection.Register(grpcServer)
-
-		log.Printf("gRPC server listening on port %s", grpcPort)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Printf("Failed to serve gRPC: %v", err)
-		}
+		log.Println("Starting background worker...")
+		worker.StartWorker()
 	}()
 
 	// Start HTTP Server with graceful shutdown
@@ -212,4 +140,93 @@ func main() {
 	}
 
 	log.Println("Server exited")
+}
+
+func initStorage(cfg *config.Config) {
+	if cfg.StorageType == "s3" {
+		storageSvc, err := storage.NewS3Storage(
+			cfg.S3.Endpoint,
+			cfg.S3.AccessKey,
+			cfg.S3.SecretKey,
+			cfg.S3.Bucket,
+			cfg.S3.Region,
+			cfg.S3.UseSSL,
+			cfg.S3.PublicURL,
+		)
+		if err != nil {
+			log.Fatalf("Failed to initialize S3 storage: %v", err)
+		}
+		storage.GlobalStorage = storageSvc
+		log.Println("Storage initialized with S3 provider")
+	} else {
+		storage.GlobalStorage = storage.NewLocalStorage(
+			cfg.LocalStorage.BasePath,
+			cfg.LocalStorage.BaseURL,
+		)
+		log.Println("Storage initialized with Local provider")
+	}
+}
+
+func setupRouter(cfg *config.Config) *gin.Engine {
+	if os.Getenv("GIN_MODE") == "release" || cfg.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	r := gin.New()
+
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+	r.Use(middleware.CORS())
+	r.Use(middleware.PerformanceMonitor())
+	r.Use(middleware.GlobalRateLimiter(200, time.Minute))
+	r.Use(middleware.CSRFMiddleware())
+	r.Use(middleware.DBConsistencyMiddleware(db.DB))
+
+	if cfg.StorageType == "local" {
+		r.Static("/uploads", cfg.LocalStorage.BasePath)
+	}
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "UP"})
+	})
+	r.GET("/api/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+	r.GET("/api/readyz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ready"})
+	})
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.SetupAuthRoutes(r)
+	router.SetupPublicRoutes(r)
+	router.SetupProtectedRoutes(r)
+	router.SetupAdminRoutes(r)
+
+	return r
+}
+
+func startGRPCServer(courseSvc *internalgrpc.CourseServiceServer, authSvc *internalgrpc.AuthServiceServer, analyticsSvc *internalgrpc.AnalyticsServiceServer) *grpc.Server {
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		log.Printf("Failed to listen for gRPC: %v", err)
+		return nil
+	}
+	grpcServer := grpc.NewServer()
+	thanawyv1.RegisterCourseServiceServer(grpcServer, courseSvc)
+	thanawyv1.RegisterAuthServiceServer(grpcServer, authSvc)
+	thanawyv1.RegisterAnalyticsServiceServer(grpcServer, analyticsSvc)
+
+	reflection.Register(grpcServer)
+
+	log.Printf("gRPC server listening on port %s", grpcPort)
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Printf("Failed to serve gRPC: %v", err)
+		}
+	}()
+	return grpcServer
 }

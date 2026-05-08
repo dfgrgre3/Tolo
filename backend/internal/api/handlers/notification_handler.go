@@ -7,6 +7,7 @@ import (
 	"thanawy-backend/internal/models"
 
 	"encoding/json"
+	"thanawy-backend/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -72,4 +73,19 @@ func MarkNotificationRead(c *gin.Context) {
 	GlobalHub.NotifyUser(userId.(string), refreshMsg)
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func CreateNotificationTask(c *gin.Context) {
+	var req worker.NotificationPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := worker.EnqueueNotification(req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to enqueue notification"})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"status": "Notification enqueued"})
 }

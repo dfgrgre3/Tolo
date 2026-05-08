@@ -10,42 +10,53 @@ import (
 )
 
 func main() {
-	// Get database URL from environment
+	db := connectDB()
+	defer db.Close()
+
+	fmt.Println("Connected to database successfully")
+
+	fixUserSettingsConstraint(db)
+	fixCategoryColumns(db)
+	updateCategoryRows(db)
+	addCategoryIndexes(db)
+
+	fmt.Println("\n🎉 All database fixes applied successfully!")
+	fmt.Println("The backend should now start without AutoMigrate errors.")
+}
+
+func connectDB() *sql.DB {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	// Connect to database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	defer db.Close()
 
-	// Test connection
 	if err := db.Ping(); err != nil {
 		log.Fatal("Failed to ping database:", err)
 	}
+	return db
+}
 
-	fmt.Println("Connected to database successfully")
-
-	// Fix 1: Create the UserSettings constraint if it doesn't exist
+func fixUserSettingsConstraint(db *sql.DB) {
 	fmt.Println("Fixing UserSettings constraint...")
-	var constraintExists bool
-	err = db.QueryRow(`
+	var exists bool
+	err := db.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1 FROM information_schema.table_constraints 
 			WHERE constraint_name = 'uni_UserSettings_user_id' 
 			AND table_name = 'UserSettings'
 		)
-	`).Scan(&constraintExists)
-	
+	`).Scan(&exists)
+
 	if err != nil {
 		log.Fatal("Error checking UserSettings constraint:", err)
 	}
 
-	if !constraintExists {
+	if !exists {
 		_, err = db.Exec(`
 			ALTER TABLE "UserSettings" 
 			ADD CONSTRAINT "uni_UserSettings_user_id" UNIQUE ("user_id")
@@ -57,97 +68,69 @@ func main() {
 	} else {
 		fmt.Println("✓ UserSettings constraint already exists")
 	}
+}
 
-	// Fix 2: Add created_at column to Category table if it doesn't exist
-	fmt.Println("Fixing Category created_at column...")
-	var createdAtExists bool
-	err = db.QueryRow(`
+func fixCategoryColumns(db *sql.DB) {
+	fmt.Println("Fixing Category columns...")
+	ensureColumn(db, "Category", "created_at", `ALTER TABLE "Category" ADD COLUMN "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+	ensureColumn(db, "Category", "updated_at", `ALTER TABLE "Category" ADD COLUMN "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+}
+
+func ensureColumn(db *sql.DB, tableName, columnName, alterSQL string) {
+	var exists bool
+	err := db.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'Category' AND column_name = 'created_at'
+			WHERE table_name = $1 AND column_name = $2
 		)
-	`).Scan(&createdAtExists)
-	
+	`, tableName, columnName).Scan(&exists)
+
 	if err != nil {
-		log.Fatal("Error checking Category created_at column:", err)
+		log.Fatalf("Error checking %s %s column: %v", tableName, columnName, err)
 	}
 
-	if !createdAtExists {
-		_, err = db.Exec(`
-			ALTER TABLE "Category" ADD COLUMN "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-		`)
-		if err != nil {
-			log.Fatal("Error adding Category created_at column:", err)
+	if !exists {
+		if _, err := db.Exec(alterSQL); err != nil {
+			log.Fatalf("Error adding %s %s column: %v", tableName, columnName, err)
 		}
-		fmt.Println("✓ Added created_at column to Category")
+		fmt.Printf("✓ Added %s column to %s\n", columnName, tableName)
 	} else {
-		fmt.Println("✓ Category created_at column already exists")
+		fmt.Printf("✓ %s %s column already exists\n", tableName, columnName)
 	}
+}
 
-	// Fix 3: Add updated_at column to Category table if it doesn't exist
-	fmt.Println("Fixing Category updated_at column...")
-	var updatedAtExists bool
-	err = db.QueryRow(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'Category' AND column_name = 'updated_at'
-		)
-	`).Scan(&updatedAtExists)
-	
-	if err != nil {
-		log.Fatal("Error checking Category updated_at column:", err)
-	}
-
-	if !updatedAtExists {
-		_, err = db.Exec(`
-			ALTER TABLE "Category" ADD COLUMN "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-		`)
-		if err != nil {
-			log.Fatal("Error adding Category updated_at column:", err)
-		}
-		fmt.Println("✓ Added updated_at column to Category")
-	} else {
-		fmt.Println("✓ Category updated_at column already exists")
-	}
-
-	// Fix 4: Update existing Category rows with timestamps
+func updateCategoryRows(db *sql.DB) {
 	fmt.Println("Updating existing Category rows...")
-	result, err := db.Exec(`
-		UPDATE "Category" 
-		SET "created_at" = CURRENT_TIMESTAMP 
-		WHERE "created_at" IS NULL
-	`)
+	updateRows(db, "Category", "created_at")
+	updateRows(db, "Category", "updated_at")
+}
+
+func updateRows(db *sql.DB, tableName, columnName string) {
+	query := fmt.Sprintf(`
+		UPDATE "%s" 
+		SET "%s" = CURRENT_TIMESTAMP 
+		WHERE "%s" IS NULL
+	`, tableName, columnName, columnName)
+
+	result, err := db.Exec(query)
 	if err != nil {
-		log.Fatal("Error updating Category created_at:", err)
+		log.Fatalf("Error updating %s %s: %v", tableName, columnName, err)
 	}
+
 	rowsAffected, _ := result.RowsAffected()
-	fmt.Printf("✓ Updated %d Category rows with created_at\n", rowsAffected)
+	fmt.Printf("✓ Updated %d %s rows with %s\n", rowsAffected, tableName, columnName)
+}
 
-	result, err = db.Exec(`
-		UPDATE "Category" 
-		SET "updated_at" = CURRENT_TIMESTAMP 
-		WHERE "updated_at" IS NULL
-	`)
-	if err != nil {
-		log.Fatal("Error updating Category updated_at:", err)
-	}
-	rowsAffected, _ = result.RowsAffected()
-	fmt.Printf("✓ Updated %d Category rows with updated_at\n", rowsAffected)
-
-	// Fix 5: Add indexes
+func addCategoryIndexes(db *sql.DB) {
 	fmt.Println("Adding Category indexes...")
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_category_created_at ON "Category" ("created_at")`)
-	if err != nil {
-		log.Fatal("Error creating Category created_at index:", err)
-	}
-	fmt.Println("✓ Added idx_category_created_at index")
+	createIndex(db, "idx_category_created_at", "Category", "created_at")
+	createIndex(db, "idx_category_updated_at", "Category", "updated_at")
+}
 
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_category_updated_at ON "Category" ("updated_at")`)
-	if err != nil {
-		log.Fatal("Error creating Category updated_at index:", err)
+func createIndex(db *sql.DB, indexName, tableName, columnName string) {
+	query := fmt.Sprintf(`CREATE INDEX IF NOT EXISTS %s ON "%s" ("%s")`, indexName, tableName, columnName)
+	if _, err := db.Exec(query); err != nil {
+		log.Fatalf("Error creating %s index: %v", indexName, err)
 	}
-	fmt.Println("✓ Added idx_category_updated_at index")
-
-	fmt.Println("\n🎉 All database fixes applied successfully!")
-	fmt.Println("The backend should now start without AutoMigrate errors.")
+	fmt.Printf("✓ Added %s index\n", indexName)
 }

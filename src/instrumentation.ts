@@ -17,10 +17,14 @@ export async function register() {
       };
 
       // 2. Worker Initialization
-      await import('./modules/notifications/notification.worker');
+      // workers have been migrated to the Go backend to avoid choking the Node.js event loop
+      // await import('./modules/notifications/notification.worker');
+      
+      logger.info('[Instrumentation] Next.js workers disabled (migrated to Go)');
 
       // Register cleanup handlers in priority order
       // Priority 10: Stop accepting new work
+      /* 
       registerCleanup('NotificationWorker', async () => {
         try {
           // Workers will be stopped by their module's cleanup
@@ -44,6 +48,7 @@ export async function register() {
           logger.warn('[Shutdown] Queue cleanup skipped');
         }
       }, 20);
+      */
 
       // Priority 30: Close Redis
       registerCleanup('Redis', async () => {

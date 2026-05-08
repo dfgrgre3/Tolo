@@ -47,10 +47,43 @@ type User struct {
 	PhoneVerified bool    `gorm:"default:false;column:phone_verified" json:"phoneVerified"`
 	EmailVerified bool    `gorm:"default:false;index;column:email_verified" json:"emailVerified"`
 	Country       *string `gorm:"index" json:"country"`
-	GradeLevel    *string `gorm:"index" json:"gradeLevel"`
-	EducationType *string `json:"educationType"`
-	Section       *string `json:"section"`
-	Bio           *string `json:"bio"`
+	GradeLevel    *string `gorm:"index;column:grade_level" json:"gradeLevel"`
+	EducationType *string `gorm:"column:education_type" json:"educationType"`
+	Section       *string `gorm:"column:section" json:"section"`
+	Bio           *string `gorm:"column:bio" json:"bio"`
+
+	// Add missing fields found in DB
+	WakeUpTime                *string    `gorm:"column:wake_up_time" json:"wakeUpTime"`
+	SleepTime                 *string    `gorm:"column:sleep_time" json:"sleepTime"`
+	FocusStrategy             string     `gorm:"default:'POMODORO';column:focus_strategy" json:"focusStrategy"`
+	EmailNotifications        bool       `gorm:"default:true;column:email_notifications" json:"emailNotifications"`
+	EmailVerificationToken    *string    `gorm:"column:email_verification_token" json:"-"`
+	EmailVerificationExpires  *time.Time `gorm:"column:email_verification_expires" json:"-"`
+	PhoneVerificationOTP      *string    `gorm:"column:phone_verification_otp" json:"-"`
+	PhoneVerificationExpires  *time.Time `gorm:"column:phone_verification_expires" json:"-"`
+	PhoneVerificationAttempts int        `gorm:"default:0;column:phone_verification_attempts" json:"-"`
+	PhoneVerificationLastSent *time.Time `gorm:"column:phone_verification_last_sent" json:"-"`
+	SMSNotifications          bool       `gorm:"default:false;column:sms_notifications" json:"smsNotifications"`
+	BiometricEnabled          bool       `gorm:"default:false;column:biometric_enabled" json:"biometricEnabled"`
+	GoogleID                  *string    `gorm:"column:google_id" json:"googleId"`
+	GithubID                  *string    `gorm:"column:github_id" json:"githubId"`
+	PasswordChangedAt         *time.Time `gorm:"column:password_changed_at" json:"-"`
+	PasswordExpiresAt         *time.Time `gorm:"column:password_expires_at" json:"-"`
+	DateOfBirth               *time.Time `gorm:"column:date_of_birth" json:"dateOfBirth"`
+	AlternativePhone          *string    `gorm:"column:alternative_phone" json:"alternativePhone"`
+	InterestedSubjects        []string   `gorm:"type:text[];column:interested_subjects" json:"interestedSubjects"`
+	StudyGoal                 *string    `gorm:"column:study_goal" json:"studyGoal"`
+	SubjectsTaught            []string   `gorm:"type:text[];column:subjects_taught" json:"subjectsTaught"`
+	ClassesTaught             []string   `gorm:"type:text[];column:classes_taught" json:"classesTaught"`
+	ExperienceYears           *string    `gorm:"column:experience_years" json:"experienceYears"`
+	ReferralCode              *string    `gorm:"column:referral_code" json:"referralCode"`
+	AdditionalAiCredits       int        `gorm:"default:0;column:additional_ai_credits" json:"additionalAiCredits"`
+	AdditionalExamCredits     int        `gorm:"default:0;column:additional_exam_credits" json:"additionalExamCredits"`
+	IsDeleted                 bool       `gorm:"default:false;column:is_deleted" json:"-"`
+	LastUsageReset            time.Time  `gorm:"column:last_usage_reset" json:"-"`
+	MonthlyAiMessageCount     int        `gorm:"default:0;column:monthly_ai_message_count" json:"-"`
+	MonthlyExamCount          int        `gorm:"default:0;column:monthly_exam_count" json:"-"`
+	ArchiveReason             *string    `gorm:"column:archive_reason" json:"-"`
 
 	// Gamification (core)
 	TotalXP int `gorm:"default:0;index" json:"totalXP"`
@@ -205,7 +238,7 @@ func (u *User) GetName() string {
 }
 
 func (User) TableName() string {
-	return "User"
+	return "users"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

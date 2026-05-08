@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ELK Stack Logger Service
  * 
  * هذا الملف يوفر تكامل مع Elasticsearch, Logstash, Kibana (ELK Stack)
@@ -52,9 +52,10 @@ const jsonFormat = winston.format.combine(
 // The unified-logger already handles console output via its own winston instance.
 // Having a console transport here caused every log to appear twice.
 
-// Elasticsearch transport
-let elasticsearchTransport: ElasticsearchTransport | null = null;
-
+// Elasticsearch transport is disabled in Next.js to avoid event loop choking
+// Logging to ES is now handled by the Go backend for better performance
+let elasticsearchTransport: any | null = null;
+/*
 if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
   try {
     elasticsearchTransport = new ElasticsearchTransport({
@@ -79,6 +80,7 @@ if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
     fallbackLogger.error('Failed to initialize Elasticsearch transport:', error);
   }
 }
+*/
 
 // إنشاء Winston logger
 const transports: winston.transport[] = [];

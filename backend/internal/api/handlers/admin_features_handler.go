@@ -16,6 +16,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const headerContentType = "Content-Type"
+
 // Generic list helper using api_response.List
 func listItems(c *gin.Context, model interface{}, key string, preloads ...string) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -71,7 +73,7 @@ func AdminCreateAchievement(c *gin.Context) {
 func AdminUpdateAchievement(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Achievement
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Achievement not found")
 		return
 	}
@@ -82,7 +84,7 @@ func AdminUpdateAchievement(c *gin.Context) {
 
 func AdminDeleteAchievement(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Achievement{}, "id = ?", id)
+	db.DB.Delete(&models.Achievement{}, idQuery, id)
 	LogAudit(c, "DELETE", "achievement", id, nil)
 	api_response.Success(c, nil)
 }
@@ -107,7 +109,7 @@ func AdminCreateReward(c *gin.Context) {
 func AdminUpdateReward(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Reward
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Reward not found")
 		return
 	}
@@ -118,7 +120,7 @@ func AdminUpdateReward(c *gin.Context) {
 
 func AdminDeleteReward(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Reward{}, "id = ?", id)
+	db.DB.Delete(&models.Reward{}, idQuery, id)
 	LogAudit(c, "DELETE", "reward", id, nil)
 	api_response.Success(c, nil)
 }
@@ -142,7 +144,7 @@ func AdminCreateSeason(c *gin.Context) {
 func AdminUpdateSeason(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Season
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Season not found")
 		return
 	}
@@ -152,7 +154,7 @@ func AdminUpdateSeason(c *gin.Context) {
 }
 
 func AdminDeleteSeason(c *gin.Context) {
-	db.DB.Delete(&models.Season{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.Season{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 
@@ -175,7 +177,7 @@ func AdminCreateCoupon(c *gin.Context) {
 func AdminUpdateCoupon(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Coupon
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Coupon not found")
 		return
 	}
@@ -186,7 +188,7 @@ func AdminUpdateCoupon(c *gin.Context) {
 
 func AdminDeleteCoupon(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Coupon{}, "id = ?", id)
+	db.DB.Delete(&models.Coupon{}, idQuery, id)
 	LogAudit(c, "DELETE", "coupon", id, nil)
 	api_response.Success(c, nil)
 }
@@ -210,7 +212,7 @@ func AdminCreateChallenge(c *gin.Context) {
 func AdminUpdateChallenge(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Challenge
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Challenge not found")
 		return
 	}
@@ -220,7 +222,7 @@ func AdminUpdateChallenge(c *gin.Context) {
 }
 
 func AdminDeleteChallenge(c *gin.Context) {
-	db.DB.Delete(&models.Challenge{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.Challenge{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 
@@ -291,7 +293,7 @@ func AdminCreateAutomation(c *gin.Context) {
 func AdminUpdateAutomation(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Automation
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Automation not found")
 		return
 	}
@@ -301,7 +303,7 @@ func AdminUpdateAutomation(c *gin.Context) {
 }
 
 func AdminDeleteAutomation(c *gin.Context) {
-	db.DB.Delete(&models.Automation{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.Automation{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 
@@ -324,7 +326,7 @@ func AdminCreateBlogPost(c *gin.Context) {
 func AdminUpdateBlogPost(c *gin.Context) {
 	id := c.Param("id")
 	var item models.BlogPost
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Blog post not found")
 		return
 	}
@@ -334,7 +336,7 @@ func AdminUpdateBlogPost(c *gin.Context) {
 }
 
 func AdminDeleteBlogPost(c *gin.Context) {
-	db.DB.Delete(&models.BlogPost{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.BlogPost{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 
@@ -374,50 +376,13 @@ func AdminGetBooks(c *gin.Context) {
 func AdminCreateBook(c *gin.Context) {
 	var book models.Book
 
-	// Handle multipart form if there are files
-	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
-		book.Title = c.PostForm("title")
-		book.Author = c.PostForm("author")
-		book.Description = c.PostForm("description")
-		subjectId := c.PostForm("subjectId")
-		if subjectId != "" {
-			book.SubjectID = &subjectId
+	if strings.Contains(c.GetHeader(headerContentType), "multipart/form-data") {
+		book = parseBookFromForm(c)
+		if url, err := uploadMultipartFile(c, "cover", "book_cover"); err == nil {
+			book.CoverUrl = url
 		}
-
-		price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
-		book.Price = price
-		book.IsFree = c.PostForm("isFree") == "true"
-
-		// Handle cover image
-		cover, err := c.FormFile("cover")
-		if err == nil {
-			ext := strings.ToLower(filepath.Ext(cover.Filename))
-			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
-			
-			f, err := cover.Open()
-			if err == nil {
-				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, cover.Size, cover.Header.Get("Content-Type"))
-				if err == nil {
-					book.CoverUrl = url
-				}
-				f.Close()
-			}
-		}
-
-		// Handle book file
-		file, err := c.FormFile("file")
-		if err == nil {
-			ext := strings.ToLower(filepath.Ext(file.Filename))
-			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
-			
-			f, err := file.Open()
-			if err == nil {
-				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, file.Size, file.Header.Get("Content-Type"))
-				if err == nil {
-					book.DownloadUrl = url
-				}
-				f.Close()
-			}
+		if url, err := uploadMultipartFile(c, "file", "book"); err == nil {
+			book.DownloadUrl = url
 		}
 	} else {
 		if err := c.ShouldBindJSON(&book); err != nil {
@@ -440,66 +405,59 @@ func AdminCreateBook(c *gin.Context) {
 	api_response.Created(c, book)
 }
 
+func parseBookFromForm(c *gin.Context) models.Book {
+	var book models.Book
+	book.Title = c.PostForm("title")
+	book.Author = c.PostForm("author")
+	book.Description = c.PostForm("description")
+	subjectId := c.PostForm("subjectId")
+	if subjectId != "" {
+		book.SubjectID = &subjectId
+	}
+	price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
+	book.Price = price
+	book.IsFree = c.PostForm("isFree") == "true"
+	return book
+}
+
+func uploadMultipartFile(c *gin.Context, fieldName, prefix string) (string, error) {
+	header, err := c.FormFile(fieldName)
+	if err != nil {
+		return "", err
+	}
+
+	f, err := header.Open()
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	filename := fmt.Sprintf("%s_%d%s", prefix, time.Now().UnixNano(), ext)
+
+	return storage.GlobalStorage.Upload(c.Request.Context(), filename, f, header.Size, header.Header.Get(headerContentType))
+}
+
 func AdminUpdateBook(c *gin.Context) {
 	id := c.Param("id")
 	var book models.Book
-	if err := db.DB.First(&book, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&book, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Book not found")
 		return
 	}
 
 	updates := make(map[string]interface{})
 
-	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
-		updates["title"] = c.PostForm("title")
-		updates["author"] = c.PostForm("author")
-		updates["description"] = c.PostForm("description")
-		updates["subjectId"] = c.PostForm("subjectId")
-
-		if priceStr := c.PostForm("price"); priceStr != "" {
-			price, _ := strconv.ParseFloat(priceStr, 64)
-			updates["price"] = price
+	if strings.Contains(c.GetHeader(headerContentType), "multipart/form-data") {
+		mapUpdateFromForm(c, updates)
+		if url, err := uploadMultipartFile(c, "cover", "book_cover"); err == nil {
+			updates["coverUrl"] = url
 		}
-		updates["isFree"] = c.PostForm("isFree") == "true"
-
-		// Handle cover image
-		cover, err := c.FormFile("cover")
-		if err == nil {
-			ext := strings.ToLower(filepath.Ext(cover.Filename))
-			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
-			
-			f, err := cover.Open()
-			if err == nil {
-				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, cover.Size, cover.Header.Get("Content-Type"))
-				if err == nil {
-					updates["coverUrl"] = url
-				}
-				f.Close()
-			}
-		}
-
-		// Handle book file
-		file, err := c.FormFile("file")
-		if err == nil {
-			ext := strings.ToLower(filepath.Ext(file.Filename))
-			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
-			
-			f, err := file.Open()
-			if err == nil {
-				url, err := storage.GlobalStorage.Upload(c.Request.Context(), filename, f, file.Size, file.Header.Get("Content-Type"))
-				if err == nil {
-					updates["downloadUrl"] = url
-				}
-				f.Close()
-			}
+		if url, err := uploadMultipartFile(c, "file", "book"); err == nil {
+			updates["downloadUrl"] = url
 		}
 	} else {
-		var input map[string]interface{}
-		if err := c.ShouldBindJSON(&input); err != nil {
-			api_response.Error(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		updates = input
+		applyUpdateFromJSON(c, updates)
 	}
 
 	if err := db.DB.Model(&book).Updates(updates).Error; err != nil {
@@ -511,9 +469,34 @@ func AdminUpdateBook(c *gin.Context) {
 	api_response.Success(c, book)
 }
 
+func mapUpdateFromForm(c *gin.Context, updates map[string]interface{}) {
+	updates["title"] = c.PostForm("title")
+	updates["author"] = c.PostForm("author")
+	updates["description"] = c.PostForm("description")
+	updates["subjectId"] = c.PostForm("subjectId")
+
+	if priceStr := c.PostForm("price"); priceStr != "" {
+		price, _ := strconv.ParseFloat(priceStr, 64)
+		updates["price"] = price
+	}
+	updates["isFree"] = c.PostForm("isFree") == "true"
+}
+
+func applyUpdateFromJSON(c *gin.Context, updates map[string]interface{}) {
+	var input map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err == nil {
+		allowedFields := []string{"title", "author", "description", "subjectId", "price", "isFree", "tags"}
+		for _, field := range allowedFields {
+			if val, ok := input[field]; ok {
+				updates[field] = val
+			}
+		}
+	}
+}
+
 func AdminDeleteBook(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Book{}, "id = ?", id)
+	db.DB.Delete(&models.Book{}, idQuery, id)
 	LogAudit(c, "DELETE", "book", id, nil)
 	api_response.Success(c, nil)
 }
@@ -532,7 +515,7 @@ func AdminCreateABTest(c *gin.Context) {
 func AdminUpdateABTest(c *gin.Context) {
 	id := c.Param("id")
 	var item models.ABExperiment
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "AB Test not found")
 		return
 	}
@@ -542,7 +525,7 @@ func AdminUpdateABTest(c *gin.Context) {
 }
 
 func AdminDeleteABTest(c *gin.Context) {
-	db.DB.Delete(&models.ABExperiment{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.ABExperiment{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 
@@ -572,7 +555,7 @@ func AdminCreateCampaign(c *gin.Context) {
 func AdminUpdateCampaign(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Campaign
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Campaign not found")
 		return
 	}
@@ -582,7 +565,7 @@ func AdminUpdateCampaign(c *gin.Context) {
 }
 
 func AdminDeleteCampaign(c *gin.Context) {
-	db.DB.Delete(&models.Campaign{}, "id = ?", c.Param("id"))
+	db.DB.Delete(&models.Campaign{}, idQuery, c.Param("id"))
 	api_response.Success(c, nil)
 }
 

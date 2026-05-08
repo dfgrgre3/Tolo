@@ -97,10 +97,11 @@ func Connect(dsn string) (*gorm.DB, error) {
 
 	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d, ConnMaxLifetime=%s, ConnMaxIdleTime=%s", maxIdleConns, maxOpenConns, connMaxLifetime, connMaxIdleTime)
 
+	// Register DBResolver with connection pool configuration
+	// Use default policy (no random distribution) to avoid Read-After-Write inconsistency
 	resolver := dbresolver.Register(dbresolver.Config{
 		Sources:  []gorm.Dialector{postgres.Open(dsn)},
 		Replicas: replicaDialectors,
-		Policy:   dbresolver.RandomPolicy{}, // Load balance between replicas
 	}).
 		SetMaxIdleConns(maxIdleConns).
 		SetMaxOpenConns(maxOpenConns).
@@ -131,9 +132,9 @@ func Connect(dsn string) (*gorm.DB, error) {
 		CREATE OR REPLACE FUNCTION cuid() RETURNS text AS $$
 		BEGIN
 			RETURN (
-				'c' || 
-				substring(extract(epoch from now())::text from 1 for 8) || 
-				substring(md5(random()::text) from 1 for 16)
+				'c' ||
+				to_char(extract(epoch from now())::bigint, 'FM0000000000000000') ||
+				substring(md5(random()::text || clock_timestamp()::text) from 1 for 16)
 			);
 		END;
 		$$ LANGUAGE plpgsql;
@@ -207,8 +208,15 @@ func Seed() error {
 	if !tableExists("User") {
 		log.Println("User table not found, skipping admin user seeding")
 	} else {
-		email := "admin@thanawy.app"
-		password := "Admin@123456"
+		email := os.Getenv("DEFAULT_ADMIN_EMAIL")
+		if email == "" {
+			email = "admin@thanawy.app"
+		}
+		password := os.Getenv("DEFAULT_ADMIN_PASSWORD")
+		if password == "" {
+			log.Println("WARNING: DEFAULT_ADMIN_PASSWORD not set. Skipping default admin user creation.")
+			return nil
+		}
 		var admin models.User
 		if err := DB.Unscoped().Where("email = ?", email).First(&admin).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {

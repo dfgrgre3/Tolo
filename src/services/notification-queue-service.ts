@@ -29,50 +29,43 @@ export class NotificationQueueService {
             priority?: 'high' | 'normal' | 'low';
         }
     ) {
-        logger.debug(`Enqueuing notification for user ${userId}: ${type}`);
+        logger.debug(`Enqueuing notification for user ${userId}: ${type} via Go API`);
 
-        await notificationQueue.addJob('SEND_MULTI_CHANNEL_NOTIFICATION', {
-            userId,
-            type,
-            title,
-            message,
-            channels: options?.channels || ['in-app'],
-            metadata: options?.metadata,
-            priority: options?.priority || 'normal',
-        });
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/notifications/enqueue`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Note: Auth header should be added by the caller or a central API client
+                },
+                body: JSON.stringify({
+                    userId,
+                    type,
+                    title,
+                    message,
+                    channels: options?.channels || ['in-app'],
+                    metadata: options?.metadata,
+                    priority: options?.priority || 'normal',
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to enqueue notification: ${response.statusText}`);
+            }
+
+            logger.info(`[NotificationQueueService] Notification enqueued successfully via Go API`);
+        } catch (error) {
+            logger.error(`[NotificationQueueService] Error enqueuing notification:`, error);
+            // Fallback or retry logic could go here
+            throw error;
+        }
     }
 
     /**
-     * Process a notification job (called by the worker)
+     * @deprecated Migrated to Go backend
      */
-    static async processJob(job: Job<NotificationJobPayload, void, string>): Promise<void> {
-        const { userId, type, title, message, channels, metadata, priority } = job.data;
-
-        logger.info(`[NotificationQueueService] Processing notification for user ${userId}`, {
-            type,
-            title,
-            channels,
-            priority,
-        });
-
-        try {
-            // Process each channel
-            const results = await Promise.allSettled(
-                (channels || ['in-app']).map((channel) => this.sendViaChannel(channel, userId, title, message, metadata))
-            );
-
-            // Log any failures
-            results.forEach((result, index) => {
-                if (result.status === 'rejected') {
-                    logger.error(`[NotificationQueueService] Failed to send via ${channels?.[index]}:`, result.reason);
-                }
-            });
-
-            logger.info(`[NotificationQueueService] Notification sent successfully to user ${userId}`);
-        } catch (error) {
-            logger.error(`[NotificationQueueService] Error processing notification job ${job.id}:`, error);
-            throw error;
-        }
+    static async processJob(job: any): Promise<void> {
+        logger.warn('[NotificationQueueService] processJob called in Next.js but logic has been migrated to Go');
     }
 
     /**

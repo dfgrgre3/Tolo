@@ -27,8 +27,14 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	email := "admin@thanawy.app"
-	password := "Admin@123456"
+	email := os.Getenv("DEFAULT_ADMIN_EMAIL")
+	if email == "" {
+		email = "admin@thanawy.app"
+	}
+	password := os.Getenv("DEFAULT_ADMIN_PASSWORD")
+	if password == "" {
+		log.Fatal("DEFAULT_ADMIN_PASSWORD is not set")
+	}
 
 	var user models.User
 	err = db.DB.Where("email = ?", email).First(&user).Error

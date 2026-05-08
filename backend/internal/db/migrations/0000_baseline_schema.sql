@@ -51,7 +51,7 @@ COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching
 -- Name: AchievementCategory; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."AchievementCategory" AS ENUM (
+CREATE TYPE public.AchievementCategory AS ENUM (
     'STUDY',
     'TASKS',
     'EXAMS',
@@ -64,7 +64,7 @@ CREATE TYPE public."AchievementCategory" AS ENUM (
 -- Name: AddonType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."AddonType" AS ENUM (
+CREATE TYPE public.AddonType AS ENUM (
     'EXAM_PACK',
     'AI_CREDITS',
     'TEACHER_HOURS',
@@ -76,7 +76,7 @@ CREATE TYPE public."AddonType" AS ENUM (
 -- Name: CategoryType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."CategoryType" AS ENUM (
+CREATE TYPE public.CategoryType AS ENUM (
     'BLOG',
     'FORUM',
     'COURSE'
@@ -87,7 +87,7 @@ CREATE TYPE public."CategoryType" AS ENUM (
 -- Name: ContestStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."ContestStatus" AS ENUM (
+CREATE TYPE public.ContestStatus AS ENUM (
     'DRAFT',
     'WAITING',
     'IN_PROGRESS',
@@ -99,7 +99,7 @@ CREATE TYPE public."ContestStatus" AS ENUM (
 -- Name: Difficulty; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."Difficulty" AS ENUM (
+CREATE TYPE public.Difficulty AS ENUM (
     'EASY',
     'MEDIUM',
     'HARD',
@@ -111,7 +111,7 @@ CREATE TYPE public."Difficulty" AS ENUM (
 -- Name: DiscountType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."DiscountType" AS ENUM (
+CREATE TYPE public.DiscountType AS ENUM (
     'PERCENTAGE',
     'FIXED'
 );
@@ -121,7 +121,7 @@ CREATE TYPE public."DiscountType" AS ENUM (
 -- Name: FocusStrategy; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."FocusStrategy" AS ENUM (
+CREATE TYPE public.FocusStrategy AS ENUM (
     'POMODORO',
     'EIGHTY_TWENTY',
     'DEEP_WORK',
@@ -134,7 +134,7 @@ CREATE TYPE public."FocusStrategy" AS ENUM (
 -- Name: InvoiceStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."InvoiceStatus" AS ENUM (
+CREATE TYPE public.InvoiceStatus AS ENUM (
     'DRAFT',
     'OPEN',
     'PAID',
@@ -147,7 +147,7 @@ CREATE TYPE public."InvoiceStatus" AS ENUM (
 -- Name: LessonType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."LessonType" AS ENUM (
+CREATE TYPE public.LessonType AS ENUM (
     'VIDEO',
     'ARTICLE',
     'QUIZ',
@@ -160,7 +160,7 @@ CREATE TYPE public."LessonType" AS ENUM (
 -- Name: Level; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."Level" AS ENUM (
+CREATE TYPE public.Level AS ENUM (
     'BEGINNER',
     'INTERMEDIATE',
     'ADVANCED'
@@ -171,7 +171,7 @@ CREATE TYPE public."Level" AS ENUM (
 -- Name: NotificationType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."NotificationType" AS ENUM (
+CREATE TYPE public.NotificationType AS ENUM (
     'INFO',
     'SUCCESS',
     'WARNING',
@@ -183,7 +183,7 @@ CREATE TYPE public."NotificationType" AS ENUM (
 -- Name: PaymentStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."PaymentStatus" AS ENUM (
+CREATE TYPE public.PaymentStatus AS ENUM (
     'PENDING',
     'SUCCESS',
     'FAILED',
@@ -195,7 +195,7 @@ CREATE TYPE public."PaymentStatus" AS ENUM (
 -- Name: PlanInterval; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."PlanInterval" AS ENUM (
+CREATE TYPE public.PlanInterval AS ENUM (
     'MONTHLY',
     'QUARTERLY',
     'YEARLY',
@@ -207,7 +207,7 @@ CREATE TYPE public."PlanInterval" AS ENUM (
 -- Name: SubscriptionStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."SubscriptionStatus" AS ENUM (
+CREATE TYPE public.SubscriptionStatus AS ENUM (
     'ACTIVE',
     'INACTIVE',
     'EXPIRED',
@@ -220,7 +220,7 @@ CREATE TYPE public."SubscriptionStatus" AS ENUM (
 -- Name: TaskStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."TaskStatus" AS ENUM (
+CREATE TYPE public.TaskStatus AS ENUM (
     'PENDING',
     'IN_PROGRESS',
     'COMPLETED',
@@ -232,7 +232,7 @@ CREATE TYPE public."TaskStatus" AS ENUM (
 -- Name: UserRole; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."UserRole" AS ENUM (
+CREATE TYPE public.UserRole AS ENUM (
     'USER',
     'STUDENT',
     'ADMIN',
@@ -245,7 +245,7 @@ CREATE TYPE public."UserRole" AS ENUM (
 -- Name: UserStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."UserStatus" AS ENUM (
+CREATE TYPE public.UserStatus AS ENUM (
     'ACTIVE',
     'INACTIVE',
     'SUSPENDED',
@@ -257,7 +257,7 @@ CREATE TYPE public."UserStatus" AS ENUM (
 -- Name: WalletTransactionStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."WalletTransactionStatus" AS ENUM (
+CREATE TYPE public.WalletTransactionStatus AS ENUM (
     'PENDING',
     'COMPLETED',
     'FAILED',
@@ -269,7 +269,7 @@ CREATE TYPE public."WalletTransactionStatus" AS ENUM (
 -- Name: WalletTransactionType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public."WalletTransactionType" AS ENUM (
+CREATE TYPE public.WalletTransactionType AS ENUM (
     'DEPOSIT',
     'WITHDRAWAL',
     'PAYMENT',
@@ -287,7 +287,7 @@ CREATE FUNCTION public.audit_delete_payment() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO "DeletedRecordArchive" (table_name, record_id, user_id, data, reason)
+    INSERT INTO deleted_record_archive (table_name, record_id, user_id, data, reason)
     VALUES ('Payment', OLD.id, COALESCE(to_jsonb(OLD)->>'userId', to_jsonb(OLD)->>'user_id'), row_to_json(OLD), COALESCE(to_jsonb(OLD)->>'archiveReason', to_jsonb(OLD)->>'archive_reason'));
     RETURN OLD;
 END;
@@ -302,8 +302,8 @@ CREATE FUNCTION public.audit_delete_user() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO "DeletedRecordArchive" (table_name, record_id, user_id, data, reason)
-    VALUES ('User', OLD.id, OLD.id, row_to_json(OLD), COALESCE(to_jsonb(OLD)->>'archiveReason', to_jsonb(OLD)->>'archive_reason'));
+    INSERT INTO deleted_record_archive (table_name, record_id, user_id, data, reason)
+    VALUES ('users', OLD.id, OLD.id, row_to_json(OLD), COALESCE(to_jsonb(OLD)->>'archiveReason', to_jsonb(OLD)->>'archive_reason'));
     RETURN OLD;
 END;
 $$;
@@ -335,7 +335,7 @@ CREATE FUNCTION public.restore_soft_deleted(table_name text, record_id uuid) RET
     AS $_$
 BEGIN
     EXECUTE format(
-        'UPDATE %I SET "deleted_at" = NULL WHERE id = $1',
+        'UPDATE %I SET deleted_at = NULL WHERE id = $1',
         table_name
     ) USING record_id;
 END;
@@ -351,7 +351,7 @@ CREATE FUNCTION public.soft_delete_record(table_name text, record_id uuid) RETUR
     AS $_$
 BEGIN
     EXECUTE format(
-        'UPDATE %I SET "deleted_at" = NOW() WHERE id = $1',
+        'UPDATE %I SET deleted_at = NOW() WHERE id = $1',
         table_name
     ) USING record_id;
 END;
@@ -424,7 +424,7 @@ CREATE TABLE public."SubjectEnrollment" (
 -- Name: ActiveEnrollments; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public."ActiveEnrollments" AS
+CREATE VIEW public.ActiveEnrollments AS
  SELECT id,
     user_id,
     subject_id,
@@ -437,7 +437,7 @@ CREATE VIEW public."ActiveEnrollments" AS
     deleted_at AS "deletedAt",
     "completedLessonsCount",
     enrolled_at AS "enrolledAt"
-   FROM public."SubjectEnrollment"
+   FROM public.SubjectEnrollment
   WHERE (deleted_at IS NULL);
 
 
@@ -445,7 +445,7 @@ CREATE VIEW public."ActiveEnrollments" AS
 -- Name: User; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public."User" (
+CREATE TABLE public.users (
     id uuid NOT NULL,
     email text NOT NULL,
     name text,
@@ -453,55 +453,55 @@ CREATE TABLE public."User" (
     avatar text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone,
-    "wakeUpTime" text,
-    "sleepTime" text,
-    "focusStrategy" text DEFAULT 'POMODORO'::text,
-    "emailNotifications" boolean DEFAULT true,
-    "emailVerificationToken" text,
-    "emailVerificationExpires" timestamp(3) without time zone,
+    wake_up_time text,
+    sleep_time text,
+    focus_strategy text DEFAULT 'POMODORO'::text,
+    email_notifications boolean DEFAULT true,
+    email_verification_token text,
+    email_verification_expires timestamp(3) without time zone,
     email_verified boolean DEFAULT false,
     last_login timestamp(3) without time zone,
     phone text,
     phone_verified boolean DEFAULT false,
-    "phoneVerificationOTP" text,
-    "phoneVerificationExpires" timestamp(3) without time zone,
-    "phoneVerificationAttempts" integer DEFAULT 0 NOT NULL,
-    "phoneVerificationLastSent" timestamp(3) without time zone,
-    "resetToken" text,
-    "resetTokenExpires" timestamp(3) without time zone,
-    "recoveryCodes" text,
-    "smsNotifications" boolean DEFAULT false,
-    "biometricEnabled" boolean DEFAULT false NOT NULL,
+    phone_verification_otp text,
+    phone_verification_expires timestamp(3) without time zone,
+    phone_verification_attempts integer DEFAULT 0 NOT NULL,
+    phone_verification_last_sent timestamp(3) without time zone,
+    reset_token text,
+    reset_token_expires timestamp(3) without time zone,
+    recovery_codes text,
+    sms_notifications boolean DEFAULT false,
+    biometric_enabled boolean DEFAULT false NOT NULL,
     magic_link_token text,
     magic_link_expires timestamp(3) without time zone,
-    "googleId" text,
-    "githubId" text,
-    "passwordChangedAt" timestamp(3) without time zone,
-    "passwordExpiresAt" timestamp(3) without time zone,
-    "passwordExpirationWarningSent" boolean DEFAULT false NOT NULL,
+    google_id text,
+    github_id text,
+    password_changed_at timestamp(3) without time zone,
+    password_expires_at timestamp(3) without time zone,
+    password_expiration_warning_sent boolean DEFAULT false NOT NULL,
     role public."UserRole" DEFAULT 'STUDENT'::public."UserRole" NOT NULL,
     status public."UserStatus" DEFAULT 'ACTIVE'::public."UserStatus" NOT NULL,
     country text,
-    "dateOfBirth" timestamp(3) without time zone,
+    date_of_birth timestamp(3) without time zone,
     gender text,
-    "alternativePhone" text,
+    alternative_phone text,
     section text,
-    "interestedSubjects" text[] DEFAULT ARRAY[]::text[],
-    "studyGoal" text,
-    "subjectsTaught" text[] DEFAULT ARRAY[]::text[],
-    "classesTaught" text[] DEFAULT ARRAY[]::text[],
-    "experienceYears" text,
+    interested_subjects text[] DEFAULT ARRAY[]::text[],
+    study_goal text,
+    subjects_taught text[] DEFAULT ARRAY[]::text[],
+    classes_taught text[] DEFAULT ARRAY[]::text[],
+    experience_years text,
     bio text,
     permissions jsonb DEFAULT '[]'::jsonb,
     school text,
-    "referralCode" text,
+    referral_code text,
     referred_by_id uuid,
-    "additionalAiCredits" integer DEFAULT 0 NOT NULL,
-    "additionalExamCredits" integer DEFAULT 0 NOT NULL,
-    "isDeleted" boolean DEFAULT false NOT NULL,
-    "lastUsageReset" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "monthlyAiMessageCount" integer DEFAULT 0 NOT NULL,
-    "monthlyExamCount" integer DEFAULT 0 NOT NULL,
+    additional_ai_credits integer DEFAULT 0 NOT NULL,
+    additional_exam_credits integer DEFAULT 0 NOT NULL,
+    is_deleted boolean DEFAULT false NOT NULL,
+    last_usage_reset timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    monthly_ai_message_count integer DEFAULT 0 NOT NULL,
+    monthly_exam_count integer DEFAULT 0 NOT NULL,
     total_xp bigint DEFAULT 0,
     level bigint DEFAULT 1,
     balance numeric DEFAULT 0,
@@ -547,7 +547,7 @@ CREATE TABLE public."User" (
 -- Name: ActiveUsers; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public."ActiveUsers" AS
+CREATE VIEW public.ActiveUsers AS
  SELECT id,
     email,
     name,
@@ -1164,7 +1164,7 @@ CREATE TABLE public."CustomGoal" (
 -- Name: DeletedRecordArchive; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public."DeletedRecordArchive" (
+CREATE TABLE public.deleted_record_archive (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     table_name character varying(255) NOT NULL,
     record_id text NOT NULL,

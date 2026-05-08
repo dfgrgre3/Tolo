@@ -685,8 +685,25 @@ func UpdateSubject(c *gin.Context) {
 		}
 	}
 
-	log.Printf("Attempting to update subject %s with values: %v", id, input)
-	if err := db.DB.Model(&subject).Updates(input).Error; err != nil {
+		// Whitelist allowed fields to prevent mass assignment and SQL injection
+	updates := make(map[string]interface{})
+	allowedFields := []string{
+		"name", "nameAr", "code", "description", "icon", "color",
+		"isActive", "isPublished", "price", "thumbnailUrl", "trailerUrl",
+		"trailerDurationMinutes", "slug", "level", "instructorName",
+		"instructorId", "categoryId", "durationHours", "requirements",
+		"learningObjectives", "seoTitle", "seoDescription", "isFeatured",
+		"language", "type",
+	}
+
+	for _, field := range allowedFields {
+		if val, exists := input[field]; exists {
+			updates[field] = val
+		}
+	}
+
+	log.Printf("Attempting to update subject %s with whitelisted values: %v", id, updates)
+	if err := db.DB.Model(&subject).Updates(updates).Error; err != nil {
 		log.Printf("UpdateSubject: Database error: %v", err)
 		errMsg := "Failed to update subject"
 		if strings.Contains(err.Error(), "duplicate key") {

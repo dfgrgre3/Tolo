@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const userIDQuery = "user_id = ?"
+
 // Tasks
 func GetTasks(c *gin.Context) {
 	userIdValue, exists := c.Get("userId")
@@ -19,7 +21,7 @@ func GetTasks(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var tasks []models.Task
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Limit(100).Find(&tasks).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userId).Order("created_at desc").Limit(100).Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
 		return
 	}
@@ -79,25 +81,7 @@ func UpdateTask(c *gin.Context) {
 			return err
 		}
 
-		// Gamification logic
-		if originalStatus != models.TaskCompleted && task.Status == models.TaskCompleted {
-			if err := tx.Model(&models.User{}).Where("id = ?", uid).
-				Updates(map[string]interface{}{
-					"total_xp":        gorm.Expr("total_xp + ?", 50),
-					"tasks_completed": gorm.Expr("tasks_completed + ?", 1),
-				}).Error; err != nil {
-				return err
-			}
-		} else if originalStatus == models.TaskCompleted && task.Status != models.TaskCompleted {
-			if err := tx.Model(&models.User{}).Where("id = ?", uid).
-				Updates(map[string]interface{}{
-					"total_xp":        gorm.Expr("total_xp - ?", 50),
-					"tasks_completed": gorm.Expr("tasks_completed - ?", 1),
-				}).Error; err != nil {
-				return err
-			}
-		}
-		return nil
+		return handleTaskGamification(tx, uid, originalStatus, task.Status)
 	})
 
 	if err != nil {
@@ -133,7 +117,7 @@ func GetStudySessions(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var sessions []models.StudySession
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Limit(100).Find(&sessions).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userId).Order("created_at desc").Limit(100).Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch study sessions"})
 		return
 	}
@@ -169,7 +153,7 @@ func GetSchedule(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var schedule models.Schedule
-	if err := db.DB.Where("\"userId\" = ?", userId).Order("updated_at desc").First(&schedule).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userId).Order("updated_at desc").First(&schedule).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"planJson": "{\"timeBlocks\": []}"})
 		return
 	}
@@ -189,7 +173,7 @@ func UpdateSchedule(c *gin.Context) {
 	uid := userId.(string)
 
 	var schedule models.Schedule
-	err := db.DB.Where("user_id = ?", uid).First(&schedule).Error
+	err := db.DB.Where(userIDQuery, uid).First(&schedule).Error
 	if err != nil {
 		// Create new
 		schedule = models.Schedule{
@@ -215,7 +199,7 @@ func GetReminders(c *gin.Context) {
 	userId := userIdValue.(string)
 
 	var reminders []models.Reminder
-	if err := db.DB.Where("user_id = ?", userId).Order("remind_at asc").Limit(100).Find(&reminders).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userId).Order("remind_at asc").Limit(100).Find(&reminders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reminders"})
 		return
 	}
@@ -239,4 +223,24 @@ func CreateReminder(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, reminder)
+}
+
+func handleTaskGamification(tx *gorm.DB, uid string, oldStatus, newStatus models.TaskStatus) error {
+	if oldStatus != models.TaskCompleted && newStatus == models.TaskCompleted {
+		return tx.Model(&models.User{}).Where("id = ?", uid).
+			Updates(map[string]interface{}{
+				"total_xp":        gorm.Expr("total_xp + ?", 50),
+				"tasks_completed": gorm.Expr("tasks_completed + ?", 1),
+			}).Error
+	}
+
+	if oldStatus == models.TaskCompleted && newStatus != models.TaskCompleted {
+		return tx.Model(&models.User{}).Where("id = ?", uid).
+			Updates(map[string]interface{}{
+				"total_xp":        gorm.Expr("total_xp - ?", 50),
+				"tasks_completed": gorm.Expr("tasks_completed - ?", 1),
+			}).Error
+	}
+
+	return nil
 }

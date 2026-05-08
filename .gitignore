@@ -23,6 +23,7 @@ next-env.d.ts
 /backend/.gocache/
 /backend/api.exe
 /backend/*.exe
+/backend/main
 *.go.[0-9]*
 
 # Environment and Secrets
