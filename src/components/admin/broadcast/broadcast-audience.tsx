@@ -42,6 +42,33 @@ const SEGMENT_COLORS: Record<string, string> = {
   new: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
 };
 
+const getSegmentCount = (segmentId: string, users: UserModel[]) => {
+  switch (segmentId) {
+    case "all":
+      return users.length;
+    case "students":
+      return users.filter((u) => u.role === "STUDENT").length;
+    case "teachers":
+      return users.filter((u) => u.role === "TEACHER").length;
+    case "admins":
+      return users.filter((u) => u.role === "ADMIN").length;
+    case "active":
+      return users.filter((u) => {
+        if (!u.lastLogin) return false;
+        const days = (Date.now() - new Date(u.lastLogin).getTime()) / (1000 * 60 * 60 * 24);
+        return days <= 7;
+      }).length;
+    case "inactive":
+      return users.filter((u) => {
+        if (!u.lastLogin) return true;
+        const days = (Date.now() - new Date(u.lastLogin).getTime()) / (1000 * 60 * 60 * 24);
+        return days > 30;
+      }).length;
+    default:
+      return 0;
+  }
+};
+
 export function BroadcastAudience({ 
   users, 
   selectedUserIds,
@@ -160,20 +187,7 @@ export function BroadcastAudience({
                 <Icon className="h-4 w-4" />
                 <span>{segment.name}</span>
                 <Badge variant="secondary" className="text-[10px] h-5 min-w-5 flex items-center justify-center">
-                  {segment.id === "all" ? users.length : 
-                   segment.id === "students" ? users.filter(u => u.role === "STUDENT").length :
-                   segment.id === "teachers" ? users.filter(u => u.role === "TEACHER").length :
-                   segment.id === "admins" ? users.filter(u => u.role === "ADMIN").length :
-                   segment.id === "active" ? users.filter(u => {
-                     if (!u.lastLogin) return false;
-                     const days = (Date.now() - new Date(u.lastLogin).getTime()) / (1000 * 60 * 60 * 24);
-                     return days <= 7;
-                   }).length :
-                   segment.id === "inactive" ? users.filter(u => {
-                     if (!u.lastLogin) return true;
-                     const days = (Date.now() - new Date(u.lastLogin).getTime()) / (1000 * 60 * 60 * 24);
-                     return days > 30;
-                   }).length : 0}
+                  {getSegmentCount(segment.id, users)}
                 </Badge>
               </button>
             );
