@@ -42,7 +42,9 @@ func (x *Course) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Course) ProtoMessage() {}
+func (*Course) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *Course) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_course_proto_msgTypes[0]
@@ -106,7 +108,9 @@ func (x *GetCoursesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetCoursesRequest) ProtoMessage() {}
+func (*GetCoursesRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetCoursesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_course_proto_msgTypes[1]
@@ -143,7 +147,9 @@ func (x *GetCoursesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetCoursesResponse) ProtoMessage() {}
+func (*GetCoursesResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetCoursesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_course_proto_msgTypes[2]
@@ -187,7 +193,9 @@ func (x *GetCourseRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetCourseRequest) ProtoMessage() {}
+func (*GetCourseRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetCourseRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_course_proto_msgTypes[3]
@@ -231,7 +239,9 @@ func (x *GetCourseResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetCourseResponse) ProtoMessage() {}
+func (*GetCourseResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetCourseResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_course_proto_msgTypes[4]

@@ -11,6 +11,14 @@ import (
 	"thanawy-backend/internal/db"
 )
 
+const (
+	rateLimiterUnavailable = "rate limiter unavailable, please try again later"
+	headerRateLimitLimit     = "X-RateLimit-Limit"
+	headerRateLimitRemaining = "X-RateLimit-Remaining"
+	headerRateLimitReset     = "X-RateLimit-Reset"
+	headerRetryAfter         = "Retry-After"
+)
+
 // RateLimiter holds Redis client for distributed rate limiting
 type RateLimiter struct {
 	client *redis.Client
@@ -33,18 +41,18 @@ func (rl *RateLimiter) RateLimitByIP(limit int, window time.Duration) gin.Handle
 		if err != nil {
 			// If Redis fails, FAIL CLOSED for security (deny request)
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
-				"error": "rate limiter unavailable, please try again later",
+				"error": rateLimiterUnavailable,
 			})
 			return
 		}
 
 		// Set rate limit headers
-		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
-		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
-		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
+		c.Header(headerRateLimitLimit, fmt.Sprintf("%d", limit))
+		c.Header(headerRateLimitRemaining, fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header(headerRateLimitReset, fmt.Sprintf("%d", time.Now().Add(window).Unix()))
 
 		if count > limit {
-			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.Header(headerRetryAfter, fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "rate limit exceeded",
 				"retry_after": int(window.Seconds()),
@@ -73,18 +81,18 @@ func (rl *RateLimiter) RateLimitByUser(limit int, window time.Duration) gin.Hand
 		count, err := rl.incrementCounter(c.Request.Context(), key, window)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
-				"error": "rate limiter unavailable, please try again later",
+				"error": rateLimiterUnavailable,
 			})
 			return
 		}
 
 		// Set rate limit headers
-		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
-		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
-		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
+		c.Header(headerRateLimitLimit, fmt.Sprintf("%d", limit))
+		c.Header(headerRateLimitRemaining, fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header(headerRateLimitReset, fmt.Sprintf("%d", time.Now().Add(window).Unix()))
 
 		if count > limit {
-			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.Header(headerRetryAfter, fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "user rate limit exceeded",
 				"retry_after": int(window.Seconds()),
@@ -113,17 +121,17 @@ func (rl *RateLimiter) RateLimitByEndpoint(endpoint string, limit int, window ti
 		count, err := rl.incrementCounter(c.Request.Context(), key, window)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
-				"error": "rate limiter unavailable, please try again later",
+				"error": rateLimiterUnavailable,
 			})
 			return
 		}
 
-		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
-		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", max(0, limit-count)))
-		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(window).Unix()))
+		c.Header(headerRateLimitLimit, fmt.Sprintf("%d", limit))
+		c.Header(headerRateLimitRemaining, fmt.Sprintf("%d", max(0, limit-count)))
+		c.Header(headerRateLimitReset, fmt.Sprintf("%d", time.Now().Add(window).Unix()))
 
 		if count > limit {
-			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.Header(headerRetryAfter, fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "endpoint rate limit exceeded",
 				"retry_after": int(window.Seconds()),
@@ -187,7 +195,7 @@ func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time
 		}
 
 		if count >= int64(limit) {
-			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
+			c.Header(headerRetryAfter, fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limit exceeded"})
 			c.Abort()
 			return

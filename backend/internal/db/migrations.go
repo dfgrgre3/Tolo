@@ -88,34 +88,49 @@ func (s *sqlSplitter) handleComments() bool {
 	}
 
 	if s.inLineComment {
-		if s.runes[s.i] == '\n' {
-			s.inLineComment = false
-		}
-		s.i++
-		return true
+		return s.continueLineComment()
 	}
 
 	if s.inBlockComment {
-		if s.i+1 < len(s.runes) && s.runes[s.i] == '*' && s.runes[s.i+1] == '/' {
-			s.inBlockComment = false
-			s.i += 2
-		} else {
-			s.i++
-		}
+		return s.continueBlockComment()
+	}
+
+	return s.startComment()
+}
+
+func (s *sqlSplitter) continueLineComment() bool {
+	if s.runes[s.i] == '\n' {
+		s.inLineComment = false
+	}
+	s.i++
+	return true
+}
+
+func (s *sqlSplitter) continueBlockComment() bool {
+	if s.i+1 < len(s.runes) && s.runes[s.i] == '*' && s.runes[s.i+1] == '/' {
+		s.inBlockComment = false
+		s.i += 2
+	} else {
+		s.i++
+	}
+	return true
+}
+
+func (s *sqlSplitter) startComment() bool {
+	if s.i+1 >= len(s.runes) {
+		return false
+	}
+
+	if s.runes[s.i] == '-' && s.runes[s.i+1] == '-' {
+		s.inLineComment = true
+		s.i += 2
 		return true
 	}
 
-	if s.i+1 < len(s.runes) {
-		if s.runes[s.i] == '-' && s.runes[s.i+1] == '-' {
-			s.inLineComment = true
-			s.i += 2
-			return true
-		}
-		if s.runes[s.i] == '/' && s.runes[s.i+1] == '*' {
-			s.inBlockComment = true
-			s.i += 2
-			return true
-		}
+	if s.runes[s.i] == '/' && s.runes[s.i+1] == '*' {
+		s.inBlockComment = true
+		s.i += 2
+		return true
 	}
 
 	return false

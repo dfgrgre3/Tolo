@@ -16,6 +16,10 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const errAINotEnabled = "AI service is not enabled"
+const contentTypeJSON = "application/json"
+const headerContentType = "Content-Type"
+
 type AIService struct {
 	apiKey   string
 	apiURL   string
@@ -91,7 +95,7 @@ func ValidateAIInput(message string, maxLength int) (string, error) {
 // GenerateContent creates educational content using real AI
 func (s *AIService) GenerateContent(ctx context.Context, prompt string, contentType string) (string, error) {
 	if !s.enabled {
-		return "", fmt.Errorf("AI service is not enabled - check API key configuration")
+		return "", fmt.Errorf("%s - check API key configuration", errAINotEnabled)
 	}
 
 	validatedPrompt, err := ValidateAIInput(prompt, 2000)
@@ -112,7 +116,7 @@ func (s *AIService) GenerateContent(ctx context.Context, prompt string, contentT
 // GenerateContentWithMessages allows passing full message history to the AI
 func (s *AIService) GenerateContentWithMessages(ctx context.Context, messages []map[string]interface{}, model string) (string, error) {
 	if !s.enabled {
-		return "", fmt.Errorf("AI service is not enabled")
+		return "", fmt.Errorf(errAINotEnabled)
 	}
 
 	if model == "" {
@@ -148,7 +152,7 @@ func (s *AIService) GenerateContentWithMessages(ctx context.Context, messages []
 // ReviewContent reviews and provides feedback on educational content
 func (s *AIService) ReviewContent(ctx context.Context, content string, subject string) (map[string]interface{}, error) {
 	if !s.enabled {
-		return nil, fmt.Errorf("AI service is not enabled")
+		return nil, fmt.Errorf(errAINotEnabled)
 	}
 
 	validatedContent, err := ValidateAIInput(content, 5000)
@@ -177,7 +181,7 @@ func (s *AIService) ReviewContent(ctx context.Context, content string, subject s
 // GetStudyRecommendations provides personalized study recommendations
 func (s *AIService) GetStudyRecommendations(ctx context.Context, user models.User) ([]map[string]interface{}, error) {
 	if !s.enabled {
-		return nil, fmt.Errorf("AI service is not enabled")
+		return nil, fmt.Errorf(errAINotEnabled)
 	}
 
 	prompt := fmt.Sprintf(`بناءً على بيانات الطالب:
@@ -258,7 +262,7 @@ func getRiskLevel(score int) string {
 // GenerateQuiz generates quiz questions for a topic
 func (s *AIService) GenerateQuiz(ctx context.Context, topic string, difficulty string, count int) ([]map[string]interface{}, error) {
 	if !s.enabled {
-		return nil, fmt.Errorf("AI service is not enabled")
+		return nil, fmt.Errorf(errAINotEnabled)
 	}
 
 	if count > 20 {
@@ -331,7 +335,7 @@ func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, user
 			return err
 		}
 
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(headerContentType, contentTypeJSON)
 		req.Header.Set("Authorization", "Bearer "+s.apiKey)
 		req.Header.Set("HTTP-Referer", "https://thanawy.net")
 		req.Header.Set("X-Title", "Thanawy Educational Platform")
@@ -397,7 +401,7 @@ func (s *AIService) callOpenAICompatibleWithMessages(ctx context.Context, messag
 		return "", err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerContentType, contentTypeJSON)
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 	req.Header.Set("HTTP-Referer", "https://thanawy.net")
 	req.Header.Set("X-Title", "Thanawy Educational Platform")
@@ -487,7 +491,7 @@ func (s *AIService) callGemini(ctx context.Context, systemPrompt, userMessage st
 			return err
 		}
 
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(headerContentType, contentTypeJSON)
 
 		client := &http.Client{Timeout: 30 * time.Second}
 		resp, err := client.Do(req)

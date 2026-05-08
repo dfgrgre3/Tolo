@@ -113,8 +113,14 @@ func (UnimplementedAuthServiceServer) GetProfile(context.Context, *GetProfileReq
 func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
-func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
+func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {
+	// This method is intentionally left empty to ensure that any implementation of AuthServiceServer
+	// embeds this struct for forward compatibility.
+}
+func (UnimplementedAuthServiceServer) testEmbeddedByValue() {
+	// This method is intentionally left empty and is used by the gRPC-Go framework to 
+	// verify that the server implementation is embedded by value rather than by pointer.
+}
 
 // UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to AuthServiceServer will

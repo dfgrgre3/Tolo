@@ -22,9 +22,14 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 const (
-	UserCachePrefix = "user:"
-	UserCacheTTL    = 15 * time.Minute
+	UserCachePrefix         = "user:"
+	UserCacheTTL            = 15 * time.Minute
+	userEmailCacheKeyFormat = "%semail:%s"
+	userIDCacheKeyFormat    = "%sid:%s"
+	queryByID               = "id = ?"
+	queryByEmail            = "email ILIKE ?"
 )
+
 
 func (r *UserRepository) Create(user *models.User) error {
 	err := r.db.Create(user).Error
@@ -35,7 +40,7 @@ func (r *UserRepository) Create(user *models.User) error {
 }
 
 func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
-	cacheKey := fmt.Sprintf("%semail:%s", UserCachePrefix, email)
+	cacheKey := fmt.Sprintf(userEmailCacheKeyFormat, UserCachePrefix, email)
 
 	// Use singleflight to prevent multiple concurrent requests for the same user
 	// from hitting the database/cache simultaneously
@@ -53,7 +58,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 		}
 
 		// Hit Database (Unscoped to bypass soft delete until deleted_at column is added)
-		err := r.db.Unscoped().Where("email ILIKE ?", email).First(&user).Error
+		err := r.db.Unscoped().Where(queryByEmail, email).First(&user).Error
 		if err == nil && db.Redis != nil {
 			r.cacheUser(&user)
 		}
@@ -69,12 +74,12 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 func (r *UserRepository) FindByEmailNoCache(email string) (*models.User, error) {
 	var user models.User
 	// Note: Using Unscoped() to bypass soft delete until deleted_at column is added
-	err := r.db.Unscoped().Where("email ILIKE ?", email).First(&user).Error
+	err := r.db.Unscoped().Where(queryByEmail, email).First(&user).Error
 	return &user, err
 }
 
 func (r *UserRepository) FindByID(id string) (*models.User, error) {
-	cacheKey := fmt.Sprintf("%sid:%s", UserCachePrefix, id)
+	cacheKey := fmt.Sprintf(userIDCacheKeyFormat, UserCachePrefix, id)
 
 	val, err, _ := r.sf.Do(cacheKey, func() (interface{}, error) {
 		var user models.User
@@ -90,7 +95,7 @@ func (r *UserRepository) FindByID(id string) (*models.User, error) {
 		}
 
 		// Hit Database (Unscoped to bypass soft delete until deleted_at column is added)
-		err := r.db.Unscoped().First(&user, "id = ?", id).Error
+		err := r.db.Unscoped().First(&user, queryByID, id).Error
 		if err == nil && db.Redis != nil {
 			r.cacheUser(&user)
 		}
@@ -107,7 +112,7 @@ func (r *UserRepository) Update(user *models.User) error {
 	var oldEmail string
 	if user.ID != "" {
 		var existing models.User
-		if err := r.db.Select("email").First(&existing, "id = ?", user.ID).Error; err == nil {
+		if err := r.db.Select("email").First(&existing, queryByID, user.ID).Error; err == nil {
 			oldEmail = existing.Email
 		}
 	}
@@ -115,7 +120,7 @@ func (r *UserRepository) Update(user *models.User) error {
 	err := r.db.Save(user).Error
 	if err == nil {
 		if oldEmail != "" && oldEmail != user.Email && db.Redis != nil {
-			db.Redis.Del(context.Background(), fmt.Sprintf("%semail:%s", UserCachePrefix, oldEmail))
+			db.Redis.Del(context.Background(), fmt.Sprintf(userEmailCacheKeyFormat, UserCachePrefix, oldEmail))
 		}
 		r.cacheUser(user)
 	}
@@ -128,6 +133,6 @@ func (r *UserRepository) cacheUser(user *models.User) {
 	}
 	data, _ := json.Marshal(user)
 	ctx := context.Background()
-	db.Redis.Set(ctx, fmt.Sprintf("%sid:%s", UserCachePrefix, user.ID), data, UserCacheTTL)
-	db.Redis.Set(ctx, fmt.Sprintf("%semail:%s", UserCachePrefix, user.Email), data, UserCacheTTL)
+	db.Redis.Set(ctx, fmt.Sprintf(userIDCacheKeyFormat, UserCachePrefix, user.ID), data, UserCacheTTL)
+	db.Redis.Set(ctx, fmt.Sprintf(userEmailCacheKeyFormat, UserCachePrefix, user.Email), data, UserCacheTTL)
 }

@@ -38,7 +38,9 @@ func (x *GetProgressSummaryRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProgressSummaryRequest) ProtoMessage() {}
+func (*GetProgressSummaryRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetProgressSummaryRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_analytics_proto_msgTypes[0]
@@ -78,7 +80,9 @@ func (x *GetProgressSummaryResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProgressSummaryResponse) ProtoMessage() {}
+func (*GetProgressSummaryResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetProgressSummaryResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_analytics_proto_msgTypes[1]
@@ -142,7 +146,9 @@ func (x *GetWeeklyAnalyticsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetWeeklyAnalyticsRequest) ProtoMessage() {}
+func (*GetWeeklyAnalyticsRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetWeeklyAnalyticsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_analytics_proto_msgTypes[2]
@@ -180,7 +186,9 @@ func (x *DailyProgress) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DailyProgress) ProtoMessage() {}
+func (*DailyProgress) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *DailyProgress) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_analytics_proto_msgTypes[3]
@@ -234,7 +242,9 @@ func (x *GetWeeklyAnalyticsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetWeeklyAnalyticsResponse) ProtoMessage() {}
+func (*GetWeeklyAnalyticsResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetWeeklyAnalyticsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_analytics_proto_msgTypes[4]

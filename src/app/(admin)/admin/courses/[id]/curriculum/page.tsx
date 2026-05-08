@@ -111,6 +111,72 @@ function calculateCurriculumStats(chapters: Chapter[]) {
   };
 }
 
+// Helper functions to reduce function nesting levels in state updates
+const reorderLessonsInChapters = (
+  chapters: Chapter[],
+  chapterId: string,
+  activeId: string,
+  overId: string
+): Chapter[] => {
+  return chapters.map((chapter) => {
+    if (chapter.id !== chapterId) return chapter;
+    const oldIndex = chapter.subTopics.findIndex((item) => item.id === activeId);
+    const newIndex = chapter.subTopics.findIndex((item) => item.id === overId);
+    return { ...chapter, subTopics: arrayMove(chapter.subTopics, oldIndex, newIndex) };
+  });
+};
+
+const updateLessonInChapters = (
+  chapters: Chapter[],
+  chapterId: string,
+  updatedLesson: Lesson
+): Chapter[] => {
+  return chapters.map((chapter) => {
+    if (chapter.id !== chapterId) return chapter;
+    return {
+      ...chapter,
+      subTopics: chapter.subTopics.map((lesson) =>
+        lesson.id === updatedLesson.id ? updatedLesson : lesson
+      ),
+    };
+  });
+};
+
+const removeLessonFromChapters = (
+  chapters: Chapter[],
+  chapterId: string,
+  lessonId: string
+): Chapter[] => {
+  return chapters.map((chapter) =>
+    chapter.id === chapterId
+      ? { ...chapter, subTopics: chapter.subTopics.filter((lesson) => lesson.id !== lessonId) }
+      : chapter
+  );
+};
+
+const addLessonToChapters = (chapters: Chapter[], chapterId: string): Chapter[] => {
+  return chapters.map((chapter) => {
+    if (chapter.id !== chapterId) return chapter;
+    return {
+      ...chapter,
+      subTopics: [
+        ...chapter.subTopics,
+        {
+          id: `new-lesson-${Date.now()}`,
+          name: "درس جديد",
+          order: chapter.subTopics.length,
+          type: "VIDEO",
+          videoUrl: "",
+          duration: 0,
+          isFree: false,
+          description: "",
+          attachments: [],
+        },
+      ],
+    };
+  });
+};
+
 function SortableLesson({
   lesson,
   onDelete,
@@ -295,14 +361,7 @@ export default function CourseCurriculumPage() {
   const handleReorderLessons = (chapterId: string, event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setChapters((current) =>
-        current.map((chapter) => {
-          if (chapter.id !== chapterId) return chapter;
-          const oldIndex = chapter.subTopics.findIndex((item) => item.id === active.id);
-          const newIndex = chapter.subTopics.findIndex((item) => item.id === over.id);
-          return { ...chapter, subTopics: arrayMove(chapter.subTopics, oldIndex, newIndex) };
-        })
-      );
+      setChapters((current) => reorderLessonsInChapters(current, chapterId, active.id as string, over.id as string));
     }
   };
 
@@ -323,38 +382,11 @@ export default function CourseCurriculumPage() {
   };
 
   const addLesson = (chapterId: string) => {
-    setChapters((current) =>
-      current.map((chapter) => {
-        if (chapter.id !== chapterId) return chapter;
-        return {
-          ...chapter,
-          subTopics: [
-            ...chapter.subTopics,
-            {
-              id: `new-lesson-${Date.now()}`,
-              name: "درس جديد",
-              order: chapter.subTopics.length,
-              type: "VIDEO",
-              videoUrl: "",
-              duration: 0,
-              isFree: false,
-              description: "",
-              attachments: [],
-            },
-          ],
-        };
-      })
-    );
+    setChapters((current) => addLessonToChapters(current, chapterId));
   };
 
   const deleteLesson = (chapterId: string, lessonId: string) => {
-    setChapters((current) =>
-      current.map((chapter) =>
-        chapter.id === chapterId
-          ? { ...chapter, subTopics: chapter.subTopics.filter((lesson) => lesson.id !== lessonId) }
-          : chapter
-      )
-    );
+    setChapters((current) => removeLessonFromChapters(current, chapterId, lessonId));
   };
 
   const handleSaveChapter = () => {
@@ -367,19 +399,22 @@ export default function CourseCurriculumPage() {
 
   const handleSaveLesson = () => {
     if (!editingLesson) return;
-    setChapters((current) =>
-      current.map((chapter) =>
-        chapter.id === editingLesson.chapterId
-          ? {
-              ...chapter,
-              subTopics: chapter.subTopics.map((lesson) =>
-                lesson.id === editingLesson.lesson.id ? editingLesson.lesson : lesson
-              ),
-            }
-          : chapter
-      )
-    );
+    setChapters((current) => updateLessonInChapters(current, editingLesson.chapterId, editingLesson.lesson));
     setEditingLesson(null);
+  };
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setEditingLesson((prev) =>
+      prev
+        ? {
+            ...prev,
+            lesson: {
+              ...prev.lesson,
+              attachments: prev.lesson.attachments?.filter((a) => a.id !== attachmentId),
+            },
+          }
+        : null
+    );
   };
 
   const handleSave = async () => {
@@ -628,15 +663,7 @@ export default function CourseCurriculumPage() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
-                      onClick={() => {
-                        setEditingLesson(prev => prev ? {
-                          ...prev,
-                          lesson: {
-                            ...prev.lesson,
-                            attachments: prev.lesson.attachments?.filter(a => a.id !== attachment.id)
-                          }
-                        } : null);
-                      }}
+                      onClick={() => handleDeleteAttachment(attachment.id)}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>

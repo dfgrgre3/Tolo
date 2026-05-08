@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -168,35 +169,19 @@ func (u *User) HasPermission(permission string) bool {
 }
 
 func (u *User) GetEffectivePermissions() []string {
-	if u.Role == RoleAdmin {
-		dbPerms := []string(u.Permissions)
-		// Admins always get the bypass (*:*) to ensure full access
-		hasBypass := false
-		for _, p := range dbPerms {
-			if p == PermAdminBypass {
-				hasBypass = true
-				break
-			}
-		}
-		if !hasBypass {
-			return append(dbPerms, PermAdminBypass)
-		}
-		return dbPerms
-	}
-
 	perms := []string(u.Permissions)
+
+	if u.Role == RoleAdmin {
+		if !slices.Contains(perms, PermAdminBypass) {
+			return append(perms, PermAdminBypass)
+		}
+		return perms
+	}
 
 	// Add default permissions based on role if not already present
 	defaults := GetDefaultPermissions(u.Role)
 	for _, dp := range defaults {
-		found := false
-		for _, p := range perms {
-			if p == dp {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(perms, dp) {
 			perms = append(perms, dp)
 		}
 	}

@@ -14,76 +14,70 @@ import (
 // IPWhitelistMiddleware checks if the request IP is whitelisted
 func IPWhitelistMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip whitelist check for public endpoints
 		if isPublicEndpoint(c.Request.URL.Path) {
 			c.Next()
 			return
 		}
 
-		// Get whitelist settings
 		var settings models.IPWhitelistSettings
-		if err := db.DB.First(&settings).Error; err != nil {
-			// No settings found, allow all
+		if err := db.DB.First(&settings).Error; err != nil || !settings.IsEnabled {
 			c.Next()
 			return
 		}
 
-		// Check if whitelist is enabled
-		if !settings.IsEnabled {
-			c.Next()
-			return
-		}
-
-		// Get client IP
 		clientIP := c.ClientIP()
-
-		// Check internal IPs
-		if settings.AllowInternalIPs {
-			for _, cidr := range settings.InternalIPRanges {
-				if isIPInCIDR(clientIP, cidr) {
-					c.Next()
-					return
-				}
-			}
+		if isInternalIPAllowed(&settings, clientIP) {
+			c.Next()
+			return
 		}
 
-		// Determine which whitelist to check based on endpoint
 		whitelistType := getWhitelistType(c.Request.URL.Path, c.GetBool("is_admin"))
-
-		// Check if IP is whitelisted
 		var entries []models.IPWhitelistEntry
 		db.DB.Where("type = ? AND status = ?", whitelistType, "active").Find(&entries)
 
-		allowed := false
-		for _, entry := range entries {
-			if entry.CIDR != "" {
-				if isIPInCIDR(clientIP, entry.CIDR) {
-					allowed = true
-					break
-				}
-			} else if entry.IPAddress == clientIP {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
-			// Log blocked attempt
-			if settings.LogBlockedAttempts {
-				logBlockedAttempt(c, clientIP)
-			}
-
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Access denied: IP not whitelisted",
-				"ip":    clientIP,
-			})
-			c.Abort()
+		if isIPWhitelisted(entries, clientIP) {
+			c.Next()
 			return
 		}
 
-		c.Next()
+		if settings.LogBlockedAttempts {
+			logBlockedAttempt(c, clientIP)
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "Access denied: IP not whitelisted",
+			"ip":    clientIP,
+		})
 	}
 }
+
+// isInternalIPAllowed checks if the IP is within allowed internal ranges
+func isInternalIPAllowed(settings *models.IPWhitelistSettings, clientIP string) bool {
+	if !settings.AllowInternalIPs {
+		return false
+	}
+
+	for _, cidr := range settings.InternalIPRanges {
+		if isIPInCIDR(clientIP, cidr) {
+			return true
+		}
+	}
+	return false
+}
+
+// isIPWhitelisted checks if the IP matches any active whitelist entry
+func isIPWhitelisted(entries []models.IPWhitelistEntry, clientIP string) bool {
+	for _, entry := range entries {
+		if entry.CIDR != "" && isIPInCIDR(clientIP, entry.CIDR) {
+			return true
+		}
+		if entry.IPAddress == clientIP {
+			return true
+		}
+	}
+	return false
+}
+
 
 // isPublicEndpoint checks if the endpoint is public
 func isPublicEndpoint(path string) bool {

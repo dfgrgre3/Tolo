@@ -57,7 +57,7 @@ func ensureCSRFToken(c *gin.Context) {
 		// Validate existing token
 		if isValidCSRFToken(cookie) {
 			// Set header for client-side access
-			c.Header("X-CSRF-Token", cookie)
+			c.Header(csrfHeaderName, cookie)
 			return
 		}
 	}
@@ -69,7 +69,7 @@ func ensureCSRFToken(c *gin.Context) {
 	setCSRFCookie(c, token)
 
 	// Set header
-	c.Header("X-CSRF-Token", token)
+	c.Header(csrfHeaderName, token)
 }
 
 // validateCSRFToken validates the CSRF token from request
@@ -136,57 +136,71 @@ func isValidCSRFToken(token string) bool {
 	return true
 }
 
+// csrfSkipPaths are paths that bypass CSRF protection
+var csrfSkipPaths = []string{
+	"/api/webhooks/",
+	"/api/payments/paymob/callback",
+	"/api/auth/login",
+	"/api/auth/register",
+	"/api/auth/refresh",
+	"/api/auth/logout",
+}
+
+// isSafeMethod checks if the HTTP method is read-only
+func isSafeMethod(method string) bool {
+	return method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
+}
+
+// shouldSkipPath checks if the request path is in the skip list
+func shouldSkipPath(path string) bool {
+	for _, skip := range csrfSkipPaths {
+		if strings.HasPrefix(path, skip) {
+			return true
+		}
+	}
+	return false
+}
+
+// shouldEnforceCSRF determines if CSRF should be enforced based on environment and request type
+func shouldEnforceCSRF(c *gin.Context) bool {
+	env := os.Getenv("NODE_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	// Only enforce in production
+	if env != "production" {
+		return false
+	}
+
+	// Only enforce if using cookie authentication or likely from a browser
+	_, err := c.Cookie("access_token")
+	if err == nil {
+		return true
+	}
+
+	accept := c.GetHeader("Accept")
+	return strings.Contains(accept, "text/html") || strings.Contains(accept, "application/xhtml+xml")
+}
+
 // CSRFMiddleware returns a configured CSRF protection middleware
 func CSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Skip CSRF for safe methods
-		if c.Request.Method == "GET" || c.Request.Method == "HEAD" || c.Request.Method == "OPTIONS" {
-			// For GET requests, ensure we have a CSRF token
+		if isSafeMethod(c.Request.Method) {
 			ensureCSRFToken(c)
 			c.Next()
 			return
 		}
 
 		// Skip for certain paths (webhooks, auth handshakes, etc.)
-		skipPaths := []string{
-			"/api/webhooks/",
-			"/api/payments/paymob/callback",
-			"/api/auth/login",
-			"/api/auth/register",
-			"/api/auth/refresh",
-			"/api/auth/logout",
+		if shouldSkipPath(c.Request.URL.Path) {
+			c.Next()
+			return
 		}
 
-
-		path := c.Request.URL.Path
-		for _, skip := range skipPaths {
-			if len(path) >= len(skip) && path[:len(skip)] == skip {
-				c.Next()
-				return
-			}
-		}
-
-		// Apply CSRF protection for state-changing requests
-		// Only enforce CSRF if the request uses cookie authentication
-		// Check if the request has our authentication cookie
-		_, err := c.Cookie("access_token")
-		hasCookie := err == nil
-
-		// If request has auth cookie, enforce CSRF
-		// If no auth cookie, might be using JWT in header - still enforce CSRF as a defense-in-depth
-		// But skip CSRF for API clients that don't use cookies (machine-to-machine)
-		// We can check if the request is likely from a browser by checking Accept header
-		accept := c.GetHeader("Accept")
-		isBrowser := strings.Contains(accept, "text/html") || strings.Contains(accept, "application/xhtml+xml")
-
-		env := os.Getenv("NODE_ENV")
-		if env == "" {
-			env = "development"
-		}
-
-		if (hasCookie || isBrowser) && env == "production" {
-
-			// Validate CSRF token
+		// Apply CSRF protection for state-changing requests in production
+		if shouldEnforceCSRF(c) {
 			if !validateCSRFToken(c) {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 					"error": "CSRF token validation failed",

@@ -22,9 +22,12 @@ func NewSubjectRepository(db *gorm.DB) *SubjectRepository {
 }
 
 const (
-	SubjectCachePrefix = "subject:"
-	SubjectCacheTTL    = 30 * time.Minute // Subjects change less frequently than users
+	SubjectCachePrefix    = "subject:"
+	SubjectCacheTTL       = 30 * time.Minute // Subjects change less frequently than users
+	subjectCacheKeyFormat = "%sid:%s"
+	queryByID             = "id = ?"
 )
+
 
 // allowedSubjectFilters is a whitelist of safe column names for dynamic filtering.
 // This prevents SQL injection through user-controlled filter keys.
@@ -38,7 +41,7 @@ var allowedSubjectFilters = map[string]string{
 }
 
 func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
-	cacheKey := fmt.Sprintf("%sid:%s", SubjectCachePrefix, id)
+	cacheKey := fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, id)
 
 	val, err, _ := r.sf.Do(cacheKey, func() (interface{}, error) {
 		var subject models.Subject
@@ -54,7 +57,7 @@ func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 		}
 
 		// Hit Database
-		err := r.db.Preload("Topics.SubTopics.Attachments").First(&subject, "id = ?", id).Error
+		err := r.db.Preload("Topics.SubTopics.Attachments").First(&subject, queryByID, id).Error
 		if err == nil && db.Redis != nil {
 			r.cacheSubject(&subject)
 		}
@@ -103,10 +106,10 @@ func (r *SubjectRepository) Update(subject *models.Subject) error {
 }
 
 func (r *SubjectRepository) Delete(id string) error {
-	err := r.db.Delete(&models.Subject{}, "id = ?", id).Error
+	err := r.db.Delete(&models.Subject{}, queryByID, id).Error
 	if err == nil && db.Redis != nil {
 		ctx := context.Background()
-		db.Redis.Del(ctx, fmt.Sprintf("%sid:%s", SubjectCachePrefix, id))
+		db.Redis.Del(ctx, fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, id))
 	}
 	return err
 }
@@ -117,7 +120,7 @@ func (r *SubjectRepository) cacheSubject(subject *models.Subject) {
 	}
 	data, _ := json.Marshal(subject)
 	ctx := context.Background()
-	db.Redis.Set(ctx, fmt.Sprintf("%sid:%s", SubjectCachePrefix, subject.ID), data, SubjectCacheTTL)
+	db.Redis.Set(ctx, fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, subject.ID), data, SubjectCacheTTL)
 }
 
 // InvalidateSubjectCache clears the cached subject data when its relations (Topics, SubTopics) are updated
@@ -125,7 +128,7 @@ func (r *SubjectRepository) InvalidateSubjectCache(id string) {
 	if db.Redis != nil {
 		ctx := context.Background()
 		// Delete both the single subject cache and any list caches that might contain it
-		db.Redis.Del(ctx, fmt.Sprintf("%s%s", SubjectCachePrefix, id))
+		db.Redis.Del(ctx, fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, id))
 		db.Redis.Del(ctx, fmt.Sprintf("%slist:*", SubjectCachePrefix))
 	}
 }

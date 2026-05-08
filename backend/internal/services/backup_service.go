@@ -12,6 +12,8 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const queryIDEquals = "id = ?"
+
 // BackupProgress tracks backup progress
 type BackupProgress struct {
 	BackupID string
@@ -47,7 +49,7 @@ func GetBackupService() *BackupService {
 // PerformBackup performs a backup operation
 func (s *BackupService) PerformBackup(backupID string) error {
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", backupID).Error; err != nil {
+	if err := db.DB.First(&backup, queryIDEquals, backupID).Error; err != nil {
 		return err
 	}
 
@@ -101,7 +103,7 @@ func (s *BackupService) PerformBackup(backupID string) error {
 // RestoreBackup restores from a backup
 func (s *BackupService) RestoreBackup(backupID string, targetTables []string, skipExisting bool) error {
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", backupID).Error; err != nil {
+	if err := db.DB.First(&backup, queryIDEquals, backupID).Error; err != nil {
 		return err
 	}
 
@@ -124,7 +126,7 @@ func (s *BackupService) RestoreBackup(backupID string, targetTables []string, sk
 // VerifyBackup verifies backup integrity
 func (s *BackupService) VerifyBackup(backupID string) (bool, error) {
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", backupID).Error; err != nil {
+	if err := db.DB.First(&backup, queryIDEquals, backupID).Error; err != nil {
 		return false, err
 	}
 

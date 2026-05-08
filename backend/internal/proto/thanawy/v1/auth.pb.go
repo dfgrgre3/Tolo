@@ -44,7 +44,9 @@ func (x *User) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*User) ProtoMessage() {}
+func (*User) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *User) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[0]
@@ -124,7 +126,9 @@ func (x *LoginRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LoginRequest) ProtoMessage() {}
+func (*LoginRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[1]
@@ -177,7 +181,9 @@ func (x *LoginResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LoginResponse) ProtoMessage() {}
+func (*LoginResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[2]
@@ -241,7 +247,9 @@ func (x *RegisterRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterRequest) ProtoMessage() {}
+func (*RegisterRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[3]
@@ -328,7 +336,9 @@ func (x *RegisterResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterResponse) ProtoMessage() {}
+func (*RegisterResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[4]
@@ -378,7 +388,9 @@ func (x *GetProfileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProfileRequest) ProtoMessage() {}
+func (*GetProfileRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[5]
@@ -415,7 +427,9 @@ func (x *GetProfileResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProfileResponse) ProtoMessage() {}
+func (*GetProfileResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *GetProfileResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[6]
@@ -458,7 +472,9 @@ func (x *LogoutRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LogoutRequest) ProtoMessage() {}
+func (*LogoutRequest) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[7]
@@ -496,7 +512,9 @@ func (x *LogoutResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LogoutResponse) ProtoMessage() {}
+func (*LogoutResponse) ProtoMessage() {
+	// ProtoMessage is a marker method for the proto.Message interface.
+}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_thanawy_v1_auth_proto_msgTypes[8]

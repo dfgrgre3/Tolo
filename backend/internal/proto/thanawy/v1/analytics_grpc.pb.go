@@ -81,8 +81,14 @@ func (UnimplementedAnalyticsServiceServer) GetProgressSummary(context.Context, *
 func (UnimplementedAnalyticsServiceServer) GetWeeklyAnalytics(context.Context, *GetWeeklyAnalyticsRequest) (*GetWeeklyAnalyticsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWeeklyAnalytics not implemented")
 }
-func (UnimplementedAnalyticsServiceServer) mustEmbedUnimplementedAnalyticsServiceServer() {}
-func (UnimplementedAnalyticsServiceServer) testEmbeddedByValue()                          {}
+func (UnimplementedAnalyticsServiceServer) mustEmbedUnimplementedAnalyticsServiceServer() {
+	// This method is intentionally left empty to ensure that any implementation of AnalyticsServiceServer
+	// embeds this struct for forward compatibility.
+}
+func (UnimplementedAnalyticsServiceServer) testEmbeddedByValue() {
+	// This method is intentionally left empty and is used by the gRPC-Go framework to 
+	// verify that the server implementation is embedded by value rather than by pointer.
+}
 
 // UnsafeAnalyticsServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to AnalyticsServiceServer will

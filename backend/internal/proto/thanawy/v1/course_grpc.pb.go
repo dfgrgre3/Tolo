@@ -81,8 +81,14 @@ func (UnimplementedCourseServiceServer) GetCourses(context.Context, *GetCoursesR
 func (UnimplementedCourseServiceServer) GetCourse(context.Context, *GetCourseRequest) (*GetCourseResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCourse not implemented")
 }
-func (UnimplementedCourseServiceServer) mustEmbedUnimplementedCourseServiceServer() {}
-func (UnimplementedCourseServiceServer) testEmbeddedByValue()                       {}
+func (UnimplementedCourseServiceServer) mustEmbedUnimplementedCourseServiceServer() {
+	// This method is intentionally left empty to ensure that any implementation of CourseServiceServer
+	// embeds this struct for forward compatibility.
+}
+func (UnimplementedCourseServiceServer) testEmbeddedByValue() {
+	// This method is intentionally left empty and is used by the gRPC-Go framework to 
+	// verify that the server implementation is embedded by value rather than by pointer.
+}
 
 // UnsafeCourseServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to CourseServiceServer will

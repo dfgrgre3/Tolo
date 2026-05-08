@@ -231,6 +231,13 @@ func applyPrivacySettings(settings *models.UserSettings, patch map[string]interf
 }
 
 func applyAdvancedSettings(settings *models.UserSettings, patch map[string]interface{}) {
+	applyReminderSettings(settings, patch)
+	applyReportAndAlertSettings(settings, patch)
+	applyChannelSettings(settings, patch)
+	applyQuietHoursAndSoundSettings(settings, patch)
+}
+
+func applyReminderSettings(settings *models.UserSettings, patch map[string]interface{}) {
 	if v, ok := patch["taskReminders"].(bool); ok {
 		settings.TaskReminders = v
 	}
@@ -249,6 +256,9 @@ func applyAdvancedSettings(settings *models.UserSettings, patch map[string]inter
 	if v, ok := patch["deadlineReminders"].(bool); ok {
 		settings.DeadlineReminders = v
 	}
+}
+
+func applyReportAndAlertSettings(settings *models.UserSettings, patch map[string]interface{}) {
 	if v, ok := patch["progressReports"].(bool); ok {
 		settings.ProgressReports = v
 	}
@@ -264,6 +274,9 @@ func applyAdvancedSettings(settings *models.UserSettings, patch map[string]inter
 	if v, ok := patch["mentionNotifications"].(bool); ok {
 		settings.MentionNotifications = v
 	}
+}
+
+func applyChannelSettings(settings *models.UserSettings, patch map[string]interface{}) {
 	if v, ok := patch["pushEnabled"].(bool); ok {
 		settings.PushEnabled = v
 	}
@@ -273,6 +286,9 @@ func applyAdvancedSettings(settings *models.UserSettings, patch map[string]inter
 	if v, ok := patch["smsEnabled"].(bool); ok {
 		settings.SmsEnabled = v
 	}
+}
+
+func applyQuietHoursAndSoundSettings(settings *models.UserSettings, patch map[string]interface{}) {
 	if v, ok := patch["quietHoursEnabled"].(bool); ok {
 		settings.QuietHoursEnabled = v
 	}

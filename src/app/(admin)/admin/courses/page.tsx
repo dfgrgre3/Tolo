@@ -31,8 +31,9 @@ import {
   XCircle,
   CheckCircle2,
   AlertCircle,
-  Download } from
-"lucide-react";
+  Download
+} from
+  "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -48,16 +49,18 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle } from
-"@/components/ui/dialog";
+  DialogTitle
+} from
+  "@/components/ui/dialog";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage } from
-"@/components/ui/form";
+  FormMessage
+} from
+  "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -67,8 +70,9 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from
-"@/components/ui/select";
+  SelectValue
+} from
+  "@/components/ui/select";
 import { cn, formatPrice } from "@/lib/utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
@@ -228,7 +232,7 @@ function CourseGridSkeleton() {
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) =>
-      <div key={i} className="rounded-2xl border bg-card/60 overflow-hidden animate-pulse">
+        <div key={i} className="rounded-2xl border bg-card/60 overflow-hidden animate-pulse">
           <div className="aspect-video bg-muted/50" />
           <div className="p-4 space-y-3">
             <div className="h-4 bg-muted/50 rounded-lg w-3/4" />
@@ -261,7 +265,7 @@ export default function AdminCoursesPage() {
   const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
   const [editingCourse, setEditingCourse] = React.useState<Course | null>(null);
   const [editingCategory, setEditingCategory] = React.useState<CourseCategory | null>(null);
-  const [deleteDialog, setDeleteDialog] = React.useState<{open: boolean;id: string | null;}>({
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null; }>({
     open: false,
     id: null
   });
@@ -269,7 +273,7 @@ export default function AdminCoursesPage() {
     open: boolean;
     id: string | null;
   }>({ open: false, id: null });
-  const [selectedCategoryId,,] = React.useState<string>("all");
+  const [selectedCategoryId, ,] = React.useState<string>("all");
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(12);
   const [search, setSearch] = React.useState("");
@@ -286,15 +290,15 @@ export default function AdminCoursesPage() {
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: [
-    "admin",
-    "courses",
-    page,
-    limit,
-    deferredSearch,
-    selectedCategoryId,
-    filterLevel,
-    filterStatus,
-    filterCategory],
+      "admin",
+      "courses",
+      page,
+      limit,
+      deferredSearch,
+      selectedCategoryId,
+      filterLevel,
+      filterStatus,
+      filterCategory],
 
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -306,10 +310,10 @@ export default function AdminCoursesPage() {
       if (filterLevel !== "ALL") params.set("level", filterLevel);
       if (filterCategory !== "ALL") params.set("categoryId", filterCategory);
 
-      if (filterStatus === "PUBLISHED") params.set("isPublished", "true");else
-      if (filterStatus === "DRAFT") params.set("isPublished", "false");else
-      if (filterStatus === "ACTIVE") params.set("isActive", "true");else
-      if (filterStatus === "INACTIVE") params.set("isActive", "false");
+      if (filterStatus === "PUBLISHED") params.set("isPublished", "true"); else
+        if (filterStatus === "DRAFT") params.set("isPublished", "false"); else
+          if (filterStatus === "ACTIVE") params.set("isActive", "true"); else
+            if (filterStatus === "INACTIVE") params.set("isActive", "false");
 
       const response = await adminFetch(`${apiRoutes.admin.courses}?${params.toString()}`);
       if (!response.ok) throw new Error("فشل تحميل الدورات");
@@ -331,7 +335,7 @@ export default function AdminCoursesPage() {
     queryFn: async () => {
       const response = await adminFetch(apiRoutes.admin.teachers);
       const result = await response.json();
-      return (result.data?.teachers || []) as Array<{id: string;name: string;}>;
+      return (result.data?.teachers || []) as Array<{ id: string; name: string; }>;
     },
     staleTime: 300_000
   });
@@ -447,8 +451,8 @@ export default function AdminCoursesPage() {
       const createdCourseId = result?.data?.course?.id as string | undefined;
       toast.success(
         editingCourse ?
-        "تم تحديث الدورة بنجاح" :
-        "تم إنشاء الدورة وسيتم توجيهك لإضافة المنهج الدراسي"
+          "تم تحديث الدورة بنجاح" :
+          "تم إنشاء الدورة وسيتم توجيهك لإضافة المنهج الدراسي"
       );
       setQuickCreateOpen(false);
       setEditingCourse(null);
@@ -572,8 +576,7 @@ export default function AdminCoursesPage() {
   };
 
   const handleBatchAction = async (
-  action: "publish" | "unpublish" | "activate" | "deactivate" | "delete") =>
-  {
+    action: "publish" | "unpublish" | "activate" | "deactivate" | "delete") => {
     if (selectedIds.length === 0) return;
     try {
       const response = await adminFetch("/api/admin/courses/batch", {
@@ -597,27 +600,27 @@ export default function AdminCoursesPage() {
   // â”€â”€â”€ Table Columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const columns: ColumnDef<Course>[] = [
-  {
-    accessorKey: "name",
-    id: "nameAr",
-    header: "الدورة",
-    cell: ({ row }) => {
-      const course = row.original;
-      return (
-        <div className="flex items-center gap-3">
+    {
+      accessorKey: "name",
+      id: "nameAr",
+      header: "الدورة",
+      cell: ({ row }) => {
+        const course = row.original;
+        return (
+          <div className="flex items-center gap-3">
             <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40">
               {course.thumbnailUrl ?
-            <Image
-              src={course.thumbnailUrl}
-              alt={course.name}
-              fill
-              className="object-cover" /> :
+                <Image
+                  src={course.thumbnailUrl}
+                  alt={course.name}
+                  fill
+                  className="object-cover" /> :
 
 
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                   <PlayCircle className="h-6 w-6 text-primary/40" />
                 </div>
-            }
+              }
             </div>
             <div className="min-w-0 space-y-1">
               <p className="truncate text-sm font-black">{course.nameAr || course.name}</p>
@@ -625,142 +628,142 @@ export default function AdminCoursesPage() {
                 <GraduationCap className="h-3 w-3 shrink-0" />
                 <span className="truncate">{course.instructorName || "بدون مدرس"}</span>
                 {course.code &&
-              <span className="text-primary/60 font-bold">#{course.code}</span>
-              }
+                  <span className="text-primary/60 font-bold">#{course.code}</span>
+                }
               </div>
             </div>
           </div>);
 
-    }
-  },
-  {
-    accessorKey: "price",
-    header: "السعر",
-    cell: ({ row }) =>
-    <div className="flex items-center gap-1 text-sm font-black">
+      }
+    },
+    {
+      accessorKey: "price",
+      header: "السعر",
+      cell: ({ row }) =>
+        <div className="flex items-center gap-1 text-sm font-black">
           {row.original.price === 0 ?
-      <span className="text-teal-500">مجانية</span> :
+            <span className="text-teal-500">مجانية</span> :
 
-      <>
+            <>
               <DollarSign className="h-3.5 w-3.5 text-primary" />
               <span className="text-primary">{row.original.price} ج</span>
             </>
-      }
+          }
         </div>
 
-  },
-  {
-    accessorKey: "durationHours",
-    header: "المدة",
-    cell: ({ row }) =>
-    <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+    },
+    {
+      accessorKey: "durationHours",
+      header: "المدة",
+      cell: ({ row }) =>
+        <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           {row.original.durationHours || 0}h
         </div>
 
-  },
-  {
-    id: "enrollments",
-    header: "الطلاب",
-    cell: ({ row }) =>
-    <div className="flex items-center gap-1 text-sm font-bold">
+    },
+    {
+      id: "enrollments",
+      header: "الطلاب",
+      cell: ({ row }) =>
+        <div className="flex items-center gap-1 text-sm font-bold">
           <Users className="h-3.5 w-3.5 text-blue-500" />
           {row.original._count?.enrollments || 0}
         </div>
 
-  },
-  {
-    id: "topics",
-    header: "الوحدات",
-    cell: ({ row }) =>
-    <div className="flex items-center gap-1 text-sm font-bold">
+    },
+    {
+      id: "topics",
+      header: "الوحدات",
+      cell: ({ row }) =>
+        <div className="flex items-center gap-1 text-sm font-bold">
           <LayoutGrid className="h-3.5 w-3.5 text-violet-500" />
           {row.original._count?.topics || 0}
         </div>
 
-  },
-  {
-    accessorKey: "level",
-    header: "المستوى",
-    cell: ({ row }) => {
-      const level = (row.original.level || "INTERMEDIATE") as string;
-      return (
+    },
+    {
+      accessorKey: "level",
+      header: "المستوى",
+      cell: ({ row }) => {
+        const level = (row.original.level || "INTERMEDIATE") as string;
+        return (
+          <Badge
+            variant="outline"
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+              levelStyles[level] || levelStyles.INTERMEDIATE
+            )}>
+
+            {levelLabels[level] || level}
+          </Badge>);
+
+      }
+    },
+    {
+      accessorKey: "isPublished",
+      header: "النشر",
+      cell: ({ row }) =>
         <Badge
           variant="outline"
           className={cn(
             "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-            levelStyles[level] || levelStyles.INTERMEDIATE
+            row.original.isPublished ?
+              "border-emerald-500/20 bg-emerald-500/10 text-emerald-600" :
+              "border-border/60 bg-muted/30 text-muted-foreground"
           )}>
-          
-            {levelLabels[level] || level}
-          </Badge>);
 
-    }
-  },
-  {
-    accessorKey: "isPublished",
-    header: "النشر",
-    cell: ({ row }) =>
-    <Badge
-      variant="outline"
-      className={cn(
-        "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-        row.original.isPublished ?
-        "border-emerald-500/20 bg-emerald-500/10 text-emerald-600" :
-        "border-border/60 bg-muted/30 text-muted-foreground"
-      )}>
-      
           {row.original.isPublished ? "منشورة" : "مسودة"}
         </Badge>
 
-  },
-  {
-    accessorKey: "isActive",
-    header: "الحالة",
-    cell: ({ row }) =>
-    <Badge
-      variant={row.original.isActive ? "default" : "secondary"}
-      className="rounded-full px-2.5 py-0.5 text-[11px] font-bold">
-      
+    },
+    {
+      accessorKey: "isActive",
+      header: "الحالة",
+      cell: ({ row }) =>
+        <Badge
+          variant={row.original.isActive ? "default" : "secondary"}
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold">
+
           {row.original.isActive ? "نشطة" : "موقوفة"}
         </Badge>
 
-  },
-  {
-    id: "actions",
-    header: "إجراءات",
-    cell: ({ row }) =>
-    <RowActions
-      row={row.original}
-      onView={(course) => router.push(`/admin/courses/${course.id}`)}
-      onEdit={canManageCourses ? (course) => router.push(`/admin/courses/${course.id}`) : undefined}
-      onDelete={canManageCourses ? (course) => setDeleteDialog({ open: true, id: course.id }) : undefined}
-      extraActions={[
-      {
-        icon: BookOpen,
-        label: "إدارة المنهج",
-        onClick: (course) => router.push(`/admin/courses/${course.id}/curriculum`)
-      },
-      {
-        icon: TrendingUp,
-        label: "التحليلات",
-        onClick: (course) => router.push(`/admin/courses/${course.id}/analytics`)
-      },
-      {
-        icon: ExternalLink,
-        label: "عرض في الموقع",
-        onClick: (course) => router.push(`/courses/${course.id}`)
-      }]
-      } />
+    },
+    {
+      id: "actions",
+      header: "إجراءات",
+      cell: ({ row }) =>
+        <RowActions
+          row={row.original}
+          onView={(course) => router.push(`/admin/courses/${course.id}`)}
+          onEdit={canManageCourses ? (course) => router.push(`/admin/courses/${course.id}`) : undefined}
+          onDelete={canManageCourses ? (course) => setDeleteDialog({ open: true, id: course.id }) : undefined}
+          extraActions={[
+            {
+              icon: BookOpen,
+              label: "إدارة المنهج",
+              onClick: (course) => router.push(`/admin/courses/${course.id}/curriculum`)
+            },
+            {
+              icon: TrendingUp,
+              label: "التحليلات",
+              onClick: (course) => router.push(`/admin/courses/${course.id}/analytics`)
+            },
+            {
+              icon: ExternalLink,
+              label: "عرض في الموقع",
+              onClick: (course) => router.push(`/courses/${course.id}`)
+            }]
+          } />
 
 
-  }];
+    }];
 
 
   // â”€â”€â”€ Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const emptyState =
-  <div className="col-span-full flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/40 bg-muted/10 py-20 text-center">
+    <div className="col-span-full flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/40 bg-muted/10 py-20 text-center">
       <div className="rounded-3xl bg-primary/10 p-5">
         <BookOpen className="h-10 w-10 text-primary/60" />
       </div>
@@ -771,9 +774,9 @@ export default function AdminCoursesPage() {
         </p>
       </div>
       <AdminButton
-      onClick={() => router.push("/admin/courses/new")}
-      className="gap-2 font-black">
-      
+        onClick={() => router.push("/admin/courses/new")}
+        className="gap-2 font-black">
+
         <Plus className="h-4 w-4" />
         إنشاء دورة جديدة
       </AdminButton>
@@ -788,7 +791,7 @@ export default function AdminCoursesPage() {
       <div className="relative overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/30 p-8 backdrop-blur-xl">
         <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[80px]" />
         <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-violet-500/10 blur-[80px]" />
-        
+
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-right">
             <h1 className="text-4xl font-black tracking-tight text-foreground">
@@ -800,15 +803,15 @@ export default function AdminCoursesPage() {
           </div>
 
           {canManageCourses && <div className="flex flex-wrap items-center justify-center gap-3">
-            <AdminButton 
-              variant="outline" 
+            <AdminButton
+              variant="outline"
               className="h-12 rounded-2xl px-6 font-black gap-2 bg-background/50 border-border/50"
               onClick={() => setCategoryDialogOpen(true)}
             >
               <Tags className="h-4 w-4" />
               إدارة التصنيفات
             </AdminButton>
-            <AdminButton 
+            <AdminButton
               className="h-12 rounded-2xl px-8 font-black gap-2 shadow-xl shadow-primary/20"
               onClick={() => {
                 setEditingCourse(null);
@@ -855,11 +858,11 @@ export default function AdminCoursesPage() {
         onAddCourse={() => setQuickCreateOpen(true)}
         totalCount={pagination?.total ?? courses.length}
         isLoading={isFetching} />
-      
+
 
       {/* Batch Actions Bar */}
       {selectedIds.length > 0 &&
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 animate-in slide-in-from-top-2 duration-300">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary" />
             <span className="text-sm font-black text-primary">
@@ -868,47 +871,47 @@ export default function AdminCoursesPage() {
           </div>
           <div className="flex flex-wrap gap-2 mr-auto">
             <AdminButton
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl text-xs font-black gap-1.5"
-            onClick={() => handleBatchAction("publish")}>
-            
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs font-black gap-1.5"
+              onClick={() => handleBatchAction("publish")}>
+
               <Globe className="h-3.5 w-3.5 text-emerald-500" />
               نشر
             </AdminButton>
             <AdminButton
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl text-xs font-black gap-1.5"
-            onClick={() => handleBatchAction("unpublish")}>
-            
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs font-black gap-1.5"
+              onClick={() => handleBatchAction("unpublish")}>
+
               <EyeOff className="h-3.5 w-3.5 text-amber-500" />
               إخفاء
             </AdminButton>
             <AdminButton
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl text-xs font-black gap-1.5"
-            onClick={() => handleBatchAction("activate")}>
-            
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs font-black gap-1.5"
+              onClick={() => handleBatchAction("activate")}>
+
               <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
               تفعيل
             </AdminButton>
             <AdminButton
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl text-xs font-black gap-1.5 text-red-500 hover:bg-red-500/10"
-            onClick={() => handleBatchAction("delete")}>
-            
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs font-black gap-1.5 text-red-500 hover:bg-red-500/10"
+              onClick={() => handleBatchAction("delete")}>
+
               <AlertCircle className="h-3.5 w-3.5" />
               حذف
             </AdminButton>
             <AdminButton
-            variant="ghost"
-            size="sm"
-            className="h-8 rounded-xl text-xs font-bold"
-            onClick={() => setSelectedIds([])}>
-            
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-xl text-xs font-bold"
+              onClick={() => setSelectedIds([])}>
+
               إلغاء
             </AdminButton>
           </div>
@@ -917,102 +920,102 @@ export default function AdminCoursesPage() {
 
       {/* Content */}
       {view === "grid" ?
-      isLoading ?
-      <CourseGridSkeleton /> :
-      courses.length === 0 ?
-      emptyState :
+        isLoading ?
+          <CourseGridSkeleton /> :
+          courses.length === 0 ?
+            emptyState :
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
-            {courses.map((course) =>
-        <CourseCard
-          key={course.id}
-          course={course}
-          onEdit={canManageCourses ? (c) => router.push(`/admin/courses/${c.id}`) : undefined}
-          onDuplicate={canManageCourses ? handleDuplicate : undefined}
-          onDelete={canManageCourses ? (c) => setDeleteDialog({ open: true, id: c.id }) : undefined}
-          onToggleStatus={canManageCourses ? handleToggleStatus : undefined} />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
+              {courses.map((course) =>
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onEdit={canManageCourses ? (c) => router.push(`/admin/courses/${c.id}`) : undefined}
+                  onDuplicate={canManageCourses ? handleDuplicate : undefined}
+                  onDelete={canManageCourses ? (c) => setDeleteDialog({ open: true, id: c.id }) : undefined}
+                  onToggleStatus={canManageCourses ? handleToggleStatus : undefined} />
 
-        )}
-          </div> :
+              )}
+            </div> :
 
 
-      <AdminDataTable
-        columns={columns}
-        data={courses}
-        loading={isLoading}
-        selectable
-        serverSide
-        totalRows={pagination?.total || 0}
-        pageCount={totalPages}
-        currentPage={page}
-        onPageChange={setPage}
-        onPageSizeChange={setLimit}
-        pageSize={limit}
-        onSelectionChange={(rows) => setSelectedIds(rows.map((row) => row.id))}
-        bulkActions={[
-        { label: "نشر", onClick: () => handleBatchAction("publish") },
-        { label: "إخفاء", variant: "outline", onClick: () => handleBatchAction("unpublish") },
-        { label: "تفعيل", variant: "outline", onClick: () => handleBatchAction("activate") },
-        { label: "إيقاف", variant: "outline", onClick: () => handleBatchAction("deactivate") },
-        { label: "حذف", variant: "destructive", onClick: () => handleBatchAction("delete") }]
-        }
-        actions={{ onRefresh: () => refetch() }}
-        emptyMessage={{
-          title: "لا توجد دورات مطابقة",
-          description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة."
-        }}
-        toolbar={
-        <AdminButton
-          variant="outline"
-          size="sm"
-          className="h-9 rounded-xl gap-2 font-bold"
-          onClick={handleExport}>
-          
+        <AdminDataTable
+          columns={columns}
+          data={courses}
+          loading={isLoading}
+          selectable
+          serverSide
+          totalRows={pagination?.total || 0}
+          pageCount={totalPages}
+          currentPage={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          pageSize={limit}
+          onSelectionChange={(rows) => setSelectedIds(rows.map((row) => row.id))}
+          bulkActions={[
+            { label: "نشر", onClick: () => handleBatchAction("publish") },
+            { label: "إخفاء", variant: "outline", onClick: () => handleBatchAction("unpublish") },
+            { label: "تفعيل", variant: "outline", onClick: () => handleBatchAction("activate") },
+            { label: "إيقاف", variant: "outline", onClick: () => handleBatchAction("deactivate") },
+            { label: "حذف", variant: "destructive", onClick: () => handleBatchAction("delete") }]
+          }
+          actions={{ onRefresh: () => refetch() }}
+          emptyMessage={{
+            title: "لا توجد دورات مطابقة",
+            description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة."
+          }}
+          toolbar={
+            <AdminButton
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl gap-2 font-bold"
+              onClick={handleExport}>
+
               <Download className="h-4 w-4" />
               تصدير الكل
             </AdminButton>
-        } />
+          } />
 
       }
 
       {/* Pagination for grid view */}
       {view === "grid" && totalPages > 1 &&
-      <div className="flex items-center justify-center gap-2 pt-4">
+        <div className="flex items-center justify-center gap-2 pt-4">
           <AdminButton
-          variant="outline"
-          size="sm"
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="h-10 w-10 rounded-xl p-0">
-          
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="h-10 w-10 rounded-xl p-0">
+
             <ChevronRight className="h-4 w-4" />
           </AdminButton>
           <div className="flex items-center gap-1">
             {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-            const pageNum = i + 1;
-            return (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={cn(
-                  "h-10 w-10 rounded-xl text-sm font-bold transition-all",
-                  pageNum === page ?
-                  "bg-primary text-primary-foreground shadow-md" :
-                  "hover:bg-muted text-muted-foreground"
-                )}>
-                
+              const pageNum = i + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={cn(
+                    "h-10 w-10 rounded-xl text-sm font-bold transition-all",
+                    pageNum === page ?
+                      "bg-primary text-primary-foreground shadow-md" :
+                      "hover:bg-muted text-muted-foreground"
+                  )}>
+
                   {pageNum}
                 </button>);
 
-          })}
+            })}
           </div>
           <AdminButton
-          variant="outline"
-          size="sm"
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          className="h-10 w-10 rounded-xl p-0">
-          
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="h-10 w-10 rounded-xl p-0">
+
             <ChevronLeft className="h-4 w-4" />
           </AdminButton>
         </div>
@@ -1028,7 +1031,7 @@ export default function AdminCoursesPage() {
             quickForm.reset(quickCourseDefaults);
           }
         }}>
-        
+
         <DialogContent className="max-w-5xl rounded-[2rem] p-0">
           <div className="grid max-h-[88vh] gap-0 overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
             {/* Form Side */}
@@ -1039,11 +1042,11 @@ export default function AdminCoursesPage() {
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground">
                   {editingCourse ?
-                  "عدّل البيانات الأساسية â€“ للتحكم الكامل توجّه لصفحة المحرر." :
-                  "أدخل البيانات الأساسية ثم أضف المنهج الدراسي والوسائط من صفحة الدورة."}
+                    "عدّل البيانات الأساسية â€“ للتحكم الكامل توجّه لصفحة المحرر." :
+                    "أدخل البيانات الأساسية ثم أضف المنهج الدراسي والوسائط من صفحة الدورة."}
                 </p>
                 {!editingCourse &&
-                <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <p className="text-xs font-bold text-primary">
                       بعد الإنشاء ستُوجِّه تلقائيًا لصفحة إضافة الفصول والدروس.
@@ -1056,46 +1059,46 @@ export default function AdminCoursesPage() {
                 <form
                   onSubmit={quickForm.handleSubmit(handleQuickSubmit)}
                   className="mt-6 space-y-5">
-                  
+
                   {/* Names */}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <FormField
                       control={quickForm.control}
                       name="nameAr"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">اسم الدورة بالعربية *</FormLabel>
                           <FormControl>
                             <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="مثال: أساسيات الرياضيات"
-                            className="h-11 rounded-xl" />
-                          
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="مثال: أساسيات الرياضيات"
+                              className="h-11 rounded-xl" />
+
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="name"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">Course Name (EN) *</FormLabel>
                           <FormControl>
                             <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="Math Fundamentals"
-                            dir="ltr"
-                            className="h-11 rounded-xl" />
-                          
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="Math Fundamentals"
+                              dir="ltr"
+                              className="h-11 rounded-xl" />
+
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                   </div>
 
                   {/* Code & Slug */}
@@ -1104,39 +1107,39 @@ export default function AdminCoursesPage() {
                       control={quickForm.control}
                       name="code"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">كود الدورة</FormLabel>
                           <FormControl>
                             <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="MATH-2026"
-                            className="h-11 rounded-xl" />
-                          
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="MATH-2026"
+                              className="h-11 rounded-xl" />
+
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="slug"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">الرابط المختصر</FormLabel>
                           <FormControl>
                             <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="math-fundamentals"
-                            dir="ltr"
-                            className="h-11 rounded-xl" />
-                          
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="math-fundamentals"
+                              dir="ltr"
+                              className="h-11 rounded-xl" />
+
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                   </div>
 
                   {/* Description */}
@@ -1144,20 +1147,20 @@ export default function AdminCoursesPage() {
                     control={quickForm.control}
                     name="description"
                     render={({ field }) =>
-                    <FormItem>
+                      <FormItem>
                         <FormLabel className="font-bold">الوصف</FormLabel>
                         <FormControl>
                           <Textarea
-                          {...field}
-                          value={field.value || ""}
-                          placeholder="ملخص واضح لما سيتعلمه الطالب داخل الدورة..."
-                          className="min-h-[90px] rounded-xl resize-none" />
-                        
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="ملخص واضح لما سيتعلمه الطالب داخل الدورة..."
+                            className="min-h-[90px] rounded-xl resize-none" />
+
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     } />
-                  
+
 
                   {/* Price, Hours, Level, Language */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1165,7 +1168,7 @@ export default function AdminCoursesPage() {
                       control={quickForm.control}
                       name="price"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">السعر (ج)</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} className="h-11 rounded-xl" />
@@ -1173,12 +1176,12 @@ export default function AdminCoursesPage() {
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="durationHours"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">الساعات</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} className="h-11 rounded-xl" />
@@ -1186,12 +1189,12 @@ export default function AdminCoursesPage() {
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="level"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">المستوى</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
@@ -1208,12 +1211,12 @@ export default function AdminCoursesPage() {
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="language"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">اللغة</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value || "ar"}>
                             <FormControl>
@@ -1229,7 +1232,7 @@ export default function AdminCoursesPage() {
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                   </div>
 
                   {/* Instructor & Category */}
@@ -1238,7 +1241,7 @@ export default function AdminCoursesPage() {
                       control={quickForm.control}
                       name="instructorId"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">المدرس</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
@@ -1248,21 +1251,21 @@ export default function AdminCoursesPage() {
                             </FormControl>
                             <SelectContent>
                               {teachers.map((t) =>
-                            <SelectItem key={t.id} value={t.id}>
+                                <SelectItem key={t.id} value={t.id}>
                                   {t.name}
                                 </SelectItem>
-                            )}
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="categoryId"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">التصنيف</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
@@ -1272,16 +1275,16 @@ export default function AdminCoursesPage() {
                             </FormControl>
                             <SelectContent>
                               {categories.map((cat) =>
-                            <SelectItem key={cat.id} value={cat.id}>
+                                <SelectItem key={cat.id} value={cat.id}>
                                   {cat.name}
                                 </SelectItem>
-                            )}
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                   </div>
 
                   {/* Media */}
@@ -1290,53 +1293,53 @@ export default function AdminCoursesPage() {
                       control={quickForm.control}
                       name="thumbnailUrl"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">صورة الغلاف</FormLabel>
                           <FormControl>
                             <div className="space-y-2">
                               <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="رابط مباشر للصورة"
-                              className="h-11 rounded-xl" />
-                            
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="رابط مباشر للصورة"
+                                className="h-11 rounded-xl" />
+
                               <AdminUpload
-                              accept="image/*"
-                              label="رفع صورة"
-                              onUploadComplete={(url) => field.onChange(url)} />
-                            
+                                accept="image/*"
+                                label="رفع صورة"
+                                onUploadComplete={(url) => field.onChange(url)} />
+
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                     <FormField
                       control={quickForm.control}
                       name="trailerUrl"
                       render={({ field }) =>
-                      <FormItem>
+                        <FormItem>
                           <FormLabel className="font-bold">فيديو تعريفي</FormLabel>
                           <FormControl>
                             <div className="space-y-2">
                               <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="رابط يوتيوب أو فيديو مباشر"
-                              className="h-11 rounded-xl" />
-                            
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="رابط يوتيوب أو فيديو مباشر"
+                                className="h-11 rounded-xl" />
+
                               <AdminUpload
-                              accept="video/*"
-                              label="رفع فيديو"
-                              maxSize={5 * 1024}
-                              onUploadComplete={(url) => field.onChange(url)} />
-                            
+                                accept="video/*"
+                                label="رفع فيديو"
+                                maxSize={5 * 1024}
+                                onUploadComplete={(url) => field.onChange(url)} />
+
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       } />
-                    
+
                   </div>
 
                   {/* Toggles */}
@@ -1351,7 +1354,7 @@ export default function AdminCoursesPage() {
                         <div
                           key={name}
                           className="flex items-center justify-between rounded-2xl border bg-muted/20 p-3.5">
-                          
+
                           <div>
                             <p className="text-sm font-black">{labels[name].title}</p>
                             <p className="text-[10px] text-muted-foreground">
@@ -1362,14 +1365,14 @@ export default function AdminCoursesPage() {
                             control={quickForm.control}
                             name={name}
                             render={({ field }) =>
-                            <FormControl>
+                              <FormControl>
                                 <Switch
-                                checked={field.value as boolean}
-                                onCheckedChange={field.onChange} />
-                              
+                                  checked={field.value as boolean}
+                                  onCheckedChange={field.onChange} />
+
                               </FormControl>
                             } />
-                          
+
                         </div>);
 
                     })}
@@ -1377,12 +1380,12 @@ export default function AdminCoursesPage() {
 
                   <DialogFooter className="gap-2 pt-2">
                     {editingCourse &&
-                    <AdminButton
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push(`/admin/courses/${editingCourse.id}`)}
-                      className="gap-2">
-                      
+                      <AdminButton
+                        type="button"
+                        variant="outline"
+                        onClick={() => router.push(`/admin/courses/${editingCourse.id}`)}
+                        className="gap-2">
+
                         <ExternalLink className="h-4 w-4" />
                         فتح المحرر الكامل
                       </AdminButton>
@@ -1391,11 +1394,11 @@ export default function AdminCoursesPage() {
                       type="submit"
                       disabled={isSubmitting}
                       className="flex-1 h-12 text-base font-black gap-2">
-                      
-                      {isSubmitting ?
-                      <Loader2 className="h-4 w-4 animate-spin" /> :
 
-                      <CheckCircle2 className="h-4 w-4" />
+                      {isSubmitting ?
+                        <Loader2 className="h-4 w-4 animate-spin" /> :
+
+                        <CheckCircle2 className="h-4 w-4" />
                       }
                       {editingCourse ? "حفظ التعديلات" : "إنشاء الدورة"}
                     </AdminButton>
@@ -1419,13 +1422,13 @@ export default function AdminCoursesPage() {
                 <div className="overflow-hidden rounded-[1.5rem] border bg-background shadow-sm">
                   <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
                     {quickForm.watch("thumbnailUrl") ?
-                    <img
-                      src={quickForm.watch("thumbnailUrl") || ""}
-                      alt="preview"
-                      className="h-full w-full object-cover" /> :
+                      <img
+                        src={quickForm.watch("thumbnailUrl") || ""}
+                        alt="preview"
+                        className="h-full w-full object-cover" /> :
 
 
-                    <div className="flex h-full items-center justify-center">
+                      <div className="flex h-full items-center justify-center">
                         <PlayCircle className="h-12 w-12 text-primary/30" />
                       </div>
                     }
@@ -1434,10 +1437,10 @@ export default function AdminCoursesPage() {
                         className={cn(
                           "rounded-lg text-[10px] font-black px-2 py-0.5 border",
                           quickForm.watch("isPublished") ?
-                          "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-                          "bg-orange-500/20 text-orange-400 border-orange-500/30"
+                            "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
+                            "bg-orange-500/20 text-orange-400 border-orange-500/30"
                         )}>
-                        
+
                         {quickForm.watch("isPublished") ? "منشورة" : "مسودة"}
                       </Badge>
                     </div>
@@ -1450,27 +1453,27 @@ export default function AdminCoursesPage() {
                           "rounded-full text-[11px]",
                           levelStyles[quickForm.watch("level")] || levelStyles.INTERMEDIATE
                         )}>
-                        
+
                         {levelLabels[quickForm.watch("level")] || "متوسط"}
                       </Badge>
                       <Badge
                         variant={quickForm.watch("isActive") ? "default" : "secondary"}
                         className="rounded-full text-[11px]">
-                        
+
                         {quickForm.watch("isActive") ? "نشطة" : "موقوفة"}
                       </Badge>
                     </div>
                     <p className="text-xs leading-6 text-muted-foreground line-clamp-3">
                       {quickForm.watch("description") ||
-                      "أضف وصفًا يوضح قيمة الدورة للطلاب..."}
+                        "أضف وصفًا يوضح قيمة الدورة للطلاب..."}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-xl bg-muted/40 p-3">
                         <p className="text-[10px] font-bold text-muted-foreground">السعر</p>
                         <p className="mt-1 text-lg font-black">
                           {quickForm.watch("price") === 0 ?
-                          "مجانية" :
-                          `${quickForm.watch("price")} ج`}
+                            "مجانية" :
+                            `${quickForm.watch("price")} ج`}
                         </p>
                       </div>
                       <div className="rounded-xl bg-muted/40 p-3">
@@ -1488,25 +1491,25 @@ export default function AdminCoursesPage() {
                   <ul className="space-y-1.5 text-[11px] text-muted-foreground">
                     <li className="flex items-center gap-2">
                       {quickForm.watch("thumbnailUrl") ?
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
 
-                      <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
+                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
                       }
                       صورة الغلاف
                     </li>
                     <li className="flex items-center gap-2">
                       {(quickForm.watch("description")?.length ?? 0) > 50 ?
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
 
-                      <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
+                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
                       }
                       وصف تفصيلي كافٍ
                     </li>
                     <li className="flex items-center gap-2">
                       {quickForm.watch("instructorId") ?
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
 
-                      <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
+                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
                       }
                       مدرس مرتبط
                     </li>
@@ -1528,7 +1531,7 @@ export default function AdminCoursesPage() {
             categoryForm.reset(defaultCategoryValues);
           }
         }}>
-        
+
         <DialogContent className="max-w-2xl rounded-[2rem] p-0">
           <div className="p-6 sm:p-8" dir="rtl">
             <DialogHeader className="space-y-2 text-right">
@@ -1544,65 +1547,65 @@ export default function AdminCoursesPage() {
               <form
                 onSubmit={categoryForm.handleSubmit(handleCategorySubmit)}
                 className="mt-6 space-y-5">
-                
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={categoryForm.control}
                     name="name"
                     render={({ field }) =>
-                    <FormItem>
+                      <FormItem>
                         <FormLabel className="font-bold">اسم التصنيف *</FormLabel>
                         <FormControl>
                           <Input
-                          {...field}
-                          value={field.value || ""}
-                          placeholder="مثال: الرياضيات"
-                          className="h-11 rounded-xl" />
-                        
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="مثال: الرياضيات"
+                            className="h-11 rounded-xl" />
+
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     } />
-                  
+
                   <FormField
                     control={categoryForm.control}
                     name="slug"
                     render={({ field }) =>
-                    <FormItem>
+                      <FormItem>
                         <FormLabel className="font-bold">الرابط المختصر</FormLabel>
                         <FormControl>
                           <Input
-                          {...field}
-                          value={field.value || ""}
-                          placeholder="mathematics"
-                          dir="ltr"
-                          className="h-11 rounded-xl" />
-                        
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="mathematics"
+                            dir="ltr"
+                            className="h-11 rounded-xl" />
+
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     } />
-                  
+
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={categoryForm.control}
                     name="icon"
                     render={({ field }) =>
-                    <FormItem>
+                      <FormItem>
                         <FormLabel className="font-bold">الأيقونة (اسم Lucide)</FormLabel>
                         <FormControl>
                           <Input
-                          {...field}
-                          value={field.value || ""}
-                          placeholder="BookOpen"
-                          className="h-11 rounded-xl" />
-                        
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="BookOpen"
+                            className="h-11 rounded-xl" />
+
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     } />
-                  
+
                   <div className="rounded-2xl border bg-muted/20 p-4">
                     <p className="text-xs font-black text-muted-foreground">الدورات المرتبطة</p>
                     <p className="mt-2 text-3xl font-black">{editingCategory?.coursesCount ?? 0}</p>
@@ -1612,31 +1615,31 @@ export default function AdminCoursesPage() {
                   control={categoryForm.control}
                   name="description"
                   render={({ field }) =>
-                  <FormItem>
+                    <FormItem>
                       <FormLabel className="font-bold">الوصف</FormLabel>
                       <FormControl>
                         <Textarea
-                        {...field}
-                        value={field.value || ""}
-                        className="min-h-[100px] rounded-xl"
-                        placeholder="وصف مختصر لهذا التصنيف..." />
-                      
+                          {...field}
+                          value={field.value || ""}
+                          className="min-h-[100px] rounded-xl"
+                          placeholder="وصف مختصر لهذا التصنيف..." />
+
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   } />
-                
+
                 <DialogFooter className="gap-2 sm:justify-between">
                   {editingCategory &&
-                  <AdminButton
-                    type="button"
-                    variant="ghost"
-                    className="text-red-500 hover:bg-red-500/10"
-                    onClick={() => {
-                      setCategoryDeleteDialog({ open: true, id: editingCategory.id });
-                      setCategoryDialogOpen(false);
-                    }}>
-                    
+                    <AdminButton
+                      type="button"
+                      variant="ghost"
+                      className="text-red-500 hover:bg-red-500/10"
+                      onClick={() => {
+                        setCategoryDeleteDialog({ open: true, id: editingCategory.id });
+                        setCategoryDialogOpen(false);
+                      }}>
+
                       حذف هذا التصنيف
                     </AdminButton>
                   }
@@ -1649,7 +1652,7 @@ export default function AdminCoursesPage() {
                         setEditingCategory(null);
                         categoryForm.reset(defaultCategoryValues);
                       }}>
-                      
+
                       إلغاء
                     </AdminButton>
                     <AdminButton type="submit" icon={editingCategory ? Pencil : Plus}>
@@ -1670,18 +1673,18 @@ export default function AdminCoursesPage() {
         onConfirm={handleDelete}
         title="حذف الدورة نهائيًا"
         description="سيتم حذف الدورة بشكل دائم إذا لم يكن هناك طلاب مسجلون. هذه العملية لا يمكن التراجع عنها." />
-      
+
       <ConfirmDialog
         open={categoryDeleteDialog.open}
         onOpenChange={(open) =>
-        setCategoryDeleteDialog({ open, id: open ? categoryDeleteDialog.id : null })
+          setCategoryDeleteDialog({ open, id: open ? categoryDeleteDialog.id : null })
         }
         onConfirm={handleCategoryDelete}
         title="حذف التصنيف"
         description="سيتم حذف التصنيف إذا لم يكن مرتبطًا بأي دورة."
         confirmText="حذف التصنيف"
         variant="destructive" />
-      
+
     </div>);
 
 }
