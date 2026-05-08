@@ -226,101 +226,87 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
 
 
 
-    // Enhanced keyboard navigation support
-
-    const handleKeyDown = useCallback((e: KeyboardEvent) => {
-
-        if (e.key === "Escape") {
-
-            onClose();
-
-        } else if (e.key === "ArrowDown" && !isSearchFocused) {
-
-            e.preventDefault();
-
-            if (focusedCategoryIndex === -1) {
-
-                setFocusedCategoryIndex(0);
-
-                setFocusedItemIndex(0);
-
-            } else {
-
-                const currentCategory = filteredCategories[focusedCategoryIndex];
-
-                if (currentCategory && focusedItemIndex < currentCategory.items.length - 1) {
-
-                    setFocusedItemIndex(prev => prev + 1);
-
-                } else if (focusedCategoryIndex < filteredCategories.length - 1) {
-
-                    setFocusedCategoryIndex(prev => prev + 1);
-
-                    setFocusedItemIndex(0);
-
-                }
-
-            }
-
-        } else if (e.key === "ArrowUp" && !isSearchFocused) {
-
-            e.preventDefault();
-
-            if (focusedItemIndex > 0) {
-
-                setFocusedItemIndex(prev => prev - 1);
-
-            } else if (focusedCategoryIndex > 0) {
-
-                const prevCategory = filteredCategories[focusedCategoryIndex - 1];
-
-                setFocusedCategoryIndex(prev => prev - 1);
-
-                setFocusedItemIndex(prevCategory ? prevCategory.items.length - 1 : 0);
-
-            }
-
-        } else if (e.key === "ArrowRight" && !isSearchFocused) {
-
-            e.preventDefault();
-
-            if (focusedCategoryIndex < filteredCategories.length - 1) {
-
-                setFocusedCategoryIndex(prev => prev + 1);
-
-                setFocusedItemIndex(0);
-
-            }
-
-        } else if (e.key === "ArrowLeft" && !isSearchFocused) {
-
-            e.preventDefault();
-
-            if (focusedCategoryIndex > 0) {
-
-                setFocusedCategoryIndex(prev => prev - 1);
-
-                setFocusedItemIndex(0);
-
-            }
-
-        } else if (e.key === "Enter" && focusedCategoryIndex >= 0 && focusedItemIndex >= 0 && !isSearchFocused) {
-
+    const handleArrowDown = useCallback(() => {
+        if (focusedCategoryIndex === -1) {
+            setFocusedCategoryIndex(0);
+            setFocusedItemIndex(0);
+        } else {
             const currentCategory = filteredCategories[focusedCategoryIndex];
-
-            const currentItem = currentCategory?.items[focusedItemIndex];
-
-            if (currentItem) {
-
-                saveRecentSearch(searchQuery);
-
-                window.location.href = currentItem.href;
-
+            if (currentCategory && focusedItemIndex < currentCategory.items.length - 1) {
+                setFocusedItemIndex(prev => prev + 1);
+            } else if (focusedCategoryIndex < filteredCategories.length - 1) {
+                setFocusedCategoryIndex(prev => prev + 1);
+                setFocusedItemIndex(0);
             }
+        }
+    }, [focusedCategoryIndex, focusedItemIndex, filteredCategories]);
 
+    const handleArrowUp = useCallback(() => {
+        if (focusedItemIndex > 0) {
+            setFocusedItemIndex(prev => prev - 1);
+        } else if (focusedCategoryIndex > 0) {
+            const prevCategory = filteredCategories[focusedCategoryIndex - 1];
+            setFocusedCategoryIndex(prev => prev - 1);
+            setFocusedItemIndex(prevCategory ? prevCategory.items.length - 1 : 0);
+        }
+    }, [focusedCategoryIndex, focusedItemIndex, filteredCategories]);
+
+    const handleArrowRight = useCallback(() => {
+        if (focusedCategoryIndex < filteredCategories.length - 1) {
+            setFocusedCategoryIndex(prev => prev + 1);
+            setFocusedItemIndex(0);
+        }
+    }, [focusedCategoryIndex, filteredCategories.length]);
+
+    const handleArrowLeft = useCallback(() => {
+        if (focusedCategoryIndex > 0) {
+            setFocusedCategoryIndex(prev => prev - 1);
+            setFocusedItemIndex(0);
+        }
+    }, [focusedCategoryIndex]);
+
+    const handleEnter = useCallback(() => {
+        if (focusedCategoryIndex >= 0 && focusedItemIndex >= 0) {
+            const currentCategory = filteredCategories[focusedCategoryIndex];
+            const currentItem = currentCategory?.items[focusedItemIndex];
+            if (currentItem) {
+                saveRecentSearch(searchQuery);
+                window.location.href = currentItem.href;
+            }
+        }
+    }, [focusedCategoryIndex, focusedItemIndex, filteredCategories, searchQuery, saveRecentSearch]);
+
+    // Enhanced keyboard navigation support
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+            onClose();
+            return;
         }
 
-    }, [onClose, isSearchFocused, focusedCategoryIndex, focusedItemIndex, filteredCategories, searchQuery, saveRecentSearch]);
+        if (isSearchFocused) return;
+
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                handleArrowDown();
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                handleArrowUp();
+                break;
+            case "ArrowRight":
+                e.preventDefault();
+                handleArrowRight();
+                break;
+            case "ArrowLeft":
+                e.preventDefault();
+                handleArrowLeft();
+                break;
+            case "Enter":
+                handleEnter();
+                break;
+        }
+    }, [onClose, isSearchFocused, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
 
 
 

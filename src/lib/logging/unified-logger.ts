@@ -236,6 +236,55 @@ class UnifiedLogger {
     return messageLevelIndex >= currentLevelIndex;
   }
 
+  private formatError(error: Error | unknown): string {
+    if (error === undefined) return '';
+    if (error instanceof Error) {
+      return `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ''}`;
+    }
+    if (typeof error === 'object' && error !== null) {
+      try {
+        return `\nError: ${JSON.stringify(error, null, 2)}`;
+      } catch (_e) {
+        return `\nError: ${String(error)}`;
+      }
+    }
+    return `\nError: ${String(error)}`;
+  }
+
+  private outputToStandardConsole(level: LogLevel, fullMessage: string): void {
+    switch (level) {
+      case 'debug':
+        if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
+        break;
+      case 'info':
+        console.info(fullMessage);
+        break;
+      case 'warn':
+        console.warn(fullMessage);
+        break;
+      case 'error':
+        console.error(fullMessage);
+        break;
+    }
+  }
+
+  private outputToWinston(winstonLogger: any, level: LogLevel, fullMessage: string): void {
+    switch (level) {
+      case 'debug':
+        if (process.env.NODE_ENV === 'development') winstonLogger.debug(fullMessage);
+        break;
+      case 'info':
+        winstonLogger.info(fullMessage);
+        break;
+      case 'warn':
+        winstonLogger.warn(fullMessage);
+        break;
+      case 'error':
+        winstonLogger.error(fullMessage);
+        break;
+    }
+  }
+
   /**
    * Log to console
    */
@@ -243,80 +292,21 @@ class UnifiedLogger {
     if (!this.config.enableConsole) return;
 
     const formattedMessage = this.formatMessage(level, message, context);
-    let errorStr = '';
-    if (error !== undefined) {
-      if (error instanceof Error) {
-        errorStr = `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ''}`;
-      } else if (typeof error === 'object' && error !== null) {
-        try {
-          errorStr = `\nError: ${JSON.stringify(error, null, 2)}`;
-        } catch (_e) {
-          errorStr = `\nError: ${String(error)}`;
-        }
-      } else {
-        errorStr = `\nError: ${String(error)}`;
-      }
-    }
-
+    const errorStr = this.formatError(error);
     const fullMessage = formattedMessage + errorStr;
 
-    if (isServer) {
-      // Use winston on server-side
-      try {
-        const winstonLogger = await getWinstonLogger();
-        if (winstonLogger) {
-          switch (level) {
-            case 'debug':
-              if (process.env.NODE_ENV === 'development') {
-                winstonLogger.debug(fullMessage);
-              }
-              break;
-            case 'info':
-              winstonLogger.info(fullMessage);
-              break;
-            case 'warn':
-              winstonLogger.warn(fullMessage);
-              break;
-            case 'error':
-              winstonLogger.error(fullMessage);
-              break;
-          }
-        }
-      } catch (_err) {
-        // Fallback to console if winston fails
-        switch (level) {
-          case 'debug':
-            if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
-            break;
-          case 'info':
-            console.info(fullMessage);
-            break;
-          case 'warn':
-            console.warn(fullMessage);
-            break;
-          case 'error':
-            console.error(fullMessage);
-            break;
-        }
+    if (!isServer) {
+      this.outputToStandardConsole(level, fullMessage);
+      return;
+    }
+
+    try {
+      const winstonLogger = await getWinstonLogger();
+      if (winstonLogger) {
+        this.outputToWinston(winstonLogger, level, fullMessage);
       }
-    } else {
-      // Use console on client-side
-      switch (level) {
-        case 'debug':
-          if (process.env.NODE_ENV === 'development') {
-            console.debug(fullMessage);
-          }
-          break;
-        case 'info':
-          console.info(fullMessage);
-          break;
-        case 'warn':
-          console.warn(fullMessage);
-          break;
-        case 'error':
-          console.error(fullMessage);
-          break;
-      }
+    } catch (_err) {
+      this.outputToStandardConsole(level, fullMessage);
     }
   }
 

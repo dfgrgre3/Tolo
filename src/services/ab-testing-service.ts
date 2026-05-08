@@ -137,7 +137,7 @@ const deleteExperiment = async (id: string): Promise<void> => {
 
 const getExperimentVariant = async (experimentId: string, userId: string): Promise<string> => {
   const hash = (experimentId + userId).split("").reduce((a, b) => {
-    a = ((a << 5) - a + b.charCodeAt(0)) | 0;
+    a = Math.trunc((a << 5) - a + b.charCodeAt(0));
     return a;
   }, 0);
   return hash % 2 === 0 ? "A" : "B";

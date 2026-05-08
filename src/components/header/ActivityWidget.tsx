@@ -91,25 +91,27 @@ export function ActivityWidget() {
   useEffect(() => {
     if (!mounted || !user) return;
 
+    const mapActivityItem = (item: any): ActivityItem => ({
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      description: item.description,
+      timestamp: new Date(item.timestamp),
+      read: item.read || false,
+      icon: getIcon(item.type),
+      color: getColor(item.type),
+      action: () => {
+        if (item.url) {
+          window.location.href = item.url;
+        }
+      }
+    });
+
     const fetchActivities = async () => {
       try {
         const data = await apiClient.get<any>("/activities/recent?limit=10");
         const rawActivities = Array.isArray(data) ? data : (data?.activities || []);
-        const items: ActivityItem[] = rawActivities.map((item: any) => ({
-          id: item.id,
-          type: item.type,
-          title: item.title,
-          description: item.description,
-          timestamp: new Date(item.timestamp),
-          read: item.read || false,
-          icon: getIcon(item.type),
-          color: getColor(item.type),
-          action: () => {
-            if (item.url) {
-              window.location.href = item.url;
-            }
-          }
-        }));
+        const items: ActivityItem[] = rawActivities.map(mapActivityItem);
         setActivities(items);
         setUnreadCount(items.filter((item) => !item.read).length);
       } catch (error) {

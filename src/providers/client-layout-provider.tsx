@@ -8,6 +8,28 @@ import { toast } from 'sonner';
 const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
 
+function restoreInputState(el: Element, data: any) {
+  if (el instanceof HTMLInputElement) {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      if (el.checked !== data.checked) {
+        el.checked = data.checked;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else if (el.type !== 'password' && el.type !== 'hidden') {
+      if (el.value !== data.value) {
+        el.value = data.value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    if (el.value !== data.value) {
+      el.value = data.value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+}
+
 export default function ClientLayoutProvider({ children }: {children: React.ReactNode;}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -119,26 +141,7 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
         Object.entries(savedInputs).forEach(([id, data]) => {
           const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
           if (!el || !(data && typeof data === 'object')) return;
-
-          if (el instanceof HTMLInputElement) {
-            if (el.type === 'checkbox' || el.type === 'radio') {
-              if (el.checked !== data.checked) {
-                el.checked = data.checked;
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            } else if (el.type !== 'password' && el.type !== 'hidden') {
-              if (el.value !== data.value) {
-                el.value = data.value;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-            }
-          } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
-            if (el.value !== data.value) {
-              el.value = data.value;
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          }
+          restoreInputState(el, data);
         });
       } catch (_e) {
         // Fail silently

@@ -25,10 +25,11 @@ func SetupAuthRoutes(router *gin.Engine) {
 		// Protected auth routes
 		auth.Use(middleware.Auth())
 		{
+			const sessionsPath = "/sessions"
 			auth.GET("/me", handlers.GetProfile)
-			auth.GET("/sessions", handlers.GetAuthSessions)
-			auth.DELETE("/sessions", handlers.DeleteAuthSession)
-			auth.PATCH("/sessions", handlers.UpdateAuthSession)
+			auth.GET(sessionsPath, handlers.GetAuthSessions)
+			auth.DELETE(sessionsPath, handlers.DeleteAuthSession)
+			auth.PATCH(sessionsPath, handlers.UpdateAuthSession)
 			auth.GET("/security-logs", handlers.GetSecurityLogs)
 		}
 	}

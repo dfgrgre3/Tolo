@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -12,6 +12,14 @@ type ScrollPosition = {
 };
 
 const STORAGE_PREFIX = "scroll-position:";
+
+const executeScroll = (x: number, y: number) => {
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
+			safeWindow((w) => w.scrollTo(x, y), undefined);
+		});
+	});
+};
 
 const ScrollRestoration = () => {
 	const pathname = usePathname();
@@ -49,11 +57,7 @@ const ScrollRestoration = () => {
 				const position = typeof storedValue === 'string' ? JSON.parse(storedValue) : storedValue;
 				const { x, y } = position as ScrollPosition;
 				// Use double rAF to ensure the DOM is ready before scrolling
-				requestAnimationFrame(() => {
-					requestAnimationFrame(() => {
-						safeWindow((w) => w.scrollTo(x, y), undefined);
-					});
-				});
+				executeScroll(x, y);
 			} catch {
 				// Ignore malformed values
 			}

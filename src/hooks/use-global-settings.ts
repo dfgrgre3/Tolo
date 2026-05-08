@@ -125,44 +125,44 @@ export function useGlobalSettings() {
     }
   }, [applyTheme, applyFontSize, applyColors, applyEfficiencyMode]);
 
+  const applyAppearanceSettings = useCallback((appearance: any) => {
+    if (!appearance) return;
+    const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode, efficiencyMode } = appearance;
+
+    if (theme) applyTheme(theme);
+    if (fontSize) applyFontSize(fontSize);
+    if (primaryColor && accentColor) applyColors(primaryColor, accentColor);
+    if (reducedMotion !== undefined) applyReducedMotion(reducedMotion);
+    if (highContrast !== undefined) applyHighContrast(highContrast);
+    if (compactMode !== undefined) applyCompactMode(compactMode);
+    if (efficiencyMode !== undefined) applyEfficiencyMode(efficiencyMode);
+  }, [applyTheme, applyFontSize, applyColors, applyReducedMotion, applyHighContrast, applyCompactMode, applyEfficiencyMode]);
+
+  const applyLanguageSettings = useCallback((languagePrefs: any) => {
+    if (!languagePrefs) return;
+    const { language, numberFormat } = languagePrefs;
+    if (language) applyLanguage(language);
+    if (numberFormat) applyNumberFormat(numberFormat);
+  }, [applyLanguage, applyNumberFormat]);
+
   // تحميل الإعدادات من الـ server عند تسجيل الدخول
   const loadAndApplyServerSettings = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       const response = await apiClient.get<any>(apiRoutes.settings.preferences);
-
       const preferences = response?.preferences || response;
 
       if (!preferences) return;
 
-
-      // تطبيق إعدادات المظهر
-      if (preferences.appearance) {
-        const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode, efficiencyMode } =
-          preferences.appearance;
-
-        if (theme) applyTheme(theme);
-        if (fontSize) applyFontSize(fontSize);
-        if (primaryColor && accentColor) applyColors(primaryColor, accentColor);
-        if (reducedMotion !== undefined) applyReducedMotion(reducedMotion);
-        if (highContrast !== undefined) applyHighContrast(highContrast);
-        if (compactMode !== undefined) applyCompactMode(compactMode);
-        if (efficiencyMode !== undefined) applyEfficiencyMode(efficiencyMode);
-      }
-
-      // تطبيق إعدادات اللغة
-      if (preferences.language) {
-        const { language, numberFormat } = preferences.language;
-        if (language) applyLanguage(language);
-        if (numberFormat) applyNumberFormat(numberFormat);
-      }
+      applyAppearanceSettings(preferences.appearance);
+      applyLanguageSettings(preferences.language);
 
       settingsLoadedRef.current = true;
     } catch (err) {
       logger.warn('[useGlobalSettings] Failed to load server settings:', err);
     }
-  }, [user?.id, applyTheme, applyFontSize, applyColors, applyLanguage, applyNumberFormat, applyReducedMotion, applyHighContrast, applyCompactMode]);
+  }, [user?.id, applyAppearanceSettings, applyLanguageSettings]);
 
   // عند التحميل الأول: تطبيق الإعدادات المحلية فوراً
   useEffect(() => {

@@ -80,12 +80,7 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
 }
 
 class ApiClient {
-    public async fetch(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<Response> {
-        const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
-
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-
+    private buildHeaders(customOptions: RequestInit): Headers {
         const headers = new Headers({
             ...(customOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             ...customOptions.headers,
@@ -98,6 +93,36 @@ class ApiClient {
                 headers.set('X-CSRF-Token', csrfToken);
             }
         }
+        return headers;
+    }
+
+    private resetAuthStore(): void {
+        if (typeof window !== 'undefined') {
+            import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
+                useAuthStore.getState().reset();
+            }).catch(() => {});
+        }
+    }
+
+    private logNetworkError(error: unknown, endpoint: string): void {
+        import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
+            errorManager.handleNetworkError(error, endpoint);
+        }).catch(() => {});
+    }
+
+    private isRetryableError(error: unknown, retryCount: number, retries: number): boolean {
+        const errName = (error as { name?: string })?.name;
+        const errMsg = (error as { message?: string })?.message;
+        return !!((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries);
+    }
+
+    public async fetch(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<Response> {
+        const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
+
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+
+        const headers = this.buildHeaders(customOptions);
 
         try {
             const url = normalizeEndpoint(endpoint);
@@ -117,12 +142,7 @@ class ApiClient {
                 if (refreshed) {
                     return this.fetch(endpoint, options, retryCount + 1);
                 }
-
-                if (typeof window !== 'undefined') {
-                    import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
-                        useAuthStore.getState().reset();
-                    }).catch(() => {});
-                }
+                this.resetAuthStore();
             }
 
             const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
@@ -135,20 +155,34 @@ class ApiClient {
         } catch (error: unknown) {
             clearTimeout(id);
 
-            const errName = (error as { name?: string })?.name;
-            const errMsg = (error as { message?: string })?.message;
-
-            if ((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries) {
+            if (this.isRetryableError(error, retryCount, retries)) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.fetch(endpoint, options, retryCount + 1);
             }
 
-            import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
-                errorManager.handleNetworkError(error, endpoint);
-            }).catch(() => {});
-
+            this.logNetworkError(error, endpoint);
             throw error;
         }
+    }
+
+    private async handleApiErrorResponse(response: Response, retryCount: number, retries: number): Promise<boolean> {
+        let errorMessage = `Server error: ${response.statusText}`;
+        let errorCode = 'HTTP_ERROR';
+        let errorData: any = null;
+        
+        const responseText = await response.text();
+        try {
+            errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorData.message || errorMessage;
+            errorCode = errorData.code || errorCode;
+        } catch {
+            if (responseText) errorMessage = responseText;
+        }
+
+        const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
+        if (shouldRetry) return true;
+
+        throw new ApiError(errorMessage, response.status, errorCode, errorData);
     }
 
     private async request<T>(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<T> {
@@ -157,33 +191,7 @@ class ApiClient {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeout);
 
-        const headers = new Headers({
-            'Content-Type': 'application/json',
-            ...customOptions.headers,
-        });
-
-        // Add CSRF token for state-changing requests in browser
-        if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET')) {
-            const csrfToken = this.getCookie('_csrf');
-            if (csrfToken) {
-                headers.set('X-CSRF-Token', csrfToken);
-            }
-        }
-
-
-        // Developer Bypass for Admin Routes
-        // Disabled by default to allow real authentication to work.
-        /*
-        const isDev = process.env.NODE_ENV === 'development' || 
-                      (typeof window !== 'undefined' && (
-                        window.location.hostname === 'localhost' || 
-                        window.location.hostname === '127.0.0.1'
-                      ));
-
-        if (isDev) {
-            headers.set('X-Dev-Admin-Bypass', 'true');
-        }
-        */
+        const headers = this.buildHeaders(customOptions);
 
         try {
             const url = normalizeEndpoint(endpoint);
@@ -207,37 +215,15 @@ class ApiClient {
                     return this.request<T>(endpoint, options, retryCount + 1);
                 }
                 
-                // If refresh failed, reset auth state (if in browser)
-                if (typeof window !== 'undefined') {
-                    import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
-                        useAuthStore.getState().reset();
-                    }).catch(() => {});
-                }
+                this.resetAuthStore();
             }
 
             if (!response.ok) {
-                let errorMessage = `Server error: ${response.statusText}`;
-                let errorCode = 'HTTP_ERROR';
-                let errorData: any = null;
-                
-                // Read response body once as text to avoid "body stream already read" errors
-                const responseText = await response.text();
-                try {
-                    errorData = JSON.parse(responseText);
-                    errorMessage = errorData.error || errorData.message || errorMessage;
-                    errorCode = errorData.code || errorCode;
-                } catch {
-                    // If JSON parsing fails, use the raw text response if available
-                    if (responseText) errorMessage = responseText;
-                }
-
-                const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
+                const shouldRetry = await this.handleApiErrorResponse(response, retryCount, retries);
                 if (shouldRetry) {
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                     return this.request<T>(endpoint, options, retryCount + 1);
                 }
-
-                throw new ApiError(errorMessage, response.status, errorCode, errorData);
             }
 
             // Check for empty response
@@ -253,20 +239,12 @@ class ApiClient {
 
             if (error instanceof ApiError) throw error;
 
-            const errName = (error as { name?: string })?.name;
-            const errMsg = (error as { message?: string })?.message;
-
-            // Timeout or Network Retry
-            if ((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries) {
+            if (this.isRetryableError(error, retryCount, retries)) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.request<T>(endpoint, options, retryCount + 1);
             }
 
-            // Handle to centralized ErrorManager (lazy import to avoid circular deps)
-            import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
-                errorManager.handleNetworkError(error, endpoint);
-            }).catch(() => { /* silently ignore if ErrorManager fails to load */ });
-
+            this.logNetworkError(error, endpoint);
             throw error;
         }
     }

@@ -17,7 +17,7 @@
 \set PENDING_STATUS 'PENDING'
 \set MEDIUM_VAL 'MEDIUM'
 \set DRAFT_STATUS 'DRAFT'
-\set COURSE_TYPE 'COURSE'
+\set COURSE_TYPE '''COURSE'''
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -91,7 +91,7 @@ CREATE TYPE public.AddonType AS ENUM (
 CREATE TYPE public.CategoryType AS ENUM (
     'BLOG',
     'FORUM',
-    :'COURSE_TYPE'
+    :COURSE_TYPE
 );
 
 
@@ -959,7 +959,7 @@ CREATE TABLE public."Category" (
     description text,
     slug text NOT NULL,
     icon text,
-    type text DEFAULT :'COURSE_TYPE'::text,
+    type text DEFAULT :COURSE_TYPE::text,
     "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" timestamp with time zone,
     deleted_at timestamp with time zone,
@@ -2124,7 +2124,7 @@ CREATE TABLE public."Subject" (
     description text,
     icon text,
     color text DEFAULT '#3b82f6'::text,
-    type text DEFAULT :'COURSE_TYPE'::text,
+    type text DEFAULT :COURSE_TYPE::text,
     is_active boolean DEFAULT true CONSTRAINT "Subject_isActive_not_null" NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone,

@@ -209,56 +209,140 @@ class ErrorBoundary extends Component<Props, State> {
     window.open(`mailto:support@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
+  renderComponentVariant() {
+    const { error, retryCount } = this.state;
+    const { showDetails, className = "" } = this.props;
+    
+    return (
+      <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl bg-red-50/50 dark:bg-red-950/20 text-center animate-in fade-in zoom-in duration-300 ${className}`} dir="rtl">
+        <div className="relative mb-4">
+          <div className="absolute inset-0 bg-red-500/10 rounded-full blur-lg animate-pulse"></div>
+          <AlertTriangle className="relative h-10 w-10 text-red-500" />
+        </div>
+        
+        <h3 className="text-lg font-bold mb-1">حدث خطأ في هذا الجزء</h3>
+        <p className="text-xs text-muted-foreground mb-4 max-w-xs">
+          واجهنا مشكلة في تحميل هذا المكون. يمكنك محاولة إعادة التحميل.
+        </p>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={this.handleRetry}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors"
+            disabled={retryCount >= (this.props.maxRetries || 3)}>
+            
+            <RefreshCw className={`h-3 w-3 ${retryCount > 0 ? 'animate-spin' : ''}`} />
+            {retryCount > 0 ? `محاولة (${retryCount})` : 'إعادة المحاولة'}
+          </button>
+          
+          {showDetails &&
+          <details className="mt-2 text-right">
+              <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-red-500 underline">
+                التفاصيل
+              </summary>
+              <div className="mt-2 p-2 bg-background border rounded text-[10px] text-red-600 font-mono overflow-auto max-w-[250px]">
+                {error?.message}
+              </div>
+            </details>
+          }
+        </div>
+      </div>
+    );
+  }
+
+  renderGlobalVariant(isHydrationError: boolean) {
+    const { error, errorId, retryCount } = this.state;
+    const { className = "" } = this.props;
+    
+    return (
+      <div className={`min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 ${className}`} dir="rtl">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <div className={`flex items-center justify-center h-16 w-16 rounded-full ${isHydrationError ? 'bg-yellow-100' : 'bg-red-100'}`}>
+              {isHydrationError ?
+              <RefreshCw className="h-8 w-8 text-yellow-600 animate-spin-slow" aria-hidden="true" /> :
+              <AlertTriangle className="h-8 w-8 text-red-600" aria-hidden="true" />
+              }
+            </div>
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {isHydrationError ? 'خطأ في مزامنة البيانات' : 'حدث خطأ غير متوقع'}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            {isHydrationError ?
+            'فشل التطبيق في المزامنة بين الخادم والمتصفح. جاري محاولة الإصلاح...' :
+            'نعتذر عن هذا الإزعاج. فريقنا يعمل على حل المشكلة.'}
+          </p>
+          {errorId &&
+          <p className="mt-1 text-center text-xs text-gray-500">
+              رمز الخطأ: {errorId}
+            </p>
+          }
+        </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={this.handleRetry}
+                  className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  
+                  <RefreshCw className={`ml-2 h-4 w-4 ${retryCount > 0 ? 'animate-spin' : ''}`} />
+                  إعادة المحاولة {retryCount > 0 && `(${retryCount})`}
+                </button>
+
+                <button
+                  onClick={this.handleGoHome}
+                  className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  
+                  <Home className="ml-2 h-4 w-4" />
+                  العودة للصفحة الرئيسية
+                </button>
+
+                {!isHydrationError &&
+                <button
+                  onClick={this.handleReportError}
+                  className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  
+                    <MessageCircle className="ml-2 h-4 w-4" />
+                    إبلاغ عن المشكلة
+                  </button>
+                }
+              </div>
+
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-gray-700">
+                  تفاصيل الخطأ (للمطورين)
+                </summary>
+                <div className="mt-2 p-3 bg-gray-100 rounded-md text-xs text-gray-800 overflow-auto max-h-40">
+                  <p className="font-semibold">{error?.toString()}</p>
+                  <pre className="whitespace-pre-wrap mt-2">{error?.stack}</pre>
+                  {this.state.errorInfo &&
+                  <pre className="whitespace-pre-wrap mt-2">{this.state.errorInfo.componentStack}</pre>
+                  }
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   render() {
-    const { hasError, error, errorId, retryCount } = this.state;
-    const { children, fallback, showErrorPage, errorType, showDetails, className = "", variant = "global" } = this.props;
+    const { hasError, error, errorId } = this.state;
+    const { children, fallback, showErrorPage, errorType, showDetails, variant = "global" } = this.props;
 
     if (hasError) {
-      // If custom fallback is provided, use it
       if (fallback) {
         return fallback;
       }
 
-      // If variant is 'component' or it's localized
       if (variant === 'component') {
-        return (
-          <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl bg-red-50/50 dark:bg-red-950/20 text-center animate-in fade-in zoom-in duration-300 ${className}`} dir="rtl">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 bg-red-500/10 rounded-full blur-lg animate-pulse"></div>
-              <AlertTriangle className="relative h-10 w-10 text-red-500" />
-            </div>
-            
-            <h3 className="text-lg font-bold mb-1">حدث خطأ في هذا الجزء</h3>
-            <p className="text-xs text-muted-foreground mb-4 max-w-xs">
-              واجهنا مشكلة في تحميل هذا المكون. يمكنك محاولة إعادة التحميل.
-            </p>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={this.handleRetry}
-                className="flex items-center gap-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors"
-                disabled={retryCount >= (this.props.maxRetries || 3)}>
-                
-                <RefreshCw className={`h-3 w-3 ${retryCount > 0 ? 'animate-spin' : ''}`} />
-                {retryCount > 0 ? `محاولة (${retryCount})` : 'إعادة المحاولة'}
-              </button>
-              
-              {showDetails &&
-              <details className="mt-2 text-right">
-                  <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-red-500 underline">
-                    التفاصيل
-                  </summary>
-                  <div className="mt-2 p-2 bg-background border rounded text-[10px] text-red-600 font-mono overflow-auto max-w-[250px]">
-                    {error?.message}
-                  </div>
-                </details>
-              }
-            </div>
-          </div>);
-
+        return this.renderComponentVariant();
       }
 
-      // Use custom error page if enabled
       if (showErrorPage) {
         return (
           <ErrorPage
@@ -267,91 +351,17 @@ class ErrorBoundary extends Component<Props, State> {
             error={error || undefined}
             showDetails={showDetails}
             onRetry={this.handleRetry}
-            onGoHome={this.handleGoHome} />);
-
-
+            onGoHome={this.handleGoHome} />
+        );
       }
 
-      const isHydrationError = error?.message.toLowerCase().includes('hydration') ||
-      error?.message.toLowerCase().includes('server') ||
-      error?.message.toLowerCase().includes('client');
+      const isHydrationError = Boolean(
+        error?.message.toLowerCase().includes('hydration') ||
+        error?.message.toLowerCase().includes('server') ||
+        error?.message.toLowerCase().includes('client')
+      );
 
-      // Default high-quality error UI (Global Variant)
-      return (
-        <div className={`min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 ${className}`} dir="rtl">
-          <div className="sm:mx-auto sm:w-full sm:max-w-md">
-            <div className="flex justify-center">
-              <div className={`flex items-center justify-center h-16 w-16 rounded-full ${isHydrationError ? 'bg-yellow-100' : 'bg-red-100'}`}>
-                {isHydrationError ?
-                <RefreshCw className="h-8 w-8 text-yellow-600 animate-spin-slow" aria-hidden="true" /> :
-
-                <AlertTriangle className="h-8 w-8 text-red-600" aria-hidden="true" />
-                }
-              </div>
-            </div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              {isHydrationError ? 'خطأ في مزامنة البيانات' : 'حدث خطأ غير متوقع'}
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              {isHydrationError ?
-              'فشل التطبيق في المزامنة بين الخادم والمتصفح. جاري محاولة الإصلاح...' :
-              'نعتذر عن هذا الإزعاج. فريقنا يعمل على حل المشكلة.'}
-            </p>
-            {errorId &&
-            <p className="mt-1 text-center text-xs text-gray-500">
-                رمز الخطأ: {errorId}
-              </p>
-            }
-          </div>
-
-          <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-3">
-                  <button
-                    onClick={this.handleRetry}
-                    className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    
-                    <RefreshCw className={`ml-2 h-4 w-4 ${retryCount > 0 ? 'animate-spin' : ''}`} />
-                    إعادة المحاولة {retryCount > 0 && `(${retryCount})`}
-                  </button>
-
-                  <button
-                    onClick={this.handleGoHome}
-                    className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    
-                    <Home className="ml-2 h-4 w-4" />
-                    العودة للصفحة الرئيسية
-                  </button>
-
-                  {!isHydrationError &&
-                  <button
-                    onClick={this.handleReportError}
-                    className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    
-                      <MessageCircle className="ml-2 h-4 w-4" />
-                      إبلاغ عن المشكلة
-                    </button>
-                  }
-                </div>
-
-                <details className="mt-4">
-                  <summary className="cursor-pointer text-sm font-medium text-gray-700">
-                    تفاصيل الخطأ (للمطورين)
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-100 rounded-md text-xs text-gray-800 overflow-auto max-h-40">
-                    <p className="font-semibold">{error?.toString()}</p>
-                    <pre className="whitespace-pre-wrap mt-2">{error?.stack}</pre>
-                    {this.state.errorInfo &&
-                    <pre className="whitespace-pre-wrap mt-2">{this.state.errorInfo.componentStack}</pre>
-                    }
-                  </div>
-                </details>
-              </div>
-            </div>
-          </div>
-        </div>);
-
+      return this.renderGlobalVariant(isHydrationError);
     }
 
     return children;

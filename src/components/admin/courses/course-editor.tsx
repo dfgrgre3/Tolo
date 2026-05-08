@@ -247,20 +247,14 @@ export function CourseEditor({
     setIsSubmitting(true);
     try {
       const isEdit = !!courseId;
-      const result = await (isEdit 
-        ? apiClient.patch<any>(`/admin/courses`, {
-            id: initialData.id,
+      const payload = {
+            ...(isEdit && initialData?.id ? { id: initialData.id } : {}),
             ...values,
             coursePrerequisites: values.coursePrerequisites || values.requirements || "",
             targetAudience: values.targetAudience || "",
             whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
-          })
-        : apiClient.post<any>(`/admin/courses`, {
-            ...values,
-            coursePrerequisites: values.coursePrerequisites || values.requirements || "",
-            targetAudience: values.targetAudience || "",
-            whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
-          }));
+          };
+      const result = await (isEdit ? apiClient.patch<any>(`/admin/courses`, payload) : apiClient.post<any>(`/admin/courses`, payload));
 
       if (result) {
         toast.success(
@@ -300,16 +294,19 @@ export function CourseEditor({
 
   const trailerUrl = form.watch("trailerUrl");
   const trailerDurationMinutes = form.watch("trailerDurationMinutes");
-  const isDirectVideo =
-    !!trailerUrl &&
-    (/^\/uploads\//.test(trailerUrl) ||
-      /\.(mp4|webm|ogg|mov|avi|mkv|mpeg)(\?.*)?$/i.test(trailerUrl));
-  const youtubeMatch = trailerUrl?.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/i,
-  );
-  const youtubeEmbedUrl = youtubeMatch
-    ? `https://www.youtube.com/embed/${youtubeMatch[1]}`
-    : null;
+  const { isDirectVideo, youtubeEmbedUrl } = React.useMemo(() => {
+    const isDirectVideo =
+      !!trailerUrl &&
+      (/^\/uploads\//.test(trailerUrl) ||
+        /\.(mp4|webm|ogg|mov|avi|mkv|mpeg)(\?.*)?$/i.test(trailerUrl));
+    const youtubeMatch = trailerUrl?.match(
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/i,
+    );
+    const youtubeEmbedUrl = youtubeMatch
+      ? `https://www.youtube.com/embed/${youtubeMatch[1]}`
+      : null;
+    return { isDirectVideo, youtubeEmbedUrl };
+  }, [trailerUrl]);
 
   const generateWithAI = async (field: "description" | "seoDescription") => {
     const name = form.getValues("nameAr") || form.getValues("name");

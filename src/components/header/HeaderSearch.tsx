@@ -58,25 +58,90 @@ interface HeaderSearchProps {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+export interface SearchResult {
+	id: string;
+	title: string;
+	url: string;
+	type: string;
+	description?: string;
+	category?: string;
+}
+
+const DesktopSearchResultItem = ({
+	result,
+	index,
+	isSelected,
+	onSelect,
+	onClick
+}: {
+	result: SearchResult;
+	index: number;
+	isSelected: boolean;
+	onSelect: (index: number) => void;
+	onClick: (result: SearchResult) => void;
+}) => {
+	const IconComponent = result.type === "course" ? BookOpen :
+		result.type === "teacher" ? Users :
+		result.type === "forum" ? MessageSquare :
+		FileText;
+		
+	return (
+		<button
+			type="button"
+			onClick={() => onClick(result)}
+			onMouseEnter={() => onSelect(index)}
+			className={cn(
+				"w-full text-right px-4 py-3 transition-all duration-150 flex items-center gap-3 border-b border-border/50 dark:border-border/50 last:border-0",
+				isSelected
+					? "bg-primary/10 dark:bg-primary/20 border-r-2 border-r-primary dark:border-r-primary"
+					: "hover:bg-accent/80 dark:hover:bg-accent/60"
+			)}
+		>
+			<div className={cn(
+				"p-2 rounded-lg transition-all duration-150",
+				result.type === "course" && "bg-blue-100 dark:bg-blue-900/40",
+				result.type === "teacher" && "bg-orange-100 dark:bg-orange-900/40",
+				result.type === "forum" && "bg-green-100 dark:bg-green-900/40",
+				result.type === "exam" && "bg-purple-100 dark:bg-purple-900/40",
+				isSelected && "scale-110"
+			)}>
+				<IconComponent className={cn(
+					"h-4 w-4 transition-colors",
+					result.type === "course" && "text-blue-600 dark:text-blue-400",
+					result.type === "teacher" && "text-orange-600 dark:text-orange-400",
+					result.type === "forum" && "text-green-600 dark:text-green-400",
+					result.type === "exam" && "text-purple-600 dark:text-purple-400"
+				)} />
+			</div>
+			<div className="flex-1 text-right min-w-0">
+				<p className={cn(
+					"text-sm font-medium truncate transition-colors",
+					isSelected && "text-primary dark:text-primary"
+				)}>{result.title}</p>
+				{result.description && (
+					<p className="text-xs text-muted-foreground dark:text-muted-foreground truncate mt-0.5">
+						{result.description}
+					</p>
+				)}
+				{result.category && (
+					<span className="inline-block mt-1 text-xs text-muted-foreground dark:text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30">
+						{result.category}
+					</span>
+				)}
+			</div>
+			<ChevronDown className={cn(
+				"h-4 w-4 flex-shrink-0 rotate-90 transition-colors",
+				isSelected ? "text-primary dark:text-primary" : "text-muted-foreground dark:text-muted-foreground"
+			)} />
+		</button>
+	);
+};
+
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const router = useRouter();
 	const { isEfficiencyMode, toggleEfficiencyMode } = useEfficiency();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	interface SearchResult {
-		id: string;
-		title: string;
-		url: string;
-
-		type: string;
-
-		description?: string;
-
-		category?: string;
-
-	}
-
-
 
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
@@ -190,205 +255,117 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 
 
-	// Perform search with adaptive debounce
-
-	const performSearch = useCallback(async (query: string, scope: string) => {
-
-		if (!query.trim()) {
-
-			setSearchResults([]);
-
-			setShowSearchSuggestions(false);
-
-			setSelectedResultIndex(-1);
-
-			return;
-
-		}
-
-
-
-		const cacheKey = `${query.trim()}_${scope}`;
-
-		const cached = searchCacheRef.current.get(cacheKey);
-
+	const updateSearchCache = useCallback((cacheKey: string, results: SearchResult[]) => {
+		searchCacheRef.current.set(cacheKey, {
+			results,
+			timestamp: Date.now(),
+		});
 		
+		if (searchCacheRef.current.size > 50) {
+			const firstKey = searchCacheRef.current.keys().next().value;
+			if (firstKey) {
+				searchCacheRef.current.delete(firstKey);
+			}
+		}
+	}, []);
 
-		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+	const updateRecentSearches = useCallback((query: string) => {
+		if (query && !recentSearches.includes(query)) {
+			const updated = [query, ...recentSearches.slice(0, 4)];
+			setRecentSearches(updated);
+			try {
+				safeSetItem("header_recent_searches", updated);
+			} catch (error) {
+				logger.debug("Error saving recent searches:", error);
+			}
+		}
+	}, [recentSearches]);
 
-			setSearchResults(cached.results);
+	const handleSearchError = useCallback((error: unknown, query: string, scope: string) => {
+		const errorMessage = error instanceof Error 
+			? error.message 
+			: "فشل في جلب نتائج البحث";
+		
+		errorManager.handleError(
+			error instanceof Error ? error : new Error(errorMessage),
+			{
+				showToast: true,
+				logToConsole: true,
+				severity: "medium",
+				context: {
+					source: "Header_Search",
+					query: query,
+					scope: scope,
+				}
+			},
+			{
+				title: "خطأ في البحث",
+				description: "تعذر جلب نتائج البحث. يرجى المحاولة مرة أخرى.",
+				action: {
+					label: "إعادة المحاولة",
+					onClick: () => {
+						setSearchQuery("");
+						setTimeout(() => setSearchQuery(query), 100);
+					}
+				},
+				duration: 5000
+			}
+		);
+		
+		setSearchResults([]);
+		setShowSearchSuggestions(false);
+	}, []);
 
-			setShowSearchSuggestions(cached.results.length > 0);
-
-			setIsSearching(false);
-
+	// Perform search with adaptive debounce
+	const performSearch = useCallback(async (rawQuery: string, scope: string) => {
+		const query = rawQuery.trim();
+		if (!query) {
+			setSearchResults([]);
+			setShowSearchSuggestions(false);
+			setSelectedResultIndex(-1);
 			return;
-
 		}
 
-
+		const cacheKey = `${query}_${scope}`;
+		const cached = searchCacheRef.current.get(cacheKey);
+		
+		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+			setSearchResults(cached.results);
+			setShowSearchSuggestions(cached.results.length > 0);
+			setIsSearching(false);
+			return;
+		}
 
 		setIsSearching(true);
-
 		try {
-
 			const response = await fetch(
-
-				`/api/search?q=${encodeURIComponent(query.trim())}&scope=${scope}&limit=8`
-
+				`/api/search?q=${encodeURIComponent(query)}&scope=${scope}&limit=8`
 			);
-
 			if (response.ok) {
-
 				const data = await response.json();
-
 				const results = data.results || [];
-
 				
-
-				searchCacheRef.current.set(cacheKey, {
-
-					results,
-
-					timestamp: Date.now(),
-
-				});
-
+				updateSearchCache(cacheKey, results);
 				
-
-				if (searchCacheRef.current.size > 50) {
-
-					const firstKey = searchCacheRef.current.keys().next().value;
-
-					if (firstKey) {
-
-						searchCacheRef.current.delete(firstKey);
-
-					}
-
-				}
-
-				
-
 				setSearchResults(results);
-
 				setShowSearchSuggestions(results.length > 0);
-
 				
-
 				// Pre-cache for service worker
-
 				if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-
-					preCacheSearch(query.trim(), scope).catch(() => {
-
-						// Silently fail
-
-					});
-
+					preCacheSearch(query, scope).catch(() => {});
 				}
-
 				
-
-				if (query.trim() && !recentSearches.includes(query.trim())) {
-
-					const updated = [query.trim(), ...recentSearches.slice(0, 4)];
-
-					setRecentSearches(updated);
-
-					try {
-
-						safeSetItem("header_recent_searches", updated);
-
-					} catch (error) {
-
-						logger.debug("Error saving recent searches:", error);
-
-					}
-
-				}
-
+				updateRecentSearches(query);
 			} else {
-
 				setSearchResults([]);
-
 				setShowSearchSuggestions(false);
-
 			}
-
 		} catch (error) {
-
-			const errorMessage = error instanceof Error 
-
-				? error.message 
-
-				: "فشل في جلب نتائج البحث";
-
-			
-
-			errorManager.handleError(
-
-				error instanceof Error ? error : new Error(errorMessage),
-
-				{
-
-					showToast: true,
-
-					logToConsole: true,
-
-					severity: "medium",
-
-					context: {
-
-						source: "Header_Search",
-
-						query: query.trim(),
-
-						scope: scope,
-
-					}
-
-				},
-
-				{
-
-					title: "خطأ في البحث",
-
-					description: "تعذر جلب نتائج البحث. يرجى المحاولة مرة أخرى.",
-
-					action: {
-
-						label: "إعادة المحاولة",
-
-						onClick: () => {
-
-							setSearchQuery("");
-
-							setTimeout(() => setSearchQuery(query.trim()), 100);
-
-						}
-
-					},
-
-					duration: 5000
-
-				}
-
-			);
-
-			
-
-			setSearchResults([]);
-
-			setShowSearchSuggestions(false);
-
+			handleSearchError(error, query, scope);
 		} finally {
-
 			setIsSearching(false);
-
 		}
-
-	}, [recentSearches]);
+	}, [updateSearchCache, updateRecentSearches, handleSearchError]);
 
 
 
@@ -1113,123 +1090,16 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 										<div className="py-1">
 
-											{searchResults.map((result, index) => {
-
-												const IconComponent = result.type === "course" ? BookOpen :
-
-													result.type === "teacher" ? Users :
-
-													result.type === "forum" ? MessageSquare :
-
-													FileText;
-
-												const isSelected = selectedResultIndex === index;
-
-												
-
-												return (
-
-													<button
-
-														key={result.id}
-
-														type="button"
-
-														onClick={() => handleSearchResultClick(result)}
-
-														onMouseEnter={() => setSelectedResultIndex(index)}
-
-														className={cn(
-
-															"w-full text-right px-4 py-3 transition-all duration-150 flex items-center gap-3 border-b border-border/50 dark:border-border/50 last:border-0",
-
-															isSelected
-
-																? "bg-primary/10 dark:bg-primary/20 border-r-2 border-r-primary dark:border-r-primary"
-
-																: "hover:bg-accent/80 dark:hover:bg-accent/60"
-
-														)}
-
-													>
-
-														<div className={cn(
-
-															"p-2 rounded-lg transition-all duration-150",
-
-															result.type === "course" && "bg-blue-100 dark:bg-blue-900/40",
-
-															result.type === "teacher" && "bg-orange-100 dark:bg-orange-900/40",
-
-															result.type === "forum" && "bg-green-100 dark:bg-green-900/40",
-
-															result.type === "exam" && "bg-purple-100 dark:bg-purple-900/40",
-
-															isSelected && "scale-110"
-
-														)}>
-
-															<IconComponent className={cn(
-
-																"h-4 w-4 transition-colors",
-
-																result.type === "course" && "text-blue-600 dark:text-blue-400",
-
-																result.type === "teacher" && "text-orange-600 dark:text-orange-400",
-
-																result.type === "forum" && "text-green-600 dark:text-green-400",
-
-																result.type === "exam" && "text-purple-600 dark:text-purple-400"
-
-															)} />
-
-														</div>
-
-														<div className="flex-1 text-right min-w-0">
-
-															<p className={cn(
-
-																"text-sm font-medium truncate transition-colors",
-
-																isSelected && "text-primary dark:text-primary"
-
-															)}>{result.title}</p>
-
-															{result.description && (
-
-																<p className="text-xs text-muted-foreground dark:text-muted-foreground truncate mt-0.5">
-
-																	{result.description}
-
-																</p>
-
-															)}
-
-															{result.category && (
-
-																<span className="inline-block mt-1 text-xs text-muted-foreground dark:text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30">
-
-																	{result.category}
-
-																</span>
-
-															)}
-
-														</div>
-
-														<ChevronDown className={cn(
-
-															"h-4 w-4 flex-shrink-0 rotate-90 transition-colors",
-
-															isSelected ? "text-primary dark:text-primary" : "text-muted-foreground dark:text-muted-foreground"
-
-														)} />
-
-													</button>
-
-												);
-
-											})}
+											{searchResults.map((result, index) => (
+												<DesktopSearchResultItem
+													key={result.id}
+													result={result}
+													index={index}
+													isSelected={selectedResultIndex === index}
+													onSelect={setSelectedResultIndex}
+													onClick={handleSearchResultClick}
+												/>
+											))}
 
 										</div>
 

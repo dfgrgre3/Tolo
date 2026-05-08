@@ -465,6 +465,30 @@ async function refreshAuthSession(): Promise<boolean> {
   }
 }
 
+function tryParseJSON<T>(text: string, response: Response, fallback: T | null, isErrorResp: boolean): T | null {
+  try {
+    return JSON.parse(text) as T;
+  } catch (parseError) {
+    if (process.env.NODE_ENV === 'development') {
+      if (isErrorResp) {
+        logger.warn(`[Development] Failed to parse error response as JSON:`, {
+          status: response.status,
+          statusText: response.statusText,
+          preview: text.substring(0, 200),
+          error: parseError
+        });
+      } else {
+        logger.warn(`[Development] Failed to parse response as JSON:`, {
+          error: parseError,
+          preview: text.substring(0, 200),
+          contentType: response.headers.get('content-type')
+        });
+      }
+    }
+    return fallback;
+  }
+}
+
 async function safeJsonParse<T = unknown>(
 response: Response,
 fallback: T | null = null)
@@ -505,47 +529,7 @@ fallback: T | null = null)
       }
       return fallback;
     }
-
-    // التحقق من أن الاستجابة ناجحة وأن المحتوى هو JSON
-    if (!response.ok) {
-      // محاولة تحليل JSON حتى لو كانت الاستجابة غير ناجحة
-      // (بعض APIs ترجع JSON حتى في حالة الخطأ)
-      try {
-        return JSON.parse(text) as T;
-      } catch (parseError) {
-        // إذا فشل تحليل JSON، رجوع للـ fallback
-        if (process.env.NODE_ENV === 'development') {
-          logger.warn(
-            `[Development] Failed to parse error response as JSON:`,
-            {
-              status: response.status,
-              statusText: response.statusText,
-              preview: text.substring(0, 200),
-              error: parseError
-            }
-          );
-        }
-        return fallback;
-      }
-    }
-
-    // محاولة تحليل JSON من النص
-    try {
-      return JSON.parse(text) as T;
-    } catch (parseError) {
-      // فقط في وضع التطوير نُظهر تفاصيل الخطأ
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(
-          `[Development] Failed to parse response as JSON:`,
-          {
-            error: parseError,
-            preview: text.substring(0, 200),
-            contentType: response.headers.get('content-type')
-          }
-        );
-      }
-      return fallback;
-    }
+    return tryParseJSON<T>(text, response, fallback, !response.ok);
   } catch (_error) {
     // فقط في وضع التطوير نُظهر تفاصيل الخطأ
     if (process.env.NODE_ENV === 'development') {

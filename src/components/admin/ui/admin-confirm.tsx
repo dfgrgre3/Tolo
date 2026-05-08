@@ -27,6 +27,31 @@ interface AdminConfirmProps {
   loading?: boolean;
 }
 
+const getIconForVariant = (variant: string) => {
+  switch (variant) {
+    case "destructive": return Trash2;
+    case "warning": return AlertTriangle;
+    case "success": return CheckCircle2;
+    default: return Info;
+  }
+};
+
+const getColorClassForVariant = (variant: string) => {
+  switch (variant) {
+    case "destructive": return "text-destructive";
+    case "premium": return "text-amber-500";
+    case "success": return "text-green-500";
+    case "warning": return "text-yellow-500";
+    default: return "text-primary";
+  }
+};
+
+const getButtonVariant = (variant: string): "premium" | "destructive" | "default" => {
+  if (variant === "premium") return "premium";
+  if (variant === "destructive") return "destructive";
+  return "default";
+};
+
 export function AdminConfirm({
   open,
   onOpenChange,
@@ -38,14 +63,9 @@ export function AdminConfirm({
   variant = "default",
   loading = false,
 }: AdminConfirmProps) {
-  const Icon = variant === "destructive" ? Trash2 : 
-                variant === "warning" ? AlertTriangle :
-                variant === "success" ? CheckCircle2 : Info;
-
-  const colorClass = variant === "destructive" ? "text-destructive" :
-                    variant === "premium" ? "text-amber-500" :
-                    variant === "success" ? "text-green-500" :
-                    variant === "warning" ? "text-yellow-500" : "text-primary";
+  const Icon = getIconForVariant(variant);
+  const colorClass = getColorClassForVariant(variant);
+  const buttonVariant = getButtonVariant(variant);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +89,7 @@ export function AdminConfirm({
           </AlertDialogCancel>
           <AlertDialogAction asChild>
             <AdminButton
-              variant={variant === "premium" ? "premium" : variant === "destructive" ? "destructive" : "default"}
+              variant={buttonVariant}
               onClick={(e) => {
                 e.preventDefault();
                 onConfirm();

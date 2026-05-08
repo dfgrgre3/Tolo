@@ -12,6 +12,19 @@ type HlsEngineOptions = {
   flashFeedback: (feedback: NonNullable<PlayerFeedback>) => void;
 };
 
+const parseQualities = (levels: Array<{ height: number }>) => {
+  return levels
+    .map((level, index) => ({
+      id: index,
+      height: level.height,
+      label: level.height > 0 ? `${level.height}p` : `L${index + 1}`,
+    }))
+    .filter((level, index, array) => {
+      return array.findIndex((item) => item.height === level.height) === index;
+    })
+    .sort((left, right) => right.height - left.height);
+};
+
 export function useHlsEngine({
   activeVideoUrl,
   provider,
@@ -62,19 +75,8 @@ export function useHlsEngine({
     hls.attachMedia(video);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      const nextQualities = hls.levels
-        .map((level, index) => ({
-          id: index,
-          height: level.height,
-          label: level.height > 0 ? `${level.height}p` : `L${index + 1}`,
-        }))
-        .filter((level, index, array) => {
-          return array.findIndex((item) => item.height === level.height) === index;
-        })
-        .sort((left, right) => right.height - left.height);
-
       setPlayerState({
-        qualities: nextQualities,
+        qualities: parseQualities(hls.levels),
         currentAutoQuality: hls.levels[hls.currentLevel]?.height ?? null,
         isLoading: false,
       });

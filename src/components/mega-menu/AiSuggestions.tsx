@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
@@ -246,6 +246,174 @@ export const AiSuggestions = memo(function AiSuggestions({
     fetchRecommendations();
   }, [fetchRecommendations]);
 
+  const renderContent = () => {
+    if (isLoading && !isRefreshing) {
+      return (
+        <m.div
+          key="loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className={cn(
+            "grid gap-3",
+            isCompact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+          )}
+        >
+          {[...Array(isCompact ? 3 : 4)].map((_, i) => (
+            <SkeletonCard key={i} index={i} />
+          ))}
+        </m.div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <m.div
+          key="error"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20"
+        >
+          <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-destructive">{error}</p>
+            <p className="text-xs text-muted-foreground mt-1">حاول مرة أخرى لاحقاً</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fetchRecommendations(true)}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            إعادة المحاولة
+          </Button>
+        </m.div>
+      );
+    }
+    
+    if (recommendations.length === 0) {
+      return (
+        <m.div
+          key="empty"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="text-center py-8 px-4 rounded-lg bg-muted/30 border border-border/50"
+        >
+          <m.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+            className="inline-flex p-3 rounded-full bg-muted/50 mb-3"
+          >
+            <Lightbulb className="h-8 w-8 text-muted-foreground" />
+          </m.div>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+            لم يتم العثور على توصيات حالياً. استمر في استخدام التطبيق للحصول على توصيات شخصية!
+          </p>
+        </m.div>
+      );
+    }
+
+    return (
+      <m.div
+        key="recommendations"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className={cn(
+          "grid gap-3",
+          isCompact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+        )}
+      >
+        {recommendations.slice(0, isCompact ? 3 : 6).map((recommendation, index) => {
+          const IconComponent = getItemIcon(recommendation.itemType);
+          const href = getItemHref(recommendation);
+          const algorithmColor = getAlgorithmColor(recommendation.algorithm);
+          const algorithmLabel = getAlgorithmLabel(recommendation.algorithm);
+
+          return (
+            <m.div
+              key={recommendation.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.08 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <button
+                onClick={() => handleItemClick(recommendation, href)}
+                className={cn(
+                  "w-full p-3 rounded-xl border bg-card/50 hover:bg-card",
+                  "transition-all duration-300 text-right group",
+                  "hover:shadow-lg hover:shadow-primary/10",
+                  "border-border/50 hover:border-primary/40",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <m.div 
+                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                    className={cn(
+                      "flex-shrink-0 p-2 rounded-lg bg-gradient-to-br border",
+                      algorithmColor
+                    )}
+                  >
+                    <IconComponent className="h-4 w-4" />
+                  </m.div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                        {recommendation.title}
+                      </h4>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:-translate-x-1 transition-all flex-shrink-0" />
+                    </div>
+
+                    {recommendation.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2 group-hover:text-foreground/70 transition-colors">
+                        {recommendation.description}
+                      </p>
+                    )}
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Algorithm Badge */}
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-md border font-medium",
+                        algorithmColor.replace('text-', 'bg-').replace('/20', '/10')
+                      )}>
+                        {algorithmLabel}
+                      </span>
+
+                      {/* Reason */}
+                      {recommendation.reason && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          {recommendation.reason}
+                        </span>
+                      )}
+
+                      {/* Score */}
+                      <div className="flex items-center gap-1 mr-auto">
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-xs text-primary font-semibold">
+                          {(recommendation.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </m.div>
+          );
+        })}
+      </m.div>
+    );
+  };
+
   if (!userId) {
     return null;
   }
@@ -323,159 +491,7 @@ export const AiSuggestions = memo(function AiSuggestions({
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {isLoading && !isRefreshing ? (
-          <m.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={cn(
-              "grid gap-3",
-              isCompact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-            )}
-          >
-            {[...Array(isCompact ? 3 : 4)].map((_, i) => (
-              <SkeletonCard key={i} index={i} />
-            ))}
-          </m.div>
-        ) : error ? (
-          <m.div
-            key="error"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20"
-          >
-            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-destructive">{error}</p>
-              <p className="text-xs text-muted-foreground mt-1">حاول مرة أخرى لاحقاً</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fetchRecommendations(true)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              إعادة المحاولة
-            </Button>
-          </m.div>
-        ) : recommendations.length === 0 ? (
-          <m.div
-            key="empty"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="text-center py-8 px-4 rounded-lg bg-muted/30 border border-border/50"
-          >
-            <m.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-              className="inline-flex p-3 rounded-full bg-muted/50 mb-3"
-            >
-              <Lightbulb className="h-8 w-8 text-muted-foreground" />
-            </m.div>
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              لم يتم العثور على توصيات حالياً. استمر في استخدام التطبيق للحصول على توصيات شخصية!
-            </p>
-          </m.div>
-        ) : (
-          <m.div
-            key="recommendations"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={cn(
-              "grid gap-3",
-              isCompact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-            )}
-          >
-            {recommendations.slice(0, isCompact ? 3 : 6).map((recommendation, index) => {
-              const IconComponent = getItemIcon(recommendation.itemType);
-              const href = getItemHref(recommendation);
-              const algorithmColor = getAlgorithmColor(recommendation.algorithm);
-              const algorithmLabel = getAlgorithmLabel(recommendation.algorithm);
-
-              return (
-                <m.div
-                  key={recommendation.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <button
-                    onClick={() => handleItemClick(recommendation, href)}
-                    className={cn(
-                      "w-full p-3 rounded-xl border bg-card/50 hover:bg-card",
-                      "transition-all duration-300 text-right group",
-                      "hover:shadow-lg hover:shadow-primary/10",
-                      "border-border/50 hover:border-primary/40",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Icon */}
-                      <m.div 
-                        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                        className={cn(
-                          "flex-shrink-0 p-2 rounded-lg bg-gradient-to-br border",
-                          algorithmColor
-                        )}
-                      >
-                        <IconComponent className="h-4 w-4" />
-                      </m.div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                            {recommendation.title}
-                          </h4>
-                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:-translate-x-1 transition-all flex-shrink-0" />
-                        </div>
-
-                        {recommendation.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2 group-hover:text-foreground/70 transition-colors">
-                            {recommendation.description}
-                          </p>
-                        )}
-
-                        {/* Metadata */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Algorithm Badge */}
-                          <span className={cn(
-                            "text-[10px] px-1.5 py-0.5 rounded-md border font-medium",
-                            algorithmColor.replace('text-', 'bg-').replace('/20', '/10')
-                          )}>
-                            {algorithmLabel}
-                          </span>
-
-                          {/* Reason */}
-                          {recommendation.reason && (
-                            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                              {recommendation.reason}
-                            </span>
-                          )}
-
-                          {/* Score */}
-                          <div className="flex items-center gap-1 mr-auto">
-                            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                            <span className="text-xs text-primary font-semibold">
-                              {(recommendation.score * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                </m.div>
-              );
-            })}
-          </m.div>
-        )}
+        {renderContent()}
       </AnimatePresence>
 
       {/* Last updated indicator */}

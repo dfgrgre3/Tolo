@@ -12,6 +12,32 @@ const buildLoginUrl = (redirect?: string): string => {
   return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 };
 
+const isTimeoutError = (error: unknown) => {
+  return error === 'timeout' || 
+    (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
+};
+
+const createAbortTimeout = (ms: number = 10000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    try {
+      controller.abort('timeout');
+    } catch (e) {
+      controller.abort();
+    }
+  }, ms);
+  return { controller, timeoutId };
+};
+
+const fetchWithTimeout = async (url: string, options: RequestInit, ms: number = 10000) => {
+  const { controller, timeoutId } = createAbortTimeout(ms);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 /**
  * AuthContext - Client-side authentication state management.
  * (Now backed by Zustand for better performance and smaller context size)
@@ -105,32 +131,15 @@ export function AuthProvider({
     isRefreshing.current = true;
 
     refreshPromise.current = (async () => {
-      let timeoutId: any;
       try {
-        const controller = new AbortController();
-        timeoutId = setTimeout(() => {
-          try {
-            controller.abort('timeout');
-          } catch (e) {
-            controller.abort();
-          }
-        }, 10000); // 10s timeout
-
-        const response = await fetch(apiRoutes.auth.refresh, {
+        const response = await fetchWithTimeout(apiRoutes.auth.refresh, {
           method: 'POST',
-          credentials: 'include',
-          signal: controller.signal
-        });
+          credentials: 'include'
+        }, 10000);
 
-        if (timeoutId) clearTimeout(timeoutId);
         return response.ok;
       } catch (error) {
-        if (timeoutId) clearTimeout(timeoutId);
-        
-        const isTimeout = error === 'timeout' || 
-          (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
-        
-        if (isTimeout) {
+        if (isTimeoutError(error)) {
           logger.warn('refreshToken timed out after 10s');
         } else {
           logger.error('refreshToken unexpected error:', error);
@@ -186,6 +195,35 @@ export function AuthProvider({
     return response;
   }, [refreshToken, router, setUser]);
 
+  const attemptUserFetch = useCallback(async () => {
+    const response = await fetchWithTimeout('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setUser(data.user);
+      return true;
+    }
+    return false;
+  }, [setUser]);
+
+  const handle401Retry = useCallback(async () => {
+    const refreshed = await refreshToken();
+    if (!refreshed) return false;
+
+    try {
+      return await attemptUserFetch();
+    } catch (retryError) {
+      if (isTimeoutError(retryError)) {
+        logger.warn('refreshUser retry timed out');
+        return false;
+      }
+      throw retryError;
+    }
+  }, [refreshToken, attemptUserFetch]);
+
   /**
    * Fetch current user profile from the server.
    * Centralizes auth state restoration.
@@ -200,7 +238,6 @@ export function AuthProvider({
     }
 
     _userFetchPromise.current = (async () => {
-      let timeoutId: any;
       try {
         // Priority: if we're already refreshing tokens, wait for that first
         if (isRefreshing.current && refreshPromise.current) {
@@ -211,83 +248,27 @@ export function AuthProvider({
           }
         }
 
-        const controller = new AbortController();
-        timeoutId = setTimeout(() => {
-          try {
-            controller.abort('timeout');
-          } catch (e) {
-            // Fallback for environments where abort() doesn't accept a reason
-            controller.abort();
-          }
-        }, 10000);
-
-        const response = await fetch('/api/auth/me', {
+        const response = await fetchWithTimeout('/api/auth/me', {
           credentials: 'include',
-          cache: 'no-store',
-          signal: controller.signal
+          cache: 'no-store'
         });
 
-        // If it returns 401, it might be because the access token is expired
-        // but the server-side /api/auth/me didn't auto-refresh (or failed).
-        // We should try one explicit refresh if we haven't already.
         if (response.status === 401) {
-          if (timeoutId) clearTimeout(timeoutId);
-          const refreshed = await refreshToken();
-          if (refreshed) {
-            // Retry getting user with new tokens
-            const retryController = new AbortController();
-            const retryTimeout = setTimeout(() => {
-              try {
-                retryController.abort('timeout');
-              } catch (e) {
-                retryController.abort();
-              }
-            }, 10000);
-
-            try {
-              const retryResponse = await fetch('/api/auth/me', {
-                credentials: 'include',
-                cache: 'no-store',
-                signal: retryController.signal
-              });
-
-              if (retryTimeout) clearTimeout(retryTimeout);
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                setUser(data.user);
-                return true;
-              }
-            } catch (retryError) {
-              if (retryTimeout) clearTimeout(retryTimeout);
-              const isRetryTimeout = retryError === 'timeout' || 
-                (retryError instanceof Error && (retryError.name === 'AbortError' || retryError.message.includes('timeout')));
-              
-              if (isRetryTimeout) {
-                logger.warn('refreshUser retry timed out');
-              } else {
-                throw retryError;
-              }
-            }
-          }
+          const success = await handle401Retry();
+          if (success) return true;
         } else if (response.ok) {
-          if (timeoutId) clearTimeout(timeoutId);
           const data = await response.json();
           setUser(data.user);
           return true;
         }
 
-        if (timeoutId) clearTimeout(timeoutId);
         if (clearOnFailure) {
           setUser(null);
           clearUserId();
         }
         return false;
       } catch (error) {
-        if (timeoutId) clearTimeout(timeoutId);
-        const isTimeout = error === 'timeout' || 
-          (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
-        
-        if (isTimeout) {
+        if (isTimeoutError(error)) {
           logger.warn('refreshUser timed out or was aborted (background check)');
         } else {
           logger.error('refreshUser error:', error);
@@ -304,7 +285,7 @@ export function AuthProvider({
     })();
 
     return _userFetchPromise.current;
-  }, [refreshToken, setUser]);
+  }, [handle401Retry, setUser]);
 
   /**
    * Login function - authenticates with the API and updates state.

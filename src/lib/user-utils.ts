@@ -24,11 +24,7 @@ function normalizeUserId(value: unknown): string | null {
   return trimmed;
 }
 
-/**
- * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
- * Ensure user ID exists, create guest user if needed
- */
-export async function ensureUser(): Promise<string> {
+async function getAuthenticatedUser(): Promise<string | null> {
   try {
     const response = await fetch('/api/auth/me', {
       credentials: 'include',
@@ -46,6 +42,40 @@ export async function ensureUser(): Promise<string> {
   } catch (error) {
     logger.warn('Unexpected error reading authenticated user:', error);
   }
+  return null;
+}
+
+async function createGuestUser(): Promise<string | null> {
+  try {
+    // The Go backend uses GET /api/users/guest
+    const response = await fetch('/api/auth/guest', {
+      method: 'GET',
+      cache: 'no-store'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.id) {
+        const id = normalizeUserId(data.id);
+        if (id) {
+          safeSetItem(LOCAL_USER_KEY, id);
+          return id;
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn('Unexpected error creating guest user:', error);
+  }
+  return null;
+}
+
+/**
+ * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
+ * Ensure user ID exists, create guest user if needed
+ */
+export async function ensureUser(): Promise<string> {
+  const authId = await getAuthenticatedUser();
+  if (authId) return authId;
 
   let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
 
@@ -55,25 +85,7 @@ export async function ensureUser(): Promise<string> {
   }
   
   if (!id) {
-    try {
-      // The Go backend uses GET /api/users/guest
-      const response = await fetch('/api/auth/guest', {
-        method: 'GET',
-        cache: 'no-store'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data?.id) {
-          id = normalizeUserId(data.id);
-          if (id) {
-            safeSetItem(LOCAL_USER_KEY, id);
-          }
-        }
-      }
-    } catch (error) {
-      logger.warn('Unexpected error creating guest user:', error);
-    }
+    id = await createGuestUser();
   }
   
   return id || '';

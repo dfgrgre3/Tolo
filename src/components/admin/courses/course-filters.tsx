@@ -77,9 +77,9 @@ export function CourseFilters({
     onFilterChange({ level: "ALL", status: "ALL", category: "ALL" });
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
-    await onRefresh();
+    onRefresh();
     setTimeout(() => setIsRefreshing(false), 600);
   };
 

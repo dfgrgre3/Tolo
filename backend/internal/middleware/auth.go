@@ -95,20 +95,7 @@ func getJWKS() (*keyfunc.JWKS, error) {
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var tokenString string
-		// Check Authorization header first to prevent cookie tossing attacks
-		authHeader := c.GetHeader("Authorization")
-		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-			tokenString = strings.TrimSpace(authHeader[len("Bearer "):])
-		}
-		// Fall back to cookie if header is not present or invalid
-		if tokenString == "" {
-			cookieToken, err := c.Cookie("access_token")
-			if err == nil && strings.TrimSpace(cookieToken) != "" {
-				tokenString = strings.TrimSpace(cookieToken)
-			}
-		}
-
+		tokenString := extractToken(c)
 		if tokenString == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			return
@@ -124,46 +111,72 @@ func Auth() gin.HandlerFunc {
 		c.Set("userId", claims.Subject)
 		c.Set("jti", claims.JTI)
 
-		// Fetch user from DB to get local role and permissions (Unscoped to bypass soft delete)
-		var user models.User
-		if err := db.DB.Unscoped().Select("role", "permissions").Where("id = ?", claims.Subject).First(&user).Error; err == nil {
-			// Use DB role as it's the source of truth for local permissions
-			c.Set("role", string(user.Role))
-			if user.Permissions == nil {
-				c.Set("permissions", []string{})
-			} else {
-				c.Set("permissions", []string(user.Permissions))
-			}
-		} else {
-			// Fallback to token claims if user not in DB yet
-			c.Set("role", strings.ToUpper(claims.Role))
-			c.Set("permissions", []string{})
-		}
-
-		// Impersonation support: If user is admin, check for impersonation cookie
-		currentRole, _ := c.Get("role")
-		if currentRole == "ADMIN" {
-			if impersonatedID, err := c.Cookie("impersonate_user_id"); err == nil && impersonatedID != "" {
-				// Verify the impersonated user exists (Unscoped to bypass soft delete)
-				var targetUser models.User
-				if err := db.DB.Unscoped().Select("id", "role", "permissions").First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
-					c.Set("originalAdminId", claims.Subject)
-					c.Set("userId", impersonatedID)
-					c.Set("role", string(targetUser.Role))
-					c.Set("isImpersonating", true)
-					
-					if targetUser.Permissions == nil {
-						c.Set("permissions", []string{})
-					} else {
-						c.Set("permissions", []string(targetUser.Permissions))
-					}
-				}
-			}
-		}
+		hydrateUserContext(c, claims.Subject, claims.Role)
+		processImpersonation(c, claims.Subject)
 
 		c.Next()
 	}
 }
+
+// Helper to extract JWT token from Authorization header or access_token cookie
+func extractToken(c *gin.Context) string {
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+		token := strings.TrimSpace(authHeader[len("Bearer "):])
+		if token != "" {
+			return token
+		}
+	}
+
+	if cookieToken, err := c.Cookie("access_token"); err == nil {
+		return strings.TrimSpace(cookieToken)
+	}
+	return ""
+}
+
+// Helper to set user permissions in context
+func setContextPermissions(c *gin.Context, permissions models.JSONStringArray) {
+	if permissions == nil {
+		c.Set("permissions", []string{})
+	} else {
+		c.Set("permissions", []string(permissions))
+	}
+}
+
+// Helper to fetch and set user role/permissions in context from database or fallback
+func hydrateUserContext(c *gin.Context, userID string, fallbackRole string) {
+	var user models.User
+	if err := db.DB.Unscoped().Select("role", "permissions").Where("id = ?", userID).First(&user).Error; err == nil {
+		c.Set("role", string(user.Role))
+		setContextPermissions(c, user.Permissions)
+	} else {
+		c.Set("role", strings.ToUpper(fallbackRole))
+		c.Set("permissions", []string{})
+	}
+}
+
+// Helper to handle admin impersonation logic if applicable
+func processImpersonation(c *gin.Context, adminID string) {
+	currentRole, _ := c.Get("role")
+	if currentRole != "ADMIN" {
+		return
+	}
+
+	impersonatedID, err := c.Cookie("impersonate_user_id")
+	if err != nil || impersonatedID == "" {
+		return
+	}
+
+	var targetUser models.User
+	if err := db.DB.Unscoped().Select("id", "role", "permissions").First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
+		c.Set("originalAdminId", adminID)
+		c.Set("userId", impersonatedID)
+		c.Set("role", string(targetUser.Role))
+		c.Set("isImpersonating", true)
+		setContextPermissions(c, targetUser.Permissions)
+	}
+}
+
 
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -225,10 +238,8 @@ func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		cfg := getConfig()
+		isDev := cfg.Environment == "development" || cfg.Environment == ""
 
-		isDevelopment := cfg.Environment == "development" || cfg.Environment == ""
-
-		// Strict allowed origins - never allow all origins in production
 		allowedOrigins := []string{
 			"http://localhost:3000",
 			"http://localhost:3001",
@@ -236,63 +247,80 @@ func CORS() gin.HandlerFunc {
 			"https://www.thanawy.net",
 		}
 
-		isAllowed := false
-
-		// In development, only allow localhost origins, not any origin
-		if isDevelopment && origin != "" {
-			// Check if origin is localhost or LAN IP
-			if strings.HasPrefix(origin, "http://localhost:") ||
-				strings.HasPrefix(origin, "https://localhost:") ||
-				strings.HasPrefix(origin, "http://127.0.0.1:") ||
-				strings.HasPrefix(origin, "http://192.168.") ||
-				strings.HasPrefix(origin, "http://172.") ||
-				strings.HasPrefix(origin, "http://10.") {
-				isAllowed = true
-			} else {
-				// In development, you might also want to allow specific dev domains
-				// But never allow arbitrary origins
-				for _, o := range allowedOrigins {
-					if origin == o {
-						isAllowed = true
-						break
-					}
-				}
-			}
-		} else {
-			for _, o := range allowedOrigins {
-				if origin == o {
-					isAllowed = true
-					break
-				}
-			}
-		}
+		isAllowed := isOriginAllowed(origin, isDev, allowedOrigins)
 
 		// DEBUG LOGGING - Remove after diagnosis
 		log.Printf("[CORS DEBUG] Environment: %s, Origin: '%s', IsAllowed: %v, Method: %s, Path: %s",
 			cfg.Environment, origin, isAllowed, c.Request.Method, c.Request.URL.Path)
 
-		// Set CORS headers only for allowed origins
-		if origin != "" && isAllowed {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		} else if origin == "" && isDevelopment {
-			// No origin header - allow simple requests in development
-			// But don't set wildcard for requests with origin
-		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Dev-Admin-Bypass, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
+		setCorsHeaders(c, origin, isAllowed)
 
 		if c.Request.Method == "OPTIONS" {
-			if isAllowed || (origin == "" && isDevelopment) {
-				c.AbortWithStatus(204)
-			} else {
-				c.AbortWithStatus(403)
-			}
+			handleOptions(c, origin, isAllowed, isDev)
 			return
 		}
 
 		c.Next()
 	}
 }
+
+// Helper to check if the request origin is allowed
+func isOriginAllowed(origin string, isDev bool, allowedOrigins []string) bool {
+	if origin == "" {
+		return false
+	}
+
+	// In development, allow localhost and LAN IPs
+	if isDev && isLocalhostOrLAN(origin) {
+		return true
+	}
+
+	// Check against explicit allowed origins
+	for _, o := range allowedOrigins {
+		if origin == o {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Helper to check if origin is localhost or a LAN IP
+func isLocalhostOrLAN(origin string) bool {
+	prefixes := []string{
+		"http://localhost:",
+		"https://localhost:",
+		"http://127.0.0.1:",
+		"http://192.168.",
+		"http://172.",
+		"http://10.",
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(origin, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper to set CORS response headers
+func setCorsHeaders(c *gin.Context, origin string, isAllowed bool) {
+	if origin != "" && isAllowed {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+
+	c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Dev-Admin-Bypass, accept, origin, Cache-Control, X-Requested-With, Connect-Protocol-Version, Connect-Timeout-Ms, Connect-Content-Encoding, X-Grpc-Web, X-User-Agent")
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+	c.Writer.Header().Set("Access-Control-Expose-Headers", "Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin, Connect-Protocol-Version, Connect-Content-Encoding")
+}
+
+// Helper to handle CORS preflight OPTIONS requests
+func handleOptions(c *gin.Context, origin string, isAllowed bool, isDev bool) {
+	if isAllowed || (origin == "" && isDev) {
+		c.AbortWithStatus(http.StatusNoContent)
+	} else {
+		c.AbortWithStatus(http.StatusForbidden)
+	}
+}
+

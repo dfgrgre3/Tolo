@@ -63,16 +63,7 @@ function validateJWTSecret(): {valid: boolean;error?: string;} {
   return { valid: true };
 }
 
-/**
- * Validate all environment variables
- */
-function validateEnvironment(): EnvValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const isProduction = process.env.NODE_ENV === 'production';
-  const _isDevelopment = process.env.NODE_ENV === 'development';
-
-  // Validate JWT_SECRET
+function checkJwtValidation(errors: string[], warnings: string[], isProduction: boolean) {
   const jwtValidation = validateJWTSecret();
   if (!jwtValidation.valid) {
     if (isProduction) {
@@ -81,8 +72,9 @@ function validateEnvironment(): EnvValidationResult {
       warnings.push(jwtValidation.error! + ' (Development mode - should be fixed before production)');
     }
   }
+}
 
-  // Check required variables for production
+function checkProductionVars(errors: string[], isProduction: boolean) {
   if (isProduction) {
     for (const envVar of REQUIRED_ENV_VARS.production) {
       if (!process.env[envVar]) {
@@ -90,8 +82,9 @@ function validateEnvironment(): EnvValidationResult {
       }
     }
   }
+}
 
-  // Check DATABASE_URL format if set
+function checkDatabaseUrl(errors: string[], isProduction: boolean) {
   if (process.env.DATABASE_URL) {
     try {
       new URL(process.env.DATABASE_URL);
@@ -101,16 +94,18 @@ function validateEnvironment(): EnvValidationResult {
   } else if (isProduction) {
     errors.push('DATABASE_URL is required in production');
   }
+}
 
-  // Check SESSION_DURATION if set
+function checkSessionDuration(warnings: string[]) {
   if (process.env.SESSION_DURATION) {
     const duration = parseInt(process.env.SESSION_DURATION, 10);
     if (isNaN(duration) || duration < 60) {
       warnings.push('SESSION_DURATION should be at least 60 seconds');
     }
   }
+}
 
-  // Check NEXT_PUBLIC_BASE_URL if set
+function checkBaseUrl(warnings: string[]) {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     try {
       new URL(process.env.NEXT_PUBLIC_BASE_URL);
@@ -118,6 +113,21 @@ function validateEnvironment(): EnvValidationResult {
       warnings.push('NEXT_PUBLIC_BASE_URL is not a valid URL format');
     }
   }
+}
+
+/**
+ * Validate all environment variables
+ */
+function validateEnvironment(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  checkJwtValidation(errors, warnings, isProduction);
+  checkProductionVars(errors, isProduction);
+  checkDatabaseUrl(errors, isProduction);
+  checkSessionDuration(warnings);
+  checkBaseUrl(warnings);
 
   return {
     valid: errors.length === 0,

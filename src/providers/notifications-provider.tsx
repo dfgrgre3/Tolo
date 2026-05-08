@@ -42,6 +42,43 @@ export function useNotificationsContext() {
   return context;
 }
 
+function parseNotificationsResponse(response: unknown, limit: number) {
+  if (response && typeof response === 'object') {
+    if (Array.isArray(response)) {
+      return {
+        nextNotifications: response as Notification[],
+        nextUnreadCount: (response as Notification[]).filter((n) => !n.isRead).length,
+        nextHasMore: response.length === limit
+      };
+    } else if ('notifications' in response && Array.isArray((response as any).notifications)) {
+      const resp = response as NotificationsResponse;
+      return {
+        nextNotifications: resp.notifications,
+        nextUnreadCount: resp.unreadCount ?? 0,
+        nextHasMore: resp.hasMore ?? (resp.notifications.length === limit)
+      };
+    }
+  }
+  return { nextNotifications: [] as Notification[], nextUnreadCount: 0, nextHasMore: false };
+}
+
+function handleNewNotificationToast(
+  nextNotifications: Notification[],
+  isFirstFetch: boolean,
+  lastNotifiedIdRef: React.MutableRefObject<string | null>
+) {
+  if (isFirstFetch || nextNotifications.length === 0) return;
+  
+  const newest = nextNotifications[0];
+  if (!newest.isRead && newest.id !== lastNotifiedIdRef.current) {
+    toast(newest.title, {
+      description: newest.message,
+      icon: newest.icon || '🔔'
+    });
+    lastNotifiedIdRef.current = newest.id;
+  }
+}
+
 interface NotificationsProviderProps {
   children: React.ReactNode;
 }
@@ -74,38 +111,14 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
       const response = await apiClient.get<NotificationsResponse | Notification[]>(`/notifications?${params}`);
       
-      let nextNotifications: Notification[] = [];
-      let nextUnreadCount = 0;
-      let nextHasMore = false;
-      
-      if (response && typeof response === 'object') {
-        if (Array.isArray(response)) {
-          nextNotifications = response;
-          nextUnreadCount = response.filter((n: Notification) => !n.isRead).length;
-          nextHasMore = response.length === limit;
-        } else if ('notifications' in response && Array.isArray(response.notifications)) {
-          nextNotifications = response.notifications;
-          nextUnreadCount = response.unreadCount ?? 0;
-          nextHasMore = response.hasMore ?? (response.notifications.length === limit);
-        }
-      }
+      const { nextNotifications, nextUnreadCount, nextHasMore } = parseNotificationsResponse(response, limit);
 
       if (reset) {
         setNotifications(nextNotifications);
         offsetRef.current = limit;
         setOffset(limit);
 
-        // Show toast for new notifications if not the first fetch
-        if (!isFirstFetch.current && nextNotifications.length > 0) {
-          const newest = nextNotifications[0];
-          if (!newest.isRead && newest.id !== lastNotifiedId.current) {
-            toast(newest.title, {
-              description: newest.message,
-              icon: newest.icon || '🔔'
-            });
-            lastNotifiedId.current = newest.id;
-          }
-        }
+        handleNewNotificationToast(nextNotifications, isFirstFetch.current, lastNotifiedId);
         isFirstFetch.current = false;
       } else {
         setNotifications((prev) => [...prev, ...nextNotifications]);
