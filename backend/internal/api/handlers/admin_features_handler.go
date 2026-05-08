@@ -451,15 +451,16 @@ func AdminUpdateBook(c *gin.Context) {
 	if strings.Contains(c.GetHeader(headerContentType), "multipart/form-data") {
 		mapUpdateFromForm(c, updates)
 		if url, err := uploadMultipartFile(c, "cover", "book_cover"); err == nil {
-			updates["coverUrl"] = url
+			updates["cover_url"] = url
 		}
 		if url, err := uploadMultipartFile(c, "file", "book"); err == nil {
-			updates["downloadUrl"] = url
+			updates["download_url"] = url
 		}
 	} else {
 		applyUpdateFromJSON(c, updates)
 	}
 
+	// Ensure we only update the specific record and only with allowed fields
 	if err := db.DB.Model(&book).Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update book")
 		return
@@ -470,25 +471,45 @@ func AdminUpdateBook(c *gin.Context) {
 }
 
 func mapUpdateFromForm(c *gin.Context, updates map[string]interface{}) {
-	updates["title"] = c.PostForm("title")
-	updates["author"] = c.PostForm("author")
-	updates["description"] = c.PostForm("description")
-	updates["subjectId"] = c.PostForm("subjectId")
+	if val := c.PostForm("title"); val != "" {
+		updates["title"] = val
+	}
+	if val := c.PostForm("author"); val != "" {
+		updates["author"] = val
+	}
+	if val := c.PostForm("description"); val != "" {
+		updates["description"] = val
+	}
+	if val := c.PostForm("subjectId"); val != "" {
+		updates["subject_id"] = val
+	}
 
 	if priceStr := c.PostForm("price"); priceStr != "" {
-		price, _ := strconv.ParseFloat(priceStr, 64)
-		updates["price"] = price
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			updates["price"] = price
+		}
 	}
-	updates["isFree"] = c.PostForm("isFree") == "true"
+	if isFreeStr := c.PostForm("isFree"); isFreeStr != "" {
+		updates["is_free"] = isFreeStr == "true"
+	}
 }
 
 func applyUpdateFromJSON(c *gin.Context, updates map[string]interface{}) {
 	var input map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err == nil {
-		allowedFields := []string{"title", "author", "description", "subjectId", "price", "isFree", "tags"}
-		for _, field := range allowedFields {
-			if val, ok := input[field]; ok {
-				updates[field] = val
+		// Map JSON keys to database column names
+		fieldMapping := map[string]string{
+			"title":       "title",
+			"author":      "author",
+			"description": "description",
+			"subjectId":   "subject_id",
+			"price":       "price",
+			"isFree":      "is_free",
+			"tags":        "tags",
+		}
+		for jsonKey, dbCol := range fieldMapping {
+			if val, ok := input[jsonKey]; ok {
+				updates[dbCol] = val
 			}
 		}
 	}

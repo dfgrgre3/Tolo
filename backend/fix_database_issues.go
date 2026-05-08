@@ -6,7 +6,8 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib" // Standard library compatibility for pgx (PostgreSQL driver)
+
 )
 
 func main() {

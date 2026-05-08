@@ -6,7 +6,8 @@ import (
 	"log"
 	"os"
 	"thanawy-backend/internal/db"
-	_ "thanawy-backend/internal/models"
+	_ "thanawy-backend/internal/models" // Import models to ensure they are registered with the database schema
+
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgresql://postgres:Khaled%402008@127.0.0.1:5432/thanawy?client_encoding=UTF8"
+		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
 	log.Println("Connecting to database...")

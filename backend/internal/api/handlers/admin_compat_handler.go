@@ -83,6 +83,12 @@ func requestBodyOrEmpty(c *gin.Context) gin.H {
 	return body
 }
 
+func mergeMaps(dest map[string]interface{}, src map[string]interface{}) {
+	for k, v := range src {
+		dest[k] = v
+	}
+}
+
 func adminCollectionPayload(c *gin.Context, key string) gin.H {
 	items := []gin.H{}
 	pagination := emptyPagination(c)
@@ -176,26 +182,24 @@ func AdminCoupons(c *gin.Context) {
 func AdminSettings(c *gin.Context) {
 	var dbSetting models.SystemSetting
 	settings := make(map[string]interface{})
-	for k, v := range defaultAdminSettings {
-		settings[k] = v
-	}
 
+	// Initialize with defaults
+	mergeMaps(settings, defaultAdminSettings)
+
+	// Overlay settings from database
 	if db.DB != nil {
 		if err := db.DB.Where("key = ?", "admin_settings").First(&dbSetting).Error; err == nil {
 			var dbMap map[string]interface{}
 			if err := json.Unmarshal([]byte(dbSetting.Value), &dbMap); err == nil {
-				for k, v := range dbMap {
-					settings[k] = v
-				}
+				mergeMaps(settings, dbMap)
 			}
 		}
 	}
 
-	if c.Request.Method == http.MethodPatch || c.Request.Method == http.MethodPut {
-		body := requestBodyOrEmpty(c)
-		for k, v := range body {
-			settings[k] = v
-		}
+	// Process updates if applicable
+	method := c.Request.Method
+	if method == http.MethodPatch || method == http.MethodPut {
+		mergeMaps(settings, requestBodyOrEmpty(c))
 
 		jsonData, _ := json.Marshal(settings)
 		dbSetting.Key = "admin_settings"

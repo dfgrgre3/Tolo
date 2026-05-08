@@ -10,8 +10,10 @@ import (
 )
 
 func main() {
-	dsn := "postgresql://postgres:Khaled%402008@127.0.0.1:5432/thanawy?sslmode=disable"
-	// Try to get from environment if possible, but let's assume default for now or check if there's a config
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL environment variable is not set")
+	}
 	
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

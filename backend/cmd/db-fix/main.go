@@ -19,8 +19,7 @@ func main() {
 	// Get database connection string from environment
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "host=localhost user=postgres password=postgres dbname=thanawy_db port=5432 sslmode=disable"
-		log.Println("Using default DATABASE_URL. Set DATABASE_URL environment variable for production.")
+		log.Fatal("DATABASE_URL environment variable is not set. Please provide it to connect to the database.")
 	}
 
 	fmt.Println(separator)

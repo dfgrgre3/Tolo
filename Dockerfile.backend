@@ -18,7 +18,8 @@ COPY backend/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o main ./cmd/api/main.go
 
 # Final stage: Use alpine for small size and healthcheck tools
-FROM alpine:latest
+FROM alpine:3.20
+
 
 # Install CA certificates and wget for healthchecks
 RUN apk add --no-cache ca-certificates wget
