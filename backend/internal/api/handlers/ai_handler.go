@@ -132,6 +132,18 @@ func (h *AIHandler) bindAndValidateRequest(c *gin.Context, req *ChatRequest) boo
 		return false
 	}
 
+	if !h.validateMessage(c, req) {
+		return false
+	}
+
+	if !h.validateImage(c, req) {
+		return false
+	}
+
+	return h.validateRequestStructure(c, req)
+}
+
+func (h *AIHandler) validateMessage(c *gin.Context, req *ChatRequest) bool {
 	if req.Message != "" {
 		if len([]rune(req.Message)) > 2000 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Message exceeds maximum length of 2000 characters"})
@@ -142,7 +154,10 @@ func (h *AIHandler) bindAndValidateRequest(c *gin.Context, req *ChatRequest) boo
 			return false
 		}
 	}
+	return true
+}
 
+func (h *AIHandler) validateImage(c *gin.Context, req *ChatRequest) bool {
 	if req.Image != "" {
 		if len(req.Image) > 5*1024*1024 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Image size exceeds 5MB limit"})
@@ -153,7 +168,10 @@ func (h *AIHandler) bindAndValidateRequest(c *gin.Context, req *ChatRequest) boo
 			return false
 		}
 	}
+	return true
+}
 
+func (h *AIHandler) validateRequestStructure(c *gin.Context, req *ChatRequest) bool {
 	if (req.Message == "" && req.Image == "") || (req.ConversationID != "" && len(req.ConversationID) > 100) {
 		errorMsg := "Message or image is required"
 		if req.ConversationID != "" {
@@ -162,9 +180,9 @@ func (h *AIHandler) bindAndValidateRequest(c *gin.Context, req *ChatRequest) boo
 		c.JSON(http.StatusBadRequest, gin.H{"error": errorMsg})
 		return false
 	}
-
 	return true
 }
+
 
 func (h *AIHandler) getAuthorizedUserID(c *gin.Context) (string, bool) {
 	userIDValue, exists := c.Get("userId")

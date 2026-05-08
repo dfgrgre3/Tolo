@@ -12,24 +12,26 @@ ADD COLUMN IF NOT EXISTS actions jsonb DEFAULT '[]';
 
 -- 2. Rename columns to match Go model (snake_case)
 DO $$ 
+DECLARE
+    tbl_name text := 'Notification';
 BEGIN 
     -- isRead -> is_read
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Notification' AND column_name = 'isRead') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = tbl_name AND column_name = 'isRead') THEN
         ALTER TABLE public."Notification" RENAME COLUMN "isRead" TO is_read;
     END IF;
     
     -- isDeleted -> is_deleted
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Notification' AND column_name = 'isDeleted') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = tbl_name AND column_name = 'isDeleted') THEN
         ALTER TABLE public."Notification" RENAME COLUMN "isDeleted" TO is_deleted;
     END IF;
 
     -- actionUrl -> action_url (though Go model ignores it, good for consistency)
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Notification' AND column_name = 'actionUrl') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = tbl_name AND column_name = 'actionUrl') THEN
         ALTER TABLE public."Notification" RENAME COLUMN "actionUrl" TO action_url;
     END IF;
 
     -- deletedAt -> deleted_at_extra (Notification already has deleted_at)
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Notification' AND column_name = 'deletedAt') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = tbl_name AND column_name = 'deletedAt') THEN
         ALTER TABLE public."Notification" RENAME COLUMN "deletedAt" TO deleted_at_extra;
     END IF;
 END $$;

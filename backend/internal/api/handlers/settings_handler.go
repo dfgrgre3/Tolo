@@ -98,7 +98,7 @@ func GetSettings(c *gin.Context) {
 // UpdateSettings updates user settings/preferences
 func UpdateSettings(c *gin.Context) {
 	userID, exists := c.Get("userId")
-	if !exists {
+	if !exists || userID == nil {
 		api_response.Error(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
@@ -109,104 +109,128 @@ func UpdateSettings(c *gin.Context) {
 		return
 	}
 
+	settings, err := fetchOrCreateUserSettings(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to fetch or create settings",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	applySettingsPatch(&settings, patch)
+
+	if err := db.DB.Save(&settings).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
+		return
+	}
+
+	api_response.Success(c, gin.H{"settings": settings})
+}
+
+func fetchOrCreateUserSettings(userID string) (models.UserSettings, error) {
 	var settings models.UserSettings
-	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
+	result := db.DB.Where(&models.UserSettings{UserID: userID}).First(&settings)
 
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			log.Printf("INFO: Creating default settings for user %v during update", userID)
-			// Create default settings first
-			settings = models.UserSettings{
-				UserID:               userID.(string),
-				Theme:                "light",
-				FontSize:             "medium",
-				ReducedMotion:        false,
-				HighContrast:         false,
-				CompactMode:          false,
-				EfficiencyMode:       false,
-				Language:             "ar",
-				NumberFormat:         "english",
-				NotificationsEnabled: true,
-				StudyReminders:       true,
-				EmailNotifications:   true,
-				PushNotifications:    true,
-				ProfileVisibility:    "public",
-				ShowOnlineStatus:     true,
-				ShowProgress:         true,
-			}
-
-			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
-			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
-				log.Printf("ERROR: Failed to create settings for user %v during update: %v", userID, err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error":   "Failed to create settings",
-					"details": err.Error(),
-				})
-				return
-			}
-
-			// Re-fetch to ensure we have the settings if DoNothing was triggered
-			if settings.ID == "" {
-				db.DB.Where("\"userId\" = ?", userID.(string)).First(&settings)
-			}
-		} else {
-			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to fetch settings",
-				"details": result.Error.Error(),
-			})
-			return
-		}
+	if result.Error == nil {
+		return settings, nil
 	}
 
-	// Apply patch updates
-	if theme, ok := patch["theme"].(string); ok {
-		settings.Theme = theme
-	}
-	if fontSize, ok := patch["fontSize"].(string); ok {
-		settings.FontSize = fontSize
-	}
-	if reducedMotion, ok := patch["reducedMotion"].(bool); ok {
-		settings.ReducedMotion = reducedMotion
-	}
-	if highContrast, ok := patch["highContrast"].(bool); ok {
-		settings.HighContrast = highContrast
-	}
-	if compactMode, ok := patch["compactMode"].(bool); ok {
-		settings.CompactMode = compactMode
-	}
-	if efficiencyMode, ok := patch["efficiencyMode"].(bool); ok {
-		settings.EfficiencyMode = efficiencyMode
-	}
-	if language, ok := patch["language"].(string); ok {
-		settings.Language = language
-	}
-	if numberFormat, ok := patch["numberFormat"].(string); ok {
-		settings.NumberFormat = numberFormat
-	}
-	if notificationsEnabled, ok := patch["notificationsEnabled"].(bool); ok {
-		settings.NotificationsEnabled = notificationsEnabled
-	}
-	if studyReminders, ok := patch["studyReminders"].(bool); ok {
-		settings.StudyReminders = studyReminders
-	}
-	if emailNotifications, ok := patch["emailNotifications"].(bool); ok {
-		settings.EmailNotifications = emailNotifications
-	}
-	if pushNotifications, ok := patch["pushNotifications"].(bool); ok {
-		settings.PushNotifications = pushNotifications
-	}
-	if profileVisibility, ok := patch["profileVisibility"].(string); ok {
-		settings.ProfileVisibility = profileVisibility
-	}
-	if showOnlineStatus, ok := patch["showOnlineStatus"].(bool); ok {
-		settings.ShowOnlineStatus = showOnlineStatus
-	}
-	if showProgress, ok := patch["showProgress"].(bool); ok {
-		settings.ShowProgress = showProgress
+	if result.Error != gorm.ErrRecordNotFound {
+		log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
+		return settings, result.Error
 	}
 
-	// Extended notification settings
+	log.Printf("INFO: Creating default settings for user %v", userID)
+	settings = models.UserSettings{
+		UserID:               userID,
+		Theme:                "light",
+		FontSize:             "medium",
+		Language:             "ar",
+		NumberFormat:         "english",
+		NotificationsEnabled: true,
+		StudyReminders:       true,
+		EmailNotifications:   true,
+		PushNotifications:    true,
+		ProfileVisibility:    "public",
+		ShowOnlineStatus:     true,
+		ShowProgress:         true,
+	}
+
+	if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
+		log.Printf("ERROR: Failed to create settings for user %v: %v", userID, err)
+		return settings, err
+	}
+
+	if settings.ID == "" {
+		db.DB.Where(&models.UserSettings{UserID: userID}).First(&settings)
+	}
+
+	return settings, nil
+}
+
+func applySettingsPatch(settings *models.UserSettings, patch map[string]interface{}) {
+	applyUISettings(settings, patch)
+	applyNotificationSettings(settings, patch)
+	applyPrivacySettings(settings, patch)
+	applyAdvancedSettings(settings, patch)
+}
+
+func applyUISettings(settings *models.UserSettings, patch map[string]interface{}) {
+	if v, ok := patch["theme"].(string); ok {
+		settings.Theme = v
+	}
+	if v, ok := patch["fontSize"].(string); ok {
+		settings.FontSize = v
+	}
+	if v, ok := patch["reducedMotion"].(bool); ok {
+		settings.ReducedMotion = v
+	}
+	if v, ok := patch["highContrast"].(bool); ok {
+		settings.HighContrast = v
+	}
+	if v, ok := patch["compactMode"].(bool); ok {
+		settings.CompactMode = v
+	}
+	if v, ok := patch["efficiencyMode"].(bool); ok {
+		settings.EfficiencyMode = v
+	}
+	if v, ok := patch["language"].(string); ok {
+		settings.Language = v
+	}
+	if v, ok := patch["numberFormat"].(string); ok {
+		settings.NumberFormat = v
+	}
+}
+
+func applyNotificationSettings(settings *models.UserSettings, patch map[string]interface{}) {
+	if v, ok := patch["notificationsEnabled"].(bool); ok {
+		settings.NotificationsEnabled = v
+	}
+	if v, ok := patch["studyReminders"].(bool); ok {
+		settings.StudyReminders = v
+	}
+	if v, ok := patch["emailNotifications"].(bool); ok {
+		settings.EmailNotifications = v
+	}
+	if v, ok := patch["pushNotifications"].(bool); ok {
+		settings.PushNotifications = v
+	}
+}
+
+func applyPrivacySettings(settings *models.UserSettings, patch map[string]interface{}) {
+	if v, ok := patch["profileVisibility"].(string); ok {
+		settings.ProfileVisibility = v
+	}
+	if v, ok := patch["showOnlineStatus"].(bool); ok {
+		settings.ShowOnlineStatus = v
+	}
+	if v, ok := patch["showProgress"].(bool); ok {
+		settings.ShowProgress = v
+	}
+}
+
+func applyAdvancedSettings(settings *models.UserSettings, patch map[string]interface{}) {
 	if v, ok := patch["taskReminders"].(bool); ok {
 		settings.TaskReminders = v
 	}
@@ -264,14 +288,8 @@ func UpdateSettings(c *gin.Context) {
 	if v, ok := patch["vibrationEnabled"].(bool); ok {
 		settings.VibrationEnabled = v
 	}
-
-	if err := db.DB.Save(&settings).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
-		return
-	}
-
-	api_response.Success(c, gin.H{"settings": settings})
 }
+
 
 // GetSystemSettings retrieves public system settings (feature toggles, etc)
 func GetSystemSettings(c *gin.Context) {

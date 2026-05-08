@@ -23,6 +23,8 @@ const (
 	WarnLevel
 	ErrorLevel
 	FatalLevel
+	// errorLogFormat is the format for error suffix in log strings
+	errorLogFormat = " | Error: %s"
 )
 
 var levelNames = map[LogLevel]string{
@@ -125,7 +127,7 @@ func (l *StructuredLogger) log(level LogLevel, message string, fields map[string
 	)
 
 	if entry.Error != "" {
-		logStr += fmt.Sprintf(" | Error: %s", entry.Error)
+		logStr += fmt.Sprintf(errorLogFormat, entry.Error)
 	}
 
 	if len(entry.Metadata) > 0 {
@@ -220,7 +222,7 @@ func (l *StructuredLogger) Error(message string, err error, fields ...map[string
 	)
 
 	if entry.Error != "" {
-		logStr += fmt.Sprintf(" | Error: %s", entry.Error)
+		logStr += fmt.Sprintf(errorLogFormat, entry.Error)
 	}
 
 	log.Println(logStr)
@@ -241,7 +243,7 @@ func (l *StructuredLogger) Fatal(message string, err error) {
 
 	logStr := fmt.Sprintf("[%s] %s | %s", entry.Level, entry.Timestamp.Format(time.RFC3339), message)
 	if entry.Error != "" {
-		logStr += fmt.Sprintf(" | Error: %s", entry.Error)
+		logStr += fmt.Sprintf(errorLogFormat, entry.Error)
 	}
 
 	log.Fatal(logStr)

@@ -16,6 +16,10 @@ const (
 	SessionKeyPrefix = "session:"
 	// SessionTTL is the default TTL for sessions (24 hours)
 	SessionTTL = 24 * time.Hour
+	// errRedisNotInitialized is the error message when the store is not initialized
+	errRedisNotInitialized = "redis session store not initialized"
+	// idQuery is the standard query for ID lookup
+	idQuery = "id = ?"
 )
 
 // RedisSessionStore provides Redis-based session management
@@ -38,7 +42,7 @@ func NewRedisSessionStore() *RedisSessionStore {
 // StoreSession stores a session in Redis with DB fallback
 func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 	if s == nil || s.client == nil {
-		return fmt.Errorf("redis session store not initialized")
+		return fmt.Errorf(errRedisNotInitialized)
 	}
 
 	key := SessionKeyPrefix + session.ID
@@ -68,7 +72,7 @@ func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 // GetSession retrieves a session from Redis with DB fallback
 func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) {
 	if s == nil || s.client == nil {
-		return nil, fmt.Errorf("redis session store not initialized")
+		return nil, fmt.Errorf(errRedisNotInitialized)
 	}
 
 	key := SessionKeyPrefix + jti
@@ -85,7 +89,7 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 	// 2. Fallback to DB if not found in Redis or unmarshal failed
 	if DB != nil {
 		var session models.UserSession
-		if err := DB.First(&session, "id = ?", jti).Error; err == nil {
+		if err := DB.First(&session, idQuery, jti).Error; err == nil {
 			// Check if expired
 			if time.Now().After(session.ExpiresAt) {
 				return nil, fmt.Errorf("session expired")
@@ -106,12 +110,12 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 // RevokeSession revokes a session in Redis and DB
 func (s *RedisSessionStore) RevokeSession(jti string) error {
 	if s == nil || s.client == nil {
-		return fmt.Errorf("redis session store not initialized")
+		return fmt.Errorf(errRedisNotInitialized)
 	}
 
 	// Delete from DB
 	if DB != nil {
-		DB.Delete(&models.UserSession{}, "id = ?", jti)
+		DB.Delete(&models.UserSession{}, idQuery, jti)
 	}
 
 	key := SessionKeyPrefix + jti
@@ -121,7 +125,7 @@ func (s *RedisSessionStore) RevokeSession(jti string) error {
 // RevokeAllUserSessions revokes all sessions for a user
 func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 	if s == nil || s.client == nil {
-		return fmt.Errorf("redis session store not initialized")
+		return fmt.Errorf(errRedisNotInitialized)
 	}
 
 	// Delete from DB
@@ -130,24 +134,21 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 	}
 
 	// Clear from Redis (using scan for safety)
+	return s.clearUserSessionsFromRedis(userID)
+}
+
+func (s *RedisSessionStore) clearUserSessionsFromRedis(userID string) error {
 	pattern := SessionKeyPrefix + "*"
 	var cursor uint64
+
 	for {
 		keys, nextCursor, err := s.client.Scan(s.ctx, cursor, pattern, 100).Result()
 		if err != nil {
-			break
+			return nil // End of scan or error
 		}
 
 		for _, key := range keys {
-			data, err := s.client.Get(s.ctx, key).Bytes()
-			if err != nil {
-				continue
-			}
-
-			var session models.UserSession
-			if err := json.Unmarshal(data, &session); err == nil && session.UserID == userID {
-				s.client.Del(s.ctx, key)
-			}
+			s.revokeIfUserMatch(key, userID)
 		}
 
 		cursor = nextCursor
@@ -155,9 +156,21 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 			break
 		}
 	}
-
 	return nil
 }
+
+func (s *RedisSessionStore) revokeIfUserMatch(key, userID string) {
+	data, err := s.client.Get(s.ctx, key).Bytes()
+	if err != nil {
+		return
+	}
+
+	var session models.UserSession
+	if err := json.Unmarshal(data, &session); err == nil && session.UserID == userID {
+		s.client.Del(s.ctx, key)
+	}
+}
+
 
 // UpdateLastAccessed updates the last accessed time for a session
 func (s *RedisSessionStore) UpdateLastAccessed(jti string) error {
@@ -170,7 +183,7 @@ func (s *RedisSessionStore) UpdateLastAccessed(jti string) error {
 
 	// Update in DB
 	if DB != nil {
-		DB.Model(&models.UserSession{}).Where("id = ?", jti).Update("lastAccessed", session.LastAccessed)
+		DB.Model(&models.UserSession{}).Where(idQuery, jti).Update("lastAccessed", session.LastAccessed)
 	}
 
 	// Update in Redis

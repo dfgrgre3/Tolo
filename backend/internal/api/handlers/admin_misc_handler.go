@@ -409,185 +409,214 @@ func AdminExamsBulkUpload(c *gin.Context) {
 }
 
 func UploadChunked(c *gin.Context) {
-	ctx := c.Request.Context()
 	switch c.Request.Method {
 	case http.MethodPost:
-		var req struct {
-			FileName  string `json:"fileName"`
-			FileType  string `json:"fileType"`
-			FileSize  int64  `json:"fileSize"`
-			ChunkSize int    `json:"chunkSize"`
-		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			api_response.Error(c, http.StatusBadRequest, "Invalid request parameters")
-			return
-		}
-
-		uploadID := uuid.New().String()
-		
-		// Store metadata in Redis for distributed access
-		metadataBytes, _ := json.Marshal(req)
-		if db.Redis != nil {
-			db.Redis.Set(ctx, uploadMetadataKeyPrefix+uploadID, metadataBytes, 24*time.Hour)
-		} else {
-			// Fallback to local if Redis is missing (not ideal for distributed)
-			tempDir := filepath.Join("uploads", "temp", uploadID)
-			os.MkdirAll(tempDir, 0755)
-			os.WriteFile(filepath.Join(tempDir, "metadata.json"), metadataBytes, 0644)
-		}
-
-		api_response.Success(c, gin.H{"uploadId": uploadID})
-
+		handlePostInitChunked(c)
 	case http.MethodPut:
-		uploadID := c.PostForm("uploadId")
-		chunkIndexStr := c.PostForm("chunkIndex")
-		if uploadID == "" || chunkIndexStr == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing uploadId or chunkIndex"})
-			return
-		}
-
-		file, err := c.FormFile("chunk")
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "No chunk file found in request"})
-			return
-		}
-
-		f, err := file.Open()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open chunk"})
-			return
-		}
-		defer f.Close()
-
-		// Upload chunk to distributed storage
-		chunkPath := fmt.Sprintf("temp/%s/%s", uploadID, chunkIndexStr)
-		_, err = storage.GlobalStorage.Upload(ctx, chunkPath, f, file.Size, "application/octet-stream")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chunk to storage", "details": err.Error()})
-			return
-		}
-
-		api_response.Success(c, nil)
-
+		handlePutUploadChunk(c)
 	case http.MethodPatch:
-		var req struct {
-			UploadID string `json:"uploadId"`
-		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-			return
-		}
-
-		// Retrieve metadata
-		var metadata struct {
-			FileName string `json:"fileName"`
-			FileType string `json:"fileType"`
-		}
-		
-		if db.Redis != nil {
-			val, err := db.Redis.Get(ctx, uploadMetadataKeyPrefix+req.UploadID).Bytes()
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
-				return
-			}
-			json.Unmarshal(val, &metadata)
-		} else {
-			// Fallback
-			tempDir := filepath.Join("uploads", "temp", req.UploadID)
-			metadataBytes, err := os.ReadFile(filepath.Join(tempDir, "metadata.json"))
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
-				return
-			}
-			json.Unmarshal(metadataBytes, &metadata)
-		}
-
-		// List chunks from distributed storage
-		chunkPrefix := fmt.Sprintf("temp/%s/", req.UploadID)
-		chunkFiles, err := storage.GlobalStorage.List(ctx, chunkPrefix)
-		if err != nil || len(chunkFiles) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "No chunks found for this upload"})
-			return
-		}
-
-		type chunkEntry struct {
-			index int
-			path  string
-		}
-		var chunks []chunkEntry
-		for _, path := range chunkFiles {
-			// Path usually looks like "temp/{uploadID}/{index}"
-			parts := strings.Split(path, "/")
-			if len(parts) < 3 { continue }
-			idx, err := strconv.Atoi(parts[len(parts)-1])
-			if err != nil { continue }
-			chunks = append(chunks, chunkEntry{index: idx, path: path})
-		}
-
-		sort.Slice(chunks, func(i, j int) bool {
-			return chunks[i].index < chunks[j].index
-		})
-
-		// Join chunks into a temporary local file
-		ext := strings.ToLower(filepath.Ext(metadata.FileName))
-		finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		
-		tempLocalFile, err := os.CreateTemp("", "upload-*"+ext)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create merge buffer"})
-			return
-		}
-		tempLocalPath := tempLocalFile.Name()
-		defer os.Remove(tempLocalPath)
-
-		for _, chunk := range chunks {
-			rc, err := storage.GlobalStorage.Download(ctx, chunk.path)
-			if err != nil {
-				tempLocalFile.Close()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download chunk " + chunk.path})
-				return
-			}
-			_, err = io.Copy(tempLocalFile, rc)
-			rc.Close()
-			if err != nil {
-				tempLocalFile.Close()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join chunk " + chunk.path})
-				return
-			}
-		}
-		
-		// Get size for final upload
-		info, _ := tempLocalFile.Stat()
-		size := info.Size()
-		tempLocalFile.Seek(0, 0)
-
-		// Upload final file
-		url, err := storage.GlobalStorage.Upload(ctx, finalFilename, tempLocalFile, size, metadata.FileType)
-		tempLocalFile.Close()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload final file"})
-			return
-		}
-
-		// Cleanup
-		go func() {
-			bgCtx := context.Background()
-			for _, chunk := range chunks {
-				storage.GlobalStorage.Delete(bgCtx, chunk.path)
-			}
-			if db.Redis != nil {
-				db.Redis.Del(bgCtx, uploadMetadataKeyPrefix+req.UploadID)
-			}
-			// Cleanup local temp if fallback was used
-			os.RemoveAll(filepath.Join("uploads", "temp", req.UploadID))
-		}()
-
-		api_response.Success(c, gin.H{"fileUrl": url})
-
+		handlePatchMergeChunks(c)
 	default:
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method not allowed"})
 	}
 }
+
+type chunkMetadata struct {
+	FileName  string `json:"fileName"`
+	FileType  string `json:"fileType"`
+	FileSize  int64  `json:"fileSize"`
+	ChunkSize int    `json:"chunkSize"`
+}
+
+type chunkEntry struct {
+	index int
+	path  string
+}
+
+func handlePostInitChunked(c *gin.Context) {
+	var req chunkMetadata
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api_response.Error(c, http.StatusBadRequest, "Invalid request parameters")
+		return
+	}
+
+	uploadID := uuid.New().String()
+	metadataBytes, _ := json.Marshal(req)
+
+	if db.Redis != nil {
+		db.Redis.Set(c.Request.Context(), uploadMetadataKeyPrefix+uploadID, metadataBytes, 24*time.Hour)
+	} else {
+		tempDir := filepath.Join("uploads", "temp", uploadID)
+		os.MkdirAll(tempDir, 0755)
+		os.WriteFile(filepath.Join(tempDir, "metadata.json"), metadataBytes, 0644)
+	}
+
+	api_response.Success(c, gin.H{"uploadId": uploadID})
+}
+
+func handlePutUploadChunk(c *gin.Context) {
+	uploadID := c.PostForm("uploadId")
+	chunkIndexStr := c.PostForm("chunkIndex")
+	if uploadID == "" || chunkIndexStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing uploadId or chunkIndex"})
+		return
+	}
+
+	file, err := c.FormFile("chunk")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No chunk file found in request"})
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open chunk"})
+		return
+	}
+	defer f.Close()
+
+	chunkPath := fmt.Sprintf("temp/%s/%s", uploadID, chunkIndexStr)
+	_, err = storage.GlobalStorage.Upload(c.Request.Context(), chunkPath, f, file.Size, "application/octet-stream")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chunk to storage", "details": err.Error()})
+		return
+	}
+
+	api_response.Success(c, nil)
+}
+
+func handlePatchMergeChunks(c *gin.Context) {
+	var req struct {
+		UploadID string `json:"uploadId"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	metadata, err := getUploadMetadata(ctx, req.UploadID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
+		return
+	}
+
+	chunks, err := getSortedChunks(ctx, req.UploadID)
+	if err != nil || len(chunks) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No chunks found for this upload"})
+		return
+	}
+
+	url, err := assembleAndUploadFinalFile(ctx, req.UploadID, metadata, chunks)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	api_response.Success(c, gin.H{"fileUrl": url})
+}
+
+func getUploadMetadata(ctx context.Context, uploadID string) (chunkMetadata, error) {
+	var metadata chunkMetadata
+	if db.Redis != nil {
+		val, err := db.Redis.Get(ctx, uploadMetadataKeyPrefix+uploadID).Bytes()
+		if err != nil {
+			return metadata, err
+		}
+		json.Unmarshal(val, &metadata)
+	} else {
+		tempDir := filepath.Join("uploads", "temp", uploadID)
+		metadataBytes, err := os.ReadFile(filepath.Join(tempDir, "metadata.json"))
+		if err != nil {
+			return metadata, err
+		}
+		json.Unmarshal(metadataBytes, &metadata)
+	}
+	return metadata, nil
+}
+
+func getSortedChunks(ctx context.Context, uploadID string) ([]chunkEntry, error) {
+	chunkPrefix := fmt.Sprintf("temp/%s/", uploadID)
+	chunkFiles, err := storage.GlobalStorage.List(ctx, chunkPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	var chunks []chunkEntry
+	for _, path := range chunkFiles {
+		parts := strings.Split(path, "/")
+		if len(parts) < 3 {
+			continue
+		}
+		idx, err := strconv.Atoi(parts[len(parts)-1])
+		if err != nil {
+			continue
+		}
+		chunks = append(chunks, chunkEntry{index: idx, path: path})
+	}
+
+	sort.Slice(chunks, func(i, j int) bool {
+		return chunks[i].index < chunks[j].index
+	})
+	return chunks, nil
+}
+
+func assembleAndUploadFinalFile(ctx context.Context, uploadID string, metadata chunkMetadata, chunks []chunkEntry) (string, error) {
+	ext := strings.ToLower(filepath.Ext(metadata.FileName))
+	finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+
+	tempLocalFile, err := os.CreateTemp("", "upload-*"+ext)
+	if err != nil {
+		return "", fmt.Errorf("Failed to create merge buffer")
+	}
+	defer os.Remove(tempLocalFile.Name())
+
+	for _, chunk := range chunks {
+		if err := appendChunkToLocalFile(ctx, tempLocalFile, chunk.path); err != nil {
+			tempLocalFile.Close()
+			return "", err
+		}
+	}
+
+	info, _ := tempLocalFile.Stat()
+	size := info.Size()
+	tempLocalFile.Seek(0, 0)
+
+	url, err := storage.GlobalStorage.Upload(ctx, finalFilename, tempLocalFile, size, metadata.FileType)
+	tempLocalFile.Close()
+	if err != nil {
+		return "", fmt.Errorf("Failed to upload final file")
+	}
+
+	go cleanupChunkedUpload(uploadID, chunks)
+
+	return url, nil
+}
+
+func appendChunkToLocalFile(ctx context.Context, dest *os.File, chunkPath string) error {
+	rc, err := storage.GlobalStorage.Download(ctx, chunkPath)
+	if err != nil {
+		return fmt.Errorf("Failed to download chunk " + chunkPath)
+	}
+	defer rc.Close()
+
+	if _, err = io.Copy(dest, rc); err != nil {
+		return fmt.Errorf("Failed to join chunk " + chunkPath)
+	}
+	return nil
+}
+
+func cleanupChunkedUpload(uploadID string, chunks []chunkEntry) {
+	bgCtx := context.Background()
+	for _, chunk := range chunks {
+		storage.GlobalStorage.Delete(bgCtx, chunk.path)
+	}
+	if db.Redis != nil {
+		db.Redis.Del(bgCtx, uploadMetadataKeyPrefix+uploadID)
+	}
+	os.RemoveAll(filepath.Join("uploads", "temp", uploadID))
+}
+
 
 func MarkActivityRead(c *gin.Context) {
 	userId, exists := c.Get("userId")
@@ -1056,34 +1085,48 @@ func buildLiveActivityMaps(examResults []models.ExamResult, studySessions []mode
 		ExamMap:    make(map[string]models.Exam),
 	}
 
-	examIDs := make([]string, 0, len(examResults))
-	for _, r := range examResults {
+	populateExamMaps(examResults, &summary)
+	populateSessionSubjectMap(studySessions, &summary)
+
+	return summary
+}
+
+func populateExamMaps(results []models.ExamResult, summary *liveActivitySummary) {
+	examIDs := make([]string, 0, len(results))
+	for _, r := range results {
 		examIDs = append(examIDs, r.ExamID)
 	}
 
-	if len(examIDs) > 0 {
-		var exams []models.Exam
-		db.DB.Where(idInQuery, examIDs).Find(&exams)
-		subjectIDs := make([]string, 0, len(exams))
-		for _, e := range exams {
-			summary.ExamMap[e.ID] = e
-			subjectIDs = append(subjectIDs, e.SubjectID)
-		}
-		if len(subjectIDs) > 0 {
-			var subjects []models.Subject
-			db.DB.Where(idInQuery, subjectIDs).Find(&subjects)
-			for _, s := range subjects {
-				summary.SubjectMap[s.ID] = s
-			}
-		}
+	if len(examIDs) == 0 {
+		return
 	}
 
-	sessionSubjectIDs := make([]string, 0, len(studySessions))
-	for _, s := range studySessions {
+	var exams []models.Exam
+	db.DB.Where(idInQuery, examIDs).Find(&exams)
+
+	subjectIDs := make([]string, 0, len(exams))
+	for _, e := range exams {
+		summary.ExamMap[e.ID] = e
+		subjectIDs = append(subjectIDs, e.SubjectID)
+	}
+
+	if len(subjectIDs) > 0 {
+		var subjects []models.Subject
+		db.DB.Where(idInQuery, subjectIDs).Find(&subjects)
+		for _, s := range subjects {
+			summary.SubjectMap[s.ID] = s
+		}
+	}
+}
+
+func populateSessionSubjectMap(sessions []models.StudySession, summary *liveActivitySummary) {
+	sessionSubjectIDs := make([]string, 0, len(sessions))
+	for _, s := range sessions {
 		if s.SubjectID != nil && *s.SubjectID != "" {
 			sessionSubjectIDs = append(sessionSubjectIDs, *s.SubjectID)
 		}
 	}
+
 	if len(sessionSubjectIDs) > 0 {
 		var subjects []models.Subject
 		db.DB.Where(idInQuery, sessionSubjectIDs).Find(&subjects)
@@ -1091,9 +1134,8 @@ func buildLiveActivityMaps(examResults []models.ExamResult, studySessions []mode
 			summary.SubjectMap[s.ID] = s
 		}
 	}
-
-	return summary
 }
+
 
 type liveUserActivity struct {
 	Type    string

@@ -15,6 +15,9 @@ import (
 	"thanawy-backend/internal/db"
 )
 
+const redisBroadcastChannel = "websocket:broadcast"
+
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -79,7 +82,7 @@ func InitHub() {
 	log.Println("Initializing WebSocket hub with Redis Pub/Sub support")
 
 	GlobalHub.redisCtx = context.Background()
-	GlobalHub.redisPubSub = db.Redis.Subscribe(GlobalHub.redisCtx, "websocket:broadcast")
+	GlobalHub.redisPubSub = db.Redis.Subscribe(GlobalHub.redisCtx, redisBroadcastChannel)
 
 	go GlobalHub.Run()
 	go GlobalHub.redisSubscribe()
@@ -143,7 +146,7 @@ func (h *Hub) BroadcastToUser(userID string, message []byte) {
 			"payload":    string(message),
 		}
 		envelopeJSON, _ := json.Marshal(envelope)
-		db.Redis.Publish(context.Background(), "websocket:broadcast", string(envelopeJSON))
+		db.Redis.Publish(context.Background(), redisBroadcastChannel, string(envelopeJSON))
 	}
 }
 
@@ -216,7 +219,7 @@ func (h *Hub) Run() {
 			h.broadcastLocal(message)
 
 			if db.Redis != nil {
-				db.Redis.Publish(context.Background(), "websocket:broadcast", string(message))
+				db.Redis.Publish(context.Background(), redisBroadcastChannel, string(message))
 			}
 		}
 	}

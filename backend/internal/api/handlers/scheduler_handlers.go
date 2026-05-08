@@ -12,6 +12,8 @@ import (
 )
 
 const statusQuery = "status = ?"
+const idQuery = "id = ?"
+const errItemNotFound = "Item not found"
 
 
 // ScheduledItemRequest represents a request to schedule an item
@@ -162,8 +164,8 @@ func CancelScheduledItem(c *gin.Context) {
 	id := c.Param("id")
 
 	var item models.ScheduledItem
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errItemNotFound})
 		return
 	}
 
@@ -198,8 +200,8 @@ func RetryScheduledItem(c *gin.Context) {
 	id := c.Param("id")
 
 	var item models.ScheduledItem
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errItemNotFound})
 		return
 	}
 
@@ -247,8 +249,8 @@ func ExecuteScheduledItemNow(c *gin.Context) {
 	id := c.Param("id")
 
 	var item models.ScheduledItem
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errItemNotFound})
 		return
 	}
 
@@ -285,8 +287,8 @@ func DeleteScheduledItem(c *gin.Context) {
 
 	// Prevent deleting processing items
 	var item models.ScheduledItem
-	if err := db.DB.First(&item, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errItemNotFound})
 		return
 	}
 

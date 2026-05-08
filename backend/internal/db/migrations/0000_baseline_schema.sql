@@ -7,6 +7,18 @@
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
 
+\set MEDIUM_LOWER 'medium'
+\set PENDING_LOWER 'pending'
+\set SOFT_DELETE_COMMENT 'Soft delete timestamp - NULL means active'
+\set COMPLETED_STATUS 'COMPLETED'
+\set CANCELLED_STATUS 'CANCELLED'
+\set INACTIVE_STATUS 'INACTIVE'
+\set ACTIVE_STATUS 'ACTIVE'
+\set PENDING_STATUS 'PENDING'
+\set MEDIUM_VAL 'MEDIUM'
+\set DRAFT_STATUS 'DRAFT'
+\set COURSE_TYPE 'COURSE'
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -79,7 +91,7 @@ CREATE TYPE public.AddonType AS ENUM (
 CREATE TYPE public.CategoryType AS ENUM (
     'BLOG',
     'FORUM',
-    'COURSE'
+    :'COURSE_TYPE'
 );
 
 
@@ -88,7 +100,7 @@ CREATE TYPE public.CategoryType AS ENUM (
 --
 
 CREATE TYPE public.ContestStatus AS ENUM (
-    'DRAFT',
+    :'DRAFT_STATUS',
     'WAITING',
     'IN_PROGRESS',
     'FINISHED'
@@ -101,7 +113,7 @@ CREATE TYPE public.ContestStatus AS ENUM (
 
 CREATE TYPE public.Difficulty AS ENUM (
     'EASY',
-    'MEDIUM',
+    :'MEDIUM_VAL',
     'HARD',
     'EXPERT'
 );
@@ -135,7 +147,7 @@ CREATE TYPE public.FocusStrategy AS ENUM (
 --
 
 CREATE TYPE public.InvoiceStatus AS ENUM (
-    'DRAFT',
+    :'DRAFT_STATUS',
     'OPEN',
     'PAID',
     'VOID',
@@ -184,7 +196,7 @@ CREATE TYPE public.NotificationType AS ENUM (
 --
 
 CREATE TYPE public.PaymentStatus AS ENUM (
-    'PENDING',
+    :'PENDING_STATUS',
     'SUCCESS',
     'FAILED',
     'REFUNDED'
@@ -208,10 +220,10 @@ CREATE TYPE public.PlanInterval AS ENUM (
 --
 
 CREATE TYPE public.SubscriptionStatus AS ENUM (
-    'ACTIVE',
-    'INACTIVE',
+    :'ACTIVE_STATUS',
+    :'INACTIVE_STATUS',
     'EXPIRED',
-    'CANCELLED',
+    :'CANCELLED_STATUS',
     'GRACE_PERIOD'
 );
 
@@ -221,10 +233,10 @@ CREATE TYPE public.SubscriptionStatus AS ENUM (
 --
 
 CREATE TYPE public.TaskStatus AS ENUM (
-    'PENDING',
+    :'PENDING_STATUS',
     'IN_PROGRESS',
-    'COMPLETED',
-    'CANCELLED'
+    :'COMPLETED_STATUS',
+    :'CANCELLED_STATUS'
 );
 
 
@@ -246,8 +258,8 @@ CREATE TYPE public.UserRole AS ENUM (
 --
 
 CREATE TYPE public.UserStatus AS ENUM (
-    'ACTIVE',
-    'INACTIVE',
+    :'ACTIVE_STATUS',
+    :'INACTIVE_STATUS',
     'SUSPENDED',
     'DELETED'
 );
@@ -258,10 +270,10 @@ CREATE TYPE public.UserStatus AS ENUM (
 --
 
 CREATE TYPE public.WalletTransactionStatus AS ENUM (
-    'PENDING',
-    'COMPLETED',
+    :'PENDING_STATUS',
+    :'COMPLETED_STATUS',
     'FAILED',
-    'CANCELLED'
+    :'CANCELLED_STATUS'
 );
 
 
@@ -370,7 +382,7 @@ CREATE TABLE public."ABExperiment" (
     id uuid NOT NULL,
     name text NOT NULL,
     description text,
-    status text DEFAULT 'DRAFT'::text,
+    status text DEFAULT :'DRAFT_STATUS'::text,
     variants text,
     traffic_pct bigint DEFAULT 100,
     start_date timestamp with time zone,
@@ -480,7 +492,7 @@ CREATE TABLE public.users (
     password_expires_at timestamp(3) without time zone,
     password_expiration_warning_sent boolean DEFAULT false NOT NULL,
     role public."UserRole" DEFAULT 'STUDENT'::public."UserRole" NOT NULL,
-    status public."UserStatus" DEFAULT 'ACTIVE'::public."UserStatus" NOT NULL,
+    status public."UserStatus" DEFAULT :'ACTIVE_STATUS'::public."UserStatus" NOT NULL,
     country text,
     date_of_birth timestamp(3) without time zone,
     gender text,
@@ -696,7 +708,7 @@ CREATE TABLE public."AiGeneratedExam" (
     year integer,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    difficulty public."Difficulty" DEFAULT 'MEDIUM'::public."Difficulty" NOT NULL
+    difficulty public."Difficulty" DEFAULT :'MEDIUM_VAL'::public."Difficulty" NOT NULL
 );
 
 
@@ -854,7 +866,7 @@ CREATE TABLE public."BlogPost" (
     author_id uuid,
     category_id uuid,
     tags jsonb,
-    status text DEFAULT 'DRAFT'::text,
+    status text DEFAULT :'DRAFT_STATUS'::text,
     image text,
     published_at timestamp with time zone,
     created_at timestamp with time zone,
@@ -866,7 +878,7 @@ CREATE TABLE public."BlogPost" (
 -- Name: COLUMN "BlogPost".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."BlogPost".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."BlogPost".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -901,7 +913,7 @@ CREATE TABLE public."Book" (
 -- Name: COLUMN "Book".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Book".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Book".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -947,7 +959,7 @@ CREATE TABLE public."Category" (
     description text,
     slug text NOT NULL,
     icon text,
-    type text DEFAULT 'COURSE'::text,
+    type text DEFAULT :'COURSE_TYPE'::text,
     "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" timestamp with time zone,
     deleted_at timestamp with time zone,
@@ -1024,7 +1036,7 @@ CREATE TABLE public."ContentReport" (
     "subjectId" text,
     "issueType" text NOT NULL,
     description text NOT NULL,
-    status text DEFAULT 'PENDING'::text NOT NULL,
+    status text DEFAULT :'PENDING_STATUS'::text NOT NULL,
     "adminNote" text,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL
@@ -1047,7 +1059,7 @@ CREATE TABLE public."Contest" (
     rules text,
     prizes text,
     "isActive" boolean DEFAULT true NOT NULL,
-    status public."ContestStatus" DEFAULT 'DRAFT'::public."ContestStatus" NOT NULL,
+    status public."ContestStatus" DEFAULT :'DRAFT_STATUS'::public."ContestStatus" NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     "pinCode" text,
@@ -1060,7 +1072,7 @@ CREATE TABLE public."Contest" (
 -- Name: COLUMN "Contest".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Contest".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Contest".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1137,7 +1149,7 @@ CREATE TABLE public."CourseReview" (
 -- Name: COLUMN "CourseReview".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."CourseReview".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."CourseReview".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1203,7 +1215,7 @@ CREATE TABLE public."Event" (
 -- Name: COLUMN "Event".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Event".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Event".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1214,7 +1226,7 @@ CREATE TABLE public."EventAttendee" (
     id text NOT NULL,
     event_id uuid CONSTRAINT "EventAttendee_eventId_not_null" NOT NULL,
     user_id uuid CONSTRAINT "EventAttendee_userId_not_null" NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
+    status text DEFAULT :'PENDING_LOWER'::text NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL
 );
@@ -1237,7 +1249,7 @@ CREATE TABLE public."Exam" (
     max_score numeric DEFAULT 100,
     deleted_at timestamp with time zone,
     description text,
-    difficulty character varying(20) DEFAULT 'medium'::character varying,
+    difficulty character varying(20) DEFAULT :'MEDIUM_LOWER'::character varying,
     is_active boolean DEFAULT true
 );
 
@@ -1266,7 +1278,7 @@ PARTITION BY RANGE (taken_at);
 -- Name: COLUMN "ExamResult".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."ExamResult".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."ExamResult".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1384,7 +1396,7 @@ CREATE TABLE public."Invoice" (
     payment_id uuid,
     amount double precision NOT NULL,
     currency text DEFAULT 'EGP'::text NOT NULL,
-    status public."InvoiceStatus" DEFAULT 'DRAFT'::public."InvoiceStatus" NOT NULL,
+    status public."InvoiceStatus" DEFAULT :'DRAFT_STATUS'::public."InvoiceStatus" NOT NULL,
     "issueDate" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     due_date timestamp with time zone,
     "paidDate" timestamp(3) without time zone,
@@ -1457,7 +1469,7 @@ CREATE TABLE public."LessonAttachment" (
 -- Name: COLUMN "LessonAttachment".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."LessonAttachment".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."LessonAttachment".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1656,7 +1668,7 @@ CREATE TABLE public."Payment" (
     plan_id uuid,
     amount numeric NOT NULL,
     currency text DEFAULT 'EGP'::text NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
+    status text DEFAULT :'PENDING_LOWER'::text NOT NULL,
     method text NOT NULL,
     reference text UNIQUE NOT NULL,
     paymob_order_id bigint,
@@ -1677,7 +1689,7 @@ CREATE TABLE public."Payment" (
     "prorationDiscount" double precision DEFAULT 0,
     "archiveReason" text,
     CONSTRAINT chk_payment_amount_nonnegative CHECK ((amount >= (0)::numeric)),
-    CONSTRAINT chk_payment_status_valid CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text, 'refunded'::text, 'cancelled'::text])))
+    CONSTRAINT chk_payment_status_valid CHECK ((status = ANY (ARRAY[:'PENDING_LOWER'::text, 'completed'::text, 'failed'::text, 'refunded'::text, 'cancelled'::text])))
 );
 
 
@@ -1746,7 +1758,7 @@ CREATE TABLE public."QuestChain" (
     "isActive" boolean DEFAULT true NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    difficulty public."Difficulty" DEFAULT 'MEDIUM'::public."Difficulty" NOT NULL
+    difficulty public."Difficulty" DEFAULT :'MEDIUM_VAL'::public."Difficulty" NOT NULL
 );
 
 
@@ -1792,7 +1804,7 @@ CREATE TABLE public."ReferralReward" (
     "referrerId" text NOT NULL,
     "referredId" text NOT NULL,
     amount double precision NOT NULL,
-    status text DEFAULT 'PENDING'::text NOT NULL,
+    status text DEFAULT :'PENDING_STATUS'::text NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL
 );
@@ -1812,7 +1824,7 @@ CREATE TABLE public."Reminder" (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone,
     type text DEFAULT 'STUDY'::text,
-    priority text DEFAULT 'MEDIUM'::text,
+    priority text DEFAULT :'MEDIUM_VAL'::text,
     is_active boolean DEFAULT true,
     deleted_at timestamp with time zone
 );
@@ -1822,7 +1834,7 @@ CREATE TABLE public."Reminder" (
 -- Name: COLUMN "Reminder".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Reminder".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Reminder".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1880,7 +1892,7 @@ CREATE TABLE public."Reward" (
 -- Name: COLUMN "Reward".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Reward".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Reward".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1911,7 +1923,7 @@ CREATE TABLE public."Schedule" (
 -- Name: COLUMN "Schedule".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Schedule".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Schedule".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -1943,7 +1955,7 @@ CREATE TABLE public."Season" (
 -- Name: COLUMN "Season".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Season".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Season".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2042,7 +2054,7 @@ CREATE TABLE public."Session" (
 -- Name: COLUMN "Session".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Session".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Session".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2064,7 +2076,7 @@ CREATE TABLE public."StudySession" (
     strategy public."FocusStrategy",
     "isDeleted" boolean DEFAULT false NOT NULL,
     "deletedAt" timestamp(3) without time zone,
-    status public."TaskStatus" DEFAULT 'PENDING'::public."TaskStatus" NOT NULL,
+    status public."TaskStatus" DEFAULT :'PENDING_STATUS'::public."TaskStatus" NOT NULL,
     deleted_at timestamp with time zone,
     CONSTRAINT chk_study_session_duration_nonnegative CHECK ((duration_min >= 0)),
     CONSTRAINT chk_study_session_focus_score_range CHECK (((focus_score >= 0) AND (focus_score <= 100)))
@@ -2075,7 +2087,7 @@ CREATE TABLE public."StudySession" (
 -- Name: COLUMN "StudySession".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."StudySession".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."StudySession".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2112,7 +2124,7 @@ CREATE TABLE public."Subject" (
     description text,
     icon text,
     color text DEFAULT '#3b82f6'::text,
-    type text DEFAULT 'COURSE'::text,
+    type text DEFAULT :'COURSE_TYPE'::text,
     is_active boolean DEFAULT true CONSTRAINT "Subject_isActive_not_null" NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone,
@@ -2188,7 +2200,7 @@ CREATE TABLE public."Subscription" (
     id text NOT NULL,
     "userId" text NOT NULL,
     "planId" text NOT NULL,
-    status public."SubscriptionStatus" DEFAULT 'INACTIVE'::public."SubscriptionStatus" NOT NULL,
+    status public."SubscriptionStatus" DEFAULT :'INACTIVE_STATUS'::public."SubscriptionStatus" NOT NULL,
     "startDate" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "endDate" timestamp(3) without time zone NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -2229,7 +2241,7 @@ CREATE TABLE public."SubscriptionPlan" (
 -- Name: COLUMN "SubscriptionPlan".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."SubscriptionPlan".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."SubscriptionPlan".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2259,10 +2271,10 @@ CREATE TABLE public."Task" (
     due_at timestamp with time zone,
     "scheduledAt" timestamp(3) without time zone,
     completed_at timestamp(3) without time zone,
-    priority text DEFAULT 'MEDIUM'::text,
+    priority text DEFAULT :'MEDIUM_VAL'::text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone,
-    status public."TaskStatus" DEFAULT 'PENDING'::public."TaskStatus" NOT NULL,
+    status public."TaskStatus" DEFAULT :'PENDING_STATUS'::public."TaskStatus" NOT NULL,
     "isDeleted" boolean DEFAULT false NOT NULL,
     "deletedAt" timestamp(3) without time zone,
     estimated_time bigint,
@@ -2275,7 +2287,7 @@ CREATE TABLE public."Task" (
 -- Name: COLUMN "Task".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."Task".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."Task".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2369,7 +2381,7 @@ CREATE TABLE public."TopicProgress" (
 -- Name: COLUMN "TopicProgress".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."TopicProgress".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."TopicProgress".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2495,7 +2507,7 @@ CREATE TABLE public."UserReward" (
 CREATE TABLE public."UserSettings" (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     theme text DEFAULT 'light'::text,
-    "fontSize" text DEFAULT 'medium'::text,
+    "fontSize" text DEFAULT :'MEDIUM_LOWER'::text,
     "reducedMotion" boolean DEFAULT false,
     "highContrast" boolean DEFAULT false,
     "compactMode" boolean DEFAULT false,
@@ -2533,7 +2545,7 @@ CREATE TABLE public."UserSettings" (
     "soundEnabled" boolean DEFAULT true,
     "vibrationEnabled" boolean DEFAULT true,
     deleted_at timestamp with time zone,
-    font_size text DEFAULT 'medium'::text,
+    font_size text DEFAULT :'MEDIUM_LOWER'::text,
     reduced_motion boolean DEFAULT false,
     high_contrast boolean DEFAULT false,
     compact_mode boolean DEFAULT false,
@@ -2572,7 +2584,7 @@ CREATE TABLE public."UserSettings" (
 -- Name: COLUMN "UserSettings".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."UserSettings".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."UserSettings".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -2615,7 +2627,7 @@ CREATE TABLE public."WalletTransaction" (
     user_id uuid CONSTRAINT "WalletTransaction_userId_not_null" NOT NULL,
     amount double precision NOT NULL,
     type public."WalletTransactionType" NOT NULL,
-    status public."WalletTransactionStatus" DEFAULT 'COMPLETED'::public."WalletTransactionStatus" NOT NULL,
+    status public."WalletTransactionStatus" DEFAULT :'COMPLETED_STATUS'::public."WalletTransactionStatus" NOT NULL,
     description text,
     "paymentId" text,
     metadata text,
@@ -2630,7 +2642,7 @@ CREATE TABLE public."WalletTransaction" (
 -- Name: COLUMN "WalletTransaction".deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public."WalletTransaction".deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN public."WalletTransaction".deleted_at IS :'SOFT_DELETE_COMMENT';
 
 
 --
@@ -6507,7 +6519,7 @@ CREATE INDEX idx_payment_failed_user ON public."Payment" USING btree (user_id, c
 -- Name: idx_payment_pending_user; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_payment_pending_user ON public."Payment" USING btree (user_id, created_at) WHERE (status = 'pending'::text);
+CREATE INDEX idx_payment_pending_user ON public."Payment" USING btree (user_id, created_at) WHERE (status = :'PENDING_LOWER'::text);
 
 
 --

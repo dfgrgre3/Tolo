@@ -723,33 +723,95 @@ func normalizeInputMap(input map[string]interface{}) {
 
 func mapInputToSubjectUpdates(input map[string]interface{}) subjectUpdates {
 	updates := subjectUpdates{}
-	if v, ok := input["name"].(string); ok { updates.Name = &v }
-	if v, ok := input["nameAr"].(string); ok { updates.NameAr = &v }
-	if v, ok := input["description"].(string); ok { updates.Description = &v }
-	if v, ok := input["categoryId"].(string); ok { updates.CategoryID = &v }
-	if v, ok := input["color"].(string); ok { updates.Color = &v }
-	if v, ok := input["icon"].(string); ok { updates.Icon = &v }
-	if v, ok := input["code"].(string); ok { updates.Code = &v }
-	if v, ok := input["slug"].(string); ok { updates.Slug = &v }
-	if v, ok := input["thumbnailUrl"].(string); ok { updates.ThumbnailUrl = &v }
-	if v, ok := input["trailerUrl"].(string); ok { updates.TrailerUrl = &v }
-	if v, ok := input["instructorName"].(string); ok { updates.InstructorName = &v }
-	if v, ok := input["instructorId"].(string); ok { updates.InstructorID = &v }
-	if v, ok := input["seoTitle"].(string); ok { updates.SeoTitle = &v }
-	if v, ok := input["seoDescription"].(string); ok { updates.SeoDescription = &v }
-	if v, ok := input["level"].(string); ok { updates.Level = &v }
-	if v, ok := input["language"].(string); ok { updates.Language = &v }
-	if v, ok := input["type"].(string); ok { updates.Type = &v }
-
-	if v, ok := input["price"].(float64); ok { updates.Price = &v }
-	if v, ok := input["durationHours"].(float64); ok { updates.DurationHours = &v }
-	if v, ok := input["trailerDurationMinutes"].(float64); ok { i := int(v); updates.TrailerDurationMinutes = &i }
-
-	if v, ok := input["isPublished"].(bool); ok { updates.IsPublished = &v }
-	if v, ok := input["isFree"].(bool); ok { updates.IsFree = &v }
-	if v, ok := input["isFeatured"].(bool); ok { updates.IsFeatured = &v }
+	mapBasicSubjectFields(input, &updates)
+	mapSubjectMediaAndInstructorFields(input, &updates)
+	mapSubjectMetadataFields(input, &updates)
+	mapSubjectFinancialAndStatusFields(input, &updates)
 	return updates
 }
+
+func mapBasicSubjectFields(input map[string]interface{}, updates *subjectUpdates) {
+	if v, ok := input["name"].(string); ok {
+		updates.Name = &v
+	}
+	if v, ok := input["nameAr"].(string); ok {
+		updates.NameAr = &v
+	}
+	if v, ok := input["description"].(string); ok {
+		updates.Description = &v
+	}
+	if v, ok := input["categoryId"].(string); ok {
+		updates.CategoryID = &v
+	}
+	if v, ok := input["color"].(string); ok {
+		updates.Color = &v
+	}
+	if v, ok := input["icon"].(string); ok {
+		updates.Icon = &v
+	}
+	if v, ok := input["code"].(string); ok {
+		updates.Code = &v
+	}
+	if v, ok := input["slug"].(string); ok {
+		updates.Slug = &v
+	}
+}
+
+func mapSubjectMediaAndInstructorFields(input map[string]interface{}, updates *subjectUpdates) {
+	if v, ok := input["thumbnailUrl"].(string); ok {
+		updates.ThumbnailUrl = &v
+	}
+	if v, ok := input["trailerUrl"].(string); ok {
+		updates.TrailerUrl = &v
+	}
+	if v, ok := input["instructorName"].(string); ok {
+		updates.InstructorName = &v
+	}
+	if v, ok := input["instructorId"].(string); ok {
+		updates.InstructorID = &v
+	}
+}
+
+func mapSubjectMetadataFields(input map[string]interface{}, updates *subjectUpdates) {
+	if v, ok := input["seoTitle"].(string); ok {
+		updates.SeoTitle = &v
+	}
+	if v, ok := input["seoDescription"].(string); ok {
+		updates.SeoDescription = &v
+	}
+	if v, ok := input["level"].(string); ok {
+		updates.Level = &v
+	}
+	if v, ok := input["language"].(string); ok {
+		updates.Language = &v
+	}
+	if v, ok := input["type"].(string); ok {
+		updates.Type = &v
+	}
+}
+
+func mapSubjectFinancialAndStatusFields(input map[string]interface{}, updates *subjectUpdates) {
+	if v, ok := input["price"].(float64); ok {
+		updates.Price = &v
+	}
+	if v, ok := input["durationHours"].(float64); ok {
+		updates.DurationHours = &v
+	}
+	if v, ok := input["trailerDurationMinutes"].(float64); ok {
+		i := int(v)
+		updates.TrailerDurationMinutes = &i
+	}
+	if v, ok := input["isPublished"].(bool); ok {
+		updates.IsPublished = &v
+	}
+	if v, ok := input["isFree"].(bool); ok {
+		updates.IsFree = &v
+	}
+	if v, ok := input["isFeatured"].(bool); ok {
+		updates.IsFeatured = &v
+	}
+}
+
 
 func getUpdateSubjectErrorMessage(err error) string {
 	if strings.Contains(err.Error(), "duplicate key") {

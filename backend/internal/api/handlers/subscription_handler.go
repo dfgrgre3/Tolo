@@ -12,6 +12,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const idQuery = "id = ?"
+const errUserNotFound = "User not found"
+const errInvalidRequest = "Invalid request"
+const errPlanNotFound = "Plan not found"
+
 func GetSubscriptionPlans(c *gin.Context) {
 	var plans []models.SubscriptionPlan
 	if err := db.DB.Where("\"isActive\" = ?", true).Order("price asc").Find(&plans).Error; err != nil {
@@ -25,8 +30,8 @@ func GetUserSubscription(c *gin.Context) {
 	userId, _ := c.Get("userId")
 
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -36,7 +41,7 @@ func GetUserSubscription(c *gin.Context) {
 	}
 
 	var sub models.UserSubscription
-	if err := db.DB.Preload("Plan").First(&sub, "id = ?", *user.ActiveSubscriptionID).Error; err != nil {
+	if err := db.DB.Preload("Plan").First(&sub, idQuery, *user.ActiveSubscriptionID).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"active": false})
 		return
 	}
@@ -57,164 +62,188 @@ func PurchasePlan(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidRequest})
 		return
 	}
 	var plan models.SubscriptionPlan
-	if err := db.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Plan not found"})
+	if err := db.DB.First(&plan, idQuery, req.PlanID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errPlanNotFound})
 		return
 	}
 
 	paymentRef := generateSecureReference("PLAN")
 
-	// Single atomic transaction: coupon + deduction + subscription + payment + invoice
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
-		// 1. Fetch user for balance check and optimistic locking
 		var user models.User
-		if err := tx.Where("id = ?", userId).First(&user).Error; err != nil {
+		if err := tx.Where(idQuery, userId).First(&user).Error; err != nil {
 			return err
 		}
 
-		// 2. Calculate final price with coupon (inside transaction to prevent race)
-		finalPrice := plan.Price
-		if req.CouponCode != "" {
-			var coupon models.Coupon
-			if err := tx.Where("code = ? AND \"isActive\" = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
-				valid := true
-				if coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now()) {
-					valid = false
-				}
-				if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {
-					valid = false
-				}
-				if coupon.MinOrderAmount > 0 && plan.Price < coupon.MinOrderAmount {
-					valid = false
-				}
+		finalPrice := calculateFinalPrice(tx, plan.Price, req.CouponCode)
 
-				if valid {
-					if coupon.DiscountType == "PERCENTAGE" {
-						finalPrice = plan.Price - (plan.Price * (coupon.DiscountValue / 100))
-					} else {
-						finalPrice = plan.Price - coupon.DiscountValue
-					}
-					if finalPrice < 0 {
-						finalPrice = 0
-					}
-					// Increment coupon usage inside transaction
-					tx.Model(&coupon).Update("usedCount", gorm.Expr("\"usedCount\" + 1"))
-				}
-			}
-		}
-
-		// 3. Check balance
-		if user.Balance < finalPrice {
-			return services.ErrInsufficientBalance
-		}
-
-		// 4. Deduct balance with optimistic locking
-		result := tx.Model(&models.User{}).
-			Where("id = ? AND version = ?", userId, user.Version).
-			Updates(map[string]interface{}{
-				"balance": gorm.Expr("balance - ?", finalPrice),
-				"version": user.Version + 1,
-			})
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return services.ErrOptimisticLock
-		}
-
-		// 5. Create wallet transaction record
-		walletTx := models.WalletTransaction{
-			UserID:      userId.(string),
-			Type:        models.TxTypeWithdraw,
-			Amount:      -finalPrice,
-			Currency:    "EGP",
-			WalletType:  "BALANCE",
-			Description: fmt.Sprintf("شراء خطة اشتراك: %s", plan.Name),
-			ReferenceID: &paymentRef,
-		}
-		if err := tx.Create(&walletTx).Error; err != nil {
+		if err := deductUserBalance(tx, userId.(string), &user, finalPrice, fmt.Sprintf("شراء خطة اشتراك: %s", plan.Name), paymentRef); err != nil {
 			return err
 		}
 
-		// 6. Calculate subscription duration
-		duration := 30 * 24 * time.Hour
-		switch plan.Interval {
-		case models.IntervalYearly:
-			duration = 365 * 24 * time.Hour
-		case models.IntervalForever:
-			duration = 100 * 365 * 24 * time.Hour
-		}
-
-		startDate := time.Now()
-		endDate := startDate.Add(duration)
-
-		// 7. Create user subscription
-		sub := models.UserSubscription{
-			UserID:    userId.(string),
-			PlanID:    plan.ID,
-			Status:    models.SubscriptionActive,
-			StartDate: startDate,
-			EndDate:   endDate,
-		}
-		if err := tx.Create(&sub).Error; err != nil {
-			return err
-		}
-
-		// 8. Update user active subscription
-		if err := tx.Model(&models.User{}).Where("id = ?", userId).Updates(map[string]interface{}{
-			"activeSubscriptionId":  sub.ID,
-			"subscriptionExpiresAt": endDate,
-		}).Error; err != nil {
-			return err
-		}
-
-		// 9. Create payment record
-		payment := models.Payment{
-			UserID:      userId.(string),
-			PlanID:      plan.ID,
-			Amount:      finalPrice,
-			Currency:    plan.Currency,
-			Method:      "WALLET",
-			Status:      models.PaymentCompleted,
-			Reference:   paymentRef,
-			CompletedAt: time.Now(),
-		}
-		if err := tx.Create(&payment).Error; err != nil {
-			return err
-		}
-
-		// 10. Create invoice
-		invoice := models.Invoice{
-			PaymentID:     payment.ID,
-			UserID:        userId.(string),
-			InvoiceNumber: "INV-" + time.Now().Format("20060102") + "-" + payment.ID[:8],
-		}
-		if err := tx.Create(&invoice).Error; err != nil {
-			return err
-		}
-
-		return nil
+		return createSubscriptionRecords(tx, userId.(string), plan, finalPrice, paymentRef)
 	})
 
 	if err != nil {
-		if err == services.ErrInsufficientBalance {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
-			return
-		}
-		if err == services.ErrOptimisticLock {
-			c.JSON(http.StatusConflict, gin.H{"error": "يرجى المحاولة مرة أخرى"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete purchase"})
+		handlePurchaseError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+func calculateFinalPrice(tx *gorm.DB, originalPrice float64, couponCode string) float64 {
+	if couponCode == "" {
+		return originalPrice
+	}
+
+	var coupon models.Coupon
+	if err := tx.Where("code = ? AND \"isActive\" = ?", couponCode, true).First(&coupon).Error; err != nil {
+		return originalPrice
+	}
+
+	if !isCouponValid(coupon, originalPrice) {
+		return originalPrice
+	}
+
+	finalPrice := originalPrice
+	if coupon.DiscountType == "PERCENTAGE" {
+		finalPrice = originalPrice - (originalPrice * (coupon.DiscountValue / 100))
+	} else {
+		finalPrice = originalPrice - coupon.DiscountValue
+	}
+
+	if finalPrice < 0 {
+		finalPrice = 0
+	}
+
+	tx.Model(&coupon).Update("usedCount", gorm.Expr("\"usedCount\" + 1"))
+	return finalPrice
+}
+
+func isCouponValid(coupon models.Coupon, amount float64) bool {
+	if coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now()) {
+		return false
+	}
+	if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {
+		return false
+	}
+	if coupon.MinOrderAmount > 0 && amount < coupon.MinOrderAmount {
+		return false
+	}
+	return true
+}
+
+func deductUserBalance(tx *gorm.DB, userID string, user *models.User, amount float64, description string, ref string) error {
+	if user.Balance < amount {
+		return services.ErrInsufficientBalance
+	}
+
+	result := tx.Model(&models.User{}).
+		Where("id = ? AND version = ?", userID, user.Version).
+		Updates(map[string]interface{}{
+			"balance": gorm.Expr("balance - ?", amount),
+			"version": user.Version + 1,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return services.ErrOptimisticLock
+	}
+
+	walletTx := models.WalletTransaction{
+		UserID:      userID,
+		Type:        models.TxTypeWithdraw,
+		Amount:      -amount,
+		Currency:    "EGP",
+		WalletType:  "BALANCE",
+		Description: description,
+		ReferenceID: &ref,
+	}
+	return tx.Create(&walletTx).Error
+}
+
+func createSubscriptionRecords(tx *gorm.DB, userID string, plan models.SubscriptionPlan, amount float64, ref string) error {
+	paymentID, err := createSubscriptionAndPayment(tx, userID, plan, amount, ref)
+	if err != nil {
+		return err
+	}
+
+	invoice := models.Invoice{
+		PaymentID:     paymentID,
+		UserID:        userID,
+		InvoiceNumber: "INV-" + time.Now().Format("20060102") + "-" + paymentID[:8],
+	}
+	return tx.Create(&invoice).Error
+}
+
+func createSubscriptionAndPayment(tx *gorm.DB, userID string, plan models.SubscriptionPlan, amount float64, ref string) (string, error) {
+	endDate := calculateEndDate(plan.Interval)
+	startDate := time.Now()
+
+	sub := models.UserSubscription{
+		UserID:    userID,
+		PlanID:    plan.ID,
+		Status:    models.SubscriptionActive,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+	if err := tx.Create(&sub).Error; err != nil {
+		return "", err
+	}
+
+	if err := tx.Model(&models.User{}).Where(idQuery, userID).Updates(map[string]interface{}{
+		"activeSubscriptionId":  sub.ID,
+		"subscriptionExpiresAt": endDate,
+	}).Error; err != nil {
+		return "", err
+	}
+
+	payment := models.Payment{
+		UserID:      userID,
+		PlanID:      plan.ID,
+		Amount:      amount,
+		Currency:    plan.Currency,
+		Method:      "WALLET",
+		Status:      models.PaymentCompleted,
+		Reference:   ref,
+		CompletedAt: time.Now(),
+	}
+	if err := tx.Create(&payment).Error; err != nil {
+		return "", err
+	}
+	return payment.ID, nil
+}
+
+func calculateEndDate(interval string) time.Time {
+	duration := 30 * 24 * time.Hour
+	switch interval {
+	case models.IntervalYearly:
+		duration = 365 * 24 * time.Hour
+	case models.IntervalForever:
+		duration = 100 * 365 * 24 * time.Hour
+	}
+	return time.Now().Add(duration)
+}
+
+func handlePurchaseError(c *gin.Context, err error) {
+	if err == services.ErrInsufficientBalance {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
+		return
+	}
+	if err == services.ErrOptimisticLock {
+		c.JSON(http.StatusConflict, gin.H{"error": "يرجى المحاولة مرة أخرى"})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete purchase"})
+}
+
 
 // GetInvoice returns invoice data for a specific payment
 func GetInvoice(c *gin.Context) {
@@ -226,7 +255,7 @@ func GetInvoice(c *gin.Context) {
 	}
 
 	var invoice models.Invoice
-	if err := db.DB.Preload("Payment").Preload("Payment.Plan").Where("\"userId\" = ?", userId).First(&invoice, "id = ?", invoiceID).Error; err != nil {
+	if err := db.DB.Preload("Payment").Preload("Payment.Plan").Where("\"userId\" = ?", userId).First(&invoice, idQuery, invoiceID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
 		return
 	}
@@ -245,19 +274,19 @@ func InitiatePlanPayment(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidRequest})
 		return
 	}
 
 	var plan models.SubscriptionPlan
-	if err := db.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Plan not found"})
+	if err := db.DB.First(&plan, idQuery, req.PlanID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errPlanNotFound})
 		return
 	}
 
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -367,8 +396,8 @@ func CancelSubscription(c *gin.Context) {
 	userId, _ := c.Get("userId")
 
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -380,7 +409,7 @@ func CancelSubscription(c *gin.Context) {
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		// Update subscription status to cancelled
 		if err := tx.Model(&models.UserSubscription{}).
-			Where("id = ?", *user.ActiveSubscriptionID).
+			Where(idQuery, *user.ActiveSubscriptionID).
 			Update("status", models.SubscriptionCancelled).Error; err != nil {
 			return err
 		}
@@ -412,121 +441,36 @@ func RenewSubscription(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidRequest})
 		return
 	}
 
 	var plan models.SubscriptionPlan
-	if err := db.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Plan not found"})
+	if err := db.DB.First(&plan, idQuery, req.PlanID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errPlanNotFound})
 		return
 	}
 
 	paymentRef := generateSecureReference("RENEW")
-
-	// Single atomic transaction: deduction + subscription + payment
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
-		// 1. Fetch user for balance check and optimistic locking
 		var user models.User
-		if err := tx.Where("id = ?", userId).First(&user).Error; err != nil {
+		if err := tx.Where(idQuery, userId).First(&user).Error; err != nil {
 			return err
 		}
 
-		// 2. Check balance
-		if user.Balance < plan.Price {
-			return services.ErrInsufficientBalance
-		}
-
-		// 3. Deduct balance with optimistic locking
-		result := tx.Model(&models.User{}).
-			Where("id = ? AND version = ?", userId, user.Version).
-			Updates(map[string]interface{}{
-				"balance": gorm.Expr("balance - ?", plan.Price),
-				"version": user.Version + 1,
-			})
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return services.ErrOptimisticLock
-		}
-
-		// 4. Create wallet transaction record
-		walletTx := models.WalletTransaction{
-			UserID:      userId.(string),
-			Type:        models.TxTypeWithdraw,
-			Amount:      -plan.Price,
-			Currency:    "EGP",
-			WalletType:  "BALANCE",
-			Description: fmt.Sprintf("تجديد اشتراك: %s", plan.Name),
-			ReferenceID: &paymentRef,
-		}
-		if err := tx.Create(&walletTx).Error; err != nil {
+		if err := deductUserBalance(tx, userId.(string), &user, plan.Price, fmt.Sprintf("تجديد اشتراك: %s", plan.Name), paymentRef); err != nil {
 			return err
 		}
 
-		// 5. Calculate subscription duration
-		duration := 30 * 24 * time.Hour
-		switch plan.Interval {
-		case models.IntervalYearly:
-			duration = 365 * 24 * time.Hour
-		case models.IntervalForever:
-			duration = 100 * 365 * 24 * time.Hour
-		}
-
-		startDate := time.Now()
-		endDate := startDate.Add(duration)
-
-		// 6. Create user subscription
-		sub := models.UserSubscription{
-			UserID:    userId.(string),
-			PlanID:    plan.ID,
-			Status:    models.SubscriptionActive,
-			StartDate: startDate,
-			EndDate:   endDate,
-		}
-		if err := tx.Create(&sub).Error; err != nil {
-			return err
-		}
-
-		// 7. Update user active subscription
-		if err := tx.Model(&models.User{}).Where("id = ?", userId).Updates(map[string]interface{}{
-			"activeSubscriptionId":  sub.ID,
-			"subscriptionExpiresAt": endDate,
-		}).Error; err != nil {
-			return err
-		}
-
-		// 8. Create payment record
-		payment := models.Payment{
-			UserID:      userId.(string),
-			PlanID:      plan.ID,
-			Amount:      plan.Price,
-			Currency:    plan.Currency,
-			Method:      "WALLET",
-			Status:      models.PaymentCompleted,
-			Reference:   paymentRef,
-			CompletedAt: time.Now(),
-		}
-		if err := tx.Create(&payment).Error; err != nil {
-			return err
-		}
-
-		return nil
+		_, err := createSubscriptionAndPayment(tx, userId.(string), plan, plan.Price, paymentRef)
+		return err
 	})
 
 	if err != nil {
-		if err == services.ErrInsufficientBalance {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
-			return
-		}
-		if err == services.ErrOptimisticLock {
-			c.JSON(http.StatusConflict, gin.H{"error": "يرجى المحاولة مرة أخرى"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew subscription"})
+		handlePurchaseError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Subscription renewed successfully"})
 }
+

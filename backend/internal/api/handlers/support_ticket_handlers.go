@@ -11,6 +11,12 @@ import (
 	"thanawy-backend/internal/services"
 )
 
+const idQuery = "id = ?"
+const channelInApp = "in-app"
+const statusQuery = "status = ?"
+const errTicketNotFound = "Ticket not found"
+
+
 // CreateTicketRequest represents a request to create a support ticket
 type CreateTicketRequest struct {
 	UserID            string `json:"userId" binding:"required"`
@@ -70,7 +76,7 @@ func CreateSupportTicket(c *gin.Context) {
 
 	// Get user info
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", req.UserID).Error; err != nil {
+	if err := db.DB.First(&user, idQuery, req.UserID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -122,7 +128,7 @@ func CreateSupportTicket(c *gin.Context) {
 		Title:    "New Support Ticket",
 		Message:  "A support ticket has been created for you: " + req.Subject,
 		Type:     "info",
-		Channels: []string{"in-app", "email"},
+		Channels: []string{channelInApp, "email"},
 	})
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -158,7 +164,7 @@ func GetSupportTickets(c *gin.Context) {
 	query := db.DB.Model(&models.SupportTicket{}).Preload("Messages").Order("updated_at DESC")
 
 	if status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where(statusQuery, status)
 	}
 	if priority != "" {
 		query = query.Where("priority = ?", priority)
@@ -210,8 +216,8 @@ func GetSupportTicket(c *gin.Context) {
 	id := c.Param("id")
 
 	var ticket models.SupportTicket
-	if err := db.DB.Preload("Messages").First(&ticket, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+	if err := db.DB.Preload("Messages").First(&ticket, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errTicketNotFound})
 		return
 	}
 
@@ -239,19 +245,8 @@ func SendTicketMessage(c *gin.Context) {
 	if v, ok := adminIDVal.(string); ok {
 		senderID = v
 	}
-	senderName := "Admin"
-	if senderID != "" {
-		var adminUser models.User
-		if err := db.DB.First(&adminUser, "id = ?", senderID).Error; err == nil {
-			if adminUser.Name != nil && *adminUser.Name != "" {
-				senderName = *adminUser.Name
-			} else if adminUser.Username != nil && *adminUser.Username != "" {
-				senderName = *adminUser.Username
-			} else {
-				senderName = adminUser.Email
-			}
-		}
-	}
+
+	senderName := getAdminSenderName(senderID)
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -260,17 +255,13 @@ func SendTicketMessage(c *gin.Context) {
 	}
 
 	var ticket models.SupportTicket
-	if err := db.DB.First(&ticket, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+	if err := db.DB.First(&ticket, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errTicketNotFound})
 		return
 	}
 
 	// Update ticket status if it's the first admin response
-	if ticket.Status == "open" && !req.IsInternal {
-		ticket.Status = "in_progress"
-	}
-	ticket.UpdatedAt = time.Now()
-	db.DB.Save(&ticket)
+	updateTicketStatusOnResponse(&ticket, req.IsInternal)
 
 	// Create message
 	message := models.TicketMessage{
@@ -290,13 +281,7 @@ func SendTicketMessage(c *gin.Context) {
 
 	// Notify user if not internal
 	if !req.IsInternal {
-		services.GetNotificationService().QueueNotification(models.Notification{
-			UserID:   ticket.UserID,
-			Title:    "New Response on Your Ticket",
-			Message:  "Admin has responded to your ticket: " + ticket.Subject,
-			Type:     "info",
-			Channels: []string{"in-app", "email"},
-		})
+		notifyUserOfTicketResponse(ticket)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -306,6 +291,45 @@ func SendTicketMessage(c *gin.Context) {
 		},
 	})
 }
+
+func getAdminSenderName(senderID string) string {
+	senderName := "Admin"
+	if senderID == "" {
+		return senderName
+	}
+
+	var adminUser models.User
+	if err := db.DB.First(&adminUser, idQuery, senderID).Error; err != nil {
+		return senderName
+	}
+
+	if adminUser.Name != nil && *adminUser.Name != "" {
+		return *adminUser.Name
+	}
+	if adminUser.Username != nil && *adminUser.Username != "" {
+		return *adminUser.Username
+	}
+	return adminUser.Email
+}
+
+func updateTicketStatusOnResponse(ticket *models.SupportTicket, isInternal bool) {
+	if ticket.Status == "open" && !isInternal {
+		ticket.Status = "in_progress"
+	}
+	ticket.UpdatedAt = time.Now()
+	db.DB.Save(ticket)
+}
+
+func notifyUserOfTicketResponse(ticket models.SupportTicket) {
+	services.GetNotificationService().QueueNotification(models.Notification{
+		UserID:   ticket.UserID,
+		Title:    "New Response on Your Ticket",
+		Message:  "Admin has responded to your ticket: " + ticket.Subject,
+		Type:     "info",
+		Channels: []string{channelInApp, "email"},
+	})
+}
+
 
 // UpdateTicketStatus updates the status of a ticket
 // @Summary Update ticket status
@@ -327,8 +351,8 @@ func UpdateTicketStatus(c *gin.Context) {
 	}
 
 	var ticket models.SupportTicket
-	if err := db.DB.First(&ticket, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
+	if err := db.DB.First(&ticket, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errTicketNotFound})
 		return
 	}
 
@@ -353,7 +377,7 @@ func UpdateTicketStatus(c *gin.Context) {
 		updates.ClosedAt = &now
 	}
 
-	if err := db.DB.Model(&models.SupportTicket{}).Where("id = ?", ticket.ID).
+	if err := db.DB.Model(&models.SupportTicket{}).Where(idQuery, ticket.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
 		return
@@ -365,7 +389,7 @@ func UpdateTicketStatus(c *gin.Context) {
 		Title:    "Ticket Status Updated",
 		Message:  "Your ticket '" + ticket.Subject + "' is now " + req.Status,
 		Type:     "info",
-		Channels: []string{"in-app"},
+		Channels: []string{channelInApp},
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Status updated successfully"})
@@ -391,7 +415,7 @@ func UpdateTicketPriority(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&models.SupportTicket{}).
-		Where("id = ?", id).
+		Where(idQuery, id).
 		Updates(map[string]interface{}{
 			"priority":   req.Priority,
 			"updated_at": time.Now(),
@@ -426,13 +450,13 @@ func AssignTicket(c *gin.Context) {
 
 	// Get admin name
 	var admin models.User
-	if err := db.DB.First(&admin, "id = ?", req.AdminID).Error; err != nil {
+	if err := db.DB.First(&admin, idQuery, req.AdminID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Admin not found"})
 		return
 	}
 
 	if err := db.DB.Model(&models.SupportTicket{}).
-		Where("id = ?", id).
+		Where(idQuery, id).
 		Updates(map[string]interface{}{
 			"assigned_to":      req.AdminID,
 			"assigned_to_name": admin.GetName(),
@@ -458,7 +482,7 @@ func CloseTicket(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := db.DB.Model(&models.SupportTicket{}).
-		Where("id = ?", id).
+		Where(idQuery, id).
 		Updates(map[string]interface{}{
 			"status":     "closed",
 			"closed_at":  time.Now(),
@@ -491,10 +515,10 @@ func GetTicketStats(c *gin.Context) {
 	}
 
 	db.DB.Model(&models.SupportTicket{}).Count(&stats.Total)
-	db.DB.Model(&models.SupportTicket{}).Where("status = ?", "open").Count(&stats.Open)
-	db.DB.Model(&models.SupportTicket{}).Where("status = ?", "in_progress").Count(&stats.InProgress)
-	db.DB.Model(&models.SupportTicket{}).Where("status = ?", "resolved").Count(&stats.Resolved)
-	db.DB.Model(&models.SupportTicket{}).Where("status = ?", "closed").Count(&stats.Closed)
+	db.DB.Model(&models.SupportTicket{}).Where(statusQuery, "open").Count(&stats.Open)
+	db.DB.Model(&models.SupportTicket{}).Where(statusQuery, "in_progress").Count(&stats.InProgress)
+	db.DB.Model(&models.SupportTicket{}).Where(statusQuery, "resolved").Count(&stats.Resolved)
+	db.DB.Model(&models.SupportTicket{}).Where(statusQuery, "closed").Count(&stats.Closed)
 	db.DB.Model(&models.SupportTicket{}).Where("assigned_to IS NULL").Count(&stats.Unassigned)
 	db.DB.Model(&models.SupportTicket{}).Where("priority = ?", "urgent").Count(&stats.Urgent)
 

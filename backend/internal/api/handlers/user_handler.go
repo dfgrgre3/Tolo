@@ -34,8 +34,14 @@ var userRepo *repository.UserRepository
 var sessionRepo *repository.SessionRepository
 
 const (
-	MaxLoginAttempts = 5
-	LockoutDuration  = 15 * time.Minute
+	MaxLoginAttempts           = 5
+	LockoutDuration            = 15 * time.Minute
+	errFailedToGenerateTokens  = "Failed to generate tokens"
+	refreshTokenPath           = "/api/auth/refresh"
+	errUserNotFound            = "User not found"
+	errInvalidEmail            = "Invalid email"
+	idQuery                    = "id = ?"
+	userIDQuery                = "user_id = ?"
 )
 
 func getLoginAttemptsKey(email, ip string) string {
@@ -153,7 +159,7 @@ func Login(c *gin.Context) {
 
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errFailedToGenerateTokens, "details": err.Error()})
 		return
 	}
 
@@ -191,7 +197,7 @@ func Login(c *gin.Context) {
 
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
 	refreshExpiry := int(expiryDuration.Seconds())
-	c.SetCookie("refresh_token", tokens.RefreshToken, refreshExpiry, "/api/auth/refresh", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, refreshExpiry, refreshTokenPath, "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -218,7 +224,7 @@ func Verify2FA(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(req.UserID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -248,7 +254,7 @@ func Verify2FA(c *gin.Context) {
 
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errFailedToGenerateTokens})
 		return
 	}
 
@@ -271,7 +277,7 @@ func Verify2FA(c *gin.Context) {
 	_ = LogSecurityEvent(user.ID, "2FA_SUCCESS", c.ClientIP(), c.Request.UserAgent(), nil, nil)
 
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, int(expiryDuration.Seconds()), "/api/auth/refresh", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, int(expiryDuration.Seconds()), refreshTokenPath, "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -324,7 +330,7 @@ func RequestMagicLink(c *gin.Context) {
 		Email string `json:"email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidEmail})
 		return
 	}
 
@@ -359,7 +365,7 @@ func VerifyMagicLink(c *gin.Context) {
 
 	tokens, err := tokenService.GenerateTokenPair(user.ID, string(user.Role))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errFailedToGenerateTokens})
 		return
 	}
 
@@ -377,7 +383,7 @@ func VerifyMagicLink(c *gin.Context) {
 	_ = LogSecurityEvent(user.ID, models.SecurityEventMagicLinkLogin, c.ClientIP(), c.Request.UserAgent(), nil, nil)
 
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24, "/api/auth/refresh", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24, refreshTokenPath, "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -390,7 +396,7 @@ func ForgotPassword(c *gin.Context) {
 		Email string `json:"email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidEmail})
 		return
 	}
 
@@ -447,7 +453,7 @@ func ResendVerification(c *gin.Context) {
 		Email string `json:"email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidEmail})
 		return
 	}
 
@@ -484,7 +490,7 @@ func RefreshToken(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(session.UserID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -509,7 +515,7 @@ func RefreshToken(c *gin.Context) {
 	_ = getSessionRepo().Create(newSession)
 
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, "/api/auth/refresh", "", isProduction(), true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, refreshTokenPath, "", isProduction(), true)
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
@@ -530,7 +536,7 @@ func Logout(c *gin.Context) {
 	}
 
 	c.SetCookie("access_token", "", -1, "/", "", isProduction(), true)
-	c.SetCookie("refresh_token", "", -1, "/api/auth/refresh", "", isProduction(), true)
+	c.SetCookie("refresh_token", "", -1, refreshTokenPath, "", isProduction(), true)
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Logged out successfully"})
 }
 
@@ -651,7 +657,7 @@ func GetProfile(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(userId.(string))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -771,8 +777,8 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userID).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "User not found")
+	if err := db.DB.First(&user, idQuery, userID).Error; err != nil {
+		api_response.Error(c, http.StatusNotFound, errUserNotFound)
 		return
 	}
 
@@ -805,13 +811,13 @@ func UpdateUser(c *gin.Context) {
 		updates.Permissions = models.JSONStringArray(req.Permissions)
 	}
 
-	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
+	if err := db.DB.Model(&models.User{}).Where(idQuery, user.ID).
 		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
 
-	db.DB.First(&user, "id = ?", user.ID)
+	db.DB.First(&user, idQuery, user.ID)
 	_ = getUserRepo().Update(&user)
 
 	LogAudit(c, "UPDATE", "user", user.ID, updates)
@@ -827,7 +833,7 @@ func GetUserByID(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(id)
 	if err != nil {
-		api_response.Error(c, http.StatusNotFound, "User not found")
+		api_response.Error(c, http.StatusNotFound, errUserNotFound)
 		return
 	}
 
@@ -856,7 +862,7 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.User{}, "id = ?", userID).Error; err != nil {
+	if err := db.DB.Delete(&models.User{}, idQuery, userID).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
@@ -932,13 +938,13 @@ func buildUserDetailsPayload(user models.User) gin.H {
 	var achievementsCount int64
 
 	db.DB.Model(&models.Task{}).Where("user_id = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
-	db.DB.Model(&models.Task{}).Where("user_id = ?", user.ID).Count(&totalTasks)
-	db.DB.Model(&models.StudySession{}).Where("user_id = ?", user.ID).Count(&totalStudySessions)
-	db.DB.Model(&models.StudySession{}).Where("user_id = ?", user.ID).Select("COALESCE(SUM(duration_min), 0)").Scan(&totalStudyTime)
+	db.DB.Model(&models.Task{}).Where(userIDQuery, user.ID).Count(&totalTasks)
+	db.DB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Count(&totalStudySessions)
+	db.DB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Select("COALESCE(SUM(duration_min), 0)").Scan(&totalStudyTime)
 	db.DB.Model(&models.ExamResult{}).Where("user_id = ? AND passed = ?", user.ID, true).Count(&examsPassed)
-	db.DB.Model(&models.ExamResult{}).Where("user_id = ?", user.ID).Count(&examResultsCount)
+	db.DB.Model(&models.ExamResult{}).Where(userIDQuery, user.ID).Count(&examResultsCount)
 	db.DB.Model(&models.Notification{}).Where("user_id = ? AND is_read = ?", user.ID, false).Count(&unreadNotifications)
-	db.DB.Model(&models.Enrollment{}).Where("user_id = ?", user.ID).Count(&totalEnrollments)
+	db.DB.Model(&models.Enrollment{}).Where(userIDQuery, user.ID).Count(&totalEnrollments)
 
 	return gin.H{
 		"id":                 user.ID,
@@ -1024,8 +1030,8 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
@@ -1054,13 +1060,13 @@ func UpdateProfile(c *gin.Context) {
 	if req.Avatar != "" { updates.Avatar = &req.Avatar }
 	if req.Gender != "" { updates.Gender = &req.Gender }
 
-	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
+	if err := db.DB.Model(&models.User{}).Where(idQuery, user.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
 
-	db.DB.First(&user, "id = ?", user.ID)
+	db.DB.First(&user, idQuery, user.ID)
 	_ = getUserRepo().Update(&user)
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
@@ -1075,12 +1081,12 @@ func GetBillingSummary(c *gin.Context) {
 
 	user, err := getUserRepo().FindByID(userId.(string))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
 	var payments []models.Payment
-	db.DB.Where("user_id = ?", user.ID).Order("created_at desc").Limit(20).Find(&payments)
+	db.DB.Where(userIDQuery, user.ID).Order("created_at desc").Limit(20).Find(&payments)
 
 	var totalSpent float64
 	var successCount int64
@@ -1184,7 +1190,7 @@ func ClerkWebhook(c *gin.Context) {
 		}
 	case "user.deleted":
 		if userId, ok := event.Data["id"].(string); ok {
-			if err := db.DB.Where("id = ?", userId).Delete(&models.User{}).Error; err != nil {
+			if err := db.DB.Where(idQuery, userId).Delete(&models.User{}).Error; err != nil {
 				log.Printf("[Clerk Webhook] Error deleting user: %v", err)
 			}
 		}
@@ -1257,7 +1263,7 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 
 func EnsureUserExists(userId string, email string) error {
 	var user models.User
-	err := db.DB.First(&user, "id = ?", userId).Error
+	err := db.DB.First(&user, idQuery, userId).Error
 
 	if err == nil {
 		return nil

@@ -16,6 +16,11 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const userIDQuery = "user_id = ?"
+const errInvalidVerificationCode = "Invalid verification code"
+const statusQuery = "status = ?"
+const idQuery = "id = ?"
+
 // ========== 2FA Handlers ==========
 
 // GetTwoFactorStatus returns the 2FA status for the current user
@@ -30,7 +35,7 @@ func GetTwoFactorStatus(c *gin.Context) {
 	userID, _ := c.Get("userId")
 
 	var settings models.TwoFactorSettings
-	if err := db.DB.First(&settings, "user_id = ?", userID).Error; err != nil {
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
 		// No settings found, return disabled status
 		c.JSON(http.StatusOK, gin.H{
 			"data": gin.H{
@@ -101,7 +106,7 @@ func InitiateTwoFactorSetup(c *gin.Context) {
 			PendingSetup: true,
 			CreatedAt:    time.Now(),
 		}
-		db.DB.Where("user_id = ?", userID).Assign(settings).FirstOrCreate(&settings)
+		db.DB.Where(userIDQuery, userID).Assign(settings).FirstOrCreate(&settings)
 
 	case "sms":
 		if userPhone == nil || userPhone == "" {
@@ -144,7 +149,7 @@ func VerifyTwoFactor(c *gin.Context) {
 	userID, _ := c.Get("userId")
 
 	var settings models.TwoFactorSettings
-	if err := db.DB.First(&settings, "user_id = ?", userID).Error; err != nil {
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No pending 2FA setup found"})
 		return
 	}
@@ -153,7 +158,7 @@ func VerifyTwoFactor(c *gin.Context) {
 	if settings.Method == "authenticator" {
 		valid := totp.Validate(req.Code, settings.Secret)
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidVerificationCode})
 			return
 		}
 	}
@@ -203,7 +208,7 @@ func DisableTwoFactor(c *gin.Context) {
 	userID, _ := c.Get("userId")
 
 	var settings models.TwoFactorSettings
-	if err := db.DB.First(&settings, "user_id = ?", userID).Error; err != nil {
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
 		return
 	}
@@ -212,7 +217,7 @@ func DisableTwoFactor(c *gin.Context) {
 	if settings.Method == "authenticator" {
 		valid := totp.Validate(req.Code, settings.Secret)
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidVerificationCode})
 			return
 		}
 	}
@@ -247,7 +252,7 @@ func RegenerateBackupCodes(c *gin.Context) {
 	userID, _ := c.Get("userId")
 
 	var settings models.TwoFactorSettings
-	if err := db.DB.First(&settings, "user_id = ?", userID).Error; err != nil {
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
 		return
 	}
@@ -256,7 +261,7 @@ func RegenerateBackupCodes(c *gin.Context) {
 	if settings.Method == "authenticator" {
 		valid := totp.Validate(req.Code, settings.Secret)
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidVerificationCode})
 			return
 		}
 	}
@@ -286,11 +291,11 @@ func GetActiveSessions(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	isAdmin := c.GetBool("is_admin")
 
-	query := db.DB.Model(&models.UserSession{}).Where("status = ?", "active")
+	query := db.DB.Model(&models.UserSession{}).Where(statusQuery, "active")
 
 	// Regular users can only see their own sessions
 	if !isAdmin {
-		query = query.Where("user_id = ?", userID)
+		query = query.Where(userIDQuery, userID)
 	}
 
 	var sessions []models.UserSession
@@ -321,7 +326,7 @@ func RevokeSession(c *gin.Context) {
 	adminID, _ := c.Get("userId")
 
 	var session models.UserSession
-	if err := db.DB.First(&session, "id = ?", sessionID).Error; err != nil {
+	if err := db.DB.First(&session, idQuery, sessionID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
 		return
 	}
@@ -426,9 +431,9 @@ func GetSessionStats(c *gin.Context) {
 		UniqueDevices int64 `json:"uniqueDevices"`
 	}
 
-	db.DB.Model(&models.UserSession{}).Where("status = ?", "active").Count(&stats.TotalActive)
-	db.DB.Model(&models.UserSession{}).Where("status = ?", "expired").Count(&stats.TotalExpired)
-	db.DB.Model(&models.UserSession{}).Where("status = ?", "active").Select("COUNT(DISTINCT device_id)").Scan(&stats.UniqueDevices)
+	db.DB.Model(&models.UserSession{}).Where(statusQuery, "active").Count(&stats.TotalActive)
+	db.DB.Model(&models.UserSession{}).Where(statusQuery, "expired").Count(&stats.TotalExpired)
+	db.DB.Model(&models.UserSession{}).Where(statusQuery, "active").Select("COUNT(DISTINCT device_id)").Scan(&stats.UniqueDevices)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": stats,
@@ -524,7 +529,7 @@ func RemoveIPFromWhitelist(c *gin.Context) {
 	id := c.Param("id")
 
 	var entry models.IPWhitelistEntry
-	if err := db.DB.First(&entry, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&entry, idQuery, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Entry not found"})
 		return
 	}
@@ -611,7 +616,7 @@ func UpdateIPWhitelistSettings(c *gin.Context) {
 			LogBlockedAttempts: &req.LogBlockedAttempts,
 			NotifyOnViolation:  &req.NotifyOnViolation,
 		}
-		db.DB.Model(&models.IPWhitelistSettings{}).Where("id = ?", existing.ID).
+		db.DB.Model(&models.IPWhitelistSettings{}).Where(idQuery, existing.ID).
 			Updates(&updates)
 	}
 
@@ -637,7 +642,7 @@ func UpdateIPWhitelistEntry(c *gin.Context) {
 	}
 
 	var entry models.IPWhitelistEntry
-	if err := db.DB.First(&entry, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&entry, idQuery, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Entry not found"})
 		return
 	}
@@ -652,12 +657,12 @@ func UpdateIPWhitelistEntry(c *gin.Context) {
 		Status:      req.Status,
 	}
 
-	if err := db.DB.Model(&models.IPWhitelistEntry{}).Where("id = ?", entry.ID).
+	if err := db.DB.Model(&models.IPWhitelistEntry{}).Where(idQuery, entry.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update entry"})
 		return
 	}
-	_ = db.DB.First(&entry, "id = ?", id)
+	_ = db.DB.First(&entry, idQuery, id)
 	middleware.LogCriticalOperation(c, "ip_whitelist_updated", map[string]interface{}{"id": id})
 	c.JSON(http.StatusOK, gin.H{"message": "Entry updated", "data": entry})
 }
@@ -772,13 +777,13 @@ func VerifyTwoFactorLogin(c *gin.Context) {
 	}
 
 	var settings models.TwoFactorSettings
-	if err := db.DB.First(&settings, "user_id = ?", userID).Error; err != nil {
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not configured"})
 		return
 	}
 	if settings.Method == "authenticator" && settings.Secret != "" {
 		if !totp.Validate(req.Code, settings.Secret) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidVerificationCode})
 			return
 		}
 	}

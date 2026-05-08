@@ -11,6 +11,9 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const idQuery = "id = ?"
+const errReportNotFound = "Report not found"
+
 // ReportWidget represents a single widget in a report
 type ReportWidget struct {
 	ID         string                 `json:"id"`
@@ -166,8 +169,8 @@ func GetCustomReport(c *gin.Context) {
 	id := c.Param("id")
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 
@@ -192,8 +195,8 @@ func UpdateCustomReport(c *gin.Context) {
 	id := c.Param("id")
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 
@@ -247,8 +250,8 @@ func DeleteCustomReport(c *gin.Context) {
 	id := c.Param("id")
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 
@@ -273,8 +276,8 @@ func ExecuteCustomReport(c *gin.Context) {
 	id := c.Param("id")
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 
@@ -326,8 +329,8 @@ func ExportCustomReport(c *gin.Context) {
 	}
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 
@@ -357,8 +360,8 @@ func ScheduleCustomReport(c *gin.Context) {
 	id := c.Param("id")
 
 	var report models.CustomReport
-	if err := db.DB.First(&report, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+	if err := db.DB.First(&report, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errReportNotFound})
 		return
 	}
 

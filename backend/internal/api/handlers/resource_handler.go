@@ -58,32 +58,7 @@ func listResources(c *gin.Context, admin bool) {
 
 	items := make([]gin.H, 0, len(resources))
 	for _, resource := range resources {
-		subjectName := resource.Subject.Name
-		if resource.Subject.NameAr != nil && *resource.Subject.NameAr != "" {
-			subjectName = *resource.Subject.NameAr
-		}
-		item := gin.H{
-			"id":          resource.ID,
-			"title":       resource.Title,
-			"description": resource.Description,
-			"url":         resource.URL,
-			"type":        resource.Type,
-			"source":      resource.Source,
-			"free":        resource.Free,
-			"createdAt":   resource.CreatedAt,
-			"subject":     subjectName,
-			"subjectId":   resource.SubjectID,
-			"subjectName": subjectName,
-		}
-		if admin {
-			item["subject"] = gin.H{
-				"id":     resource.Subject.ID,
-				"name":   resource.Subject.Name,
-				"nameAr": resource.Subject.NameAr,
-				"color":  resource.Subject.Color,
-			}
-		}
-		items = append(items, item)
+		items = append(items, formatResourceItem(resource, admin))
 	}
 
 	pagination := gin.H{
@@ -107,6 +82,39 @@ func listResources(c *gin.Context, admin bool) {
 
 	c.JSON(http.StatusOK, items)
 }
+
+func formatResourceItem(resource models.Resource, admin bool) gin.H {
+	subjectName := resource.Subject.Name
+	if resource.Subject.NameAr != nil && *resource.Subject.NameAr != "" {
+		subjectName = *resource.Subject.NameAr
+	}
+
+	item := gin.H{
+		"id":          resource.ID,
+		"title":       resource.Title,
+		"description": resource.Description,
+		"url":         resource.URL,
+		"type":        resource.Type,
+		"source":      resource.Source,
+		"free":        resource.Free,
+		"createdAt":   resource.CreatedAt,
+		"subject":     subjectName,
+		"subjectId":   resource.SubjectID,
+		"subjectName": subjectName,
+	}
+
+	if admin {
+		item["subject"] = gin.H{
+			"id":     resource.Subject.ID,
+			"name":   resource.Subject.Name,
+			"nameAr": resource.Subject.NameAr,
+			"color":  resource.Subject.Color,
+		}
+	}
+
+	return item
+}
+
 
 func GetResources(c *gin.Context) {
 	listResources(c, false)
