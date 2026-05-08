@@ -1387,7 +1387,9 @@ func UpdateAdminAnnouncement(c *gin.Context) {
 		updates["type"] = input.Type
 	}
 
-	if err := db.DB.Model(&models.Notification{}).Where("id = ?", input.ID).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where("id = ?", input.ID).
+		Select("title", "message", "type").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update announcement"})
 		return
 	}

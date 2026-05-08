@@ -461,7 +461,7 @@ func AdminUpdateBook(c *gin.Context) {
 	}
 
 	// Ensure we only update the specific record and only with allowed fields
-	if err := db.DB.Model(&models.Book{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Book{}).Where("id = ?", id).Select("title", "author", "description", "subject_id", "price", "is_free", "tags", "cover_url", "download_url").Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update book")
 		return
 	}
@@ -540,8 +540,16 @@ func AdminUpdateABTest(c *gin.Context) {
 		api_response.Error(c, http.StatusNotFound, "AB Test not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
+	if err := c.ShouldBindJSON(&item); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := db.DB.Model(&models.ABExperiment{}).Where("id = ?", id).
+		Select("name", "description", "status", "traffic_split").
+		Updates(item).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update AB Test")
+		return
+	}
 	api_response.Success(c, item)
 }
 
@@ -580,8 +588,16 @@ func AdminUpdateCampaign(c *gin.Context) {
 		api_response.Error(c, http.StatusNotFound, "Campaign not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
+	if err := c.ShouldBindJSON(&item); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := db.DB.Model(&models.Campaign{}).Where("id = ?", id).
+		Select("name", "description", "status").
+		Updates(item).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update campaign")
+		return
+	}
 	api_response.Success(c, item)
 }
 

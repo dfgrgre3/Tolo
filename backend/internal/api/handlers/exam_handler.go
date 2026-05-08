@@ -192,7 +192,9 @@ func UpdateExam(c *gin.Context) {
 		updates["type"] = input.Type
 	}
 
-	if err := db.DB.Model(&exam).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Exam{}).Where("id = ?", exam.ID).
+		Select("title", "description", "subjectId", "durationMin", "passingScore", "isActive").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exam"})
 		return
 	}

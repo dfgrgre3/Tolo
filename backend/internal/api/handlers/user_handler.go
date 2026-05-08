@@ -810,7 +810,9 @@ func UpdateUser(c *gin.Context) {
 		updates["permissions"] = models.JSONStringArray(req.Permissions)
 	}
 
-	if err := db.DB.Model(&user).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
+		Select("role", "name", "username", "email", "phone", "bio", "gradeLevel", "educationType", "permissions").
+		Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
@@ -1065,7 +1067,9 @@ func UpdateProfile(c *gin.Context) {
 		updates["gender"] = req.Gender
 	}
 
-	if err := db.DB.Model(&user).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
+		Select("name", "username", "phone", "bio", "gradeLevel", "educationType", "section", "country", "avatar", "gender").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}

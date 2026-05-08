@@ -347,7 +347,9 @@ func UpdateTicketStatus(c *gin.Context) {
 		updates["closed_at"] = now
 	}
 
-	if err := db.DB.Model(&ticket).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.SupportTicket{}).Where("id = ?", ticket.ID).
+		Select("status", "updated_at", "resolved_at", "closed_at").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
 		return
 	}

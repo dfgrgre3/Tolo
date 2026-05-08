@@ -156,7 +156,9 @@ func AdminUpdateEvent(c *gin.Context) {
 
 	updates := mapEventUpdates(input)
 
-	if err := db.DB.Model(&event).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Event{}).Where("id = ?", event.ID).
+		Select("title", "description", "type", "startDate", "endDate", "location", "isOnline", "maxAttendees", "isActive").
+		Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update event")
 		return
 	}

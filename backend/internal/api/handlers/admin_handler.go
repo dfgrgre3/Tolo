@@ -170,7 +170,9 @@ func UpdateCategory(c *gin.Context) {
 		updates["slug"] = *input.Slug
 	}
 
-	if err := db.DB.Model(&category).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Category{}).Where("id = ?", category.ID).
+		Select("name", "slug", "icon", "description").
+		Updates(updates).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update category")
 		return
 	}
@@ -270,7 +272,9 @@ func UpdateTeacher(c *gin.Context) {
 		updates["username"] = input.Name
 	}
 
-	if err := db.DB.Model(&teacher).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.User{}).Where("id = ?", teacher.ID).
+		Select("name", "username", "bio").
+		Updates(updates).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update teacher")
 		return
 	}

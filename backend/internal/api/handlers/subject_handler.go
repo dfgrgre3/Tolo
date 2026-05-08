@@ -703,7 +703,9 @@ func UpdateSubject(c *gin.Context) {
 	}
 
 	log.Printf("Attempting to update subject %s with whitelisted values: %v", id, updates)
-	if err := db.DB.Model(&subject).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Subject{}).Where("id = ?", subject.ID).
+		Select("name", "nameAr", "description", "categoryId", "color", "image", "isPublished", "isFree", "price").
+		Updates(updates).Error; err != nil {
 		log.Printf("UpdateSubject: Database error: %v", err)
 		errMsg := "Failed to update subject"
 		if strings.Contains(err.Error(), "duplicate key") {

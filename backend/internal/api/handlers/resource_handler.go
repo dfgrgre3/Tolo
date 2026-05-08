@@ -195,7 +195,9 @@ func AdminUpdateResource(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.Resource{}).Where("id IN ?", ids).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Resource{}).Where("id IN ?", ids).
+		Select("title", "description", "url", "type", "source", "free", "subject_id").
+		Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update resource")
 		return
 	}

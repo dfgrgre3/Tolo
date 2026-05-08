@@ -304,7 +304,9 @@ func AdminReportsContent(c *gin.Context) {
 				updates["resolvedBy"] = &uid
 			}
 		}
-		db.DB.Model(&models.ContentReport{}).Where("id = ?", input.ID).Updates(updates)
+		db.DB.Model(&models.ContentReport{}).Where("id = ?", input.ID).
+			Select("status", "resolvedAt", "resolvedBy").
+			Updates(updates)
 		api_response.Success(c, nil)
 
 	default:
@@ -504,7 +506,9 @@ func handleMarketingUpdate(c *gin.Context) {
 		}
 	}
 
-	db.DB.Model(&item).Updates(updates)
+	db.DB.Model(&models.Campaign{}).Where("id = ?", id).
+		Select("name", "description", "type", "status", "targetRole", "content", "startDate", "endDate").
+		Updates(updates)
 	api_response.Success(c, item)
 }
 
@@ -649,7 +653,9 @@ func handleContestsUpdate(c *gin.Context) {
 		updates["pinCode"] = input.PinCode
 	}
 
-	if err := db.DB.Model(&contest).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Contest{}).Where("id = ?", id).
+		Select("title", "description", "category", "status", "pinCode").
+		Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update contest")
 		return
 	}

@@ -593,7 +593,9 @@ func UpdateIPWhitelistSettings(c *gin.Context) {
 		db.DB.Create(&req)
 	} else {
 		// Update existing
-		db.DB.Model(&existing).Updates(req)
+		db.DB.Model(&models.IPWhitelist{}).Where("id = ?", existing.ID).
+			Select("ip_address", "description", "is_active").
+			Updates(req)
 	}
 
 	middleware.LogCriticalOperation(c, "ip_whitelist_settings_updated", nil)
@@ -631,7 +633,9 @@ func UpdateIPWhitelistEntry(c *gin.Context) {
 		updates["status"] = *req.Status
 	}
 
-	if err := db.DB.Model(&entry).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.IPWhitelist{}).Where("id = ?", entry.ID).
+		Select("ip_address", "description", "is_active").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update entry"})
 		return
 	}
