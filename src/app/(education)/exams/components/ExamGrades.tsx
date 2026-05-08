@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,11 +112,56 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
   { value: 'OTHER', label: 'أخرى' }];
 
 
-  // جلب البيانات عند تحميل المكون
-  useEffect(() => {
-    fetchData();
-  }, [userId]);
+// Helper to merge unique items based on ID to reduce function nesting
+const mergeUniqueById = <T extends { id: string }>(prev: T[], incoming: T[] | undefined): T[] => {
+  if (!incoming || incoming.length === 0) return prev;
+  const existingIds = new Set(prev.map(item => item.id));
+  const newItems = incoming.filter(item => !existingIds.has(item.id));
+  return newItems.length > 0 ? [...prev, ...newItems] : prev;
+};
 
+// دالة معالجة نتائج الامتحانات
+  const processExamsResponse = useCallback((response: PromiseSettledResult<{ data: { exams: ExamResult[]; grades: UserGrade[] } | null; error: any }>) => {
+    if (response.status === 'fulfilled' && !response.value.error) {
+      setExamResults(response.value.data?.exams || []);
+      setUserGrades(response.value.data?.grades || []);
+    } else {
+      const errorMsg = response.status === 'rejected' ? response.reason : response.value.error;
+      logger.error('Error fetching exam results:', errorMsg);
+      setError("فشل تحميل نتائج الامتحانات");
+    }
+  }, []);
+
+  // دالة معالجة الدرجات والمتوسطات
+  const processGradesResponse = useCallback((response: PromiseSettledResult<{ data: { grades: UserGrade[]; averages: SubjectAverage[] } | null; error: any }>) => {
+    if (response.status !== 'fulfilled' || response.value.error) {
+      const errorMsg = response.status === 'rejected' ? response.reason : response.value.error;
+      logger.error('Error fetching grades:', errorMsg);
+      setError((prev) => prev || "فشل تحميل الدرجات");
+      return;
+    }
+
+    const gradesData = response.value.data;
+    if (gradesData?.grades) {
+      setUserGrades((prev) => mergeUniqueById(prev, gradesData.grades));
+    }
+    
+    if (gradesData?.averages) {
+      setSubjectAverages(gradesData.averages);
+    }
+  }, []);
+
+  // دالة معالجة قائمة الامتحانات المتاحة
+  const processExamsListResponse = useCallback((response: PromiseSettledResult<{ data: ExamsResponse | null; error: any }>) => {
+    if (response.status === 'fulfilled' && !response.value.error) {
+      setAvailableExams(Array.isArray(response.value.data?.exams) ? response.value.data.exams : []);
+    } else {
+      const errorMsg = response.status === 'rejected' ? response.reason : response.value.error;
+      logger.warn('Error fetching available exams:', errorMsg);
+    }
+  }, []);
+
+  // جلب البيانات الأساسية
   const fetchData = useCallback(async () => {
     if (!userId) return;
 
@@ -124,70 +169,39 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
     setError(null);
 
     try {
-      // جلب نتائج الامتحانات والدرجات في نفس الوقت
       const [examsResponse, gradesResponse, examsListResponse] = await Promise.allSettled([
-      safeFetch<{exams: ExamResult[];grades: UserGrade[];}>(
-        `/api/exams/grades?userId=${userId}`,
-        undefined,
-        { exams: [], grades: [] }
-      ),
-      safeFetch<{grades: UserGrade[];averages: SubjectAverage[];}>(
-        `/api/grades?userId=${userId}`,
-        undefined,
-        { grades: [], averages: [] }
-      ),
-      safeFetch<ExamsResponse>(
-        "/api/exams",
-        undefined,
-        { exams: [] }
-      )]
-      );
+        safeFetch<{ exams: ExamResult[]; grades: UserGrade[] }>(
+          `/api/exams/grades?userId=${userId}`,
+          undefined,
+          { exams: [], grades: [] }
+        ),
+        safeFetch<{ grades: UserGrade[]; averages: SubjectAverage[] }>(
+          `/api/grades?userId=${userId}`,
+          undefined,
+          { grades: [], averages: [] }
+        ),
+        safeFetch<ExamsResponse>(
+          "/api/exams",
+          undefined,
+          { exams: [] }
+        )
+      ]);
 
-      // معالجة نتائج الامتحانات
-      if (examsResponse.status === 'fulfilled' && !examsResponse.value.error) {
-        setExamResults(examsResponse.value.data?.exams || []);
-        setUserGrades(examsResponse.value.data?.grades || []);
-      } else {
-        logger.error('Error fetching exam results:', examsResponse.status === 'rejected' ? examsResponse.reason : examsResponse.value.error);
-        setError("فشل تحميل نتائج الامتحانات");
-      }
-
-      // معالجة الدرجات والمتوسطات
-      if (gradesResponse.status === 'fulfilled' && !gradesResponse.value.error) {
-        const gradesData = gradesResponse.value.data;
-        if (gradesData?.grades) {
-          setUserGrades((prev) => {
-            // دمج الدرجات مع تجنب التكرار
-            const merged = [...prev];
-            gradesData.grades.forEach((grade) => {
-              if (!merged.find((g) => g.id === grade.id)) {
-                merged.push(grade);
-              }
-            });
-            return merged;
-          });
-        }
-        if (gradesData?.averages) {
-          setSubjectAverages(gradesData.averages);
-        }
-      } else {
-        logger.error('Error fetching grades:', gradesResponse.status === 'rejected' ? gradesResponse.reason : gradesResponse.value.error);
-        if (!error) setError("فشل تحميل الدرجات");
-      }
-
-      // معالجة قائمة الامتحانات المتاحة
-      if (examsListResponse.status === 'fulfilled' && !examsListResponse.value.error) {
-        setAvailableExams(Array.isArray(examsListResponse.value.data?.exams) ? examsListResponse.value.data.exams : []);
-      } else {
-        logger.warn('Error fetching available exams:', examsListResponse.status === 'rejected' ? examsListResponse.reason : examsListResponse.value.error);
-      }
+      processExamsResponse(examsResponse);
+      processGradesResponse(gradesResponse);
+      processExamsListResponse(examsListResponse);
     } catch (err) {
       logger.error('Error fetching data:', err);
       setError("حدث خطأ أثناء تحميل البيانات");
     } finally {
       setIsLoading(false);
     }
-  }, [userId, error]);
+  }, [userId, processExamsResponse, processGradesResponse, processExamsListResponse]);
+
+  // جلب البيانات عند تحميل المكون
+  useEffect(() => {
+    fetchData();
+  }, [userId, fetchData]);
 
   const handleAddGrade = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -14,7 +14,7 @@ type TouchGestureState = {
 };
 
 type TouchGesturesOptions = {
-  togglePlayPause: () => void | Promise<void>;
+  togglePlayPause: () => | Promise<void>;
   seekBy: (seconds: number) => void;
   handleVolumeChange: (volume: number) => void;
   flashFeedback: (feedback: NonNullable<PlayerFeedback>) => void;

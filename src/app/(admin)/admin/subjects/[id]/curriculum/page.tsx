@@ -217,6 +217,74 @@ function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson
   );
 }
 
+// Pure functions moved outside component to minimize nesting
+const reorderLessonsInArray = (lessons: Lesson[], activeId: string, overId: string) => {
+  const oldIndex = lessons.findIndex(l => l.id === activeId);
+  const newIndex = lessons.findIndex(l => l.id === overId);
+  if (oldIndex === -1 || newIndex === -1) return lessons;
+  return arrayMove(lessons, oldIndex, newIndex);
+};
+
+const updateLessonInArray = (lessons: Lesson[], updatedLesson: Lesson) => {
+  return lessons.map(l => l.id === updatedLesson.id ? updatedLesson : l);
+};
+
+const removeLessonFromArray = (lessons: Lesson[], lessonId: string) => {
+  return lessons.filter(l => l.id !== lessonId);
+};
+
+const reorderChaptersInList = (chapters: Chapter[], activeId: string, overId: string) => {
+  const oldIndex = chapters.findIndex(c => c.id === activeId);
+  const newIndex = chapters.findIndex(c => c.id === overId);
+  if (oldIndex === -1 || newIndex === -1) return chapters;
+  return arrayMove(chapters, oldIndex, newIndex);
+};
+
+const updateChapterLessonsInList = (chapters: Chapter[], chapterId: string, updateFn: (lessons: Lesson[]) => Lesson[]) => {
+  return chapters.map(c => 
+    c.id === chapterId ? { ...c, subTopics: updateFn(c.subTopics) } : c
+  );
+};
+
+const updateChapterInList = (chapters: Chapter[], chapterId: string, update: Partial<Chapter>) => {
+  return chapters.map(c => 
+    c.id === chapterId ? { ...c, ...update } : c
+  );
+};
+
+const addLessonToChapterInList = (chapters: Chapter[], chapterId: string) => {
+  return updateChapterLessonsInList(chapters, chapterId, (lessons) => [
+    ...lessons,
+    {
+      id: `new-lesson-${Date.now()}`,
+      title: "درس جديد",
+      order: lessons.length,
+      type: "VIDEO",
+      videoUrl: "",
+      durationMinutes: 0,
+      isFree: false
+    }
+  ]);
+};
+
+const removeLessonFromChapterInList = (chapters: Chapter[], chapterId: string, lessonId: string) => {
+  return updateChapterLessonsInList(chapters, chapterId, (lessons) => 
+    removeLessonFromArray(lessons, lessonId)
+  );
+};
+
+const reorderLessonsInChapterInList = (chapters: Chapter[], chapterId: string, activeId: string, overId: string) => {
+  return updateChapterLessonsInList(chapters, chapterId, (lessons) => 
+    reorderLessonsInArray(lessons, activeId, overId)
+  );
+};
+
+const updateLessonInChapterInList = (chapters: Chapter[], chapterId: string, updatedLesson: Lesson) => {
+  return updateChapterLessonsInList(chapters, chapterId, (lessons) => 
+    updateLessonInArray(lessons, updatedLesson)
+  );
+};
+
 export default function CurriculumEditorPage() {
   const params = useParams();
   const router = useRouter();
@@ -242,7 +310,6 @@ export default function CurriculumEditorPage() {
         const res = await adminFetch(`/admin/courses/${subjectId}/curriculum`);
         if (res.ok) {
           const payload = await res.json();
-          // Normalize names to handle backend/frontend differences if any
           const data = payload.data || payload;
           setChapters(data.topics || []);
         }
@@ -257,30 +324,16 @@ export default function CurriculumEditorPage() {
 
   const handleDragEndChapter = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setChapters((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
+    if (!over || active.id === over.id) return;
+    
+    setChapters((prev) => reorderChaptersInList(prev, active.id as string, over.id as string));
   };
 
   const handleReorderLessons = (chapterId: string, event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setChapters((prev) => prev.map(chapter => {
-        if (chapter.id === chapterId) {
-          const oldIndex = chapter.subTopics.findIndex(l => l.id === active.id);
-          const newIndex = chapter.subTopics.findIndex(l => l.id === over.id);
-          return {
-            ...chapter,
-            subTopics: arrayMove(chapter.subTopics, oldIndex, newIndex)
-          };
-        }
-        return chapter;
-      }));
-    }
+    if (!over || active.id === over.id) return;
+
+    setChapters(prev => reorderLessonsInChapterInList(prev, chapterId, active.id as string, over.id as string));
   };
 
   const addChapter = () => {
@@ -298,32 +351,11 @@ export default function CurriculumEditorPage() {
   };
 
   const addLesson = (chapterId: string) => {
-    setChapters(prev => prev.map(c => {
-      if (c.id === chapterId) {
-        return {
-          ...c,
-          subTopics: [...c.subTopics, {
-            id: `new-lesson-${Date.now()}`,
-            title: "درس جديد",
-            order: c.subTopics.length,
-            type: "VIDEO",
-            videoUrl: "",
-            durationMinutes: 0,
-            isFree: false
-          }]
-        };
-      }
-      return c;
-    }));
+    setChapters(prev => addLessonToChapterInList(prev, chapterId));
   };
 
   const deleteLesson = (chapterId: string, lessonId: string) => {
-     setChapters(prev => prev.map(c => {
-        if (c.id === chapterId) {
-           return { ...c, subTopics: c.subTopics.filter(l => l.id !== lessonId) };
-        }
-        return c;
-     }));
+    setChapters(prev => removeLessonFromChapterInList(prev, chapterId, lessonId));
   };
 
   const handleEditLesson = (lesson: Lesson, chapterId: string) => {
@@ -333,17 +365,7 @@ export default function CurriculumEditorPage() {
   const handleSaveLesson = () => {
     if (!editingLesson) return;
     
-    setChapters(prev => prev.map(c => {
-      if (c.id === editingLesson.chapterId) {
-        return {
-          ...c,
-          subTopics: c.subTopics.map(l => 
-            l.id === editingLesson.lesson.id ? editingLesson.lesson : l
-          )
-        };
-      }
-      return c;
-    }));
+    setChapters(prev => updateLessonInChapterInList(prev, editingLesson.chapterId, editingLesson.lesson));
     setEditingLesson(null);
   };
 
@@ -353,9 +375,7 @@ export default function CurriculumEditorPage() {
 
   const handleSaveChapter = () => {
     if (!editingChapter) return;
-    setChapters(prev => prev.map(c => 
-      c.id === editingChapter.id ? { ...c, title: editingChapter.title } : c
-    ));
+    setChapters(prev => updateChapterInList(prev, editingChapter.id, { title: editingChapter.title }));
     setEditingChapter(null);
   };
 
@@ -411,9 +431,9 @@ export default function CurriculumEditorPage() {
              </Button>
              <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-black font-black text-[10px] uppercase h-11 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all">
                 {isSaving ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black ml-2" />
+                   <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black ml-2" />
                 ) : (
-                  <Save className="w-4 h-4 ml-2" />
+                   <Save className="w-4 h-4 ml-2" />
                 )}
                 حفظ التغييرات
              </Button>

@@ -20,7 +20,7 @@ interface QuickStats {
 interface TimeManagementHeaderProps {
   isTimerRunning: boolean;
   onTimerToggle: () => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<void> | void;
   isRefreshing?: boolean;
   onExport?: () => void;
   quickStats?: QuickStats;

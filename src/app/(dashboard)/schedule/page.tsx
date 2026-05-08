@@ -97,7 +97,7 @@ export default function SchedulePage() {
   }, [userId]);
 
   useEffect(() => {
-    void loadSchedule();
+    loadSchedule();
   }, [loadSchedule]);
 
   return (
@@ -115,7 +115,7 @@ export default function SchedulePage() {
             </CardDescription>
           </div>
 
-          <Button variant="outline" onClick={() => void loadSchedule()} disabled={isLoading}>
+          <Button variant="outline" onClick={() => { loadSchedule(); }} disabled={isLoading}>
             <RefreshCw className={`ml-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             تحديث
           </Button>

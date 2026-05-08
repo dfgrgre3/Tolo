@@ -25,6 +25,58 @@ interface TeacherSearchProps {
   className?: string;
 }
 
+/**
+ * Resolves an error message from a failed fetch response
+ */
+async function resolveErrorMessage(response: Response): Promise<string> {
+  try {
+    const errorData = await response.json();
+    if (errorData?.error) return errorData.error;
+  } catch (e) {
+    logger.error('Error parsing error response:', e);
+    if (response.status === 401) return 'مشكلة في المصادقة. يرجى تسجيل الدخول والمحاولة مرة أخرى.';
+    if (response.status === 403) return 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم.';
+    if (response.status === 500) return 'مشكلة في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
+    if (response.status === 429) return 'تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى بعد قليل.';
+  }
+  return 'فشلت عملية البحث عن المدرسين';
+}
+
+/**
+ * Validates and formats the teacher search response data
+ */
+function validateAndFormatTeachers(data: any) {
+  if (!data || typeof data !== 'object') {
+    throw new Error('بيانات غير صالحة من الخادم');
+  }
+
+  return {
+    localTeachers: Array.isArray(data.localTeachers) ? data.localTeachers : [],
+    aiTeachers: Array.isArray(data.aiTeachers) ? data.aiTeachers : [],
+    youtubeResults: Array.isArray(data.youtubeResults) ? data.youtubeResults : [],
+  };
+}
+
+/**
+ * Handles generic search errors and returns a user-friendly message
+ */
+function handleSearchError(err: unknown): string {
+  logger.error('Error searching teachers:', err);
+  let errorMessage = 'حدث خطأ غير معروف';
+
+  if (err instanceof Error) {
+    errorMessage = err.message;
+    if (errorMessage.includes('API key') || errorMessage.includes('مفتاح API')) {
+      return 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم لحل هذه المشكلة.';
+    }
+    if (errorMessage.includes('fetch')) {
+      return 'فشل الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+    }
+  }
+
+  return errorMessage;
+}
+
 export default function TeacherSearch({
   subjects,
   platforms = ['يوتيوب', 'منصة دروس', 'منصة مدرستي', 'أخرى'],
@@ -55,85 +107,28 @@ export default function TeacherSearch({
     try {
       const response = await fetch('/api/ai/teachers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: selectedSubject,
           keywords: keywords || undefined,
           platform: selectedPlatform || undefined,
-          provider: 'gemini' // استخدام Gemini كخيار افتراضي
+          provider: 'gemini'
         })
       });
 
       if (!response.ok) {
-        let errorMessage = 'فشلت عملية البحث عن المدرسين';
-
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (e) {
-          logger.error('Error parsing error response:', e);
-          // إذا فشل تحليل استجابة الخطأ، استخدم رسالة عامة بناءً على رمز الحالة
-          if (response.status === 401) {
-            errorMessage = 'مشكلة في المصادقة. يرجى تسجيل الدخول والمحاولة مرة أخرى.';
-          } else if (response.status === 403) {
-            errorMessage = 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم.';
-          } else if (response.status === 500) {
-            errorMessage = 'مشكلة في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
-          } else if (response.status === 429) {
-            errorMessage = 'تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى بعد قليل.';
-          }
-        }
-
-        // لا ترمي الخطأ هنا، بل قم بتعيينه مباشرة
-        setError(errorMessage);
-        setIsSearching(false);
+        setError(await resolveErrorMessage(response));
         return;
       }
 
-      let data;
-      try {
-        data = await response.json();
+      const rawData = await response.json().catch(err => {
+        logger.error('Error parsing response data:', err);
+        throw new Error('حدث خطأ في تحليل بيانات الاستجابة. يرجى المحاولة مرة أخرى.');
+      });
 
-        // التحقق من أن البيانات تحتوي على الحقول المطلوبة
-        if (!data || typeof data !== 'object') {
-          throw new Error('بيانات غير صالحة من الخادم');
-        }
-
-        // التأكد من وجود الحقول الأساسية
-        if (!data.localTeachers || !data.aiTeachers || !data.youtubeResults) {
-          // إذا كانت هناك حقول مفقودة، قم بإنشائها
-          data.localTeachers = data.localTeachers || [];
-          data.aiTeachers = data.aiTeachers || [];
-          data.youtubeResults = data.youtubeResults || [];
-        }
-
-        setTeachers(data);
-      } catch (parseError) {
-        logger.error('Error parsing response data:', parseError);
-        setError('حدث خطأ في تحليل بيانات الاستجابة. يرجى المحاولة مرة أخرى.');
-        setIsSearching(false);
-        return;
-      }
+      setTeachers(validateAndFormatTeachers(rawData));
     } catch (err) {
-      logger.error('Error searching teachers:', err);
-      let errorMessage = 'حدث خطأ غير معروف';
-
-      if (err instanceof Error) {
-        errorMessage = err.message;
-
-        // تحسين رسائل الخطأ الشائعة
-        if (errorMessage.includes('API key') || errorMessage.includes('مفتاح API')) {
-          errorMessage = 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم لحل هذه المشكلة.';
-        } else if (errorMessage.includes('fetch')) {
-          errorMessage = 'فشل الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        }
-      }
-
-      setError(errorMessage);
+      setError(handleSearchError(err));
     } finally {
       setIsSearching(false);
     }

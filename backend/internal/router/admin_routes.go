@@ -29,6 +29,7 @@ const (
 	pathBooksID          = pathBooks + "/:id"
 	pathTickets          = "/tickets"
 	pathTicketsID        = pathTickets + "/:id"
+	pathCurriculum       = "/curriculum"
 )
 
 
@@ -126,9 +127,9 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.DELETE(pathCoursesID, middleware.PermissionRequired(models.PermSubjectsManage), handlers.DeleteSubject)
 	admin.POST(pathCourses+"/duplicate", middleware.PermissionRequired(models.PermSubjectsManage), handlers.AdminCourseAction)
 	admin.POST(pathCourses+"/batch", middleware.PermissionRequired(models.PermSubjectsManage), handlers.AdminCourseAction)
-	admin.GET(pathCoursesID+"/curriculum", middleware.PermissionRequired(models.PermSubjectsView), handlers.GetSubjectCurriculum)
-	admin.PATCH(pathCoursesID+"/curriculum", middleware.PermissionRequired(models.PermSubjectsManage), handlers.UpdateCourseCurriculum)
-	admin.PUT(pathCoursesID+"/curriculum", middleware.PermissionRequired(models.PermSubjectsManage), handlers.UpdateCourseCurriculum)
+	admin.GET(pathCoursesID+pathCurriculum, middleware.PermissionRequired(models.PermSubjectsView), handlers.GetSubjectCurriculum)
+	admin.PATCH(pathCoursesID+pathCurriculum, middleware.PermissionRequired(models.PermSubjectsManage), handlers.UpdateCourseCurriculum)
+	admin.PUT(pathCoursesID+pathCurriculum, middleware.PermissionRequired(models.PermSubjectsManage), handlers.UpdateCourseCurriculum)
 	admin.POST(pathCourses+"/lessons/:id/attachments", middleware.PermissionRequired(models.PermSubjectsManage), handlers.AddLessonAttachment)
 	admin.GET(pathCoursesID+"/enrollments", middleware.PermissionRequired(models.PermSubjectsView), handlers.GetCourseEnrollments)
 	admin.POST(pathCoursesID+"/enrollments", middleware.PermissionRequired(models.PermSubjectsManage), handlers.ManualEnroll)

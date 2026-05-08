@@ -45,6 +45,40 @@ export function useTimeData(): UseTimeDataReturn {
     }
   }, [user, isAuthLoading]);
 
+  /**
+   * Helper to process individual API call results
+   * This reduces cognitive complexity of the main fetchData function
+   */
+  const processResult = useCallback(<T>(
+    result: PromiseSettledResult<{ data: T | null; error: Error | null }>,
+    path: string,
+    setter: (data: T) => void,
+    isArray = true
+  ) => {
+    const apiPath = `${path}?userId=${userId}`;
+
+    if (result.status === 'rejected') {
+      const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+      errorManager.handleNetworkError(error, apiPath, { showToast: false });
+      return;
+    }
+
+    const { data, error } = result.value;
+    if (error) {
+      errorManager.handleNetworkError(error, apiPath, { showToast: false });
+      return;
+    }
+
+    if (data === null) return;
+
+    if (isArray && !Array.isArray(data)) {
+      logger.warn(`${path} data is not an array:`, data);
+      setter([] as unknown as T);
+    } else {
+      setter(data);
+    }
+  }, [userId]);
+
   const fetchData = useCallback(async () => {
     if (!userId || userId.trim() === '' || userId === 'undefined') {
       logger.warn('Invalid userId, skipping data fetch');
@@ -64,116 +98,18 @@ export function useTimeData(): UseTimeDataReturn {
         safeFetch<Reminder[]>(`/api/reminders?userId=${encodeURIComponent(userId)}`, undefined, []),
       ]);
 
-      // Process schedule
-      const scheduleResult = results[0];
-      if (scheduleResult.status === 'fulfilled') {
-        const { data: scheduleData, error: scheduleError } = scheduleResult.value;
-        if (scheduleError) {
-          errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {
-            showToast: false
-          });
-        } else if (scheduleData) {
-          setSchedule(scheduleData);
-        }
-      } else {
-        errorManager.handleNetworkError(
-          scheduleResult.reason instanceof Error ? scheduleResult.reason : new Error(String(scheduleResult.reason)),
-          `/api/schedule?userId=${userId}`,
-          { showToast: false }
-        );
-      }
+      const [scheduleRes, subjectsRes, tasksRes, sessionsRes, remindersRes] = results;
 
-      // Process subjects
-      const subjectsResult = results[1];
-      if (subjectsResult.status === 'fulfilled') {
-        const { data: subjectsData, error: subjectsError } = subjectsResult.value;
-        if (subjectsError) {
-          errorManager.handleNetworkError(subjectsError, `/api/subjects?userId=${userId}`, {
-            showToast: false
-          });
-        } else if (Array.isArray(subjectsData)) {
-          setSubjects(subjectsData.map(s => s.subject));
-        } else {
-          logger.warn('Subjects data is not an array:', subjectsData);
-          setSubjects([]);
-        }
-      } else {
-        errorManager.handleNetworkError(
-          subjectsResult.reason instanceof Error ? subjectsResult.reason : new Error(String(subjectsResult.reason)),
-          `/api/subjects?userId=${userId}`,
-          { showToast: false }
-        );
-      }
+      // Process each result using the helper
+      processResult(scheduleRes, '/api/schedule', setSchedule, false);
+      processResult(subjectsRes, '/api/subjects', (data) => setSubjects(data.map(s => s.subject)));
+      processResult(tasksRes, '/api/tasks', setTasks);
+      processResult(sessionsRes, '/api/study-sessions', setStudySessions);
+      processResult(remindersRes, '/api/reminders', setReminders);
 
-      // Process tasks
-      const tasksResult = results[2];
-      if (tasksResult.status === 'fulfilled') {
-        const { data: tasksData, error: tasksError } = tasksResult.value;
-        if (tasksError) {
-          errorManager.handleNetworkError(tasksError, `/api/tasks?userId=${userId}`, {
-            showToast: false
-          });
-        } else if (Array.isArray(tasksData)) {
-          setTasks(tasksData);
-        } else {
-          logger.warn('Tasks data is not an array:', tasksData);
-          setTasks([]);
-        }
-      } else {
-        errorManager.handleNetworkError(
-          tasksResult.reason instanceof Error ? tasksResult.reason : new Error(String(tasksResult.reason)),
-          `/api/tasks?userId=${userId}`,
-          { showToast: false }
-        );
-      }
-
-      // Process study sessions
-      const sessionsResult = results[3];
-      if (sessionsResult.status === 'fulfilled') {
-        const { data: studySessionsData, error: studySessionsError } = sessionsResult.value;
-        if (studySessionsError) {
-          errorManager.handleNetworkError(studySessionsError, `/api/study-sessions?userId=${userId}`, {
-            showToast: false
-          });
-        } else if (Array.isArray(studySessionsData)) {
-          setStudySessions(studySessionsData);
-        } else {
-          logger.warn('Study sessions data is not an array:', studySessionsData);
-          setStudySessions([]);
-        }
-      } else {
-        errorManager.handleNetworkError(
-          sessionsResult.reason instanceof Error ? sessionsResult.reason : new Error(String(sessionsResult.reason)),
-          `/api/study-sessions?userId=${userId}`,
-          { showToast: false }
-        );
-      }
-
-      // Process reminders
-      const remindersResult = results[4];
-      if (remindersResult.status === 'fulfilled') {
-        const { data: remindersData, error: remindersError } = remindersResult.value;
-        if (remindersError) {
-          errorManager.handleNetworkError(remindersError, `/api/reminders?userId=${userId}`, {
-            showToast: false
-          });
-        } else if (Array.isArray(remindersData)) {
-          setReminders(remindersData);
-        } else {
-          logger.warn('Reminders data is not an array:', remindersData);
-          setReminders([]);
-        }
-      } else {
-        errorManager.handleNetworkError(
-          remindersResult.reason instanceof Error ? remindersResult.reason : new Error(String(remindersResult.reason)),
-          `/api/reminders?userId=${userId}`,
-          { showToast: false }
-        );
-      }
-
-      // Check for critical failures
-      const criticalFailures = results.filter(r => r.status === 'rejected');
-      if (criticalFailures.length === results.length) {
+      // Check for failures
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      if (failureCount === results.length) {
         errorManager.handleNetworkError(
           new Error("فشل في تحميل جميع البيانات"),
           "fetchData",
@@ -183,14 +119,14 @@ export function useTimeData(): UseTimeDataReturn {
             description: "فشل في تحميل البيانات. يرجى التحقق من الاتصال بالإنترنت والمحاولة مرة أخرى."
           }
         );
-      } else if (criticalFailures.length > 0) {
-        // Partial failure - show warning but continue
-        logger.warn(`Failed to load ${criticalFailures.length} out of ${results.length} data sources`);
+      } else if (failureCount > 0) {
+        logger.warn(`Failed to load ${failureCount} out of ${results.length} data sources`);
       }
     } catch (error) {
       logger.error("Error fetching data:", error);
+      const networkError = error instanceof Error ? error : new Error(String(error));
       errorManager.handleNetworkError(
-        error instanceof Error ? error : new Error(String(error)),
+        networkError,
         "fetchData",
         {},
         {
@@ -201,7 +137,7 @@ export function useTimeData(): UseTimeDataReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, processResult]);
 
   useEffect(() => {
     if (userId) {

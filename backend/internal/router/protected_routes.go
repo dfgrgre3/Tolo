@@ -6,6 +6,13 @@ import (
 	"thanawy-backend/internal/middleware"
 )
 
+const (
+	pathTasks   = "/tasks"
+	pathTasksID = pathTasks + "/:id"
+	pathUpload        = "/upload"
+	pathUploadChunked = pathUpload + "/chunked"
+)
+
 // SetupProtectedRoutes configures protected API endpoints
 func SetupProtectedRoutes(router *gin.Engine) {
 	protected := router.Group("/api")
@@ -20,15 +27,15 @@ func SetupProtectedRoutes(router *gin.Engine) {
 
 		// Protected Activity routes
 		protected.GET("/schedule", handlers.GetSchedule)
-		protected.GET("/tasks", handlers.GetTasks)
+		protected.GET(pathTasks, handlers.GetTasks)
 		protected.GET("/study-sessions", handlers.GetStudySessions)
 		protected.GET("/reminders", handlers.GetReminders)
 		protected.GET("/resources", handlers.GetResources)
 		protected.POST("/schedule", handlers.UpdateSchedule)
-		protected.POST("/tasks", handlers.CreateTask)
-		protected.PATCH("/tasks/:id", handlers.UpdateTask)
-		protected.PUT("/tasks/:id", handlers.UpdateTask)
-		protected.DELETE("/tasks/:id", handlers.DeleteTask)
+		protected.POST(pathTasks, handlers.CreateTask)
+		protected.PATCH(pathTasksID, handlers.UpdateTask)
+		protected.PUT(pathTasksID, handlers.UpdateTask)
+		protected.DELETE(pathTasksID, handlers.DeleteTask)
 		protected.POST("/study-sessions", handlers.CreateStudySession)
 		protected.POST("/reminders", handlers.CreateReminder)
 
@@ -94,10 +101,10 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/courses/:id/reviews", handlers.CreateCourseReview)
 
 		// Upload
-		protected.POST("/upload", handlers.Upload)
-		protected.POST("/upload/chunked", handlers.UploadChunked)
-		protected.PUT("/upload/chunked", handlers.UploadChunked)
-		protected.PATCH("/upload/chunked", handlers.UploadChunked)
+		protected.POST(pathUpload, handlers.Upload)
+		protected.POST(pathUploadChunked, handlers.UploadChunked)
+		protected.PUT(pathUploadChunked, handlers.UploadChunked)
+		protected.PATCH(pathUploadChunked, handlers.UploadChunked)
 
 		// Exam routes
 		protected.POST("/exams/:id/submit", handlers.SubmitExam)

@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import React, { useState, useCallback } from 'react';
@@ -44,39 +44,56 @@ export default function ExamGenerator({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Helper to validate the form inputs
+  const validateForm = () => {
+    if (!selectedSubject || !selectedYear || !lesson) {
+      setError('الرجاء ملء جميع الحقول المطلوبة');
+      return false;
+    }
+
+    if (lesson.trim().length < 3) {
+      setError('اسم الدرس يجب أن يكون على الأقل 3 أحرف');
+      return false;
+    }
+
+    if (questionCount < 1 || questionCount > 50) {
+      setError('عدد الأسئلة يجب أن يكون بين 1 و 50');
+      return false;
+    }
+
+    if (!difficulty) {
+      setError('الرجاء اختيار مستوى الصعوبة');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Helper to handle API response errors and retries
+  function handleExamApiError(responseError: any, e: React.FormEvent) {
+    const errorMessage = responseError.message || 'فشلت عملية إنشاء الامتحان';
+    setError(errorMessage);
+    logger.error('Error generating exam:', responseError);
+
+    const isRetryable = errorMessage.includes('network') || errorMessage.includes('timeout');
+    if (isRetryable && retryCount < 2) {
+      setTimeout(() => {
+        setRetryCount((prev) => prev + 1);
+        handleSubmit(e);
+      }, 2000);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSaveError('');
     setSaveSuccess(false);
 
-    // Validation
-    if (!selectedSubject || !selectedYear || !lesson) {
-      setError('الرجاء ملء جميع الحقول المطلوبة');
-      return;
-    }
-
-    if (lesson.trim().length < 3) {
-      setError('اسم الدرس يجب أن يكون على الأقل 3 أحرف');
-      return;
-    }
-
-    if (questionCount < 1 || questionCount > 50) {
-      setError('عدد الأسئلة يجب أن يكون بين 1 و 50');
-      return;
-    }
-
-    // difficulty is optional, no error for 'none' or ''
-    if (!difficulty) {
-      setError('الرجاء اختيار مستوى الصعوبة');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsGenerating(true);
     setExamData(null);
-    setError('');
-    setSaveError('');
-    setSaveSuccess(false);
 
     try {
       const { data, error: responseError } = await safeFetch<{examId?: string;questions?: Question[];}>(
@@ -99,33 +116,21 @@ export default function ExamGenerator({
       );
 
       if (responseError) {
-        const errorMessage = responseError.message || 'فشلت عملية إنشاء الامتحان';
-        setError(errorMessage);
-        logger.error('Error generating exam:', responseError);
-
-        // إعادة المحاولة التلقائية في حالة أخطاء الشبكة
-        if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-          if (retryCount < 2) {
-            setTimeout(() => {
-              setRetryCount((prev) => prev + 1);
-              handleSubmit(e);
-            }, 2000);
-          }
-        }
-      } else if (data) {
-        if (!data.questions || data.questions.length === 0) {
-          setError('لم يتم إنشاء أي أسئلة. يرجى المحاولة مرة أخرى.');
-        } else {
-          setExamData(data);
-          setError('');
-          setRetryCount(0);
-        }
-      } else {
-        setError('لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
+        handleExamApiError(responseError, e);
+        return;
       }
+
+      if (!data || !data.questions || data.questions.length === 0) {
+        setError(!data ? 'لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.' : 'لم يتم إنشاء أي أسئلة. يرجى المحاولة مرة أخرى.');
+        return;
+      }
+
+      setExamData(data);
+      setRetryCount(0);
     } catch (err: unknown) {
-      logger.error('Error generating exam:', err instanceof Error ? err.message : String(err));
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.error('Error generating exam:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }

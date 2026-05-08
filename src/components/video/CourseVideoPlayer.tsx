@@ -563,9 +563,9 @@ export function CourseVideoPlayer({
         const p = pendingSourceSwitchRef.current;
         pendingSourceSwitchRef.current = null;
         v.currentTime = p.time;
-        if (p.shouldResume) void v.play();
+        if (p.shouldResume) v.play();
       } else {
-        void loadResumeData();
+        loadResumeData();
       }
     };
     const onPlay = () => { setPlayerState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); };
@@ -602,7 +602,7 @@ export function CourseVideoPlayer({
     onReady: (p) => {
       setPlayerState({ isLoading: false, duration: p.getDuration() });
       setYoutubePlaybackRates(p.getAvailablePlaybackRates() ?? []);
-      void loadResumeData();
+      loadResumeData();
     },
     onStateChange: (state, player, api) => {
       if (state === api.PlayerState.PLAYING) { setPlayerState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); }
@@ -699,7 +699,7 @@ export function CourseVideoPlayer({
             }}
             onClose={() => {
               setPlayerState({ activeQuestionId: null });
-              void getAdapter()?.play();
+              getAdapter()?.play();
             }}
           />
         )}
@@ -742,7 +742,7 @@ export function CourseVideoPlayer({
           if (store.resumeTime === null) return;
           handleSeek(store.resumeTime);
           setPlayerState({ resumeTime: null });
-          void getAdapter()?.play();
+          getAdapter()?.play();
         }}
         onDismissResume={() => setPlayerState({ resumeTime: null })}
         onCancelAutoplay={() => setPlayerState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
@@ -794,7 +794,7 @@ export function CourseVideoPlayer({
           flashFeedback({ icon: Sparkles, label: next ? "تفعيل الإضاءة" : "إيقاف الإضاءة" });
         }}
         onChangeBrightness={b => setPlayerState({ brightness: clamp(b, 0.6, 1.3) })}
-        onRestartPlayback={() => { handleSeek(0); void getAdapter()?.play(); flashFeedback({ icon: Play, label: "إعادة التشغيل" }); }}
+        onRestartPlayback={() => { handleSeek(0); getAdapter()?.play(); flashFeedback({ icon: Play, label: "إعادة التشغيل" }); }}
         onOpenStats={() => setPlayerState({ isStatsOpen: true, isSettingsOpen: false })}
         onCopyLessonLink={async () => {
           try {
@@ -812,7 +812,7 @@ export function CourseVideoPlayer({
         onAddNoteAtCurrentTime={addNoteAtCurrentTime}
         onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(store.currentTime)} `)}
         onRemoveNote={removeNote}
-        onJumpToTime={(t) => { handleSeek(t); void getAdapter()?.play(); }}
+        onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
         onLessonChange={onLessonChange}
       />
 

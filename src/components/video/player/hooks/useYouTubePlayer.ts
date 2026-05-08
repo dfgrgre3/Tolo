@@ -96,7 +96,7 @@ export function useYouTubePlayer({
     let isCancelled = false;
     const containerNode = containerRef.current;
 
-    void loadYouTubeApi()
+    loadYouTubeApi()
       .then((api) => {
         if (isCancelled || !containerNode) {
           return;
@@ -161,7 +161,7 @@ export function useYouTubePlayer({
         containerNode.innerHTML = "";
       }
     };
-  }, [containerRef, enabled, videoId]); // Reduced dependencies to avoid re-creation
+  }, [containerRef, enabled, videoId]); // Reduced dependencies to are-creation
 
   // 2. Volume/Mute Updates
   useEffect(() => {

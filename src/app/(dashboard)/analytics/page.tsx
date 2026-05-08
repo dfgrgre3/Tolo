@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,57 +73,34 @@ function AnalyticsPage() {
   const [performanceMetrics, setPerformanceMetrics] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const safeFetch = async <T,>(url: string, name: string): Promise<T | null> => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      logger.error(`Error fetching ${name} data:`, e);
+      return null;
+    }
+  };
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       const userId = await ensureUser();
 
-      // Fetch all data in parallel
-      const [summaryRes, weeklyRes, predictionsRes, performanceRes] = await Promise.all([
-      fetch(`/api/progress/summary?userId=${userId}`).catch(() => null),
-      fetch(`/api/analytics/weekly?userId=${userId}`).catch(() => null),
-      fetch(`/api/analytics/predictions?userId=${userId}`).catch(() => null),
-      fetch(`/api/analytics/performance?hours=168`).catch(() => null)]
-      );
+      const [summaryData, weeklyData, predictionsData, performanceData] = await Promise.all([
+        safeFetch<SummaryData>(`/api/progress/summary?userId=${userId}`, 'summary'),
+        safeFetch<WeeklyData>(`/api/analytics/weekly?userId=${userId}`, 'weekly'),
+        safeFetch<{ success: boolean; predictions: PredictionsData[] }>(`/api/analytics/predictions?userId=${userId}`, 'predictions'),
+        safeFetch<Record<string, unknown>>(`/api/analytics/performance?hours=168`, 'performance')
+      ]);
 
-      if (summaryRes?.ok) {
-        try {
-          const summaryData = await summaryRes.json();
-          setSummary(summaryData);
-        } catch (e) {
-          logger.error('Error parsing summary data:', e);
-        }
-      }
-
-      if (weeklyRes?.ok) {
-        try {
-          const weeklyData = await weeklyRes.json();
-          setWeekly(weeklyData);
-        } catch (e) {
-          logger.error('Error parsing weekly data:', e);
-        }
-      }
-
-      if (predictionsRes?.ok) {
-        try {
-          const predictionsData = await predictionsRes.json();
-          if (predictionsData.success) {
-            setPredictions(predictionsData.predictions || []);
-          }
-        } catch (e) {
-          logger.error('Error parsing predictions data:', e);
-        }
-      }
-
-      if (performanceRes?.ok) {
-        try {
-          const performanceData = await performanceRes.json();
-          setPerformanceMetrics(performanceData);
-        } catch (e) {
-          logger.error('Error parsing performance data:', e);
-        }
-      }
+      if (summaryData) setSummary(summaryData);
+      if (weeklyData) setWeekly(weeklyData);
+      if (predictionsData?.success) setPredictions(predictionsData.predictions || []);
+      if (performanceData) setPerformanceMetrics(performanceData);
     } catch (err: unknown) {
       logger.error('Error fetching analytics:', err);
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ أثناء تحميل البيانات';

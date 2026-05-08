@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo } from 'react';
 import {
@@ -37,52 +37,115 @@ interface TimeTrendsProps {
   weekly: WeeklyData | null;
 }
 
+function calculateTrendData(weekly: WeeklyData | null) {
+  if (!weekly || !weekly.byDay) return null;
+
+  const days = weekly.byDay.map((d) => {
+    const date = new Date(d.date);
+    return {
+      date,
+      label: format(date, 'EEEE', { locale: ar }),
+      shortLabel: format(date, 'EEE', { locale: ar }),
+      minutes: d.minutes,
+      hours: d.minutes / 60
+    };
+  });
+
+  const firstHalf = days.slice(0, Math.floor(days.length / 2));
+  const secondHalf = days.slice(Math.floor(days.length / 2));
+  const firstAvg = firstHalf.reduce((sum, d) => sum + d.minutes, 0) / (firstHalf.length || 1);
+  const secondAvg = secondHalf.reduce((sum, d) => sum + d.minutes, 0) / (secondHalf.length || 1);
+  
+  const trend = (secondAvg > firstAvg ? 'up' : secondAvg < firstAvg ? 'down' : 'stable') as 'up' | 'down' | 'stable';
+  const trendPercentage = firstAvg > 0 ? 
+    Math.abs((secondAvg - firstAvg) / firstAvg * 100) : 0;
+
+  const peakDay = days.length > 0 ? 
+    days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0]) : null;
+  const lowDay = days.length > 0 ? 
+    days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0]) : null;
+
+  return {
+    days,
+    trend,
+    trendPercentage,
+    firstAvg,
+    secondAvg,
+    peakDay,
+    lowDay,
+    totalMinutes: days.reduce((sum, d) => sum + d.minutes, 0)
+  };
+}
+
+const getTrendConfig = (trend: 'up' | 'down' | 'stable') => {
+  switch (trend) {
+    case 'up':
+      return {
+        label: 'تحسن',
+        color: 'text-green-600 dark:text-green-400',
+        border: 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20',
+        Icon: TrendingUp,
+        prefix: '+'
+      };
+    case 'down':
+      return {
+        label: 'تراجع',
+        color: 'text-red-600 dark:text-red-400',
+        border: 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20',
+        Icon: TrendingDown,
+        prefix: '-'
+      };
+    default:
+      return {
+        label: 'مستقر',
+        color: 'text-gray-600 dark:text-gray-400',
+        border: 'border-gray-200 dark:border-gray-800',
+        Icon: Activity,
+        prefix: ''
+      };
+  }
+};
+
+const DayCard = ({ day, peakDayMinutes, lowDayMinutes }: { 
+  day: any; 
+  peakDayMinutes?: number; 
+  lowDayMinutes?: number;
+}) => {
+  const isPeak = day.minutes === peakDayMinutes;
+  const isLow = day.minutes === lowDayMinutes;
+  
+  const borderClass = isPeak 
+    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20' 
+    : isLow 
+    ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20' 
+    : 'border-gray-200 dark:border-gray-800';
+
+  return (
+    <div className={`p-4 rounded-lg border-2 ${borderClass}`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-semibold">{day.label}</p>
+        {isPeak && <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />}
+        {isLow && <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />}
+      </div>
+      <p className="text-2xl font-bold">{day.hours.toFixed(1)} ساعة</p>
+      <p className="text-sm text-muted-foreground">{day.minutes} دقيقة</p>
+    </div>
+  );
+};
+
+const getTooltipLabel = (context: any) => {
+  const minutes = context.parsed.y ?? 0;
+  if (context.datasetIndex === 0) {
+    const hours = (minutes / 60).toFixed(1);
+    return `${context.dataset.label}: ${minutes} دقيقة (${hours} ساعة)`;
+  }
+  return `${context.dataset.label}: ${minutes.toFixed(1)} دقيقة`;
+};
+
 export default function TimeTrends({ weekly }: TimeTrendsProps) {
   const isMounted = useIsMounted();
 
-  const trendData = useMemo(() => {
-    if (!weekly || !weekly.byDay) return null;
-
-    const days = weekly.byDay.map((d, _idx) => {
-      const date = new Date(d.date);
-      return {
-        date,
-        label: format(date, 'EEEE', { locale: ar }),
-        shortLabel: format(date, 'EEE', { locale: ar }),
-        minutes: d.minutes,
-        hours: d.minutes / 60
-      };
-    });
-
-    // Calculate trends
-    const firstHalf = days.slice(0, Math.floor(days.length / 2));
-    const secondHalf = days.slice(Math.floor(days.length / 2));
-    const firstAvg = firstHalf.reduce((sum, d) => sum + d.minutes, 0) / firstHalf.length || 0;
-    const secondAvg = secondHalf.reduce((sum, d) => sum + d.minutes, 0) / secondHalf.length || 0;
-    const trend = secondAvg > firstAvg ? 'up' : secondAvg < firstAvg ? 'down' : 'stable';
-    const trendPercentage = firstAvg > 0 ?
-    Math.abs((secondAvg - firstAvg) / firstAvg * 100) :
-    0;
-
-    // Find peak and low days
-    const peakDay = days.length > 0 ?
-    days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0]) :
-    null;
-    const lowDay = days.length > 0 ?
-    days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0]) :
-    null;
-
-    return {
-      days,
-      trend,
-      trendPercentage,
-      firstAvg,
-      secondAvg,
-      peakDay,
-      lowDay,
-      totalMinutes: days.reduce((sum, d) => sum + d.minutes, 0)
-    };
-  }, [weekly]);
+  const trendData = useMemo(() => calculateTrendData(weekly), [weekly]);
 
   if (!trendData) {
     return (
@@ -125,32 +188,20 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 
   };
 
+  const trendConfig = getTrendConfig(trendData.trend);
+
   return (
     <div className="space-y-6">
 			{/* Trend Summary Cards */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<Card className={`border-2 ${
-        trendData.trend === 'up' ?
-        'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20' :
-        trendData.trend === 'down' ?
-        'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20' :
-        'border-gray-200 dark:border-gray-800'}`
-        }>
+				<Card className={`border-2 ${trendConfig.border}`}>
 					<CardContent className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-muted-foreground mb-1">الاتجاه</p>
-								<p className="text-2xl font-bold">
-									{trendData.trend === 'up' ? 'تحسن' : trendData.trend === 'down' ? 'تراجع' : 'مستقر'}
-								</p>
+								<p className="text-2xl font-bold">{trendConfig.label}</p>
 							</div>
-							{trendData.trend === 'up' ?
-              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" /> :
-              trendData.trend === 'down' ?
-              <TrendingDown className="h-8 w-8 text-red-600 dark:text-red-400" /> :
-
-              <Activity className="h-8 w-8 text-gray-600 dark:text-gray-400" />
-              }
+							<trendConfig.Icon className={`h-8 w-8 ${trendConfig.color}`} />
 						</div>
 					</CardContent>
 				</Card>
@@ -183,14 +234,8 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-muted-foreground mb-1">التغيير</p>
-								<p className={`text-2xl font-bold ${
-                trendData.trend === 'up' ?
-                'text-green-600 dark:text-green-400' :
-                trendData.trend === 'down' ?
-                'text-red-600 dark:text-red-400' :
-                'text-gray-600 dark:text-gray-400'}`
-                }>
-									{trendData.trend === 'up' ? '+' : trendData.trend === 'down' ? '-' : ''}
+								<p className={`text-2xl font-bold ${trendConfig.color}`}>
+									{trendConfig.prefix}
 									{trendData.trendPercentage.toFixed(1)}%
 								</p>
 							</div>
@@ -223,15 +268,7 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
                   },
                   tooltip: {
                     callbacks: {
-                      label: (context) => {
-                        if (context.datasetIndex === 0) {
-                          const minutes = context.parsed.y ?? 0;
-                          const hours = (minutes / 60).toFixed(1);
-                          return `${context.dataset.label}: ${minutes} دقيقة (${hours} ساعة)`;
-                        }
-                        const minutes = context.parsed.y ?? 0;
-                        return `${context.dataset.label}: ${minutes.toFixed(1)} دقيقة`;
-                      }
+                      label: getTooltipLabel
                     }
                   }
                 },
@@ -239,9 +276,7 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      callback: function (value) {
-                        return value + ' د';
-                      }
+                      callback: (value) => `${value} د`
                     }
                   }
                 }
@@ -262,29 +297,13 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 				</CardHeader>
 				<CardContent className="p-6">
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{trendData.days.map((day, index) => (  // Make sure index is included in the map callback
-              <div
-                key={index}
-                className={`p-4 rounded-lg border-2 ${
-                day.minutes === trendData.peakDay?.minutes ?
-                'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20' :
-                day.minutes === trendData.lowDay?.minutes ?
-                'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20' :
-                'border-gray-200 dark:border-gray-800'}`}
-              >
-              
-								<div className="flex items-center justify-between mb-2">
-									<p className="font-semibold">{day.label}</p>
-									{day.minutes === trendData.peakDay?.minutes &&
-                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                }
-									{day.minutes === trendData.lowDay?.minutes &&
-                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                }
-								</div>
-								<p className="text-2xl font-bold">{day.hours.toFixed(1)} ساعة</p>
-								<p className="text-sm text-muted-foreground">{day.minutes} دقيقة</p>
-							</div>
+						{trendData.days.map((day, index) => (
+              <DayCard 
+                key={index} 
+                day={day} 
+                peakDayMinutes={trendData.peakDay?.minutes} 
+                lowDayMinutes={trendData.lowDay?.minutes} 
+              />
             ))}
 					</div>
 				</CardContent>

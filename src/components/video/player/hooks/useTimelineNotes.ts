@@ -72,7 +72,7 @@ export function useTimelineNotes({
   }, [lessonId]);
 
   useEffect(() => {
-    void loadCloudNotes();
+    loadCloudNotes();
   }, [loadCloudNotes]);
 
   const addNoteAtCurrentTime = useCallback(() => {
@@ -83,7 +83,7 @@ export function useTimelineNotes({
     const nextNotes = [...notes, nextNote].sort((left, right) => left.time - right.time);
     
     setNotes(nextNotes);
-    void persistCloudNotes(nextNotes);
+    persistCloudNotes(nextNotes);
     
     setNoteDraft("");
     setPlayerState({ sidebarTab: "notes", isSidebarOpen: true });
@@ -94,7 +94,7 @@ export function useTimelineNotes({
     (noteId: string) => {
       const nextNotes = notes.filter((note) => note.id !== noteId);
       setNotes(nextNotes);
-      void persistCloudNotes(nextNotes);
+      persistCloudNotes(nextNotes);
     },
     [notes, persistCloudNotes]
   );

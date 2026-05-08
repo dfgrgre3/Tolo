@@ -409,7 +409,7 @@ export default function CoursesPage() {
       }
     };
 
-    void loadCourses();
+    loadCourses();
   }, []);
 
   const catalogStats = useMemo(() => {

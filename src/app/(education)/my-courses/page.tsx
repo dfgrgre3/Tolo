@@ -109,7 +109,7 @@ export default function MyCoursesPage() {
       }
     };
 
-    void fetchMyCourses();
+    fetchMyCourses();
   }, [authLoading, user, fetchWithAuth, router]);
 
   const filteredCourses = useMemo(() => {

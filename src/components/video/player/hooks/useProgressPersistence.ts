@@ -76,7 +76,7 @@ export function useProgressPersistence({
       const totalTimeSpent = Math.floor(accumulatedTimeRef.current + currentSessionTime);
       const status = percent >= AUTO_COMPLETE_PERCENT ? 'COMPLETED' : (percent > 0 ? 'IN_PROGRESS' : 'NOT_STARTED');
 
-      void fetch(`/api/courses/lessons/${lessonId}/progress`, {
+      fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

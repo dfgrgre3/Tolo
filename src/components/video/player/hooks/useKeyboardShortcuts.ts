@@ -3,13 +3,13 @@ import { SEEK_STEP_SECONDS } from "../constants";
 import { useCourseVideoPlayerStore } from "../store";
 
 type KeyboardShortcutsOptions = {
-  togglePlayPause: () => void | Promise<void>;
+  togglePlayPause: () => | Promise<void>;
   seekBy: (seconds: number) => void;
   handleSeek: (time: number) => void;
   handleVolumeChange: (volume: number) => void;
   toggleMute: () => void;
-  toggleFullscreen: () => void | Promise<void>;
-  togglePip: () => void | Promise<void>;
+  toggleFullscreen: () => | Promise<void>;
+  togglePip: () => | Promise<void>;
   onToggleTheater?: () => void;
   changeSubtitle: (id: string) => void;
   setOpenPanel: (panel: "settings" | "help" | "stats" | "sidebar" | null) => void;
@@ -46,7 +46,7 @@ export function useKeyboardShortcuts({
         case " ":
         case "k":
           event.preventDefault();
-          void togglePlayPause();
+          togglePlayPause();
           break;
         case "arrowright":
         case "l":
@@ -72,11 +72,11 @@ export function useKeyboardShortcuts({
           break;
         case "f":
           event.preventDefault();
-          void toggleFullscreen();
+          toggleFullscreen();
           break;
         case "p":
           event.preventDefault();
-          void togglePip();
+          togglePip();
           break;
         case "t":
           event.preventDefault();
