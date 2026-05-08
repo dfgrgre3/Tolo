@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+const whereIDEquals = "id = ?"
 
 // AdminGetEvents returns a paginated list of platform events
 func AdminGetEvents(c *gin.Context) {
@@ -149,7 +150,7 @@ func AdminUpdateEvent(c *gin.Context) {
 	}
 
 	var event models.Event
-	if err := db.DB.First(&event, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.First(&event, whereIDEquals, input.ID).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Event not found")
 		return
 	}
@@ -187,7 +188,7 @@ func AdminUpdateEvent(c *gin.Context) {
 		}
 	}
 
-	if err := db.DB.Model(&models.Event{}).Where("id = ?", event.ID).
+	if err := db.DB.Model(&models.Event{}).Where(whereIDEquals, event.ID).
 		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update event")
 		return
@@ -209,7 +210,7 @@ func AdminDeleteEvent(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Event{}, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.Delete(&models.Event{}, whereIDEquals, input.ID).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete event")
 		return
 	}

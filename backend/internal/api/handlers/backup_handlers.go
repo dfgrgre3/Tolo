@@ -12,6 +12,10 @@ import (
 	"thanawy-backend/internal/services"
 )
 
+const idQuery = "id = ?"
+const errBackupNotFound = "Backup not found"
+
+
 // CreateBackupRequest represents a request to create a backup
 type CreateBackupRequest struct {
 	Name             string   `json:"name" binding:"required,max=100"`
@@ -148,8 +152,8 @@ func RestoreBackup(c *gin.Context) {
 	}
 
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Backup not found"})
+	if err := db.DB.First(&backup, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errBackupNotFound})
 		return
 	}
 
@@ -203,8 +207,8 @@ func DeleteBackup(c *gin.Context) {
 	id := c.Param("id")
 
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Backup not found"})
+	if err := db.DB.First(&backup, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errBackupNotFound})
 		return
 	}
 
@@ -235,8 +239,8 @@ func DownloadBackup(c *gin.Context) {
 	id := c.Param("id")
 
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Backup not found"})
+	if err := db.DB.First(&backup, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errBackupNotFound})
 		return
 	}
 
@@ -268,8 +272,8 @@ func VerifyBackup(c *gin.Context) {
 	id := c.Param("id")
 
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Backup not found"})
+	if err := db.DB.First(&backup, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errBackupNotFound})
 		return
 	}
 
@@ -404,8 +408,8 @@ func GetBackupProgress(c *gin.Context) {
 	id := c.Param("id")
 
 	var backup models.Backup
-	if err := db.DB.First(&backup, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Backup not found"})
+	if err := db.DB.First(&backup, idQuery, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errBackupNotFound})
 		return
 	}
 

@@ -13,6 +13,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const queryID = "id = ?"
+
 func GetCategories(c *gin.Context) {
 	categoryType := c.Query("type")
 	var categories []models.Category
@@ -154,7 +156,7 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	var category models.Category
-	if err := db.DB.First(&category, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.First(&category, queryID, input.ID).Error; err != nil {
 		apiresponse.Error(c, http.StatusNotFound, "Category not found")
 		return
 	}
@@ -178,7 +180,7 @@ func UpdateCategory(c *gin.Context) {
 		updates.Slug = input.Slug
 	}
 
-	if err := db.DB.Model(&models.Category{}).Where("id = ?", category.ID).
+	if err := db.DB.Model(&models.Category{}).Where(queryID, category.ID).
 		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update category")
 		return
@@ -203,7 +205,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Category{}, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.Delete(&models.Category{}, queryID, input.ID).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to delete category")
 		return
 	}
@@ -285,7 +287,7 @@ func UpdateTeacher(c *gin.Context) {
 		updates.Username = &input.Name
 	}
 
-	if err := db.DB.Model(&models.User{}).Where("id = ?", teacher.ID).
+	if err := db.DB.Model(&models.User{}).Where(queryID, teacher.ID).
 		Updates(&updates).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update teacher")
 		return

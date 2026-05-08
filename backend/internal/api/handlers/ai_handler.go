@@ -71,73 +71,119 @@ type ChatResponse struct {
 // AIChatProxy handles chat requests with conversation history (new version)
 func (h *AIHandler) AIChatProxy(c *gin.Context) {
 	var req ChatRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	if !h.bindAndValidateRequest(c, &req) {
 		return
 	}
 
-	// Validate message length (max 2000 chars)
-	if req.Message != "" {
-		if len([]rune(req.Message)) > 2000 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Message exceeds maximum length of 2000 characters"})
-			return
-		}
-		// Check for empty message after trimming
-		if strings.TrimSpace(req.Message) == "" && req.Image == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Message cannot be empty"})
-			return
-		}
-	}
-
-	// Validate image (if provided)
-	if req.Image != "" {
-		// Check if it's a valid base64 string and reasonable size
-		if len(req.Image) > 5*1024*1024 { // 5MB limit for base64
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Image size exceeds 5MB limit"})
-			return
-		}
-		// Basic base64 validation
-		if !isValidBase64Image(req.Image) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-			return
-		}
-	}
-
-	if req.Message == "" && req.Image == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Message or image is required"})
-		return
-	}
-
-	// Validate conversation ID format if provided
-	if req.ConversationID != "" {
-		if len(req.ConversationID) > 100 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid conversation ID"})
-			return
-		}
-	}
-
-	// Get user ID from context safely
-	userIDValue, exists := c.Get("userId")
-	if !exists || userIDValue == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required to use AI features"})
-		return
-	}
-	userIDStr, ok := userIDValue.(string)
-	if !ok || userIDStr == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user session"})
+	userID, ok := h.getAuthorizedUserID(c)
+	if !ok {
 		return
 	}
 
 	// Get or create conversation
-	conversation, err := h.getOrCreateConversation(userIDStr, req.ConversationID, req.SubjectID, req.TopicID)
+	conversation, err := h.getOrCreateConversation(userID, req.ConversationID, req.SubjectID, req.TopicID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to manage conversation"})
 		return
 	}
 
-	// Build user message content for AI
-	var userContent interface{}
+	// Process and save user message
+	_, userContent := h.processUserMessage(&req, conversation.ID)
+
+	// Get history and build messages for AI API
+	messages, err := h.conversationRepo.GetRecentMessages(conversation.ID, MaxContextMessages)
+	if err != nil {
+		messages = []models.AIMessage{}
+	}
+
+	aiMessages := h.buildAIMessages(c, userID, messages)
+	if req.Image != "" {
+		aiMessages[len(aiMessages)-1]["content"] = userContent
+	}
+
+	// Check cache (only for text-only requests)
+	cacheKey := ""
+	if req.Image == "" {
+		cacheKey = h.buildCacheKey(aiMessages)
+		if cachedResponse := h.getCachedResponse(cacheKey); cachedResponse != "" {
+			h.respondWithCached(c, conversation.ID, cachedResponse)
+			return
+		}
+	}
+
+	// Select model and handle streaming
+	model := "google/gemini-2.0-flash-001"
+	if req.Image != "" {
+		model = "google/gemini-pro-1.5"
+	}
+
+	if req.Stream {
+		h.handleStreamingChat(c, aiMessages, conversation.ID, cacheKey, model)
+		return
+	}
+
+	// Handle standard AI response
+	h.handleAIResponse(c, conversation.ID, userID, cacheKey, model, aiMessages, req.Image != "")
+}
+
+func (h *AIHandler) bindAndValidateRequest(c *gin.Context, req *ChatRequest) bool {
+	if err := c.ShouldBindJSON(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return false
+	}
+
+	if req.Message != "" {
+		if len([]rune(req.Message)) > 2000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Message exceeds maximum length of 2000 characters"})
+			return false
+		}
+		if strings.TrimSpace(req.Message) == "" && req.Image == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Message cannot be empty"})
+			return false
+		}
+	}
+
+	if req.Image != "" {
+		if len(req.Image) > 5*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Image size exceeds 5MB limit"})
+			return false
+		}
+		if !isValidBase64Image(req.Image) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
+			return false
+		}
+	}
+
+	if (req.Message == "" && req.Image == "") || (req.ConversationID != "" && len(req.ConversationID) > 100) {
+		errorMsg := "Message or image is required"
+		if req.ConversationID != "" {
+			errorMsg = "Invalid conversation ID"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": errorMsg})
+		return false
+	}
+
+	return true
+}
+
+func (h *AIHandler) getAuthorizedUserID(c *gin.Context) (string, bool) {
+	userIDValue, exists := c.Get("userId")
+	if !exists || userIDValue == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required to use AI features"})
+		return "", false
+	}
+	userIDStr, ok := userIDValue.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user session"})
+		return "", false
+	}
+	return userIDStr, true
+}
+
+func (h *AIHandler) processUserMessage(req *ChatRequest, conversationID string) (string, interface{}) {
 	userMessageText := req.Message
+	var userContent interface{}
+
 	if req.Image != "" {
 		if userMessageText == "" {
 			userMessageText = "[صورة]"
@@ -150,9 +196,8 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 		userContent = req.Message
 	}
 
-	// Save user message to DB
 	userMessage := &models.AIMessage{
-		ConversationID: conversation.ID,
+		ConversationID: conversationID,
 		Role:           "user",
 		Content:        userMessageText,
 	}
@@ -160,63 +205,33 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 		log.Printf("Failed to save user message: %v", err)
 	}
 
-	// Get conversation history
-	messages, err := h.conversationRepo.GetRecentMessages(conversation.ID, MaxContextMessages)
-	if err != nil {
-		messages = []models.AIMessage{}
+	return userMessageText, userContent
+}
+
+func (h *AIHandler) respondWithCached(c *gin.Context, conversationID, cachedResponse string) {
+	assistantMessage := &models.AIMessage{
+		ConversationID: conversationID,
+		Role:           "assistant",
+		Content:        cachedResponse,
+		Model:          stringPtr("cached"),
 	}
+	h.conversationRepo.AddMessage(assistantMessage)
+	c.JSON(http.StatusOK, ChatResponse{
+		Reply:          cachedResponse,
+		ConversationID: conversationID,
+		MessageID:      assistantMessage.ID,
+	})
+}
 
-	// Build messages for AI API
-	aiMessages := h.buildAIMessages(c, userIDStr, messages)
-
-	// If it's a vision request, we need to modify the last message
-	if req.Image != "" {
-		aiMessages[len(aiMessages)-1]["content"] = userContent
-	}
-
-	// Check cache (only for text-only requests)
-	var cacheKey string
-	if req.Image == "" {
-		cacheKey = h.buildCacheKey(aiMessages)
-		if cachedResponse := h.getCachedResponse(cacheKey); cachedResponse != "" {
-			assistantMessage := &models.AIMessage{
-				ConversationID: conversation.ID,
-				Role:           "assistant",
-				Content:        cachedResponse,
-				Model:          stringPtr("cached"),
-			}
-			h.conversationRepo.AddMessage(assistantMessage)
-			c.JSON(http.StatusOK, ChatResponse{
-				Reply:          cachedResponse,
-				ConversationID: conversation.ID,
-				MessageID:      assistantMessage.ID,
-			})
-			return
-		}
-	}
-
-	// Select model based on input
-	model := "google/gemini-2.0-flash-001" // Default fast model
-	if req.Image != "" {
-		model = "google/gemini-pro-1.5" // Better vision support
-	}
-
-	// Handle streaming request
-	if req.Stream {
-		h.handleStreamingChat(c, aiMessages, conversation.ID, cacheKey, model)
-		return
-	}
-
-	// Call AI
+func (h *AIHandler) handleAIResponse(c *gin.Context, conversationID, userID, cacheKey, model string, aiMessages []map[string]interface{}, isVision bool) {
 	reply, usedModel, err := h.callAIWithRetryCustom(aiMessages, model)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get AI response", "details": err.Error()})
 		return
 	}
 
-	// Save assistant message
 	assistantMessage := &models.AIMessage{
-		ConversationID: conversation.ID,
+		ConversationID: conversationID,
 		Role:           "assistant",
 		Content:        reply,
 		Model:          stringPtr(usedModel),
@@ -227,20 +242,24 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 		h.cacheResponse(cacheKey, reply)
 	}
 
-	// Deduct credits (vision costs more)
-	if userIDStr != "" {
-		credits := 1
-		if req.Image != "" {
-			credits = 5
-		}
-		db.DB.Model(&models.User{}).Where("id = ?", userIDStr).UpdateColumn("aiCredits", gorm.Expr("GREATEST(0, \"aiCredits\" - ?)", credits))
-	}
+	h.deductCredits(userID, isVision)
 
 	c.JSON(http.StatusOK, ChatResponse{
 		Reply:          reply,
-		ConversationID: conversation.ID,
+		ConversationID: conversationID,
 		MessageID:      assistantMessage.ID,
 	})
+}
+
+func (h *AIHandler) deductCredits(userID string, isVision bool) {
+	if userID == "" {
+		return
+	}
+	credits := 1
+	if isVision {
+		credits = 5
+	}
+	db.DB.Model(&models.User{}).Where("id = ?", userID).UpdateColumn("aiCredits", gorm.Expr("GREATEST(0, \"aiCredits\" - ?)", credits))
 }
 
 // AIExamProxy handles exam-related AI requests
@@ -378,21 +397,32 @@ func contentToString(v interface{}) string {
 	if s, ok := v.(string); ok {
 		return s
 	}
+
 	// If content is an array (e.g. vision messages), extract text parts
 	if arr, ok := v.([]interface{}); ok {
 		var parts []string
 		for _, item := range arr {
-			if m, ok := item.(map[string]interface{}); ok {
-				if t, ok := m["type"].(string); ok && t == "text" {
-					if text, ok := m["text"].(string); ok {
-						parts = append(parts, text)
-					}
-				}
+			if text := extractTextFromPart(item); text != "" {
+				parts = append(parts, text)
 			}
 		}
 		return strings.Join(parts, " ")
 	}
+
 	return fmt.Sprintf("%v", v)
+}
+
+func extractTextFromPart(item interface{}) string {
+	m, ok := item.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	if t, ok := m["type"].(string); ok && t == "text" {
+		if text, ok := m["text"].(string); ok {
+			return text
+		}
+	}
+	return ""
 }
 
 func (h *AIHandler) buildCacheKey(messages []map[string]interface{}) string {

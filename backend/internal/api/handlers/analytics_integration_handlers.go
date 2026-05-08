@@ -10,6 +10,10 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const startedAtGteQuery = "started_at >= ?"
+const countDistinctUserQuery = "COUNT(DISTINCT user_id)"
+
+
 // UserJourneyRequest represents a user journey tracking request
 type UserJourneyRequest struct {
 	UserID         string            `json:"userId" binding:"required"`
@@ -169,7 +173,7 @@ func GetUserJourneys(c *gin.Context) {
 
 	if from != "" {
 		if fromTime, err := time.Parse(time.RFC3339, from); err == nil {
-			query = query.Where("started_at >= ?", fromTime)
+			query = query.Where(startedAtGteQuery, fromTime)
 		}
 	}
 
@@ -276,18 +280,18 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 	// Calculate DAU, WAU, MAU
 	now := time.Now()
 	db.DB.Model(&models.UserJourney{}).
-		Where("started_at >= ?", now.AddDate(0, 0, -1)).
-		Select("COUNT(DISTINCT user_id)").
+		Where(startedAtGteQuery, now.AddDate(0, 0, -1)).
+		Select(countDistinctUserQuery).
 		Scan(&metrics.DailyActiveUsers)
 
 	db.DB.Model(&models.UserJourney{}).
-		Where("started_at >= ?", now.AddDate(0, 0, -7)).
-		Select("COUNT(DISTINCT user_id)").
+		Where(startedAtGteQuery, now.AddDate(0, 0, -7)).
+		Select(countDistinctUserQuery).
 		Scan(&metrics.WeeklyActiveUsers)
 
 	db.DB.Model(&models.UserJourney{}).
-		Where("started_at >= ?", now.AddDate(0, 0, -30)).
-		Select("COUNT(DISTINCT user_id)").
+		Where(startedAtGteQuery, now.AddDate(0, 0, -30)).
+		Select(countDistinctUserQuery).
 		Scan(&metrics.MonthlyActiveUsers)
 
 	// Calculate average session duration
@@ -396,7 +400,7 @@ func ExportJourneys(c *gin.Context) {
 	}
 
 	if !filters.From.IsZero() {
-		query = query.Where("started_at >= ?", filters.From)
+		query = query.Where(startedAtGteQuery, filters.From)
 	}
 
 	if !filters.To.IsZero() {

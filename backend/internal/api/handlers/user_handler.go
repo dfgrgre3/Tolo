@@ -1173,7 +1173,7 @@ func ClerkWebhook(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Clerk Webhook] Received event: %s", event.Type)
+	log.Printf("[Clerk Webhook] Received event: %s", sanitizeLog(event.Type))
 
 	switch event.Type {
 	case "user.created", "user.updated":
@@ -1189,7 +1189,7 @@ func ClerkWebhook(c *gin.Context) {
 			}
 		}
 	default:
-		log.Printf("[Clerk Webhook] Unhandled event type: %s", event.Type)
+		log.Printf("[Clerk Webhook] Unhandled event type: %s", sanitizeLog(event.Type))
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
@@ -1251,7 +1251,7 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 		return result.Error
 	}
 
-	log.Printf("[Clerk Webhook] User synced successfully: %s (%s)", userId, primaryEmail)
+	log.Printf("[Clerk Webhook] User synced successfully: %s (%s)", sanitizeLog(userId), sanitizeLog(primaryEmail))
 	return nil
 }
 
@@ -1280,6 +1280,10 @@ func EnsureUserExists(userId string, email string) error {
 		return err
 	}
 
-	log.Printf("[Auth] Auto-created user: %s (%s)", userId, email)
+	log.Printf("[Auth] Auto-created user: %s (%s)", sanitizeLog(userId), sanitizeLog(email))
 	return nil
+}
+
+func sanitizeLog(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\r", "")
 }

@@ -27,6 +27,14 @@ import (
 	"runtime"
 )
 
+const queryRole = "role = ?"
+const uploadMetadataKeyPrefix = "upload_metadata:"
+const createdAtGte = "created_at >= ?"
+const coalesceSumDuration = "COALESCE(SUM(duration_min), 0)"
+const createdAtDescSort = "created_at desc"
+const createdAtRangeQuery = "\"createdAt\" >= ? AND \"createdAt\" < ?"
+const dateFormat = "2006-01-02"
+
 // AdminAI handles all AI-related admin operations
 func AdminAIGet(c *gin.Context) {
 	var riskStudents []models.User
@@ -210,7 +218,7 @@ func fetchBulkMessageTargetUsers(userIDs []string, role string) ([]models.User, 
 	if len(userIDs) > 0 {
 		query = query.Where(idInQuery, userIDs)
 	} else if role != "" {
-		query = query.Where("role = ?", role)
+		query = query.Where(queryRole, role)
 	}
 
 	if err := query.Find(&targetUsers).Error; err != nil {
@@ -420,7 +428,7 @@ func UploadChunked(c *gin.Context) {
 		// Store metadata in Redis for distributed access
 		metadataBytes, _ := json.Marshal(req)
 		if db.Redis != nil {
-			db.Redis.Set(ctx, "upload_metadata:"+uploadID, metadataBytes, 24*time.Hour)
+			db.Redis.Set(ctx, uploadMetadataKeyPrefix+uploadID, metadataBytes, 24*time.Hour)
 		} else {
 			// Fallback to local if Redis is missing (not ideal for distributed)
 			tempDir := filepath.Join("uploads", "temp", uploadID)
@@ -477,7 +485,7 @@ func UploadChunked(c *gin.Context) {
 		}
 		
 		if db.Redis != nil {
-			val, err := db.Redis.Get(ctx, "upload_metadata:"+req.UploadID).Bytes()
+			val, err := db.Redis.Get(ctx, uploadMetadataKeyPrefix+req.UploadID).Bytes()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired uploadId"})
 				return
@@ -568,7 +576,7 @@ func UploadChunked(c *gin.Context) {
 				storage.GlobalStorage.Delete(bgCtx, chunk.path)
 			}
 			if db.Redis != nil {
-				db.Redis.Del(bgCtx, "upload_metadata:"+req.UploadID)
+				db.Redis.Del(bgCtx, uploadMetadataKeyPrefix+req.UploadID)
 			}
 			// Cleanup local temp if fallback was used
 			os.RemoveAll(filepath.Join("uploads", "temp", req.UploadID))
@@ -699,10 +707,39 @@ func ValidateCoupon(c *gin.Context) {
 	})
 }
 
+func applyCoupon(couponCode string, price float64) (*models.Coupon, float64) {
+	if couponCode == "" {
+		return nil, price
+	}
+	var coupon models.Coupon
+	if err := db.DB.Where("code = ? AND is_active = ?", couponCode, true).First(&coupon).Error; err != nil {
+		return nil, price
+	}
+
+	// Validate coupon
+	isExpired := coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now())
+	isMaxUsed := coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses
+	isBelowMin := coupon.MinOrderAmount > 0 && price < coupon.MinOrderAmount
+
+	if isExpired || isMaxUsed || isBelowMin {
+		return nil, price
+	}
+
+	if coupon.DiscountType == "PERCENTAGE" {
+		price = price * (1 - coupon.DiscountValue/100)
+	} else {
+		price = price - coupon.DiscountValue
+	}
+
+	if price < 0 {
+		price = 0
+	}
+	return &coupon, price
+}
+
 func SubscriptionCheckout(c *gin.Context) {
-	userId, exists := c.Get("userId")
-	if !exists {
-		api_response.Error(c, http.StatusUnauthorized, "Unauthorized")
+	userId, ok := getAuthenticatedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -722,46 +759,16 @@ func SubscriptionCheckout(c *gin.Context) {
 		"pro":   350,
 		"elite": 600,
 	}
-
 	price, ok := planPrices[req.PlanID]
 	if !ok {
 		api_response.Error(c, http.StatusBadRequest, "Invalid plan ID")
 		return
 	}
 
-	// Apply coupon discount if provided
-	var appliedCoupon *models.Coupon
-	if req.CouponCode != "" {
-		var coupon models.Coupon
-		if err := db.DB.Where("code = ? AND is_active = ?", req.CouponCode, true).First(&coupon).Error; err == nil {
-			// Validate coupon
-			valid := true
-			if coupon.ExpiryDate != nil && coupon.ExpiryDate.Before(time.Now()) {
-				valid = false
-			}
-			if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {
-				valid = false
-			}
-			if coupon.MinOrderAmount > 0 && price < coupon.MinOrderAmount {
-				valid = false
-			}
-
-			if valid {
-				if coupon.DiscountType == "PERCENTAGE" {
-					price = price * (1 - coupon.DiscountValue/100)
-				} else {
-					price = price - coupon.DiscountValue
-				}
-				if price < 0 {
-					price = 0
-				}
-				appliedCoupon = &coupon
-			}
-		}
-	}
+	appliedCoupon, discountedPrice := applyCoupon(req.CouponCode, price)
+	price = discountedPrice
 
 	paymobSvc := services.NewPaymobService()
-
 	token, err := paymobSvc.Authenticate()
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "فشل الاتصال ببوابة الدفع")
@@ -785,28 +792,10 @@ func SubscriptionCheckout(c *gin.Context) {
 	}
 
 	var user models.User
-	db.DB.First(&user, "id = ?", userId)
+	db.DB.First(&user, queryID, userId)
 
-	billingData := map[string]string{
-		"first_name":   "Student",
-		"last_name":    "User",
-		"email":        user.Email,
-		"phone_number": "01000000000",
-	}
-	if user.Name != nil && *user.Name != "" {
-		billingData["first_name"] = *user.Name
-	}
-	if user.Phone != nil && *user.Phone != "" {
-		billingData["phone_number"] = *user.Phone
-	}
-
-	integrationID := paymobSvc.CardIntegrationID
-	switch req.PaymentMethod {
-	case "wallet":
-		integrationID = paymobSvc.WalletIntegrationID
-	case "fawry":
-		integrationID = paymobSvc.FawryIntegrationID
-	}
+	billingData := getBillingData(user)
+	integrationID := getIntegrationID(paymobSvc, req.PaymentMethod)
 
 	paymentKey, err := paymobSvc.GetPaymentKey(token, orderID, amountCents, integrationID, billingData)
 	if err != nil {
@@ -815,7 +804,7 @@ func SubscriptionCheckout(c *gin.Context) {
 	}
 
 	payment := models.Payment{
-		UserID:        userId.(string),
+		UserID:        userId,
 		Amount:        price,
 		Method:        req.PaymentMethod,
 		Status:        models.PaymentPending,
@@ -845,46 +834,46 @@ func SubscriptionCheckout(c *gin.Context) {
 	})
 }
 
+func handleBookFileUpload(c *gin.Context, fieldName, prefix string) string {
+	file, err := c.FormFile(fieldName)
+	if err != nil {
+		return ""
+	}
+	ext := filepath.Ext(file.Filename)
+	filename := fmt.Sprintf("%s_%d%s", prefix, time.Now().UnixNano(), ext)
+	dst := filepath.Join("uploads", filename)
+	if err := c.SaveUploadedFile(file, dst); err == nil {
+		return "/uploads/" + filename
+	}
+	return ""
+}
+
+func parseBookMultipartForm(c *gin.Context) models.Book {
+	var book models.Book
+	book.Title = c.PostForm("title")
+	book.Author = c.PostForm("author")
+	book.Description = c.PostForm("description")
+	if subjectId := c.PostForm("subjectId"); subjectId != "" {
+		book.SubjectID = &subjectId
+	}
+	price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
+	book.Price = price
+	book.IsFree = c.PostForm("isFree") == "true"
+
+	book.CoverUrl = handleBookFileUpload(c, "cover", "book_cover")
+	book.DownloadUrl = handleBookFileUpload(c, "file", "book")
+
+	return book
+}
+
 func CreateLibraryBook(c *gin.Context) {
 	var book models.Book
 
 	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
-		book.Title = c.PostForm("title")
-		book.Author = c.PostForm("author")
-		book.Description = c.PostForm("description")
-		subjectId := c.PostForm("subjectId")
-		if subjectId != "" {
-			book.SubjectID = &subjectId
-		}
-
-		price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
-		book.Price = price
-		book.IsFree = c.PostForm("isFree") == "true"
-
-		cover, err := c.FormFile("cover")
-		if err == nil {
-			ext := filepath.Ext(cover.Filename)
-			filename := fmt.Sprintf("book_cover_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(cover, dst); err == nil {
-				book.CoverUrl = "/uploads/" + filename
-			}
-		}
-
-		file, err := c.FormFile("file")
-		if err == nil {
-			ext := filepath.Ext(file.Filename)
-			filename := fmt.Sprintf("book_%d%s", time.Now().UnixNano(), ext)
-			dst := filepath.Join("uploads", filename)
-			if err := c.SaveUploadedFile(file, dst); err == nil {
-				book.DownloadUrl = "/uploads/" + filename
-			}
-		}
-	} else {
-		if err := c.ShouldBindJSON(&book); err != nil {
-			api_response.Error(c, http.StatusBadRequest, err.Error())
-			return
-		}
+		book = parseBookMultipartForm(c)
+	} else if err := c.ShouldBindJSON(&book); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	if book.Title == "" {
@@ -933,17 +922,17 @@ func GetAdminDashboard(c *gin.Context) {
 	weekAgo := now.AddDate(0, 0, -7)
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", todayStart).Count(&newUsersToday)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&newUsersThisWeek)
+	db.DB.Model(&models.User{}).Where(createdAtGte, todayStart).Count(&newUsersToday)
+	db.DB.Model(&models.User{}).Where(createdAtGte, weekAgo).Count(&newUsersThisWeek)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Task{}).Where(statusQuery, models.TaskCompleted).Count(&completedTasks)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
-	db.DB.Model(&models.StudySession{}).Select("COALESCE(SUM(duration_min), 0)").Scan(&studyMinutes)
+	db.DB.Model(&models.StudySession{}).Select(coalesceSumDuration).Scan(&studyMinutes)
 	db.DB.Model(&models.ExamResult{}).Count(&examsTaken)
 
 	var recentTasks []models.Task
-	db.DB.Order("created_at desc").Limit(10).Find(&recentTasks)
+	db.DB.Order(createdAtDescSort).Limit(10).Find(&recentTasks)
 
 	// Batch fetch users for recent tasks to avoid N+1 queries
 	taskUserIDs := make([]string, 0, len(recentTasks))
@@ -977,7 +966,7 @@ func GetAdminDashboard(c *gin.Context) {
 	}
 
 	var upcomingExams []models.Exam
-	db.DB.Order("created_at desc").Limit(5).Find(&upcomingExams)
+	db.DB.Order(createdAtDescSort).Limit(5).Find(&upcomingExams)
 	upcomingEvents := make([]gin.H, 0, len(upcomingExams))
 	for _, e := range upcomingExams {
 		upcomingEvents = append(upcomingEvents, gin.H{
@@ -1056,6 +1045,141 @@ func GetAdminDashboard(c *gin.Context) {
 	})
 }
 
+type liveActivitySummary struct {
+	SubjectMap map[string]models.Subject
+	ExamMap    map[string]models.Exam
+}
+
+func buildLiveActivityMaps(examResults []models.ExamResult, studySessions []models.StudySession) liveActivitySummary {
+	summary := liveActivitySummary{
+		SubjectMap: make(map[string]models.Subject),
+		ExamMap:    make(map[string]models.Exam),
+	}
+
+	examIDs := make([]string, 0, len(examResults))
+	for _, r := range examResults {
+		examIDs = append(examIDs, r.ExamID)
+	}
+
+	if len(examIDs) > 0 {
+		var exams []models.Exam
+		db.DB.Where(idInQuery, examIDs).Find(&exams)
+		subjectIDs := make([]string, 0, len(exams))
+		for _, e := range exams {
+			summary.ExamMap[e.ID] = e
+			subjectIDs = append(subjectIDs, e.SubjectID)
+		}
+		if len(subjectIDs) > 0 {
+			var subjects []models.Subject
+			db.DB.Where(idInQuery, subjectIDs).Find(&subjects)
+			for _, s := range subjects {
+				summary.SubjectMap[s.ID] = s
+			}
+		}
+	}
+
+	sessionSubjectIDs := make([]string, 0, len(studySessions))
+	for _, s := range studySessions {
+		if s.SubjectID != nil && *s.SubjectID != "" {
+			sessionSubjectIDs = append(sessionSubjectIDs, *s.SubjectID)
+		}
+	}
+	if len(sessionSubjectIDs) > 0 {
+		var subjects []models.Subject
+		db.DB.Where(idInQuery, sessionSubjectIDs).Find(&subjects)
+		for _, s := range subjects {
+			summary.SubjectMap[s.ID] = s
+		}
+	}
+
+	return summary
+}
+
+type liveUserActivity struct {
+	Type    string
+	Details interface{}
+	Time    time.Time
+}
+
+func determineUserLiveActivity(user models.User, examResults []models.ExamResult, studySessions []models.StudySession, summary liveActivitySummary) liveUserActivity {
+	// Check Exams first (higher priority activity)
+	for _, result := range examResults {
+		if result.UserID != user.ID {
+			continue
+		}
+
+		activity := liveUserActivity{
+			Type: "taking_exam",
+			Time: result.TakenAt,
+		}
+
+		if exam, found := summary.ExamMap[result.ExamID]; found {
+			subject := summary.SubjectMap[exam.SubjectID]
+			activity.Details = gin.H{
+				"type": "exam",
+				"exam": gin.H{
+					"id":    exam.ID,
+					"title": exam.Title,
+					"subject": gin.H{
+						"name":   subject.Name,
+						"nameAr": stringOrEmpty(subject.NameAr),
+					},
+				},
+				"takenAt": result.TakenAt.Format(time.RFC3339),
+				"score":   result.Score,
+			}
+		}
+		return activity
+	}
+
+	// Check Study Sessions
+	for _, session := range studySessions {
+		if session.UserID != user.ID {
+			continue
+		}
+
+		var subject models.Subject
+		if session.SubjectID != nil && *session.SubjectID != "" {
+			subject = summary.SubjectMap[*session.SubjectID]
+		}
+
+		return liveUserActivity{
+			Type: "studying",
+			Time: session.UpdatedAt,
+			Details: gin.H{
+				"type": "study",
+				"subject": gin.H{
+					"id":     subject.ID,
+					"name":   subject.Name,
+					"nameAr": stringOrEmpty(subject.NameAr),
+				},
+				"startTime": session.StartTime.Format(time.RFC3339),
+				"duration":  session.DurationMin,
+			},
+		}
+	}
+
+	return liveUserActivity{
+		Type: "online",
+		Time: user.UpdatedAt,
+	}
+}
+
+func filterLiveUsers(users []gin.H, filterType string) []gin.H {
+	if filterType == "all" {
+		return users
+	}
+	filtered := make([]gin.H, 0)
+	for _, user := range users {
+		if (filterType == "exam" && user["currentActivity"] == "taking_exam") ||
+			(filterType == "study" && user["currentActivity"] == "studying") ||
+			(filterType == "online" && user["currentActivity"] == "online") {
+			filtered = append(filtered, user)
+		}
+	}
+	return filtered
+}
+
 func GetAdminLive(c *gin.Context) {
 	minutes, _ := strconv.Atoi(c.DefaultQuery("minutes", "5"))
 	if minutes <= 0 {
@@ -1075,144 +1199,37 @@ func GetAdminLive(c *gin.Context) {
 	var examResults []models.ExamResult
 	_ = db.DB.Where("\"takenAt\" >= ?", cutoff).Find(&examResults).Error
 
-	// Batch-preload exams and subjects to avoid N+1 queries
-	examIDs := make([]string, 0, len(examResults))
-	for _, r := range examResults {
-		examIDs = append(examIDs, r.ExamID)
-	}
-	examMap := make(map[string]models.Exam)
-	subjectMap := make(map[string]models.Subject)
-	if len(examIDs) > 0 {
-		var exams []models.Exam
-		db.DB.Where(idInQuery, examIDs).Find(&exams)
-		subjectIDs := make([]string, 0, len(exams))
-		for _, e := range exams {
-			examMap[e.ID] = e
-			subjectIDs = append(subjectIDs, e.SubjectID)
-		}
-		if len(subjectIDs) > 0 {
-			var subjects []models.Subject
-			db.DB.Where(idInQuery, subjectIDs).Find(&subjects)
-			for _, s := range subjects {
-				subjectMap[s.ID] = s
-			}
-		}
-	}
-
-	// Batch-preload subjects for study sessions
-	sessionSubjectIDs := make([]string, 0, len(studySessions))
-	for _, s := range studySessions {
-		if s.SubjectID != nil && *s.SubjectID != "" {
-			sessionSubjectIDs = append(sessionSubjectIDs, *s.SubjectID)
-		}
-	}
-	if len(sessionSubjectIDs) > 0 {
-		var subjects []models.Subject
-		db.DB.Where(idInQuery, sessionSubjectIDs).Find(&subjects)
-		for _, s := range subjects {
-			subjectMap[s.ID] = s
-		}
-	}
-
-	type subjectSummary struct {
-		ID     string `json:"id"`
-		Name   string `json:"name"`
-		NameAr string `json:"nameAr"`
-	}
-
-	type examSummary struct {
-		ID      string `json:"id"`
-		Title   string `json:"title"`
-		Subject struct {
-			Name   string `json:"name"`
-			NameAr string `json:"nameAr"`
-		} `json:"subject"`
-	}
+	summary := buildLiveActivityMaps(examResults, studySessions)
 
 	activeUsers := make([]gin.H, 0, len(users))
-	studying := 0
-	takingExam := 0
-	online := 0
-	roleStats := gin.H{
-		"students": 0,
-		"teachers": 0,
-		"admins":   0,
+	stats := struct {
+		Studying   int
+		TakingExam int
+		Online     int
+		RoleStats  map[string]int
+	}{
+		RoleStats: map[string]int{"students": 0, "teachers": 0, "admins": 0},
 	}
 
 	for _, user := range users {
 		switch user.Role {
 		case models.RoleStudent:
-			roleStats["students"] = roleStats["students"].(int) + 1
+			stats.RoleStats["students"]++
 		case models.RoleTeacher:
-			roleStats["teachers"] = roleStats["teachers"].(int) + 1
+			stats.RoleStats["teachers"]++
 		case models.RoleAdmin:
-			roleStats["admins"] = roleStats["admins"].(int) + 1
+			stats.RoleStats["admins"]++
 		}
 
-		currentActivity := "online"
-		lastAccessed := user.UpdatedAt
-		var activityDetails interface{}
-
-		for _, result := range examResults {
-			if result.UserID != user.ID {
-				continue
-			}
-
-			exam, examFound := examMap[result.ExamID]
-			if examFound {
-				subject := subjectMap[exam.SubjectID]
-
-				var examPayload examSummary
-				examPayload.ID = exam.ID
-				examPayload.Title = exam.Title
-				examPayload.Subject.Name = subject.Name
-				examPayload.Subject.NameAr = stringOrEmpty(subject.NameAr)
-
-				activityDetails = gin.H{
-					"type":    "exam",
-					"exam":    examPayload,
-					"takenAt": result.TakenAt.Format(time.RFC3339),
-					"score":   result.Score,
-				}
-			}
-
-			currentActivity = "taking_exam"
-			lastAccessed = result.TakenAt
-			takingExam++
-			break
-		}
-
-		if currentActivity == "online" {
-			for _, session := range studySessions {
-				if session.UserID != user.ID {
-					continue
-				}
-
-				var subject models.Subject
-				if session.SubjectID != nil && *session.SubjectID != "" {
-					subject = subjectMap[*session.SubjectID]
-				}
-
-				activityDetails = gin.H{
-					"type": "study",
-					"subject": subjectSummary{
-						ID:     subject.ID,
-						Name:   subject.Name,
-						NameAr: stringOrEmpty(subject.NameAr),
-					},
-					"startTime": session.StartTime.Format(time.RFC3339),
-					"duration":  session.DurationMin,
-				}
-
-				currentActivity = "studying"
-				lastAccessed = session.UpdatedAt
-				studying++
-				break
-			}
-		}
-
-		if currentActivity == "online" {
-			online++
+		activity := determineUserLiveActivity(user, examResults, studySessions, summary)
+		
+		switch activity.Type {
+		case "taking_exam":
+			stats.TakingExam++
+		case "studying":
+			stats.Studying++
+		case "online":
+			stats.Online++
 		}
 
 		activeUsers = append(activeUsers, gin.H{
@@ -1224,46 +1241,27 @@ func GetAdminLive(c *gin.Context) {
 				"role":   user.Role,
 				"avatar": user.Avatar,
 			},
+			"lastAccessed":    activity.Time.Format(time.RFC3339),
+			"currentActivity": activity.Type,
+			"activityDetails": activity.Details,
+			"isActive":        true,
 			"sessionId":       nil,
-			"lastAccessed":    lastAccessed.Format(time.RFC3339),
 			"ip":              nil,
 			"deviceInfo":      nil,
-			"isActive":        true,
-			"currentActivity": currentActivity,
-			"activityDetails": activityDetails,
 		})
 	}
 
-	filter := c.DefaultQuery("type", "all")
-	filteredUsers := make([]gin.H, 0, len(activeUsers))
-	for _, user := range activeUsers {
-		switch filter {
-		case "exam":
-			if user["currentActivity"] == "taking_exam" {
-				filteredUsers = append(filteredUsers, user)
-			}
-		case "study":
-			if user["currentActivity"] == "studying" {
-				filteredUsers = append(filteredUsers, user)
-			}
-		case "online":
-			if user["currentActivity"] == "online" {
-				filteredUsers = append(filteredUsers, user)
-			}
-		default:
-			filteredUsers = append(filteredUsers, user)
-		}
-	}
+	filteredUsers := filterLiveUsers(activeUsers, c.DefaultQuery("type", "all"))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":     true,
 		"activeUsers": filteredUsers,
 		"stats": gin.H{
 			"totalActive": len(activeUsers),
-			"studying":    studying,
-			"takingExam":  takingExam,
-			"online":      online,
-			"byRole":      roleStats,
+			"studying":    stats.Studying,
+			"takingExam":  stats.TakingExam,
+			"online":      stats.Online,
+			"byRole":      stats.RoleStats,
 		},
 	})
 }
@@ -1289,7 +1287,7 @@ func GetAdminAnnouncements(c *gin.Context) {
 	query.Count(&total)
 
 	var notifications []models.Notification
-	if err := query.Order("created_at desc").Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
+	if err := query.Order(createdAtDescSort).Offset(offset).Limit(limit).Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch announcements"})
 		return
 	}
@@ -1387,7 +1385,7 @@ func UpdateAdminAnnouncement(c *gin.Context) {
 	if input.Content != "" { updates.Message = &input.Content }
 	if input.Type != "" { updates.Type = &input.Type }
 
-	if err := db.DB.Model(&models.Notification{}).Where("id = ?", input.ID).
+	if err := db.DB.Model(&models.Notification{}).Where(queryID, input.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update announcement"})
 		return
@@ -1405,7 +1403,7 @@ func DeleteAdminAnnouncement(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Notification{}, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.Delete(&models.Notification{}, queryID, input.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete announcement"})
 		return
 	}
@@ -1437,7 +1435,7 @@ func GetAdminAnalytics(c *gin.Context) {
 	roleStats := gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
 		var count int64
-		db.DB.Model(&models.User{}).Where("role = ?", role).Count(&count)
+		db.DB.Model(&models.User{}).Where(queryRole, role).Count(&count)
 		roleStats[string(role)] = count
 	}
 
@@ -1454,11 +1452,11 @@ func GetAdminAnalytics(c *gin.Context) {
 
 		var createdCount int64
 		var activeCount int64
-		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Count(&createdCount)
-		db.DB.Model(&models.StudySession{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Distinct("\"userId\"").Count(&activeCount)
+		db.DB.Model(&models.User{}).Where(createdAtRangeQuery, start, end).Count(&createdCount)
+		db.DB.Model(&models.StudySession{}).Where(createdAtRangeQuery, start, end).Distinct("\"userId\"").Count(&activeCount)
 
-		dailyUsers = append(dailyUsers, point{Date: start.Format("2006-01-02"), Count: activeCount})
-		dailyRegistrations = append(dailyRegistrations, point{Date: start.Format("2006-01-02"), Count: createdCount})
+		dailyUsers = append(dailyUsers, point{Date: start.Format(dateFormat), Count: activeCount})
+		dailyRegistrations = append(dailyRegistrations, point{Date: start.Format(dateFormat), Count: createdCount})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1502,7 +1500,7 @@ func GetAdminReportsOverview(c *gin.Context) {
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", dayAgo).Count(&usersToday)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", weekAgo).Count(&usersWeek)
+	db.DB.Model(&models.User{}).Where(createdAtGte, weekAgo).Count(&usersWeek)
 	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", monthAgo).Count(&usersMonth)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Subject{}).Where("is_active = ?", true).Count(&activeSubjects)
@@ -1530,8 +1528,8 @@ func GetAdminReportsOverview(c *gin.Context) {
 		start := time.Date(now.Year(), now.Month(), now.Day()-i, 0, 0, 0, 0, now.Location())
 		end := start.Add(24 * time.Hour)
 		var count int64
-		db.DB.Model(&models.User{}).Where("\"createdAt\" >= ? AND \"createdAt\" < ?", start, end).Count(&count)
-		registrationTrend = append(registrationTrend, trendPoint{Date: start.Format("2006-01-02"), Count: count})
+		db.DB.Model(&models.User{}).Where(createdAtRangeQuery, start, end).Count(&count)
+		registrationTrend = append(registrationTrend, trendPoint{Date: start.Format(dateFormat), Count: count})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1581,7 +1579,7 @@ func GetAdminReportsUsers(c *gin.Context) {
 	db.DB.Model(&models.User{}).Count(&total)
 
 	var users []models.User
-	if err := db.DB.Order("created_at desc").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+	if err := db.DB.Order(createdAtDescSort).Offset(offset).Limit(limit).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users report"})
 		return
 	}
@@ -1609,7 +1607,7 @@ func GetAdminReportsUsers(c *gin.Context) {
 	roleCounts := []gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
 		var count int64
-		db.DB.Model(&models.User{}).Where("role = ?", role).Count(&count)
+		db.DB.Model(&models.User{}).Where(queryRole, role).Count(&count)
 		roleCounts = append(roleCounts, gin.H{"role": role, "count": count})
 	}
 
@@ -1717,8 +1715,8 @@ func calculateUserGrowthTrend() float64 {
 	var thisMonth int64
 	var lastMonth int64
 
-	db.DB.Model(&models.User{}).Where("created_at >= ?", thisMonthStart).Count(&thisMonth)
-	db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", lastMonthStart, thisMonthStart).Count(&lastMonth)
+	db.DB.Model(&models.User{}).Where(createdAtGte, thisMonthStart).Count(&thisMonth)
+	db.DB.Model(&models.User{}).Where(createdAtGte+" AND created_at < ?", lastMonthStart, thisMonthStart).Count(&lastMonth)
 
 	if lastMonth == 0 {
 		if thisMonth > 0 {
@@ -1738,8 +1736,8 @@ func calculateStudyTimeTrend() float64 {
 	var thisWeek int64
 	var lastWeek int64
 
-	db.DB.Model(&models.StudySession{}).Where("start_time >= ?", thisWeekStart).Select("COALESCE(SUM(duration_min), 0)").Scan(&thisWeek)
-	db.DB.Model(&models.StudySession{}).Where("start_time >= ? AND start_time < ?", lastWeekStart, thisWeekStart).Select("COALESCE(SUM(duration_min), 0)").Scan(&lastWeek)
+	db.DB.Model(&models.StudySession{}).Where("start_time >= ?", thisWeekStart).Select(coalesceSumDuration).Scan(&thisWeek)
+	db.DB.Model(&models.StudySession{}).Where("start_time >= ? AND start_time < ?", lastWeekStart, thisWeekStart).Select(coalesceSumDuration).Scan(&lastWeek)
 
 	if lastWeek == 0 {
 		if thisWeek > 0 {

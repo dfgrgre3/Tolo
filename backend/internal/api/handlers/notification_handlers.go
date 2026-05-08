@@ -12,6 +12,9 @@ import (
 	"thanawy-backend/internal/services"
 )
 
+const statusQuery = "status = ?"
+
+
 // NotificationRequest represents a broadcast notification request
 type NotificationRequest struct {
 	UserIDs      []string   `json:"userIds" binding:"required,min=1"`
@@ -287,7 +290,7 @@ func GetBroadcasts(c *gin.Context) {
 	query := db.DB.Model(&models.Broadcast{}).Order("created_at DESC")
 
 	if status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where(statusQuery, status)
 	}
 
 	if from != "" {
@@ -334,10 +337,10 @@ func GetNotificationStats(c *gin.Context) {
 
 	// Get counts by status
 	db.DB.Model(&models.Notification{}).Count(&stats.TotalSent)
-	db.DB.Model(&models.Notification{}).Where("status = ?", "delivered").Count(&stats.TotalDelivered)
-	db.DB.Model(&models.Notification{}).Where("status = ?", "failed").Count(&stats.TotalFailed)
-	db.DB.Model(&models.Notification{}).Where("status = ?", "read").Count(&stats.TotalRead)
-	db.DB.Model(&models.Notification{}).Where("status = ?", "pending").Count(&stats.Pending)
+	db.DB.Model(&models.Notification{}).Where(statusQuery, "delivered").Count(&stats.TotalDelivered)
+	db.DB.Model(&models.Notification{}).Where(statusQuery, "failed").Count(&stats.TotalFailed)
+	db.DB.Model(&models.Notification{}).Where(statusQuery, "read").Count(&stats.TotalRead)
+	db.DB.Model(&models.Notification{}).Where(statusQuery, "pending").Count(&stats.Pending)
 
 	// Get channel breakdown
 	var channelStats []struct {

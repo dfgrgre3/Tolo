@@ -11,6 +11,10 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const userIDQuery = "user_id = ?"
+const idQuery = "id = ?"
+
+
 func parsePositiveInt(value string, fallback int) int {
 	parsed, err := strconv.Atoi(value)
 	if err != nil || parsed <= 0 {
@@ -25,7 +29,7 @@ func AdminListNotifications(c *gin.Context) {
 	var notifications []models.Notification
 	query := db.DB.Model(&models.Notification{}).Order("created_at DESC").Limit(limit)
 	if userID := c.Query("userId"); userID != "" {
-		query = query.Where("user_id = ?", userID)
+		query = query.Where(userIDQuery, userID)
 	}
 	if err := query.Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
@@ -48,7 +52,7 @@ func AdminMarkNotificationRead(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.Notification{}).Where("id = ?", id).Update("is_read", true).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where(idQuery, id).Update("is_read", true).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notification"})
 		return
 	}
@@ -70,7 +74,7 @@ func AdminDeleteNotification(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Notification{}, "id = ?", id).Error; err != nil {
+	if err := db.DB.Delete(&models.Notification{}, idQuery, id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete notification"})
 		return
 	}
@@ -91,7 +95,7 @@ func AdminEnforceUserTwoFactor(c *gin.Context) {
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}
-	if err := db.DB.Where("user_id = ?", userID).Assign(map[string]interface{}{
+	if err := db.DB.Where(userIDQuery, userID).Assign(map[string]interface{}{
 		"is_enforced": true,
 		"updated_at":  time.Now(),
 	}).FirstOrCreate(&settings).Error; err != nil {
@@ -110,11 +114,11 @@ func AdminResetUserTwoFactor(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Where("user_id = ?", userID).Delete(&models.TwoFactorSettings{}).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userID).Delete(&models.TwoFactorSettings{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset 2FA"})
 		return
 	}
-	db.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+	db.DB.Model(&models.User{}).Where(idQuery, userID).Updates(map[string]interface{}{
 		"two_factor_enabled": false,
 		"two_factor_secret":  nil,
 	})
@@ -130,7 +134,7 @@ func SuspendSession(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.UserSession{}).Where("id = ?", sessionID).Updates(map[string]interface{}{
+	if err := db.DB.Model(&models.UserSession{}).Where(idQuery, sessionID).Updates(map[string]interface{}{
 		"status":     "suspended",
 		"is_active":  false,
 		"updated_at": time.Now(),
@@ -161,7 +165,7 @@ func UpdateTicketTags(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&models.SupportTicket{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := db.DB.Model(&models.SupportTicket{}).Where(idQuery, id).Updates(map[string]interface{}{
 		"tags":       req.Tags,
 		"updated_at": time.Now(),
 	}).Error; err != nil {

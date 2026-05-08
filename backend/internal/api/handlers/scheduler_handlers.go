@@ -11,6 +11,9 @@ import (
 	"thanawy-backend/internal/services"
 )
 
+const statusQuery = "status = ?"
+
+
 // ScheduledItemRequest represents a request to schedule an item
 type ScheduledItemRequest struct {
 	Type         string                 `json:"type" binding:"required,oneof=announcement exam task post content"`
@@ -119,7 +122,7 @@ func GetScheduledItems(c *gin.Context) {
 		query = query.Where("type = ?", itemType)
 	}
 	if status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where(statusQuery, status)
 	}
 	if from != "" {
 		if fromTime, err := time.Parse(time.RFC3339, from); err == nil {
@@ -318,10 +321,10 @@ func GetSchedulerStats(c *gin.Context) {
 	}
 
 	db.DB.Model(&models.ScheduledItem{}).Count(&stats.Total)
-	db.DB.Model(&models.ScheduledItem{}).Where("status = ?", "pending").Count(&stats.Pending)
-	db.DB.Model(&models.ScheduledItem{}).Where("status = ?", "completed").Count(&stats.Completed)
-	db.DB.Model(&models.ScheduledItem{}).Where("status = ?", "failed").Count(&stats.Failed)
-	db.DB.Model(&models.ScheduledItem{}).Where("status = ?", "cancelled").Count(&stats.Cancelled)
+	db.DB.Model(&models.ScheduledItem{}).Where(statusQuery, "pending").Count(&stats.Pending)
+	db.DB.Model(&models.ScheduledItem{}).Where(statusQuery, "completed").Count(&stats.Completed)
+	db.DB.Model(&models.ScheduledItem{}).Where(statusQuery, "failed").Count(&stats.Failed)
+	db.DB.Model(&models.ScheduledItem{}).Where(statusQuery, "cancelled").Count(&stats.Cancelled)
 
 	// Get upcoming items (next 24 hours)
 	var upcoming int64

@@ -16,6 +16,9 @@ import (
 	"gorm.io/gorm"
 )
 
+const idQuery = "id = ?"
+
+
 func GetExams(c *gin.Context) {
 	if db.DB == nil {
 		log.Println("[GetExams] Critical: Database connection (db.DB) is nil")
@@ -56,7 +59,27 @@ func GetExams(c *gin.Context) {
 
 	GlobalNotifyAdmins("استعراض الاختبارات", fmt.Sprintf("قام مستخدم باستعراض قائمة الاختبارات المتاحة (%d اختبار)", len(exams)), "info")
 
-	// Collect exam IDs for result counts
+	countMap := getExamResultCounts(exams)
+	items := formatExamResponse(exams, countMap)
+
+	api_response.List(c, items, api_response.Pagination{
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: calculateTotalPages(total, limit),
+	}, gin.H{
+		"exams": items,
+	})
+}
+
+// getExamResultCounts fetches the number of results for each exam
+func getExamResultCounts(exams []models.Exam) map[string]int64 {
+	countMap := make(map[string]int64)
+	if len(exams) == 0 {
+		return countMap
+	}
+
+	// Collect exam IDs
 	examIDs := make([]string, 0, len(exams))
 	for _, e := range exams {
 		if e.ID != "" {
@@ -64,30 +87,32 @@ func GetExams(c *gin.Context) {
 		}
 	}
 
+	if len(examIDs) == 0 {
+		return countMap
+	}
+
 	type countResult struct {
-		ExamID string `gorm:"column:examId"`
+		ExamID string `gorm:"column:exam_id"`
 		Count  int64  `gorm:"column:count"`
 	}
 	var counts []countResult
-	countMap := make(map[string]int64)
 
-	// Only query results if we have exams, avoiding potential SQL syntax errors (e.g. "IN ()")
-	if len(examIDs) > 0 {
-		if err := db.DB.Model(&models.ExamResult{}).
-			Select("exam_id, count(*) as count").
-			Where("exam_id IN ?", examIDs).
-			Group("exam_id").
-			Scan(&counts).Error; err != nil {
-			log.Printf("[GetExams] Warning: Error scanning exam result counts: %v", err)
-			// Non-critical, we can continue with zero counts
-		}
-
-		for _, c := range counts {
-			countMap[c.ExamID] = c.Count
-		}
+	if err := db.DB.Model(&models.ExamResult{}).
+		Select("exam_id, count(*) as count").
+		Where("exam_id IN ?", examIDs).
+		Group("exam_id").
+		Scan(&counts).Error; err != nil {
+		log.Printf("[getExamResultCounts] Warning: Error scanning exam result counts: %v", err)
 	}
 
-	// Format response for frontend
+	for _, c := range counts {
+		countMap[c.ExamID] = c.Count
+	}
+	return countMap
+}
+
+// formatExamResponse formats the exams for the frontend response
+func formatExamResponse(exams []models.Exam, countMap map[string]int64) []gin.H {
 	items := make([]gin.H, 0, len(exams))
 	for _, exam := range exams {
 		// Defensive subject access
@@ -104,8 +129,6 @@ func GetExams(c *gin.Context) {
 			}
 		}
 
-		resultsCount := countMap[exam.ID]
-
 		items = append(items, gin.H{
 			"id":            exam.ID,
 			"title":         exam.Title,
@@ -117,19 +140,12 @@ func GetExams(c *gin.Context) {
 			"year":          exam.CreatedAt.Year(),
 			"createdAt":     exam.CreatedAt,
 			"subject":       subjectData,
-			"resultsCount":  resultsCount,
+			"resultsCount":  countMap[exam.ID],
 		})
 	}
-
-	api_response.List(c, items, api_response.Pagination{
-		Page:       page,
-		Limit:      limit,
-		Total:      total,
-		TotalPages: calculateTotalPages(total, limit),
-	}, gin.H{
-		"exams": items,
-	})
+	return items
 }
+
 
 func CreateExam(c *gin.Context) {
 	var input struct {
@@ -176,7 +192,7 @@ func UpdateExam(c *gin.Context) {
 	}
 
 	var exam models.Exam
-	if err := db.DB.First(&exam, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.First(&exam, idQuery, input.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}
@@ -192,7 +208,7 @@ func UpdateExam(c *gin.Context) {
 	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID }
 	if input.Type != "" { updates.Type = &input.Type }
 
-	if err := db.DB.Model(&models.Exam{}).Where("id = ?", exam.ID).
+	if err := db.DB.Model(&models.Exam{}).Where(idQuery, exam.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exam"})
 		return
@@ -212,7 +228,7 @@ func DeleteExam(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Exam{}, "id = ?", input.ID).Error; err != nil {
+	if err := db.DB.Delete(&models.Exam{}, idQuery, input.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete exam"})
 		return
 	}
@@ -239,7 +255,7 @@ func SubmitExam(c *gin.Context) {
 	var exam models.Exam
 	if err := db.DB.Preload("Questions", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "answer")
-	}).First(&exam, "id = ?", examId).Error; err != nil {
+	}).First(&exam, idQuery, examId).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}

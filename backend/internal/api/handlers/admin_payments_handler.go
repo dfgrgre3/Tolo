@@ -13,6 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const statusQuery = "status = ?"
+const revenueSumQuery = "COALESCE(SUM(amount), 0)"
+
+
 // GetAdminPayments returns paginated payments with summary stats
 func GetAdminPayments(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -32,7 +36,7 @@ func GetAdminPayments(c *gin.Context) {
 	query := db.DB.Model(&models.Payment{})
 
 	if status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where(statusQuery, status)
 	}
 
 	if search != "" {
@@ -105,13 +109,13 @@ func GetAdminPayments(c *gin.Context) {
 
 	// Summary stats
 	var totalRevenue float64
-	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentCompleted).
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalRevenue)
+	db.DB.Model(&models.Payment{}).Where(statusQuery, models.PaymentCompleted).
+		Select(revenueSumQuery).Scan(&totalRevenue)
 
 	var completedCount, pendingCount, failedCount int64
-	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentCompleted).Count(&completedCount)
-	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentPending).Count(&pendingCount)
-	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentFailed).Count(&failedCount)
+	db.DB.Model(&models.Payment{}).Where(statusQuery, models.PaymentCompleted).Count(&completedCount)
+	db.DB.Model(&models.Payment{}).Where(statusQuery, models.PaymentPending).Count(&pendingCount)
+	db.DB.Model(&models.Payment{}).Where(statusQuery, models.PaymentFailed).Count(&failedCount)
 
 	api_response.Success(c, gin.H{
 		"payments": items,
@@ -141,14 +145,14 @@ func GetAdminRevenue(c *gin.Context) {
 
 	db.DB.Model(&models.Payment{}).
 		Where("status = ? AND \"createdAt\" >= ?", models.PaymentCompleted, startOfDay).
-		Select("COALESCE(SUM(amount), 0)").Scan(&todayRevenue)
+		Select(revenueSumQuery).Scan(&todayRevenue)
 
 	db.DB.Model(&models.Payment{}).
 		Where("status = ? AND \"createdAt\" >= ?", models.PaymentCompleted, startOfMonth).
-		Select("COALESCE(SUM(amount), 0)").Scan(&monthRevenue)
+		Select(revenueSumQuery).Scan(&monthRevenue)
 
 	var totalTransactions int64
-	db.DB.Model(&models.Payment{}).Where("status = ?", models.PaymentCompleted).Count(&totalTransactions)
+	db.DB.Model(&models.Payment{}).Where(statusQuery, models.PaymentCompleted).Count(&totalTransactions)
 
 	var totalUsers int64
 	db.DB.Model(&models.User{}).Count(&totalUsers)
@@ -159,68 +163,8 @@ func GetAdminRevenue(c *gin.Context) {
 		conversionRate = strconv.FormatFloat(rate, 'f', 1, 64) + "%"
 	}
 
-	// Chart data - last 6 months
-	chartData := make([]gin.H, 0, 6)
-
-	for i := 5; i >= 0; i-- {
-		d := now.AddDate(0, -i, 0)
-		startMonth := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, d.Location())
-		endMonth := startMonth.AddDate(0, 1, 0)
-
-		var revenue float64
-		db.DB.Model(&models.Payment{}).
-			Where("status = ? AND \"createdAt\" >= ? AND \"createdAt\" < ?",
-				models.PaymentCompleted, startMonth, endMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&revenue)
-
-		chartData = append(chartData, gin.H{
-			"month":   int(d.Month()), // Send index for i18n
-			"revenue": revenue,
-		})
-	}
-
-	// Top plans - group by subject
-	type SubjectRevenue struct {
-		SubjectID string
-		Name      string
-		Count     int64
-	}
-
-	var topPlans []gin.H
-	rows, err := db.DB.Model(&models.Payment{}).
-		Select("\"subjectId\", COUNT(*) as count").
-		Where("status = ? AND \"subjectId\" IS NOT NULL AND \"subjectId\" != ''", models.PaymentCompleted).
-		Group("\"subjectId\"").
-		Order("count DESC").
-		Limit(5).
-		Rows()
-
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var subjectID string
-			var count int64
-			if err := rows.Scan(&subjectID, &count); err == nil {
-				var subject models.Subject
-				name := "باقة عامة"
-				if err := db.DB.Select("name", "\"nameAr\"").Where("id = ?", subjectID).First(&subject).Error; err == nil {
-					if subject.NameAr != nil && *subject.NameAr != "" {
-						name = *subject.NameAr
-					} else {
-						name = subject.Name
-					}
-				}
-				topPlans = append(topPlans, gin.H{
-					"name":  name,
-					"count": count,
-				})
-			}
-		}
-	}
-
-	if topPlans == nil {
-		topPlans = []gin.H{}
-	}
+	chartData := getChartData(now)
+	topPlans := getTopPlansData()
 
 	api_response.Success(c, gin.H{
 		"summary": gin.H{
@@ -232,4 +176,64 @@ func GetAdminRevenue(c *gin.Context) {
 		"chartData": chartData,
 		"topPlans":  topPlans,
 	})
+}
+
+func getChartData(now time.Time) []gin.H {
+	chartData := make([]gin.H, 0, 6)
+	for i := 5; i >= 0; i-- {
+		d := now.AddDate(0, -i, 0)
+		startMonth := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, d.Location())
+		endMonth := startMonth.AddDate(0, 1, 0)
+
+		var revenue float64
+		db.DB.Model(&models.Payment{}).
+			Where("status = ? AND \"createdAt\" >= ? AND \"createdAt\" < ?",
+				models.PaymentCompleted, startMonth, endMonth).
+			Select(revenueSumQuery).Scan(&revenue)
+
+		chartData = append(chartData, gin.H{
+			"month":   int(d.Month()), // Send index for i18n
+			"revenue": revenue,
+		})
+	}
+	return chartData
+}
+
+func getTopPlansData() []gin.H {
+	var topPlans []gin.H
+	rows, err := db.DB.Model(&models.Payment{}).
+		Select("\"subjectId\", COUNT(*) as count").
+		Where("status = ? AND \"subjectId\" IS NOT NULL AND \"subjectId\" != ''", models.PaymentCompleted).
+		Group("\"subjectId\"").
+		Order("count DESC").
+		Limit(5).
+		Rows()
+
+	if err != nil {
+		return []gin.H{}
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var subjectID string
+		var count int64
+		if err := rows.Scan(&subjectID, &count); err == nil {
+			topPlans = append(topPlans, gin.H{
+				"name":  getSubjectNameForAdmin(subjectID),
+				"count": count,
+			})
+		}
+	}
+	return topPlans
+}
+
+func getSubjectNameForAdmin(subjectID string) string {
+	var subject models.Subject
+	if err := db.DB.Select("name", "\"nameAr\"").Where("id = ?", subjectID).First(&subject).Error; err != nil {
+		return "باقة عامة"
+	}
+	if subject.NameAr != nil && *subject.NameAr != "" {
+		return *subject.NameAr
+	}
+	return subject.Name
 }
