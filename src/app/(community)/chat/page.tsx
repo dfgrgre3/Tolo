@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -36,6 +36,82 @@ type Conversation = {
   unreadCount: number;
   isOnline?: boolean;
 };
+
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+
+  // If today, show time
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // If yesterday, show "Yesterday"
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "أمس";
+  }
+
+  // Otherwise, show date
+  return date.toLocaleDateString();
+};
+
+function ConversationItem({
+  conversation,
+  isSelected,
+  onSelect
+}: {
+  conversation: Conversation;
+  isSelected: boolean;
+  onSelect: (c: Conversation) => void;
+}) {
+  return (
+    <div 
+      className={`p-4 border-b hover:bg-muted/50 cursor-pointer ${isSelected ? 'bg-muted' : ''}`}
+      onClick={() => onSelect(conversation)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            {conversation.avatar ? (
+              <img 
+                src={conversation.avatar} 
+                alt={conversation.name} 
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-lg">{conversation.name.charAt(0)}</span>
+            )}
+          </div>
+          {conversation.isOnline && (
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-baseline">
+            <h3 className="font-medium truncate">{conversation.name}</h3>
+            {conversation.lastMessageTime && (
+              <span className="text-xs text-muted-foreground">
+                {formatTime(conversation.lastMessageTime)}
+              </span>
+            )}
+          </div>
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground truncate">
+              {conversation.lastMessage || "لا توجد رسائل"}
+            </p>
+            {conversation.unreadCount > 0 && (
+              <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {conversation.unreadCount}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ChatPage() {
   const params = useParams();
@@ -150,26 +226,6 @@ export default function ChatPage() {
     router.push(`/chat/${conversation.userId}`);
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-
-    // If today, show time
-    if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    // If yesterday, show "Yesterday"
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) {
-      return "أمس";
-    }
-
-    // Otherwise, show date
-    return date.toLocaleDateString();
-  };
-
   return (
           <Layout>
         <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
@@ -184,50 +240,12 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {conversations.length > 0 ? (
               conversations.map((conversation) => (
-                <div 
+                <ConversationItem
                   key={conversation.id}
-                  className={`p-4 border-b hover:bg-muted/50 cursor-pointer ${selectedUser?.id === conversation.userId ? 'bg-muted' : ''}`}
-                  onClick={() => handleSelectConversation(conversation)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        {conversation.avatar ? (
-                          <img 
-                            src={conversation.avatar} 
-                            alt={conversation.name} 
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-lg">{conversation.name.charAt(0)}</span>
-                        )}
-                      </div>
-                      {conversation.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline">
-                        <h3 className="font-medium truncate">{conversation.name}</h3>
-                        {conversation.lastMessageTime && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatTime(conversation.lastMessageTime)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.lastMessage || "لا توجد رسائل"}
-                        </p>
-                        {conversation.unreadCount > 0 && (
-                          <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {conversation.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  conversation={conversation}
+                  isSelected={selectedUser?.id === conversation.userId}
+                  onSelect={handleSelectConversation}
+                />
               ))
             ) : (
               <div className="p-8 text-center text-muted-foreground">

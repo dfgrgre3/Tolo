@@ -19,6 +19,17 @@ import { cn } from "@/lib/utils";
 import type { Course, Chapter, Lesson } from "../types";
 import { formatLessonType, formatMinutes } from "../utils";
 
+const lessonTypeIcons: Record<string, typeof Play> = {
+  VIDEO: Play,
+  QUIZ: HelpCircle,
+  FILE: FileCode2,
+};
+
+function getLessonIcon(lesson: Lesson) {
+  if (lesson.completed) return CheckCircle2;
+  return lessonTypeIcons[lesson.type] || FileText;
+}
+
 interface LearningHubSidebarProps {
   course: Course;
   chapters: Chapter[];
@@ -146,17 +157,10 @@ export function LearningHubSidebar({
                             : "bg-white text-slate-600 dark:bg-white/5 dark:text-slate-300"
                         )}
                       >
-                        {lesson.completed ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : lesson.type === "VIDEO" ? (
-                          <Play className="h-4 w-4" />
-                        ) : lesson.type === "QUIZ" ? (
-                          <HelpCircle className="h-4 w-4" />
-                        ) : lesson.type === "FILE" ? (
-                          <FileCode2 className="h-4 w-4" />
-                        ) : (
-                          <FileText className="h-4 w-4" />
-                        )}
+                        {(() => {
+                          const Icon = getLessonIcon(lesson);
+                          return <Icon className="h-4 w-4" />;
+                        })()}
                       </div>
 
                       <div className="min-w-0 flex-1 space-y-2">

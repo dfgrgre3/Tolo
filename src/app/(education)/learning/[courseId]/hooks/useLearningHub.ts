@@ -15,6 +15,60 @@ import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
 import type { Course, Chapter, Lesson, LessonQuestion, TabKey } from "../types";
 
+function applyMockInteractiveQuestions(chapters: Chapter[]) {
+  if (chapters.length > 0 && chapters[0].subTopics.length > 0) {
+    chapters[0].subTopics[0].interactiveQuestions = [
+      {
+        id: "q1",
+        time: 15,
+        question: "ما هي الوحدة الأساسية لقياس المادة في الكيمياء؟",
+        options: ["المول", "الجرام", "اللتر", "المتر"],
+        correctOptionIndex: 0,
+        explanation: "المول هو الوحدة الأساسية لقياس كمية المادة في النظام الدولي للوحدات.",
+      },
+    ];
+  }
+}
+
+function resolveInitialLessonState(
+  courseId: string,
+  chapters: Chapter[],
+  callbacks: {
+    setActiveTab: (tab: TabKey) => void;
+    setSidebarOpen: (open: boolean) => void;
+    setIsTheaterMode: (theater: boolean) => void;
+    setAutoPlayNext: (autoPlay: boolean) => void;
+  }
+): string | null {
+  const storedStateRaw = localStorage.getItem(`learning-hub-state:${courseId}`);
+  const storedState = storedStateRaw ? JSON.parse(storedStateRaw) : null;
+  const allAvailableLessons = chapters.flatMap((chapter) => chapter.subTopics);
+
+  if (storedState?.activeLessonId && allAvailableLessons.some((l) => l.id === storedState.activeLessonId)) {
+    if (storedState.activeTab) callbacks.setActiveTab(storedState.activeTab);
+    if (typeof storedState.sidebarOpen === 'boolean') callbacks.setSidebarOpen(storedState.sidebarOpen);
+    if (typeof storedState.isTheaterMode === 'boolean') callbacks.setIsTheaterMode(storedState.isTheaterMode);
+    if (typeof storedState.autoPlayNext === 'boolean') callbacks.setAutoPlayNext(storedState.autoPlayNext);
+    return storedState.activeLessonId;
+  }
+
+  const firstIncompleteLesson =
+    allAvailableLessons.find((lesson) => !lesson.completed && !lesson.locked) ||
+    allAvailableLessons.find((lesson) => !lesson.locked) ||
+    allAvailableLessons[0];
+
+  return firstIncompleteLesson?.id || null;
+}
+
+function markLessonCompletedInChapters(chapters: Chapter[], lessonId: string): Chapter[] {
+  return chapters.map((chapter) => ({
+    ...chapter,
+    subTopics: chapter.subTopics.map((lesson) =>
+      lesson.id === lessonId ? { ...lesson, completed: true } : lesson
+    ),
+  }));
+}
+
 export function useLearningHub() {
   const params = useParams();
   const router = useRouter();
@@ -85,50 +139,18 @@ export function useLearningHub() {
         }
 
         const curriculumPayload = await curriculumRes.json();
-
         const nextChapters: Chapter[] =
           (curriculumPayload.data ?? curriculumPayload).curriculum || [];
 
-        // Mock interactive questions for demonstration
-        if (nextChapters.length > 0 && nextChapters[0].subTopics.length > 0) {
-          nextChapters[0].subTopics[0].interactiveQuestions = [
-            {
-              id: "q1",
-              time: 15,
-              question: "ما هي الوحدة الأساسية لقياس المادة في الكيمياء؟",
-              options: ["المول", "الجرام", "اللتر", "المتر"],
-              correctOptionIndex: 0,
-              explanation: "المول هو الوحدة الأساسية لقياس كمية المادة في النظام الدولي للوحدات.",
-            },
-          ];
-        }
-
+        applyMockInteractiveQuestions(nextChapters);
         setChapters(nextChapters);
 
-        const storedStateRaw = localStorage.getItem(`learning-hub-state:${courseId}`);
-        const storedState = storedStateRaw ? JSON.parse(storedStateRaw) : null;
-
-        const allAvailableLessons = nextChapters.flatMap((chapter) => chapter.subTopics);
-        
-        let initialLessonId = null;
-
-        if (storedState?.activeLessonId && allAvailableLessons.some(l => l.id === storedState.activeLessonId)) {
-          initialLessonId = storedState.activeLessonId;
-          if (storedState.activeTab) setActiveTab(storedState.activeTab);
-          if (typeof storedState.sidebarOpen === 'boolean') setSidebarOpen(storedState.sidebarOpen);
-          if (typeof storedState.isTheaterMode === 'boolean') setIsTheaterMode(storedState.isTheaterMode);
-          if (typeof storedState.autoPlayNext === 'boolean') setAutoPlayNext(storedState.autoPlayNext);
-        } else {
-          const firstIncompleteLesson =
-            allAvailableLessons.find((lesson) => !lesson.completed && !lesson.locked) ||
-            allAvailableLessons.find((lesson) => !lesson.locked) ||
-            allAvailableLessons[0] ||
-            null;
-          
-          if (firstIncompleteLesson) {
-            initialLessonId = firstIncompleteLesson.id;
-          }
-        }
+        const initialLessonId = resolveInitialLessonState(courseId, nextChapters, {
+          setActiveTab,
+          setSidebarOpen,
+          setIsTheaterMode,
+          setAutoPlayNext,
+        });
 
         if (initialLessonId) {
           setActiveLessonId(initialLessonId);
@@ -296,14 +318,7 @@ export function useLearningHub() {
         const payload = await response.json();
         const data = payload.data ?? payload;
 
-        setChapters((current) =>
-          current.map((chapter) => ({
-            ...chapter,
-            subTopics: chapter.subTopics.map((lesson) =>
-              lesson.id === lessonId ? { ...lesson, completed: true } : lesson
-            ),
-          }))
-        );
+        setChapters((current) => markLessonCompletedInChapters(current, lessonId));
 
         if (data.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
         else toast.success("تم تسجيل الدرس كمكتمل.");

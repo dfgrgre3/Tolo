@@ -539,171 +539,156 @@ fallback: T | null = null)
   }
 }
 
+function buildFinalUrl(url: string): string {
+  const isBrowserEnv = typeof window !== 'undefined';
+  const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
+  return url.startsWith('/api/') 
+    ? (isBrowserEnv ? url : `${BASE_API_URL}${url.substring(4)}`) 
+    : url;
+}
+
+async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let signal: AbortSignal | undefined;
+  if (options?.signal) {
+    signal = options.signal as AbortSignal;
+  } else {
+    signal = controller.signal;
+  }
+
+  try {
+    const response = await fetch(url, { 
+      ...options, 
+      signal,
+      credentials: options?.credentials || 'include' // Ensure cookies are sent
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if (fetchError instanceof Error) {
+      throw new Error(`Failed to fetch from ${url}: ${fetchError.message}`);
+    }
+    throw new Error(`Failed to fetch from ${url}`);
+  }
+}
+
+function handleFailedResponse<T>(response: Response, data: T | null, fallback: T | null, url: string): { data: T | null; error: Error; response: Response } {
+  const isFallback = data === fallback;
+
+  if (isFallback) {
+    const errorMessage = `HTTP ${response.status}: ${response.statusText} at ${url} - Server returned non-JSON response (likely HTML error page)`;
+    return {
+      data: fallback,
+      error: new Error(errorMessage),
+      response
+    };
+  }
+
+  let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+  try {
+    if (data && typeof data === 'object' && data !== null) {
+      if ('error' in data && typeof (data as any).error === 'string') {
+        errorMessage = (data as any).error;
+      } else if ('message' in data && typeof (data as any).message === 'string') {
+        errorMessage = (data as any).message;
+      } else if ('details' in data && typeof (data as any).details === 'string') {
+        errorMessage = `${errorMessage} - ${(data as any).details}`;
+      }
+    }
+  } catch (extractError) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('[Development] Failed to extract error message:', extractError);
+    }
+  }
+
+  if (!errorMessage || typeof errorMessage !== 'string' || errorMessage.trim().length === 0) {
+    errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+  }
+
+  const requestError = new Error(errorMessage);
+  if (process.env.NODE_ENV === 'development') {
+    logger.warn(`[Development] API Error (${url}):`, {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorMessage,
+      data: data
+    });
+  }
+
+  return {
+    data,
+    error: requestError,
+    response
+  };
+}
+
+function normalizeFetchCatchError(_error: unknown, options?: RequestInit): Error {
+  const signalWasAborted = Boolean(
+    options?.signal &&
+    typeof options.signal === 'object' &&
+    'aborted' in options.signal &&
+    (options.signal as AbortSignal).aborted
+  );
+
+  let normalizedError: Error;
+  if (_error instanceof Error) {
+    normalizedError = _error;
+  } else if (typeof _error === 'string' && _error.trim().length > 0) {
+    normalizedError = new Error(_error);
+  } else if (
+    typeof _error === 'object' &&
+    _error !== null &&
+    'message' in _error &&
+    typeof (_error as {message: unknown;}).message === 'string' &&
+    (_error as {message: string;}).message.trim().length > 0
+  ) {
+    normalizedError = new Error((_error as {message: string;}).message);
+  } else {
+    normalizedError = new Error('Unknown fetch error');
+  }
+
+  if (signalWasAborted && normalizedError.name !== 'AbortError') {
+    normalizedError = new Error('Request was aborted');
+    normalizedError.name = 'AbortError';
+  }
+  
+  return normalizedError;
+}
+
 /**
  * استدعاء fetch مع معالجة آمنة للأخطاء والـ JSON
  * Safe fetch with error handling and JSON parsing
  */
 export async function safeFetch<T = unknown>(
-url: string,
-options?: RequestInit,
-fallback: T | null = null)
-: Promise<{data: T | null;error: Error | null;response: Response | null;}> {
+  url: string,
+  options?: RequestInit,
+  fallback: T | null = null
+): Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
-    const isBrowser = typeof window !== 'undefined';
-    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
-    const finalUrl = url.startsWith('/api/') 
-      ? (isBrowser ? url : `${BASE_API_URL}${url.substring(4)}`) 
-      : url;
-
-    // Add timeout to prevent hanging requests (30 seconds)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    // Merge abort signals if options already has a signal
-    let signal: AbortSignal | undefined;
-    if (options?.signal) {
-      signal = options.signal as AbortSignal;
-    } else {
-      signal = controller.signal;
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(finalUrl, { 
-        ...options, 
-        signal,
-        credentials: options?.credentials || 'include' // Ensure cookies are sent
-      });
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      // Enhance error message with URL for debugging
-      if (fetchError instanceof Error) {
-        throw new Error(`Failed to fetch from ${finalUrl}: ${fetchError.message}`);
-      }
-      throw new Error(`Failed to fetch from ${finalUrl}`);
-    }
+    const finalUrl = buildFinalUrl(url);
+    let response = await fetchWithTimeout(finalUrl, options);
 
     if (shouldAttemptTokenRefresh(url, response)) {
       const refreshed = await refreshAuthSession();
       if (refreshed) {
-        // Add timeout for the retry request as well
-        const retryController = new AbortController();
-        const retryTimeoutId = setTimeout(() => retryController.abort(), 30000);
-        
-        let retrySignal: AbortSignal | undefined;
-        if (options?.signal) {
-          retrySignal = options.signal as AbortSignal;
-        } else {
-          retrySignal = retryController.signal;
-        }
-
-        try {
-          response = await fetch(finalUrl, { ...options, signal: retrySignal });
-          clearTimeout(retryTimeoutId);
-        } catch (retryError) {
-          clearTimeout(retryTimeoutId);
-          throw retryError;
-        }
+        response = await fetchWithTimeout(finalUrl, options);
       }
     }
 
-    // استخدام safeJsonParse الذي يتعامل مع HTML و JSON بشكل آمن
     const data = await safeJsonParse<T>(response, fallback);
 
-    // إذا كانت الاستجابة غير ناجحة
     if (!response.ok) {
-      // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
-      // يجب التحقق من ذلك أولاً قبل محاولة استخراج رسالة الخطأ
-      const isFallback = data === fallback;
-
-      if (isFallback) {
-        const errorMessage = `HTTP ${response.status}: ${response.statusText} at ${url} - Server returned non-JSON response (likely HTML error page)`;
-        return {
-          data: fallback,
-          error: new Error(errorMessage),
-          response
-        };
-      }
-
-      // محاولة استخراج رسالة خطأ من البيانات إذا كانت موجودة
-      let errorMessage: string = `HTTP ${response.status}: ${response.statusText}`;
-
-      try {
-        if (data && typeof data === 'object' && data !== null) {
-          // محاولة استخراج رسالة الخطأ من الـ response
-          if ('error' in data && typeof data.error === 'string') {
-            errorMessage = data.error;
-          } else if ('message' in data && typeof data.message === 'string') {
-            errorMessage = data.message;
-          } else if ('details' in data && typeof data.details === 'string') {
-            errorMessage = `${errorMessage} - ${data.details}`;
-          }
-        }
-      } catch (extractError) {
-        // في حالة فشل استخراج رسالة الخطأ، نستخدم الرسالة الافتراضية
-        if (process.env.NODE_ENV === 'development') {
-          logger.warn('[Development] Failed to extract error message:', extractError);
-        }
-      }
-
-      // التأكد من أن errorMessage ليس فارغاً أو undefined
-      if (!errorMessage || typeof errorMessage !== 'string' || errorMessage.trim().length === 0) {
-        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      }
-
-      // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
-      const requestError = new Error(errorMessage);
-      // فقط في وضع التطوير نعرض الخطأ في console
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[Development] API Error (${url}):`, {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorMessage,
-          data: data
-        });
-      }
-
-      return {
-        data,
-        error: requestError,
-        response
-      };
+      return handleFailedResponse<T>(response, data, fallback, url);
     }
 
     return { data, error: null, response };
   } catch (_error) {
-    const signalWasAborted = Boolean(
-      options?.signal &&
-      typeof options.signal === 'object' &&
-      'aborted' in options.signal &&
-      (options.signal as AbortSignal).aborted
-    );
+    const normalizedError = normalizeFetchCatchError(_error, options);
 
-    let normalizedError: Error;
-    if (_error instanceof Error) {
-      normalizedError = _error;
-    } else if (typeof _error === 'string' && _error.trim().length > 0) {
-      normalizedError = new Error(_error);
-    } else if (
-    typeof _error === 'object' &&
-    _error !== null &&
-    'message' in _error &&
-    typeof (_error as {message: unknown;}).message === 'string' &&
-    (_error as {message: string;}).message.trim().length > 0)
-    {
-      normalizedError = new Error((_error as {message: string;}).message);
-    } else {
-      normalizedError = new Error('Unknown fetch error');
-    }
-
-    if (signalWasAborted && normalizedError.name !== 'AbortError') {
-      // Create a new error with the correct message instead of modifying read-only property
-      normalizedError = new Error('Request was aborted');
-      normalizedError.name = 'AbortError';
-    }
-
-    // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة
     if (process.env.NODE_ENV === 'development' && normalizedError.name !== 'AbortError') {
       logger.error(`[Development] Fetch error for URL: ${url}`, normalizedError);
     }

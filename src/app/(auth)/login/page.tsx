@@ -196,11 +196,25 @@ function PremiumInput({
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
 
+  const isActive = isFocused || hasValue;
+
+  const borderColor = error
+    ? "rgba(239,68,68,0.4)"
+    : isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.08)";
+
+  const labelColor = error
+    ? "rgba(239,68,68,1)"
+    : isFocused ? "rgba(255,109,0,0.9)" : "rgba(107,114,128,1)";
+
+  const iconColorClass = error ? "text-red-400" : isFocused ? "text-primary scale-110" : "text-gray-500";
+
+  const PasswordToggleIcon = showPassword ? EyeOff : Eye;
+
   return (
     <div className="space-y-2 group/input">
       <m.div 
         animate={{ 
-          borderColor: error ? "rgba(239,68,68,0.4)" : (isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.08)"),
+          borderColor,
           backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
           scale: isFocused ? 1.01 : 1,
         }}
@@ -208,13 +222,12 @@ function PremiumInput({
         className={cn(
           "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
           isFocused ? "shadow-[0_0_25px_rgba(255,109,0,0.15)]" : "shadow-sm",
-          error ? "ring-2 ring-red-500/20" : ""
+          error && "ring-2 ring-red-500/20"
         )}
       >
         <div className={cn(
           "absolute right-5 top-1/2 -translate-y-1/2 transition-all duration-300 z-10",
-          isFocused ? "text-primary scale-110" : "text-gray-500",
-          error ? "text-red-400" : ""
+          iconColorClass
         )}>
           <Icon size={22} strokeWidth={2.5} />
         </div>
@@ -240,14 +253,14 @@ function PremiumInput({
         
         <m.label 
           animate={{
-            y: (isFocused || hasValue) ? -18 : 0,
-            scale: (isFocused || hasValue) ? 0.75 : 1,
-            x: (isFocused || hasValue) ? 10 : 0,
-            color: error ? "rgba(239,68,68,1)" : (isFocused ? "rgba(255,109,0,0.9)" : "rgba(107,114,128,1)")
+            y: isActive ? -18 : 0,
+            scale: isActive ? 0.75 : 1,
+            x: isActive ? 10 : 0,
+            color: labelColor
           }}
           className={cn(
             "absolute right-14 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all z-10",
-            (isFocused || hasValue) ? "text-[10px]" : "text-sm"
+            isActive ? "text-[10px]" : "text-sm"
           )}
         >
           {label}
@@ -259,7 +272,7 @@ function PremiumInput({
             onClick={onTogglePassword}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2.5 z-20"
           >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            <PasswordToggleIcon size={20} />
           </button>
         )}
       </m.div>
@@ -279,6 +292,110 @@ function PremiumInput({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// --- Error Banner Sub-component ---
+function ErrorBanner({ errorStatus, onResendVerification }: { errorStatus: string; onResendVerification: () => void }) {
+  return (
+    <m.div 
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-4 shadow-2xl backdrop-blur-xl"
+    >
+      <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+        <AlertCircle className="h-6 w-6" />
+      </div>
+      <div className="flex-1 space-y-2 pt-1">
+        <p>{errorStatus}</p>
+        {errorStatus.includes('تفعيل') && (
+          <button
+            type="button"
+            onClick={onResendVerification}
+            className="text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
+          >
+            إعادة إرسال الرابط <ArrowRight size={10} className="rotate-180" />
+          </button>
+        )}
+      </div>
+    </m.div>
+  );
+}
+
+// --- 2FA Panel Sub-component ---
+function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onBack }: {
+  twoFactorCode: string;
+  setTwoFactorCode: (val: string) => void;
+  isSubmitting: boolean;
+  onVerify2FA: (e: React.FormEvent) => void;
+  onBack: () => void;
+}) {
+  return (
+    <m.div 
+      key="2fa-form"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.05 }}
+      transition={{ duration: 0.4, ease: "backOut" }}
+      className="space-y-12"
+    >
+      <div className="text-center space-y-8">
+        <m.div 
+          animate={{ 
+            boxShadow: ["0 0 20px rgba(255,109,0,0.2)", "0 0 50px rgba(255,109,0,0.4)", "0 0 20px rgba(255,109,0,0.2)"],
+            scale: [1, 1.05, 1]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="mx-auto h-28 w-28 rounded-[2.5rem] bg-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-xl"
+        >
+          <Zap className="h-14 w-14 text-primary" />
+        </m.div>
+        <div className="space-y-3">
+          <h3 className="text-4xl font-black text-white uppercase tracking-tight">الدرع المزدوج</h3>
+          <p className="text-gray-400 font-medium">أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية</p>
+        </div>
+      </div>
+
+      <form onSubmit={onVerify2FA} className="space-y-12">
+        <OTPInput 
+          value={twoFactorCode} 
+          onChange={setTwoFactorCode} 
+          disabled={isSubmitting} 
+        />
+
+        <div className="space-y-5">
+          <Button
+            type="submit"
+            disabled={isSubmitting || twoFactorCode.length < 6}
+            className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl shadow-[0_25px_50px_rgba(255,109,0,0.3)] transition-all active:scale-[0.97] group relative overflow-hidden"
+          >
+             <m.div 
+                className="absolute inset-0 bg-white/30"
+                initial={{ y: "100%" }}
+                whileHover={{ y: 0 }}
+                transition={{ duration: 0.3 }}
+              />
+             <span className="relative z-10 flex items-center justify-center gap-3">
+              {isSubmitting ? <Loader2 className="h-7 w-7 animate-spin" /> : (
+                <>
+                  <Shield size={22} />
+                  تحقق وآمن
+                </>
+              )}
+             </span>
+          </Button>
+
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full text-[12px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center justify-center gap-2"
+          >
+            <ArrowRight size={14} /> العودة للخلف
+          </button>
+        </div>
+      </form>
+    </m.div>
   );
 }
 
@@ -323,6 +440,20 @@ function LoginForm() {
     router.replace(target);
     router.refresh();
   }, [router]);
+
+  const handleResendVerification = useCallback(() => {
+    const email = getValues('email');
+    if (!email) {
+      toast.error('يرجى إدخال البريد الإلكتروني أولاً');
+      return;
+    }
+    const promise = resendVerification(email);
+    toast.promise(promise, {
+      loading: 'جاري إرسال رابط التفعيل...',
+      success: 'تم إرسال الرابط بنجاح!',
+      error: 'فشل إرسال الرابط.'
+    });
+  }, [getValues, resendVerification]);
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
@@ -477,12 +608,12 @@ function LoginForm() {
           opacity: 1, 
           y: 0, 
           scale: 1,
-          x: shouldShake ? [0, -10, 10, -10, 10, 0] : 0
+          ...(shouldShake && { x: [0, -10, 10, -10, 10, 0] })
         }}
-        transition={{ 
-          duration: shouldShake ? 0.4 : 0.8, 
-          ease: shouldShake ? "easeInOut" : [0.16, 1, 0.3, 1] 
-        }}
+        transition={shouldShake 
+          ? { duration: 0.4, ease: "easeInOut" }
+          : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+        }
         className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)]"
       >
         
@@ -617,40 +748,7 @@ function LoginForm() {
                   {/* Error Banner */}
                   <AnimatePresence>
                     {errorStatus && (
-                      <m.div 
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-4 shadow-2xl backdrop-blur-xl"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
-                          <AlertCircle className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1 space-y-2 pt-1">
-                          <p>{errorStatus}</p>
-                          {errorStatus.includes('تفعيل') && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const email = getValues('email');
-                                if (!email) {
-                                  toast.error('يرجى إدخال البريد الإلكتروني أولاً');
-                                  return;
-                                }
-                                const promise = resendVerification(email);
-                                toast.promise(promise, {
-                                  loading: 'جاري إرسال رابط التفعيل...',
-                                  success: 'تم إرسال الرابط بنجاح!',
-                                  error: 'فشل إرسال الرابط.'
-                                });
-                              }}
-                              className="text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
-                            >
-                              إعادة إرسال الرابط <ArrowRight size={10} className="rotate-180" />
-                            </button>
-                          )}
-                        </div>
-                      </m.div>
+                      <ErrorBanner errorStatus={errorStatus} onResendVerification={handleResendVerification} />
                     )}
                   </AnimatePresence>
 
@@ -709,7 +807,7 @@ function LoginForm() {
                           <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
                             <m.div 
                               animate={{ 
-                                scale: getValues('rememberMe') ? 1 : 0, 
+                                scale: getValues('rememberMe') ? 1 : 0,
                                 opacity: getValues('rememberMe') ? 1 : 0,
                                 rotate: getValues('rememberMe') ? 0 : -45
                               }}
@@ -804,70 +902,13 @@ function LoginForm() {
                   </div>
                 </m.div>
               ) : (
-                <m.div 
-                  key="2fa-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                  transition={{ duration: 0.4, ease: "backOut" }}
-                  className="space-y-12"
-                >
-                  <div className="text-center space-y-8">
-                    <m.div 
-                      animate={{ 
-                        boxShadow: ["0 0 20px rgba(255,109,0,0.2)", "0 0 50px rgba(255,109,0,0.4)", "0 0 20px rgba(255,109,0,0.2)"],
-                        scale: [1, 1.05, 1]
-                      }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="mx-auto h-28 w-28 rounded-[2.5rem] bg-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-xl"
-                    >
-                      <Zap className="h-14 w-14 text-primary" />
-                    </m.div>
-                    <div className="space-y-3">
-                      <h3 className="text-4xl font-black text-white uppercase tracking-tight">الدرع المزدوج</h3>
-                      <p className="text-gray-400 font-medium">أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية</p>
-                    </div>
-                  </div>
-
-                  <form onSubmit={onVerify2FA} className="space-y-12">
-                    <OTPInput 
-                      value={twoFactorCode} 
-                      onChange={setTwoFactorCode} 
-                      disabled={isSubmitting} 
-                    />
-
-                    <div className="space-y-5">
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || twoFactorCode.length < 6}
-                        className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl shadow-[0_25px_50px_rgba(255,109,0,0.3)] transition-all active:scale-[0.97] group relative overflow-hidden"
-                      >
-                         <m.div 
-                            className="absolute inset-0 bg-white/30"
-                            initial={{ y: "100%" }}
-                            whileHover={{ y: 0 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                         <span className="relative z-10 flex items-center justify-center gap-3">
-                          {isSubmitting ? <Loader2 className="h-7 w-7 animate-spin" /> : (
-                            <>
-                              <Shield size={22} />
-                              تحقق وآمن
-                            </>
-                          )}
-                         </span>
-                      </Button>
-
-                      <button
-                        type="button"
-                        onClick={() => setRequires2FA(false)}
-                        className="w-full text-[12px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center justify-center gap-2"
-                      >
-                        <ArrowRight size={14} /> العودة للخلف
-                      </button>
-                    </div>
-                  </form>
-                </m.div>
+                <TwoFAPanel
+                  twoFactorCode={twoFactorCode}
+                  setTwoFactorCode={setTwoFactorCode}
+                  isSubmitting={isSubmitting}
+                  onVerify2FA={onVerify2FA}
+                  onBack={() => setRequires2FA(false)}
+                />
               )}
             </AnimatePresence>
 

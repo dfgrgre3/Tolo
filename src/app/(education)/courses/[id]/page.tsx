@@ -111,6 +111,198 @@ const fadeUp = {
   show: { opacity: 1 as const, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as const } }
 };
 
+function getListItems(
+  primary: string[] | undefined,
+  secondary: string | undefined,
+  fallback: string[]
+): string[] {
+  if (primary && primary.length > 0) return primary;
+  if (secondary) return secondary.split('\n').filter(Boolean);
+  return fallback;
+}
+
+function LessonVideoArea({
+  canAccess,
+  lessonData,
+  courseId,
+  courseEnrolled,
+  authName,
+  userId,
+  onAutoComplete,
+  onEnroll,
+}: {
+  canAccess: boolean;
+  lessonData: CourseLesson;
+  courseId: string;
+  courseEnrolled: boolean;
+  authName?: string | null;
+  userId: string | null;
+  onAutoComplete: () => void;
+  onEnroll: () => void;
+}) {
+  if (canAccess && lessonData.videoUrl) {
+    return (
+      <CourseVideoPlayer
+        key={lessonData.id}
+        courseId={courseId}
+        lessonId={lessonData.id}
+        lessonTitle={lessonData.title}
+        videoUrl={lessonData.videoUrl}
+        alreadyCompleted={lessonData.completed}
+        watermarkText={authName || userId || "Student"}
+        onLessonAutoComplete={onAutoComplete}
+      />
+    );
+  }
+
+  if (canAccess) {
+    return (
+      <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
+        <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+        <p className="text-sm text-gray-500 font-medium">محتوى نصي - لا يوجد فيديو لهذا الدرس</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
+      <Lock className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+      <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">المحتوى مقفل</h3>
+      <p className="text-sm text-gray-500 mb-4 max-w-sm">
+        سجل في الدورة لتتمكن من الوصول إلى جميع الدروس والمحتوى التعليمي.
+      </p>
+      <Button onClick={onEnroll} className="gap-2 rounded-xl bg-primary text-white shadow-lg">
+        <Shield className="h-4 w-4" />
+        <span>سجل الآن</span>
+      </Button>
+    </div>
+  );
+}
+
+function CourseActionCard({
+  course,
+  courseProgress,
+  completedCount,
+  lessonsCount,
+  courseId,
+  enrolling,
+  bookmarked,
+  setBookmarked,
+  onEnroll,
+  router,
+}: {
+  course: Course;
+  courseProgress: number;
+  completedCount: number;
+  lessonsCount: number;
+  courseId: string;
+  enrolling: boolean;
+  bookmarked: boolean;
+  setBookmarked: (v: boolean) => void;
+  onEnroll: () => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <div className="sticky top-24 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-6 shadow-lg shadow-black/5 dark:shadow-black/20">
+      {/* Thumbnail */}
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+        {course.thumbnailUrl ? (
+          <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-600" />
+          </div>
+        )}
+        {course.enrolled && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <button
+              onClick={() => router.push(`/learning/${courseId}`)}
+              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform"
+            >
+              <Play className="h-6 w-6 text-white fill-white" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Price */}
+      <div className="flex items-center justify-between">
+        <div className="text-3xl font-black text-gray-900 dark:text-white">
+          {course.price === 0 ? (
+            <span className="text-emerald-500">مجاناً</span>
+          ) : (
+            <div className="flex items-baseline gap-1">
+              <span>{course.price}</span>
+              <span className="text-sm font-bold text-gray-400">ج.م</span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setBookmarked(!bookmarked)}
+            className={cn("h-10 w-10 rounded-xl", bookmarked ? "text-primary bg-primary/10" : "text-gray-400")}
+          >
+            {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-gray-400">
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Progress or Enroll */}
+      {course.enrolled ? (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-gray-500">التقدم في الدورة</span>
+              <span className="font-black text-primary">{courseProgress}%</span>
+            </div>
+            <Progress value={courseProgress} className="h-2" />
+            <p className="text-[11px] text-gray-400">
+              {completedCount} من {lessonsCount} دروس مكتملة
+            </p>
+          </div>
+          <Button
+            onClick={() => router.push(`/learning/${courseId}`)}
+            className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2"
+          >
+            <Play className="h-4 w-4 fill-current" />
+            {courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          onClick={onEnroll}
+          disabled={enrolling}
+          className="w-full h-14 bg-primary text-white font-bold text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all gap-2"
+        >
+          {enrolling ? <Loader2 className="h-5 w-5 animate-spin" /> : <Shield className="h-5 w-5" />}
+          <span>{course.price > 0 ? `سجل الآن - ${course.price} ج.م` : "ابدأ التعلم مجاناً"}</span>
+        </Button>
+      )}
+
+      {/* Course features */}
+      <div className="space-y-3 border-t border-gray-100 dark:border-white/5 pt-4">
+        {[
+          { icon: BookOpen, text: `${lessonsCount} دروس تعليمية` },
+          { icon: Clock, text: `${course.duration} ساعات محتوى` },
+          { icon: Download, text: "وصول مدى الحياة" },
+          { icon: Award, text: "شهادة إتمام" },
+          { icon: MessageSquare, text: "دعم ومناقشات" },
+        ].map((feature, i) => (
+          <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+            <feature.icon className="h-4 w-4 text-gray-400" />
+            <span>{feature.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -402,108 +594,18 @@ export default function CourseDetailPage() {
 
           {/* Right: Action Card (2 cols) */}
           <div className="lg:col-span-2">
-            <div className="sticky top-24 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-6 shadow-lg shadow-black/5 dark:shadow-black/20">
-              {/* Thumbnail */}
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
-                {course.thumbnailUrl ?
-                <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" /> :
-
-                <div className="flex items-center justify-center h-full">
-                    <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-600" />
-                  </div>
-                }
-                {course.enrolled &&
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <button
-                    onClick={() => router.push(`/learning/${courseId}`)}
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform">
-                    
-                      <Play className="h-6 w-6 text-white fill-white" />
-                    </button>
-                  </div>
-                }
-              </div>
-
-              {/* Price */}
-              <div className="flex items-center justify-between">
-                <div className="text-3xl font-black text-gray-900 dark:text-white">
-                  {course.price === 0 ?
-                  <span className="text-emerald-500">مجاناً</span> :
-
-                  <div className="flex items-baseline gap-1">
-                      <span>{course.price}</span>
-                      <span className="text-sm font-bold text-gray-400">ج.م</span>
-                    </div>
-                  }
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setBookmarked(!bookmarked)}
-                    className={cn("h-10 w-10 rounded-xl", bookmarked ? "text-primary bg-primary/10" : "text-gray-400")}>
-                    
-                    {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-gray-400">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Progress or Enroll */}
-              {course.enrolled ?
-              <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-gray-500">التقدم في الدورة</span>
-                      <span className="font-black text-primary">{courseProgress}%</span>
-                    </div>
-                    <Progress value={courseProgress} className="h-2" />
-                    <p className="text-[11px] text-gray-400">
-                      {completedCount} من {lessons.length} دروس مكتملة
-                    </p>
-                  </div>
-
-                  <Button
-                  onClick={() => router.push(`/learning/${courseId}`)}
-                  className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2">
-                  
-                    <Play className="h-4 w-4 fill-current" />
-                    {courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
-                  </Button>
-                </div> :
-
-              <Button
-                onClick={handleEnroll}
-                disabled={enrolling}
-                className="w-full h-14 bg-primary text-white font-bold text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all gap-2">
-                
-                  {enrolling ?
-                <Loader2 className="h-5 w-5 animate-spin" /> :
-
-                <Shield className="h-5 w-5" />
-                }
-                  <span>{course.price > 0 ? `سجل الآن - ${course.price} ج.م` : "ابدأ التعلم مجاناً"}</span>
-                </Button>
-              }
-
-              {/* Course features */}
-              <div className="space-y-3 border-t border-gray-100 dark:border-white/5 pt-4">
-                {[
-                { icon: BookOpen, text: `${lessons.length} دروس تعليمية` },
-                { icon: Clock, text: `${course.duration} ساعات محتوى` },
-                { icon: Download, text: "وصول مدى الحياة" },
-                { icon: Award, text: "شهادة إتمام" },
-                { icon: MessageSquare, text: "دعم ومناقشات" }].
-                map((feature, i) =>
-                <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                    <feature.icon className="h-4 w-4 text-gray-400" />
-                    <span>{feature.text}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <CourseActionCard
+              course={course}
+              courseProgress={courseProgress}
+              completedCount={completedCount}
+              lessonsCount={lessons.length}
+              courseId={courseId}
+              enrolling={enrolling}
+              bookmarked={bookmarked}
+              setBookmarked={setBookmarked}
+              onEnroll={handleEnroll}
+              router={router}
+            />
           </div>
         </m.div>
 
@@ -611,41 +713,16 @@ export default function CourseDetailPage() {
                   
                       {/* Video player */}
                       <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80">
-                        {canAccessActiveLesson && activeLessonData.videoUrl ?
-                    <CourseVideoPlayer
-                      key={activeLessonData.id}
-                      courseId={course.id}
-                      lessonId={activeLessonData.id}
-                      lessonTitle={activeLessonData.title}
-                      videoUrl={activeLessonData.videoUrl}
-                      alreadyCompleted={activeLessonData.completed}
-                      watermarkText={authUser?.name || userId || "Student"}
-                      onLessonAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)} /> :
-
-
-                    <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
-                            {canAccessActiveLesson ?
-                      <>
-                                <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
-                                <p className="text-sm text-gray-500 font-medium">محتوى نصي - لا يوجد فيديو لهذا الدرس</p>
-                              </> :
-
-                      <>
-                                <Lock className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
-                                <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
-                                  المحتوى مقفل
-                                </h3>
-                                <p className="text-sm text-gray-500 mb-4 max-w-sm">
-                                  سجل في الدورة لتتمكن من الوصول إلى جميع الدروس والمحتوى التعليمي.
-                                </p>
-                                <Button onClick={handleEnroll} className="gap-2 rounded-xl bg-primary text-white shadow-lg">
-                                  <Shield className="h-4 w-4" />
-                                  <span>سجل الآن</span>
-                                </Button>
-                              </>
-                      }
-                          </div>
-                    }
+                        <LessonVideoArea
+                          canAccess={canAccessActiveLesson}
+                          lessonData={activeLessonData}
+                          courseId={course.id}
+                          courseEnrolled={course.enrolled}
+                          authName={authUser?.name}
+                          userId={userId}
+                          onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
+                          onEnroll={handleEnroll}
+                        />
 
                         {/* Lesson details */}
                         <div className="p-6 space-y-4 border-t border-gray-100 dark:border-white/5">
@@ -725,11 +802,11 @@ export default function CourseDetailPage() {
                 <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">ما ستتعلمه</h3>
                   <ul className="space-y-3">
-                    {(course.whatYouLearn && course.whatYouLearn.length > 0 ?
-                  course.whatYouLearn :
-                  course.learningObjectives ?
-                  course.learningObjectives.split('\n').filter(Boolean) :
-                  ["فهم المفاهيم الأساسية للموضوع", "تطبيق المعرفة في مشاريع عملية", "اكتساب مهارات متقدمة في المجال", "الاستعداد للاختبارات والتقييمات"]).
+                    {getListItems(
+                      course.whatYouLearn,
+                      course.learningObjectives,
+                      ["فهم المفاهيم الأساسية للموضوع", "تطبيق المعرفة في مشاريع عملية", "اكتساب مهارات متقدمة في المجال", "الاستعداد للاختبارات والتقييمات"]
+                    ).
                   map((item: string, i: number) =>
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
                         <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
@@ -744,11 +821,11 @@ export default function CourseDetailPage() {
                 <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">المتطلبات</h3>
                   <ul className="space-y-3">
-                    {(course.coursePrerequisites && course.coursePrerequisites.length > 0 ?
-                  course.coursePrerequisites :
-                  course.requirements ?
-                  course.requirements.split('\n').filter(Boolean) :
-                  ["المعرفة الأساسية بالموضوع", "الرغبة في التعلم والتطبيق", "جهاز حاسوب أو هاتف ذكي"]).
+                    {getListItems(
+                      course.coursePrerequisites,
+                      course.requirements,
+                      ["المعرفة الأساسية بالموضوع", "الرغبة في التعلم والتطبيق", "جهاز حاسوب أو هاتف ذكي"]
+                    ).
                   map((item: string, i: number) =>
                   <li key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />

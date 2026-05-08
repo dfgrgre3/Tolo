@@ -6,6 +6,52 @@ import { BACKEND_URL, upstreamAuthHeaders } from '@/app/api/auth/_utils';
  * This handles any /api/* routes that don't have a specific route file.
  * It forwards authentication and CSRF tokens to the Go backend.
  */
+function getOrigins(primaryOrigin: string): string[] {
+  const origins = [primaryOrigin];
+  if (primaryOrigin.includes(':8082')) {
+    origins.push(primaryOrigin.replace(':8082', ':8080'));
+  } else if (primaryOrigin.includes(':8080')) {
+    origins.push(primaryOrigin.replace(':8080', ':8082'));
+  }
+  return origins;
+}
+
+async function buildProxyRequestOptions(request: NextRequest, headers: any): Promise<RequestInit> {
+  const options: RequestInit = {
+    method: request.method,
+    headers: { ...headers },
+    credentials: 'include',
+    // @ts-ignore
+    duplex: 'half',
+  };
+
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    const contentType = request.headers.get('content-type');
+    if (contentType) options.headers = { ...options.headers, 'Content-Type': contentType };
+    
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 0) {
+      options.body = await request.arrayBuffer();
+    }
+  }
+
+  return options;
+}
+
+function handleErrorResponse(response: Response, errorText: string) {
+  let errorData;
+  try {
+    errorData = JSON.parse(errorText);
+  } catch {
+    errorData = { 
+      error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
+      status: response.status,
+      details: errorText.substring(0, 500)
+    };
+  }
+  return NextResponse.json(errorData, { status: response.status });
+}
+
 async function handleProxy(
   request: NextRequest,
   { params }: { params: { path: string[] } }
@@ -14,11 +60,9 @@ async function handleProxy(
   const { search } = new URL(request.url);
   const headers = upstreamAuthHeaders(request);
   
-  // Potential backend origins (8080 vs 8082 mismatch is common)
   const primaryOrigin = BACKEND_URL.replace(/\/+$/, '');
-  const origins = [primaryOrigin];
-  if (primaryOrigin.includes(':8082')) origins.push(primaryOrigin.replace(':8082', ':8080'));
-  else if (primaryOrigin.includes(':8080')) origins.push(primaryOrigin.replace(':8080', ':8082'));
+  const origins = getOrigins(primaryOrigin);
+  const options = await buildProxyRequestOptions(request, headers);
 
   let lastError: any = null;
 
@@ -26,25 +70,6 @@ async function handleProxy(
     try {
       const targetUrl = `${origin}/api/${path}${search}`;
       console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
-
-      const options: RequestInit = {
-        method: request.method,
-        headers: { ...headers },
-        credentials: 'include',
-        // @ts-ignore
-        duplex: 'half',
-      };
-
-      // Forward body for relevant methods
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-        const contentType = request.headers.get('content-type');
-        if (contentType) options.headers = { ...options.headers, 'Content-Type': contentType };
-        
-        const contentLength = request.headers.get('content-length');
-        if (contentLength && parseInt(contentLength) > 0) {
-          options.body = await request.arrayBuffer();
-        }
-      }
 
       const response = await fetch(targetUrl, {
         ...options,
@@ -60,18 +85,7 @@ async function handleProxy(
           continue; 
         }
 
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { 
-            error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
-            status: response.status,
-            details: errorText.substring(0, 500)
-          };
-        }
-        
-        return NextResponse.json(errorData, { status: response.status });
+        return handleErrorResponse(response, errorText);
       }
 
       // Success! Return the response

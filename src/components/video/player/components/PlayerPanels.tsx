@@ -234,6 +234,122 @@ export function PlayerPanels({
   );
 }
 
+function QualitySettings({ qualities, allowAutoQuality, selectedQuality, onChangeQuality }: any) {
+  if (qualities.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
+        الجودة
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {allowAutoQuality ? (
+          <button
+            type="button"
+            onClick={() => onChangeQuality(-1)}
+            className={cn(
+              "rounded-2xl px-3 py-2 text-xs font-bold transition",
+              selectedQuality === -1
+                ? "bg-blue-500 text-white"
+                : "bg-white/5 text-white/65 hover:bg-white/10"
+            )}
+          >
+            تلقائي
+          </button>
+        ) : null}
+        {qualities.map((quality: any) => (
+          <button
+            key={quality.id}
+            type="button"
+            onClick={() => onChangeQuality(quality.id)}
+            className={cn(
+              "rounded-2xl px-3 py-2 text-xs font-bold transition",
+              selectedQuality === quality.id
+                ? "bg-blue-500 text-white"
+                : "bg-white/5 text-white/65 hover:bg-white/10"
+            )}
+          >
+            {quality.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpeedSettings({ playbackRates, playbackRate, onChangePlaybackRate }: any) {
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
+        السرعة
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {playbackRates.map((rate: any) => (
+          <button
+            key={rate}
+            type="button"
+            onClick={() => onChangePlaybackRate(rate)}
+            className={cn(
+              "rounded-2xl px-3 py-2 text-xs font-bold transition",
+              playbackRate === rate
+                ? "bg-white text-slate-950"
+                : "bg-white/5 text-white/65 hover:bg-white/10"
+            )}
+          >
+            {rate}x
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubtitleSettings({ subtitleTracks, selectedSubtitle, onChangeSubtitle }: any) {
+  if (subtitleTracks.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
+        الترجمة
+      </p>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => onChangeSubtitle("off")}
+          className={cn(
+            "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm font-bold transition",
+            selectedSubtitle === "off"
+              ? "bg-white text-slate-950"
+              : "bg-white/5 text-white/65 hover:bg-white/10"
+          )}
+        >
+          بدون ترجمة
+          {selectedSubtitle === "off" ? <Check className="h-4 w-4" /> : null}
+        </button>
+        {subtitleTracks.map((track: any) => (
+          <button
+            key={track.id}
+            type="button"
+            onClick={() => onChangeSubtitle(track.id)}
+            className={cn(
+              "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm font-bold transition",
+              selectedSubtitle === track.id
+                ? "bg-white text-slate-950"
+                : "bg-white/5 text-white/65 hover:bg-white/10"
+            )}
+          >
+            <span>
+              {track.label}
+              <span className="mr-2 text-xs opacity-60">
+                {track.language.toUpperCase()}
+              </span>
+            </span>
+            {selectedSubtitle === track.id ? <Check className="h-4 w-4" /> : null}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsPanel({
   isSettingsOpen,
   isEfficiencyMode,
@@ -287,111 +403,24 @@ function SettingsPanel({
             </button>
           </div>
 
-          {qualities.length > 0 ? (
-            <div className="mb-4">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
-                الجودة
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {allowAutoQuality ? (
-                  <button
-                    type="button"
-                    onClick={() => onChangeQuality(-1)}
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-xs font-bold transition",
-                      selectedQuality === -1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white/5 text-white/65 hover:bg-white/10"
-                    )}
-                  >
-                    تلقائي
-                  </button>
-                ) : null}
-                {qualities.map((quality: any) => (
-                  <button
-                    key={quality.id}
-                    type="button"
-                    onClick={() => onChangeQuality(quality.id)}
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-xs font-bold transition",
-                      selectedQuality === quality.id
-                        ? "bg-blue-500 text-white"
-                        : "bg-white/5 text-white/65 hover:bg-white/10"
-                    )}
-                  >
-                    {quality.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <QualitySettings 
+            qualities={qualities} 
+            allowAutoQuality={allowAutoQuality} 
+            selectedQuality={selectedQuality} 
+            onChangeQuality={onChangeQuality} 
+          />
 
-          <div className="mb-4">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
-              السرعة
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {playbackRates.map((rate: any) => (
-                <button
-                  key={rate}
-                  type="button"
-                  onClick={() => onChangePlaybackRate(rate)}
-                  className={cn(
-                    "rounded-2xl px-3 py-2 text-xs font-bold transition",
-                    playbackRate === rate
-                      ? "bg-white text-slate-950"
-                      : "bg-white/5 text-white/65 hover:bg-white/10"
-                  )}
-                >
-                  {rate}x
-                </button>
-              ))}
-            </div>
-          </div>
+          <SpeedSettings 
+            playbackRates={playbackRates} 
+            playbackRate={playbackRate} 
+            onChangePlaybackRate={onChangePlaybackRate} 
+          />
 
-          {subtitleTracks.length > 0 ? (
-            <div className="mb-4">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
-                الترجمة
-              </p>
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => onChangeSubtitle("off")}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm font-bold transition",
-                    selectedSubtitle === "off"
-                      ? "bg-white text-slate-950"
-                      : "bg-white/5 text-white/65 hover:bg-white/10"
-                  )}
-                >
-                  بدون ترجمة
-                  {selectedSubtitle === "off" ? <Check className="h-4 w-4" /> : null}
-                </button>
-                {subtitleTracks.map((track: any) => (
-                  <button
-                    key={track.id}
-                    type="button"
-                    onClick={() => onChangeSubtitle(track.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm font-bold transition",
-                      selectedSubtitle === track.id
-                        ? "bg-white text-slate-950"
-                        : "bg-white/5 text-white/65 hover:bg-white/10"
-                    )}
-                  >
-                    <span>
-                      {track.label}
-                      <span className="mr-2 text-xs opacity-60">
-                        {track.language.toUpperCase()}
-                      </span>
-                    </span>
-                    {selectedSubtitle === track.id ? <Check className="h-4 w-4" /> : null}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <SubtitleSettings 
+            subtitleTracks={subtitleTracks} 
+            selectedSubtitle={selectedSubtitle} 
+            onChangeSubtitle={onChangeSubtitle} 
+          />
 
           <div className="mb-4">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
@@ -602,6 +631,187 @@ function HelpPanel({
   );
 }
 
+function BookmarksTab({ bookmarks, onJumpToTime }: any) {
+  if (bookmarks.length === 0) {
+    return (
+      <EmptySidebarState
+        icon={Bookmark}
+        label="لا توجد معالم زمنية لهذا الدرس بعد."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {bookmarks.map((bookmark: any) => (
+        <button
+          key={`${bookmark.time}-${bookmark.label}`}
+          type="button"
+          onClick={() => onJumpToTime(bookmark.time)}
+          className="flex w-full items-start justify-between gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 text-right transition hover:bg-white/10"
+        >
+          <div className="min-w-0">
+            <p className="line-clamp-2 text-sm font-black text-white">
+              {bookmark.label}
+            </p>
+            <p className="mt-1 text-xs text-white/50">
+              انتقال إلى {formatDuration(bookmark.time)}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-200">
+            {formatDuration(bookmark.time)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NotesTab({
+  noteDraft,
+  onNoteDraftChange,
+  isNotesSyncing,
+  onAddNoteAtCurrentTime,
+  onInsertTimestamp,
+  currentTime,
+  notes,
+  onRemoveNote,
+  onJumpToTime,
+}: any) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block text-xs font-bold uppercase tracking-[0.2em] text-white/35">
+            أضف ملاحظة عند الوقت الحالي
+          </label>
+          <span className="text-xs font-bold text-white/40">
+            {isNotesSyncing ? "جارٍ المزامنة..." : "مزامنة سحابية"}
+          </span>
+        </div>
+        <textarea
+          value={noteDraft}
+          onChange={(event) => onNoteDraftChange(event.target.value)}
+          placeholder="اكتب فكرة مهمة أو سؤالًا للمراجعة..."
+          className="min-h-[110px] w-full rounded-[22px] border border-white/10 bg-black/30 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-blue-400/30"
+        />
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onAddNoteAtCurrentTime}
+            disabled={!noteDraft.trim()}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Clock3 className="h-4 w-4" />
+            حفظ عند {formatDuration(currentTime)}
+          </button>
+          <button
+            type="button"
+            onClick={onInsertTimestamp}
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
+          >
+            طابع زمني
+          </button>
+        </div>
+      </div>
+
+      {notes.length > 0 ? (
+        <div className="space-y-3">
+          {notes.map((note: any) => (
+            <div
+              key={note.id}
+              className="rounded-[24px] border border-white/10 bg-white/5 p-4"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => onJumpToTime(note.time)}
+                  className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-200 transition hover:bg-amber-500/20"
+                >
+                  {formatDuration(note.time)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveNote(note.id)}
+                  className="text-xs font-bold text-white/40 transition hover:text-white/75"
+                >
+                  حذف
+                </button>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-white/80">
+                {note.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptySidebarState
+          icon={MessageSquare}
+          label="لا توجد ملاحظات زمنية لهذا الدرس بعد."
+        />
+      )}
+    </div>
+  );
+}
+
+function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
+  if (lessons.length === 0) {
+    return (
+      <EmptySidebarState
+        icon={ListVideo}
+        label="لا توجد قائمة دروس مرتبطة بهذا المشغل."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {lessons.map((lesson: any, index: number) => {
+        const isActive = lesson.id === lessonId;
+        return (
+          <button
+            key={lesson.id}
+            type="button"
+            onClick={() => onLessonChange?.(lesson.id)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-[24px] border p-4 text-right transition",
+              isActive
+                ? "border-blue-400/30 bg-blue-500/10"
+                : "border-white/10 bg-white/5 hover:bg-white/10"
+            )}
+          >
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xs font-black",
+                lesson.completed
+                  ? "bg-emerald-500 text-white"
+                  : isActive
+                    ? "bg-blue-500 text-white"
+                    : "bg-white/10 text-white/65"
+              )}
+            >
+              {lesson.completed ? <Check className="h-4 w-4" /> : index + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-black text-white">
+                {lesson.title}
+              </p>
+              <p className="mt-1 text-xs text-white/50">
+                {formatDuration(lesson.duration)}
+              </p>
+            </div>
+            {isActive ? (
+              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-950">
+                الحالي
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SidebarPanel({
   isSidebarOpen,
   isEfficiencyMode,
@@ -675,164 +885,29 @@ function SidebarPanel({
 
           <div className="flex-1 overflow-y-auto pr-1">
             {sidebarTab === "bookmarks" ? (
-              bookmarks.length > 0 ? (
-                <div className="space-y-3">
-                  {bookmarks.map((bookmark: any) => (
-                    <button
-                      key={`${bookmark.time}-${bookmark.label}`}
-                      type="button"
-                      onClick={() => onJumpToTime(bookmark.time)}
-                      className="flex w-full items-start justify-between gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 text-right transition hover:bg-white/10"
-                    >
-                      <div className="min-w-0">
-                        <p className="line-clamp-2 text-sm font-black text-white">
-                          {bookmark.label}
-                        </p>
-                        <p className="mt-1 text-xs text-white/50">
-                          انتقال إلى {formatDuration(bookmark.time)}
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-200">
-                        {formatDuration(bookmark.time)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <EmptySidebarState
-                  icon={Bookmark}
-                  label="لا توجد معالم زمنية لهذا الدرس بعد."
-                />
-              )
+              <BookmarksTab bookmarks={bookmarks} onJumpToTime={onJumpToTime} />
             ) : null}
 
             {sidebarTab === "notes" ? (
-              <div className="space-y-4">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <label className="block text-xs font-bold uppercase tracking-[0.2em] text-white/35">
-                      أضف ملاحظة عند الوقت الحالي
-                    </label>
-                    <span className="text-xs font-bold text-white/40">
-                      {isNotesSyncing ? "جارٍ المزامنة..." : "مزامنة سحابية"}
-                    </span>
-                  </div>
-                  <textarea
-                    value={noteDraft}
-                    onChange={(event) => onNoteDraftChange(event.target.value)}
-                    placeholder="اكتب فكرة مهمة أو سؤالًا للمراجعة..."
-                    className="min-h-[110px] w-full rounded-[22px] border border-white/10 bg-black/30 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-blue-400/30"
-                  />
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={onAddNoteAtCurrentTime}
-                      disabled={!noteDraft.trim()}
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Clock3 className="h-4 w-4" />
-                      حفظ عند {formatDuration(currentTime)}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onInsertTimestamp}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
-                    >
-                      طابع زمني
-                    </button>
-                  </div>
-                </div>
-
-                {notes.length > 0 ? (
-                  <div className="space-y-3">
-                    {notes.map((note: any) => (
-                      <div
-                        key={note.id}
-                        className="rounded-[24px] border border-white/10 bg-white/5 p-4"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => onJumpToTime(note.time)}
-                            className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-200 transition hover:bg-amber-500/20"
-                          >
-                            {formatDuration(note.time)}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onRemoveNote(note.id)}
-                            className="text-xs font-bold text-white/40 transition hover:text-white/75"
-                          >
-                            حذف
-                          </button>
-                        </div>
-                        <p className="mt-3 text-sm leading-7 text-white/80">
-                          {note.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptySidebarState
-                    icon={MessageSquare}
-                    label="لا توجد ملاحظات زمنية لهذا الدرس بعد."
-                  />
-                )}
-              </div>
+              <NotesTab
+                noteDraft={noteDraft}
+                onNoteDraftChange={onNoteDraftChange}
+                isNotesSyncing={isNotesSyncing}
+                onAddNoteAtCurrentTime={onAddNoteAtCurrentTime}
+                onInsertTimestamp={onInsertTimestamp}
+                currentTime={currentTime}
+                notes={notes}
+                onRemoveNote={onRemoveNote}
+                onJumpToTime={onJumpToTime}
+              />
             ) : null}
 
             {sidebarTab === "lessons" ? (
-              lessons.length > 0 ? (
-                <div className="space-y-3">
-                  {lessons.map((lesson: any, index: number) => {
-                    const isActive = lesson.id === lessonId;
-                    return (
-                      <button
-                        key={lesson.id}
-                        type="button"
-                        onClick={() => onLessonChange?.(lesson.id)}
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-[24px] border p-4 text-right transition",
-                          isActive
-                            ? "border-blue-400/30 bg-blue-500/10"
-                            : "border-white/10 bg-white/5 hover:bg-white/10"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xs font-black",
-                            lesson.completed
-                              ? "bg-emerald-500 text-white"
-                              : isActive
-                                ? "bg-blue-500 text-white"
-                                : "bg-white/10 text-white/65"
-                          )}
-                        >
-                          {lesson.completed ? <Check className="h-4 w-4" /> : index + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-white">
-                            {lesson.title}
-                          </p>
-                          <p className="mt-1 text-xs text-white/50">
-                            {formatDuration(lesson.duration)}
-                          </p>
-                        </div>
-                        {isActive ? (
-                          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-950">
-                            الحالي
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <EmptySidebarState
-                  icon={ListVideo}
-                  label="لا توجد قائمة دروس مرتبطة بهذا المشغل."
-                />
-              )
+              <LessonsTab
+                lessons={lessons}
+                lessonId={lessonId}
+                onLessonChange={onLessonChange}
+              />
             ) : null}
           </div>
         </m.aside>

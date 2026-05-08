@@ -161,6 +161,44 @@ class UnifiedLogger {
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
   }
 
+  private formatErrorForLog(error: Error | unknown): { message: string; stack?: string; name?: string } {
+    if (error instanceof Error) {
+      return {
+        message: containsSensitiveData(error.message) 
+          ? sanitizeErrorMessage(error.message) 
+          : error.message,
+        stack: error.stack,
+        name: error.name
+      };
+    } 
+
+    let errorMsg = String(error);
+    if (typeof error === 'object' && error !== null) {
+      try {
+        const json = JSON.stringify(error);
+        if (json !== '{}') errorMsg = json;
+      } catch (_e) {
+        // Fallback to String(error) if JSON.stringify fails (e.g. circular)
+      }
+    }
+    
+    return {
+      message: containsSensitiveData(errorMsg) 
+        ? sanitizeErrorMessage(errorMsg) 
+        : errorMsg
+    };
+  }
+
+  private addMetadataToEntry(entry: LogEntry, context?: LogContext): void {
+    if (!context) return;
+    
+    if (context.userId) entry.userId = String(context.userId);
+    if (context.sessionId) entry.sessionId = String(context.sessionId);
+    if (context.ip) entry.ip = String(context.ip);
+    if (context.userAgent) entry.userAgent = String(context.userAgent);
+    if (context.source) entry.source = String(context.source);
+  }
+
   /**
    * Create log entry with sanitization
    */
@@ -188,40 +226,10 @@ class UnifiedLogger {
     };
 
     if (error !== undefined) {
-      if (error instanceof Error) {
-        entry.error = {
-          message: containsSensitiveData(error.message) 
-            ? sanitizeErrorMessage(error.message) 
-            : error.message,
-          stack: error.stack,
-          name: error.name
-        };
-      } else {
-        let errorMsg = String(error);
-        if (typeof error === 'object' && error !== null) {
-          try {
-            const json = JSON.stringify(error);
-            if (json !== '{}') errorMsg = json;
-          } catch (_e) {
-            // Fallback to String(error) if JSON.stringify fails (e.g. circular)
-          }
-        }
-        entry.error = {
-          message: containsSensitiveData(errorMsg) 
-            ? sanitizeErrorMessage(errorMsg) 
-            : errorMsg
-        };
-      }
+      entry.error = this.formatErrorForLog(error);
     }
 
-    // Add context metadata (already sanitized above)
-    if (context) {
-      if (context.userId) entry.userId = String(context.userId);
-      if (context.sessionId) entry.sessionId = String(context.sessionId);
-      if (context.ip) entry.ip = String(context.ip);
-      if (context.userAgent) entry.userAgent = String(context.userAgent);
-      if (context.source) entry.source = String(context.source);
-    }
+    this.addMetadataToEntry(entry, context);
 
     return entry;
   }

@@ -17,6 +17,7 @@
 \set PENDING_STATUS 'PENDING'
 \set MEDIUM_VAL 'MEDIUM'
 \set DRAFT_STATUS 'DRAFT'
+\set DRAFT_STATUS_LOWER 'draft'
 \set COURSE_TYPE '''COURSE'''
 
 SET statement_timeout = 0;
@@ -1289,7 +1290,7 @@ CREATE TABLE public."Experiment" (
     id text NOT NULL,
     title text NOT NULL,
     description text,
-    status text DEFAULT 'draft'::text NOT NULL,
+    status text DEFAULT :'DRAFT_STATUS_LOWER'::text NOT NULL,
     "variantAName" text NOT NULL,
     "variantBName" text NOT NULL,
     "variantAViews" integer DEFAULT 0 NOT NULL,
@@ -1533,7 +1534,7 @@ CREATE TABLE public."MarketingCampaign" (
     audience text NOT NULL,
     "rewardType" text NOT NULL,
     "rewardValue" double precision,
-    status text DEFAULT 'draft'::text NOT NULL,
+    status text DEFAULT :'DRAFT_STATUS_LOWER'::text NOT NULL,
     "scheduledAt" timestamp(3) without time zone,
     "sentAt" timestamp(3) without time zone,
     "deliveredCount" integer DEFAULT 0 NOT NULL,

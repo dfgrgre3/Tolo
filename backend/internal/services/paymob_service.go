@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+const (
+	// contentTypeJSON is the MIME type for JSON request bodies.
+	contentTypeJSON = "application/json"
+	// headerContentType is the HTTP header key for content type.
+	headerContentType = "Content-Type"
+)
+
 type PaymobService struct {
 	APIKey              string
 	HMACSecret          string
@@ -45,7 +52,7 @@ func (s *PaymobService) Authenticate() (string, error) {
 		body, _ := json.Marshal(payload)
 
 		req, _ := http.NewRequest("POST", s.BaseURL+"/auth/tokens", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(headerContentType, contentTypeJSON)
 
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
@@ -84,7 +91,7 @@ func (s *PaymobService) RegisterOrder(authToken string, amountCents int64, items
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest("POST", s.BaseURL+"/ecommerce/orders", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerContentType, contentTypeJSON)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -154,7 +161,7 @@ func (s *PaymobService) GetPaymentKey(authToken string, orderID int64, amountCen
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest("POST", s.BaseURL+"/acceptance/payment_keys", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerContentType, contentTypeJSON)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -185,7 +192,7 @@ func (s *PaymobService) CreateWalletRequest(paymentKey string, phoneNumber strin
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest("POST", s.BaseURL+"/acceptance/payments/pay", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerContentType, contentTypeJSON)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)

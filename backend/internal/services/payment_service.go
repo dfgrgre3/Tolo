@@ -11,6 +11,9 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+// queryByID is the GORM condition for primary key lookups.
+const queryByID = "id = ?"
+
 // PaymentService handles all payment-related operations with proper transaction management
 type PaymentService struct {
 	db *gorm.DB
@@ -28,7 +31,7 @@ func (ps *PaymentService) ProcessPaymentCompletion(paymentID string, externalTxn
 		// This prevents concurrent updates to the same payment
 		var payment models.Payment
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&payment, "id = ?", paymentID).Error; err != nil {
+			First(&payment, queryByID, paymentID).Error; err != nil {
 			return fmt.Errorf("payment not found: %w", err)
 		}
 
@@ -87,7 +90,7 @@ func (ps *PaymentService) processCoursePurchase(tx *gorm.DB, payment models.Paym
 	// LOCK: Acquire write lock on Subject row to prevent race conditions on enrollment count
 	var subject models.Subject
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		First(&subject, "id = ?", subjectID).Error; err != nil {
+		First(&subject, queryByID, subjectID).Error; err != nil {
 		return fmt.Errorf("subject not found: %w", err)
 	}
 
@@ -119,7 +122,7 @@ func (ps *PaymentService) processWalletTopup(tx *gorm.DB, payment models.Payment
 	// LOCK: Acquire write lock on User row to prevent concurrent balance updates
 	var user models.User
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		First(&user, "id = ?", payment.UserID).Error; err != nil {
+		First(&user, queryByID, payment.UserID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
 
@@ -157,7 +160,7 @@ func (ps *PaymentService) processSubscription(tx *gorm.DB, payment models.Paymen
 
 	// Lock plan for reading (no concurrent modifications expected)
 	var plan models.SubscriptionPlan
-	if err := tx.First(&plan, "id = ?", payment.PlanID).Error; err != nil {
+	if err := tx.First(&plan, queryByID, payment.PlanID).Error; err != nil {
 		return fmt.Errorf("subscription plan not found: %w", err)
 	}
 
@@ -167,7 +170,7 @@ func (ps *PaymentService) processSubscription(tx *gorm.DB, payment models.Paymen
 	// Lock user for subscription updates
 	var user models.User
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		First(&user, "id = ?", payment.UserID).Error; err != nil {
+		First(&user, queryByID, payment.UserID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
 
@@ -241,7 +244,7 @@ func (ps *PaymentService) RefundPayment(paymentID string, reason string) error {
 		// Lock payment for update
 		var payment models.Payment
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&payment, "id = ?", paymentID).Error; err != nil {
+			First(&payment, queryByID, paymentID).Error; err != nil {
 			return fmt.Errorf("payment not found: %w", err)
 		}
 
@@ -259,23 +262,8 @@ func (ps *PaymentService) RefundPayment(paymentID string, reason string) error {
 
 		// Reverse wallet credit if it was a topup
 		if payment.Method == "WALLET_TOPUP" {
-			if err := tx.Model(&models.User{}).Where("id = ?", payment.UserID).
-				Update("balance", gorm.Expr("balance - ?", payment.Amount)).Error; err != nil {
-				return fmt.Errorf("failed to reverse wallet credit: %w", err)
-			}
-
-			// Log refund transaction
-			walletTx := models.WalletTransaction{
-				UserID:      payment.UserID,
-				Type:        models.TxTypeWithdraw,
-				Amount:      payment.Amount,
-				Currency:    "EGP",
-				WalletType:  "BALANCE",
-				Description: fmt.Sprintf("استرجاع دفع: %s", reason),
-				ReferenceID: &payment.Reference,
-			}
-			if err := tx.Create(&walletTx).Error; err != nil {
-				return fmt.Errorf("failed to log refund transaction: %w", err)
+			if err := ps.reverseWalletTopup(tx, payment, reason); err != nil {
+				return err
 			}
 		}
 
@@ -286,4 +274,27 @@ func (ps *PaymentService) RefundPayment(paymentID string, reason string) error {
 
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelSerializable})
+}
+
+// reverseWalletTopup reverses a wallet credit and logs the refund transaction
+func (ps *PaymentService) reverseWalletTopup(tx *gorm.DB, payment models.Payment, reason string) error {
+	if err := tx.Model(&models.User{}).Where(queryByID, payment.UserID).
+		Update("balance", gorm.Expr("balance - ?", payment.Amount)).Error; err != nil {
+		return fmt.Errorf("failed to reverse wallet credit: %w", err)
+	}
+
+	walletTx := models.WalletTransaction{
+		UserID:      payment.UserID,
+		Type:        models.TxTypeWithdraw,
+		Amount:      payment.Amount,
+		Currency:    "EGP",
+		WalletType:  "BALANCE",
+		Description: fmt.Sprintf("استرجاع دفع: %s", reason),
+		ReferenceID: &payment.Reference,
+	}
+	if err := tx.Create(&walletTx).Error; err != nil {
+		return fmt.Errorf("failed to log refund transaction: %w", err)
+	}
+
+	return nil
 }

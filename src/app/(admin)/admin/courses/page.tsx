@@ -919,64 +919,28 @@ export default function AdminCoursesPage() {
       }
 
       {/* Content */}
-      {view === "grid" ?
-        isLoading ?
-          <CourseGridSkeleton /> :
-          courses.length === 0 ?
-            emptyState :
-
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
-              {courses.map((course) =>
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  onEdit={canManageCourses ? (c) => router.push(`/admin/courses/${c.id}`) : undefined}
-                  onDuplicate={canManageCourses ? handleDuplicate : undefined}
-                  onDelete={canManageCourses ? (c) => setDeleteDialog({ open: true, id: c.id }) : undefined}
-                  onToggleStatus={canManageCourses ? handleToggleStatus : undefined} />
-
-              )}
-            </div> :
-
-
-        <AdminDataTable
-          columns={columns}
-          data={courses}
-          loading={isLoading}
-          selectable
-          serverSide
-          totalRows={pagination?.total || 0}
-          pageCount={totalPages}
-          currentPage={page}
-          onPageChange={setPage}
-          onPageSizeChange={setLimit}
-          pageSize={limit}
-          onSelectionChange={(rows) => setSelectedIds(rows.map((row) => row.id))}
-          bulkActions={[
-            { label: "نشر", onClick: () => handleBatchAction("publish") },
-            { label: "إخفاء", variant: "outline", onClick: () => handleBatchAction("unpublish") },
-            { label: "تفعيل", variant: "outline", onClick: () => handleBatchAction("activate") },
-            { label: "إيقاف", variant: "outline", onClick: () => handleBatchAction("deactivate") },
-            { label: "حذف", variant: "destructive", onClick: () => handleBatchAction("delete") }]
-          }
-          actions={{ onRefresh: () => refetch() }}
-          emptyMessage={{
-            title: "لا توجد دورات مطابقة",
-            description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة."
-          }}
-          toolbar={
-            <AdminButton
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl gap-2 font-bold"
-              onClick={handleExport}>
-
-              <Download className="h-4 w-4" />
-              تصدير الكل
-            </AdminButton>
-          } />
-
-      }
+      <CourseContentView
+        view={view}
+        isLoading={isLoading}
+        courses={courses}
+        emptyState={emptyState}
+        canManageCourses={canManageCourses}
+        columns={columns}
+        pagination={pagination}
+        totalPages={totalPages}
+        page={page}
+        limit={limit}
+        setPage={setPage}
+        setLimit={setLimit}
+        setSelectedIds={setSelectedIds}
+        handleBatchAction={handleBatchAction}
+        handleDuplicate={handleDuplicate}
+        handleToggleStatus={handleToggleStatus}
+        handleExport={handleExport}
+        refetch={refetch}
+        router={router}
+        setDeleteDialog={setDeleteDialog}
+      />
 
       {/* Pagination for grid view */}
       {view === "grid" && totalPages > 1 &&
@@ -1408,115 +1372,7 @@ export default function AdminCoursesPage() {
             </div>
 
             {/* Preview Side */}
-            <div className="border-r bg-muted/10 p-6 hidden lg:block" dir="rtl">
-              <div className="sticky top-0 space-y-5">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    معاينة سريعة
-                  </p>
-                  <h3 className="mt-2 text-xl font-black leading-snug">
-                    {quickForm.watch("nameAr") || quickForm.watch("name") || "دورة جديدة"}
-                  </h3>
-                </div>
-
-                <div className="overflow-hidden rounded-[1.5rem] border bg-background shadow-sm">
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                    {quickForm.watch("thumbnailUrl") ?
-                      <img
-                        src={quickForm.watch("thumbnailUrl") || ""}
-                        alt="preview"
-                        className="h-full w-full object-cover" /> :
-
-
-                      <div className="flex h-full items-center justify-center">
-                        <PlayCircle className="h-12 w-12 text-primary/30" />
-                      </div>
-                    }
-                    <div className="absolute top-3 right-3">
-                      <Badge
-                        className={cn(
-                          "rounded-lg text-[10px] font-black px-2 py-0.5 border",
-                          quickForm.watch("isPublished") ?
-                            "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-                            "bg-orange-500/20 text-orange-400 border-orange-500/30"
-                        )}>
-
-                        {quickForm.watch("isPublished") ? "منشورة" : "مسودة"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-4 p-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "rounded-full text-[11px]",
-                          levelStyles[quickForm.watch("level")] || levelStyles.INTERMEDIATE
-                        )}>
-
-                        {levelLabels[quickForm.watch("level")] || "متوسط"}
-                      </Badge>
-                      <Badge
-                        variant={quickForm.watch("isActive") ? "default" : "secondary"}
-                        className="rounded-full text-[11px]">
-
-                        {quickForm.watch("isActive") ? "نشطة" : "موقوفة"}
-                      </Badge>
-                    </div>
-                    <p className="text-xs leading-6 text-muted-foreground line-clamp-3">
-                      {quickForm.watch("description") ||
-                        "أضف وصفًا يوضح قيمة الدورة للطلاب..."}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] font-bold text-muted-foreground">السعر</p>
-                        <p className="mt-1 text-lg font-black">
-                          {quickForm.watch("price") === 0 ?
-                            "مجانية" :
-                            `${quickForm.watch("price")} ج`}
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] font-bold text-muted-foreground">المدة</p>
-                        <p className="mt-1 text-lg font-black">
-                          {quickForm.watch("durationHours") || 0}h
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-dashed bg-background p-4">
-                  <p className="text-xs font-black mb-1">توصية قبل النشر</p>
-                  <ul className="space-y-1.5 text-[11px] text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      {quickForm.watch("thumbnailUrl") ?
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
-
-                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
-                      }
-                      صورة الغلاف
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {(quickForm.watch("description")?.length ?? 0) > 50 ?
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
-
-                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
-                      }
-                      وصف تفصيلي كافٍ
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {quickForm.watch("instructorId") ?
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> :
-
-                        <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
-                      }
-                      مدرس مرتبط
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <CoursePreviewPanel quickForm={quickForm} />
           </div>
         </DialogContent>
       </Dialog>

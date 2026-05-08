@@ -6,6 +6,11 @@ import (
 	"thanawy-backend/internal/models"
 )
 
+const (
+	idCondition              = "id = ?"
+	broadcastStatusCondition = "broadcast_id = ? AND status = ?"
+)
+
 // NotificationService handles notification operations
 type NotificationService struct {
 	queueService *NotificationQueueService
@@ -37,7 +42,7 @@ func (s *NotificationService) QueueNotification(notification models.Notification
 // MarkAsSent marks a notification as sent
 func (s *NotificationService) MarkAsSent(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
-		Where("id = ?", notificationID).
+		Where(idCondition, notificationID).
 		Updates(map[string]interface{}{
 			"status":  "sent",
 			"sent_at": "NOW()",
@@ -47,7 +52,7 @@ func (s *NotificationService) MarkAsSent(notificationID string) error {
 // MarkAsDelivered marks a notification as delivered
 func (s *NotificationService) MarkAsDelivered(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
-		Where("id = ?", notificationID).
+		Where(idCondition, notificationID).
 		Updates(map[string]interface{}{
 			"status":       "delivered",
 			"delivered_at": "NOW()",
@@ -57,7 +62,7 @@ func (s *NotificationService) MarkAsDelivered(notificationID string) error {
 // MarkAsRead marks a notification as read
 func (s *NotificationService) MarkAsRead(notificationID string) error {
 	return db.DB.Model(&models.Notification{}).
-		Where("id = ?", notificationID).
+		Where(idCondition, notificationID).
 		Updates(map[string]interface{}{
 			"status":  "read",
 			"read_at": "NOW()",
@@ -67,7 +72,7 @@ func (s *NotificationService) MarkAsRead(notificationID string) error {
 // MarkAsFailed marks a notification as failed
 func (s *NotificationService) MarkAsFailed(notificationID string, errorMsg string) error {
 	return db.DB.Model(&models.Notification{}).
-		Where("id = ?", notificationID).
+		Where(idCondition, notificationID).
 		Updates(map[string]interface{}{
 			"status": "failed",
 			"error":  errorMsg,
@@ -119,19 +124,19 @@ func (s *NotificationService) UpdateBroadcastStats(broadcastID string) error {
 	}
 
 	db.DB.Model(&models.Notification{}).
-		Where("broadcast_id = ? AND status = ?", broadcastID, "sent").
+		Where(broadcastStatusCondition, broadcastID, "sent").
 		Count(&stats.Sent)
 
 	db.DB.Model(&models.Notification{}).
-		Where("broadcast_id = ? AND status = ?", broadcastID, "delivered").
+		Where(broadcastStatusCondition, broadcastID, "delivered").
 		Count(&stats.Delivered)
 
 	db.DB.Model(&models.Notification{}).
-		Where("broadcast_id = ? AND status = ?", broadcastID, "failed").
+		Where(broadcastStatusCondition, broadcastID, "failed").
 		Count(&stats.Failed)
 
 	return db.DB.Model(&models.Broadcast{}).
-		Where("id = ?", broadcastID).
+		Where(idCondition, broadcastID).
 		Updates(map[string]interface{}{
 			"success_count": stats.Sent + stats.Delivered,
 			"failure_count": stats.Failed,
