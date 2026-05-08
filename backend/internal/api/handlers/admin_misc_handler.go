@@ -1376,20 +1376,19 @@ func UpdateAdminAnnouncement(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
-	if input.Title != "" {
-		updates["title"] = input.Title
-	}
-	if input.Content != "" {
-		updates["message"] = input.Content
-	}
-	if input.Type != "" {
-		updates["type"] = input.Type
+	type announcementUpdates struct {
+		Title   *string `gorm:"column:title"`
+		Message *string `gorm:"column:message"`
+		Type    *string `gorm:"column:type"`
 	}
 
+	updates := announcementUpdates{}
+	if input.Title != "" { updates.Title = &input.Title }
+	if input.Content != "" { updates.Message = &input.Content }
+	if input.Type != "" { updates.Type = &input.Type }
+
 	if err := db.DB.Model(&models.Notification{}).Where("id = ?", input.ID).
-		Select("title", "message", "type").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update announcement"})
 		return
 	}

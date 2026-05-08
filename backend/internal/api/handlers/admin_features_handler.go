@@ -72,14 +72,45 @@ func AdminCreateAchievement(c *gin.Context) {
 
 func AdminUpdateAchievement(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Achievement
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var achievement models.Achievement
+	if err := db.DB.Where("id = ?", id).First(&achievement).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Achievement not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
+		Icon        *string `json:"icon"`
+		Points      *int    `json:"points"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type achievementUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Description *string `gorm:"column:description"`
+		Icon        *string `gorm:"column:icon"`
+		Points      *int    `gorm:"column:points"`
+	}
+
+	updates := achievementUpdates{
+		Name:        input.Name,
+		Description: input.Description,
+		Icon:        input.Icon,
+		Points:      input.Points,
+	}
+
+	if err := db.DB.Model(&models.Achievement{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update achievement")
+		return
+	}
+
+	LogAudit(c, "UPDATE", "achievement", id, updates)
+	api_response.Success(c, achievement)
 }
 
 func AdminDeleteAchievement(c *gin.Context) {
@@ -108,14 +139,45 @@ func AdminCreateReward(c *gin.Context) {
 
 func AdminUpdateReward(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Reward
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var reward models.Reward
+	if err := db.DB.Where("id = ?", id).First(&reward).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Reward not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
+		Cost        *int    `json:"cost"`
+		Type        *string `json:"type"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type rewardUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Description *string `gorm:"column:description"`
+		Cost        *int    `gorm:"column:cost"`
+		Type        *string `gorm:"column:type"`
+	}
+
+	updates := rewardUpdates{
+		Name:        input.Name,
+		Description: input.Description,
+		Cost:        input.Cost,
+		Type:        input.Type,
+	}
+
+	if err := db.DB.Model(&models.Reward{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update reward")
+		return
+	}
+
+	LogAudit(c, "UPDATE", "reward", id, updates)
+	api_response.Success(c, reward)
 }
 
 func AdminDeleteReward(c *gin.Context) {
@@ -143,14 +205,44 @@ func AdminCreateSeason(c *gin.Context) {
 
 func AdminUpdateSeason(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Season
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var season models.Season
+	if err := db.DB.Where("id = ?", id).First(&season).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Season not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Name      *string    `json:"name"`
+		StartDate *time.Time `json:"startDate"`
+		EndDate   *time.Time `json:"endDate"`
+		IsActive  *bool      `json:"isActive"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type seasonUpdates struct {
+		Name      *string    `gorm:"column:name"`
+		StartDate *time.Time `gorm:"column:start_date"`
+		EndDate   *time.Time `gorm:"column:end_date"`
+		IsActive  *bool      `gorm:"column:is_active"`
+	}
+
+	updates := seasonUpdates{
+		Name:      input.Name,
+		StartDate: input.StartDate,
+		EndDate:   input.EndDate,
+		IsActive:  input.IsActive,
+	}
+
+	if err := db.DB.Model(&models.Season{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update season")
+		return
+	}
+
+	api_response.Success(c, season)
 }
 
 func AdminDeleteSeason(c *gin.Context) {
@@ -176,14 +268,51 @@ func AdminCreateCoupon(c *gin.Context) {
 
 func AdminUpdateCoupon(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Coupon
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var coupon models.Coupon
+	if err := db.DB.Where("id = ?", id).First(&coupon).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Coupon not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Code           *string    `json:"code"`
+		DiscountType   *string    `json:"discountType"`
+		DiscountValue  *float64   `json:"discountValue"`
+		ExpirationDate *time.Time `json:"expirationDate"`
+		MaxUses        *int       `json:"maxUses"`
+		IsActive       *bool      `json:"isActive"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type couponUpdates struct {
+		Code           *string    `gorm:"column:code"`
+		DiscountType   *string    `gorm:"column:discount_type"`
+		DiscountValue  *float64   `gorm:"column:discount_value"`
+		ExpirationDate *time.Time `gorm:"column:expiration_date"`
+		MaxUses        *int       `gorm:"column:max_uses"`
+		IsActive       *bool      `gorm:"column:is_active"`
+	}
+
+	updates := couponUpdates{
+		Code:           input.Code,
+		DiscountType:   input.DiscountType,
+		DiscountValue:  input.DiscountValue,
+		ExpirationDate: input.ExpirationDate,
+		MaxUses:        input.MaxUses,
+		IsActive:       input.IsActive,
+	}
+
+	if err := db.DB.Model(&models.Coupon{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update coupon")
+		return
+	}
+
+	LogAudit(c, "UPDATE", "coupon", id, updates)
+	api_response.Success(c, coupon)
 }
 
 func AdminDeleteCoupon(c *gin.Context) {
@@ -211,14 +340,44 @@ func AdminCreateChallenge(c *gin.Context) {
 
 func AdminUpdateChallenge(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Challenge
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var challenge models.Challenge
+	if err := db.DB.Where("id = ?", id).First(&challenge).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Challenge not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Title       *string `json:"title"`
+		Description *string `json:"description"`
+		Points      *int    `json:"points"`
+		IsActive    *bool   `json:"isActive"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type challengeUpdates struct {
+		Title       *string `gorm:"column:title"`
+		Description *string `gorm:"column:description"`
+		Points      *int    `gorm:"column:points"`
+		IsActive    *bool   `gorm:"column:is_active"`
+	}
+
+	updates := challengeUpdates{
+		Title:       input.Title,
+		Description: input.Description,
+		Points:      input.Points,
+		IsActive:    input.IsActive,
+	}
+
+	if err := db.DB.Model(&models.Challenge{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update challenge")
+		return
+	}
+
+	api_response.Success(c, challenge)
 }
 
 func AdminDeleteChallenge(c *gin.Context) {
@@ -292,14 +451,50 @@ func AdminCreateAutomation(c *gin.Context) {
 
 func AdminUpdateAutomation(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Automation
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var automation models.Automation
+	if err := db.DB.Where("id = ?", id).First(&automation).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Automation not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Name        *string `json:"name"`
+		Type        *string `json:"type"`
+		Trigger     *string `json:"trigger"`
+		Action      *string `json:"action"`
+		Condition   *string `json:"condition"`
+		IsActive    *bool   `json:"isActive"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type automationUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Type        *string `gorm:"column:type"`
+		Trigger     *string `gorm:"column:trigger"`
+		Action      *string `gorm:"column:action"`
+		Condition   *string `gorm:"column:condition"`
+		IsActive    *bool   `gorm:"column:is_active"`
+	}
+
+	updates := automationUpdates{
+		Name:      input.Name,
+		Type:      input.Type,
+		Trigger:   input.Trigger,
+		Action:    input.Action,
+		Condition: input.Condition,
+		IsActive:  input.IsActive,
+	}
+
+	if err := db.DB.Model(&models.Automation{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update automation")
+		return
+	}
+
+	api_response.Success(c, automation)
 }
 
 func AdminDeleteAutomation(c *gin.Context) {
@@ -325,14 +520,50 @@ func AdminCreateBlogPost(c *gin.Context) {
 
 func AdminUpdateBlogPost(c *gin.Context) {
 	id := c.Param("id")
-	var item models.BlogPost
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var post models.BlogPost
+	if err := db.DB.Where("id = ?", id).First(&post).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Blog post not found")
 		return
 	}
-	c.ShouldBindJSON(&item)
-	db.DB.Save(&item)
-	api_response.Success(c, item)
+
+	var input struct {
+		Title       *string `json:"title"`
+		Content     *string `json:"content"`
+		Slug        *string `json:"slug"`
+		Status      *string `json:"status"`
+		CategoryID  *string `json:"categoryId"`
+		FeaturedImg *string `json:"featuredImage"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type blogUpdates struct {
+		Title       *string `gorm:"column:title"`
+		Content     *string `gorm:"column:content"`
+		Slug        *string `gorm:"column:slug"`
+		Status      *string `gorm:"column:status"`
+		CategoryID  *string `gorm:"column:category_id"`
+		FeaturedImg *string `gorm:"column:featured_image"`
+	}
+
+	updates := blogUpdates{
+		Title:       input.Title,
+		Content:     input.Content,
+		Slug:        input.Slug,
+		Status:      input.Status,
+		CategoryID:  input.CategoryID,
+		FeaturedImg: input.FeaturedImg,
+	}
+
+	if err := db.DB.Model(&models.BlogPost{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update blog post")
+		return
+	}
+
+	api_response.Success(c, post)
 }
 
 func AdminDeleteBlogPost(c *gin.Context) {
@@ -446,22 +677,56 @@ func AdminUpdateBook(c *gin.Context) {
 		return
 	}
 
-	updates := make(map[string]interface{})
-
-	if strings.Contains(c.GetHeader(headerContentType), "multipart/form-data") {
-		mapUpdateFromForm(c, updates)
-		if url, err := uploadMultipartFile(c, "cover", "book_cover"); err == nil {
-			updates["cover_url"] = url
-		}
-		if url, err := uploadMultipartFile(c, "file", "book"); err == nil {
-			updates["download_url"] = url
-		}
-	} else {
-		applyUpdateFromJSON(c, updates)
+	// Use a dedicated struct for updates to ensure type safety and avoid SQL injection flags
+	// associated with dynamic maps.
+	var input struct {
+		Title       *string                 `json:"title" form:"title"`
+		Author      *string                 `json:"author" form:"author"`
+		Description *string                 `json:"description" form:"description"`
+		SubjectID   *string                 `json:"subjectId" form:"subjectId"`
+		Price       *float64                `json:"price" form:"price"`
+		IsFree      *bool                   `json:"isFree" form:"isFree"`
+		Tags        *models.JSONStringArray `json:"tags" form:"tags"`
 	}
 
-	// Ensure we only update the specific record and only with allowed fields
-	if err := db.DB.Model(&models.Book{}).Where("id = ?", id).Select("title", "author", "description", "subject_id", "price", "is_free", "tags", "cover_url", "download_url").Updates(updates).Error; err != nil {
+	if err := c.ShouldBind(&input); err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// We use another struct that matches GORM's column naming conventions
+	type bookUpdates struct {
+		Title       *string                 `gorm:"column:title"`
+		Author      *string                 `gorm:"column:author"`
+		Description *string                 `gorm:"column:description"`
+		SubjectID   *string                 `gorm:"column:subject_id"`
+		Price       *float64                `gorm:"column:price"`
+		IsFree      *bool                   `gorm:"column:is_free"`
+		Tags        *models.JSONStringArray `gorm:"column:tags"`
+		CoverUrl    *string                 `gorm:"column:cover_url"`
+		DownloadUrl *string                 `gorm:"column:download_url"`
+	}
+
+	updates := bookUpdates{
+		Title:       input.Title,
+		Author:      input.Author,
+		Description: input.Description,
+		SubjectID:   input.SubjectID,
+		Price:       input.Price,
+		IsFree:      input.IsFree,
+		Tags:        input.Tags,
+	}
+
+	// Handle file uploads
+	if url, err := uploadMultipartFile(c, "cover", "book_cover"); err == nil {
+		updates.CoverUrl = &url
+	}
+	if url, err := uploadMultipartFile(c, "file", "book"); err == nil {
+		updates.DownloadUrl = &url
+	}
+
+	// Perform the update using the struct. GORM will only update non-nil fields.
+	if err := db.DB.Model(&models.Book{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update book")
 		return
 	}
@@ -470,50 +735,7 @@ func AdminUpdateBook(c *gin.Context) {
 	api_response.Success(c, book)
 }
 
-func mapUpdateFromForm(c *gin.Context, updates map[string]interface{}) {
-	if val := c.PostForm("title"); val != "" {
-		updates["title"] = val
-	}
-	if val := c.PostForm("author"); val != "" {
-		updates["author"] = val
-	}
-	if val := c.PostForm("description"); val != "" {
-		updates["description"] = val
-	}
-	if val := c.PostForm("subjectId"); val != "" {
-		updates["subject_id"] = val
-	}
 
-	if priceStr := c.PostForm("price"); priceStr != "" {
-		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-			updates["price"] = price
-		}
-	}
-	if isFreeStr := c.PostForm("isFree"); isFreeStr != "" {
-		updates["is_free"] = isFreeStr == "true"
-	}
-}
-
-func applyUpdateFromJSON(c *gin.Context, updates map[string]interface{}) {
-	var input map[string]interface{}
-	if err := c.ShouldBindJSON(&input); err == nil {
-		// Map JSON keys to database column names
-		fieldMapping := map[string]string{
-			"title":       "title",
-			"author":      "author",
-			"description": "description",
-			"subjectId":   "subject_id",
-			"price":       "price",
-			"isFree":      "is_free",
-			"tags":        "tags",
-		}
-		for jsonKey, dbCol := range fieldMapping {
-			if val, ok := input[jsonKey]; ok {
-				updates[dbCol] = val
-			}
-		}
-	}
-}
 
 func AdminDeleteBook(c *gin.Context) {
 	id := c.Param("id")
@@ -535,22 +757,44 @@ func AdminCreateABTest(c *gin.Context) {
 
 func AdminUpdateABTest(c *gin.Context) {
 	id := c.Param("id")
-	var item models.ABExperiment
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var experiment models.ABExperiment
+	if err := db.DB.Where("id = ?", id).First(&experiment).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "AB Test not found")
 		return
 	}
-	if err := c.ShouldBindJSON(&item); err != nil {
+
+	var input struct {
+		Name         *string  `json:"name"`
+		Description  *string  `json:"description"`
+		Status       *string  `json:"status"`
+		TrafficSplit *float64 `json:"trafficSplit"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := db.DB.Model(&models.ABExperiment{}).Where("id = ?", id).
-		Select("name", "description", "status", "traffic_split").
-		Updates(item).Error; err != nil {
+
+	type experimentUpdates struct {
+		Name         *string  `gorm:"column:name"`
+		Description  *string  `gorm:"column:description"`
+		Status       *string  `gorm:"column:status"`
+		TrafficSplit *float64 `gorm:"column:traffic_split"`
+	}
+
+	updates := experimentUpdates{
+		Name:         input.Name,
+		Description:  input.Description,
+		Status:       input.Status,
+		TrafficSplit: input.TrafficSplit,
+	}
+
+	if err := db.DB.Model(&models.ABExperiment{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update AB Test")
 		return
 	}
-	api_response.Success(c, item)
+
+	api_response.Success(c, experiment)
 }
 
 func AdminDeleteABTest(c *gin.Context) {
@@ -583,22 +827,41 @@ func AdminCreateCampaign(c *gin.Context) {
 
 func AdminUpdateCampaign(c *gin.Context) {
 	id := c.Param("id")
-	var item models.Campaign
-	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
+	var campaign models.Campaign
+	if err := db.DB.Where("id = ?", id).First(&campaign).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Campaign not found")
 		return
 	}
-	if err := c.ShouldBindJSON(&item); err != nil {
+
+	var input struct {
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
+		Status      *string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := db.DB.Model(&models.Campaign{}).Where("id = ?", id).
-		Select("name", "description", "status").
-		Updates(item).Error; err != nil {
+
+	type campaignUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Description *string `gorm:"column:description"`
+		Status      *string `gorm:"column:status"`
+	}
+
+	updates := campaignUpdates{
+		Name:        input.Name,
+		Description: input.Description,
+		Status:      input.Status,
+	}
+
+	if err := db.DB.Model(&models.Campaign{}).Where("id = ?", id).Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update campaign")
 		return
 	}
-	api_response.Success(c, item)
+
+	api_response.Success(c, campaign)
 }
 
 func AdminDeleteCampaign(c *gin.Context) {

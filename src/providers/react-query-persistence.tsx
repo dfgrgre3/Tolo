@@ -42,10 +42,10 @@ export function ReactQueryPersistence() {
     let unsubscribe: (() => void) | undefined;
 
     const flush = () => {
-      void persistQueryClientSave(saveOptions as unknown as Parameters<typeof persistQueryClientSave>[0]);
+      persistQueryClientSave(saveOptions as unknown as Parameters<typeof persistQueryClientSave>[0]);
     };
 
-    void persistQueryClientRestore({
+    persistQueryClientRestore({
       queryClient,
       persister,
       maxAge: MAX_AGE_MS,

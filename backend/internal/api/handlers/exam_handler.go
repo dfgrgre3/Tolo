@@ -181,20 +181,19 @@ func UpdateExam(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
-	if input.Title != "" {
-		updates["title"] = input.Title
-	}
-	if input.SubjectID != "" {
-		updates["subjectId"] = input.SubjectID
-	}
-	if input.Type != "" {
-		updates["type"] = input.Type
+	type examUpdates struct {
+		Title     *string `gorm:"column:title"`
+		SubjectID *string `gorm:"column:subject_id"`
+		Type      *string `gorm:"column:type"`
 	}
 
+	updates := examUpdates{}
+	if input.Title != "" { updates.Title = &input.Title }
+	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID }
+	if input.Type != "" { updates.Type = &input.Type }
+
 	if err := db.DB.Model(&models.Exam{}).Where("id = ?", exam.ID).
-		Select("title", "description", "subjectId", "durationMin", "passingScore", "isActive").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exam"})
 		return
 	}

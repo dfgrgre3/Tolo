@@ -159,21 +159,28 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{
-		"icon":        input.Icon,
-		"description": input.Description,
+	type categoryUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Slug        *string `gorm:"column:slug"`
+		Icon        *string `gorm:"column:icon"`
+		Description *string `gorm:"column:description"`
+	}
+
+	updates := categoryUpdates{
+		Icon:        &input.Icon,
+		Description: &input.Description,
 	}
 	if input.Name != "" {
-		updates["name"] = input.Name
-		updates["slug"] = buildSlug(input.Name, input.Slug)
+		updates.Name = &input.Name
+		slug := buildSlug(input.Name, input.Slug)
+		updates.Slug = &slug
 	} else if input.Slug != nil && *input.Slug != "" {
-		updates["slug"] = *input.Slug
+		updates.Slug = input.Slug
 	}
 
 	if err := db.DB.Model(&models.Category{}).Where("id = ?", category.ID).
-		Select("name", "slug", "icon", "description").
-		Updates(updates).Error; err != nil {
-		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update category")
+		Updates(&updates).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update category")
 		return
 	}
 
@@ -264,17 +271,22 @@ func UpdateTeacher(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{
-		"bio": input.Notes,
+	type teacherUpdates struct {
+		Name     *string `gorm:"column:name"`
+		Username *string `gorm:"column:username"`
+		Bio      *string `gorm:"column:bio"`
+	}
+
+	updates := teacherUpdates{
+		Bio: input.Notes,
 	}
 	if input.Name != "" {
-		updates["name"] = input.Name
-		updates["username"] = input.Name
+		updates.Name = &input.Name
+		updates.Username = &input.Name
 	}
 
 	if err := db.DB.Model(&models.User{}).Where("id = ?", teacher.ID).
-		Select("name", "username", "bio").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update teacher")
 		return
 	}

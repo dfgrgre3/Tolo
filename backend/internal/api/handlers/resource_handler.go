@@ -168,36 +168,33 @@ func AdminUpdateResource(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
-	if input.Title != "" {
-		updates["title"] = input.Title
+	type resourceUpdates struct {
+		Title       *string `gorm:"column:title"`
+		Description *string `gorm:"column:description"`
+		URL         *string `gorm:"column:url"`
+		Type        *string `gorm:"column:type"`
+		Source      *string `gorm:"column:source"`
+		Free        *bool   `gorm:"column:free"`
+		SubjectID   *string `gorm:"column:subject_id"`
 	}
-	if input.Description != nil {
-		updates["description"] = input.Description
-	}
-	if input.URL != "" {
-		updates["url"] = input.URL
-	}
-	if input.Type != "" {
-		updates["type"] = input.Type
-	}
-	if input.Source != nil {
-		updates["source"] = input.Source
-	}
-	if input.Free != nil {
-		updates["free"] = *input.Free
-	}
-	if input.SubjectID != "" {
-		updates["subject_id"] = input.SubjectID
-	}
-	if len(updates) == 0 {
+
+	updates := resourceUpdates{}
+	hasUpdates := false
+	if input.Title != "" { updates.Title = &input.Title; hasUpdates = true }
+	if input.Description != nil { updates.Description = input.Description; hasUpdates = true }
+	if input.URL != "" { updates.URL = &input.URL; hasUpdates = true }
+	if input.Type != "" { updates.Type = &input.Type; hasUpdates = true }
+	if input.Source != nil { updates.Source = input.Source; hasUpdates = true }
+	if input.Free != nil { updates.Free = input.Free; hasUpdates = true }
+	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID; hasUpdates = true }
+
+	if !hasUpdates {
 		api_response.Error(c, http.StatusBadRequest, "no updates provided")
 		return
 	}
 
 	if err := db.DB.Model(&models.Resource{}).Where("id IN ?", ids).
-		Select("title", "description", "url", "type", "source", "free", "subject_id").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update resource")
 		return
 	}

@@ -295,18 +295,24 @@ func AdminReportsContent(c *gin.Context) {
 			api_response.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		updates := map[string]interface{}{"status": input.Status}
+		type reportUpdates struct {
+			Status     *string    `gorm:"column:status"`
+			ResolvedAt *time.Time `gorm:"column:resolved_at"`
+			ResolvedBy *string    `gorm:"column:resolved_by"`
+		}
+		updates := reportUpdates{
+			Status: &input.Status,
+		}
 		if input.Status == "RESOLVED" || input.Status == "DISMISSED" {
 			now := time.Now()
-			updates["resolvedAt"] = &now
+			updates.ResolvedAt = &now
 			if userId, exists := c.Get("userId"); exists {
 				uid := userId.(string)
-				updates["resolvedBy"] = &uid
+				updates.ResolvedBy = &uid
 			}
 		}
 		db.DB.Model(&models.ContentReport{}).Where("id = ?", input.ID).
-			Select("status", "resolvedAt", "resolvedBy").
-			Updates(updates)
+			Updates(&updates)
 		api_response.Success(c, nil)
 
 	default:
@@ -498,17 +504,29 @@ func handleMarketingUpdate(c *gin.Context) {
 		return
 	}
 
-	updates := make(map[string]interface{})
-	allowedFields := []string{"name", "description", "type", "status", "targetRole", "content", "startDate", "endDate"}
-	for _, field := range allowedFields {
-		if val, ok := input[field]; ok {
-			updates[field] = val
-		}
+	type campaignUpdates struct {
+		Name        *string `gorm:"column:name"`
+		Description *string `gorm:"column:description"`
+		Type        *string `gorm:"column:type"`
+		Status      *string `gorm:"column:status"`
+		TargetRole  *string `gorm:"column:target_role"`
+		Content     *string `gorm:"column:content"`
+		StartDate   *string `gorm:"column:start_date"`
+		EndDate     *string `gorm:"column:end_date"`
 	}
 
+	var updates campaignUpdates
+	if v, ok := input["name"].(string); ok { updates.Name = &v }
+	if v, ok := input["description"].(string); ok { updates.Description = &v }
+	if v, ok := input["type"].(string); ok { updates.Type = &v }
+	if v, ok := input["status"].(string); ok { updates.Status = &v }
+	if v, ok := input["targetRole"].(string); ok { updates.TargetRole = &v }
+	if v, ok := input["content"].(string); ok { updates.Content = &v }
+	if v, ok := input["startDate"].(string); ok { updates.StartDate = &v }
+	if v, ok := input["endDate"].(string); ok { updates.EndDate = &v }
+
 	db.DB.Model(&models.Campaign{}).Where("id = ?", id).
-		Select("name", "description", "type", "status", "targetRole", "content", "startDate", "endDate").
-		Updates(updates)
+		Updates(&updates)
 	api_response.Success(c, item)
 }
 
@@ -636,26 +654,24 @@ func handleContestsUpdate(c *gin.Context) {
 		return
 	}
 
-	updates := make(map[string]interface{})
-	if input.Title != nil {
-		updates["title"] = *input.Title
+	type contestUpdates struct {
+		Title       *string `gorm:"column:title"`
+		Description *string `gorm:"column:description"`
+		Category    *string `gorm:"column:category"`
+		Status      *string `gorm:"column:status"`
+		PinCode     *string `gorm:"column:pin_code"`
 	}
-	if input.Description != nil {
-		updates["description"] = input.Description
-	}
-	if input.Category != nil {
-		updates["category"] = input.Category
-	}
-	if input.Status != nil {
-		updates["status"] = *input.Status
-	}
-	if input.PinCode != nil {
-		updates["pinCode"] = input.PinCode
+
+	updates := contestUpdates{
+		Title:       input.Title,
+		Description: input.Description,
+		Category:    input.Category,
+		Status:      input.Status,
+		PinCode:     input.PinCode,
 	}
 
 	if err := db.DB.Model(&models.Contest{}).Where("id = ?", id).
-		Select("title", "description", "category", "status", "pinCode").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update contest")
 		return
 	}

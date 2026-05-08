@@ -686,26 +686,64 @@ func UpdateSubject(c *gin.Context) {
 	}
 
 		// Whitelist allowed fields to prevent mass assignment and SQL injection
-	updates := make(map[string]interface{})
-	allowedFields := []string{
-		"name", "nameAr", "code", "description", "icon", "color",
-		"isActive", "isPublished", "price", "thumbnailUrl", "trailerUrl",
-		"trailerDurationMinutes", "slug", "level", "instructorName",
-		"instructorId", "categoryId", "durationHours", "requirements",
-		"learningObjectives", "seoTitle", "seoDescription", "isFeatured",
-		"language", "type",
+	type subjectUpdates struct {
+		Name                   *string  `gorm:"column:name"`
+		NameAr                 *string  `gorm:"column:name_ar"`
+		Description            *string  `gorm:"column:description"`
+		CategoryID             *string  `gorm:"column:category_id"`
+		Color                  *string  `gorm:"column:color"`
+		Image                  *string  `gorm:"column:image"`
+		IsPublished            *bool    `gorm:"column:is_published"`
+		IsFree                 *bool    `gorm:"column:is_free"`
+		Price                  *float64 `gorm:"column:price"`
+		Code                   *string  `gorm:"column:code"`
+		Icon                   *string  `gorm:"column:icon"`
+		InstructorName         *string  `gorm:"column:instructor_name"`
+		InstructorID           *string  `gorm:"column:instructor_id"`
+		Slug                   *string  `gorm:"column:slug"`
+		ThumbnailUrl           *string  `gorm:"column:thumbnail_url"`
+		TrailerUrl             *string  `gorm:"column:trailer_url"`
+		SeoTitle               *string  `gorm:"column:seo_title"`
+		SeoDescription         *string  `gorm:"column:seo_description"`
+		TrailerDurationMinutes *int     `gorm:"column:trailer_duration_minutes"`
+		Level                  *string  `gorm:"column:level"`
+		DurationHours          *float64 `gorm:"column:duration_hours"`
+		IsFeatured             *bool    `gorm:"column:is_featured"`
+		Language               *string  `gorm:"column:language"`
+		Type                   *string  `gorm:"column:type"`
 	}
 
-	for _, field := range allowedFields {
-		if val, exists := input[field]; exists {
-			updates[field] = val
-		}
-	}
+	updates := subjectUpdates{}
+	// Manual mapping to ensure type safety and explicit control
+	if v, ok := input["name"].(string); ok { updates.Name = &v }
+	if v, ok := input["nameAr"].(string); ok { updates.NameAr = &v }
+	if v, ok := input["description"].(string); ok { updates.Description = &v }
+	if v, ok := input["categoryId"].(string); ok { updates.CategoryID = &v }
+	if v, ok := input["color"].(string); ok { updates.Color = &v }
+	if v, ok := input["icon"].(string); ok { updates.Icon = &v }
+	if v, ok := input["code"].(string); ok { updates.Code = &v }
+	if v, ok := input["slug"].(string); ok { updates.Slug = &v }
+	if v, ok := input["thumbnailUrl"].(string); ok { updates.ThumbnailUrl = &v }
+	if v, ok := input["trailerUrl"].(string); ok { updates.TrailerUrl = &v }
+	if v, ok := input["instructorName"].(string); ok { updates.InstructorName = &v }
+	if v, ok := input["instructorId"].(string); ok { updates.InstructorID = &v }
+	if v, ok := input["seoTitle"].(string); ok { updates.SeoTitle = &v }
+	if v, ok := input["seoDescription"].(string); ok { updates.SeoDescription = &v }
+	if v, ok := input["level"].(string); ok { updates.Level = &v }
+	if v, ok := input["language"].(string); ok { updates.Language = &v }
+	if v, ok := input["type"].(string); ok { updates.Type = &v }
 
-	log.Printf("Attempting to update subject %s with whitelisted values: %v", id, updates)
+	if v, ok := input["price"].(float64); ok { updates.Price = &v }
+	if v, ok := input["durationHours"].(float64); ok { updates.DurationHours = &v }
+	if v, ok := input["trailerDurationMinutes"].(float64); ok { i := int(v); updates.TrailerDurationMinutes = &i }
+
+	if v, ok := input["isActive"].(bool); ok { /* ignored by select previously but good to have if needed */ }
+	if v, ok := input["isPublished"].(bool); ok { updates.IsPublished = &v }
+	if v, ok := input["isFree"].(bool); ok { updates.IsFree = &v }
+	if v, ok := input["isFeatured"].(bool); ok { updates.IsFeatured = &v }
+
 	if err := db.DB.Model(&models.Subject{}).Where("id = ?", subject.ID).
-		Select("name", "nameAr", "description", "categoryId", "color", "image", "isPublished", "isFree", "price").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		log.Printf("UpdateSubject: Database error: %v", err)
 		errMsg := "Failed to update subject"
 		if strings.Contains(err.Error(), "duplicate key") {

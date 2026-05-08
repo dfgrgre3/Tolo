@@ -332,24 +332,29 @@ func UpdateTicketStatus(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{
-		"status":     req.Status,
-		"updated_at": time.Now(),
+	type ticketUpdates struct {
+		Status     *string    `gorm:"column:status"`
+		UpdatedAt  *time.Time `gorm:"column:updated_at"`
+		ResolvedAt *time.Time `gorm:"column:resolved_at"`
+		ClosedAt   *time.Time `gorm:"column:closed_at"`
+	}
+
+	now := time.Now()
+	updates := ticketUpdates{
+		Status:    &req.Status,
+		UpdatedAt: &now,
 	}
 
 	// Set timestamps based on status
 	if req.Status == "resolved" {
-		now := time.Now()
-		updates["resolved_at"] = now
+		updates.ResolvedAt = &now
 	}
 	if req.Status == "closed" {
-		now := time.Now()
-		updates["closed_at"] = now
+		updates.ClosedAt = &now
 	}
 
 	if err := db.DB.Model(&models.SupportTicket{}).Where("id = ?", ticket.ID).
-		Select("status", "updated_at", "resolved_at", "closed_at").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
 		return
 	}

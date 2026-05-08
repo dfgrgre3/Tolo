@@ -776,43 +776,37 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	updates := make(map[string]interface{})
+	type userUpdates struct {
+		Role          *string               `gorm:"column:role"`
+		Name          *string               `gorm:"column:name"`
+		Username      *string               `gorm:"column:username"`
+		Email         *string               `gorm:"column:email"`
+		Phone         *string               `gorm:"column:phone"`
+		Bio           *string               `gorm:"column:bio"`
+		GradeLevel    *string               `gorm:"column:gradeLevel"`
+		EducationType *string               `gorm:"column:educationType"`
+		Permissions   models.JSONStringArray `gorm:"column:permissions"`
+	}
+
+	updates := userUpdates{
+		Name:          req.Name,
+		Username:      req.Username,
+		Email:         req.Email,
+		Phone:         req.Phone,
+		Bio:           req.Bio,
+		GradeLevel:    req.GradeLevel,
+		EducationType: req.EducationType,
+	}
+
 	if req.Role != "" {
-		validRoles := map[string]bool{"STUDENT": true, "TEACHER": true, "MODERATOR": true, "ADMIN": true}
-		if !validRoles[req.Role] {
-			api_response.Error(c, http.StatusBadRequest, "Invalid role")
-			return
-		}
-		updates["role"] = req.Role
-	}
-	if req.Name != nil {
-		updates["name"] = req.Name
-	}
-	if req.Username != nil {
-		updates["username"] = req.Username
-	}
-	if req.Email != nil {
-		updates["email"] = req.Email
-	}
-	if req.Phone != nil {
-		updates["phone"] = req.Phone
-	}
-	if req.Bio != nil {
-		updates["bio"] = req.Bio
-	}
-	if req.GradeLevel != nil {
-		updates["gradeLevel"] = req.GradeLevel
-	}
-	if req.EducationType != nil {
-		updates["educationType"] = req.EducationType
+		updates.Role = &req.Role
 	}
 	if req.Permissions != nil {
-		updates["permissions"] = models.JSONStringArray(req.Permissions)
+		updates.Permissions = models.JSONStringArray(req.Permissions)
 	}
 
 	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
-		Select("role", "name", "username", "email", "phone", "bio", "gradeLevel", "educationType", "permissions").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
@@ -1035,41 +1029,33 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	updates := make(map[string]interface{})
-	if req.Name != "" {
-		updates["name"] = req.Name
-	}
-	if req.Username != "" {
-		updates["username"] = req.Username
-	}
-	if req.Phone != "" {
-		updates["phone"] = req.Phone
-	}
-	if req.Bio != "" {
-		updates["bio"] = req.Bio
-	}
-	if req.GradeLevel != "" {
-		updates["gradeLevel"] = req.GradeLevel
-	}
-	if req.EducationType != "" {
-		updates["educationType"] = req.EducationType
-	}
-	if req.Section != "" {
-		updates["section"] = req.Section
-	}
-	if req.Country != "" {
-		updates["country"] = req.Country
-	}
-	if req.Avatar != "" {
-		updates["avatar"] = req.Avatar
-	}
-	if req.Gender != "" {
-		updates["gender"] = req.Gender
+	type profileUpdates struct {
+		Name          *string `gorm:"column:name"`
+		Username      *string `gorm:"column:username"`
+		Phone         *string `gorm:"column:phone"`
+		Bio           *string `gorm:"column:bio"`
+		GradeLevel    *string `gorm:"column:gradeLevel"`
+		EducationType *string `gorm:"column:educationType"`
+		Section       *string `gorm:"column:section"`
+		Country       *string `gorm:"column:country"`
+		Avatar        *string `gorm:"column:avatar"`
+		Gender        *string `gorm:"column:gender"`
 	}
 
+	updates := profileUpdates{}
+	if req.Name != "" { updates.Name = &req.Name }
+	if req.Username != "" { updates.Username = &req.Username }
+	if req.Phone != "" { updates.Phone = &req.Phone }
+	if req.Bio != "" { updates.Bio = &req.Bio }
+	if req.GradeLevel != "" { updates.GradeLevel = &req.GradeLevel }
+	if req.EducationType != "" { updates.EducationType = &req.EducationType }
+	if req.Section != "" { updates.Section = &req.Section }
+	if req.Country != "" { updates.Country = &req.Country }
+	if req.Avatar != "" { updates.Avatar = &req.Avatar }
+	if req.Gender != "" { updates.Gender = &req.Gender }
+
 	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).
-		Select("name", "username", "phone", "bio", "gradeLevel", "educationType", "section", "country", "avatar", "gender").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}

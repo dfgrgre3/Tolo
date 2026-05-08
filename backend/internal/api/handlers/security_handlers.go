@@ -592,10 +592,26 @@ func UpdateIPWhitelistSettings(c *gin.Context) {
 		req.ID = "default"
 		db.DB.Create(&req)
 	} else {
-		// Update existing
-		db.DB.Model(&models.IPWhitelist{}).Where("id = ?", existing.ID).
-			Select("ip_address", "description", "is_active").
-			Updates(req)
+		type whitelistSettingsUpdates struct {
+			IsEnabled          *bool   `gorm:"column:is_enabled"`
+			EnforceForAdmins   *bool   `gorm:"column:enforce_for_admins"`
+			EnforceForAPI      *bool   `gorm:"column:enforce_for_api"`
+			DefaultAction      *string `gorm:"column:default_action"`
+			AllowInternalIPs   *bool   `gorm:"column:allow_internal_ips"`
+			LogBlockedAttempts *bool   `gorm:"column:log_blocked_attempts"`
+			NotifyOnViolation  *bool   `gorm:"column:notify_on_violation"`
+		}
+		updates := whitelistSettingsUpdates{
+			IsEnabled:          &req.IsEnabled,
+			EnforceForAdmins:   &req.EnforceForAdmins,
+			EnforceForAPI:      &req.EnforceForAPI,
+			DefaultAction:      &req.DefaultAction,
+			AllowInternalIPs:   &req.AllowInternalIPs,
+			LogBlockedAttempts: &req.LogBlockedAttempts,
+			NotifyOnViolation:  &req.NotifyOnViolation,
+		}
+		db.DB.Model(&models.IPWhitelistSettings{}).Where("id = ?", existing.ID).
+			Updates(&updates)
 	}
 
 	middleware.LogCriticalOperation(c, "ip_whitelist_settings_updated", nil)
@@ -625,17 +641,18 @@ func UpdateIPWhitelistEntry(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
-	if req.Description != nil {
-		updates["description"] = *req.Description
-	}
-	if req.Status != nil {
-		updates["status"] = *req.Status
+	type entryUpdates struct {
+		Description *string `gorm:"column:description"`
+		Status      *string `gorm:"column:status"`
 	}
 
-	if err := db.DB.Model(&models.IPWhitelist{}).Where("id = ?", entry.ID).
-		Select("ip_address", "description", "is_active").
-		Updates(updates).Error; err != nil {
+	updates := entryUpdates{
+		Description: req.Description,
+		Status:      req.Status,
+	}
+
+	if err := db.DB.Model(&models.IPWhitelistEntry{}).Where("id = ?", entry.ID).
+		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update entry"})
 		return
 	}

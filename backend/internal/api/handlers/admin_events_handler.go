@@ -154,11 +154,41 @@ func AdminUpdateEvent(c *gin.Context) {
 		return
 	}
 
-	updates := mapEventUpdates(input)
+	type eventUpdates struct {
+		Title        *string    `gorm:"column:title"`
+		Description  *string    `gorm:"column:description"`
+		Type         *string    `gorm:"column:type"`
+		StartDate    *time.Time `gorm:"column:start_date"`
+		EndDate      *time.Time `gorm:"column:end_date"`
+		Location     *string    `gorm:"column:location"`
+		IsOnline     *bool      `gorm:"column:is_online"`
+		MaxAttendees *int       `gorm:"column:max_attendees"`
+		IsActive     *bool      `gorm:"column:is_active"`
+	}
+
+	updates := eventUpdates{
+		Title:        input.Title,
+		Description:  input.Description,
+		Type:         input.Type,
+		Location:     input.Location,
+		IsOnline:     input.IsOnline,
+		MaxAttendees: input.MaxAttendees,
+		IsActive:     input.IsActive,
+	}
+
+	if input.StartDate != nil {
+		if t, err := parseFlexibleDate(*input.StartDate); err == nil {
+			updates.StartDate = &t
+		}
+	}
+	if input.EndDate != nil {
+		if t, err := parseFlexibleDate(*input.EndDate); err == nil {
+			updates.EndDate = &t
+		}
+	}
 
 	if err := db.DB.Model(&models.Event{}).Where("id = ?", event.ID).
-		Select("title", "description", "type", "startDate", "endDate", "location", "isOnline", "maxAttendees", "isActive").
-		Updates(updates).Error; err != nil {
+		Updates(&updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update event")
 		return
 	}
@@ -167,52 +197,7 @@ func AdminUpdateEvent(c *gin.Context) {
 	api_response.Success(c, nil)
 }
 
-func mapEventUpdates(input struct {
-	ID           string  `json:"id" binding:"required"`
-	Title        *string `json:"title"`
-	Description  *string `json:"description"`
-	Type         *string `json:"type"`
-	StartDate    *string `json:"startDate"`
-	EndDate      *string `json:"endDate"`
-	Location     *string `json:"location"`
-	IsOnline     *bool   `json:"isOnline"`
-	MaxAttendees *int    `json:"maxAttendees"`
-	IsActive     *bool   `json:"isActive"`
-}) map[string]interface{} {
-	updates := make(map[string]interface{})
-	if input.Title != nil {
-		updates["title"] = *input.Title
-	}
-	if input.Description != nil {
-		updates["description"] = input.Description
-	}
-	if input.Type != nil {
-		updates["type"] = *input.Type
-	}
-	if input.StartDate != nil {
-		if t, err := parseFlexibleDate(*input.StartDate); err == nil {
-			updates["startDate"] = t
-		}
-	}
-	if input.EndDate != nil {
-		if t, err := parseFlexibleDate(*input.EndDate); err == nil {
-			updates["endDate"] = t
-		}
-	}
-	if input.Location != nil {
-		updates["location"] = input.Location
-	}
-	if input.IsOnline != nil {
-		updates["isOnline"] = *input.IsOnline
-	}
-	if input.MaxAttendees != nil {
-		updates["maxAttendees"] = input.MaxAttendees
-	}
-	if input.IsActive != nil {
-		updates["isActive"] = *input.IsActive
-	}
-	return updates
-}
+
 
 // AdminDeleteEvent deletes a platform event
 func AdminDeleteEvent(c *gin.Context) {
