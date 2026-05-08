@@ -249,11 +249,10 @@ func (l *StructuredLogger) Fatal(message string, err error) {
 	log.Fatal(logStr)
 }
 
-// WithContext adds context information to logging
-func (l *StructuredLogger) WithContext(ctx context.Context) *ContextLogger {
+// WithContext returns a ContextLogger for context-aware logging
+func (l *StructuredLogger) WithContext() *ContextLogger {
 	return &ContextLogger{
 		logger: l,
-		ctx:    ctx,
 	}
 }
 
@@ -278,46 +277,45 @@ func Fatal(message string, err error) {
 	defaultLogger.Fatal(message, err)
 }
 
-// ContextLogger provides logging with request context
+// ContextLogger provides logging with request context explicitly passed to methods
 type ContextLogger struct {
 	logger *StructuredLogger
-	ctx    context.Context
 }
 
 // Info logs info with context
-func (cl *ContextLogger) Info(message string, fields ...map[string]interface{}) {
+func (cl *ContextLogger) Info(ctx context.Context, message string, fields ...map[string]interface{}) {
 	metadata := make(map[string]interface{})
 	if len(fields) > 0 {
 		metadata = fields[0]
 	}
-	cl.enrichMetadata(metadata)
+	cl.enrichMetadata(ctx, metadata)
 	cl.logger.Info(message, metadata)
 }
 
 // Error logs error with context
-func (cl *ContextLogger) Error(message string, err error, fields ...map[string]interface{}) {
+func (cl *ContextLogger) Error(ctx context.Context, message string, err error, fields ...map[string]interface{}) {
 	metadata := make(map[string]interface{})
 	if len(fields) > 0 {
 		metadata = fields[0]
 	}
-	cl.enrichMetadata(metadata)
+	cl.enrichMetadata(ctx, metadata)
 	cl.logger.Error(message, err, metadata)
 }
 
 // enrichMetadata adds context values to metadata
-func (cl *ContextLogger) enrichMetadata(metadata map[string]interface{}) {
+func (cl *ContextLogger) enrichMetadata(ctx context.Context, metadata map[string]interface{}) {
 	// Add request ID if available
-	if reqID := cl.ctx.Value("request_id"); reqID != nil {
+	if reqID := ctx.Value("request_id"); reqID != nil {
 		metadata["request_id"] = reqID
 	}
 
 	// Add trace ID if available
-	if traceID := cl.ctx.Value("trace_id"); traceID != nil {
+	if traceID := ctx.Value("trace_id"); traceID != nil {
 		metadata["trace_id"] = traceID
 	}
 
 	// Add user ID if available
-	if userID := cl.ctx.Value("user_id"); userID != nil {
+	if userID := ctx.Value("user_id"); userID != nil {
 		metadata["user_id"] = userID
 	}
 }

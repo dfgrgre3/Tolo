@@ -75,11 +75,11 @@ func Load() *Config {
 	// IP Whitelist Config
 	// Standard RFC 1918 and loopback ranges used as defaults
 	defaultRanges := []string{
-		"127.0.0.1/8",    // IPv4 Loopback
-		"10.0.0.0/8",     // RFC 1918
-		"172.16.0.0/12",  // RFC 1918
-		"192.168.0.0/16", // RFC 1918
-		"::1/128",        // IPv6 Loopback
+		"127.0.0.1/8",    // NOSONAR IPv4 Loopback
+		"10.0.0.0/8",     // NOSONAR RFC 1918
+		"172.16.0.0/12",  // NOSONAR RFC 1918
+		"192.168.0.0/16", // NOSONAR RFC 1918
+		"::1/128",        // NOSONAR IPv6 Loopback
 	}
 	models.DefaultInternalIPRanges = defaultRanges
 

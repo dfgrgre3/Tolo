@@ -38,11 +38,11 @@ func SearchUsers(c *gin.Context) {
 		if len(params.Fields) == 0 {
 			params.Fields = []string{"name", "email", "username"}
 		}
-		query = params.ApplyFullTextSearch(query, "users")
+		query = params.ApplyFullTextSearch(query, "User")
 	}
 
 	// Apply filters
-	query = params.ApplyFilters(query, "users")
+	query = params.ApplyFilters(query, "User")
 
 	// Count total
 	var totalCount int64
@@ -133,10 +133,10 @@ func searchSubjects(params pagination.SearchParams) ([]interface{}, int64) {
 
 	if params.Query != "" {
 		params.Fields = []string{"name", "description"}
-		query = params.ApplyFullTextSearch(query, "subjects")
+		query = params.ApplyFullTextSearch(query, "Subject")
 	}
 
-	query = params.ApplyFilters(query, "subjects")
+	query = params.ApplyFilters(query, "Subject")
 
 	var total int64
 	query.Count(&total)
@@ -163,14 +163,14 @@ func searchSubjects(params pagination.SearchParams) ([]interface{}, int64) {
 // searchCourses searches courses with filters
 func searchCourses(params pagination.SearchParams) ([]interface{}, int64) {
 	// Note: Adjust model name based on your actual model
-	query := db.DB.Table("courses")
+	query := db.DB.Table("Course")
 
 	if params.Query != "" {
 		params.Fields = []string{"title", "description"}
-		query = params.ApplyFullTextSearch(query, "courses")
+		query = params.ApplyFullTextSearch(query, "Course")
 	}
 
-	query = params.ApplyFilters(query, "courses")
+	query = params.ApplyFilters(query, "Course")
 
 	var total int64
 	query.Count(&total)
@@ -195,10 +195,10 @@ func searchExams(params pagination.SearchParams) ([]interface{}, int64) {
 
 	if params.Query != "" {
 		params.Fields = []string{"title", "description"}
-		query = params.ApplyFullTextSearch(query, "exams")
+		query = params.ApplyFullTextSearch(query, "Exam")
 	}
 
-	query = params.ApplyFilters(query, "exams")
+	query = params.ApplyFilters(query, "Exam")
 
 	var total int64
 	query.Count(&total)

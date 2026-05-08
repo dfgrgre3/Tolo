@@ -25,7 +25,6 @@ const (
 	SubjectCachePrefix    = "subject:"
 	SubjectCacheTTL       = 30 * time.Minute // Subjects change less frequently than users
 	subjectCacheKeyFormat = "%sid:%s"
-	queryByID             = "id = ?"
 )
 
 

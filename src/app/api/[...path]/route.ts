@@ -54,8 +54,9 @@ function handleErrorResponse(response: Response, errorText: string) {
 
 async function handleProxy(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   const path = params.path.join('/');
   const { search } = new URL(request.url);
   const headers = upstreamAuthHeaders(request);

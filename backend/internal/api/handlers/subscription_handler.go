@@ -254,7 +254,7 @@ func GetInvoice(c *gin.Context) {
 	}
 
 	var invoice models.Invoice
-	if err := db.DB.Preload("Payment").Preload("Payment.Plan").Where("\"userId\" = ?", userId).First(&invoice, idQuery, invoiceID).Error; err != nil {
+	if err := db.DB.Preload("Payment").Preload("Payment.Plan").Where("user_id = ?", userId).First(&invoice, idQuery, invoiceID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
 		return
 	}

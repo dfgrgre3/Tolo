@@ -149,15 +149,15 @@ func (s *BackupService) GetDatabaseTables() ([]string, error) {
 	// In production, query information_schema or use GORM to get tables
 	// Mock tables
 	tables := []string{
-		"users",
-		"subjects",
-		"exams",
-		"courses",
-		"payments",
-		"notifications",
-		"support_tickets",
-		"scheduled_items",
-		"backups",
+		"User",
+		"Subject",
+		"Exam",
+		"Course",
+		"Payment",
+		"Notification",
+		"SupportTicket",
+		"ScheduledItem",
+		"Backup",
 	}
 	return tables, nil
 }

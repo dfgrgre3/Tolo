@@ -223,7 +223,7 @@ func (u *User) GetName() string {
 }
 
 func (User) TableName() string {
-	return "users"
+	return "User"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

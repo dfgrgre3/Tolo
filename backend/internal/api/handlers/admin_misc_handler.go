@@ -32,7 +32,7 @@ const uploadMetadataKeyPrefix = "upload_metadata:"
 const createdAtGte = "created_at >= ?"
 const coalesceSumDuration = "COALESCE(SUM(duration_min), 0)"
 const createdAtDescSort = "created_at desc"
-const createdAtRangeQuery = "\"createdAt\" >= ? AND \"createdAt\" < ?"
+const createdAtRangeQuery = "created_at >= ? AND created_at < ?"
 const dateFormat = "2006-01-02"
 
 // AdminAI handles all AI-related admin operations
@@ -1230,13 +1230,13 @@ func GetAdminLive(c *gin.Context) {
 	cutoff := time.Now().Add(-time.Duration(minutes) * time.Minute)
 
 	var users []models.User
-	if err := db.DB.Where(statusQuery, models.StatusActive).Order("\"updatedAt\" desc").Limit(200).Find(&users).Error; err != nil {
+	if err := db.DB.Where(statusQuery, models.StatusActive).Order("updated_at desc").Limit(200).Find(&users).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch active users")
 		return
 	}
 
 	var studySessions []models.StudySession
-	_ = db.DB.Where("\"updatedAt\" >= ? OR \"startTime\" >= ? OR \"endTime\" >= ?", cutoff, cutoff, cutoff).Find(&studySessions).Error
+	_ = db.DB.Where("updated_at >= ? OR start_time >= ? OR end_time >= ?", cutoff, cutoff, cutoff).Find(&studySessions).Error
 
 	var examResults []models.ExamResult
 	_ = db.DB.Where("\"takenAt\" >= ?", cutoff).Find(&examResults).Error
@@ -1495,7 +1495,7 @@ func GetAdminAnalytics(c *gin.Context) {
 		var createdCount int64
 		var activeCount int64
 		db.DB.Model(&models.User{}).Where(createdAtRangeQuery, start, end).Count(&createdCount)
-		db.DB.Model(&models.StudySession{}).Where(createdAtRangeQuery, start, end).Distinct("\"userId\"").Count(&activeCount)
+		db.DB.Model(&models.StudySession{}).Where(createdAtRangeQuery, start, end).Distinct("user_id").Count(&activeCount)
 
 		dailyUsers = append(dailyUsers, point{Date: start.Format(dateFormat), Count: activeCount})
 		dailyRegistrations = append(dailyRegistrations, point{Date: start.Format(dateFormat), Count: createdCount})
@@ -1541,9 +1541,9 @@ func GetAdminReportsOverview(c *gin.Context) {
 	monthAgo := now.AddDate(0, -1, 0)
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", dayAgo).Count(&usersToday)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", dayAgo).Count(&usersToday)
 	db.DB.Model(&models.User{}).Where(createdAtGte, weekAgo).Count(&usersWeek)
-	db.DB.Model(&models.User{}).Where("\"createdAt\" >= ?", monthAgo).Count(&usersMonth)
+	db.DB.Model(&models.User{}).Where("created_at >= ?", monthAgo).Count(&usersMonth)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Subject{}).Where("is_active = ?", true).Count(&activeSubjects)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)

@@ -28,7 +28,7 @@ const (
 	msgUserNotAuthenticated = "User not authenticated"
 	msgInvalidInput         = "Invalid input"
 	subjectIDQuery          = "subject_id = ?"
-	subjectIDQuotedQuery    = "\"subjectId\" = ?"
+	subjectIDQuotedQuery    = "subject_id = ?"
 )
 
 var subjectRepo *repository.SubjectRepository
@@ -1248,7 +1248,7 @@ func UnenrollUser(c *gin.Context) {
 	userId := c.Param("userId")
 
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where("\"userId\" = ? AND \"subjectId\" = ?", userId, id).Delete(&models.Enrollment{})
+		result := tx.Where("user_id = ? AND subject_id = ?", userId, id).Delete(&models.Enrollment{})
 		if result.Error != nil {
 			return result.Error
 		}

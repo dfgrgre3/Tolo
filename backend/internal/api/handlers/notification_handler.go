@@ -56,13 +56,13 @@ func MarkNotificationRead(c *gin.Context) {
 
 	if req.ID != "" {
 		// Mark specific notification as read
-		if err := db.DB.Model(&models.Notification{}).Where("id = ? AND user_id = ?", req.ID, userId).Update("\"isRead\"", true).Error; err != nil {
+		if err := db.DB.Model(&models.Notification{}).Where("id = ? AND user_id = ?", req.ID, userId).Update("is_read", true).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notification"})
 			return
 		}
 	} else {
 		// Mark all as read
-		if err := db.DB.Model(&models.Notification{}).Where("user_id = ?", userId).Update("\"isRead\"", true).Error; err != nil {
+		if err := db.DB.Model(&models.Notification{}).Where("user_id = ?", userId).Update("is_read", true).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notifications"})
 			return
 		}

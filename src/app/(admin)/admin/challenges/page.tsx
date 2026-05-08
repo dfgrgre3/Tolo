@@ -113,6 +113,42 @@ const difficultyColors: Record<string, { color: string, label: string }> = {
   EXPERT: { color: "rose", label: "خبير" },
 };
 
+const ChallengeTitleCell = ({ challenge }: { challenge: Challenge }) => (
+  <div className="flex items-center gap-4">
+    <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-primary/10 text-primary border border-primary/20 shadow-sm transition-transform hover:scale-105">
+      <ClipboardList className="h-6 w-6" />
+    </div>
+    <div>
+      <p className="font-black text-sm tracking-tight">{challenge.title}</p>
+      <div className="flex items-center gap-2 mt-0.5">
+        <Badge variant="outline" className="text-[8px] font-bold py-0 border-white/5 bg-white/5 uppercase tracking-tighter opacity-70 italic">{challenge.type}</Badge>
+        <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{challenge.category}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const ChallengeDifficultyCell = ({ difficulty }: { difficulty: string }) => {
+  const config = difficultyColors[difficulty] || difficultyColors.MEDIUM;
+  return (
+    <Badge 
+      variant="outline" 
+      className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-${config.color}-500/10 text-${config.color}-500 border-${config.color}-500/20`}
+    >
+      {config.label}
+    </Badge>
+  );
+};
+
+const ChallengeStatusCell = ({ active }: { active: boolean }) => (
+  <div className="flex items-center gap-2">
+    <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
+    <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
+      {active ? "نشط" : "غير نشط"}
+    </span>
+  </div>
+);
+
 export default function AdminChallengesPage() {
   const [challenges, setChallenges] = React.useState<Challenge[]>([]);
   const [subjects, setSubjects] = React.useState<Subject[]>([]);
@@ -306,39 +342,12 @@ export default function AdminChallengesPage() {
     {
       accessorKey: "title",
       header: "المهمة التعليمية",
-      cell: ({ row }) => {
-        const challenge = row.original;
-        return (
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-primary/10 text-primary border border-primary/20 shadow-sm transition-transform hover:scale-105">
-              <ClipboardList className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="font-black text-sm tracking-tight">{challenge.title}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <Badge variant="outline" className="text-[8px] font-bold py-0 border-white/5 bg-white/5 uppercase tracking-tighter opacity-70 italic">{challenge.type}</Badge>
-                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{challenge.category}</span>
-              </div>
-            </div>
-          </div>
-        );
-      },
+      cell: ({ row }) => <ChallengeTitleCell challenge={row.original} />,
     },
     {
       accessorKey: "difficulty",
       header: "المستوى",
-      cell: ({ row }) => {
-        const diff = row.original.difficulty;
-        const config = difficultyColors[diff] || difficultyColors.MEDIUM;
-        return (
-          <Badge 
-            variant="outline" 
-            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-${config.color}-500/10 text-${config.color}-500 border-${config.color}-500/20`}
-          >
-            {config.label}
-          </Badge>
-        );
-      },
+      cell: ({ row }) => <ChallengeDifficultyCell difficulty={row.original.difficulty} />,
     },
     {
       accessorKey: "xpReward",
@@ -363,17 +372,7 @@ export default function AdminChallengesPage() {
     {
       accessorKey: "isActive",
       header: "الحالة",
-      cell: ({ row }) => {
-        const active = row.original.isActive;
-        return (
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
-              {active ? "نشط" : "غير نشط"}
-            </span>
-          </div>
-        );
-      },
+      cell: ({ row }) => <ChallengeStatusCell active={row.original.isActive} />,
     },
     {
       id: "actions",

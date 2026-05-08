@@ -13,21 +13,25 @@ import {
   Settings2,
   SkipBack,
   SkipForward,
+  Volume1,
   Volume2,
   VolumeX,
+  Gauge,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useCourseVideoPlayerStore } from "../store";
-import type { BookmarkItem, ThumbnailCue } from "../types";
+import type { BookmarkItem, ThumbnailCue, TimelineNote } from "../types";
 import { formatDuration } from "../utils";
 import { IconButton } from "./IconButton";
 import { ProgressRail } from "./ProgressRail";
 import { cn } from "@/lib/utils";
 import { useEfficiencyMode } from "@/hooks";
+import { useCallback, useRef, type WheelEvent } from "react";
 
 export function PlayerControls({
   markers,
   thumbnails,
+  notes = [],
   sidebarHasContent,
   isTheaterMode,
   canUsePip,
@@ -47,6 +51,7 @@ export function PlayerControls({
 }: {
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
+  notes?: TimelineNote[];
   sidebarHasContent: boolean;
   isTheaterMode: boolean;
   canUsePip: boolean;
@@ -101,6 +106,19 @@ export function PlayerControls({
   const isEfficiencyMode = useEfficiencyMode();
 
   const hasCustomPlaybackRate = playbackRate !== 1;
+  const volumeWheelTimeoutRef = useRef<number | null>(null);
+
+  // Scroll wheel for volume control
+  const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    const currentVol = useCourseVideoPlayerStore.getState().volume;
+    const newVol = Math.min(1, Math.max(0, currentVol + delta));
+    onVolumeChange(newVol);
+  }, [onVolumeChange]);
+
+  // Volume icon based on level
+  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
@@ -110,6 +128,7 @@ export function PlayerControls({
         showControls ? "opacity-100" : "pointer-events-none opacity-0",
         "sm:px-4 sm:pb-4"
       )}
+      onWheel={handleWheel}
     >
       <ProgressRail
         currentTime={currentTime}
@@ -117,6 +136,7 @@ export function PlayerControls({
         buffered={buffered}
         markers={markers}
         thumbnails={thumbnails}
+        notes={notes}
         onSeek={onSeek}
       />
 
@@ -131,7 +151,11 @@ export function PlayerControls({
             <button
               type="button"
               onClick={onTogglePlayPause}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-950 shadow-xl transition hover:scale-[1.03]"
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-950 shadow-xl transition-all",
+                "hover:scale-[1.05] hover:shadow-2xl hover:shadow-white/20",
+                "active:scale-[0.97]"
+              )}
               aria-label={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
             >
               {isPlaying ? (
@@ -148,21 +172,23 @@ export function PlayerControls({
 
             <div className="group/volume flex items-center">
               <IconButton
-                icon={isMuted || volume === 0 ? VolumeX : Volume2}
+                icon={VolumeIcon}
                 label="الصوت"
                 onClick={onToggleMute}
               />
               <div className="w-24 sm:w-0 sm:overflow-hidden sm:transition-all sm:duration-200 sm:group-hover/volume:mr-2 sm:group-hover/volume:w-28">
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={isMuted ? 0 : volume}
-                  onChange={(event) => onVolumeChange(Number(event.target.value))}
-                  aria-label="مستوى الصوت"
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
-                />
+                <div className="relative h-2 w-full">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={isMuted ? 0 : volume}
+                    onChange={(event) => onVolumeChange(Number(event.target.value))}
+                    aria-label="مستوى الصوت"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -172,7 +198,8 @@ export function PlayerControls({
               {formatDuration(currentTime)} / {formatDuration(duration)}
             </div>
             {hasCustomPlaybackRate ? (
-              <div className="rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-100">
+              <div className="flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-100">
+                <Gauge className="h-3 w-3" />
                 {playbackRate}x
               </div>
             ) : null}
@@ -185,12 +212,13 @@ export function PlayerControls({
               {formatDuration(currentTime)} / {formatDuration(duration)}
             </span>
             {hasCustomPlaybackRate ? (
-              <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1.5 text-sky-100 sm:hidden">
+              <span className="flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1.5 text-sky-100 sm:hidden">
+                <Gauge className="h-3 w-3" />
                 {playbackRate}x
               </span>
             ) : null}
             <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 lg:inline-flex">
-              اضغط مرتين يمينًا أو يسارًا للتقديم السريع
+              اضغط مرتين يمينًا أو يسارًا للتقديم السريع | عجلة الماوس للصوت
             </span>
           </div>
 

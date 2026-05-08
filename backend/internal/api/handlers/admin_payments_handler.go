@@ -39,7 +39,7 @@ func GetAdminPayments(c *gin.Context) {
 	}
 
 	if search != "" {
-		query = query.Joins("LEFT JOIN \"User\" ON \"Payment\".\"userId\" = \"User\".id").
+		query = query.Joins("LEFT JOIN \"User\" ON \"Payment\".user_id = \"User\".id").
 			Where("\"User\".name ILIKE ? OR \"User\".email ILIKE ? OR \"Payment\".reference ILIKE ?",
 				"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
@@ -52,7 +52,7 @@ func GetAdminPayments(c *gin.Context) {
 	var payments []models.Payment
 	if err := query.
 		Preload("Subject").
-		Order("\"createdAt\" DESC").
+		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).
 		Find(&payments).Error; err != nil {
@@ -143,11 +143,11 @@ func GetAdminRevenue(c *gin.Context) {
 	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
 	db.DB.Model(&models.Payment{}).
-		Where("status = ? AND \"createdAt\" >= ?", models.PaymentCompleted, startOfDay).
+		Where("status = ? AND created_at >= ?", models.PaymentCompleted, startOfDay).
 		Select(revenueSumQuery).Scan(&todayRevenue)
 
 	db.DB.Model(&models.Payment{}).
-		Where("status = ? AND \"createdAt\" >= ?", models.PaymentCompleted, startOfMonth).
+		Where("status = ? AND created_at >= ?", models.PaymentCompleted, startOfMonth).
 		Select(revenueSumQuery).Scan(&monthRevenue)
 
 	var totalTransactions int64
@@ -186,7 +186,7 @@ func getChartData(now time.Time) []gin.H {
 
 		var revenue float64
 		db.DB.Model(&models.Payment{}).
-			Where("status = ? AND \"createdAt\" >= ? AND \"createdAt\" < ?",
+			Where("status = ? AND created_at >= ? AND created_at < ?",
 				models.PaymentCompleted, startMonth, endMonth).
 			Select(revenueSumQuery).Scan(&revenue)
 
@@ -201,9 +201,9 @@ func getChartData(now time.Time) []gin.H {
 func getTopPlansData() []gin.H {
 	var topPlans []gin.H
 	rows, err := db.DB.Model(&models.Payment{}).
-		Select("\"subjectId\", COUNT(*) as count").
-		Where("status = ? AND \"subjectId\" IS NOT NULL AND \"subjectId\" != ''", models.PaymentCompleted).
-		Group("\"subjectId\"").
+		Select("subject_id, COUNT(*) as count").
+		Where("status = ? AND subject_id IS NOT NULL AND subject_id != ''", models.PaymentCompleted).
+		Group("subject_id").
 		Order("count DESC").
 		Limit(5).
 		Rows()

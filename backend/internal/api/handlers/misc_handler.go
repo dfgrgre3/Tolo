@@ -20,7 +20,7 @@ func GetUnreadNotificationsCount(c *gin.Context) {
 	}
 
 	var count int64
-	if err := db.DB.Model(&models.Notification{}).Where("user_id = ? AND \"isRead\" = ?", userId, false).Count(&count).Error; err != nil {
+	if err := db.DB.Model(&models.Notification{}).Where("user_id = ? AND \"is_read\" = ?", userId, false).Count(&count).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to count notifications")
 		return
 	}

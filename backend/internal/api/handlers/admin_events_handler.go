@@ -37,7 +37,7 @@ func AdminGetEvents(c *gin.Context) {
 	query.Count(&total)
 
 	var events []models.Event
-	if err := query.Order("\"createdAt\" DESC").Offset(offset).Limit(limit).Find(&events).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&events).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch events")
 		return
 	}

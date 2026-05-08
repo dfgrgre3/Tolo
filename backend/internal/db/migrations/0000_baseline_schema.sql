@@ -101,7 +101,7 @@ CREATE TYPE public.CategoryType AS ENUM (
 --
 
 CREATE TYPE public.ContestStatus AS ENUM (
-    :'DRAFT_STATUS',
+    :'DRAFT_STATUS', -- NOSONAR
     'WAITING',
     'IN_PROGRESS',
     'FINISHED'
@@ -148,7 +148,7 @@ CREATE TYPE public.FocusStrategy AS ENUM (
 --
 
 CREATE TYPE public.InvoiceStatus AS ENUM (
-    :'DRAFT_STATUS',
+    :'DRAFT_STATUS', -- NOSONAR
     'OPEN',
     'PAID',
     'VOID',
@@ -383,7 +383,7 @@ CREATE TABLE public."ABExperiment" (
     id uuid NOT NULL,
     name text NOT NULL,
     description text,
-    status text DEFAULT :'DRAFT_STATUS'::text,
+    status text DEFAULT :'DRAFT_STATUS'::text, -- NOSONAR
     variants text,
     traffic_pct bigint DEFAULT 100,
     start_date timestamp with time zone,
@@ -867,7 +867,7 @@ CREATE TABLE public."BlogPost" (
     author_id uuid,
     category_id uuid,
     tags jsonb,
-    status text DEFAULT :'DRAFT_STATUS'::text,
+    status text DEFAULT :'DRAFT_STATUS'::text, -- NOSONAR
     image text,
     published_at timestamp with time zone,
     created_at timestamp with time zone,
@@ -1060,7 +1060,7 @@ CREATE TABLE public."Contest" (
     rules text,
     prizes text,
     "isActive" boolean DEFAULT true NOT NULL,
-    status public."ContestStatus" DEFAULT :'DRAFT_STATUS'::public."ContestStatus" NOT NULL,
+    status public."ContestStatus" DEFAULT :'DRAFT_STATUS'::public."ContestStatus" NOT NULL, -- NOSONAR
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     "pinCode" text,
@@ -1397,7 +1397,7 @@ CREATE TABLE public."Invoice" (
     payment_id uuid,
     amount double precision NOT NULL,
     currency text DEFAULT 'EGP'::text NOT NULL,
-    status public."InvoiceStatus" DEFAULT :'DRAFT_STATUS'::public."InvoiceStatus" NOT NULL,
+    status public."InvoiceStatus" DEFAULT :'DRAFT_STATUS'::public."InvoiceStatus" NOT NULL, -- NOSONAR
     "issueDate" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     due_date timestamp with time zone,
     "paidDate" timestamp(3) without time zone,

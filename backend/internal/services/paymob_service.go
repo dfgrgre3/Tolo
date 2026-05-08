@@ -13,13 +13,6 @@ import (
 	"time"
 )
 
-const (
-	// contentTypeJSON is the MIME type for JSON request bodies.
-	contentTypeJSON = "application/json"
-	// headerContentType is the HTTP header key for content type.
-	headerContentType = "Content-Type"
-)
-
 type PaymobService struct {
 	APIKey              string
 	HMACSecret          string

@@ -5,6 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  RefreshCw,
+  X,
 } from "lucide-react";
 import { useCourseVideoPlayerStore } from "../store";
 import { formatDuration } from "../utils";
@@ -14,11 +16,13 @@ export function PlayerOverlays({
   onDismissResume,
   onCancelAutoplay,
   onPlayNextNow,
+  onRetry,
 }: {
   onAcceptResume: () => void;
   onDismissResume: () => void;
   onCancelAutoplay: () => void;
   onPlayNextNow?: () => void;
+  onRetry?: () => void;
 }) {
   const {
     feedback,
@@ -38,14 +42,18 @@ export function PlayerOverlays({
     }))
   );
 
+  const setPlayerState = useCourseVideoPlayerStore((s) => s.setPlayerState);
+  const autoplayProgress = ((5 - autoplayCountdown) / 5) * 100;
+
   return (
     <>
       <AnimatePresence>
         {feedback ? (
           <m.div
-            initial={{ opacity: 0, scale: 0.92, y: 8 }}
+            initial={{ opacity: 0, scale: 0.85, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 8 }}
+            exit={{ opacity: 0, scale: 0.85, y: 8 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
             className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
           >
             <div className="rounded-3xl border border-white/10 bg-black/65 px-5 py-4 text-center shadow-2xl backdrop-blur-xl">
@@ -64,8 +72,15 @@ export function PlayerOverlays({
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-30 flex items-center justify-center bg-black/35 backdrop-blur-[2px]"
           >
-            <div className="rounded-3xl border border-white/10 bg-black/60 px-5 py-4 shadow-xl backdrop-blur-xl">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            <div className="relative flex items-center justify-center">
+              {/* Outer ring */}
+              <div className="absolute h-20 w-20 animate-spin rounded-full border-2 border-transparent border-t-blue-400/80" />
+              {/* Middle ring (opposite direction) */}
+              <div className="absolute h-14 w-14 animate-spin rounded-full border-2 border-transparent border-b-cyan-400/60" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+              {/* Inner icon */}
+              <div className="rounded-3xl border border-white/10 bg-black/60 p-4 shadow-xl backdrop-blur-xl">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+              </div>
             </div>
           </m.div>
         ) : null}
@@ -79,9 +94,31 @@ export function PlayerOverlays({
             exit={{ opacity: 0, y: 12 }}
             className="absolute left-4 right-4 top-20 z-40 rounded-2xl border border-rose-400/20 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 backdrop-blur-xl"
           >
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="rounded-full p-1.5 text-rose-200 transition hover:bg-rose-500/30 hover:text-white"
+                    aria-label="إعادة المحاولة"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPlayerState({ errorMessage: null })}
+                  className="rounded-full p-1.5 text-rose-200 transition hover:bg-rose-500/30 hover:text-white"
+                  aria-label="إغلاق رسالة الخطأ"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </m.div>
         ) : null}
@@ -141,8 +178,30 @@ export function PlayerOverlays({
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-xl"
           >
             <div className="w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/85 p-8 text-center shadow-2xl">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/10 text-3xl font-black text-blue-200">
-                {autoplayCountdown}
+              {/* Circular progress ring */}
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
+                  <circle
+                    cx="48" cy="48" r="42"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="none"
+                    className="text-white/10"
+                  />
+                  <circle
+                    cx="48" cy="48" r="42"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="none"
+                    className="text-blue-400 transition-all duration-1000"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - autoplayProgress / 100)}`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="text-3xl font-black text-blue-200">
+                  {autoplayCountdown}
+                </span>
               </div>
               <h3 className="mt-6 text-2xl font-black text-white">
                 الدرس التالي سيبدأ تلقائيًا

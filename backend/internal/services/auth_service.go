@@ -14,6 +14,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+)
+
 var dummyHash string
 
 func init() {

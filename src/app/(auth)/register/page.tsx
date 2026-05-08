@@ -253,16 +253,21 @@ function StepIndicator({ step }: { step: number }) {
 function PasswordStrengthMeter({ passwordValue }: { passwordValue: string }) {
   const strengthData = useMemo(() => {
     if (!passwordValue) return null;
-    let strength = 0;
-    if (passwordValue.length >= 8) strength += 25;
-    if (/[A-Z]/.test(passwordValue)) strength += 25;
-    if (/[0-9]/.test(passwordValue)) strength += 25;
-    if (/[^A-Za-z0-9]/.test(passwordValue)) strength += 25;
-
-    const color = strength <= 25 ? 'bg-red-500' : strength <= 50 ? 'bg-yellow-500' : strength <= 75 ? 'bg-blue-500' : 'bg-green-500';
-    const text = strength <= 25 ? 'ضعيفة' : strength <= 50 ? 'متوسطة' : strength <= 75 ? 'جيدة' : 'قوية جداً';
     
-    return { strength, color, text };
+    let score = 0;
+    if (passwordValue.length >= 8) score++;
+    if (/[A-Z]/.test(passwordValue)) score++;
+    if (/[0-9]/.test(passwordValue)) score++;
+    if (/[^A-Za-z0-9]/.test(passwordValue)) score++;
+
+    const colors = ['bg-red-500', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
+    const texts = ['ضعيفة', 'ضعيفة', 'متوسطة', 'جيدة', 'قوية جداً'];
+    
+    return { 
+      strength: score * 25, 
+      color: colors[score], 
+      text: texts[score] 
+    };
   }, [passwordValue]);
 
   if (!strengthData) return null;

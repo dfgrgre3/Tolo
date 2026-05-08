@@ -423,6 +423,160 @@ function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA
   );
 }
 
+// --- Extracted UI Components ---
+
+function BackgroundLayers() {
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      <m.div 
+        animate={{ opacity: [0.1, 0.15, 0.1], scale: [1, 1.05, 1] }}
+        transition={{ duration: 10, repeat: Infinity }}
+        className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(255,109,0,0.12),transparent_45%)]" 
+      />
+      <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
+      
+      {/* Animated Security Bits */}
+      <div className="absolute inset-0 overflow-hidden">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div key={i} className="absolute" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}>
+            <SecurityBit delay={Math.random() * 5} />
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+      
+      {/* Decorative Grid */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+    </div>
+  );
+}
+
+function LeftPanelInfo({ deviceInfo }: { deviceInfo: { os: string; browser: string } }) {
+  return (
+    <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-16 bg-gradient-to-br from-white/[0.03] to-transparent border-l border-white/5 relative group">
+      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+      
+      <div className="space-y-16 relative z-10">
+        <m.div 
+          initial={{ x: 30, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center gap-5"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(255,109,0,0.2)]">
+            <ShieldCheck className="text-primary w-7 h-7" />
+          </div>
+          <div>
+            <h4 className="text-white font-black text-xl tracking-tight">نظام تولو الموحد</h4>
+            <p className="text-primary/50 text-[10px] font-black uppercase tracking-[0.3em]">Quantum-Ready Auth</p>
+          </div>
+        </m.div>
+
+        <div className="space-y-12">
+          <m.div 
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-6"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-2">
+              <Sparkles size={12} />
+              إصدار 2.5 المستقر
+            </div>
+            <h2 className="text-6xl font-black text-white leading-[1.1] tracking-tighter">
+              ولوج ذكي<br />
+              <span className="text-primary">لمستقبلك</span>
+            </h2>
+            <p className="text-gray-400 text-lg font-medium leading-relaxed max-w-sm">
+              استمتع بتجربة تعليمية فريدة مدعومة بأقوى أنظمة التشفير والحماية العالمية.
+            </p>
+          </m.div>
+
+          <div className="grid grid-cols-2 gap-5">
+            {[
+              { icon: Fingerprint, label: "بصمة رقمية", sub: "AES-256 GCM" },
+              { icon: Globe, label: "سحابة تولو", sub: "Edge Network" },
+              { icon: Zap, label: "ذكاء اصطناعي", sub: "Adaptive Security" },
+              { icon: History, label: "سجل الأمان", sub: "Live Monitoring" }
+            ].map((item, idx) => (
+              <m.div 
+                key={idx}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.5 + idx * 0.1 }}
+                className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4 hover:bg-white/10 hover:border-primary/20 transition-all cursor-default group/card"
+              >
+                <item.icon className="text-primary w-6 h-6 group-hover/card:scale-110 transition-transform" />
+                <div>
+                  <div className="text-white font-bold text-sm">{item.label}</div>
+                  <div className="text-gray-500 text-[9px] uppercase font-black tracking-widest group-hover/card:text-primary/60 transition-colors">{item.sub}</div>
+                </div>
+              </m.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <m.div 
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="flex items-center gap-6 p-7 rounded-[2rem] bg-primary/5 border border-primary/10 backdrop-blur-md"
+      >
+        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 border border-primary/20 shadow-inner">
+          <Cpu className="text-primary w-6 h-6 animate-pulse" />
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-white font-black text-xs uppercase tracking-wider">الجهاز موثوق</p>
+          </div>
+          <p className="text-gray-500 text-[10px] font-bold leading-none">
+            {deviceInfo.browser} / {deviceInfo.os} | <span className="text-primary/40">Secure Node #781</span>
+          </p>
+        </div>
+      </m.div>
+    </div>
+  );
+}
+
+function AuthProviders() {
+  return (
+    <>
+      <div className="relative py-2">
+        <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
+        <span className="relative block mx-auto w-fit bg-[#080808] px-6 text-[11px] font-black uppercase tracking-[0.4em] text-gray-600">
+          أو عبر المنصات
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-5">
+        <m.button
+          whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
+          type="button"
+          className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
+        >
+          <Chrome className="h-5 w-5 text-red-500" />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Google</span>
+        </m.button>
+        <m.button
+          whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
+          type="button"
+          className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
+        >
+          <Github className="h-5 w-5 text-white" />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Github</span>
+        </m.button>
+      </div>
+    </>
+  );
+}
+
 // --- Main Form Component ---
 
 function LoginForm() {
@@ -485,11 +639,39 @@ function LoginForm() {
     }
   }, [isAuthLoading, isAuthenticated, redirectAfterLogin, redirectUrl]);
 
+  const triggerShake = useCallback(() => {
+    setShouldShake(true);
+    setTimeout(() => setShouldShake(false), 500);
+  }, []);
+
+  const handleLoginSuccess = useCallback((result: any) => {
+    if (result.requires2FA) {
+      toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج', {
+        description: 'لقد أرسلنا رمزاً إلى بريدك الإلكتروني لزيادة الأمان.',
+      });
+      setRequires2FA(true);
+      setUserId2FA(result.userId || null);
+    } else {
+      toast.success('مرحباً بك مجدداً في تولو', {
+        description: 'جاري تحضير بيئتك التعليمية...',
+      });
+      redirectAfterLogin(redirectUrl);
+    }
+  }, [redirectAfterLogin, redirectUrl]);
+
+  const handleLoginError = useCallback((error: string) => {
+    setErrorStatus(error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+    triggerShake();
+    toast.error(error || 'خطأ في بيانات الدخول', {
+      description: 'تأكد من البريد الإلكتروني وكلمة المرور.',
+    });
+  }, [triggerShake]);
+
   const onSubmit = async (data: LoginFormValues) => {
     if (isAuthLoading || isAuthenticated) return;
 
     if (loginMode === 'magic-link') {
-      handleMagicLinkRequest();
+      await handleMagicLinkRequest();
       return;
     }
 
@@ -505,34 +687,15 @@ function LoginForm() {
       );
 
       if (result.success) {
-        if (result.requires2FA) {
-          toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج', {
-            description: 'لقد أرسلنا رمزاً إلى بريدك الإلكتروني لزيادة الأمان.',
-          });
-          setRequires2FA(true);
-          setUserId2FA(result.userId || null);
-          return;
-        }
-        toast.success('مرحباً بك مجدداً في تولو', {
-          description: 'جاري تحضير بيئتك التعليمية...',
-        });
-        redirectAfterLogin(redirectUrl);
-        return;
+        handleLoginSuccess(result);
+      } else {
+        handleLoginError(result.error || '');
       }
-
-      setErrorStatus(result.error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
-      setShouldShake(true);
-      setTimeout(() => setShouldShake(false), 500);
-      
-      toast.error(result.error || 'خطأ في بيانات الدخول', {
-        description: 'تأكد من البريد الإلكتروني وكلمة المرور.',
-      });
     } catch (_err) {
       toast.error('حدث خطأ غير متوقع', {
         description: 'يرجى التحقق من اتصالك بالإنترنت والمحاولة لاحقاً.',
       });
-      setShouldShake(true);
-      setTimeout(() => setShouldShake(false), 500);
+      triggerShake();
     } finally {
       setIsSubmitting(false);
     }
@@ -600,31 +763,7 @@ function LoginForm() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden selection:bg-primary/30" dir="rtl">
       {/* Structural Background Layers */}
-      <div className="absolute inset-0 pointer-events-none">
-        <m.div 
-          animate={{ 
-            opacity: [0.1, 0.15, 0.1],
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(255,109,0,0.12),transparent_45%)]" 
-        />
-        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
-        
-        {/* Animated Security Bits */}
-        <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i} className="absolute" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}>
-              <SecurityBit delay={Math.random() * 5} />
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
-        
-        {/* Decorative Grid */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-      </div>
+      <BackgroundLayers />
 
       <m.div 
         initial={{ opacity: 0, y: 20, scale: 0.99 }}
@@ -642,90 +781,7 @@ function LoginForm() {
       >
         
         {/* Left Panel: Visual/Security Context (Visible on Desktop) */}
-        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-16 bg-gradient-to-br from-white/[0.03] to-transparent border-l border-white/5 relative group">
-          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-          
-          <div className="space-y-16 relative z-10">
-            <m.div 
-              initial={{ x: 30, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center gap-5"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(255,109,0,0.2)]">
-                <ShieldCheck className="text-primary w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="text-white font-black text-xl tracking-tight">نظام تولو الموحد</h4>
-                <p className="text-primary/50 text-[10px] font-black uppercase tracking-[0.3em]">Quantum-Ready Auth</p>
-              </div>
-            </m.div>
-
-            <div className="space-y-12">
-              <m.div 
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-6"
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-2">
-                  <Sparkles size={12} />
-                  إصدار 2.5 المستقر
-                </div>
-                <h2 className="text-6xl font-black text-white leading-[1.1] tracking-tighter">
-                  ولوج ذكي<br />
-                  <span className="text-primary">لمستقبلك</span>
-                </h2>
-                <p className="text-gray-400 text-lg font-medium leading-relaxed max-w-sm">
-                  استمتع بتجربة تعليمية فريدة مدعومة بأقوى أنظمة التشفير والحماية العالمية.
-                </p>
-              </m.div>
-
-              <div className="grid grid-cols-2 gap-5">
-                {[
-                  { icon: Fingerprint, label: "بصمة رقمية", sub: "AES-256 GCM" },
-                  { icon: Globe, label: "سحابة تولو", sub: "Edge Network" },
-                  { icon: Zap, label: "ذكاء اصطناعي", sub: "Adaptive Security" },
-                  { icon: History, label: "سجل الأمان", sub: "Live Monitoring" }
-                ].map((item, idx) => (
-                  <m.div 
-                    key={idx}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.5 + idx * 0.1 }}
-                    className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4 hover:bg-white/10 hover:border-primary/20 transition-all cursor-default group/card"
-                  >
-                    <item.icon className="text-primary w-6 h-6 group-hover/card:scale-110 transition-transform" />
-                    <div>
-                      <div className="text-white font-bold text-sm">{item.label}</div>
-                      <div className="text-gray-500 text-[9px] uppercase font-black tracking-widest group-hover/card:text-primary/60 transition-colors">{item.sub}</div>
-                    </div>
-                  </m.div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <m.div 
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="flex items-center gap-6 p-7 rounded-[2rem] bg-primary/5 border border-primary/10 backdrop-blur-md"
-          >
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 border border-primary/20 shadow-inner">
-              <Cpu className="text-primary w-6 h-6 animate-pulse" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-white font-black text-xs uppercase tracking-wider">الجهاز موثوق</p>
-              </div>
-              <p className="text-gray-500 text-[10px] font-bold leading-none">
-                {deviceInfo.browser} / {deviceInfo.os} | <span className="text-primary/40">Secure Node #781</span>
-              </p>
-            </div>
-          </m.div>
-        </div>
+        <LeftPanelInfo deviceInfo={deviceInfo} />
 
         {/* Right Panel: Login Form */}
         <div className="lg:col-span-7 p-10 md:p-16 lg:p-24 bg-[#080808]/50 flex flex-col justify-center">
@@ -897,33 +953,7 @@ function LoginForm() {
                     </div>
                   </form>
 
-                  <div className="relative py-2">
-                    <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
-                    <span className="relative block mx-auto w-fit bg-[#080808] px-6 text-[11px] font-black uppercase tracking-[0.4em] text-gray-600">
-                      أو عبر المنصات
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-5">
-                    <m.button
-                      whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
-                      className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
-                    >
-                      <Chrome className="h-5 w-5 text-red-500" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Google</span>
-                    </m.button>
-                    <m.button
-                      whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
-                      className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
-                    >
-                      <Github className="h-5 w-5 text-white" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Github</span>
-                    </m.button>
-                  </div>
+                  <AuthProviders />
                 </m.div>
               ) : (
                 <TwoFAPanel

@@ -55,6 +55,7 @@ import { useHlsEngine } from "./player/hooks/useHlsEngine";
 import { usePlayerAdapter } from "./player/hooks/usePlayerAdapter";
 import { useTimelineNotes } from "./player/hooks/useTimelineNotes";
 import { useFrameCapture } from "./player/hooks/useFrameCapture";
+import { useMediaSession } from "./player/hooks/useMediaSession";
 
 // Store & Types
 import {
@@ -217,9 +218,28 @@ export function CourseVideoPlayer({
     // Prevent Right Click
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
+    // PrintScreen / Screenshot Detection
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen') {
+        // Clear clipboard
+        navigator.clipboard?.writeText('').catch(() => undefined);
+        setIsRecordingDetected(true);
+        setTimeout(() => setIsRecordingDetected(false), 3000);
+      }
+    };
+
+    // Prevent drag
+    const handleDragStart = (e: DragEvent) => {
+      if (playerContainerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    };
+
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('dragstart', handleDragStart);
     
     // DevTools Detection (Heuristic)
     const handleResize = () => {
@@ -237,6 +257,8 @@ export function CourseVideoPlayer({
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('dragstart', handleDragStart);
       window.removeEventListener('resize', handleResize);
     };
   }, [store.isPlaying]);
@@ -470,8 +492,9 @@ export function CourseVideoPlayer({
 
   // --- Hook Integration: Keyboard & Touch ---
   const handleKeyboardShortcuts = useKeyboardShortcuts({
-    togglePlayPause, seekBy, handleSeek, handleVolumeChange, toggleMute, toggleFullscreen, togglePip,
-    onToggleTheater, changeSubtitle, setOpenPanel: (p) => setPlayerState({
+    togglePlayPause, seekBy, handleSeek, handleVolumeChange, handlePlaybackRateChange: handlePlaybackRateChange,
+    toggleMute, toggleFullscreen, togglePip,
+    onToggleTheater, changeSubtitle, toggleLoop, setOpenPanel: (p) => setPlayerState({
       isSettingsOpen: p === "settings", isHelpOpen: p === "help", isStatsOpen: p === "stats", isSidebarOpen: p === "sidebar"
     }),
     getDuration: () => getAdapter()?.getDuration() ?? 0,
@@ -487,6 +510,18 @@ export function CourseVideoPlayer({
     gestureValue,
   } = useTouchGestures({
     togglePlayPause, seekBy, handleVolumeChange, flashFeedback, resetControlsTimeout
+  });
+
+  // --- Hook: MediaSession API (OS-level media controls) ---
+  useMediaSession({
+    title: lessonTitle,
+    enabled: provider !== "youtube",
+    isPlaying: store.isPlaying,
+    onPlay: () => getAdapter()?.play(),
+    onPause: () => getAdapter()?.pause(),
+    onSeekForward: () => seekBy(10),
+    onSeekBackward: () => seekBy(-10),
+    onNextTrack: onNextVideo,
   });
 
   // --- Sync & Lifecycle Effects ---
@@ -639,7 +674,7 @@ export function CourseVideoPlayer({
       onMouseMove={resetControlsTimeout}
       onMouseDown={() => playerContainerRef.current?.focus()}
       className={cn(
-        "group/player relative aspect-video w-full overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none",
+        "group/player relative aspect-video w-full select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
         store.isFullscreen && "rounded-none",
         className
       )}
@@ -708,6 +743,7 @@ export function CourseVideoPlayer({
       <ActiveNotePopup
         text={notes.find(n => Math.abs(n.time - store.currentTime) < 2)?.text || ""}
         visible={notes.some(n => Math.abs(n.time - store.currentTime) < 2)}
+        time={notes.find(n => Math.abs(n.time - store.currentTime) < 2)?.time}
       />
 
       <m.div
@@ -747,11 +783,16 @@ export function CourseVideoPlayer({
         onDismissResume={() => setPlayerState({ resumeTime: null })}
         onCancelAutoplay={() => setPlayerState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
         onPlayNextNow={onNextVideo}
+        onRetry={() => {
+          setPlayerState({ errorMessage: null, isLoading: true });
+          setActiveVideoUrl(videoUrl);
+        }}
       />
 
       <PlayerControls
         markers={mergedMarkers}
         thumbnails={thumbnailCues}
+        notes={notes}
         sidebarHasContent={sidebarHasContent}
         isTheaterMode={isTheaterMode}
         canUsePip={provider !== "youtube" && typeof document !== "undefined" && !!document.pictureInPictureEnabled}

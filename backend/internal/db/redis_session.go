@@ -25,7 +25,6 @@ const (
 // RedisSessionStore provides Redis-based session management
 type RedisSessionStore struct {
 	client *redis.Client
-	ctx    context.Context
 }
 
 // NewRedisSessionStore creates a new Redis session store
@@ -35,12 +34,11 @@ func NewRedisSessionStore() *RedisSessionStore {
 	}
 	return &RedisSessionStore{
 		client: Redis,
-		ctx:    context.Background(),
 	}
 }
 
 // StoreSession stores a session in Redis with DB fallback
-func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
+func (s *RedisSessionStore) StoreSession(ctx context.Context, session *models.UserSession) error {
 	if s == nil || s.client == nil {
 		return fmt.Errorf(errRedisNotInitialized)
 	}
@@ -66,11 +64,11 @@ func (s *RedisSessionStore) StoreSession(session *models.UserSession) error {
 		ttl = SessionTTL
 	}
 
-	return s.client.Set(s.ctx, key, data, ttl).Err()
+	return s.client.Set(ctx, key, data, ttl).Err()
 }
 
 // GetSession retrieves a session from Redis with DB fallback
-func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) {
+func (s *RedisSessionStore) GetSession(ctx context.Context, jti string) (*models.UserSession, error) {
 	if s == nil || s.client == nil {
 		return nil, fmt.Errorf(errRedisNotInitialized)
 	}
@@ -78,7 +76,7 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 	key := SessionKeyPrefix + jti
 
 	// 1. Try Redis first (fast path)
-	data, err := s.client.Get(s.ctx, key).Bytes()
+	data, err := s.client.Get(ctx, key).Bytes()
 	if err == nil {
 		var session models.UserSession
 		if err := json.Unmarshal(data, &session); err == nil {
@@ -98,7 +96,7 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 			// Restore to Redis for future requests
 			ttl := time.Until(session.ExpiresAt)
 			data, _ := json.Marshal(session)
-			s.client.Set(s.ctx, key, data, ttl)
+			s.client.Set(ctx, key, data, ttl)
 
 			return &session, nil
 		}
@@ -108,7 +106,7 @@ func (s *RedisSessionStore) GetSession(jti string) (*models.UserSession, error) 
 }
 
 // RevokeSession revokes a session in Redis and DB
-func (s *RedisSessionStore) RevokeSession(jti string) error {
+func (s *RedisSessionStore) RevokeSession(ctx context.Context, jti string) error {
 	if s == nil || s.client == nil {
 		return fmt.Errorf(errRedisNotInitialized)
 	}
@@ -119,11 +117,11 @@ func (s *RedisSessionStore) RevokeSession(jti string) error {
 	}
 
 	key := SessionKeyPrefix + jti
-	return s.client.Del(s.ctx, key).Err()
+	return s.client.Del(ctx, key).Err()
 }
 
 // RevokeAllUserSessions revokes all sessions for a user
-func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
+func (s *RedisSessionStore) RevokeAllUserSessions(ctx context.Context, userID string) error {
 	if s == nil || s.client == nil {
 		return fmt.Errorf(errRedisNotInitialized)
 	}
@@ -134,21 +132,21 @@ func (s *RedisSessionStore) RevokeAllUserSessions(userID string) error {
 	}
 
 	// Clear from Redis (using scan for safety)
-	return s.clearUserSessionsFromRedis(userID)
+	return s.clearUserSessionsFromRedis(ctx, userID)
 }
 
-func (s *RedisSessionStore) clearUserSessionsFromRedis(userID string) error {
+func (s *RedisSessionStore) clearUserSessionsFromRedis(ctx context.Context, userID string) error {
 	pattern := SessionKeyPrefix + "*"
 	var cursor uint64
 
 	for {
-		keys, nextCursor, err := s.client.Scan(s.ctx, cursor, pattern, 100).Result()
+		keys, nextCursor, err := s.client.Scan(ctx, cursor, pattern, 100).Result()
 		if err != nil {
 			return nil // End of scan or error
 		}
 
 		for _, key := range keys {
-			s.revokeIfUserMatch(key, userID)
+			s.revokeIfUserMatch(ctx, key, userID)
 		}
 
 		cursor = nextCursor
@@ -159,22 +157,22 @@ func (s *RedisSessionStore) clearUserSessionsFromRedis(userID string) error {
 	return nil
 }
 
-func (s *RedisSessionStore) revokeIfUserMatch(key, userID string) {
-	data, err := s.client.Get(s.ctx, key).Bytes()
+func (s *RedisSessionStore) revokeIfUserMatch(ctx context.Context, key, userID string) {
+	data, err := s.client.Get(ctx, key).Bytes()
 	if err != nil {
 		return
 	}
 
 	var session models.UserSession
 	if err := json.Unmarshal(data, &session); err == nil && session.UserID == userID {
-		s.client.Del(s.ctx, key)
+		s.client.Del(ctx, key)
 	}
 }
 
 
 // UpdateLastAccessed updates the last accessed time for a session
-func (s *RedisSessionStore) UpdateLastAccessed(jti string) error {
-	session, err := s.GetSession(jti)
+func (s *RedisSessionStore) UpdateLastAccessed(ctx context.Context, jti string) error {
+	session, err := s.GetSession(ctx, jti)
 	if err != nil {
 		return err
 	}
@@ -192,12 +190,12 @@ func (s *RedisSessionStore) UpdateLastAccessed(jti string) error {
 	if ttl <= 0 {
 		ttl = SessionTTL
 	}
-	return s.client.Set(s.ctx, SessionKeyPrefix+jti, data, ttl).Err()
+	return s.client.Set(ctx, SessionKeyPrefix+jti, data, ttl).Err()
 }
 
 // IsSessionActive checks if a session is active (exists and not expired)
-func (s *RedisSessionStore) IsSessionActive(jti string) (bool, error) {
-	session, err := s.GetSession(jti)
+func (s *RedisSessionStore) IsSessionActive(ctx context.Context, jti string) (bool, error) {
+	session, err := s.GetSession(ctx, jti)
 	if err != nil {
 		return false, nil // Treat not found as inactive
 	}

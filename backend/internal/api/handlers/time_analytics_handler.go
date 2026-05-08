@@ -20,13 +20,13 @@ func GetTimeAnalytics(c *gin.Context) {
 		TotalStudyMinutes int
 		TotalSessions     int
 	}
-	db.DB.Model(&models.StudySession{}).Where("\"userId\" = ?", userId).Select("COALESCE(SUM(\"durationMin\"), 0) as total_study_minutes, COUNT(id) as total_sessions").Scan(&sessionStats)
+	db.DB.Model(&models.StudySession{}).Where("user_id = ?", userId).Select("COALESCE(SUM(duration_min), 0) as total_study_minutes, COUNT(id) as total_sessions").Scan(&sessionStats)
 
 	var taskStats struct {
 		TotalTasks     int
 		CompletedTasks int
 	}
-	db.DB.Model(&models.Task{}).Where("\"userId\" = ?", userId).Select("COUNT(id) as total_tasks, SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_tasks").Scan(&taskStats)
+	db.DB.Model(&models.Task{}).Where("user_id = ?", userId).Select("COUNT(id) as total_tasks, SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_tasks").Scan(&taskStats)
 
 	completionRate := 0.0
 	if taskStats.TotalTasks > 0 {

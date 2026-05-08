@@ -1,9 +1,10 @@
-import { Check, Clock3, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
+import { Check, Clock3, Shield, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { providerLabelMap } from "../constants";
 import { useCourseVideoPlayerStore } from "../store";
 import type { BookmarkItem, VideoProvider } from "../types";
+import { cn } from "@/lib/utils";
 
 export function PlayerHeader({
   provider,
@@ -18,12 +19,13 @@ export function PlayerHeader({
   markers: BookmarkItem[];
   onMarkComplete: () => void;
 }) {
-  const { currentTime, duration, brightness, playbackRate } = useCourseVideoPlayerStore(
+  const { currentTime, duration, brightness, playbackRate, showControls } = useCourseVideoPlayerStore(
     useShallow((state) => ({
       currentTime: state.currentTime,
       duration: state.duration,
       brightness: state.brightness,
       playbackRate: state.playbackRate,
+      showControls: state.showControls,
     }))
   );
 
@@ -47,7 +49,10 @@ export function PlayerHeader({
   }, [currentTime, markers]);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-16 pt-4">
+    <div className={cn(
+      "pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-16 pt-4 transition-opacity duration-200",
+      showControls ? "opacity-100" : "opacity-0"
+    )}>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -60,7 +65,14 @@ export function PlayerHeader({
               {providerLabelMap[provider]}
             </span>
 
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-200">
+            <span className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold transition-colors",
+              progressPercent >= 90
+                ? "border-emerald-400/20 bg-emerald-500/15 text-emerald-200"
+                : progressPercent >= 50
+                  ? "border-blue-400/20 bg-blue-500/10 text-blue-200"
+                  : "border-white/10 bg-white/10 text-white/85"
+            )}>
               <Clock3 className="h-3.5 w-3.5" />
               {progressPercent}% مشاهدة
             </span>
@@ -85,6 +97,11 @@ export function PlayerHeader({
                 {Math.round(brightness * 100)}% سطوع
               </span>
             ) : null}
+
+            <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/15 bg-violet-500/10 px-3 py-1 text-[11px] font-bold text-violet-200">
+              <Shield className="h-3.5 w-3.5" />
+              محمي
+            </span>
           </div>
 
           <div>

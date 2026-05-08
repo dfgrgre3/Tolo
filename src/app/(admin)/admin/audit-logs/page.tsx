@@ -45,7 +45,7 @@ const eventTypeLabels: Record<string, string> = {
   LOGIN: "تسجيل الدخول",
   LOGOUT: "تسجيل الخروج",
   REGISTER: "مستخدم جديد",
-  PASSWORD_CHANGE: "تغيير كلمة المرور",
+  PASSWORD_CHANGE: "تغيير كلمة المرور", // NOSONAR
   EMAIL_CHANGE: "تحديث البريد الإلكتروني",
   PROFILE_UPDATE: "تعديل الملف الشخصي",
   FAILED_LOGIN: "محاولة دخول فاشلة",
@@ -62,7 +62,7 @@ const eventTypeColors: Record<string, string> = {
   LOGIN: "bg-emerald-500",
   LOGOUT: "bg-gray-500",
   REGISTER: "bg-blue-500",
-  PASSWORD_CHANGE: "bg-yellow-600",
+  PASSWORD_CHANGE: "bg-yellow-600", // NOSONAR
   EMAIL_CHANGE: "bg-yellow-600",
   PROFILE_UPDATE: "bg-blue-500",
   FAILED_LOGIN: "bg-red-600",

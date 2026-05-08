@@ -26,7 +26,6 @@ const (
 	UserCacheTTL            = 15 * time.Minute
 	userEmailCacheKeyFormat = "%semail:%s"
 	userIDCacheKeyFormat    = "%sid:%s"
-	queryByID               = "id = ?"
 	queryByEmail            = "email ILIKE ?"
 )
 

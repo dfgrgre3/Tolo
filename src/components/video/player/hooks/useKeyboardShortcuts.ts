@@ -1,5 +1,5 @@
 import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { SEEK_STEP_SECONDS } from "../constants";
+import { SEEK_STEP_SECONDS, PLAYBACK_RATES } from "../constants";
 import { useCourseVideoPlayerStore } from "../store";
 
 type KeyboardShortcutsOptions = {
@@ -7,11 +7,13 @@ type KeyboardShortcutsOptions = {
   seekBy: (seconds: number) => void;
   handleSeek: (time: number) => void;
   handleVolumeChange: (volume: number) => void;
+  handlePlaybackRateChange: (rate: number) => void;
   toggleMute: () => void;
   toggleFullscreen: () => | Promise<void>;
   togglePip: () => | Promise<void>;
   onToggleTheater?: () => void;
   changeSubtitle: (id: string) => void;
+  toggleLoop: () => void;
   setOpenPanel: (panel: "settings" | "help" | "stats" | "sidebar" | null) => void;
   getDuration: () => number;
   subtitleTracks: { id: string }[];
@@ -23,17 +25,19 @@ export function useKeyboardShortcuts({
   seekBy,
   handleSeek,
   handleVolumeChange,
+  handlePlaybackRateChange,
   toggleMute,
   toggleFullscreen,
   togglePip,
   onToggleTheater,
   changeSubtitle,
+  toggleLoop,
   setOpenPanel,
   getDuration,
   subtitleTracks,
   selectedSubtitle,
 }: KeyboardShortcutsOptions) {
-  const { volume, setPlayerState } = useCourseVideoPlayerStore();
+  const { volume, playbackRate, setPlayerState } = useCourseVideoPlayerStore();
 
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -51,12 +55,13 @@ export function useKeyboardShortcuts({
         case "arrowright":
         case "l":
           event.preventDefault();
-          seekBy(SEEK_STEP_SECONDS);
+          // Shift + Arrow = 5 seconds, normal = 10 seconds
+          seekBy(event.shiftKey ? 5 : SEEK_STEP_SECONDS);
           break;
         case "arrowleft":
         case "j":
           event.preventDefault();
-          seekBy(-SEEK_STEP_SECONDS);
+          seekBy(event.shiftKey ? -5 : -SEEK_STEP_SECONDS);
           break;
         case "arrowup":
           event.preventDefault();
@@ -94,6 +99,10 @@ export function useKeyboardShortcuts({
           event.preventDefault();
           setPlayerState({ sidebarTab: "notes", isSidebarOpen: true });
           break;
+        case "b":
+          event.preventDefault();
+          setPlayerState({ sidebarTab: "bookmarks", isSidebarOpen: true });
+          break;
         case "home":
           event.preventDefault();
           handleSeek(0);
@@ -114,6 +123,32 @@ export function useKeyboardShortcuts({
           event.preventDefault();
           setPlayerState({ isHelpOpen: true });
           break;
+        // Playback rate cycling: > to increase, < to decrease
+        case ">":
+        case ".": {
+          if (!event.shiftKey && event.key === ".") break;
+          event.preventDefault();
+          const currentIdx = PLAYBACK_RATES.indexOf(playbackRate);
+          if (currentIdx < PLAYBACK_RATES.length - 1) {
+            handlePlaybackRateChange(PLAYBACK_RATES[currentIdx + 1]);
+          }
+          break;
+        }
+        case "<":
+        case ",": {
+          if (!event.shiftKey && event.key === ",") break;
+          event.preventDefault();
+          const currentIdx = PLAYBACK_RATES.indexOf(playbackRate);
+          if (currentIdx > 0) {
+            handlePlaybackRateChange(PLAYBACK_RATES[currentIdx - 1]);
+          }
+          break;
+        }
+        // A-B Loop toggle
+        case "a":
+          event.preventDefault();
+          toggleLoop();
+          break;
         default:
           if (/^[0-9]$/.test(event.key)) {
             event.preventDefault();
@@ -130,13 +165,16 @@ export function useKeyboardShortcuts({
       getDuration,
       handleSeek,
       handleVolumeChange,
+      handlePlaybackRateChange,
       onToggleTheater,
+      playbackRate,
       seekBy,
       selectedSubtitle,
       setOpenPanel,
       setPlayerState,
       subtitleTracks,
       toggleFullscreen,
+      toggleLoop,
       toggleMute,
       togglePip,
       togglePlayPause,

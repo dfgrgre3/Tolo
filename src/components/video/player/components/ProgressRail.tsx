@@ -9,12 +9,14 @@ import {
   type PointerEvent,
 } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import type { BookmarkItem, ThumbnailCue } from "../types";
+import type { BookmarkItem, ThumbnailCue, TimelineNote } from "../types";
 import {
   clamp,
   formatDuration,
   getThumbnailCueAtTime,
 } from "../utils";
+import { useCourseVideoPlayerStore } from "../store";
+import { cn } from "@/lib/utils";
 
 export const ProgressRail = memo(function ProgressRail({
   currentTime,
@@ -22,6 +24,7 @@ export const ProgressRail = memo(function ProgressRail({
   buffered,
   markers,
   thumbnails,
+  notes = [],
   onSeek,
 }: {
   currentTime: number;
@@ -29,6 +32,7 @@ export const ProgressRail = memo(function ProgressRail({
   buffered: number;
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
+  notes?: TimelineNote[];
   onSeek: (value: number) => void;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
@@ -36,10 +40,24 @@ export const ProgressRail = memo(function ProgressRail({
   const [previewPercent, setPreviewPercent] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  const { loopStart, loopEnd } = useCourseVideoPlayerStore((s) => ({
+    loopStart: s.loopStart,
+    loopEnd: s.loopEnd,
+  }));
+
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPercent = duration > 0 ? (buffered / duration) * 100 : 0;
   const safeProgressPercent = clamp(progressPercent, 0, 100);
   const safeBufferedPercent = clamp(bufferedPercent, 0, 100);
+
+  // Loop region visualization
+  const loopRegion = useMemo(() => {
+    if (loopStart === null || duration <= 0) return null;
+    const startPercent = (loopStart / duration) * 100;
+    if (loopEnd === null) return { start: startPercent, width: 0, pending: true };
+    const endPercent = (loopEnd / duration) * 100;
+    return { start: startPercent, width: endPercent - startPercent, pending: false };
+  }, [loopStart, loopEnd, duration]);
 
   // Pseudo-random heatmap data for engagement visualization
   const heatmapData = useMemo(() => {
@@ -275,11 +293,28 @@ export const ProgressRail = memo(function ProgressRail({
             className="absolute inset-y-0 left-0 rounded-full bg-white/15"
             style={{ width: `${safeBufferedPercent}%` }}
           />
+
+          {/* A-B Loop Region */}
+          {loopRegion && !loopRegion.pending && (
+            <div
+              className="absolute inset-y-0 rounded-full bg-violet-400/25 border-x-2 border-violet-400/50"
+              style={{ left: `${loopRegion.start}%`, width: `${loopRegion.width}%` }}
+            />
+          )}
+          {/* Loop start marker (pending) */}
+          {loopRegion?.pending && (
+            <div
+              className="absolute top-1/2 z-10 h-5 w-1 -translate-y-1/2 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.7)]"
+              style={{ left: `${loopRegion.start}%` }}
+            />
+          )}
+
           <div
             className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]"
             style={{ width: `${safeProgressPercent}%` }}
           />
 
+          {/* Chapter / Bookmark Markers */}
           {markers.map((marker) => {
             const left = duration > 0 ? (marker.time / duration) * 100 : 0;
             const width =
@@ -304,8 +339,33 @@ export const ProgressRail = memo(function ProgressRail({
             );
           })}
 
+          {/* Note Markers on Timeline */}
+          {notes.map((note) => {
+            const left = duration > 0 ? (note.time / duration) * 100 : 0;
+            const isNear = Math.abs(note.time - currentTime) < 2;
+            return (
+              <div
+                key={note.id}
+                className={cn(
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full transition-all duration-300",
+                  isNear
+                    ? "h-4 w-4 bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.8)] animate-pulse"
+                    : "h-2.5 w-2.5 bg-orange-400/70 shadow-[0_0_6px_rgba(251,146,60,0.4)]"
+                )}
+                style={{ left: `${left}%`, marginLeft: "-4px" }}
+                title={note.text}
+              />
+            );
+          })}
+
+          {/* Progress Thumb */}
           <div
-            className="absolute top-1/2 z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-500 shadow-[0_0_18px_rgba(59,130,246,0.7)]"
+            className={cn(
+              "absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-500 transition-all duration-150",
+              isDragging
+                ? "h-5 w-5 shadow-[0_0_24px_rgba(59,130,246,0.9)]"
+                : "h-4 w-4 shadow-[0_0_18px_rgba(59,130,246,0.7)]"
+            )}
             style={{ left: `${safeProgressPercent}%` }}
           />
         </div>
