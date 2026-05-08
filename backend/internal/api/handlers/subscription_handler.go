@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const idQuery = "id = ?"
 const errUserNotFound = "User not found"
 const errInvalidRequest = "Invalid request"
 const errPlanNotFound = "Plan not found"

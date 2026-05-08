@@ -16,7 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const idQuery = "id = ?"
 
 
 func GetExams(c *gin.Context) {

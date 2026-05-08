@@ -11,8 +11,6 @@ import (
 	"thanawy-backend/internal/services"
 )
 
-const statusQuery = "status = ?"
-const idQuery = "id = ?"
 const errItemNotFound = "Item not found"
 
 

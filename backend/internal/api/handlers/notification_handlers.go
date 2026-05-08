@@ -12,7 +12,6 @@ import (
 	"thanawy-backend/internal/services"
 )
 
-const statusQuery = "status = ?"
 
 
 // NotificationRequest represents a broadcast notification request

@@ -13,7 +13,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const queryID = "id = ?"
 
 func GetCategories(c *gin.Context) {
 	categoryType := c.Query("type")

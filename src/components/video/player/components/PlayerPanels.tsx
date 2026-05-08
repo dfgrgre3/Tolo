@@ -832,17 +832,31 @@ function SidebarPanel({
   onLessonChange,
   onCloseSidebar,
 }: any) {
+  let initialAnim: any = { x: 360, opacity: 0 };
+  let animateAnim: any = { x: 0, opacity: 1 };
+  let exitAnim: any = { x: 360, opacity: 0 };
+  let transitionAnim: any = undefined;
+  let bgClass = "backdrop-blur-2xl";
+
+  if (isEfficiencyMode) {
+    initialAnim = { opacity: 0 };
+    animateAnim = { opacity: 1 };
+    exitAnim = { opacity: 0 };
+    transitionAnim = { duration: 0 };
+    bgClass = "";
+  }
+
   return (
     <AnimatePresence>
       {isSidebarOpen ? (
         <m.aside
-          initial={isEfficiencyMode ? { opacity: 0 } : { x: 360, opacity: 0 }}
-          animate={isEfficiencyMode ? { opacity: 1 } : { x: 0, opacity: 1 }}
-          exit={isEfficiencyMode ? { opacity: 0 } : { x: 360, opacity: 0 }}
-          transition={isEfficiencyMode ? { duration: 0 } : undefined}
+          initial={initialAnim}
+          animate={animateAnim}
+          exit={exitAnim}
+          transition={transitionAnim}
           className={cn(
             "absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[360px] flex-col border-r border-white/10 bg-slate-950/92 p-4 shadow-2xl",
-            !isEfficiencyMode && "backdrop-blur-2xl"
+            bgClass
           )}
         >
           <div className="mb-4 flex items-center justify-between gap-3">

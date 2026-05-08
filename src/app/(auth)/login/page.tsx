@@ -198,30 +198,54 @@ function PremiumInput({
 
   const isActive = isFocused || hasValue;
 
-  const borderColor = error
-    ? "rgba(239,68,68,0.4)"
-    : isFocused ? "rgba(255,109,0,0.5)" : "rgba(255,255,255,0.08)";
+  let borderColor = "rgba(255,255,255,0.08)";
+  let labelColor = "rgba(107,114,128,1)";
+  let iconColorClass = "text-gray-500";
+  let bgColor = "rgba(255,255,255,0.04)";
+  let shadowClass = "shadow-sm";
+  let containerScale = 1;
 
-  const labelColor = error
-    ? "rgba(239,68,68,1)"
-    : isFocused ? "rgba(255,109,0,0.9)" : "rgba(107,114,128,1)";
+  if (isFocused) {
+    borderColor = "rgba(255,109,0,0.5)";
+    labelColor = "rgba(255,109,0,0.9)";
+    iconColorClass = "text-primary scale-110";
+    bgColor = "rgba(255,255,255,0.08)";
+    shadowClass = "shadow-[0_0_25px_rgba(255,109,0,0.15)]";
+    containerScale = 1.01;
+  }
 
-  const iconColorClass = error ? "text-red-400" : isFocused ? "text-primary scale-110" : "text-gray-500";
+  if (error) {
+    borderColor = "rgba(239,68,68,0.4)";
+    labelColor = "rgba(239,68,68,1)";
+    iconColorClass = "text-red-400";
+  }
 
   const PasswordToggleIcon = showPassword ? EyeOff : Eye;
+
+  let labelY = 0;
+  let labelScale = 1;
+  let labelX = 0;
+  let labelTextClass = "text-sm";
+
+  if (isActive) {
+    labelY = -18;
+    labelScale = 0.75;
+    labelX = 10;
+    labelTextClass = "text-[10px]";
+  }
 
   return (
     <div className="space-y-2 group/input">
       <m.div 
         animate={{ 
           borderColor,
-          backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-          scale: isFocused ? 1.01 : 1,
+          backgroundColor: bgColor,
+          scale: containerScale,
         }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={cn(
           "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
-          isFocused ? "shadow-[0_0_25px_rgba(255,109,0,0.15)]" : "shadow-sm",
+          shadowClass,
           error && "ring-2 ring-red-500/20"
         )}
       >
@@ -253,14 +277,14 @@ function PremiumInput({
         
         <m.label 
           animate={{
-            y: isActive ? -18 : 0,
-            scale: isActive ? 0.75 : 1,
-            x: isActive ? 10 : 0,
+            y: labelY,
+            scale: labelScale,
+            x: labelX,
             color: labelColor
           }}
           className={cn(
             "absolute right-14 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all z-10",
-            isActive ? "text-[10px]" : "text-sm"
+            labelTextClass
           )}
         >
           {label}

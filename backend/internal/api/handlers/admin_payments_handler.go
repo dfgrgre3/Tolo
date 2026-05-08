@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const statusQuery = "status = ?"
 const revenueSumQuery = "COALESCE(SUM(amount), 0)"
 
 

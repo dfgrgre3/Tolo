@@ -294,9 +294,12 @@ export function useSidebarKeyboardShortcuts(
                 const current = document.activeElement;
                 const currentIndex = Array.from(items).indexOf(current as Element);
 
-                const nextIndex = e.key === "ArrowDown"
-                    ? (currentIndex < items.length - 1 ? currentIndex + 1 : 0)
-                    : (currentIndex > 0 ? currentIndex - 1 : items.length - 1);
+                let nextIndex = 0;
+                if (e.key === "ArrowDown") {
+                    nextIndex = (currentIndex + 1) % items.length;
+                } else {
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+                }
 
                 (items[nextIndex] as HTMLElement)?.focus();
                 return;

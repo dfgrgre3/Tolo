@@ -131,7 +131,7 @@ const VirtualCard = ({ balance }: {balance: number;}) =>
   </m.div>;
 
 
-const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: () => void;onDeposit: (amount: number) => void;}) => {
+const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: () => void;onDeposit: (amount: number) => Promise<void>;}) => {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 

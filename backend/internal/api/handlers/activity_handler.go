@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const userIDQuery = "user_id = ?"
 
 // Tasks
 func GetTasks(c *gin.Context) {

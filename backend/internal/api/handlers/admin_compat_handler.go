@@ -16,7 +16,6 @@ import (
 const createdAtDesc = "created_at DESC"
 const msgMethodNotAllowed = "Method not allowed"
 const msgIDRequired = "ID is required"
-const queryID = "id = ?"
 const queryStatus = "status = ?"
 var defaultAdminSettings = map[string]interface{}{
 	"siteName":        "Thanawy",

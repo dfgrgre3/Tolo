@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import type { Variants } from "framer-motion";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Users,
   Clock,
@@ -18,6 +20,7 @@ import {
   Lock,
   Unlock,
   Layers,
+  Star,
 } from "lucide-react";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { Badge } from "@/components/ui/badge";
@@ -30,31 +33,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatPrice } from "@/lib/utils";
+import {
+  type CourseBase,
+  type CourseActionCallbacks,
+  levelConfig,
+} from "./types";
 
-interface CourseCardProps {
-  course: any;
-  onEdit?: (course: any) => void;
-  onDuplicate?: (course: any) => void;
-  onDelete?: (course: any) => void;
-  onToggleStatus?: (course: any) => void;
+interface CourseCardProps extends CourseActionCallbacks {
+  course: CourseBase;
+  index?: number;
 }
 
-const levelConfig: Record<string, { label: string; color: string; num: string }> = {
-  BEGINNER: {
-    label: "ظ…ط¨طھط¯ط¦",
-    color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
-    num: "1",
-  },
-  INTERMEDIATE: {
-    label: "ظ…طھظˆط³ط·",
-    color: "text-sky-400 bg-sky-500/10 border-sky-500/25",
-    num: "2",
-  },
-  ADVANCED: {
-    label: "ظ…طھظ‚ط¯ظ…",
-    color: "text-violet-400 bg-violet-500/10 border-violet-500/25",
-    num: "3",
-  },
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  }),
 };
 
 export function CourseCard({
@@ -63,6 +64,7 @@ export function CourseCard({
   onDuplicate,
   onDelete,
   onToggleStatus,
+  index = 0,
 }: CourseCardProps) {
   const learnersCount = course._count?.enrollments ?? 0;
   const topicsCount = course._count?.topics ?? 0;
@@ -71,7 +73,12 @@ export function CourseCard({
   const canManage = Boolean(onEdit || onDuplicate || onDelete || onToggleStatus);
 
   return (
-    <div
+    <motion.div
+      custom={index}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      layout
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm",
         "transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10",
@@ -79,21 +86,29 @@ export function CourseCard({
         !course.isActive && "opacity-70",
       )}
     >
+      {/* Featured Badge */}
       {course.isFeatured && (
         <div className="absolute left-3 top-3 z-10">
-          <div className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 backdrop-blur-md">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+            className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 backdrop-blur-md"
+          >
             <Crown className="h-3 w-3 text-amber-400" />
-            <span className="text-[10px] font-black text-amber-400">ظ…ظ…ظٹط²ط©</span>
-          </div>
+            <span className="text-[10px] font-black text-amber-400">مميزة</span>
+          </motion.div>
         </div>
       )}
 
+      {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-muted">
         {course.thumbnailUrl ? (
           <img
             src={course.thumbnailUrl}
             alt={course.nameAr || course.name}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/5 to-transparent">
@@ -101,8 +116,10 @@ export function CourseCard({
           </div>
         )}
 
+        {/* Hover Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
+        {/* Status Badges */}
         <div className="absolute right-3 top-3 flex flex-col gap-1.5">
           <Badge
             className={cn(
@@ -112,15 +129,16 @@ export function CourseCard({
                 : "bg-orange-500/20 text-orange-300 border-orange-500/30",
             )}
           >
-            {course.isPublished ? "ظ…ظ†ط´ظˆط±ط©" : "ظ…ط³ظˆط¯ط©"}
+            {course.isPublished ? "منشورة" : "مسودة"}
           </Badge>
           {!course.isActive && (
             <Badge className="rounded-lg border border-red-500/30 bg-red-500/20 px-2 py-0.5 text-[10px] font-black text-red-300 backdrop-blur-md">
-              ظ…ظˆظ‚ظˆظپط©
+              موقوفة
             </Badge>
           )}
         </div>
 
+        {/* Level Badge */}
         <div className="absolute bottom-3 left-3">
           <Badge
             className={cn(
@@ -132,6 +150,7 @@ export function CourseCard({
           </Badge>
         </div>
 
+        {/* Price Badge */}
         <div className="absolute bottom-3 right-3">
           <div
             className={cn(
@@ -141,11 +160,12 @@ export function CourseCard({
                 : "bg-black/60 text-white border-white/20",
             )}
           >
-            {isFree ? "ظ…ط¬ط§ظ†ظٹط©" : formatPrice(course.price)}
+            {isFree ? "مجانية" : formatPrice(course.price)}
           </div>
         </div>
       </div>
 
+      {/* Content */}
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1 space-y-1">
@@ -153,11 +173,12 @@ export function CourseCard({
               {course.nameAr || course.name}
             </h3>
             <p className="truncate text-[11px] font-bold uppercase tracking-wide text-muted-foreground/70">
-              {course.code && <span className="text-primary/60">#{course.code} â¬¢ </span>}
-              {course.instructorName || "ط¨ط¯ظˆظ† ظ…ط­ط§ط¶ط±"}
+              {course.code && <span className="text-primary/60">#{course.code} • </span>}
+              {course.instructorName || "بدون محاضر"}
             </p>
           </div>
 
+          {/* Actions Menu */}
           {canManage && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -171,7 +192,7 @@ export function CourseCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60">
                 <DropdownMenuLabel className="text-xs font-black text-muted-foreground">
-                  ط¥ط¬ط±ط§ط،ط§طھ ط§ظ„ط¯ظˆط±ط©
+                  إجراءات الدورة
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {onEdit && (
@@ -180,13 +201,13 @@ export function CourseCard({
                     className="cursor-pointer gap-2.5 rounded-lg font-bold"
                   >
                     <Edit className="h-4 w-4 text-blue-500" />
-                    طھط¹ط¯ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ
+                    تعديل البيانات
                   </DropdownMenuItem>
                 )}
                 <Link href={`/admin/courses/${course.id}/curriculum`} className="block">
                   <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-lg font-bold">
                     <Layers className="h-4 w-4 text-violet-500" />
-                    ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†ظ‡ط¬
+                    إدارة المنهج
                   </DropdownMenuItem>
                 </Link>
                 {onDuplicate && (
@@ -195,13 +216,13 @@ export function CourseCard({
                     className="cursor-pointer gap-2.5 rounded-lg font-bold"
                   >
                     <Copy className="h-4 w-4 text-amber-500" />
-                    ط§ط³طھظ†ط³ط§ط® ط§ظ„ط¯ظˆط±ط©
+                    استنساخ الدورة
                   </DropdownMenuItem>
                 )}
                 <Link href={`/admin/courses/${course.id}/analytics`} className="block">
                   <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-lg font-bold">
                     <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    ط§ظ„طھط­ظ„ظٹظ„ط§طھ
+                    التحليلات
                   </DropdownMenuItem>
                 </Link>
                 {onToggleStatus && (
@@ -214,12 +235,12 @@ export function CourseCard({
                       {course.isPublished ? (
                         <>
                           <Lock className="h-4 w-4 text-orange-500" />
-                          <span>ط¥ط®ظپط§ط، ط§ظ„ط¯ظˆط±ط©</span>
+                          <span>إخفاء الدورة</span>
                         </>
                       ) : (
                         <>
                           <Unlock className="h-4 w-4 text-emerald-500" />
-                          <span>ظ†ط´ط± ط§ظ„ط¯ظˆط±ط©</span>
+                          <span>نشر الدورة</span>
                         </>
                       )}
                     </DropdownMenuItem>
@@ -233,7 +254,7 @@ export function CourseCard({
                       className="cursor-pointer gap-2.5 rounded-lg font-black text-red-500 focus:bg-red-500/10 focus:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
-                      ط­ط°ظپ ظ†ظ‡ط§ط¦ظٹ
+                      حذف نهائي
                     </DropdownMenuItem>
                   </>
                 )}
@@ -242,30 +263,32 @@ export function CourseCard({
           )}
         </div>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/30 p-2.5">
           <div className="flex flex-col items-center gap-0.5">
             <div className="flex items-center gap-1">
               <Users className="h-3 w-3 text-blue-500" />
               <span className="text-xs font-black">{learnersCount}</span>
             </div>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">ط·ط§ظ„ط¨</p>
+            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">طالب</p>
           </div>
           <div className="flex flex-col items-center gap-0.5 border-x border-border/30">
             <div className="flex items-center gap-1">
               <BookOpen className="h-3 w-3 text-violet-500" />
               <span className="text-xs font-black">{topicsCount}</span>
             </div>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">ظˆط­ط¯ط©</p>
+            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">وحدة</p>
           </div>
           <div className="flex flex-col items-center gap-0.5">
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3 text-emerald-500" />
               <span className="text-xs font-black">{course.durationHours ?? 0}</span>
             </div>
-            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">ط³ط§ط¹ط©</p>
+            <p className="text-[9px] font-bold uppercase text-muted-foreground/50">ساعة</p>
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="mt-auto flex items-center gap-2 pt-1">
           {onToggleStatus && (
             <AdminButton
@@ -279,11 +302,11 @@ export function CourseCard({
             >
               {course.isPublished ? (
                 <>
-                  <XCircle className="ml-1 h-3.5 w-3.5" /> ط¥ط®ظپط§ط،
+                  <XCircle className="ml-1 h-3.5 w-3.5" /> إخفاء
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="ml-1 h-3.5 w-3.5" /> ظ†ط´ط±
+                  <CheckCircle2 className="ml-1 h-3.5 w-3.5" /> نشر
                 </>
               )}
             </AdminButton>
@@ -295,7 +318,7 @@ export function CourseCard({
               className="h-9 w-full gap-1 rounded-xl text-[11px] font-black"
             >
               <Eye className="h-3.5 w-3.5" />
-              ط¹ط±ط¶
+              عرض
             </AdminButton>
           </Link>
           {onEdit && (
@@ -310,6 +333,6 @@ export function CourseCard({
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

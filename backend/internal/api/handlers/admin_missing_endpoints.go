@@ -11,8 +11,6 @@ import (
 	"thanawy-backend/internal/models"
 )
 
-const userIDQuery = "user_id = ?"
-const idQuery = "id = ?"
 
 
 func parsePositiveInt(value string, fallback int) int {

@@ -11,7 +11,6 @@ import (
 	"thanawy-backend/internal/models"
 )
 
-const idQuery = "id = ?"
 const errReportNotFound = "Report not found"
 
 // ReportWidget represents a single widget in a report

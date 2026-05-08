@@ -12,7 +12,6 @@ import (
 	"thanawy-backend/internal/services"
 )
 
-const idQuery = "id = ?"
 const errBackupNotFound = "Backup not found"
 
 

@@ -16,10 +16,7 @@ import (
 	"thanawy-backend/internal/models"
 )
 
-const userIDQuery = "user_id = ?"
 const errInvalidVerificationCode = "Invalid verification code"
-const statusQuery = "status = ?"
-const idQuery = "id = ?"
 
 // ========== 2FA Handlers ==========
 

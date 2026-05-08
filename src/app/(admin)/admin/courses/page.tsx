@@ -44,6 +44,11 @@ import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { CourseStats } from "@/components/admin/courses/dashboard-stats";
 import { CourseCard } from "@/components/admin/courses/course-card";
 import { CourseFilters } from "@/components/admin/courses/course-filters";
+import { CourseContentView } from "@/components/admin/courses/course-content-view";
+import { CoursePreviewPanel } from "@/components/admin/courses/course-preview-panel";
+import { CourseBulkActions } from "@/components/admin/courses/course-bulk-actions";
+import { CoursePagination } from "@/components/admin/courses/course-pagination";
+import { CourseEmptyState } from "@/components/admin/courses/course-empty-state";
 import {
   Dialog,
   DialogContent,
@@ -228,30 +233,8 @@ const defaultCategoryValues: CategoryFormValues = {
 
 // â”€â”€â”€ Loading Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function CourseGridSkeleton() {
-  return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) =>
-        <div key={i} className="rounded-2xl border bg-card/60 overflow-hidden animate-pulse">
-          <div className="aspect-video bg-muted/50" />
-          <div className="p-4 space-y-3">
-            <div className="h-4 bg-muted/50 rounded-lg w-3/4" />
-            <div className="h-3 bg-muted/50 rounded-lg w-1/2" />
-            <div className="grid grid-cols-3 gap-2">
-              <div className="h-8 bg-muted/50 rounded-xl" />
-              <div className="h-8 bg-muted/50 rounded-xl" />
-              <div className="h-8 bg-muted/50 rounded-xl" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 flex-1 bg-muted/50 rounded-xl" />
-              <div className="h-9 flex-1 bg-muted/50 rounded-xl" />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>);
 
-}
+
 
 // â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -762,25 +745,9 @@ export default function AdminCoursesPage() {
 
   // â”€â”€â”€ Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const emptyState =
-    <div className="col-span-full flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/40 bg-muted/10 py-20 text-center">
-      <div className="rounded-3xl bg-primary/10 p-5">
-        <BookOpen className="h-10 w-10 text-primary/60" />
-      </div>
-      <div className="space-y-1">
-        <p className="text-base font-black">لا توجد دورات مطابقة</p>
-        <p className="text-sm text-muted-foreground">
-          جرّب تغيير كلمة البحث أو الفلاتر، أو أنشئ دورة جديدة الآن.
-        </p>
-      </div>
-      <AdminButton
-        onClick={() => router.push("/admin/courses/new")}
-        className="gap-2 font-black">
-
-        <Plus className="h-4 w-4" />
-        إنشاء دورة جديدة
-      </AdminButton>
-    </div>;
+  const emptyState = (
+    <CourseEmptyState onAddCourse={() => router.push("/admin/courses/new")} />
+  );
 
 
   // ——————————————————————————————————————————————————————————————————————————————————————————————————
@@ -861,62 +828,16 @@ export default function AdminCoursesPage() {
 
 
       {/* Batch Actions Bar */}
-      {selectedIds.length > 0 &&
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 animate-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-black text-primary">
-              {selectedIds.length} دورة مختارة
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2 mr-auto">
-            <AdminButton
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-xl text-xs font-black gap-1.5"
-              onClick={() => handleBatchAction("publish")}>
-
-              <Globe className="h-3.5 w-3.5 text-emerald-500" />
-              نشر
-            </AdminButton>
-            <AdminButton
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-xl text-xs font-black gap-1.5"
-              onClick={() => handleBatchAction("unpublish")}>
-
-              <EyeOff className="h-3.5 w-3.5 text-amber-500" />
-              إخفاء
-            </AdminButton>
-            <AdminButton
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-xl text-xs font-black gap-1.5"
-              onClick={() => handleBatchAction("activate")}>
-
-              <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-              تفعيل
-            </AdminButton>
-            <AdminButton
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-xl text-xs font-black gap-1.5 text-red-500 hover:bg-red-500/10"
-              onClick={() => handleBatchAction("delete")}>
-
-              <AlertCircle className="h-3.5 w-3.5" />
-              حذف
-            </AdminButton>
-            <AdminButton
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-xl text-xs font-bold"
-              onClick={() => setSelectedIds([])}>
-
-              إلغاء
-            </AdminButton>
-          </div>
-        </div>
-      }
+      <CourseBulkActions
+        selectedCount={selectedIds.length}
+        onPublish={() => handleBatchAction("publish")}
+        onUnpublish={() => handleBatchAction("unpublish")}
+        onActivate={() => handleBatchAction("activate")}
+        onDeactivate={() => handleBatchAction("deactivate")}
+        onDelete={() => handleBatchAction("delete")}
+        onExport={handleExport}
+        onClear={() => setSelectedIds([])}
+      />
 
       {/* Content */}
       <CourseContentView
@@ -943,47 +864,16 @@ export default function AdminCoursesPage() {
       />
 
       {/* Pagination for grid view */}
-      {view === "grid" && totalPages > 1 &&
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <AdminButton
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="h-10 w-10 rounded-xl p-0">
-
-            <ChevronRight className="h-4 w-4" />
-          </AdminButton>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={cn(
-                    "h-10 w-10 rounded-xl text-sm font-bold transition-all",
-                    pageNum === page ?
-                      "bg-primary text-primary-foreground shadow-md" :
-                      "hover:bg-muted text-muted-foreground"
-                  )}>
-
-                  {pageNum}
-                </button>);
-
-            })}
-          </div>
-          <AdminButton
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="h-10 w-10 rounded-xl p-0">
-
-            <ChevronLeft className="h-4 w-4" />
-          </AdminButton>
-        </div>
-      }
+      {view === "grid" && (
+        <CoursePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination?.total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
+      )}
 
       {/* â”€â”€â”€ Quick Edit Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Dialog

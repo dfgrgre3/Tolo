@@ -11,9 +11,7 @@ import (
 	"thanawy-backend/internal/services"
 )
 
-const idQuery = "id = ?"
 const channelInApp = "in-app"
-const statusQuery = "status = ?"
 const errTicketNotFound = "Ticket not found"
 
 

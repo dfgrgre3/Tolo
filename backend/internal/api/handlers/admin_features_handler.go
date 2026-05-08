@@ -17,7 +17,6 @@ import (
 )
 
 const headerContentType = "Content-Type"
-const queryID = "id = ?"
 
 // Generic list helper using api_response.List
 func listItems(c *gin.Context, model interface{}, key string, preloads ...string) {
