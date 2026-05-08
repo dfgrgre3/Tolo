@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
+	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/middleware"
 	"thanawy-backend/internal/models"
@@ -559,7 +560,7 @@ func GetIPWhitelistSettings(c *gin.Context) {
 				"enforceForAPI":      false,
 				"defaultAction":      "allow",
 				"allowInternalIPs":   true,
-				"internalIPRanges":   []string{"127.0.0.1/8", "10.0.0.0/8", "192.168.0.0/16"},
+				"internalIPRanges":   config.GlobalConfig.InternalIPRanges,
 				"logBlockedAttempts": true,
 				"notifyOnViolation":  true,
 			},

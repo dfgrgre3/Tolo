@@ -93,6 +93,9 @@ type SecurityAuditLog struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// DefaultInternalIPRanges are standard RFC 1918 and loopback ranges
+var DefaultInternalIPRanges = []string{"127.0.0.1/8", "10.0.0.0/8", "192.168.0.0/16"}
+
 // TableName returns the table name for TwoFactorSettings
 func (TwoFactorSettings) TableName() string {
 	return "two_factor_settings"

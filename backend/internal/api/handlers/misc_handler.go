@@ -123,7 +123,7 @@ func ImpersonateUser(c *gin.Context) {
 
 	// Set impersonation cookie
 	// In a real app, this should be a signed cookie or stored in a session
-	c.SetCookie("impersonate_user_id", req.TargetUserID, 3600, "/", "", false, true)
+	c.SetCookie("impersonate_user_id", req.TargetUserID, 3600, "/", "", isProduction(), true)
 
 	api_response.Success(c, gin.H{
 		"success": true,

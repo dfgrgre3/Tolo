@@ -21,6 +21,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const (
+	idQuery            = "id = ?"
+	msgSubjectNotFound     = "Subject not found"
+	preloadTopicsSubTopics  = "Topics.SubTopics"
+	msgUserNotAuthenticated = "User not authenticated"
+	msgInvalidInput         = "Invalid input"
+	subjectIDQuery          = "subject_id = ?"
+	subjectIDQuotedQuery    = "\"subjectId\" = ?"
+)
+
 var subjectRepo *repository.SubjectRepository
 
 func getSubjectRepo() *repository.SubjectRepository {
@@ -167,19 +177,10 @@ func GetSubject(c *gin.Context) {
 	query := db.DB.Preload("Topics.SubTopics.Attachments").Preload("Topics.SubTopics.Exam")
 	
 	// Check if it's a UUID or Slug
-	if len(id) == 36 && strings.Contains(id, "-") {
-		query = query.Where("id = ?", id)
-	} else {
-		query = query.Where("slug = ? OR id = ?", id, id)
-	}
+	query = applyIDOrSlugQuery(query, id)
 
 	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
-		} else {
-			log.Printf("Error fetching subject %s: %v", id, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch subject")
-		}
+		handleSubjectError(c, id, err, "fetching subject")
 		return
 	}
 
@@ -197,20 +198,11 @@ func GetCourseLessons(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	query := db.DB.Preload("Topics.SubTopics")
-	if len(id) == 36 && strings.Contains(id, "-") {
-		query = query.Where("id = ?", id)
-	} else {
-		query = query.Where("slug = ? OR id = ?", id, id)
-	}
+	query := db.DB.Preload(preloadTopicsSubTopics)
+	query = applyIDOrSlugQuery(query, id)
 
 	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Course not found")
-		} else {
-			log.Printf("Error fetching course lessons %s: %v", id, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch course lessons")
-		}
+		handleSubjectError(c, id, err, "fetching course lessons")
 		return
 	}
 
@@ -228,19 +220,11 @@ func GetCourseLessons(c *gin.Context) {
 	var lessons []Lesson
 	for _, topic := range subject.Topics {
 		for _, st := range topic.SubTopics {
-			desc := ""
-			if st.Description != nil {
-				desc = *st.Description
-			}
-			vUrl := ""
-			if st.VideoUrl != nil {
-				vUrl = *st.VideoUrl
-			}
 			lessons = append(lessons, Lesson{
 				ID:              st.ID,
 				Title:           st.Title,
-				Description:     desc,
-				VideoUrl:        vUrl,
+				Description:     stringOrEmpty(st.Description),
+				VideoUrl:        stringOrEmpty(st.VideoUrl),
 				IsFree:          st.IsFree,
 				Order:           st.Order,
 				DurationMinutes: st.DurationMinutes,
@@ -251,60 +235,52 @@ func GetCourseLessons(c *gin.Context) {
 	api_response.Success(c, gin.H{"lessons": lessons})
 }
 
-func EnrollCourse(c *gin.Context) {
-	userIdValue, exists := c.Get("userId")
-	if !exists || userIdValue == nil {
-		api_response.Error(c, http.StatusUnauthorized, "User not authenticated")
-		return
+// applyIDOrSlugQuery applies where clause based on whether id is a UUID or a slug
+func applyIDOrSlugQuery(query *gorm.DB, id string) *gorm.DB {
+	if len(id) == 36 && strings.Contains(id, "-") {
+		return query.Where(idQuery, id)
 	}
-	userId, ok := userIdValue.(string)
+	return query.Where("slug = ? OR id = ?", id, id)
+}
+
+func stringOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func EnrollCourse(c *gin.Context) {
+	userId, ok := getAuthenticatedUserID(c)
 	if !ok {
-		api_response.Error(c, http.StatusInternalServerError, "Invalid user ID type")
 		return
 	}
 	courseId := c.Param("id")
 
-	// Ensure the authenticated account exists instead of creating placeholder users.
+	// Ensure the authenticated account exists
 	var user models.User
-	if err := db.DB.First(&user, "id = ?", userId).Error; err != nil {
-		log.Printf("[Enrollment] authenticated user was not found in database: %s", userId)
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		log.Printf("[Enrollment] authenticated user was not found in database: %q", userId)
 		api_response.Error(c, http.StatusUnauthorized, "User account was not found. Please sign in again or complete registration.")
 		return
 	}
 
-	// Verify subject exists
+	// Resolve and verify subject
 	var subject models.Subject
-	query := db.DB
-	if len(courseId) == 36 && strings.Contains(courseId, "-") {
-		query = query.Where("id = ?", courseId)
-	} else {
-		query = query.Where("slug = ? OR id = ?", courseId, courseId)
-	}
-
-	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
-		} else {
-			log.Printf("Error verifying subject %s for enrollment: %v", courseId, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to verify subject")
-		}
+	if err := applyIDOrSlugQuery(db.DB, courseId).First(&subject).Error; err != nil {
+		handleSubjectError(c, courseId, err, "verifying subject for enrollment")
 		return
 	}
 
 	// Check if user is already enrolled
-	var enrollment models.Enrollment
-	err := db.DB.Where("user_id = ? AND subject_id = ?", userId, courseId).First(&enrollment).Error
-	if err == nil {
+	if isAlreadyEnrolled(userId, courseId) {
 		api_response.Success(c, gin.H{"success": true, "message": "Already enrolled"})
 		return
 	}
 
 	// Payment verification logic
 	if subject.Price > 0 {
-		var payment models.Payment
-		// Check for a COMPLETED payment for this subject and user
-		err := db.DB.Where("user_id = ? AND subject_id = ? AND status = ?", userId, courseId, models.PaymentCompleted).First(&payment).Error
-		if err != nil {
+		if !hasPaidForSubject(userId, courseId) {
 			api_response.Success(c, gin.H{
 				"error":           "Payment required for this course",
 				"courseId":        courseId,
@@ -315,24 +291,7 @@ func EnrollCourse(c *gin.Context) {
 		}
 	}
 
-	enrollment = models.Enrollment{
-		UserID:     userId,
-		SubjectID:  courseId,
-		EnrolledAt: time.Now(),
-	}
-
-	if err := db.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected > 0 {
-			return tx.Model(&models.Subject{}).
-				Where("id = ?", courseId).
-				Update("enrolled_count", gorm.Expr("enrolled_count + 1")).Error
-		}
-		return nil
-	}); err != nil {
+	if err := executeEnrollmentTransaction(userId, courseId); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to enroll: "+err.Error())
 		return
 	}
@@ -340,13 +299,71 @@ func EnrollCourse(c *gin.Context) {
 	api_response.Success(c, gin.H{"success": true, "message": "Enrolled successfully"})
 }
 
-func CourseCheckout(c *gin.Context) {
+func getAuthenticatedUserID(c *gin.Context) (string, bool) {
 	userIdValue, exists := c.Get("userId")
 	if !exists || userIdValue == nil {
-		api_response.Error(c, http.StatusUnauthorized, "User not authenticated")
+		api_response.Error(c, http.StatusUnauthorized, msgUserNotAuthenticated)
+		return "", false
+	}
+	userId, ok := userIdValue.(string)
+	if !ok {
+		api_response.Error(c, http.StatusInternalServerError, "Invalid user ID type")
+		return "", false
+	}
+	return userId, true
+}
+
+func handleSubjectError(c *gin.Context, id string, err error, contextMsg string) {
+	if err == gorm.ErrRecordNotFound {
+		api_response.Error(c, http.StatusNotFound, msgSubjectNotFound)
+	} else {
+		log.Printf("Error %s %q: %v", contextMsg, id, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to "+contextMsg)
+	}
+}
+
+func isAlreadyEnrolled(userId, subjectId string) bool {
+	var enrollment models.Enrollment
+	err := db.DB.Where("user_id = ? AND subject_id = ?", userId, subjectId).First(&enrollment).Error
+	return err == nil
+}
+
+func hasPaidForSubject(userId, subjectId string) bool {
+	var payment models.Payment
+	err := db.DB.Where("user_id = ? AND subject_id = ? AND status = ?", userId, subjectId, models.PaymentCompleted).First(&payment).Error
+	return err == nil
+}
+
+func executeEnrollmentTransaction(userId, subjectId string) error {
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		return enrollUserInTransaction(tx, userId, subjectId)
+	})
+}
+
+func enrollUserInTransaction(tx *gorm.DB, userId, subjectId string) error {
+	enrollment := models.Enrollment{
+		UserID:     userId,
+		SubjectID:  subjectId,
+		EnrolledAt: time.Now(),
+	}
+
+	result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected > 0 {
+		return tx.Model(&models.Subject{}).
+			Where(idQuery, subjectId).
+			Update("enrolled_count", gorm.Expr("enrolled_count + 1")).Error
+	}
+	return nil
+}
+
+func CourseCheckout(c *gin.Context) {
+	userId, ok := getAuthenticatedUserID(c)
+	if !ok {
 		return
 	}
-	userId := userIdValue.(string)
 	courseId := c.Param("id")
 
 	var input struct {
@@ -354,208 +371,183 @@ func CourseCheckout(c *gin.Context) {
 		CouponCode    string `json:"couponCode"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		api_response.Error(c, http.StatusBadRequest, "Invalid input")
+		api_response.Error(c, http.StatusBadRequest, msgInvalidInput)
 		return
 	}
 
 	var subject models.Subject
-	query := db.DB
-	if len(courseId) == 36 && strings.Contains(courseId, "-") {
-		query = query.Where("id = ?", courseId)
-	} else {
-		query = query.Where("slug = ? OR id = ?", courseId, courseId)
-	}
-
-	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Course not found")
-		} else {
-			log.Printf("Error fetching course %s for checkout: %v", courseId, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch course")
-		}
+	if err := applyIDOrSlugQuery(db.DB, courseId).First(&subject).Error; err != nil {
+		handleSubjectError(c, courseId, err, "fetching course for checkout")
 		return
 	}
 
-	// For demonstration/initial link, if it's internal_wallet or a simulated success:
 	if input.PaymentMethod == "internal_wallet" {
-		payment := models.Payment{
-			UserID:    userId,
-			SubjectID: &courseId,
-			Amount:    subject.Price,
-			Method:    input.PaymentMethod,
-			Status:    models.PaymentPending,
-			Reference: generateSecureReference("COURSE"),
-		}
-
-		// Use transaction with row-level lock for wallet payment
-		txErr := db.DB.Transaction(func(tx *gorm.DB) error {
-			var user models.User
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				First(&user, "id = ?", userId).Error; err != nil {
-				return err
-			}
-
-			if user.Balance < subject.Price {
-				return gorm.ErrInvalidData // Insufficient balance
-			}
-
-			// Atomic balance deduction
-			if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", subject.Price)).Error; err != nil {
-				return err
-			}
-
-			payment.Status = models.PaymentCompleted
-			if err := tx.Create(&payment).Error; err != nil {
-				return err
-			}
-
-			// Auto-enroll after successful payment
-			enrollment := models.Enrollment{
-				UserID:     userId,
-				SubjectID:  courseId,
-				EnrolledAt: time.Now(),
-			}
-			result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment)
-			if result.Error != nil {
-				return result.Error
-			}
-			if result.RowsAffected > 0 {
-				if err := tx.Model(&models.Subject{}).
-					Where("id = ?", courseId).
-					Update("enrolledCount", gorm.Expr("\"enrolledCount\" + 1")).Error; err != nil {
-					return err
-				}
-			}
-
-			return nil
-		})
-
-		if txErr != nil {
-			api_response.Error(c, http.StatusBadRequest, "رصيدك غير كافٍ")
-			return
-		}
-
-		api_response.Success(c, gin.H{
-			"success": true,
-			"message": "Payment successful and enrolled",
-		})
+		processInternalWalletPayment(c, userId, courseId, subject)
 		return
 	}
 
-	// Real Paymob Integration
 	if input.PaymentMethod == "card" || input.PaymentMethod == "wallet" || input.PaymentMethod == "fawry" {
-		paymobSvc := services.NewPaymobService()
-
-		// 1. Authenticate
-		token, err := paymobSvc.Authenticate()
-		if err != nil {
-			log.Printf("Paymob Auth Error: %v", err)
-			api_response.Error(c, http.StatusInternalServerError, "فشل الاتصال ببوابة الدفع")
-			return
-		}
-
-		// 2. Register Order
-		amountCents := int64(subject.Price * 100)
-		items := []interface{}{
-			map[string]interface{}{
-				"name":         subject.Name,
-				"amount_cents": amountCents,
-				"description":  fmt.Sprintf("Course: %s", subject.Name),
-				"quantity":     1,
-			},
-		}
-
-		orderID, err := paymobSvc.RegisterOrder(token, amountCents, items)
-		if err != nil {
-			log.Printf("Paymob Order Error: %v", err)
-			api_response.Error(c, http.StatusInternalServerError, "فشل إنشاء طلب الدفع")
-			return
-		}
-
-		// Get User data for billing
-		var user models.User
-		db.DB.First(&user, "id = ?", userId)
-
-		billingData := map[string]string{
-			"first_name":   "Student",
-			"last_name":    "User",
-			"email":        user.Email,
-			"phone_number": "01000000000",
-		}
-		if user.Name != nil && *user.Name != "" {
-			billingData["first_name"] = *user.Name
-		}
-		if user.Phone != nil && *user.Phone != "" {
-			billingData["phone_number"] = *user.Phone
-		}
-
-		// Determine integration ID
-		integrationID := paymobSvc.CardIntegrationID
-		switch input.PaymentMethod {
-		case "wallet":
-			integrationID = paymobSvc.WalletIntegrationID
-		case "fawry":
-			integrationID = paymobSvc.FawryIntegrationID
-		}
-
-		// 3. Generate Payment Key
-		paymentKey, err := paymobSvc.GetPaymentKey(token, orderID, amountCents, integrationID, billingData)
-		if err != nil {
-			log.Printf("Paymob Key Error: %v", err)
-			api_response.Error(c, http.StatusInternalServerError, "فشل استخراج مفتاح الدفع")
-			return
-		}
-
-		// Create pending payment record
-		payment := models.Payment{
-			UserID:        userId,
-			SubjectID:     &courseId,
-			Amount:        subject.Price,
-			Method:        input.PaymentMethod,
-			Status:        models.PaymentPending,
-			Reference:     generateSecureReference("COURSE"),
-			PaymobOrderID: orderID,
-		}
-		if err := db.DB.Create(&payment).Error; err != nil {
-			api_response.Error(c, http.StatusInternalServerError, "Failed to save payment record")
-			return
-		}
-
-		// For Wallet, we need an extra step to get the redirect URL
-		if input.PaymentMethod == "wallet" {
-			walletUrl, err := paymobSvc.CreateWalletRequest(paymentKey, billingData["phone_number"])
-			if err != nil {
-				api_response.Error(c, http.StatusInternalServerError, "فشل معالجة طلب المحفظة")
-				return
-			}
-			api_response.Success(c, gin.H{
-				"redirectUrl": walletUrl,
-				"orderId":     orderID,
-			})
-			return
-		}
-
-		// For Card/Fawry, return the payment key and iframe ID
-		api_response.Success(c, gin.H{
-			"paymentKey": paymentKey,
-			"iframeId":   paymobSvc.IframeID,
-			"orderId":    orderID,
-		})
+		processPaymobPayment(c, userId, courseId, subject, input.PaymentMethod)
 		return
 	}
 
 	api_response.Error(c, http.StatusBadRequest, "Unsupported payment method")
 }
 
-func UpdateLessonProgress(c *gin.Context) {
-	userIdValue, exists := c.Get("userId")
-	if !exists || userIdValue == nil {
-		api_response.Error(c, http.StatusUnauthorized, "User not authenticated")
+func processInternalWalletPayment(c *gin.Context, userId string, courseId string, subject models.Subject) {
+	payment := models.Payment{
+		UserID:    userId,
+		SubjectID: &courseId,
+		Amount:    subject.Price,
+		Method:    "internal_wallet",
+		Status:    models.PaymentPending,
+		Reference: generateSecureReference("COURSE"),
+	}
+
+	txErr := db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&user, idQuery, userId).Error; err != nil {
+			return err
+		}
+
+		if user.Balance < subject.Price {
+			return gorm.ErrInvalidData // Insufficient balance
+		}
+
+		if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", subject.Price)).Error; err != nil {
+			return err
+		}
+
+		payment.Status = models.PaymentCompleted
+		if err := tx.Create(&payment).Error; err != nil {
+			return err
+		}
+
+		return enrollUserInTransaction(tx, userId, courseId)
+	})
+
+	if txErr != nil {
+		api_response.Error(c, http.StatusBadRequest, "رصيدك غير كافٍ")
 		return
 	}
-	userId, ok := userIdValue.(string)
+
+	api_response.Success(c, gin.H{
+		"success": true,
+		"message": "Payment successful and enrolled",
+	})
+}
+
+func processPaymobPayment(c *gin.Context, userId string, courseId string, subject models.Subject, method string) {
+	paymobSvc := services.NewPaymobService()
+
+	token, err := paymobSvc.Authenticate()
+	if err != nil {
+		log.Printf("Paymob Auth Error: %v", err)
+		api_response.Error(c, http.StatusInternalServerError, "فشل الاتصال ببوابة الدفع")
+		return
+	}
+
+	amountCents := int64(subject.Price * 100)
+	orderID, err := paymobSvc.RegisterOrder(token, amountCents, []interface{}{
+		map[string]interface{}{
+			"name":         subject.Name,
+			"amount_cents": amountCents,
+			"description":  fmt.Sprintf("Course: %s", subject.Name),
+			"quantity":     1,
+		},
+	})
+	if err != nil {
+		log.Printf("Paymob Order Error: %v", err)
+		api_response.Error(c, http.StatusInternalServerError, "فشل إنشاء طلب الدفع")
+		return
+	}
+
+	var user models.User
+	db.DB.First(&user, idQuery, userId)
+	billingData := getBillingData(user)
+
+	integrationID := getIntegrationID(paymobSvc, method)
+
+	paymentKey, err := paymobSvc.GetPaymentKey(token, orderID, amountCents, integrationID, billingData)
+	if err != nil {
+		log.Printf("Paymob Key Error: %v", err)
+		api_response.Error(c, http.StatusInternalServerError, "فشل استخراج مفتاح الدفع")
+		return
+	}
+
+	if err := createPendingPayment(userId, courseId, subject.Price, method, orderID); err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to save payment record")
+		return
+	}
+
+	if method == "wallet" {
+		handleWalletRedirect(c, paymobSvc, paymentKey, billingData["phone_number"], orderID)
+		return
+	}
+
+	api_response.Success(c, gin.H{
+		"paymentKey": paymentKey,
+		"iframeId":   paymobSvc.IframeID,
+		"orderId":    orderID,
+	})
+}
+
+func getBillingData(user models.User) map[string]string {
+	billingData := map[string]string{
+		"first_name":   "Student",
+		"last_name":    "User",
+		"email":        user.Email,
+		"phone_number": "01000000000",
+	}
+	if user.Name != nil && *user.Name != "" {
+		billingData["first_name"] = *user.Name
+	}
+	if user.Phone != nil && *user.Phone != "" {
+		billingData["phone_number"] = *user.Phone
+	}
+	return billingData
+}
+
+func getIntegrationID(svc *services.PaymobService, method string) string {
+	switch method {
+	case "wallet":
+		return svc.WalletIntegrationID
+	case "fawry":
+		return svc.FawryIntegrationID
+	default:
+		return svc.CardIntegrationID
+	}
+}
+
+func createPendingPayment(userId, courseId string, amount float64, method, orderID string) error {
+	payment := models.Payment{
+		UserID:        userId,
+		SubjectID:     &courseId,
+		Amount:        amount,
+		Method:        method,
+		Status:        models.PaymentPending,
+		Reference:     generateSecureReference("COURSE"),
+		PaymobOrderID: orderID,
+	}
+	return db.DB.Create(&payment).Error
+}
+
+func handleWalletRedirect(c *gin.Context, svc *services.PaymobService, paymentKey, phone, orderID string) {
+	walletUrl, err := svc.CreateWalletRequest(paymentKey, phone)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "فشل معالجة طلب المحفظة")
+		return
+	}
+	api_response.Success(c, gin.H{
+		"redirectUrl": walletUrl,
+		"orderId":     orderID,
+	})
+}
+
+func UpdateLessonProgress(c *gin.Context) {
+	userId, ok := getAuthenticatedUserID(c)
 	if !ok {
-		api_response.Error(c, http.StatusInternalServerError, "Invalid user ID type")
 		return
 	}
 	lessonId := c.Param("id")
@@ -567,7 +559,7 @@ func UpdateLessonProgress(c *gin.Context) {
 		Status              string  `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		api_response.Error(c, http.StatusBadRequest, "Invalid input")
+		api_response.Error(c, http.StatusBadRequest, msgInvalidInput)
 		return
 	}
 
@@ -617,42 +609,40 @@ func CreateSubject(c *gin.Context) {
 		return
 	}
 
-	// Normalize empty fields to nil for optional pointer fields to avoid unique constraint issues with empty strings
-	// or potential foreign key issues if the database expects valid IDs or NULL
-	if subject.Code != nil && *subject.Code == "" {
-		subject.Code = nil
-	}
-	if subject.Slug != nil && *subject.Slug == "" {
-		subject.Slug = nil
-	}
-	if subject.InstructorId != nil && *subject.InstructorId == "" {
-		subject.InstructorId = nil
-	}
-	if subject.CategoryId != nil && *subject.CategoryId == "" {
-		subject.CategoryId = nil
-	}
+	normalizeSubjectFields(&subject)
 
-	log.Printf("Attempting to create subject: Name=%s, Code=%v, Slug=%v", subject.Name, subject.Code, subject.Slug)
+	log.Printf("Attempting to create subject: Name=%q, Code=%q, Slug=%q", subject.Name, subject.Code, subject.Slug)
 	if err := getSubjectRepo().Create(&subject); err != nil {
 		log.Printf("CreateSubject: Repository error: %v", err)
-		errMsg := "Failed to create subject"
-		if strings.Contains(err.Error(), "duplicate key") {
-			if strings.Contains(err.Error(), "Subject_name_key") {
-				errMsg = "A course with this name already exists"
-			} else if strings.Contains(err.Error(), "Subject_code_key") {
-				errMsg = "A course with this code already exists"
-			} else if strings.Contains(err.Error(), "Subject_slug_key") {
-				errMsg = "A course with this slug already exists"
-			} else {
-				errMsg = "A duplicate entry was found"
-			}
-		}
-		api_response.Error(c, http.StatusInternalServerError, errMsg)
+		api_response.Error(c, http.StatusInternalServerError, getCreateSubjectErrorMessage(err))
 		return
 	}
 
 	LogAudit(c, "CREATE", "subject", subject.ID, subject)
 	api_response.Created(c, gin.H{"course": subject})
+}
+
+func normalizeSubjectFields(s *models.Subject) {
+	if s.Code != nil && *s.Code == "" { s.Code = nil }
+	if s.Slug != nil && *s.Slug == "" { s.Slug = nil }
+	if s.InstructorId != nil && *s.InstructorId == "" { s.InstructorId = nil }
+	if s.CategoryId != nil && *s.CategoryId == "" { s.CategoryId = nil }
+}
+
+func getCreateSubjectErrorMessage(err error) string {
+	if !strings.Contains(err.Error(), "duplicate key") {
+		return "Failed to create subject"
+	}
+	if strings.Contains(err.Error(), "Subject_name_key") {
+		return "A course with this name already exists"
+	}
+	if strings.Contains(err.Error(), "Subject_code_key") {
+		return "A course with this code already exists"
+	}
+	if strings.Contains(err.Error(), "Subject_slug_key") {
+		return "A course with this slug already exists"
+	}
+	return "A duplicate entry was found"
 }
 
 func UpdateSubject(c *gin.Context) {
@@ -670,12 +660,57 @@ func UpdateSubject(c *gin.Context) {
 	}
 
 	var subject models.Subject
-	if err := db.DB.First(&subject, "id = ?", id).Error; err != nil {
-		api_response.Error(c, http.StatusNotFound, "Subject not found")
+	if err := db.DB.First(&subject, idQuery, id).Error; err != nil {
+		api_response.Error(c, http.StatusNotFound, msgSubjectNotFound)
 		return
 	}
 
-	// Normalize empty strings to nil for pointer fields in the map
+	normalizeInputMap(input)
+	updates := mapInputToSubjectUpdates(input)
+
+	if err := db.DB.Model(&models.Subject{}).Where(idQuery, subject.ID).
+		Updates(&updates).Error; err != nil {
+		log.Printf("UpdateSubject: Database error: %v", err)
+		api_response.Error(c, http.StatusInternalServerError, getUpdateSubjectErrorMessage(err))
+		return
+	}
+
+	// Refresh from DB to get all fields
+	db.DB.First(&subject, idQuery, id)
+	getSubjectRepo().Update(&subject) // Update cache
+
+	LogAudit(c, "UPDATE", "subject", id, input)
+	api_response.Success(c, gin.H{"course": subject})
+}
+
+type subjectUpdates struct {
+	Name                   *string  `gorm:"column:name"`
+	NameAr                 *string  `gorm:"column:name_ar"`
+	Description            *string  `gorm:"column:description"`
+	CategoryID             *string  `gorm:"column:category_id"`
+	Color                  *string  `gorm:"column:color"`
+	Image                  *string  `gorm:"column:image"`
+	IsPublished            *bool    `gorm:"column:is_published"`
+	IsFree                 *bool    `gorm:"column:is_free"`
+	Price                  *float64 `gorm:"column:price"`
+	Code                   *string  `gorm:"column:code"`
+	Icon                   *string  `gorm:"column:icon"`
+	InstructorName         *string  `gorm:"column:instructor_name"`
+	InstructorID           *string  `gorm:"column:instructor_id"`
+	Slug                   *string  `gorm:"column:slug"`
+	ThumbnailUrl           *string  `gorm:"column:thumbnail_url"`
+	TrailerUrl             *string  `gorm:"column:trailer_url"`
+	SeoTitle               *string  `gorm:"column:seo_title"`
+	SeoDescription         *string  `gorm:"column:seo_description"`
+	TrailerDurationMinutes *int     `gorm:"column:trailer_duration_minutes"`
+	Level                  *string  `gorm:"column:level"`
+	DurationHours          *float64 `gorm:"column:duration_hours"`
+	IsFeatured             *bool    `gorm:"column:is_featured"`
+	Language               *string  `gorm:"column:language"`
+	Type                   *string  `gorm:"column:type"`
+}
+
+func normalizeInputMap(input map[string]interface{}) {
 	pointerFields := []string{"code", "slug", "instructorId", "categoryId", "thumbnailUrl", "trailerUrl", "nameAr", "description", "icon", "instructorName", "seoTitle", "seoDescription"}
 	for _, field := range pointerFields {
 		if val, exists := input[field]; exists {
@@ -684,37 +719,10 @@ func UpdateSubject(c *gin.Context) {
 			}
 		}
 	}
+}
 
-		// Whitelist allowed fields to prevent mass assignment and SQL injection
-	type subjectUpdates struct {
-		Name                   *string  `gorm:"column:name"`
-		NameAr                 *string  `gorm:"column:name_ar"`
-		Description            *string  `gorm:"column:description"`
-		CategoryID             *string  `gorm:"column:category_id"`
-		Color                  *string  `gorm:"column:color"`
-		Image                  *string  `gorm:"column:image"`
-		IsPublished            *bool    `gorm:"column:is_published"`
-		IsFree                 *bool    `gorm:"column:is_free"`
-		Price                  *float64 `gorm:"column:price"`
-		Code                   *string  `gorm:"column:code"`
-		Icon                   *string  `gorm:"column:icon"`
-		InstructorName         *string  `gorm:"column:instructor_name"`
-		InstructorID           *string  `gorm:"column:instructor_id"`
-		Slug                   *string  `gorm:"column:slug"`
-		ThumbnailUrl           *string  `gorm:"column:thumbnail_url"`
-		TrailerUrl             *string  `gorm:"column:trailer_url"`
-		SeoTitle               *string  `gorm:"column:seo_title"`
-		SeoDescription         *string  `gorm:"column:seo_description"`
-		TrailerDurationMinutes *int     `gorm:"column:trailer_duration_minutes"`
-		Level                  *string  `gorm:"column:level"`
-		DurationHours          *float64 `gorm:"column:duration_hours"`
-		IsFeatured             *bool    `gorm:"column:is_featured"`
-		Language               *string  `gorm:"column:language"`
-		Type                   *string  `gorm:"column:type"`
-	}
-
+func mapInputToSubjectUpdates(input map[string]interface{}) subjectUpdates {
 	updates := subjectUpdates{}
-	// Manual mapping to ensure type safety and explicit control
 	if v, ok := input["name"].(string); ok { updates.Name = &v }
 	if v, ok := input["nameAr"].(string); ok { updates.NameAr = &v }
 	if v, ok := input["description"].(string); ok { updates.Description = &v }
@@ -737,28 +745,17 @@ func UpdateSubject(c *gin.Context) {
 	if v, ok := input["durationHours"].(float64); ok { updates.DurationHours = &v }
 	if v, ok := input["trailerDurationMinutes"].(float64); ok { i := int(v); updates.TrailerDurationMinutes = &i }
 
-	if v, ok := input["isActive"].(bool); ok { /* ignored by select previously but good to have if needed */ }
 	if v, ok := input["isPublished"].(bool); ok { updates.IsPublished = &v }
 	if v, ok := input["isFree"].(bool); ok { updates.IsFree = &v }
 	if v, ok := input["isFeatured"].(bool); ok { updates.IsFeatured = &v }
+	return updates
+}
 
-	if err := db.DB.Model(&models.Subject{}).Where("id = ?", subject.ID).
-		Updates(&updates).Error; err != nil {
-		log.Printf("UpdateSubject: Database error: %v", err)
-		errMsg := "Failed to update subject"
-		if strings.Contains(err.Error(), "duplicate key") {
-			errMsg = "A duplicate entry was found (name, code, or slug already exists)"
-		}
-		api_response.Error(c, http.StatusInternalServerError, errMsg)
-		return
+func getUpdateSubjectErrorMessage(err error) string {
+	if strings.Contains(err.Error(), "duplicate key") {
+		return "A duplicate entry was found (name, code, or slug already exists)"
 	}
-
-	// Refresh from DB to get all fields
-	db.DB.First(&subject, "id = ?", id)
-	getSubjectRepo().Update(&subject) // Update cache
-
-	LogAudit(c, "UPDATE", "subject", id, input)
-	api_response.Success(c, gin.H{"course": subject})
+	return "Failed to update subject"
 }
 
 func DeleteSubject(c *gin.Context) {
@@ -771,13 +768,13 @@ func DeleteSubject(c *gin.Context) {
 		id = input.ID
 	}
 
-	log.Printf("Attempting to delete subject with ID: %s", id)
+	log.Printf("Attempting to delete subject with ID: %q", id)
 
 	// First, check if subject exists
 	var subject models.Subject
-	if err := db.DB.First(&subject, "id = ?", id).Error; err != nil {
+	if err := db.DB.First(&subject, idQuery, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
+			api_response.Error(c, http.StatusNotFound, msgSubjectNotFound)
 			return
 		}
 		log.Printf("Error checking subject existence: %v", err)
@@ -791,33 +788,33 @@ func DeleteSubject(c *gin.Context) {
 
 	// Delete related records that don't have CASCADE constraints
 	// Delete StudySessions referencing this subject
-	if err := tx.Where("subject_id = ?", id).Delete(&models.StudySession{}).Error; err != nil {
+	if err := tx.Where(subjectIDQuery, id).Delete(&models.StudySession{}).Error; err != nil {
 		tx.Rollback()
-		log.Printf("Error deleting study sessions for subject %s: %v", id, err)
+		log.Printf("Error deleting study sessions for subject %q: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related study sessions")
 		return
 	}
 
 	// Delete Books referencing this subject
-	if err := tx.Where("subject_id = ?", id).Delete(&models.Book{}).Error; err != nil {
+	if err := tx.Where(subjectIDQuery, id).Delete(&models.Book{}).Error; err != nil {
 		tx.Rollback()
-		log.Printf("Error deleting books for subject %s: %v", id, err)
+		log.Printf("Error deleting books for subject %q: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related books")
 		return
 	}
 
 	// Delete Challenges referencing this subject
-	if err := tx.Where("subject_id = ?", id).Delete(&models.Challenge{}).Error; err != nil {
+	if err := tx.Where(subjectIDQuery, id).Delete(&models.Challenge{}).Error; err != nil {
 		tx.Rollback()
-		log.Printf("Error deleting challenges for subject %s: %v", id, err)
+		log.Printf("Error deleting challenges for subject %q: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete related challenges")
 		return
 	}
 
 	// Delete Payments referencing this subject (set to null instead of delete)
-	if err := tx.Model(&models.Payment{}).Where("subject_id = ?", id).Update("subject_id", nil).Error; err != nil {
+	if err := tx.Model(&models.Payment{}).Where(subjectIDQuery, id).Update("subject_id", nil).Error; err != nil {
 		tx.Rollback()
-		log.Printf("Error updating payments for subject %s: %v", id, err)
+		log.Printf("Error updating payments for subject %q: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update related payments")
 		return
 	}
@@ -825,14 +822,14 @@ func DeleteSubject(c *gin.Context) {
 	// Now delete the subject (Topics, Enrollments will be cascade deleted)
 	if err := tx.Delete(&subject).Error; err != nil {
 		tx.Rollback()
-		log.Printf("Error deleting subject %s: %v", id, err)
+		log.Printf("Error deleting subject %q: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete subject: "+err.Error())
 		return
 	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
-		log.Printf("Error committing transaction for subject %s deletion: %v", id, err)
+		log.Printf("Error committing transaction for subject %q deletion: %v", id, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to complete deletion")
 		return
 	}
@@ -844,7 +841,7 @@ func DeleteSubject(c *gin.Context) {
 	}
 
 	LogAudit(c, "DELETE", "subject", id, nil)
-	log.Printf("Successfully deleted subject: %s (%s)", id, subject.Name)
+	log.Printf("Successfully deleted subject: %q (%q)", id, subject.Name)
 	api_response.Success(c, gin.H{"message": "Subject deleted successfully"})
 }
 
@@ -852,20 +849,11 @@ func GetSubjectCurriculum(c *gin.Context) {
 	id := c.Param("id")
 	var subject models.Subject
 
-	query := db.DB.Preload("Topics.SubTopics")
-	if len(id) == 36 && strings.Contains(id, "-") {
-		query = query.Where("id = ?", id)
-	} else {
-		query = query.Where("slug = ? OR id = ?", id, id)
-	}
+	query := db.DB.Preload(preloadTopicsSubTopics)
+	query = applyIDOrSlugQuery(query, id)
 
 	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
-		} else {
-			log.Printf("Error fetching curriculum for subject %s: %v", id, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to fetch curriculum")
-		}
+		handleSubjectError(c, id, err, "fetching curriculum for subject")
 		return
 	}
 
@@ -897,12 +885,10 @@ func GetSubjectCurriculum(c *gin.Context) {
 }
 
 func GetUserSubjects(c *gin.Context) {
-	userIdValue, exists := c.Get("userId")
-	if !exists || userIdValue == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	userId, ok := getAuthenticatedUserID(c)
+	if !ok {
 		return
 	}
-	userId := userIdValue.(string)
 
 	var enrollments []models.Enrollment
 	if err := db.DB.Preload("Subject").Where("user_id = ?", userId).Find(&enrollments).Error; err != nil {
@@ -931,44 +917,16 @@ func GetUserSubjects(c *gin.Context) {
 
 func UpdateCourseCurriculum(c *gin.Context) {
 	id := c.Param("id")
-
-	// Accept raw JSON to handle frontend's flexible schema
 	var raw map[string]json.RawMessage
 	if err := c.ShouldBindJSON(&raw); err != nil {
-		api_response.Error(c, http.StatusBadRequest, "Invalid input")
+		api_response.Error(c, http.StatusBadRequest, msgInvalidInput)
 		return
 	}
 
-	// Frontend sends either "curriculum" or "topics"
-	var chaptersRaw json.RawMessage
-	if v, ok := raw["curriculum"]; ok {
-		chaptersRaw = v
-	} else if v, ok := raw["topics"]; ok {
-		chaptersRaw = v
-	} else {
-		api_response.Error(c, http.StatusBadRequest, "Missing curriculum or topics field")
+	chaptersRaw, err := extractChaptersRaw(raw)
+	if err != nil {
+		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
-	}
-
-	// Parse flexible chapter format from frontend
-	type incomingLesson struct {
-		ID          string  `json:"id"`
-		Name        string  `json:"name"`
-		Title       string  `json:"title"`
-		Order       int     `json:"order"`
-		Type        string  `json:"type"`
-		VideoUrl    *string `json:"videoUrl"`
-		Duration    int     `json:"duration"`
-		DurationMin int     `json:"durationMinutes"`
-		IsFree      bool    `json:"isFree"`
-		Description *string `json:"description"`
-	}
-	type incomingChapter struct {
-		ID        string           `json:"id"`
-		Name      string           `json:"name"`
-		Title     string           `json:"title"`
-		Order     int              `json:"order"`
-		SubTopics []incomingLesson `json:"subTopics"`
 	}
 
 	var chapters []incomingChapter
@@ -977,105 +935,132 @@ func UpdateCourseCurriculum(c *gin.Context) {
 		return
 	}
 
-	tx := db.DB.Begin()
-	defer tx.Rollback()
-
-	// Delete existing topics and subtopics for this subject (clean slate approach)
-	// This is simpler and avoids orphaned records
-	var existingTopics []models.Topic
-	tx.Where("\"subjectId\" = ?", id).Find(&existingTopics)
-	for _, t := range existingTopics {
-		tx.Where("\"topicId\" = ?", t.ID).Delete(&models.SubTopic{})
-	}
-	tx.Where("\"subjectId\" = ?", id).Delete(&models.Topic{})
-
-	// Re-create all topics and subtopics from the submitted data
-	for i, chapter := range chapters {
-		title := chapter.Name
-		if title == "" {
-			title = chapter.Title
-		}
-
-		topic := models.Topic{
-			SubjectID: id,
-			Title:     title,
-			Order:     i,
-		}
-		// Preserve real IDs, generate new ones for client-created items
-		if chapter.ID != "" && !strings.HasPrefix(chapter.ID, "new-") {
-			topic.ID = chapter.ID
-		}
-
-		if err := tx.Create(&topic).Error; err != nil {
-			tx.Rollback()
-			log.Printf("Failed to create topic: %v", err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to save chapter: "+title)
-			return
-		}
-
-		for j, lesson := range chapter.SubTopics {
-			lessonTitle := lesson.Name
-			if lessonTitle == "" {
-				lessonTitle = lesson.Title
-			}
-			duration := lesson.Duration
-			if duration == 0 {
-				duration = lesson.DurationMin
-			}
-			lessonType := models.SubTopicVideo
-			if lesson.Type != "" {
-				lessonType = models.SubTopicType(lesson.Type)
-			}
-
-			st := models.SubTopic{
-				TopicID:         topic.ID,
-				Title:           lessonTitle,
-				Order:           j,
-				Type:            lessonType,
-				VideoUrl:        lesson.VideoUrl,
-				DurationMinutes: duration,
-				IsFree:          lesson.IsFree,
-				Description:     lesson.Description,
-			}
-			// Preserve real IDs
-			if lesson.ID != "" && !strings.HasPrefix(lesson.ID, "new-") {
-				st.ID = lesson.ID
-			}
-
-			if err := tx.Create(&st).Error; err != nil {
-				tx.Rollback()
-				log.Printf("Failed to create subtopic: %v", err)
-				api_response.Error(c, http.StatusInternalServerError, "Failed to save lesson: "+lessonTitle)
-				return
+	if err := db.DB.Transaction(func(tx *gorm.DB) error {
+		clearSubjectCurriculum(tx, id)
+		for i, chapter := range chapters {
+			if err := createTopicFromIncoming(tx, id, chapter, i); err != nil {
+				return err
 			}
 		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to save curriculum changes")
+		return nil
+	}); err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to save curriculum: "+err.Error())
 		return
 	}
 
-	// Invalidate the cache for this subject
 	getSubjectRepo().InvalidateSubjectCache(id)
 
-	// Return the updated curriculum
 	var subject models.Subject
-	if err := db.DB.Preload("Topics.SubTopics").First(&subject, "id = ?", id).Error; err != nil {
+	if err := db.DB.Preload(preloadTopicsSubTopics).First(&subject, idQuery, id).Error; err != nil {
 		api_response.Success(c, gin.H{"success": true, "message": "Curriculum updated"})
 		return
 	}
 
-	api_response.Success(c, gin.H{
-		"curriculum": subject.Topics,
-	})
+	api_response.Success(c, gin.H{"curriculum": subject.Topics})
+}
+
+type incomingLesson struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Title       string  `json:"title"`
+	Order       int     `json:"order"`
+	Type        string  `json:"type"`
+	VideoUrl    *string `json:"videoUrl"`
+	Duration    int     `json:"duration"`
+	DurationMin int     `json:"durationMinutes"`
+	IsFree      bool    `json:"isFree"`
+	Description *string `json:"description"`
+}
+
+type incomingChapter struct {
+	ID        string           `json:"id"`
+	Name      string           `json:"name"`
+	Title     string           `json:"title"`
+	Order     int              `json:"order"`
+	SubTopics []incomingLesson `json:"subTopics"`
+}
+
+func extractChaptersRaw(raw map[string]json.RawMessage) (json.RawMessage, error) {
+	if v, ok := raw["curriculum"]; ok {
+		return v, nil
+	}
+	if v, ok := raw["topics"]; ok {
+		return v, nil
+	}
+	return nil, fmt.Errorf("Missing curriculum or topics field")
+}
+
+func clearSubjectCurriculum(tx *gorm.DB, subjectId string) {
+	var existingTopics []models.Topic
+	tx.Where(subjectIDQuotedQuery, subjectId).Find(&existingTopics)
+	for _, t := range existingTopics {
+		tx.Where("\"topicId\" = ?", t.ID).Delete(&models.SubTopic{})
+	}
+	tx.Where(subjectIDQuotedQuery, subjectId).Delete(&models.Topic{})
+}
+
+func createTopicFromIncoming(tx *gorm.DB, subjectId string, chapter incomingChapter, order int) error {
+	title := chapter.Name
+	if title == "" {
+		title = chapter.Title
+	}
+	topic := models.Topic{
+		SubjectID: subjectId,
+		Title:     title,
+		Order:     order,
+	}
+	if chapter.ID != "" && !strings.HasPrefix(chapter.ID, "new-") {
+		topic.ID = chapter.ID
+	}
+
+	if err := tx.Create(&topic).Error; err != nil {
+		return err
+	}
+
+	for j, lesson := range chapter.SubTopics {
+		if err := createSubTopicFromIncoming(tx, topic.ID, lesson, j); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createSubTopicFromIncoming(tx *gorm.DB, topicId string, lesson incomingLesson, order int) error {
+	title := lesson.Name
+	if title == "" {
+		title = lesson.Title
+	}
+	duration := lesson.Duration
+	if duration == 0 {
+		duration = lesson.DurationMin
+	}
+	lessonType := models.SubTopicVideo
+	if lesson.Type != "" {
+		lessonType = models.SubTopicType(lesson.Type)
+	}
+
+	st := models.SubTopic{
+		TopicID:         topicId,
+		Title:           title,
+		Order:           order,
+		Type:            lessonType,
+		VideoUrl:        lesson.VideoUrl,
+		DurationMinutes: duration,
+		IsFree:          lesson.IsFree,
+		Description:     lesson.Description,
+	}
+	if lesson.ID != "" && !strings.HasPrefix(lesson.ID, "new-") {
+		st.ID = lesson.ID
+	}
+
+	return tx.Create(&st).Error
 }
 
 func AddLessonAttachment(c *gin.Context) {
 	lessonId := c.Param("id")
 	var attachment models.LessonAttachment
 	if err := c.ShouldBindJSON(&attachment); err != nil {
-		api_response.Error(c, http.StatusBadRequest, "Invalid input")
+		api_response.Error(c, http.StatusBadRequest, msgInvalidInput)
 		return
 	}
 
@@ -1087,9 +1072,9 @@ func AddLessonAttachment(c *gin.Context) {
 
 	// Invalidate parent subject cache
 	var subTopic models.SubTopic
-	if err := db.DB.First(&subTopic, "id = ?", lessonId).Error; err == nil {
+	if err := db.DB.First(&subTopic, idQuery, lessonId).Error; err == nil {
 		var topic models.Topic
-		if err := db.DB.First(&topic, "id = ?", subTopic.TopicID).Error; err == nil && topic.SubjectID != "" {
+		if err := db.DB.First(&topic, idQuery, subTopic.TopicID).Error; err == nil && topic.SubjectID != "" {
 			getSubjectRepo().InvalidateSubjectCache(topic.SubjectID)
 		}
 	}
@@ -1103,7 +1088,7 @@ func CreateCourseReview(c *gin.Context) {
 
 	var review models.CourseReview
 	if err := c.ShouldBindJSON(&review); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msgInvalidInput})
 		return
 	}
 
@@ -1117,8 +1102,8 @@ func CreateCourseReview(c *gin.Context) {
 
 	// Update subject rating (simplified calculation)
 	var avg float64
-	db.DB.Model(&models.CourseReview{}).Where("\"subjectId\" = ?", subjectId).Select("avg(rating)").Scan(&avg)
-	db.DB.Model(&models.Subject{}).Where("id = ?", subjectId).Update("rating", avg)
+	db.DB.Model(&models.CourseReview{}).Where(subjectIDQuotedQuery, subjectId).Select("avg(rating)").Scan(&avg)
+	db.DB.Model(&models.Subject{}).Where(idQuery, subjectId).Update("rating", avg)
 
 	c.JSON(http.StatusCreated, review)
 }
@@ -1130,19 +1115,10 @@ func GetCourseReviews(c *gin.Context) {
 	// Resolve subject first if it's a slug
 	var subject models.Subject
 	query := db.DB.Select("id")
-	if len(id) == 36 && strings.Contains(id, "-") {
-		query = query.Where("id = ?", id)
-	} else {
-		query = query.Where("slug = ? OR id = ?", id, id)
-	}
+	query = applyIDOrSlugQuery(query, id)
 
 	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
-		} else {
-			log.Printf("Error resolving subject %s for reviews: %v", id, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to resolve subject")
-		}
+		handleSubjectError(c, id, err, "resolving subject for reviews")
 		return
 	}
 
@@ -1162,23 +1138,14 @@ func GetCourseEnrollments(c *gin.Context) {
 	// Resolve subject first
 	var subject models.Subject
 	query := db.DB.Select("id")
-	if len(id) == 36 && strings.Contains(id, "-") {
-		query = query.Where("id = ?", id)
-	} else {
-		query = query.Where("slug = ? OR id = ?", id, id)
-	}
+	query = applyIDOrSlugQuery(query, id)
 
 	if err := query.First(&subject).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			api_response.Error(c, http.StatusNotFound, "Subject not found")
-		} else {
-			log.Printf("Error resolving subject %s for enrollments: %v", id, err)
-			api_response.Error(c, http.StatusInternalServerError, "Failed to resolve subject")
-		}
+		handleSubjectError(c, id, err, "resolving subject for enrollments")
 		return
 	}
 
-	if err := db.DB.Preload("User").Where("subject_id = ?", subject.ID).Order("enrolled_at desc").Find(&enrollments).Error; err != nil {
+	if err := db.DB.Preload("User").Where(subjectIDQuery, subject.ID).Order("enrolled_at desc").Find(&enrollments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch enrollments"})
 		return
 	}
@@ -1200,35 +1167,17 @@ func ManualEnroll(c *gin.Context) {
 	}
 
 	// Check if already enrolled
-	var existing models.Enrollment
-	if err := db.DB.Where("\"userId\" = ? AND \"subjectId\" = ?", input.UserID, id).First(&existing).Error; err == nil {
+	if isAlreadyEnrolled(input.UserID, id) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User is already enrolled in this course"})
 		return
 	}
 
-	enrollment := models.Enrollment{
-		UserID:     input.UserID,
-		SubjectID:  id,
-		EnrolledAt: time.Now(),
-	}
-
-	if err := db.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected > 0 {
-			return tx.Model(&models.Subject{}).
-				Where("id = ?", id).
-				Update("enrolledCount", gorm.Expr("\"enrolledCount\" + 1")).Error
-		}
-		return nil
-	}); err != nil {
+	if err := executeEnrollmentTransaction(input.UserID, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to enroll user"})
 		return
 	}
 
-	api_response.Created(c, enrollment)
+	api_response.Created(c, nil)
 }
 
 // UnenrollUser removes a user's enrollment from a course
@@ -1243,8 +1192,8 @@ func UnenrollUser(c *gin.Context) {
 		}
 		if result.RowsAffected > 0 {
 			return tx.Model(&models.Subject{}).
-				Where("id = ? AND \"enrolledCount\" > 0", id).
-				Update("enrolledCount", gorm.Expr("\"enrolledCount\" - 1")).Error
+				Where("id = ? AND enrolled_count > 0", id).
+				Update("enrolled_count", gorm.Expr("enrolled_count - 1")).Error
 		}
 		return nil
 	}); err != nil {

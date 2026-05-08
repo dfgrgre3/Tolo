@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
+	"thanawy-backend/internal/models"
 
 	"github.com/google/uuid"
 )
@@ -29,6 +31,7 @@ type Config struct {
 		UseSSL    bool
 		PublicURL string
 	}
+	InternalIPRanges []string
 }
 
 func Load() *Config {
@@ -68,6 +71,14 @@ func Load() *Config {
 	c.S3.Region = getEnv("S3_REGION", "us-east-1")
 	c.S3.UseSSL = getEnv("S3_USE_SSL", "true") == "true"
 	c.S3.PublicURL = getEnv("S3_PUBLIC_URL", "")
+
+	// IP Whitelist Config
+	internalIPsRaw := getEnv("INTERNAL_IP_RANGES", "")
+	if internalIPsRaw != "" {
+		c.InternalIPRanges = strings.Split(internalIPsRaw, ",")
+	} else {
+		c.InternalIPRanges = models.DefaultInternalIPRanges
+	}
 
 	return c
 }
