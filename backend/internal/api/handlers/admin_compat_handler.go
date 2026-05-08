@@ -15,9 +15,6 @@ import (
 
 const createdAtDesc = "created_at DESC"
 const msgMethodNotAllowed = "Method not allowed"
-const statusQuery = "status = ?"
-const idQuery = "id = ?"
-const idInQuery = "id IN ?"
 const msgIDRequired = "ID is required"
 var defaultAdminSettings = map[string]interface{}{
 	"siteName":        "Thanawy",
@@ -267,11 +264,11 @@ func AdminReportsContent(c *gin.Context) {
 
 		query := db.DB.Model(&models.ContentReport{})
 		if status := c.Query("status"); status != "" && status != "all" {
-			query = query.Where(statusQuery, status)
+			query = query.Where("status = ?", status)
 		}
 		query.Count(&total)
-		db.DB.Model(&models.ContentReport{}).Where(statusQuery, "PENDING").Count(&pending)
-		db.DB.Model(&models.ContentReport{}).Where(statusQuery, "RESOLVED").Count(&resolved)
+		db.DB.Model(&models.ContentReport{}).Where("status = ?", "PENDING").Count(&pending)
+		db.DB.Model(&models.ContentReport{}).Where("status = ?", "RESOLVED").Count(&resolved)
 
 		query.Preload("Reporter").Order(createdAtDesc).Limit(limit).Offset((page - 1) * limit).Find(&reports)
 
@@ -307,7 +304,7 @@ func AdminReportsContent(c *gin.Context) {
 				updates["resolvedBy"] = &uid
 			}
 		}
-		db.DB.Model(&models.ContentReport{}).Where(idQuery, input.ID).Updates(updates)
+		db.DB.Model(&models.ContentReport{}).Where("id = ?", input.ID).Updates(updates)
 		api_response.Success(c, nil)
 
 	default:
@@ -384,7 +381,7 @@ func AdminBookReviews(c *gin.Context) {
 			api_response.Error(c, http.StatusBadRequest, msgIDRequired)
 			return
 		}
-		db.DB.Delete(&models.CourseReview{}, idQuery, input.ID)
+		db.DB.Where("id = ?", input.ID).Delete(&models.CourseReview{})
 		api_response.Success(c, nil)
 
 	default:
@@ -494,7 +491,7 @@ func handleMarketingUpdate(c *gin.Context) {
 		return
 	}
 	var item models.Campaign
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Campaign not found")
 		return
 	}
@@ -519,7 +516,7 @@ func handleMarketingDelete(c *gin.Context) {
 		api_response.Error(c, http.StatusBadRequest, msgIDRequired)
 		return
 	}
-	db.DB.Delete(&models.Campaign{}, idQuery, input.ID)
+	db.DB.Where("id = ?", input.ID).Delete(&models.Campaign{})
 	api_response.Success(c, nil)
 }
 
@@ -630,7 +627,7 @@ func handleContestsUpdate(c *gin.Context) {
 	}
 
 	var contest models.Contest
-	if err := db.DB.First(&contest, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&contest).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Contest not found")
 		return
 	}
@@ -663,7 +660,7 @@ func handleContestsUpdate(c *gin.Context) {
 
 func handleContestsDelete(c *gin.Context) {
 	id := c.Param("id")
-	if err := db.DB.Delete(&models.Contest{}, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).Delete(&models.Contest{}).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete contest")
 		return
 	}

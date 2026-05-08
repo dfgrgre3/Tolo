@@ -73,7 +73,7 @@ func AdminCreateAchievement(c *gin.Context) {
 func AdminUpdateAchievement(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Achievement
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Achievement not found")
 		return
 	}
@@ -84,7 +84,7 @@ func AdminUpdateAchievement(c *gin.Context) {
 
 func AdminDeleteAchievement(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Achievement{}, idQuery, id)
+	db.DB.Where("id = ?", id).Delete(&models.Achievement{})
 	LogAudit(c, "DELETE", "achievement", id, nil)
 	api_response.Success(c, nil)
 }
@@ -109,7 +109,7 @@ func AdminCreateReward(c *gin.Context) {
 func AdminUpdateReward(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Reward
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Reward not found")
 		return
 	}
@@ -120,7 +120,7 @@ func AdminUpdateReward(c *gin.Context) {
 
 func AdminDeleteReward(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Reward{}, idQuery, id)
+	db.DB.Where("id = ?", id).Delete(&models.Reward{})
 	LogAudit(c, "DELETE", "reward", id, nil)
 	api_response.Success(c, nil)
 }
@@ -144,7 +144,7 @@ func AdminCreateSeason(c *gin.Context) {
 func AdminUpdateSeason(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Season
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Season not found")
 		return
 	}
@@ -154,7 +154,7 @@ func AdminUpdateSeason(c *gin.Context) {
 }
 
 func AdminDeleteSeason(c *gin.Context) {
-	db.DB.Delete(&models.Season{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.Season{})
 	api_response.Success(c, nil)
 }
 
@@ -177,7 +177,7 @@ func AdminCreateCoupon(c *gin.Context) {
 func AdminUpdateCoupon(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Coupon
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Coupon not found")
 		return
 	}
@@ -188,7 +188,7 @@ func AdminUpdateCoupon(c *gin.Context) {
 
 func AdminDeleteCoupon(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Coupon{}, idQuery, id)
+	db.DB.Where("id = ?", id).Delete(&models.Coupon{})
 	LogAudit(c, "DELETE", "coupon", id, nil)
 	api_response.Success(c, nil)
 }
@@ -212,7 +212,7 @@ func AdminCreateChallenge(c *gin.Context) {
 func AdminUpdateChallenge(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Challenge
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Challenge not found")
 		return
 	}
@@ -222,7 +222,7 @@ func AdminUpdateChallenge(c *gin.Context) {
 }
 
 func AdminDeleteChallenge(c *gin.Context) {
-	db.DB.Delete(&models.Challenge{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.Challenge{})
 	api_response.Success(c, nil)
 }
 
@@ -293,7 +293,7 @@ func AdminCreateAutomation(c *gin.Context) {
 func AdminUpdateAutomation(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Automation
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Automation not found")
 		return
 	}
@@ -303,7 +303,7 @@ func AdminUpdateAutomation(c *gin.Context) {
 }
 
 func AdminDeleteAutomation(c *gin.Context) {
-	db.DB.Delete(&models.Automation{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.Automation{})
 	api_response.Success(c, nil)
 }
 
@@ -326,7 +326,7 @@ func AdminCreateBlogPost(c *gin.Context) {
 func AdminUpdateBlogPost(c *gin.Context) {
 	id := c.Param("id")
 	var item models.BlogPost
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Blog post not found")
 		return
 	}
@@ -336,7 +336,7 @@ func AdminUpdateBlogPost(c *gin.Context) {
 }
 
 func AdminDeleteBlogPost(c *gin.Context) {
-	db.DB.Delete(&models.BlogPost{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.BlogPost{})
 	api_response.Success(c, nil)
 }
 
@@ -441,7 +441,7 @@ func uploadMultipartFile(c *gin.Context, fieldName, prefix string) (string, erro
 func AdminUpdateBook(c *gin.Context) {
 	id := c.Param("id")
 	var book models.Book
-	if err := db.DB.First(&book, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&book).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Book not found")
 		return
 	}
@@ -461,7 +461,7 @@ func AdminUpdateBook(c *gin.Context) {
 	}
 
 	// Ensure we only update the specific record and only with allowed fields
-	if err := db.DB.Model(&book).Updates(updates).Error; err != nil {
+	if err := db.DB.Model(&models.Book{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update book")
 		return
 	}
@@ -517,7 +517,7 @@ func applyUpdateFromJSON(c *gin.Context, updates map[string]interface{}) {
 
 func AdminDeleteBook(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Book{}, idQuery, id)
+	db.DB.Where("id = ?", id).Delete(&models.Book{})
 	LogAudit(c, "DELETE", "book", id, nil)
 	api_response.Success(c, nil)
 }
@@ -536,7 +536,7 @@ func AdminCreateABTest(c *gin.Context) {
 func AdminUpdateABTest(c *gin.Context) {
 	id := c.Param("id")
 	var item models.ABExperiment
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "AB Test not found")
 		return
 	}
@@ -546,7 +546,7 @@ func AdminUpdateABTest(c *gin.Context) {
 }
 
 func AdminDeleteABTest(c *gin.Context) {
-	db.DB.Delete(&models.ABExperiment{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.ABExperiment{})
 	api_response.Success(c, nil)
 }
 
@@ -576,7 +576,7 @@ func AdminCreateCampaign(c *gin.Context) {
 func AdminUpdateCampaign(c *gin.Context) {
 	id := c.Param("id")
 	var item models.Campaign
-	if err := db.DB.First(&item, idQuery, id).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&item).Error; err != nil {
 		api_response.Error(c, http.StatusNotFound, "Campaign not found")
 		return
 	}
@@ -586,7 +586,7 @@ func AdminUpdateCampaign(c *gin.Context) {
 }
 
 func AdminDeleteCampaign(c *gin.Context) {
-	db.DB.Delete(&models.Campaign{}, idQuery, c.Param("id"))
+	db.DB.Where("id = ?", c.Param("id")).Delete(&models.Campaign{})
 	api_response.Success(c, nil)
 }
 
