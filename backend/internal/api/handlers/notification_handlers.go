@@ -392,7 +392,7 @@ func SendPushNotification(c *gin.Context) {
 	for _, userID := range req.UserIDs {
 		// Get user's push tokens
 		var tokens []models.PushToken
-		db.DB.Where("user_id = ? AND is_active = ?", userID, true).Find(&tokens)
+		db.DB.Where("user_id = ? AND "+isActiveQuery, userID, true).Find(&tokens)
 
 		for _, token := range tokens {
 			err := pushService.Send(token.Token, req.Title, req.Body, req.Data)

@@ -28,26 +28,64 @@ import { cn } from "@/lib/utils";
 import { useEfficiencyMode } from "@/hooks";
 import { useCallback, useRef, type WheelEvent } from "react";
 
+
+const VolumeControl = ({ isMuted, volume, onToggleMute, onVolumeChange }: any) => {
+  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  return (
+    <div className="group/volume flex items-center">
+      <IconButton icon={VolumeIcon} label="الصوت" onClick={onToggleMute} />
+      <div className="w-24 sm:w-0 sm:overflow-hidden sm:transition-all sm:duration-200 sm:group-hover/volume:mr-2 sm:group-hover/volume:w-28">
+        <div className="relative h-2 w-full">
+          <input
+            type="range" min={0} max={1} step={0.05}
+            value={isMuted ? 0 : volume}
+            onChange={(event) => onVolumeChange(Number(event.target.value))}
+            aria-label="مستوى الصوت"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PlaybackInfo = ({ currentTime, duration, playbackRate, isMobile = false }: any) => {
+  const hasCustomRate = playbackRate !== 1;
+  const containerClass = isMobile 
+    ? "flex items-center gap-2 text-[11px] font-bold text-white/60 sm:text-xs"
+    : "hidden items-center gap-2 sm:flex";
+  const itemClass = isMobile
+    ? "rounded-full border border-white/10 bg-white/5 px-3 py-1.5 tabular-nums text-white/80 sm:hidden"
+    : "rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold tabular-nums text-white/75";
+  const rateClass = isMobile
+    ? "flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1.5 text-sky-100 sm:hidden"
+    : "flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-100";
+
+  return (
+    <div className={containerClass}>
+      <span className={itemClass}>
+        {formatDuration(currentTime)} / {formatDuration(duration)}
+      </span>
+      {hasCustomRate && (
+        <span className={rateClass}>
+          <Gauge className="h-3 w-3" />
+          {playbackRate}x
+        </span>
+      )}
+      {!isMobile && (
+        <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 lg:inline-flex">
+          اضغط مرتين يمينًا أو يسارًا للتقديم السريع | عجلة الماوس للصوت
+        </span>
+      )}
+    </div>
+  );
+};
+
 export function PlayerControls({
-  markers,
-  thumbnails,
-  notes = [],
-  sidebarHasContent,
-  isTheaterMode,
-  canUsePip,
-  onSeek,
-  onSeekBy,
-  onTogglePlayPause,
-  onToggleMute,
-  onVolumeChange,
-  onOpenHelp,
-  onToggleTheater,
-  onTogglePip,
-  onToggleSidebar,
-  onToggleFullscreen,
-  onToggleSettings,
-  onToggleLoop,
-  onCaptureFrame,
+  markers, thumbnails, notes = [], sidebarHasContent, isTheaterMode, canUsePip,
+  onSeek, onSeekBy, onTogglePlayPause, onToggleMute, onVolumeChange, onOpenHelp,
+  onToggleTheater, onTogglePip, onToggleSidebar, onToggleFullscreen, onToggleSettings,
+  onToggleLoop, onCaptureFrame,
 }: {
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
@@ -70,55 +108,25 @@ export function PlayerControls({
   onCaptureFrame: () => void;
 }) {
   const {
-    currentTime,
-    duration,
-    buffered,
-    isPlaying,
-    isMuted,
-    volume,
-    playbackRate,
-    isPip,
-    isFullscreen,
-    isSettingsOpen,
-    isSidebarOpen,
-    showControls,
-    loopStart,
-    loopEnd,
+    currentTime, duration, buffered, isPlaying, isMuted, volume, playbackRate,
+    isPip, isFullscreen, isSettingsOpen, isSidebarOpen, showControls, loopStart, loopEnd,
   } = useCourseVideoPlayerStore(
     useShallow((state) => ({
-      currentTime: state.currentTime,
-      duration: state.duration,
-      buffered: state.buffered,
-      isPlaying: state.isPlaying,
-      isMuted: state.isMuted,
-      volume: state.volume,
-      playbackRate: state.playbackRate,
-      isPip: state.isPip,
-      isFullscreen: state.isFullscreen,
-      isSettingsOpen: state.isSettingsOpen,
-      isSidebarOpen: state.isSidebarOpen,
-      showControls: state.showControls,
-      loopStart: state.loopStart,
-      loopEnd: state.loopEnd,
+      currentTime: state.currentTime, duration: state.duration, buffered: state.buffered,
+      isPlaying: state.isPlaying, isMuted: state.isMuted, volume: state.volume,
+      playbackRate: state.playbackRate, isPip: state.isPip, isFullscreen: state.isFullscreen,
+      isSettingsOpen: state.isSettingsOpen, isSidebarOpen: state.isSidebarOpen,
+      showControls: state.showControls, loopStart: state.loopStart, loopEnd: state.loopEnd,
     }))
   );
 
   const isEfficiencyMode = useEfficiencyMode();
-
-  const hasCustomPlaybackRate = playbackRate !== 1;
-  const volumeWheelTimeoutRef = useRef<number | null>(null);
-
-  // Scroll wheel for volume control
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
     const currentVol = useCourseVideoPlayerStore.getState().volume;
-    const newVol = Math.min(1, Math.max(0, currentVol + delta));
-    onVolumeChange(newVol);
+    onVolumeChange(Math.min(1, Math.max(0, currentVol + delta)));
   }, [onVolumeChange]);
-
-  // Volume icon based on level
-  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
@@ -131,146 +139,41 @@ export function PlayerControls({
       onWheel={handleWheel}
     >
       <ProgressRail
-        currentTime={currentTime}
-        duration={duration}
-        buffered={buffered}
-        markers={markers}
-        thumbnails={thumbnails}
-        notes={notes}
-        onSeek={onSeek}
+        currentTime={currentTime} duration={duration} buffered={buffered}
+        markers={markers} thumbnails={thumbnails} notes={notes} onSeek={onSeek}
       />
 
       <div className="mt-3 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1">
-            <IconButton
-              icon={SkipBack}
-              label="رجوع 10 ثوان"
-              onClick={() => onSeekBy(-10)}
-            />
+            <IconButton icon={SkipBack} label="رجوع 10 ثوان" onClick={() => onSeekBy(-10)} />
             <button
-              type="button"
-              onClick={onTogglePlayPause}
+              type="button" onClick={onTogglePlayPause}
               className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-950 shadow-xl transition-all",
-                "hover:scale-[1.05] hover:shadow-2xl hover:shadow-white/20",
-                "active:scale-[0.97]"
+                "hover:scale-[1.05] hover:shadow-2xl hover:shadow-white/20 active:scale-[0.97]"
               )}
               aria-label={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
             >
-              {isPlaying ? (
-                <Pause className="h-6 w-6 fill-current" />
-              ) : (
-                <Play className="mr-0.5 h-6 w-6 fill-current" />
-              )}
+              {isPlaying ? <Pause className="h-6 w-6 fill-current" /> : <Play className="mr-0.5 h-6 w-6 fill-current" />}
             </button>
-            <IconButton
-              icon={SkipForward}
-              label="تقديم 10 ثوان"
-              onClick={() => onSeekBy(10)}
-            />
-
-            <div className="group/volume flex items-center">
-              <IconButton
-                icon={VolumeIcon}
-                label="الصوت"
-                onClick={onToggleMute}
-              />
-              <div className="w-24 sm:w-0 sm:overflow-hidden sm:transition-all sm:duration-200 sm:group-hover/volume:mr-2 sm:group-hover/volume:w-28">
-                <div className="relative h-2 w-full">
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={isMuted ? 0 : volume}
-                    onChange={(event) => onVolumeChange(Number(event.target.value))}
-                    aria-label="مستوى الصوت"
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
-                  />
-                </div>
-              </div>
-            </div>
+            <IconButton icon={SkipForward} label="تقديم 10 ثوان" onClick={() => onSeekBy(10)} />
+            <VolumeControl isMuted={isMuted} volume={volume} onToggleMute={onToggleMute} onVolumeChange={onVolumeChange} />
           </div>
-
-          <div className="hidden items-center gap-2 sm:flex">
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold tabular-nums text-white/75">
-              {formatDuration(currentTime)} / {formatDuration(duration)}
-            </div>
-            {hasCustomPlaybackRate ? (
-              <div className="flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-100">
-                <Gauge className="h-3 w-3" />
-                {playbackRate}x
-              </div>
-            ) : null}
-          </div>
+          <PlaybackInfo currentTime={currentTime} duration={duration} playbackRate={playbackRate} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[11px] font-bold text-white/60 sm:text-xs">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 tabular-nums text-white/80 sm:hidden">
-              {formatDuration(currentTime)} / {formatDuration(duration)}
-            </span>
-            {hasCustomPlaybackRate ? (
-              <span className="flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1.5 text-sky-100 sm:hidden">
-                <Gauge className="h-3 w-3" />
-                {playbackRate}x
-              </span>
-            ) : null}
-            <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 lg:inline-flex">
-              اضغط مرتين يمينًا أو يسارًا للتقديم السريع | عجلة الماوس للصوت
-            </span>
-          </div>
-
+          <PlaybackInfo currentTime={currentTime} duration={duration} playbackRate={playbackRate} isMobile />
           <div className="flex items-center gap-1">
-            <IconButton
-              icon={Keyboard}
-              label="اختصارات لوحة المفاتيح"
-              onClick={onOpenHelp}
-            />
-            <IconButton
-              icon={Monitor}
-              label="الوضع المسرحي"
-              active={isTheaterMode}
-              onClick={onToggleTheater}
-              className="hidden sm:flex"
-            />
-            <IconButton
-              icon={PictureInPicture2}
-              label="نافذة عائمة"
-              active={isPip}
-              disabled={!canUsePip}
-              onClick={onTogglePip}
-              className="hidden sm:flex"
-            />
-            <IconButton
-              icon={sidebarHasContent ? ListVideo : FileText}
-              label={isSidebarOpen ? "إغلاق اللوحة الجانبية" : "فتح اللوحة الجانبية"}
-              active={isSidebarOpen}
-              onClick={onToggleSidebar}
-            />
-            <IconButton
-              icon={Camera}
-              label="التقاط لقطة شاشة"
-              onClick={onCaptureFrame}
-            />
-            <IconButton
-              icon={Repeat}
-              label={(loopStart !== null && loopEnd !== null) ? "إيقاف التكرار" : "تكرار مقطع (A-B)"}
-              active={loopStart !== null}
-              onClick={onToggleLoop}
-            />
-            <IconButton
-              icon={isFullscreen ? Minimize : Maximize}
-              label={isFullscreen ? "الخروج من وضع ملء الشاشة" : "ملء الشاشة"}
-              onClick={onToggleFullscreen}
-            />
-            <IconButton
-              icon={Settings2}
-              label={isSettingsOpen ? "إغلاق الإعدادات" : "الإعدادات"}
-              active={isSettingsOpen}
-              onClick={onToggleSettings}
-            />
+            <IconButton icon={Keyboard} label="اختصارات لوحة المفاتيح" onClick={onOpenHelp} />
+            <IconButton icon={Monitor} label="الوضع المسرحي" active={isTheaterMode} onClick={onToggleTheater} className="hidden sm:flex" />
+            <IconButton icon={PictureInPicture2} label="نافذة عائمة" active={isPip} disabled={!canUsePip} onClick={onTogglePip} className="hidden sm:flex" />
+            <IconButton icon={sidebarHasContent ? ListVideo : FileText} label={isSidebarOpen ? "إغلاق اللوحة الجانبية" : "فتح اللوحة الجانبية"} active={isSidebarOpen} onClick={onToggleSidebar} />
+            <IconButton icon={Camera} label="التقاط لقطة شاشة" onClick={onCaptureFrame} />
+            <IconButton icon={Repeat} label={(loopStart !== null && loopEnd !== null) ? "إيقاف التكرار" : "تكرار مقطع (A-B)"} active={loopStart !== null} onClick={onToggleLoop} />
+            <IconButton icon={isFullscreen ? Minimize : Maximize} label={isFullscreen ? "الخروج من وضع ملء الشاشة" : "ملء الشاشة"} onClick={onToggleFullscreen} />
+            <IconButton icon={Settings2} label={isSettingsOpen ? "إغلاق الإعدادات" : "الإعدادات"} active={isSettingsOpen} onClick={onToggleSettings} />
           </div>
         </div>
       </div>

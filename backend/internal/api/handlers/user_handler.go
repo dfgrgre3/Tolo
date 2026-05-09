@@ -541,7 +541,7 @@ func Logout(c *gin.Context) {
 func GetAuthSessions(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	var sessions []models.UserSession
-	if err := db.DB.Where("user_id = ? AND is_active = ?", userID, true).Find(&sessions).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND "+isActiveQuery, userID, true).Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sessions"})
 		return
 	}

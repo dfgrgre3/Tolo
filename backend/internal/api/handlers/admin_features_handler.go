@@ -920,7 +920,7 @@ func GetPublicEvents(c *gin.Context) {
 
 	var events []models.Event
 	var total int64
-	query := db.DB.Model(&models.Event{}).Where("is_active = ?", true)
+	query := db.DB.Model(&models.Event{}).Where(isActiveQuery, true)
 	query.Count(&total)
 	query.Order("start_date ASC").Limit(limit).Offset((page - 1) * limit).Find(&events)
 

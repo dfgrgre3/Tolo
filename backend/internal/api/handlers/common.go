@@ -13,6 +13,7 @@ const (
 	queryRole           = "role = ?"
 	createdAtRangeQuery = "\"created_at\" >= ? AND \"created_at\" < ?"
 	createdAtGte        = "\"created_at\" >= ?"
+	isActiveQuery       = "is_active = ?"
 	dateFormat          = "2006-01-02"
 )
 

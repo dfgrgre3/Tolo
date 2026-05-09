@@ -699,7 +699,7 @@ func ValidateCoupon(c *gin.Context) {
 	}
 
 	var coupon models.Coupon
-	if err := db.DB.Where("code = ? AND is_active = ?", req.Code, true).First(&coupon).Error; err != nil {
+	if err := db.DB.Where("code = ? AND "+isActiveQuery, req.Code, true).First(&coupon).Error; err != nil {
 		api_response.Success(c, gin.H{
 			"valid":   false,
 			"message": "كود الخصم غير صالح",
@@ -736,7 +736,7 @@ func applyCoupon(couponCode string, price float64) (*models.Coupon, float64) {
 		return nil, price
 	}
 	var coupon models.Coupon
-	if err := db.DB.Where("code = ? AND is_active = ?", couponCode, true).First(&coupon).Error; err != nil {
+	if err := db.DB.Where("code = ? AND "+isActiveQuery, couponCode, true).First(&coupon).Error; err != nil {
 		return nil, price
 	}
 
@@ -1005,7 +1005,7 @@ func GetAdminDashboard(c *gin.Context) {
 	db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&totalResources)
 
 	var activeChallenges int64
-	db.DB.Model(&models.Challenge{}).Where("is_active = ?", true).Count(&activeChallenges)
+	db.DB.Model(&models.Challenge{}).Where(isActiveQuery, true).Count(&activeChallenges)
 
 	var achievementsEarned int64
 	db.DB.Model(&models.UserAchievement{}).Count(&achievementsEarned)
@@ -1017,7 +1017,7 @@ func GetAdminDashboard(c *gin.Context) {
 		endMonth := startMonth.AddDate(0, 1, 0)
 
 		var count int64
-		db.DB.Model(&models.User{}).Where("created_at >= ? AND created_at < ?", startMonth, endMonth).Count(&count)
+		db.DB.Model(&models.User{}).Where(createdAtRangeQuery, startMonth, endMonth).Count(&count)
 
 		userGrowth = append(userGrowth, gin.H{
 			"month": int(d.Month()),
@@ -1467,7 +1467,7 @@ func GetAdminAnalytics(c *gin.Context) {
 	db.DB.Model(&models.User{}).Select("COALESCE(SUM(total_xp), 0)").Scan(&totalXP)
 	db.DB.Model(&models.BlogPost{}).Count(&totalBlogPosts)
 	db.DB.Model(&models.Achievement{}).Select("COALESCE(SUM(unlocked_count), 0)").Scan(&achievementsEarned)
-	db.DB.Model(&models.Challenge{}).Where("is_active = ?", false).Count(&challengesCompleted)
+	db.DB.Model(&models.Challenge{}).Where(isActiveQuery, false).Count(&challengesCompleted)
 
 	roleStats := gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
@@ -1536,11 +1536,11 @@ func GetAdminReportsOverview(c *gin.Context) {
 	monthAgo := now.AddDate(0, -1, 0)
 
 	db.DB.Model(&models.User{}).Count(&totalUsers)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", dayAgo).Count(&usersToday)
+	db.DB.Model(&models.User{}).Where(createdAtGte, dayAgo).Count(&usersToday)
 	db.DB.Model(&models.User{}).Where(createdAtGte, weekAgo).Count(&usersWeek)
-	db.DB.Model(&models.User{}).Where("created_at >= ?", monthAgo).Count(&usersMonth)
+	db.DB.Model(&models.User{}).Where(createdAtGte, monthAgo).Count(&usersMonth)
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
-	db.DB.Model(&models.Subject{}).Where("is_active = ?", true).Count(&activeSubjects)
+	db.DB.Model(&models.Subject{}).Where(isActiveQuery, true).Count(&activeSubjects)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
 

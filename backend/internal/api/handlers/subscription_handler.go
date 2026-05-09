@@ -17,7 +17,7 @@ const errPlanNotFound = "Plan not found"
 
 func GetSubscriptionPlans(c *gin.Context) {
 	var plans []models.SubscriptionPlan
-	if err := db.DB.Where("\"isActive\" = ?", true).Order("price asc").Find(&plans).Error; err != nil {
+	if err := db.DB.Where(isActiveQuery, true).Order("price asc").Find(&plans).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch plans"})
 		return
 	}
@@ -100,7 +100,7 @@ func calculateFinalPrice(tx *gorm.DB, originalPrice float64, couponCode string) 
 	}
 
 	var coupon models.Coupon
-	if err := tx.Where("code = ? AND \"isActive\" = ?", couponCode, true).First(&coupon).Error; err != nil {
+	if err := tx.Where("code = ? AND "+isActiveQuery, couponCode, true).First(&coupon).Error; err != nil {
 		return originalPrice
 	}
 

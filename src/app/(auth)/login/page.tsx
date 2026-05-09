@@ -134,6 +134,20 @@ function ProcessingState() {
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-[#020202] flex items-center justify-center p-4">
+      <m.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-[600px]"
+      >
+        <ProcessingState />
+      </m.div>
+    </div>
+  );
+}
+
 function OTPInput({ value, onChange, disabled }: { value: string, onChange: (val: string) => void, disabled?: boolean }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   
@@ -580,6 +594,258 @@ function AuthProviders() {
   );
 }
 
+// --- Sub-components for Login ---
+
+function LoginFormHeader() {
+  return (
+    <div className="space-y-4 text-center lg:text-right">
+      <m.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <h2 className="text-4xl font-black text-white tracking-tight">
+          مرحباً بك <span className="text-primary">مجدداً</span>
+        </h2>
+      </m.div>
+      <m.p 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="text-gray-400 font-medium text-lg"
+      >
+        أدخل بيانات الهوية الرقمية للمتابعة إلى حسابك
+      </m.p>
+    </div>
+  );
+}
+
+function PasswordInput({ showPassword, setShowPassword, register, error }: any) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-2">
+        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">كلمة المرور</label>
+        <Link 
+          href="/forgot-password" 
+          className="text-[11px] font-black text-primary/70 hover:text-primary transition-colors"
+        >
+          نسيت كلمة السر؟
+        </Link>
+      </div>
+      <PremiumInput
+        label="كلمة المرور"
+        type={showPassword ? 'text' : 'password'}
+        icon={Lock}
+        registration={register}
+        error={error}
+        showPasswordToggle
+        onTogglePassword={() => setShowPassword(!showPassword)}
+        showPassword={showPassword}
+      />
+    </div>
+  );
+}
+
+function RememberMeCheckbox({ register, getValues }: any) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer group">
+      <div className="relative">
+        <input
+          type="checkbox"
+          {...register('rememberMe')}
+          className="peer sr-only"
+        />
+        <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
+          <m.div 
+            animate={{ 
+              scale: getValues('rememberMe') ? 1 : 0,
+              opacity: getValues('rememberMe') ? 1 : 0,
+              rotate: getValues('rememberMe') ? 0 : -45
+            }}
+            className="w-3.5 h-3.5 rounded-md bg-primary shadow-[0_0_15px_rgba(255,109,0,0.6)]" 
+          />
+        </div>
+      </div>
+      <span className="text-[11px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-[0.2em] transition-colors">
+        تذكر هويتي
+      </span>
+    </label>
+  );
+}
+
+function LoginModeToggle({ loginMode, setLoginMode }: any) {
+  return (
+    <button
+      type="button"
+      onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
+      className="flex items-center gap-3 text-[11px] font-black text-primary/70 hover:text-primary uppercase tracking-[0.15em] transition-all group px-4 py-2 rounded-xl bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20"
+    >
+      {loginMode === 'password' ? (
+        <>
+          <Wand2 className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+          <span>الدخول السريع</span>
+        </>
+      ) : (
+        <>
+          <Lock className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+          <span>كلمة السر</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+function SubmitButton({ isSubmitting, loginMode }: any) {
+  return (
+    <Button
+      type="submit"
+      disabled={isSubmitting}
+      className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl shadow-[0_25px_50px_rgba(255,109,0,0.3)] transition-all active:scale-[0.98] group relative overflow-hidden"
+    >
+      <m.div 
+        className="absolute inset-0 bg-white/30"
+        initial={{ x: "-100%" }}
+        whileHover={{ x: "100%" }}
+        transition={{ duration: 0.6 }}
+      />
+      {isSubmitting ? (
+        <div className="flex items-center justify-center gap-4">
+          <Loader2 className="h-7 w-7 animate-spin" />
+          <span className="uppercase tracking-widest">جاري التحقق...</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-5 relative z-10">
+          <span className="uppercase tracking-[0.3em]">
+            {loginMode === 'password' ? 'تأكيـد الـولـوج' : 'إرسـال رابـط الـولـوج'}
+          </span>
+          <m.div
+            animate={{ x: [0, -5, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <ArrowRight className="h-6 w-6 rotate-180" />
+          </m.div>
+        </div>
+      )}
+    </Button>
+  );
+}
+
+function LoginFormFooter() {
+  return (
+    <div className="flex flex-col items-center gap-8">
+      <p className="text-gray-500 text-sm font-medium">
+        ليس لديك حساب؟{' '}
+        <Link 
+          href="/register" 
+          className="text-primary hover:text-primary/80 font-black transition-colors underline underline-offset-8 decoration-primary/20 hover:decoration-primary"
+        >
+          انضم لعالم تولو
+        </Link>
+      </p>
+      <div className="flex items-center gap-4 opacity-30 hover:opacity-100 transition-opacity">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">End-to-End Encryption Enabled</span>
+        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+      </div>
+    </div>
+  );
+}
+
+// --- Main Form Component ---
+
+
+function LoginMobileHeader() {
+  return (
+    <div className="lg:hidden text-center space-y-6 mb-12">
+       <div className="mx-auto w-20 h-20 rounded-[2rem] bg-primary/20 border border-primary/30 flex items-center justify-center shadow-2xl">
+          <ShieldCheck className="text-primary w-10 h-10" />
+       </div>
+       <div className="space-y-2">
+         <h1 className="text-4xl font-black text-white">تولو التعليمية</h1>
+         <p className="text-primary/60 text-xs font-black uppercase tracking-[0.4em]">Integrated Learning</p>
+       </div>
+    </div>
+  );
+}
+
+function LoginAuthView({ 
+  requires2FA, 
+  errorStatus, 
+  onResendVerification, 
+  handleSubmit, 
+  onSubmit, 
+  register, 
+  errors, 
+  loginMode, 
+  showPassword, 
+  setShowPassword, 
+  getValues, 
+  setLoginMode, 
+  isSubmitting, 
+  twoFactorCode, 
+  setTwoFactorCode, 
+  onVerify2FA, 
+  setRequires2FA 
+}: any) {
+  return (
+    <AnimatePresence mode="wait">
+      {!requires2FA ? (
+        <m.div 
+          key="login-form"
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.4, ease: "circOut" }}
+          className="space-y-10"
+        >
+          <AnimatePresence>
+            {errorStatus && (
+              <ErrorBanner errorStatus={errorStatus} onResendVerification={onResendVerification} />
+            )}
+          </AnimatePresence>
+
+          <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+            <PremiumInput
+              label="البريد الإلكتروني"
+              icon={Mail}
+              registration={register('email')}
+              error={errors.email}
+            />
+
+            <AnimatePresence>
+              {loginMode === 'password' && (
+                <PasswordInput 
+                  showPassword={showPassword}
+                  setShowPassword={setShowPassword}
+                  register={register('password')}
+                  error={errors.password}
+                />
+              )}
+            </AnimatePresence>
+
+            <div className="flex items-center justify-between px-2">
+              <RememberMeCheckbox register={register} getValues={getValues} />
+              <LoginModeToggle loginMode={loginMode} setLoginMode={setLoginMode} />
+            </div>
+
+            <SubmitButton isSubmitting={isSubmitting} loginMode={loginMode} />
+          </form>
+
+          <AuthProviders />
+        </m.div>
+      ) : (
+        <TwoFAPanel
+          twoFactorCode={twoFactorCode}
+          setTwoFactorCode={setTwoFactorCode}
+          isSubmitting={isSubmitting}
+          onVerify2FA={onVerify2FA}
+          onBack={() => setRequires2FA(false)}
+        />
+      )}
+    </AnimatePresence>
+  );
+}
+
 // --- Main Form Component ---
 
 function LoginForm() {
@@ -606,13 +872,7 @@ function LoginForm() {
     [searchParams]
   );
 
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    formState: { errors },
-    trigger
-  } = useForm<LoginFormValues>({
+  const { register, handleSubmit, getValues, formState: { errors }, trigger } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: false }
   });
@@ -622,389 +882,107 @@ function LoginForm() {
     router.refresh();
   }, [router]);
 
-  const handleResendVerification = useCallback(() => {
-    const email = getValues('email');
-    if (!email) {
-      toast.error('يرجى إدخال البريد الإلكتروني أولاً');
-      return;
-    }
-    const promise = resendVerification(email);
-    toast.promise(promise, {
-      loading: 'جاري إرسال رابط التفعيل...',
-      success: 'تم إرسال الرابط بنجاح!',
-      error: 'فشل إرسال الرابط.'
-    });
-  }, [getValues, resendVerification]);
-
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
       redirectAfterLogin(redirectUrl);
     }
   }, [isAuthLoading, isAuthenticated, redirectAfterLogin, redirectUrl]);
 
-  const triggerShake = useCallback(() => {
-    setShouldShake(true);
-    setTimeout(() => setShouldShake(false), 500);
-  }, []);
-
   const handleLoginSuccess = useCallback((result: any) => {
     if (result.requires2FA) {
-      toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج', {
-        description: 'لقد أرسلنا رمزاً إلى بريدك الإلكتروني لزيادة الأمان.',
-      });
+      toast.success('تم التحقق بنجاح، يرجى إدخال رمز التحقق المزدوج');
       setRequires2FA(true);
       setUserId2FA(result.userId || null);
     } else {
-      toast.success('مرحباً بك مجدداً في تولو', {
-        description: 'جاري تحضير بيئتك التعليمية...',
-      });
+      toast.success('مرحباً بك مجدداً في تولو');
       redirectAfterLogin(redirectUrl);
     }
   }, [redirectAfterLogin, redirectUrl]);
 
-  const handleLoginError = useCallback((error: string) => {
-    setErrorStatus(error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
-    triggerShake();
-    toast.error(error || 'خطأ في بيانات الدخول', {
-      description: 'تأكد من البريد الإلكتروني وكلمة المرور.',
-    });
-  }, [triggerShake]);
-
-  const onSubmit = async (data: LoginFormValues) => {
-    if (isAuthLoading || isAuthenticated) return;
-
-    if (loginMode === 'magic-link') {
-      await handleMagicLinkRequest();
-      return;
-    }
-
+  const handleLogin = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     setErrorStatus(null);
-    setShouldShake(false);
-
     try {
-      const result = await login(
-        data.email.trim().toLowerCase(),
-        data.password || '',
-        data.rememberMe ?? false
-      );
-
-      if (result.success) {
-        handleLoginSuccess(result);
-      } else {
-        handleLoginError(result.error || '');
-      }
+      const result = await login(data.email.trim().toLowerCase(), data.password || '', data.rememberMe ?? false);
+      if (result.success) return handleLoginSuccess(result);
+      setErrorStatus(result.error || 'فشل تسجيل الدخول');
+      setShouldShake(true);
+      setTimeout(() => setShouldShake(false), 500);
     } catch (_err) {
-      toast.error('حدث خطأ غير متوقع', {
-        description: 'يرجى التحقق من اتصالك بالإنترنت والمحاولة لاحقاً.',
-      });
-      triggerShake();
+      toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleMagicLinkRequest = async () => {
-    const emailValid = await trigger('email');
-    if (!emailValid) return;
-
+  const handleMagicLink = async () => {
+    if (!(await trigger('email'))) return;
     setIsSubmitting(true);
-    setErrorStatus(null);
-
     try {
-      const email = getValues('email');
-      const result = await requestMagicLink(email);
-      
+      const result = await requestMagicLink(getValues('email'));
       if (result.success) {
         toast.success('تم إرسال رابط الدخول السحري');
         setErrorStatus('تفقد بريدك الإلكتروني للحصول على رابط الدخول السريع.');
       } else {
-        setErrorStatus(result.error || 'فشل إرسال رابط الدخول.');
-        toast.error(result.error || 'حدث خطأ أثناء طلب الرابط');
+        setErrorStatus(result.error || 'فشل إرسال الرابط');
       }
-    } catch (_err) {
-      toast.error('خطأ في الاتصال بالخادم');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onSubmit = (data: LoginFormValues) => {
+    if (isAuthLoading || isAuthenticated) return;
+    loginMode === 'password' ? handleLogin(data) : handleMagicLink();
   };
 
   const onVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId2FA || twoFactorCode.length < 6) return;
-
     setIsSubmitting(true);
-    setErrorStatus(null);
     try {
       const result = await verify2FA(userId2FA, twoFactorCode, getValues('rememberMe'));
-      if (result.success) {
-        toast.success('تم التحقق من الدرع المزدوج بنجاح');
-        redirectAfterLogin(redirectUrl);
-        return;
-      }
+      if (result.success) return redirectAfterLogin(redirectUrl);
       setErrorStatus(result.error || 'رمز التحقق غير صحيح');
-      toast.error(result.error || 'فشل التحقق');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isAuthLoading || isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#020202] flex items-center justify-center p-4">
-        <m.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-[600px]"
-        >
-          <ProcessingState />
-        </m.div>
-      </div>
-    );
-  }
+  if (isAuthLoading || isAuthenticated) return <LoadingState />;
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden selection:bg-primary/30" dir="rtl">
-      {/* Structural Background Layers */}
       <BackgroundLayers />
-
       <m.div 
-        initial={{ opacity: 0, y: 20, scale: 0.99 }}
         animate={{ 
-          opacity: 1, 
-          y: 0, 
-          scale: 1,
+          opacity: 1, y: 0, scale: 1,
           ...(shouldShake && { x: [0, -10, 10, -10, 10, 0] })
         }}
-        transition={shouldShake 
-          ? { duration: 0.4, ease: "easeInOut" }
-          : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
-        }
+        initial={{ opacity: 0, y: 20, scale: 0.99 }}
+        transition={shouldShake ? { duration: 0.4 } : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)]"
       >
-        
-        {/* Left Panel: Visual/Security Context (Visible on Desktop) */}
         <LeftPanelInfo deviceInfo={deviceInfo} />
-
-        {/* Right Panel: Login Form */}
         <div className="lg:col-span-7 p-10 md:p-16 lg:p-24 bg-[#080808]/50 flex flex-col justify-center">
           <div className="max-w-[440px] mx-auto w-full space-y-12">
-            {/* Mobile Header */}
-            <div className="lg:hidden text-center space-y-6 mb-12">
-               <div className="mx-auto w-20 h-20 rounded-[2rem] bg-primary/20 border border-primary/30 flex items-center justify-center shadow-2xl">
-                  <ShieldCheck className="text-primary w-10 h-10" />
-               </div>
-               <div className="space-y-2">
-                 <h1 className="text-4xl font-black text-white">تولو التعليمية</h1>
-                 <p className="text-primary/60 text-xs font-black uppercase tracking-[0.4em]">Integrated Learning</p>
-               </div>
-            </div>
-
-            <div className="space-y-3">
-              <m.h3 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-4xl font-black text-white tracking-tight"
-              >
-                تسجيل الدخول
-              </m.h3>
-              <m.p 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-gray-500 font-bold text-sm"
-              >
-                أدخل بيانات الهوية الرقمية للمتابعة إلى حسابك
-              </m.p>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {!requires2FA ? (
-                <m.div 
-                  key="login-form"
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.4, ease: "circOut" }}
-                  className="space-y-10"
-                >
-                  {/* Error Banner */}
-                  <AnimatePresence>
-                    {errorStatus && (
-                      <ErrorBanner errorStatus={errorStatus} onResendVerification={handleResendVerification} />
-                    )}
-                  </AnimatePresence>
-
-                  <form 
-                    noValidate
-                    onSubmit={handleSubmit(onSubmit)} 
-                    className="space-y-7"
-                  >
-                    <PremiumInput
-                      label="البريد الإلكتروني"
-                      icon={Mail}
-                      registration={register('email')}
-                      error={errors.email}
-                    />
-
-                    {loginMode === 'password' && (
-                      <m.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-3 overflow-hidden"
-                      >
-                        <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Lock size={10} className="text-primary/40" />
-                            تشفير طرف لـ طرف
-                          </span>
-                          <Link 
-                            href="/forgot-password" 
-                            className="text-[10px] font-black text-primary/60 hover:text-primary transition-colors uppercase tracking-widest border-b border-primary/10 hover:border-primary"
-                          >
-                            نسيت كلمة السر؟
-                          </Link>
-                        </div>
-                        <PremiumInput
-                          label="كلمة المرور"
-                          type={showPassword ? 'text' : 'password'}
-                          icon={Lock}
-                          registration={register('password')}
-                          error={errors.password}
-                          showPasswordToggle
-                          onTogglePassword={() => setShowPassword(!showPassword)}
-                          showPassword={showPassword}
-                        />
-                      </m.div>
-                    )}
-
-                    <div className="flex items-center justify-between px-2">
-                      <label className="flex items-center gap-4 cursor-pointer group select-none">
-                        <div className="relative">
-                          <input
-                            {...register('rememberMe')}
-                            type="checkbox"
-                            className="peer sr-only"
-                          />
-                          <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
-                            <m.div 
-                              animate={{ 
-                                scale: getValues('rememberMe') ? 1 : 0,
-                                opacity: getValues('rememberMe') ? 1 : 0,
-                                rotate: getValues('rememberMe') ? 0 : -45
-                              }}
-                              className="w-3.5 h-3.5 rounded-md bg-primary shadow-[0_0_15px_rgba(255,109,0,0.6)]" 
-                            />
-                          </div>
-                        </div>
-                        <span className="text-[11px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-[0.2em] transition-colors">
-                          تذكر هويتي
-                        </span>
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
-                        className="flex items-center gap-3 text-[11px] font-black text-primary/70 hover:text-primary uppercase tracking-[0.15em] transition-all group px-4 py-2 rounded-xl bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20"
-                      >
-                        {loginMode === 'password' ? (
-                          <>
-                            <Wand2 className="h-4 w-4 group-hover:rotate-12 transition-transform" />
-                            <span>الدخول السريع</span>
-                          </>
-                        ) : (
-                          <>
-                            <KeyRound className="h-4 w-4" />
-                            <span>استخدام كلمة السر</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="pt-6">
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="h-20 w-full rounded-[1.5rem] bg-primary text-black font-black text-xl relative overflow-hidden transition-all active:scale-[0.97] shadow-[0_20px_40px_rgba(255,109,0,0.3)] hover:shadow-primary/40 group"
-                      >
-                        <m.div 
-                          className="absolute inset-0 bg-white/30"
-                          initial={{ x: "-100%" }}
-                          whileHover={{ x: "100%" }}
-                          transition={{ duration: 0.6 }}
-                        />
-                        {isSubmitting ? (
-                          <div className="flex items-center justify-center gap-4">
-                            <Loader2 className="h-7 w-7 animate-spin" />
-                            <span className="uppercase tracking-widest">جاري التحقق...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-5 relative z-10">
-                            <span className="uppercase tracking-[0.3em]">
-                              {loginMode === 'password' ? 'تأكيـد الـولـوج' : 'إرسـال رابـط الـولـوج'}
-                            </span>
-                            <m.div
-                              animate={{ x: [0, -5, 0] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                            >
-                              <ArrowRight className="h-6 w-6 rotate-180" />
-                            </m.div>
-                          </div>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-
-                  <AuthProviders />
-                </m.div>
-              ) : (
-                <TwoFAPanel
-                  twoFactorCode={twoFactorCode}
-                  setTwoFactorCode={setTwoFactorCode}
-                  isSubmitting={isSubmitting}
-                  onVerify2FA={onVerify2FA}
-                  onBack={() => setRequires2FA(false)}
-                />
-              )}
-            </AnimatePresence>
-
-            {/* Footer Metadata */}
-            <m.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-              className="pt-12 border-t border-white/5 text-center space-y-8"
-            >
-              <div className="space-y-3">
-                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-loose">
-                  لا تمتلك هوية رقمية في تولو؟
-                </p>
-                <Link 
-                  href="/register" 
-                  className="inline-block px-8 py-3 rounded-xl bg-white/5 border border-white/10 font-black text-white hover:text-primary hover:bg-primary/5 transition-all hover:border-primary shadow-sm"
-                >
-                  انشـئ هويتك الآن
-                </Link>
-              </div>
-              
-              <div className="flex items-center justify-center gap-10 opacity-25 grayscale hover:grayscale-0 hover:opacity-50 transition-all duration-500">
-                <div className="flex items-center gap-3">
-                   <Shield size={14} className="text-primary" />
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">End-to-End SSL</span>
-                </div>
-                <div className="flex items-center gap-3">
-                   <Fingerprint size={14} className="text-primary" />
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">ID Protection</span>
-                </div>
-              </div>
-            </m.div>
+            <LoginMobileHeader />
+            <LoginFormHeader />
+            <LoginAuthView 
+              {...{ requires2FA, errorStatus, register, errors, loginMode, showPassword, setShowPassword, getValues, setLoginMode, isSubmitting, twoFactorCode, setTwoFactorCode, onVerify2FA, setRequires2FA, handleSubmit, onSubmit }}
+              onResendVerification={() => {
+                const email = getValues('email');
+                if (email) toast.promise(resendVerification(email), { loading: 'جاري الإرسال...', success: 'تم الإرسال!', error: 'فشل الإرسال' });
+              }}
+            />
+            <LoginFormFooter />
           </div>
         </div>
       </m.div>
     </div>
   );
 }
+
 
 export default function LoginPage() {
   return (

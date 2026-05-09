@@ -20,8 +20,14 @@ var dummyHash string
 
 func init() {
 	// Generate a dummy hash at startup to use for timing attack protection when a user is not found.
-	// This prevents hard-coding a specific hash which could be flagged as a security risk.
-	h, _ := bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing-protection"), 12)
+	// SECURITY: Any previous hard-coded secret is revoked and replaced with runtime-generated random bytes
+	// to prevent credential exposure and address Sonar rule S6437.
+	randomBytes := make([]byte, 64)
+	if _, err := rand.Read(randomBytes); err != nil {
+		// Panic if we cannot generate secure random bytes, as this is a critical security failure.
+		panic("failed to generate secure random bytes for auth timing protection")
+	}
+	h, _ := bcrypt.GenerateFromPassword(randomBytes, 12)
 	dummyHash = string(h)
 }
 

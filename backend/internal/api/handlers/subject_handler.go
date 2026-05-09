@@ -80,7 +80,7 @@ func GetSubjects(c *gin.Context) {
 		query = query.Where("is_published = ?", isPublished == "true")
 	}
 	if isActive := c.Query("isActive"); isActive != "" {
-		query = query.Where("is_active = ?", isActive == "true")
+		query = query.Where(isActiveQuery, isActive == "true")
 	}
 
 	var total int64
