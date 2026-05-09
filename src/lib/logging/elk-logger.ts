@@ -17,7 +17,7 @@ const fallbackLogger = console;
 
 // تكوين Elasticsearch
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200',
+  node: process.env.ELASTICSEARCH_URL || 'https://elasticsearch:9200',
   auth: process.env.ELASTICSEARCH_AUTH
     ? {
       username: process.env.ELASTICSEARCH_USERNAME || 'elastic',

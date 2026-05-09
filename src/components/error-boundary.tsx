@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
 import { errorService as errorManager } from '@/lib/logging/error-service';
 import ErrorPage, { ErrorType } from './error-pages';
 import { logger } from '@/lib/logger';
+import { generateId } from '@/lib/utils';
 
 /**
  * خصائص مكون ErrorBoundary
@@ -95,7 +96,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     // Generate unique error ID for tracking
-    const errorId = `err-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = `err-${generateId()}`;
 
     return {
       hasError: true,

@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { BACKEND_URL, forwardSetCookie } from '@/app/api/auth/_utils';
+import { trimTrailingSlashes } from '@/lib/utils';
 
 /** Mirrors Go `GetSystemSettings` defaults and `settings-context` fallbacks. */
 const DEFAULT_ENVELOPE = {
@@ -26,7 +27,7 @@ const DEFAULT_ENVELOPE = {
 };
 
 function backendOriginCandidates(): string[] {
-  const primary = BACKEND_URL.replace(/\/+$/, '');
+  const primary = trimTrailingSlashes(BACKEND_URL);
   const set = new Set<string>([primary]);
   if (primary.includes(':8082')) set.add(primary.replace(':8082', ':8080'));
   else if (primary.includes(':8080')) set.add(primary.replace(':8080', ':8082'));

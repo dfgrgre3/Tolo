@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -474,7 +475,14 @@ func (h *AIHandler) callAIWithRetryCustom(messages []map[string]interface{}, mod
 			return reply, model, nil
 		}
 		lastErr = err
-		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+		// Use a cryptographically secure random number for jitter to satisfy security scanners (S2245)
+		jitter := int64(1000)
+		if n, err := rand.Int(rand.Reader, big.NewInt(jitter)); err == nil {
+			time.Sleep(time.Duration(n.Int64()) * time.Millisecond)
+		} else {
+			// Fallback if crypto/rand fails
+			time.Sleep(time.Duration(jitter/2) * time.Millisecond)
+		}
 	}
 	return "", "", lastErr
 }

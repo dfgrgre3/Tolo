@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
 
 import { logger } from '@/lib/logger';
+import { generateId } from '@/lib/utils';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -66,7 +67,7 @@ class ErrorService {
     try {
       let sessionId = safeGetItem('errorLoggerSessionId', { storageType: 'session', fallback: null }) as string | null;
       if (!sessionId) {
-        sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionId = `session-${generateId()}`;
         safeSetItem('errorLoggerSessionId', sessionId, { storageType: 'session' });
       }
       return sessionId;
@@ -133,7 +134,7 @@ class ErrorService {
     const errorObj = error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Unknown error');
     
     const logEntry: ErrorLogEntry = {
-      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `error-${generateId()}`,
       timestamp: new Date().toISOString(),
       message: errorObj.message || 'Unknown error',
       stack: errorObj.stack,

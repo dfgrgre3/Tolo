@@ -80,7 +80,7 @@ function SecurityBit({ delay = 0 }) {
         opacity: [0, 0.2, 0],
         scale: [0.5, 1.2, 0.5],
         y: [-20, -100],
-        x: [0, Math.random() * 40 - 20]
+        x: [0, (window.crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF) * 40 - 20]
       }}
       transition={{ 
         duration: 4, 
@@ -438,8 +438,11 @@ function BackgroundLayers() {
       {/* Animated Security Bits */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 20 }).map((_, i) => (
-          <div key={i} className="absolute" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}>
-            <SecurityBit delay={Math.random() * 5} />
+          <div key={i} className="absolute" style={{ 
+            left: `${(window.crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF) * 100}%`, 
+            top: `${(window.crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF) * 100}%` 
+          }}>
+            <SecurityBit delay={(window.crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF) * 5} />
           </div>
         ))}
       </div>

@@ -172,7 +172,7 @@ export function parseCloudTimelineNotes(content: string) {
   const notes = timelineBlock
     .split(/\r?\n/)
     .map((line, index) => {
-      const match = /^\[(\d{2}(?::\d{2}){1,2})\]\s*(.+)$/.exec(line.trim());
+      const match = /^\[(\d{2}(?::\d{2}){1,2})\]\s*(\S.*)$/.exec(line.trim());
       if (!match) return null;
 
       const time = parseTimestampToSeconds(match[1]);

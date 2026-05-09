@@ -122,7 +122,7 @@ func setCSRFCookie(c *gin.Context, token string) {
 		"/",
 		"",
 		secure, // Secure in production
-		false,  // NOT HttpOnly - allows JS to read for Double Submit Cookie pattern
+		false,  // NOSONAR: NOT HttpOnly - allows JS to read for Double Submit Cookie pattern
 	)
 }
 

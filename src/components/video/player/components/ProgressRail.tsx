@@ -16,7 +16,7 @@ import {
   getThumbnailCueAtTime,
 } from "../utils";
 import { useCourseVideoPlayerStore } from "../store";
-import { cn } from "@/lib/utils";
+import { cn, getRandomFloat } from "@/lib/utils";
 
 export const ProgressRail = memo(function ProgressRail({
   currentTime,
@@ -67,7 +67,7 @@ export const ProgressRail = memo(function ProgressRail({
     for (let i = 0; i < points; i++) {
       // Create some "hot" zones
       const base = Math.sin(i / 2) * 15 + 20;
-      const noise = Math.random() * 10;
+      const noise = getRandomFloat() * 10;
       data.push(Math.max(5, base + noise));
     }
     return data;

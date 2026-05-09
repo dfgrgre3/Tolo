@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { generateId } from "@/lib/utils";
 
 // Types for user journey tracking
 export interface UserJourneyStep {
@@ -55,7 +56,7 @@ export interface AnalyticsIntegration {
 
 // Generate unique session ID
 function generateSessionId(): string {
-  return `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `sess_${generateId()}`;
 }
 
 export function useAnalyticsIntegration(userId?: string): AnalyticsIntegration {

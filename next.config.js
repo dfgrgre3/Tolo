@@ -245,6 +245,6 @@ const nextConfig = {
 };
 
 // Add allowed origin for remote development HMR
-nextConfig.allowedDevOrigins = ['192.168.1.15', 'localhost'];
+nextConfig.allowedDevOrigins = [process.env.ALLOWED_DEV_ORIGIN, 'localhost'].filter(Boolean);
 
 module.exports = withBundleAnalyzer(nextConfig);

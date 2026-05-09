@@ -4,6 +4,7 @@ import * as React from "react";
 import { m } from "framer-motion";
 import { Activity, Database, Cpu, Zap, Shield, HardDrive } from "lucide-react";
 import { adminFetch } from "@/lib/api/admin-api";
+import { getRandomFloat } from "@/lib/utils";
 
 interface PulseItemProps {
   label: string;
@@ -82,7 +83,7 @@ export function SystemPulse() {
         const memValue = parseInt(memStr) || 0;
         
         setStats({
-          cpu: Math.floor(Math.random() * 20) + 5, // Simulated for now as Go doesn't easily expose CPU without extra libs
+          cpu: Math.floor(getRandomFloat() * 20) + 5, // Simulated for now as Go doesn't easily expose CPU without extra libs
           ram: Math.min(100, Math.floor((memValue / 1024) * 100)), // Assuming 1GB total for percentage
           db: 15,
           api: 100,

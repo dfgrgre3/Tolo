@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
+import { trimTrailingSlashes } from './utils';
 
 // Use console internally to avoid circular dependencies with the unified logger
 const logger = console;
@@ -438,7 +439,7 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
+  const BASE_API_URL = trimTrailingSlashes(isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'));
   if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
   if (url.includes('/auth/')) return false;
   return true;
@@ -447,11 +448,11 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 async function refreshAuthSession(): Promise<boolean> {
   try {
     const isBrowserEnv = typeof window !== 'undefined';
-    const BASE_API_URL = isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
+    const BASE_API_URL = trimTrailingSlashes(isBrowserEnv ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'));
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    const refreshUrl = `${BASE_API_URL.replace(/\/+$/, '')}/auth/refresh`;
+    const refreshUrl = `${BASE_API_URL}/auth/refresh`;
     const refreshResponse = await fetch(refreshUrl, {
       method: 'POST',
       credentials: 'include',
@@ -541,7 +542,7 @@ fallback: T | null = null)
 
 function buildFinalUrl(url: string): string {
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api';
+  const BASE_API_URL = trimTrailingSlashes(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
   return url.startsWith('/api/') 
     ? (isBrowserEnv ? url : `${BASE_API_URL}${url.substring(4)}`) 
     : url;

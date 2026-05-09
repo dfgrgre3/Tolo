@@ -12,7 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Course, Lesson, CourseVideoPlayerApi } from "../types";
+import type { Course, Lesson } from "../types";
+import type { CourseVideoPlayerApi } from "@/components/video/player/types";
 import { formatLessonType } from "../utils";
 import dynamic from "next/dynamic";
 

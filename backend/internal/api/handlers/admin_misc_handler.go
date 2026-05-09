@@ -27,13 +27,8 @@ import (
 	"runtime"
 )
 
-const queryRole = "role = ?"
 const uploadMetadataKeyPrefix = "upload_metadata:"
-const createdAtGte = "created_at >= ?"
 const coalesceSumDuration = "COALESCE(SUM(duration_min), 0)"
-const createdAtDescSort = "created_at desc"
-const createdAtRangeQuery = "created_at >= ? AND created_at < ?"
-const dateFormat = "2006-01-02"
 
 // AdminAI handles all AI-related admin operations
 func AdminAIGet(c *gin.Context) {
@@ -596,12 +591,12 @@ func assembleAndUploadFinalFile(ctx context.Context, uploadID string, metadata c
 func appendChunkToLocalFile(ctx context.Context, dest *os.File, chunkPath string) error {
 	rc, err := storage.GlobalStorage.Download(ctx, chunkPath)
 	if err != nil {
-		return fmt.Errorf("Failed to download chunk " + chunkPath)
+		return fmt.Errorf("Failed to download chunk %s", chunkPath)
 	}
 	defer rc.Close()
 
 	if _, err = io.Copy(dest, rc); err != nil {
-		return fmt.Errorf("Failed to join chunk " + chunkPath)
+		return fmt.Errorf("Failed to join chunk %s", chunkPath)
 	}
 	return nil
 }
@@ -1239,7 +1234,7 @@ func GetAdminLive(c *gin.Context) {
 	_ = db.DB.Where("updated_at >= ? OR start_time >= ? OR end_time >= ?", cutoff, cutoff, cutoff).Find(&studySessions).Error
 
 	var examResults []models.ExamResult
-	_ = db.DB.Where("\"takenAt\" >= ?", cutoff).Find(&examResults).Error
+	_ = db.DB.Where("taken_at >= ?", cutoff).Find(&examResults).Error
 
 	summary := buildLiveActivityMaps(examResults, studySessions)
 
@@ -1469,10 +1464,10 @@ func GetAdminAnalytics(c *gin.Context) {
 	db.DB.Model(&models.Subject{}).Count(&totalSubjects)
 	db.DB.Model(&models.Exam{}).Count(&totalExams)
 	db.DB.Model(&models.Notification{}).Count(&totalNotifications)
-	db.DB.Model(&models.User{}).Select("COALESCE(SUM(\"totalXP\"), 0)").Scan(&totalXP)
+	db.DB.Model(&models.User{}).Select("COALESCE(SUM(total_xp), 0)").Scan(&totalXP)
 	db.DB.Model(&models.BlogPost{}).Count(&totalBlogPosts)
-	db.DB.Model(&models.Achievement{}).Select("COALESCE(SUM(\"unlockedCount\"), 0)").Scan(&achievementsEarned)
-	db.DB.Model(&models.Challenge{}).Where("\"isActive\" = ?", false).Count(&challengesCompleted)
+	db.DB.Model(&models.Achievement{}).Select("COALESCE(SUM(unlocked_count), 0)").Scan(&achievementsEarned)
+	db.DB.Model(&models.Challenge{}).Where("is_active = ?", false).Count(&challengesCompleted)
 
 	roleStats := gin.H{}
 	for _, role := range []models.UserRole{models.RoleAdmin, models.RoleTeacher, models.RoleStudent} {
@@ -1550,7 +1545,7 @@ func GetAdminReportsOverview(c *gin.Context) {
 	db.DB.Model(&models.StudySession{}).Count(&totalStudySessions)
 
 	var subjects []models.Subject
-	db.DB.Order("\"enrolledCount\" desc").Limit(5).Find(&subjects)
+	db.DB.Order("enrolled_count desc").Limit(5).Find(&subjects)
 	popularSubjects := make([]gin.H, 0, len(subjects))
 	for _, subject := range subjects {
 		popularSubjects = append(popularSubjects, gin.H{
@@ -1733,21 +1728,7 @@ func GetAdminReportsBooks(c *gin.Context) {
 	})
 }
 
-func stringOrEmpty(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
-}
 
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
-}
 
 func calculateUserGrowthTrend() float64 {
 	now := time.Now()

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { logger } from '@/lib/logger';
 import { adminFetch } from '@/lib/api/admin-api';
+import { generateSecurePin } from "@/lib/utils";
 
 // Types
 interface ContestQuestion {
@@ -121,7 +122,7 @@ export default function ContestsPage() {
   };
 
   const createGame = (contest: Contest) => {
-    const pin = contest.pinCode || Math.floor(100000 + Math.random() * 900000).toString();
+    const pin = contest.pinCode || generateSecurePin();
     setActiveLobby({
       id: contest.id,
       title: contest.title,

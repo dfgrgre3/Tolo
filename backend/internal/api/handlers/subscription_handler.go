@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const errUserNotFound = "User not found"
 const errInvalidRequest = "Invalid request"
 const errPlanNotFound = "Plan not found"
 
@@ -80,7 +79,7 @@ func PurchasePlan(c *gin.Context) {
 
 		finalPrice := calculateFinalPrice(tx, plan.Price, req.CouponCode)
 
-		if err := deductUserBalance(tx, userId.(string), &user, finalPrice, fmt.Sprintf("شراء خطة اشتراك: %s", plan.Name), paymentRef); err != nil {
+		if err := subDeductUserBalance(tx, userId.(string), &user, finalPrice, fmt.Sprintf("شراء خطة اشتراك: %s", plan.Name), paymentRef); err != nil {
 			return err
 		}
 
@@ -88,7 +87,7 @@ func PurchasePlan(c *gin.Context) {
 	})
 
 	if err != nil {
-		handlePurchaseError(c, err)
+		subHandlePurchaseError(c, err)
 		return
 	}
 
@@ -137,7 +136,7 @@ func isCouponValid(coupon models.Coupon, amount float64) bool {
 	return true
 }
 
-func deductUserBalance(tx *gorm.DB, userID string, user *models.User, amount float64, description string, ref string) error {
+func subDeductUserBalance(tx *gorm.DB, userID string, user *models.User, amount float64, description string, ref string) error {
 	if user.Balance < amount {
 		return services.ErrInsufficientBalance
 	}
@@ -220,7 +219,7 @@ func createSubscriptionAndPayment(tx *gorm.DB, userID string, plan models.Subscr
 	return payment.ID, nil
 }
 
-func calculateEndDate(interval string) time.Time {
+func calculateEndDate(interval models.SubscriptionInterval) time.Time {
 	duration := 30 * 24 * time.Hour
 	switch interval {
 	case models.IntervalYearly:
@@ -231,7 +230,7 @@ func calculateEndDate(interval string) time.Time {
 	return time.Now().Add(duration)
 }
 
-func handlePurchaseError(c *gin.Context, err error) {
+func subHandlePurchaseError(c *gin.Context, err error) {
 	if err == services.ErrInsufficientBalance {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "رصيدك غير كافٍ لإتمام هذه العملية"})
 		return
@@ -457,7 +456,7 @@ func RenewSubscription(c *gin.Context) {
 			return err
 		}
 
-		if err := deductUserBalance(tx, userId.(string), &user, plan.Price, fmt.Sprintf("تجديد اشتراك: %s", plan.Name), paymentRef); err != nil {
+		if err := subDeductUserBalance(tx, userId.(string), &user, plan.Price, fmt.Sprintf("تجديد اشتراك: %s", plan.Name), paymentRef); err != nil {
 			return err
 		}
 
@@ -466,7 +465,7 @@ func RenewSubscription(c *gin.Context) {
 	})
 
 	if err != nil {
-		handlePurchaseError(c, err)
+		subHandlePurchaseError(c, err)
 		return
 	}
 

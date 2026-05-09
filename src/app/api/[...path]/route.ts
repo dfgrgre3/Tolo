@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL, upstreamAuthHeaders } from '@/app/api/auth/_utils';
+import { trimTrailingSlashes } from '@/lib/utils';
 
 /**
  * General API Proxy Catch-all
@@ -61,7 +62,7 @@ async function handleProxy(
   const { search } = new URL(request.url);
   const headers = upstreamAuthHeaders(request);
   
-  const primaryOrigin = BACKEND_URL.replace(/\/+$/, '');
+  const primaryOrigin = trimTrailingSlashes(BACKEND_URL);
   const origins = getOrigins(primaryOrigin);
   const options = await buildProxyRequestOptions(request, headers);
 

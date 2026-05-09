@@ -18,8 +18,13 @@ func main() {
 	}
 
 	log.Println("Connecting to database...")
+	logMode := logger.Warn
+	if os.Getenv("DB_DEBUG") == "true" {
+		logMode = logger.Info
+	}
+
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logMode),
 	})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)

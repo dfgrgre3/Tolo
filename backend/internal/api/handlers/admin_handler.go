@@ -168,8 +168,8 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	updates := categoryUpdates{
-		Icon:        &input.Icon,
-		Description: &input.Description,
+		Icon:        input.Icon,
+		Description: input.Description,
 	}
 	if input.Name != "" {
 		updates.Name = &input.Name
@@ -181,7 +181,7 @@ func UpdateCategory(c *gin.Context) {
 
 	if err := db.DB.Model(&models.Category{}).Where(queryID, category.ID).
 		Updates(&updates).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to update category")
+		apiresponse.Error(c, http.StatusInternalServerError, "Failed to update category")
 		return
 	}
 

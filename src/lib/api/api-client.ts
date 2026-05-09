@@ -3,6 +3,7 @@
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
 import { performanceMonitor } from '../metrics/performance';
+import { trimTrailingSlashes } from '../utils';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
@@ -47,7 +48,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
-const BASE_API_URL = (typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)).replace(/\/+$/, '');
+const BASE_API_URL = trimTrailingSlashes(typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL));
 
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';

@@ -21,6 +21,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { logger } from '@/lib/logger';
+import { generateId } from "@/lib/utils";
 import { rpgCommonStyles } from "../constants";
 
 // Note: Arabic locale may not be available in all date-fns versions
@@ -109,7 +110,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
         const notifications = extractNotifications(data);
         if (!error && notifications.length > 0) {
           const transformedActivities = notifications.map((notification) => ({
-            id: notification.id || `activity-${Date.now()}-${Math.random()}`,
+            id: notification.id || generateId(),
             type: notification.type as ActivityItem['type'] || "notification",
             title: notification.title || "تنبيه جديد",
             description: notification.message || notification.description || "",

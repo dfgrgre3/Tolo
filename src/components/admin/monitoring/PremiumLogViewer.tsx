@@ -3,6 +3,7 @@
 import React from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Terminal, Search, Filter, Trash2 } from 'lucide-react';
+import { getRandomFloat } from '@/lib/utils';
 
 interface LogEntry {
   timestamp: string;
@@ -19,7 +20,7 @@ export function PremiumLogViewer() {
   // Simulated live logs (In real app, use WebSockets or SSE)
   React.useEffect(() => {
     const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
+      if (getRandomFloat() > 0.7) {
         const levels = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
         const messages = [
           'Request processed successfully',
@@ -32,8 +33,8 @@ export function PremiumLogViewer() {
         
         const newLog = {
           timestamp: new Date().toLocaleTimeString(),
-          level: levels[Math.floor(Math.random() * levels.length)],
-          message: messages[Math.floor(Math.random() * messages.length)],
+          level: levels[Math.floor(getRandomFloat() * levels.length)],
+          message: messages[Math.floor(getRandomFloat() * messages.length)],
         };
         
         setLogs(prev => [...prev.slice(-49), newLog]);

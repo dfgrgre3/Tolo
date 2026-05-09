@@ -3,11 +3,12 @@ import { BACKEND_URL, upstreamAuthHeaders } from '@/app/api/auth/_utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const headers = upstreamAuthHeaders(request);
-    const path = params.path ? params.path.join('/') : '';
+    const resolvedParams = await params;
+    const path = resolvedParams.path ? resolvedParams.path.join('/') : '';
     const { search } = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/exams${path ? '/' + path : ''}${search}`;
 
@@ -40,11 +41,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const headers = upstreamAuthHeaders(request);
-    const path = params.path ? params.path.join('/') : '';
+    const resolvedParams = await params;
+    const path = resolvedParams.path ? resolvedParams.path.join('/') : '';
     const { search } = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/exams${path ? '/' + path : ''}${search}`;
     const body = await request.text();

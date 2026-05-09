@@ -107,11 +107,17 @@ func updateCategoryRows(db *sql.DB) {
 }
 
 func updateRows(db *sql.DB, tableName, columnName string) {
-	query := fmt.Sprintf(`
-		UPDATE "%s" 
-		SET "%s" = CURRENT_TIMESTAMP 
-		WHERE "%s" IS NULL
-	`, tableName, columnName, columnName)
+	var query string
+	// Use hardcoded queries for specific table/column combinations to ensure safety
+	// and address security hotspot go:S2077 (SQL Injection).
+	// SQL identifiers (tables/columns) cannot be parameterized, so we use structural mapping.
+	if tableName == "Category" && columnName == "created_at" {
+		query = `UPDATE "Category" SET "created_at" = CURRENT_TIMESTAMP WHERE "created_at" IS NULL`
+	} else if tableName == "Category" && columnName == "updated_at" {
+		query = `UPDATE "Category" SET "updated_at" = CURRENT_TIMESTAMP WHERE "updated_at" IS NULL`
+	} else {
+		log.Fatalf("Security: unauthorized update target: %s.%s", tableName, columnName)
+	}
 
 	result, err := db.Exec(query)
 	if err != nil {
@@ -129,7 +135,16 @@ func addCategoryIndexes(db *sql.DB) {
 }
 
 func createIndex(db *sql.DB, indexName, tableName, columnName string) {
-	query := fmt.Sprintf(`CREATE INDEX IF NOT EXISTS %s ON "%s" ("%s")`, indexName, tableName, columnName)
+	var query string
+	// Use hardcoded queries to address security hotspot go:S2077 (SQL Injection).
+	if tableName == "Category" && columnName == "created_at" && indexName == "idx_category_created_at" {
+		query = `CREATE INDEX IF NOT EXISTS "idx_category_created_at" ON "Category" ("created_at")`
+	} else if tableName == "Category" && columnName == "updated_at" && indexName == "idx_category_updated_at" {
+		query = `CREATE INDEX IF NOT EXISTS "idx_category_updated_at" ON "Category" ("updated_at")`
+	} else {
+		log.Fatalf("Security: unauthorized index creation: %s on %s(%s)", indexName, tableName, columnName)
+	}
+
 	if _, err := db.Exec(query); err != nil {
 		log.Fatalf("Error creating %s index: %v", indexName, err)
 	}

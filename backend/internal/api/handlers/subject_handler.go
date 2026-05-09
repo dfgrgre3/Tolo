@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	idQuery            = "id = ?"
 	msgSubjectNotFound     = "Subject not found"
 	preloadTopicsSubTopics  = "Topics.SubTopics"
 	msgUserNotAuthenticated = "User not authenticated"
@@ -243,12 +242,7 @@ func applyIDOrSlugQuery(query *gorm.DB, id string) *gorm.DB {
 	return query.Where("slug = ? OR id = ?", id, id)
 }
 
-func stringOrEmpty(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
+
 
 func EnrollCourse(c *gin.Context) {
 	userId, ok := getAuthenticatedUserID(c)
@@ -520,7 +514,7 @@ func getIntegrationID(svc *services.PaymobService, method string) string {
 	}
 }
 
-func createPendingPayment(userId, courseId string, amount float64, method, orderID string) error {
+func createPendingPayment(userId, courseId string, amount float64, method string, orderID int64) error {
 	payment := models.Payment{
 		UserID:        userId,
 		SubjectID:     &courseId,
@@ -533,7 +527,7 @@ func createPendingPayment(userId, courseId string, amount float64, method, order
 	return db.DB.Create(&payment).Error
 }
 
-func handleWalletRedirect(c *gin.Context, svc *services.PaymobService, paymentKey, phone, orderID string) {
+func handleWalletRedirect(c *gin.Context, svc *services.PaymobService, paymentKey, phone string, orderID int64) {
 	walletUrl, err := svc.CreateWalletRequest(paymentKey, phone)
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "فشل معالجة طلب المحفظة")
@@ -584,13 +578,13 @@ func UpdateLessonProgress(c *gin.Context) {
 	// Create or update, accumulating timeSpentSeconds if it exists.
 	// We use raw SQL for accumulation on conflict to be safe and elegant.
 	if err := db.DB.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "userId"}, {Name: "subTopicId"}},
+		Columns: []clause.Column{{Name: "user_id"}, {Name: "sub_topic_id"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{
-			"completed":           input.Completed,
-			"lastWatchedPosition": input.LastWatchedPosition,
-			"timeSpentSeconds":    gorm.Expr("\"timeSpentSeconds\" + ?", input.TimeSpentSeconds),
-			"status":              progressStatus,
-			"updatedAt":           time.Now(),
+			"completed":             input.Completed,
+			"last_watched_position": input.LastWatchedPosition,
+			"time_spent_seconds":    gorm.Expr("time_spent_seconds + ?", input.TimeSpentSeconds),
+			"status":                progressStatus,
+			"updated_at":            time.Now(),
 		}),
 	}).Create(&progress).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to save lesson progress: "+err.Error())
@@ -611,7 +605,7 @@ func CreateSubject(c *gin.Context) {
 
 	normalizeSubjectFields(&subject)
 
-	log.Printf("Attempting to create subject: Name=%q, Code=%q, Slug=%q", subject.Name, subject.Code, subject.Slug)
+	log.Printf("Attempting to create subject: Name=%q, Code=%v, Slug=%v", subject.Name, subject.Code, subject.Slug)
 	if err := getSubjectRepo().Create(&subject); err != nil {
 		log.Printf("CreateSubject: Repository error: %v", err)
 		api_response.Error(c, http.StatusInternalServerError, getCreateSubjectErrorMessage(err))

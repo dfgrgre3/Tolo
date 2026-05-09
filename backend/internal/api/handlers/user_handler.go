@@ -38,9 +38,7 @@ const (
 	LockoutDuration            = 15 * time.Minute
 	errFailedToGenerateTokens  = "Failed to generate tokens"
 	refreshTokenPath           = "/api/auth/refresh"
-	errUserNotFound            = "User not found"
 	errInvalidEmail            = "Invalid email"
-	idQuery                    = "id = ?"
 	userIDQuery                = "user_id = ?"
 )
 

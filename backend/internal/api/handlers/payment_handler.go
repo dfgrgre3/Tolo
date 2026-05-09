@@ -15,8 +15,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const idQuery = "id = ?"
-const authRequired = "Authentication required"
 
 // Paymob Callback Handler
 func PaymobWebhook(c *gin.Context) {
@@ -137,7 +135,7 @@ func processSubjectEnrollment(tx *gorm.DB, payment *models.Payment) error {
 	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&enrollment).Error; err != nil {
 		return err
 	}
-	return tx.Model(&models.Subject{}).Where(idQuery, *payment.SubjectID).Update("enrolledCount", gorm.Expr("\"enrolledCount\" + 1")).Error
+	return tx.Model(&models.Subject{}).Where(idQuery, *payment.SubjectID).Update("enrolled_count", gorm.Expr("enrolled_count + 1")).Error
 }
 
 func processWalletTopup(tx *gorm.DB, payment *models.Payment) error {
@@ -336,6 +334,8 @@ func GetSubscriptionAddons(c *gin.Context) {
 			"price":       100,
 			"type":        "WALLET_CREDIT",
 			"value":       100,
+		},
+	}
 	c.JSON(http.StatusOK, gin.H{"addons": addons})
 }
 
@@ -426,10 +426,10 @@ func applyAddonCredits(tx *gorm.DB, userID string, addonID string) error {
 	switch addonID {
 	case "addon_ai_100":
 		return tx.Model(&models.User{}).Where(idQuery, userID).
-			Update("aiCredits", gorm.Expr("\"aiCredits\" + ?", 100)).Error
+			Update("ai_credits", gorm.Expr("ai_credits + ?", 100)).Error
 	case "addon_exams_5":
 		return tx.Model(&models.User{}).Where(idQuery, userID).
-			Update("examCredits", gorm.Expr("\"examCredits\" + ?", 5)).Error
+			Update("exam_credits", gorm.Expr("exam_credits + ?", 5)).Error
 	case "addon_balance_100":
 		return tx.Model(&models.User{}).Where(idQuery, userID).
 			Update("balance", gorm.Expr("balance + ?", 100)).Error

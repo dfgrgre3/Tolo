@@ -1,4 +1,4 @@
-﻿import { clsx, type ClassValue } from "clsx"
+import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -160,17 +160,48 @@ function truncateText(text: string | null | undefined, maxLength: number): strin
 }
 
 /**
- * Generate unique ID with validation
+ * Generate unique ID with validation using cryptographically secure methods if available
  */
-function generateId(): string {
+export function generateId(): string {
   try {
+    if (typeof window !== 'undefined' && window.crypto && 'randomUUID' in window.crypto) {
+      return window.crypto.randomUUID();
+    }
+    
+    if (typeof window !== 'undefined' && window.crypto) {
+      const array = new Uint32Array(2);
+      window.crypto.getRandomValues(array);
+      return array[0].toString(36) + array[1].toString(36);
+    }
+    
+    // Fallback for environments without crypto
     const part1 = Math.random().toString(36).substring(2, 15);
     const part2 = Math.random().toString(36).substring(2, 15);
     return part1 + part2;
   } catch (_error) {
-    // Fallback to timestamp-based ID if Math.random fails
+    // Final fallback to timestamp-based ID
     return `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }
+}
+
+/**
+ * Generate a cryptographically secure numeric PIN
+ */
+export function generateSecurePin(length: number = 6): string {
+  try {
+    if (typeof window !== 'undefined' && window.crypto) {
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      const min = Math.pow(10, length - 1);
+      const range = Math.pow(10, length) - min;
+      return (array[0] % range + min).toString();
+    }
+  } catch (_error) {
+    // Fallback handled below
+  }
+  
+  // Fallback for environments without crypto (less secure but functional)
+  return Math.floor(Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1))).toString();
 }
 
 /**
@@ -199,9 +230,33 @@ export function formatPercentage(value: number | string | null | undefined, deci
 }
 
 /**
+ * Generate a cryptographically secure random float between 0 and 1
+ */
+export function getRandomFloat(): number {
+  if (typeof window !== 'undefined' && window.crypto) {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return array[0] / 0xFFFFFFFF;
+  }
+  return Math.random();
+}
+
+/**
  * Format price with EGP suffix
  */
 export function formatPrice(price: number | string | null | undefined): string {
   const formatted = formatNumber(price);
   return `${formatted} EGP`;
+}
+
+/**
+ * Trims trailing slashes from a string without using regex (avoids ReDoS hotspots).
+ */
+export function trimTrailingSlashes(str: string): string {
+  if (!str) return '';
+  let cleaned = str;
+  while (cleaned.endsWith('/')) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  return cleaned;
 }

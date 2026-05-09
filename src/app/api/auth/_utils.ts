@@ -39,7 +39,9 @@ export function upstreamAuthHeaders(request: NextRequest): Record<string, string
 
 
 function splitCombinedSetCookie(value: string): string[] {
-  return value.split(/,(?=\s*[^;,]+=)/).map((cookie) => cookie.trim()).filter(Boolean);
+  // Fix ReDoS (S5852): Use a more efficient regex that avoids overlapping quantifiers.
+  // The lookahead ensures we only split on commas that are followed by a 'key=' pattern.
+  return value.split(/,(?=\s*[^\s;,][^;,]*=)/).map((cookie) => cookie.trim()).filter(Boolean);
 }
 
 export function forwardSetCookie(source: Response, target: NextResponse): void {
@@ -53,7 +55,8 @@ export function forwardSetCookie(source: Response, target: NextResponse): void {
     // SECURITY/DEV FIX: If we are in development and using HTTP, the browser will reject cookies with the 'Secure' flag.
     // The backend might be sending it because NODE_ENV is set to 'production' there.
     if (process.env.NODE_ENV === 'development') {
-      cookie = cookie.replace(/;?\s*Secure/gi, '');
+      // Fix ReDoS (S5852): Avoid regex for attribute removal.
+      cookie = cookie.split(';').filter(part => part.trim().toLowerCase() !== 'secure').join(';');
     }
     
     target.headers.append('Set-Cookie', cookie);

@@ -16,6 +16,7 @@ import { BlockFormDialog } from './WeeklySchedule/BlockFormDialog';
 import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
 
 import { logger } from '@/lib/logger';
+import { generateId } from '@/lib/utils';
 
 function extractTimeBlocks(planJson?: string): TimeBlock[] {
   if (!planJson) return [];
@@ -224,7 +225,7 @@ export default function WeeklySchedule({
     if (formData.startTime >= formData.endTime) return;
 
     const newBlock: TimeBlock = {
-      id: blockToEdit?.id || `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: blockToEdit?.id || generateId(),
       ...formData,
       isCompleted: blockToEdit?.isCompleted || false,
       completedAt: blockToEdit?.completedAt

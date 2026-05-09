@@ -9,10 +9,10 @@ const (
 	queryID             = "id = ?" // alias used in admin handlers
 	statusQuery         = "status = ?"
 	idInQuery           = "id IN ?"
-	createdAtDescSort   = "created_at desc"
+	createdAtDescSort   = "\"created_at\" desc"
 	queryRole           = "role = ?"
-	createdAtRangeQuery = "created_at >= ? AND created_at < ?"
-	createdAtGte        = "created_at >= ?"
+	createdAtRangeQuery = "\"created_at\" >= ? AND \"created_at\" < ?"
+	createdAtGte        = "\"created_at\" >= ?"
 	dateFormat          = "2006-01-02"
 )
 
