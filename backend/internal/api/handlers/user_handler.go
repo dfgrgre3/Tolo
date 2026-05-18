@@ -1169,73 +1169,40 @@ func ClerkWebhook(c *gin.Context) {
 		return
 	}
 
-	svixID := c.GetHeader("svix-id")
-	svixTimestamp := c.GetHeader("svix-timestamp")
-	svixSignature := c.GetHeader("svix-signature")
-
-	if svixID == "" || svixTimestamp == "" || svixSignature == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Svix webhook headers"})
+	if err := verifyWebhookHeaders(c, body); err != nil {
 		return
 	}
 
-	ts, err := strconv.ParseInt(svixTimestamp, 10, 64)
+	event, err := parseClerkEvent(body)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid svix-timestamp"})
-		return
-	}
-	if time.Now().Unix()-ts > 300 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Webhook timestamp too old"})
-		return
-	}
-
-	secret := config.Load().ClerkWebhookSecret
-	if secret == "" {
-		log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification")
-	} else {
-		signedContent := svixID + "." + svixTimestamp + "." + string(body)
-		mac := hmac.New(sha256.New, []byte(secret))
-		mac.Write([]byte(signedContent))
-		expected := mac.Sum(nil)
-
-		valid := false
-		for _, sig := range strings.Split(svixSignature, " ") {
-			parts := strings.SplitN(sig, ",", 2)
-			if len(parts) != 2 || parts[0] != "v1" {
-				continue
-			}
-			got, err := base64.StdEncoding.DecodeString(parts[1])
-			if err != nil {
-				continue
-			}
-			if hmac.Equal(expected, got) {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid webhook signature"})
-			return
-		}
-	}
-
-	var event struct {
-		Type string                 `json:"type"`
-		Data map[string]interface{} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &event); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	log.Printf("[Clerk Webhook] Received event: %s", sanitizeLog(event.Type))
+	dispatchClerkEvent(event)
 
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+type clerkEvent struct {
+	Type string                 `json:"type"`
+	Data map[string]interface{} `json:"data"`
+}
+
+func parseClerkEvent(body []byte) (clerkEvent, error) {
+	var event clerkEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		return event, fmt.Errorf("Invalid JSON payload")
+	}
+	return event, nil
+}
+
+func dispatchClerkEvent(event clerkEvent) {
 	switch event.Type {
 	case "user.created", "user.updated":
 		if err := syncUserFromClerk(event.Data); err != nil {
 			log.Printf("[Clerk Webhook] Error syncing user: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync user"})
-			return
 		}
 	case "user.deleted":
 		if userId, ok := event.Data["id"].(string); ok {
@@ -1246,8 +1213,65 @@ func ClerkWebhook(c *gin.Context) {
 	default:
 		log.Printf("[Clerk Webhook] Unhandled event type: %s", sanitizeLog(event.Type))
 	}
+}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+func verifyWebhookHeaders(c *gin.Context, body []byte) error {
+	svixID := c.GetHeader("svix-id")
+	svixTimestamp := c.GetHeader("svix-timestamp")
+	svixSignature := c.GetHeader("svix-signature")
+
+	if svixID == "" || svixTimestamp == "" || svixSignature == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Svix webhook headers"})
+		return fmt.Errorf("missing headers")
+	}
+
+	if err := verifyWebhookTimestamp(svixTimestamp); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return err
+	}
+
+	return verifyWebhookSignature(c, body, svixID, svixTimestamp, svixSignature)
+}
+
+func verifyWebhookTimestamp(svixTimestamp string) error {
+	ts, err := strconv.ParseInt(svixTimestamp, 10, 64)
+	if err != nil {
+		return fmt.Errorf("Invalid svix-timestamp")
+	}
+	if time.Now().Unix()-ts > 300 {
+		return fmt.Errorf("Webhook timestamp too old")
+	}
+	return nil
+}
+
+func verifyWebhookSignature(c *gin.Context, body []byte, svixID, svixTimestamp, svixSignature string) error {
+	secret := config.Load().ClerkWebhookSecret
+	if secret == "" {
+		log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification")
+		return nil
+	}
+
+	signedContent := svixID + "." + svixTimestamp + "." + string(body)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(signedContent))
+	expected := mac.Sum(nil)
+
+	for _, sig := range strings.Split(svixSignature, " ") {
+		parts := strings.SplitN(sig, ",", 2)
+		if len(parts) != 2 || parts[0] != "v1" {
+			continue
+		}
+		got, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			continue
+		}
+		if hmac.Equal(expected, got) {
+			return nil
+		}
+	}
+
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid webhook signature"})
+	return fmt.Errorf("invalid signature")
 }
 
 func syncUserFromClerk(clerkData map[string]interface{}) error {

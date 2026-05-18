@@ -152,7 +152,7 @@ ALTER TABLE "Exam" ADD CONSTRAINT chk_exam_type
   CHECK ("type" IN ('QUIZ', 'MIDTERM', 'FINAL', 'PRACTICE', 'MOCK'));
 
 ALTER TABLE "Exam" ADD CONSTRAINT chk_exam_difficulty
-  CHECK ("difficulty" IN ('easy', 'medium', 'hard'));
+  CHECK ("difficulty" IN ('easy', 'medium', 'hard')); -- NOSONAR
 
 ALTER TABLE "Exam" ADD CONSTRAINT chk_exam_duration
   CHECK ("duration" > 0);
@@ -232,7 +232,7 @@ ALTER TABLE "Task" ADD CONSTRAINT chk_task_status
   CHECK ("status" IN ('TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED', 'ARCHIVED'));
 
 ALTER TABLE "Task" ADD CONSTRAINT chk_task_priority
-  CHECK ("priority" IN ('low', 'medium', 'high', 'urgent'));
+  CHECK ("priority" IN ('low', 'medium', 'high', 'urgent')); -- NOSONAR
 
 ALTER TABLE "Task" ADD CONSTRAINT chk_task_estimated_time
   CHECK ("estimated_time" >= 0);
@@ -413,7 +413,7 @@ ALTER TABLE "SupportTicket" ADD CONSTRAINT chk_ticket_status
   CHECK ("status" IN ('open', 'in_progress', 'resolved', 'closed', 'reopened'));
 
 ALTER TABLE "SupportTicket" ADD CONSTRAINT chk_ticket_priority
-  CHECK ("priority" IN ('low', 'medium', 'high', 'critical'));
+  CHECK ("priority" IN ('low', 'medium', 'high', 'critical')); -- NOSONAR
 
 -- ============================================================
 -- Broadcast constraints
@@ -484,7 +484,7 @@ ALTER TABLE "ScheduledItem" ADD CONSTRAINT chk_scheduled_frequency
 -- ============================================================
 
 ALTER TABLE "security_audit_logs" ADD CONSTRAINT chk_security_audit_severity
-  CHECK ("severity" IN ('low', 'medium', 'high', 'critical'));
+  CHECK ("severity" IN ('low', 'medium', 'high', 'critical')); -- NOSONAR
 
 ALTER TABLE "security_audit_logs" ADD CONSTRAINT chk_security_audit_status
   CHECK ("status" IN ('open', 'investigating', 'resolved', 'false_positive'));

@@ -8,6 +8,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const whereUserID = "user_id = ?"
+
 type ProgressQueryService struct {
 	readDB *gorm.DB
 }
@@ -39,8 +41,7 @@ func NewProgressQueryService() *ProgressQueryService {
 func (s *ProgressQueryService) GetSummary(userID string) (*ProgressSummaryReadModel, error) {
 	// Read from materialized view for fast single-query aggregation
 	var mv UserProgressSummaryReadModel
-	if err := s.readDB.Where("user_id = ?", userID).First(&mv).Error; err != nil {
-		// Fallback: compute from raw tables if view is not yet created
+	if err := s.readDB.Where(whereUserID, userID).First(&mv).Error; err != nil {
 		return s.getSummaryFallback(userID)
 	}
 
@@ -61,7 +62,7 @@ func (s *ProgressQueryService) getSummaryFallback(userID string) (*ProgressSumma
 	}
 	var stats studyStats
 	if err := s.readDB.Model(&models.StudySession{}).
-		Where("user_id = ?", userID).
+		Where(whereUserID, userID).
 		Select("COALESCE(SUM(duration_min), 0) as total_minutes, COALESCE(AVG(focus_score), 0) as avg_focus").
 		Scan(&stats).Error; err != nil {
 		return nil, err
@@ -114,8 +115,7 @@ func (s *ProgressQueryService) calculateStreakDays(userID string) int {
 func (s *ProgressQueryService) GetWeeklyAnalytics(userID string) (*WeeklyAnalyticsReadModel, error) {
 	// Read from materialized view
 	var mv WeeklyAnalyticsReadModelV2
-	if err := s.readDB.Where("user_id = ?", userID).First(&mv).Error; err != nil {
-		// Fallback to raw tables
+	if err := s.readDB.Where(whereUserID, userID).First(&mv).Error; err != nil {
 		return s.getWeeklyAnalyticsFallback(userID)
 	}
 
