@@ -145,7 +145,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
 
   // النقطة الأخيرة
   const lastIndex = chartData.length - 1;
-  const lastPoint = chartData[lastIndex];
+  const lastPoint = chartData[lastIndex]!;
   const lastX = scaleX(lastIndex);
   const lastProgress = typeof lastPoint.progress === 'number' && !isNaN(lastPoint.progress) ? lastPoint.progress : fixedMin;
   const lastY = scaleY(lastProgress);

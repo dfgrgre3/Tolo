@@ -1,4 +1,6 @@
-﻿import * as React from "react";
+﻿"use client";
+
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 interface LazyLoadWrapperProps {
@@ -29,7 +31,7 @@ export function LazyLoadWrapper({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry!.isIntersecting) {
           setIsVisible(true);
           setHasLoaded(true);
           observer.disconnect();
@@ -85,7 +87,7 @@ export function VirtualizedList<T>({
     for (let i = startIndex; i <= endIndex; i++) {
       visible.push({
         index: i,
-        item: items[i],
+        item: items[i]!,
         offsetTop: i * itemHeight,
       });
     }
@@ -152,7 +154,7 @@ export function InfiniteScroll({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoading) {
+        if (entry!.isIntersecting && hasMore && !isLoading) {
           onLoadMore();
         }
       },
@@ -214,7 +216,7 @@ export function ImageWithPlaceholder({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry!.isIntersecting) {
           setIsInView(true);
           observer.disconnect();
         }

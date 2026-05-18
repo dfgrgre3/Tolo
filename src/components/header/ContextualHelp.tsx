@@ -79,7 +79,7 @@ export function ContextualHelp() {
     const matchedPath = Object.keys(helpItemsByPath).find((path) =>
       pathname?.startsWith(path)
     );
-    return matchedPath ? helpItemsByPath[matchedPath] : [];
+    return matchedPath ? helpItemsByPath[matchedPath]! : [];
   }, [pathname]);
 
   const getIcon = (type: string) => {

@@ -1,0 +1,122 @@
+version: "3.9"
+
+networks:
+  thanawy-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+  redis-data:
+  uploads-data:
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - thanawy-net
+    environment:
+      POSTGRES_USER: thanawy
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: thanawy_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thanawy -d thanawy_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "2G"
+        reservations:
+          cpus: "0.5"
+          memory: "512M"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - thanawy-net
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "1G"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"
+
+  backend:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_BACKEND:-thanawy/thanawy-backend}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks:
+      - thanawy-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://thanawy:${DB_PASSWORD}@postgres:5432/thanawy_db?pgbouncer=true
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET}
+      NODE_ENV: production
+      GIN_MODE: release
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "1G"
+        reservations:
+          cpus: "0.5"
+          memory: "256M"
+
+  frontend:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_FRONTEND:-thanawy/thanawy-app}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks:
+      - thanawy-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://backend:8082/api
+      NEXT_TELEMETRY_DISABLED: "1"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "2G"
+        reservations:
+          cpus: "0.5"
+          memory: "512M"

@@ -71,8 +71,8 @@ export default function AdvancedLearningHub() {
               lessonIndex={hub.lessonIndex}
               totalLessons={hub.allLessons.length}
               bookmarks={hub.bookmarks}
-              previousLesson={hub.previousLesson}
-              nextLesson={hub.nextLesson}
+              previousLesson={hub.previousLesson ?? null}
+              nextLesson={hub.nextLesson ?? null}
               navigateRelative={hub.navigateRelative}
               handleLessonComplete={hub.handleLessonComplete}
               isTheaterMode={hub.isTheaterMode}

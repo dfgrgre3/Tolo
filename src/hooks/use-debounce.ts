@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 
 
@@ -77,17 +77,18 @@ function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
 callback: T,
 delay: number = 500)
 : (...args: Parameters<T>) => void {
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  return (...args: Parameters<T>) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+  const debouncedFn = useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
 
-    const newTimeoutId = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       callback(...args);
+      timeoutRef.current = null;
     }, delay);
+  }, [callback, delay]);
 
-    setTimeoutId(newTimeoutId);
-  };
+  return debouncedFn;
 }

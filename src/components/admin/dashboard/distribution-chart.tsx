@@ -47,7 +47,7 @@ interface CustomTooltipProps {
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (active && payload && payload.length) {
-    const data = payload[0];
+    const data = payload[0]!;
     return (
       <div className="bg-card border rounded-lg p-3 shadow-lg">
         <p className="font-semibold text-sm">{data.name}</p>

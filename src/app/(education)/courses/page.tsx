@@ -1,308 +1,19 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { m } from "framer-motion";
-import {
-  ArrowLeft,
-  BookOpen,
-  Clock3,
-  GraduationCap,
-  Layers3,
-  PlayCircle,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Star,
-  TrendingUp,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { BookOpen, Search, Sparkles, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { apiClient } from "@/lib/api/api-client";
-
-type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-type SortOption =
-  | "newest"
-  | "popular"
-  | "rated"
-  | "price-low"
-  | "price-high"
-  | "duration-short"
-  | "duration-long";
-
-type CourseSummary = {
-  id: string;
-  title: string;
-  description: string;
-  instructor: string;
-  subject: string;
-  categoryId: string;
-  categoryName: string;
-  level: CourseLevel;
-  duration: number;
-  thumbnailUrl?: string;
-  price: number;
-  rating: number;
-  enrolledCount: number;
-  createdAt: string;
-  tags?: string[];
-  enrolled: boolean;
-  progress?: number;
-  isFeatured: boolean;
-  lessonsCount: number;
-};
-
-type CourseCategory = {
-  id: string;
-  name: string;
-};
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "الأحدث" },
-  { value: "popular", label: "الأكثر طلبًا" },
-  { value: "rated", label: "الأعلى تقييمًا" },
-  { value: "price-low", label: "السعر من الأقل" },
-  { value: "price-high", label: "السعر من الأعلى" },
-  { value: "duration-short", label: "المدة الأقصر" },
-  { value: "duration-long", label: "المدة الأطول" },
-];
-
-const LEVEL_OPTIONS: { value: "ALL" | CourseLevel; label: string }[] = [
-  { value: "ALL", label: "كل المستويات" },
-  { value: "BEGINNER", label: "مبتدئ" },
-  { value: "INTERMEDIATE", label: "متوسط" },
-  { value: "ADVANCED", label: "متقدم" },
-];
-
-const levelMap: Record<CourseLevel, { label: string; className: string }> = {
-  BEGINNER: {
-    label: "مبتدئ",
-    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  },
-  INTERMEDIATE: {
-    label: "متوسط",
-    className: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  },
-  ADVANCED: {
-    label: "متقدم",
-    className: "bg-rose-500/10 text-rose-600 border-rose-500/20",
-  },
-};
-
-function formatPrice(price: number) {
-  return price === 0 ? "مجانية" : `${(price || 0).toLocaleString("ar-EG")} ج.م`;
-}
-
-function formatHours(duration: number) {
-  if (!Number.isFinite(duration) || duration <= 0) {
-    return "ساعة واحدة";
-  }
-
-  if (duration === 1) {
-    return "ساعة واحدة";
-  }
-
-  return `${(duration || 0).toLocaleString("ar-EG")} ساعة`;
-}
-
-function sortCourses(courses: CourseSummary[], sortBy: SortOption) {
-  const sorted = [...courses];
-
-  switch (sortBy) {
-    case "popular":
-      sorted.sort((left, right) => right.enrolledCount - left.enrolledCount);
-      break;
-    case "rated":
-      sorted.sort((left, right) => right.rating - left.rating);
-      break;
-    case "price-low":
-      sorted.sort((left, right) => left.price - right.price);
-      break;
-    case "price-high":
-      sorted.sort((left, right) => right.price - left.price);
-      break;
-    case "duration-short":
-      sorted.sort((left, right) => left.duration - right.duration);
-      break;
-    case "duration-long":
-      sorted.sort((left, right) => right.duration - left.duration);
-      break;
-    case "newest":
-    default:
-      sorted.sort(
-        (left, right) =>
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-      );
-      break;
-  }
-
-  return sorted;
-}
-
-function CourseCard({
-  course,
-  index,
-}: {
-  course: CourseSummary;
-  index: number;
-}) {
-  const levelInfo = levelMap[course.level] ?? levelMap.INTERMEDIATE;
-
-  return (
-    <m.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.04 }}
-      className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_80px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-none"
-    >
-      <div className="relative aspect-[16/10] overflow-hidden">
-        {course.thumbnailUrl ? (
-          <Image
-            src={course.thumbnailUrl}
-            alt={course.title || "صورة الدورة"}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top_right,_rgba(249,115,22,0.16),transparent_42%),linear-gradient(135deg,#f8fafc,#e2e8f0)] dark:bg-[radial-gradient(circle_at_top_right,_rgba(249,115,22,0.24),transparent_42%),linear-gradient(135deg,#0f172a,#020617)]">
-            <div className="rounded-3xl border border-white/20 bg-white/60 p-5 text-orange-500 backdrop-blur dark:bg-white/5">
-              <GraduationCap className="h-10 w-10" />
-            </div>
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-transparent" />
-
-        <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
-            <Badge className="border-0 bg-white/85 px-3 py-1 text-slate-800 backdrop-blur">
-              {course.categoryName}
-            </Badge>
-            {course.isFeatured ? (
-              <Badge className="border-0 bg-orange-500 px-3 py-1 text-white">
-                مميزة
-              </Badge>
-            ) : null}
-          </div>
-
-          <Badge className={cn("border px-3 py-1", levelInfo.className)}>
-            {levelInfo.label}
-          </Badge>
-        </div>
-
-        <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 text-white">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1 rounded-full bg-black/40 px-3 py-1 text-xs font-bold backdrop-blur">
-              <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
-              {(course.rating || 0).toFixed(1)}
-            </div>
-            <h3 className="line-clamp-2 text-xl font-black leading-tight">
-              {course.title}
-            </h3>
-          </div>
-
-          <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur transition-transform group-hover:scale-110 md:flex">
-            <PlayCircle className="h-6 w-6" />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-5 p-6">
-        <p className="line-clamp-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-          {course.description}
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 text-sm text-slate-500 dark:text-slate-400">
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/5">
-            <div className="mb-1 flex items-center gap-2">
-              <Users className="h-4 w-4 text-sky-500" />
-              <span>الطلاب</span>
-            </div>
-            <div className="font-black text-slate-900 dark:text-white">
-              {course.enrolledCount?.toLocaleString("ar-EG") || "٠"}
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/5">
-            <div className="mb-1 flex items-center gap-2">
-              <Layers3 className="h-4 w-4 text-orange-500" />
-              <span>الدروس</span>
-            </div>
-            <div className="font-black text-slate-900 dark:text-white">
-              {course.lessonsCount?.toLocaleString("ar-EG") || "٠"}
-            </div>
-          </div>
-        </div>
-
-        {course.enrolled && typeof course.progress === "number" ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-              <span>تقدّمك في الدورة</span>
-              <span className="text-orange-500">{course.progress}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-l from-orange-500 to-amber-400"
-                style={{ width: `${Math.max(0, Math.min(course.progress, 100))}%` }}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          {(course.tags || []).slice(0, 3).map((tag) => (
-            <span
-              key={`${course.id}-${tag}`}
-              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 pt-5 dark:border-white/10">
-          <div>
-            <p className="text-xs font-bold text-slate-400">السعر</p>
-            <p className="text-2xl font-black text-slate-950 dark:text-white">
-              {formatPrice(course.price)}
-            </p>
-          </div>
-
-          <div className="text-left">
-            <p className="mb-2 text-xs font-bold text-slate-400">المدة</p>
-            <p className="font-bold text-slate-700 dark:text-slate-200">
-              {formatHours(course.duration)}
-            </p>
-          </div>
-        </div>
-
-        <Button
-          asChild
-          className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-orange-500 dark:hover:bg-orange-600"
-        >
-          <Link href={`/courses/${course.id}`} className="flex items-center justify-center gap-2">
-            {course.enrolled ? "متابعة التعلم" : "عرض تفاصيل الدورة"}
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
-    </m.article>
-  );
-}
+import { sortCourses } from "./_components/utils";
+import { CatalogStats } from "./_components/catalog-stats";
+import { SpotlightCourses } from "./_components/spotlight-courses";
+import { CoursesControls } from "./_components/courses-controls";
+import { CoursesList } from "./_components/courses-list";
+import type { CourseLevel, CourseSummary, CourseCategory, SortOption } from "./_components/types";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseSummary[]>([]);
@@ -324,29 +35,24 @@ export default function CoursesPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch courses and categories in parallel
         const [coursesResult, categoriesResult] = await Promise.allSettled([
           apiClient.get<any>("/courses?limit=48"),
           apiClient.get<any>("/categories"),
         ]);
 
-        // Process courses
         let coursesData: any[] = [];
         if (coursesResult.status === "fulfilled") {
           const payload = coursesResult.value;
           const data = payload.data ?? payload;
-          // Backend returns courses in data.courses, data.items, or data.subjects
           coursesData = data.courses ?? data.items ?? data.subjects ?? [];
         } else {
           logger.error("Failed to load courses", coursesResult.reason);
         }
 
-        // Process categories
         let categoriesData: Array<{ id: string; name: string; nameAr?: string }> = [];
         if (categoriesResult.status === "fulfilled") {
           const payload = categoriesResult.value;
           const data = payload.data ?? payload;
-          // Backend returns categories as an array or in data.categories
           if (Array.isArray(data)) {
             categoriesData = data;
           } else if (Array.isArray(data.categories)) {
@@ -356,13 +62,11 @@ export default function CoursesPage() {
           logger.error("Failed to load categories", categoriesResult.reason);
         }
 
-        // Create a map of category IDs to names
         const categoryMap = new Map<string, string>();
         for (const cat of categoriesData) {
           categoryMap.set(cat.id, cat.nameAr || cat.name || "");
         }
 
-        // Map backend course format to frontend CourseSummary type
         const mappedCourses: CourseSummary[] = coursesData.map((course: any) => ({
           id: course.id || "",
           title: course.name || course.nameAr || "",
@@ -379,7 +83,7 @@ export default function CoursesPage() {
           enrolledCount: course.enrolledCount || course._count?.enrollments || 0,
           createdAt: course.createdAt || "",
           tags: course.tags || [],
-          enrolled: false, // TODO: Check enrollment status if user is logged in
+          enrolled: false,
           progress: undefined,
           isFeatured: course.isFeatured || false,
           lessonsCount: course._count?.topics || course.topics?.length || 0,
@@ -393,7 +97,6 @@ export default function CoursesPage() {
           }))
         );
 
-        // Set error only if both requests failed
         if (coursesResult.status === "rejected" && categoriesResult.status === "rejected") {
           throw new Error("تعذر تحميل الدورات التعليمية.");
         }
@@ -585,72 +288,7 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                {
-                  label: "إجمالي الدورات",
-                  value: (catalogStats.totalCourses || 0).toLocaleString("ar-EG"),
-                  icon: BookOpen,
-                  tone: "text-orange-500 bg-orange-500/10",
-                },
-                {
-                  label: "إجمالي الطلاب",
-                  value: (catalogStats.totalStudents || 0).toLocaleString("ar-EG"),
-                  icon: Users,
-                  tone: "text-sky-500 bg-sky-500/10",
-                },
-                {
-                  label: "إجمالي الدروس",
-                  value: (catalogStats.totalLessons || 0).toLocaleString("ar-EG"),
-                  icon: Layers3,
-                  tone: "text-emerald-500 bg-emerald-500/10",
-                },
-                {
-                  label: "متوسط التقييم",
-                  value: (catalogStats.avgRating || 0).toFixed(1),
-                  icon: Star,
-                  tone: "text-amber-500 bg-amber-500/10",
-                },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-[28px] border border-slate-200/70 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/[0.03]"
-                >
-                  <div
-                    className={cn(
-                      "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
-                      stat.tone
-                    )}
-                  >
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                  <p className="text-3xl font-black">{stat.value}</p>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-
-              <div className="rounded-[28px] border border-slate-200/70 bg-slate-950 p-5 text-white sm:col-span-2 dark:border-white/10">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="rounded-2xl bg-white/10 p-3">
-                    <TrendingUp className="h-5 w-5 text-orange-300" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white/80">
-                      دورات مجانية متاحة الآن
-                    </p>
-                    <p className="text-2xl font-black">
-                      {(catalogStats.freeCourses || 0).toLocaleString("ar-EG")}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm leading-7 text-white/70">
-                  ابدأ فورًا بدون انتظار، ثم انتقل إلى الدورات المتقدمة عندما
-                  تكون جاهزًا.
-                </p>
-              </div>
-            </div>
+            <CatalogStats stats={catalogStats} />
           </div>
         </section>
 
@@ -699,127 +337,23 @@ export default function CoursesPage() {
           </div>
         </section>
 
-        {spotlightCourses.length > 0 ? (
-          <section className="mt-10 space-y-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-sky-600 dark:text-sky-300">
-                  ترشيحات جاهزة
-                </p>
-                <h2 className="text-2xl font-black">أفضل ما يمكن البدء به الآن</h2>
-              </div>
-            </div>
+        <SpotlightCourses courses={spotlightCourses} />
 
-            <div className="grid gap-5 lg:grid-cols-3">
-              {spotlightCourses.map((course, index) => (
-                <m.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-slate-950/75 dark:shadow-none"
-                >
-                  <div className="absolute left-0 top-0 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
-                  <div className="relative space-y-4">
-                    <Badge className="rounded-full border-0 bg-slate-950 px-3 py-1 text-white dark:bg-white dark:text-slate-950">
-                      {index === 0 ? "الأكثر جذبًا" : index === 1 ? "الأعلى تقييمًا" : "مقترحة لك"}
-                    </Badge>
-                    <h3 className="text-2xl font-black">{course.title}</h3>
-                    <p className="line-clamp-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                      {course.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-sky-500" />
-                        {course.enrolledCount?.toLocaleString("ar-EG") || "٠"} طالب
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Clock3 className="h-4 w-4 text-orange-500" />
-                        {formatHours(course.duration)}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Star className="h-4 w-4 fill-current text-amber-400" />
-                        {(course.rating || 0).toFixed(1)}
-                      </span>
-                    </div>
-
-                    <Button
-                      asChild
-                      className="h-11 rounded-2xl bg-orange-500 px-5 text-white hover:bg-orange-600"
-                    >
-                      <Link href={`/courses/${course.id}`} className="flex items-center gap-2">
-                        افتح صفحة الدورة
-                        <ArrowLeft className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </m.div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mt-10 rounded-[32px] border border-slate-200/80 bg-white/85 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-950/75">
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto_auto]">
-            <div className="rounded-[24px] bg-slate-50 p-4 dark:bg-white/5">
-              <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                <SlidersHorizontal className="h-4 w-4" />
-                إعدادات العرض
-              </div>
-              <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
-                خصّص النتائج حسب المستوى والسعر والشهرة للوصول إلى الدورة الأنسب
-                أسرع.
-              </p>
-            </div>
-
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-              <SelectTrigger className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
-                <SelectValue placeholder="الترتيب" />
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedLevel}
-              onValueChange={(value) => setSelectedLevel(value as "ALL" | CourseLevel)}
-            >
-              <SelectTrigger className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
-                <SelectValue placeholder="المستوى" />
-              </SelectTrigger>
-              <SelectContent>
-                {LEVEL_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!hasActiveFilters}
-              className="h-14 rounded-2xl border-slate-200 px-6 dark:border-white/10"
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedCategory("ALL");
-                setSelectedLevel("ALL");
-                setSortBy("newest");
-                setFeaturedOnly(false);
-                setEnrolledOnly(false);
-              }}
-            >
-              إعادة الضبط
-            </Button>
-          </div>
-        </section>
+        <CoursesControls
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          selectedLevel={selectedLevel}
+          onLevelChange={setSelectedLevel}
+          hasActiveFilters={hasActiveFilters}
+          onReset={() => {
+            setSearchQuery("");
+            setSelectedCategory("ALL");
+            setSelectedLevel("ALL");
+            setSortBy("newest");
+            setFeaturedOnly(false);
+            setEnrolledOnly(false);
+          }}
+        />
 
         <section className="mt-10">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -835,53 +369,11 @@ export default function CoursesPage() {
             </div>
           </div>
 
-          {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="overflow-hidden rounded-[30px] border border-slate-200/80 bg-white dark:border-white/10 dark:bg-slate-950/70"
-                >
-                  <div className="aspect-[16/10] animate-pulse bg-slate-200 dark:bg-white/5" />
-                  <div className="space-y-4 p-6">
-                    <div className="h-6 w-2/3 animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
-                    <div className="h-4 w-full animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
-                    <div className="h-4 w-5/6 animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
-                      <div className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-[32px] border border-rose-200 bg-rose-50 p-8 text-center dark:border-rose-500/20 dark:bg-rose-500/10">
-              <h3 className="text-xl font-black text-rose-700 dark:text-rose-300">
-                تعذر تحميل الدورات
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-rose-600 dark:text-rose-200/80">
-                {error}
-              </p>
-            </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="rounded-[32px] border-2 border-dashed border-slate-300 bg-white/70 p-10 text-center dark:border-white/10 dark:bg-slate-950/60">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-300">
-                <Search className="h-6 w-6" />
-              </div>
-              <h3 className="text-2xl font-black">لا توجد نتائج مطابقة الآن</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500 dark:text-slate-400">
-                جرّب تعديل كلمات البحث أو إعادة ضبط الفلاتر، أو افتح جميع المواد
-                لرؤية مزيد من الدورات.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {filteredCourses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
-              ))}
-            </div>
-          )}
+          <CoursesList
+            loading={loading}
+            error={error}
+            filteredCourses={filteredCourses}
+          />
         </section>
       </main>
     </div>

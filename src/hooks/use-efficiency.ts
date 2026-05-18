@@ -30,8 +30,8 @@ export function EfficiencyProvider({ children }: { children: React.ReactNode }) 
       // 2. Check hardware-based automatic detection
       let shouldEnable = false;
       
-      // Low RAM (less than 4GB)
-      if ('deviceMemory' in navigator && (navigator as any).deviceMemory < 4) {
+      const nav = navigator as Navigator & { deviceMemory?: number };
+      if (nav.deviceMemory !== undefined && nav.deviceMemory < 4) {
         shouldEnable = true;
       }
       
@@ -78,12 +78,7 @@ export function EfficiencyProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   return React.createElement(EfficiencyContext.Provider, {
-    value: { 
-      isEfficiencyMode, 
-      setEfficiencyMode, 
-      toggleEfficiencyMode,
-      isAutoDetected
-    }
+    value: { isEfficiencyMode, setEfficiencyMode, toggleEfficiencyMode, isAutoDetected }
   }, children);
 }
 

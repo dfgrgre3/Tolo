@@ -47,20 +47,20 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
 
     // Skip header line
     for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
+      if (!lines[i]!.trim()) continue;
       
-      const columns = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
+      const columns = lines[i]!.split(",").map(c => c.trim().replace(/^"|"$/g, ''));
       if (columns.length < 6) continue;
 
       const [question, o1, o2, o3, o4, correctStr, pointsStr, explanation] = columns;
-      const options = [o1, o2, o3, o4].filter(o => o);
+      const options = [o1, o2, o3, o4].filter((o): o is string => !!o);
       const correctIdx = parseInt(correctStr || "0");
       const points = parseInt(pointsStr || "1");
 
       results.push({
-        question,
+        question: question!,
         options,
-        correctAnswer: options[correctIdx] || options[0],
+        correctAnswer: options[correctIdx] ?? options[0]!,
         explanation: explanation || "",
         points: isNaN(points) ? 1 : points,
       });

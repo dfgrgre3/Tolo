@@ -50,7 +50,7 @@ export function CourseEditor({
   }, []);
 
   const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema),
+    resolver: zodResolver(courseSchema) as any,
     defaultValues: {
       name: initialData?.name || "",
       nameAr: initialData?.nameAr || "",
@@ -154,14 +154,14 @@ export function CourseEditor({
   const nextTab = (current: string) => {
     const index = TABS.indexOf(current as any);
     if (index < TABS.length - 1) {
-      setActiveTab(TABS[index + 1]);
+      setActiveTab(TABS[index + 1]!);
     }
   };
 
   const prevTab = (current: string) => {
     const index = TABS.indexOf(current as any);
     if (index > 0) {
-      setActiveTab(TABS[index - 1]);
+      setActiveTab(TABS[index - 1]!);
     }
   };
 

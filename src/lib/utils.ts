@@ -171,7 +171,7 @@ export function generateId(): string {
     if (typeof window !== 'undefined' && window.crypto) {
       const array = new Uint32Array(2);
       window.crypto.getRandomValues(array);
-      return array[0].toString(36) + array[1].toString(36);
+      return array[0]!.toString(36) + array[1]!.toString(36);
     }
     
     // Fallback for environments without crypto
@@ -194,7 +194,7 @@ export function generateSecurePin(length: number = 6): string {
       window.crypto.getRandomValues(array);
       const min = Math.pow(10, length - 1);
       const range = Math.pow(10, length) - min;
-      return (array[0] % range + min).toString();
+      return (array[0]! % range + min).toString();
     }
   } catch (_error) {
     // Fallback handled below
@@ -236,7 +236,7 @@ export function getRandomFloat(): number {
   if (typeof window !== 'undefined' && window.crypto) {
     const array = new Uint32Array(1);
     window.crypto.getRandomValues(array);
-    return array[0] / 0xFFFFFFFF;
+    return array[0]! / 0xFFFFFFFF;
   }
   return Math.random();
 }

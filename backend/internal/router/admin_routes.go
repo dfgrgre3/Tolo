@@ -111,6 +111,7 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	// Admin AI
 	admin.GET("/ai", middleware.PermissionRequired(models.PermAiManage), handlers.AdminAIGet)
 	admin.POST("/ai", middleware.PermissionRequired(models.PermAiManage), handlers.AdminAIPost)
+	admin.POST("/system/reset-circuit-breakers", middleware.PermissionRequired(models.PermAdminBypass), handlers.AdminResetCircuitBreaker)
 
 	// Admin Events
 	admin.GET(pathEvents, middleware.PermissionRequired(models.PermEventsView), handlers.AdminGetEvents)

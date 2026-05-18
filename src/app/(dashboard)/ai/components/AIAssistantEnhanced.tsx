@@ -93,7 +93,7 @@ export default function AIAssistantEnhanced({
       recognition.interimResults = false;
 
        recognition.onresult = (event: SpeechRecognitionEvent) => {
-         const transcript = event.results[0][0].transcript;
+         const transcript = event.results[0]![0]!.transcript;
          setInput(transcript);
          setIsListening(false);
        };

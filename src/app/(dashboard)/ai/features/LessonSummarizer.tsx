@@ -116,7 +116,7 @@ export default function LessonSummarizer() {
                   <h4 className="text-xl font-bold text-white">رؤية المخطط الذهني</h4>
                   <p className="text-gray-400 text-sm max-w-md">يمكنك استخدام الكود المولد أدناه في Mermaid Live Editor لرؤية الرسم التوضيحي، أو سيتم عرضه هنا قريباً.</p>
                   <pre className="mt-6 p-4 bg-black/40 rounded-xl text-xs text-blue-300 text-left overflow-x-auto max-w-full">
-                    {summary.includes('```mermaid') ? summary.split('```mermaid')[1].split('```')[0] : 'لا يوجد مخطط حالياً'}
+                    {summary.includes('```mermaid') ? summary.split('```mermaid')[1]!.split('```')[0] : 'لا يوجد مخطط حالياً'}
                   </pre>
                 </div>
               </Card>

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"thanawy-backend/internal/config"
 	"time"
 
@@ -81,6 +82,9 @@ func (s *TokenService) GenerateAccessToken(userId, role string) (string, error) 
 func (s *TokenService) ValidateToken(tokenString string) (*TokenClaims, error) {
 	cfg := config.Load()
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(cfg.JWTSecret), nil
 	})
 

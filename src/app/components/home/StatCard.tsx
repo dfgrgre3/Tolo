@@ -15,7 +15,7 @@ const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps) => {
     const stringValue = String(value);
     const match = stringValue.match(/(\d+)(.*)/);
     if (match) {
-      return { endValue: parseInt(match[1], 10), suffix: match[2] };
+      return { endValue: parseInt(match[1]!, 10), suffix: match[2] };
     }
     return { endValue: 0, suffix: "" };
   }, [value]);

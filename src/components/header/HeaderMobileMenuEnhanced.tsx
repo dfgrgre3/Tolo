@@ -146,7 +146,7 @@ export function HeaderMobileMenuEnhanced({
     (e: React.FormEvent) => {
       e.preventDefault();
       if (searchResults.length === 0) return;
-      router.push(searchResults[0].href);
+      router.push(searchResults[0]!.href);
       closeMobileMenu();
     },
     [closeMobileMenu, router, searchResults]
@@ -228,7 +228,7 @@ export function HeaderMobileMenuEnhanced({
                     <div className="flex items-center gap-2.5">
                       <Avatar className="h-10 w-10 border-2 border-background shadow-md">
                         <AvatarImage src={user.avatar || undefined} />
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">{user.name?.[0] || user.email[0].toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">{user.name?.[0] || user.email![0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="font-bold text-sm truncate text-foreground">{user.name || user.username}</span>

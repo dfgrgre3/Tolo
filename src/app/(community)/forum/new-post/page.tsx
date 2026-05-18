@@ -33,7 +33,7 @@ export default function NewPostPage() {
       const res = await fetch("/api/forum/categories");
       const data = await res.json() as ForumCategory[];
       setCategories(data);
-      if (data.length > 0) {
+      if (data.length > 0 && data[0]) {
         setCategoryId(data[0].id);
       }
     };

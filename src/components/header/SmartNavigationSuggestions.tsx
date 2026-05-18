@@ -145,7 +145,7 @@ export function SmartNavigationSuggestions() {
     };
 
     suggestions.forEach((suggestion) => {
-      groups[suggestion.type].push(suggestion);
+      groups[suggestion.type]!.push(suggestion);
     });
 
     return groups;
@@ -174,13 +174,13 @@ export function SmartNavigationSuggestions() {
 				<DropdownMenuSeparator />
 
 				<div className="max-h-[400px] overflow-y-auto p-2 space-y-4">
-					{groupedSuggestions.recommended.length > 0 &&
+					{groupedSuggestions.recommended!.length > 0 &&
           <div>
 							<div className="text-xs font-semibold text-muted-foreground px-2 mb-2">
 								موصى به لك
 							</div>
 							<div className="space-y-1">
-								{groupedSuggestions.recommended.map((suggestion) =>
+								{groupedSuggestions.recommended!.map((suggestion) =>
               <DropdownMenuItem
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}
@@ -202,11 +202,11 @@ export function SmartNavigationSuggestions() {
 						</div>
           }
 
-					{groupedSuggestions.recent.length > 0 &&
+					{groupedSuggestions.recent!.length > 0 &&
           <div>
 							<div className="text-xs font-semibold text-muted-foreground px-2 mb-2">مستخدم مؤخراً</div>
 							<div className="space-y-1">
-								{groupedSuggestions.recent.map((suggestion) =>
+								{groupedSuggestions.recent!.map((suggestion) =>
               <DropdownMenuItem
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}
@@ -225,11 +225,11 @@ export function SmartNavigationSuggestions() {
 						</div>
           }
 
-					{groupedSuggestions.popular.length > 0 &&
+					{groupedSuggestions.popular!.length > 0 &&
           <div>
 							<div className="text-xs font-semibold text-muted-foreground px-2 mb-2">شائع</div>
 							<div className="space-y-1">
-								{groupedSuggestions.popular.map((suggestion) =>
+								{groupedSuggestions.popular!.map((suggestion) =>
               <DropdownMenuItem
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}

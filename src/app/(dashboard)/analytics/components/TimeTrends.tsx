@@ -61,9 +61,9 @@ function calculateTrendData(weekly: WeeklyData | null) {
     Math.abs((secondAvg - firstAvg) / firstAvg * 100) : 0;
 
   const peakDay = days.length > 0 ? 
-    days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0]) : null;
+    days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0]!) : null;
   const lowDay = days.length > 0 ? 
-    days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0]) : null;
+    days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0]!) : null;
 
   return {
     days,

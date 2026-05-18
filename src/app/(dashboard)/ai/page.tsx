@@ -4,18 +4,14 @@ import React, { useState } from 'react';
 import {
   Brain,
   Bot,
-
+  MessageSquare,
   FileText,
   Search,
   Lightbulb,
-
   Zap,
   Sparkles,
   Shield,
-
   Compass,
-
-
   Scroll } from
 'lucide-react';
 
@@ -71,7 +67,7 @@ export default function AILearningPage() {
               <span>محراب الحكمة اللامتناهية</span>
            </div>
            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-              استشر <span className={STYLES.neonText}>العراف الذكي</span> âœ¨
+              استشر <span className={STYLES.neonText}>العراف الذكي</span> ✨
            </h1>
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto">
               قوة الذكاء الاصطناعي بين يديك. احصل على إجابات مذهلة، امتحانات مخصصة، وتوجيهات أسطورية لترقية مستواك العسكري في عالم المعرفة.
@@ -88,37 +84,82 @@ export default function AILearningPage() {
            </div>
         </m.div>
 
-        {/* --- Glyph Tabs: The Modes of Magic --- */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-12">
-           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto bg-white/5 border border-white/10 rounded-[2.5rem] p-3 gap-2 backdrop-blur-2xl">
-              {[
-            { id: 'assistant', label: 'المساعد الذكي', icon: Bot, desc: 'حوار مباشر' },
-            { id: 'exam', label: 'منشئ الامتحانات', icon: FileText, desc: 'اختبارات قتالية' },
-            { id: 'planner', label: 'مخطط المذاكرة', icon: Compass, desc: 'جدول ذكي' },
-            { id: 'summarizer', label: 'الملخص الذكي', icon: Scroll, desc: 'تبسيط الدروس' },
-            { id: 'grader', label: 'مصحح التعبير', icon: Sparkles, desc: 'تقييم لغوي' },
-            { id: 'teachers', label: 'البحث عن معلمين', icon: Search, desc: 'رفقاء الرحلة' },
-            { id: 'tips', label: 'نصائح النمو', icon: Lightbulb, desc: 'استراتيجيات' }].
-            map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className={`flex items-center gap-4 px-6 py-4 rounded-3xl transition-all duration-500 ${isActive ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]' : 'bg-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
-                  
-                       <div className={`p-2 rounded-xl ${isActive ? 'bg-white/20' : 'bg-white/5'}`}>
-                          <Icon className="w-5 h-5" />
-                       </div>
-                       <div className="text-right hidden sm:block">
-                          <p className="text-sm font-black leading-none">{tab.label}</p>
-                          <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${isActive ? 'text-white/70' : 'text-gray-600'}`}>{tab.desc}</p>
-                       </div>
-                    </TabsTrigger>);
+        {/* --- Quick Action Cards --- */}
+        <m.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { icon: '📐', label: 'اشرح نظرية', desc: 'فيثاغورس والجبر', color: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/30' },
+            { icon: '🔬', label: 'قوانين الفيزياء', desc: 'نيوتن والكهرباء', color: 'from-purple-500/20 to-purple-600/10', border: 'border-purple-500/30' },
+            { icon: '🧪', label: 'تفاعلات كيميائية', desc: 'المعادلات والروابط', color: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-500/30' },
+            { icon: '📝', label: 'تعبير كتابي', desc: 'كتابة وتصحيح', color: 'from-orange-500/20 to-orange-600/10', border: 'border-orange-500/30' },
+          ].map((card, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveTab('assistant')}
+              className={`group relative overflow-hidden rounded-3xl border ${card.border} bg-gradient-to-br ${card.color} p-6 text-right transition-all hover:scale-[1.02] hover:shadow-lg`}
+            >
+              <div className="text-3xl mb-3">{card.icon}</div>
+              <h3 className="text-sm font-black text-white mb-1">{card.label}</h3>
+              <p className="text-xs text-gray-400">{card.desc}</p>
+              <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ))}
+        </m.div>
 
-            })}
-           </TabsList>
+        {/* --- Usage Stats --- */}
+        <m.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { icon: MessageSquare, label: 'محادثات اليوم', value: '12', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+            { icon: FileText, label: 'امتحانات تم إنشاؤها', value: '5', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+            { icon: Sparkles, label: 'دروس تم تلخيصها', value: '8', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+            { icon: Zap, label: 'نقاط الخبرة (XP)', value: '450', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className={`rounded-2xl border ${stat.border} ${stat.bg} p-5 text-center transition-all hover:scale-[1.02]`}
+            >
+              <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
+              <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+              <div className="text-xs text-gray-400 mt-1 font-bold">{stat.label}</div>
+            </div>
+          ))}
+        </m.div>
+
+         {/* --- Glyph Tabs: The Modes of Magic --- */}
+         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto bg-white/5 border border-white/10 rounded-[2rem] p-2 gap-1.5 backdrop-blur-2xl">
+               {[
+             { id: 'assistant', label: 'المساعد', icon: Bot, desc: 'حوار مباشر' },
+             { id: 'exam', label: 'الامتحانات', icon: FileText, desc: 'اختبارات' },
+             { id: 'planner', label: 'المخطط', icon: Compass, desc: 'جدول ذكي' },
+             { id: 'summarizer', label: 'الملخص', icon: Scroll, desc: 'تبسيط' },
+             { id: 'grader', label: 'المصحح', icon: Sparkles, desc: 'تقييم' },
+             { id: 'teachers', label: 'المعلمين', icon: Search, desc: 'بحث' },
+             { id: 'tips', label: 'النصائح', icon: Lightbulb, desc: 'استراتيجيات' }].
+             map((tab) => {
+               const Icon = tab.icon;
+               const isActive = activeTab === tab.id;
+               return (
+                 <TabsTrigger
+                   key={tab.id}
+                   value={tab.id}
+                   className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-2xl transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                   
+                        <Icon className="w-5 h-5" />
+                        <div className="text-center">
+                           <p className="text-xs font-bold leading-none">{tab.label}</p>
+                        </div>
+                     </TabsTrigger>);
+
+             })}
+            </TabsList>
 
            <AnimatePresence mode="wait">
               <m.div

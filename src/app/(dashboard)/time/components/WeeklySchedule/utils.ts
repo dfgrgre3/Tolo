@@ -5,7 +5,7 @@ import { DAYS_OF_WEEK } from './constants';
 export const parseTime = (timeStr: string): Date => {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
+  date.setHours(hours!, minutes!, 0, 0);
   return date;
 };
 
@@ -21,7 +21,7 @@ export const getBlockDuration = (startTime: string, endTime: string): number => 
 
 export const addMinutesToTime = (time: string, minutes: number): string => {
   const [hours, mins] = time.split(':').map(Number);
-  const totalMinutes = hours * 60 + mins + minutes;
+  const totalMinutes = hours! * 60 + mins! + minutes;
   const newHours = Math.floor(totalMinutes / 60) % 24;
   const newMins = totalMinutes % 60;
   return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
@@ -82,7 +82,7 @@ export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): 
     breakHours: Math.round(breakHours * 10) / 10,
     completedBlocks,
     upcomingBlocks,
-    mostBusyDay: DAYS_OF_WEEK[mostBusyDay.day],
+    mostBusyDay: DAYS_OF_WEEK[mostBusyDay.day]!,
     averageBlockDuration: Math.round(averageBlockDuration)
   };
 };

@@ -40,48 +40,55 @@ export function HydrationFix() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Run cleanup once on mount using idle callback to avoid blocking hydration
     let idleHandle: number;
-    const timer = setTimeout(() => {
+    let observer: MutationObserver | null = null;
+
+    const runCleanup = () => {
       if ('requestIdleCallback' in window) {
-        idleHandle = (window as any).requestIdleCallback(cleanElements);
+        idleHandle = window.requestIdleCallback(cleanElements);
       } else {
         cleanElements();
       }
-    }, 500);
+    };
 
-    // Use a much less aggressive observer that only watches for root attribute changes
-    // instead of the entire subtree. Subtree observation is a major performance killer.
-    const observer = new MutationObserver((mutations) => {
-      let shouldClean = false;
+    const timer = setTimeout(runCleanup, 500);
+
+    observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'attributes') {
-          shouldClean = true;
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(cleanElements);
+          } else {
+            cleanElements();
+          }
           break;
-        }
-      }
-      
-      if (shouldClean) {
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(cleanElements);
-        } else {
-          cleanElements();
         }
       }
     });
 
     observer.observe(document.documentElement, {
       attributes: true,
-      childList: false, // Don't watch every new node
-      subtree: false    // Don't watch the entire tree
+      childList: false,
+      subtree: false,
     });
+
+    // Self-destruct observer after 5s — by then all extension attributes have been applied
+    const observerTimeout = setTimeout(() => {
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+    }, 5000);
 
     return () => {
       clearTimeout(timer);
+      clearTimeout(observerTimeout);
       if (idleHandle && 'cancelIdleCallback' in window) {
-        (window as any).cancelIdleCallback(idleHandle);
+        window.cancelIdleCallback(idleHandle);
       }
-      observer.disconnect();
+      if (observer) {
+        observer.disconnect();
+      }
     };
   }, [cleanElements]);
 

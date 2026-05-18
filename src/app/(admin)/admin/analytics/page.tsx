@@ -62,6 +62,46 @@ interface AnalyticsData {
   };
 }
 
+interface JourneyStep {
+  id: string;
+  journeyId: string;
+  page: string;
+  action: string;
+  timestamp: string;
+  duration: number;
+}
+
+interface UserJourney {
+  id: string;
+  userId: string;
+  sessionId: string;
+  startedAt: string;
+  endedAt: string;
+  completed: boolean;
+  conversionGoal: string;
+  steps: JourneyStep[];
+}
+
+interface JourneysData {
+  data: {
+    journeys: UserJourney[];
+    count: number;
+  };
+}
+
+interface ActivityMetricsData {
+  data: {
+    dailyActiveUsers: number;
+    weeklyActiveUsers: number;
+    monthlyActiveUsers: number;
+    averageSessionDuration: number;
+    bounceRate: number;
+    topPages: { page: string; views: number; uniqueVisitors: number; avgDuration: number }[];
+    userFlows: { from: string; to: string; count: number }[];
+    conversionRates: Record<string, number>;
+  };
+}
+
 export default function AdminAnalyticsPage() {
   const [period, setPeriod] = React.useState("month");
   const [isEditMode, setIsEditMode] = React.useState(false);
@@ -84,7 +124,27 @@ export default function AdminAnalyticsPage() {
       if (!response.ok) throw new Error("Failed to fetch revenue data");
       return response.json();
     },
-    enabled: !!analyticsData, // Only fetch after analytics loads
+    enabled: !!analyticsData,
+  });
+
+  const { data: metricsData } = useQuery<ActivityMetricsData>({
+    queryKey: ['admin', 'activity-metrics'],
+    queryFn: async () => {
+      const response = await adminFetch(apiRoutes.admin.activityMetrics);
+      if (!response.ok) throw new Error("Failed to fetch activity metrics");
+      return response.json();
+    },
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  const { data: journeysData } = useQuery<JourneysData>({
+    queryKey: ['admin', 'journeys'],
+    queryFn: async () => {
+      const response = await adminFetch(apiRoutes.admin.journeys);
+      if (!response.ok) throw new Error("Failed to fetch journeys");
+      return response.json();
+    },
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const data = analyticsData;
@@ -104,6 +164,95 @@ export default function AdminAnalyticsPage() {
   const roleLabels: Record<string, string> = {
     ADMIN: "مدير", TEACHER: "معلم", STUDENT: "طالب", MODERATOR: "مشرف"
   };
+
+  const funnelData = React.useMemo(() => {
+    const journeys = journeysData?.data?.journeys || [];
+    const totalUsers = data?.users?.total || 0;
+
+    if (journeys.length === 0) {
+      return [
+        { step: 1, name: "زيارة الصفحة الرئيسية", users: totalUsers, percent: "100%", drop: null },
+        { step: 2, name: "تصفح صفحة المواد", users: 0, percent: "0%", drop: "0%" },
+        { step: 3, name: "الوصول لصفحة الدفع", users: 0, percent: "0%", drop: "0%" },
+        { step: 4, name: "إتمام الشراء", users: 0, percent: "0%", drop: "0%" },
+      ];
+    }
+
+    const totalJourneys = journeys.length;
+    const completedJourneys = journeys.filter(j => j.completed).length;
+    const withPaymentStep = journeys.filter(j =>
+      j.steps.some(s => s.page.includes('checkout') || s.page.includes('payment') || s.page.includes('billing'))
+    ).length;
+    const withSubjectBrowse = journeys.filter(j =>
+      j.steps.some(s => s.page.includes('subject') || s.page.includes('course') || s.page.includes('materials'))
+    ).length;
+
+    const browsePercent = totalJourneys > 0 ? Math.round((withSubjectBrowse / totalJourneys) * 100) : 0;
+    const paymentPercent = totalJourneys > 0 ? Math.round((withPaymentStep / totalJourneys) * 100) : 0;
+    const conversionPercent = totalJourneys > 0 ? Math.round((completedJourneys / totalJourneys) * 100) : 0;
+
+    const browseDrop = browsePercent > 0 ? `-${100 - browsePercent}%` : "0%";
+    const paymentDrop = browsePercent > 0 && paymentPercent > 0 ? `-${Math.round(100 - (paymentPercent / browsePercent) * 100)}%` : "0%";
+    const conversionDrop = paymentPercent > 0 && conversionPercent > 0 ? `-${Math.round(100 - (conversionPercent / paymentPercent) * 100)}%` : "0%";
+
+    return [
+      { step: 1, name: "زيارة الصفحة الرئيسية", users: totalJourneys, percent: "100%", drop: null },
+      { step: 2, name: "تصفح صفحة المواد", users: withSubjectBrowse, percent: `${browsePercent}%`, drop: browseDrop },
+      { step: 3, name: "الوصول لصفحة الدفع", users: withPaymentStep, percent: `${paymentPercent}%`, drop: paymentDrop, danger: paymentPercent < 20 && paymentPercent > 0 },
+      { step: 4, name: "إتمام الشراء", users: completedJourneys, percent: `${conversionPercent}%`, drop: conversionDrop },
+    ];
+  }, [journeysData, data?.users?.total]);
+
+  const problematicPages = React.useMemo(() => {
+    const topPages = metricsData?.data?.topPages || [];
+    const bounceRate = metricsData?.data?.bounceRate || 0;
+
+    if (topPages.length === 0) {
+      return [
+        { path: "/checkout/payment", avgTime: "0:00", bounce: "0%", issue: "لا توجد بيانات بعد" },
+      ];
+    }
+
+    const sortedByBounce = [...topPages]
+      .sort((a, b) => b.avgDuration - a.avgDuration)
+      .slice(0, 5);
+
+    return sortedByBounce.map(p => ({
+      path: p.page,
+      avgTime: `${Math.floor(p.avgDuration / 60)}:${String(Math.floor(p.avgDuration % 60)).padStart(2, '0')}`,
+      bounce: `${bounceRate > 0 ? Math.round(bounceRate) : 0}%`,
+      issue: p.avgDuration > 180 ? "وقت طويل في الصفحة" : p.views < 10 ? "زيارات قليلة" : "معدل ارتداد عالي",
+    }));
+  }, [metricsData]);
+
+  const happyPaths = React.useMemo(() => {
+    const userFlows = metricsData?.data?.userFlows || [];
+    const journeys = journeysData?.data?.journeys || [];
+
+    if (userFlows.length === 0 && journeys.length === 0) {
+      return [];
+    }
+
+    const completedJourneys = journeys.filter(j => j.completed).slice(0, 3);
+
+    return completedJourneys.map(journey => {
+      const pages = journey.steps.map(s => s.page.split('?')[0]).filter((v, i, a) => a.indexOf(v) === i);
+      return {
+        label: journey.conversionGoal || "مسار مكتمل",
+        pages: pages.slice(0, 5),
+      };
+    });
+  }, [metricsData, journeysData]);
+
+  const retentionRate = React.useMemo(() => {
+    const dau = metricsData?.data?.dailyActiveUsers || 0;
+    const mau = metricsData?.data?.monthlyActiveUsers || 1;
+    return mau > 0 ? Math.round((dau / mau) * 100) : 0;
+  }, [metricsData]);
+
+  const dailyEngagement = React.useMemo(() => {
+    return metricsData?.data?.dailyActiveUsers || 0;
+  }, [metricsData]);
 
   if (loading && !data) return <AnalyticsSkeleton />;
 
@@ -223,14 +372,14 @@ export default function AdminAnalyticsPage() {
                       </div>
                     )}
 
-                    {widgetBlock === "users" && (
-                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                         <AdminStatsCard title="إجمالي المستخدمين" value={(data?.users?.total ?? 0).toLocaleString()} description={`${data?.users?.new ?? 0} مستخدم جديد`} icon={Users} color="blue" />
-                         <AdminStatsCard title="التسجيلات النشطة" value={(data?.users?.active ?? 0).toLocaleString()} description="هذا الأسبوع" icon={Activity} color="green" />
-                         <AdminStatsCard title="معدل الاحتفاظ" value="84%" description="زيادة 2% عن الشهر الماضي" icon={Target} color="purple" trend={{ value: 2, isPositive: true }} />
-                         <AdminStatsCard title="التفاعل اليومي" value="12,500" description="جلسة دراسية" icon={Zap} color="yellow" />
-                       </div>
-                    )}
+                     {widgetBlock === "users" && (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                          <AdminStatsCard title="إجمالي المستخدمين" value={(data?.users?.total ?? 0).toLocaleString()} description={`${data?.users?.new ?? 0} مستخدم جديد`} icon={Users} color="blue" />
+                          <AdminStatsCard title="التسجيلات النشطة" value={(data?.users?.active ?? 0).toLocaleString()} description="هذا الأسبوع" icon={Activity} color="green" />
+                          <AdminStatsCard title="معدل الاحتفاظ" value={`${retentionRate}%`} description="نسبة المستخدمين النشطين" icon={Target} color="purple" trend={{ value: retentionRate > 50 ? 2 : -1, isPositive: retentionRate > 50 }} />
+                          <AdminStatsCard title="التفاعل اليومي" value={dailyEngagement.toLocaleString()} description="جلسة دراسية اليوم" icon={Zap} color="yellow" />
+                        </div>
+                     )}
 
                     {widgetBlock === "activity" && (
                        <div className="grid gap-4 lg:grid-cols-2 mt-4">
@@ -364,7 +513,7 @@ export default function AdminAnalyticsPage() {
                          <div className="w-full h-3 bg-secondary rounded-full overflow-hidden flex">
                             <div 
                               className="h-full bg-primary rounded-full relative" 
-                              style={{ width: `${revenueData.topPlans.length > 0 ? (item.count / revenueData.topPlans[0].count) * 100 : 0}%` }}
+                              style={{ width: `${revenueData.topPlans.length > 0 ? (item.count / revenueData.topPlans[0]!.count) * 100 : 0}%` }}
                             ></div>
                          </div>
                       </div>
@@ -470,89 +619,79 @@ export default function AdminAnalyticsPage() {
                  </div>
               </div>
 
-              {/* Advanced Funnel UI */}
-              <div className="mt-12 mb-8 relative px-4 md:px-12">
-                 <div className="absolute top-1/2 left-0 w-full h-1 bg-gradient-to-l from-primary via-purple-500 to-red-500 -translate-y-1/2 -z-10 rounded-full opacity-30 hidden md:block"></div>
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    {[
-                      { step: 1, name: "زيارة الصفحة الرئيسية", users: 15400, percent: "100%", drop: null },
-                      { step: 2, name: "تصفح صفحة المواد", users: 8900, percent: "57.7%", drop: "-42.3%" },
-                      { step: 3, name: "الوصول لصفحة الدفع", users: 2100, percent: "13.6%", drop: "-76.4%", danger: true },
-                      { step: 4, name: "إتمام الشراء", users: 950, percent: "6.1%", drop: "-54.7%" },
-                    ].map((s, i) => (
-                      <div key={i} className="flex flex-col items-center text-center relative">
-                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black shadow-xl mb-4 border ${s.danger ? 'bg-red-500 text-white border-red-400 shadow-red-500/30' : 'bg-card text-foreground border-border shadow-black/10'}`}>
-                            {s.step}
-                         </div>
-                         <h4 className="font-bold mb-1">{s.name}</h4>
-                         <p className="text-2xl font-black text-primary">{s.users.toLocaleString()}</p>
-                         <p className="text-xs font-bold text-muted-foreground">{s.percent} من الأصلي</p>
-                         
-                         {s.drop && (
-                            <div className={`mt-3 px-3 py-1 rounded-full text-xs font-bold w-fit mx-auto ${s.danger ? 'bg-red-500/20 text-red-500 ring-2 ring-red-500/50' : 'bg-muted text-muted-foreground'}`}>
-                               سقوط {s.drop}
-                            </div>
-                         )}
+               {/* Advanced Funnel UI */}
+               <div className="mt-12 mb-8 relative px-4 md:px-12">
+                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gradient-to-l from-primary via-purple-500 to-red-500 -translate-y-1/2 -z-10 rounded-full opacity-30 hidden md:block"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                     {funnelData.map((s, i) => (
+                       <div key={i} className="flex flex-col items-center text-center relative">
+                          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black shadow-xl mb-4 border ${s.danger ? 'bg-red-500 text-white border-red-400 shadow-red-500/30' : 'bg-card text-foreground border-border shadow-black/10'}`}>
+                             {s.step}
+                          </div>
+                          <h4 className="font-bold mb-1">{s.name}</h4>
+                          <p className="text-2xl font-black text-primary">{s.users.toLocaleString()}</p>
+                          <p className="text-xs font-bold text-muted-foreground">{s.percent} من الأصلي</p>
+                          
+                          {s.drop && s.drop !== "0%" && (
+                             <div className={`mt-3 px-3 py-1 rounded-full text-xs font-bold w-fit mx-auto ${s.danger ? 'bg-red-500/20 text-red-500 ring-2 ring-red-500/50' : 'bg-muted text-muted-foreground'}`}>
+                                سقوط {s.drop}
+                             </div>
+                          )}
 
-                         {s.danger && (
-                            <div className="absolute -top-10 scale-90 w-max bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-bounce">
-                                نقطة اختناق خطيرة!
-                               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
-                            </div>
-                         )}
-                      </div>
-                    ))}
-                 </div>
-              </div>
+                          {s.danger && (
+                             <div className="absolute -top-10 scale-90 w-max bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-bounce">
+                                 نقطة اختناق خطيرة!
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
+                             </div>
+                          )}
+                       </div>
+                     ))}
+                  </div>
+               </div>
            </AdminCard>
 
            <div className="grid md:grid-cols-2 gap-6">
-              <AdminCard variant="glass">
-                 <h3 className="text-lg font-black mb-4 flex items-center gap-2"><Search className="w-5 h-5 text-blue-500"/> أكثر الصفحات تعقيداً للطلاب</h3>
-                 <div className="space-y-3">
-                    {[
-                      { path: "/checkout/payment", avgTime: "4:32", bounce: "72%", issue: "خيارات دفع معقدة" },
-                      { path: "/exams/physics-midterm", avgTime: "0:45", bounce: "45%", issue: "لا يجدون زر البدء" },
-                      { path: "/auth/register", avgTime: "2:10", bounce: "31%", issue: "طول نموذج التسجيل" },
-                    ].map((p, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-accent/20 rounded-lg border border-border/50">
-                         <div>
-                            <p className="text-sm font-bold dir-ltr text-left font-mono">{p.path}</p>
-                            <p className="text-xs text-red-500 font-bold mt-1">السبب التلقائي: {p.issue}</p>
-                         </div>
-                         <div className="text-left">
-                            <p className="text-xs text-muted-foreground font-bold">بقاء {p.avgTime}د</p>
-                            <p className="text-xs font-black bg-red-500/10 text-red-500 px-2 rounded mt-1">ارتداد {p.bounce}</p>
-                         </div>
-                      </div>
-                    ))}
-                 </div>
-              </AdminCard>
-              <AdminCard variant="glass">
-                 <h3 className="text-lg font-black mb-4 flex items-center gap-2"><ArrowRight className="w-5 h-5 text-emerald-500"/> مسارات النجاح الشائعة (Happy Paths)</h3>
-                 <div className="space-y-4">
-                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                       <p className="text-sm font-bold mb-2">كيف يشتري 60% من الطلاب؟</p>
-                       <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground overflow-x-auto pb-2 whitespace-nowrap">
-                          <span className="bg-background px-2 py-1 rounded border">الفيسبوك</span>
-                          <ArrowRight className="w-3 h-3" />
-                          <span className="bg-background px-2 py-1 rounded border">المدونة المجانية</span>
-                          <ArrowRight className="w-3 h-3" />
-                          <span className="bg-background px-2 py-1 rounded border border-emerald-500 text-emerald-500">شراء الباقة الشاملة</span>
+               <AdminCard variant="glass">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2"><Search className="w-5 h-5 text-blue-500"/> أكثر الصفحات تعقيداً للطلاب</h3>
+                  <div className="space-y-3">
+                     {problematicPages.map((p, i) => (
+                       <div key={i} className="flex items-center justify-between p-3 bg-accent/20 rounded-lg border border-border/50">
+                          <div>
+                             <p className="text-sm font-bold dir-ltr text-left font-mono">{p.path}</p>
+                             <p className="text-xs text-red-500 font-bold mt-1">السبب التلقائي: {p.issue}</p>
+                          </div>
+                          <div className="text-left">
+                             <p className="text-xs text-muted-foreground font-bold">بقاء {p.avgTime}د</p>
+                             <p className="text-xs font-black bg-red-500/10 text-red-500 px-2 rounded mt-1">ارتداد {p.bounce}</p>
+                          </div>
                        </div>
-                    </div>
-                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                       <p className="text-sm font-bold mb-2">مسار الاجتهاد والتفوق</p>
-                       <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground overflow-x-auto pb-2 whitespace-nowrap">
-                          <span className="bg-background px-2 py-1 rounded border">الاختبار اليومي</span>
-                          <ArrowRight className="w-3 h-3" />
-                          <span className="bg-background px-2 py-1 rounded border">رؤية الترتيب</span>
-                          <ArrowRight className="w-3 h-3" />
-                          <span className="bg-background px-2 py-1 rounded border border-emerald-500 text-emerald-500">حضور اللايف مباشرة</span>
+                     ))}
+                  </div>
+               </AdminCard>
+               <AdminCard variant="glass">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2"><ArrowRight className="w-5 h-5 text-emerald-500"/> مسارات النجاح الشائعة (Happy Paths)</h3>
+                  <div className="space-y-4">
+                     {happyPaths.length > 0 ? happyPaths.map((path, i) => (
+                       <div key={i} className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                          <p className="text-sm font-bold mb-2">{path.label}</p>
+                          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground overflow-x-auto pb-2 whitespace-nowrap">
+                             {path.pages.map((page, j) => (
+                               <React.Fragment key={j}>
+                                 <span className="bg-background px-2 py-1 rounded border">{page}</span>
+                                 {j < path.pages.length - 1 && <ArrowRight className="w-3 h-3" />}
+                               </React.Fragment>
+                             ))}
+                          </div>
                        </div>
-                    </div>
-                 </div>
-              </AdminCard>
+                     )) : (
+                       <div className="text-center py-8 text-muted-foreground">
+                          <ArrowRight className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                          <p className="font-bold">لا توجد مسارات مكتملة بعد</p>
+                          <p className="text-xs mt-1">ستظهر المسارات الشائعة هنا عندما يكمل المستخدمون أهدافهم</p>
+                       </div>
+                     )}
+                  </div>
+               </AdminCard>
            </div>
         </TabsContent>
       </Tabs>

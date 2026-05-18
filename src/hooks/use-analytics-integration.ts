@@ -126,7 +126,7 @@ export function useAnalyticsIntegration(userId?: string): AnalyticsIntegration {
         const updatedSteps = [...prev.steps];
         if (updatedSteps.length > 0) {
           const lastStep = updatedSteps[updatedSteps.length - 1];
-          lastStep.duration = now.getTime() - new Date(lastStep.timestamp).getTime();
+          lastStep!.duration = now.getTime() - new Date(lastStep!.timestamp).getTime();
         }
 
         return {

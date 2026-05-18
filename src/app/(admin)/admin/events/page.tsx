@@ -50,6 +50,7 @@ import { z } from "zod";
 import { SearchInput } from "@/components/admin/ui/admin-input";
 import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
+import { useQuery } from "@tanstack/react-query";
 
 import { logger } from '@/lib/logger';
 
@@ -91,15 +92,43 @@ const eventTypes = [
 ];
 
 export default function AdminEventsPage() {
-  const [events, setEvents] = React.useState<Event[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{
     open: boolean;
     id: string | null;
   }>({ open: false, id: null });
-  const [search, setSearch] = React.useState("");
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin", "events", page, limit, deferredSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (deferredSearch) {
+        params.set("search", deferredSearch);
+      }
+
+      const response = await adminFetch(`${apiRoutes.admin.events}?${params.toString()}`);
+      const json = await response.json();
+      return (json.data || json) as {
+        events: Event[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      };
+    },
+  });
+
+  const events = data?.events || [];
+  const pagination = data?.pagination;
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch]);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -114,24 +143,6 @@ export default function AdminEventsPage() {
       maxAttendees: null,
     },
   });
-
-  const fetchEvents = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await adminFetch(`${apiRoutes.admin.events}?limit=100`);
-      const data = await response.json();
-      setEvents(data.data?.events || []);
-    } catch (error) {
-      logger.error("Error fetching events:", error);
-      toast.error("حدث خطأ أثناء جلب الأحداث");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
 
   const handleOpenDialog = (event?: Event) => {
     if (event) {
@@ -176,7 +187,7 @@ export default function AdminEventsPage() {
       if (response.ok) {
         toast.success(editingEvent ? "تم تحديث الحدث بنجاح" : "تم إنشاء الحدث بنجاح");
         setDialogOpen(false);
-        fetchEvents();
+        refetch();
       } else {
         toast.error("حدث خطأ أثناء حفظ الحدث");
       }
@@ -198,7 +209,7 @@ export default function AdminEventsPage() {
 
       if (response.ok) {
         toast.success("تم حذف الحدث بنجاح");
-        fetchEvents();
+        refetch();
       } else {
         toast.error("حدث خطأ أثناء حذف الحدث");
       }
@@ -216,12 +227,6 @@ export default function AdminEventsPage() {
     LECTURE: "محاضرة",
     COMPETITION: "مسابقة",
   };
-
-  const filteredEvents = React.useMemo(() => {
-    if (!search) return events;
-    const query = search.toLowerCase();
-    return events.filter((event) => event.title.toLowerCase().includes(query));
-  }, [events, search]);
 
   const columns: ColumnDef<Event>[] = [
     {
@@ -344,7 +349,7 @@ export default function AdminEventsPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <AdminCard className="space-y-2 p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">إجمالي الأحداث</p>
-          <p className="text-3xl font-black">{events.length}</p>
+          <p className="text-3xl font-black">{pagination?.total || 0}</p>
         </AdminCard>
         <AdminCard className="space-y-2 p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">إجمالي الحضور</p>
@@ -358,9 +363,16 @@ export default function AdminEventsPage() {
 
       <AdminDataTable
         columns={columns}
-        data={filteredEvents}
-        loading={loading}
-        actions={{ onRefresh: fetchEvents }}
+        data={events}
+        loading={isLoading}
+        serverSide
+        totalRows={pagination?.total || 0}
+        pageCount={pagination?.totalPages || 1}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        pageSize={limit}
+        actions={{ onRefresh: () => refetch() }}
         toolbar={
           <SearchInput
             placeholder="البحث عن حدث..."

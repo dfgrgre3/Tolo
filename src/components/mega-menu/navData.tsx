@@ -183,21 +183,6 @@ export const moreMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
-const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
-  {
-    title: "اقتراحات ذكية",
-    items: [
-      { href: "/ai", label: "المساعد الذكي", icon: Brain, description: "مساعد دراسي ذكي للتعلم", badge: "AI" },
-      { href: "/ai", label: "التوصيات الشخصية", icon: Sparkles, description: "محتوى مخصص بناءً على نشاطك", badge: "جديد" },
-      { href: "/tips", label: "مسار التعلم", icon: Target, description: "خطة دراسية مخصصة" },
-    ],
-  },
-  {
-    title: "أدوات الذكاء الاصطناعي",
-    items: [{ href: "/analytics", label: "تحليل التقدم", icon: BarChart3, description: "تحليل شامل لتقدمك الدراسي" }],
-  },
-];
-
 export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/", label: "الرئيسية", icon: Home, description: "العودة إلى الصفحة الرئيسية" },
   { href: "/courses", label: "الدورات", icon: BookOpen, description: "استكشف الدورات التعليمية", badge: "جديد", megaMenu: coursesMegaMenu },
@@ -205,8 +190,6 @@ export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/time", label: "إدارة الوقت", icon: Clock, description: "تنظيم وقتك بذكاء", megaMenu: timeManagementMegaMenu },
   { href: "/library", label: "المكتبة", icon: Library, description: "مصادر تعليمية متنوعة", megaMenu: libraryMegaMenu },
   { href: "/analytics", label: "التحليلات", icon: BarChart3, description: "متابعة دقيقة لمستواك", megaMenu: analyticsMegaMenu },
-  { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI", megaMenu: aiSuggestionsMegaMenu },
+  { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI", megaMenu: moreMegaMenu },
+  { href: "/more", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
 ];
-
-
-

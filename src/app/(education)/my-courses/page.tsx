@@ -362,8 +362,8 @@ export default function MyCoursesPage() {
 
                       {/* Badges */}
                       <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-                        <Badge className={cn("border-0 px-2.5 py-1 text-[10px] font-bold backdrop-blur-md", levelInfo.bg, levelInfo.color)}>
-                          {levelInfo.label}
+                        <Badge className={cn("border-0 px-2.5 py-1 text-[10px] font-bold backdrop-blur-md", levelInfo!.bg, levelInfo!.color)}>
+                          {levelInfo!.label}
                         </Badge>
                         {isComplete &&
                       <div className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-white text-[10px] font-bold">

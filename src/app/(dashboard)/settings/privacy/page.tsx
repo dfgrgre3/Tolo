@@ -302,7 +302,7 @@ export default function PrivacySettingsPage() {
             icon={History}
             title="آخر ظهور"
             description="إظهار وقت آخر نشاط لك"
-            enabled={settings.showLastSeen}
+            enabled={settings.showLastSeen ?? false}
             onToggle={(v) => updateSetting('showLastSeen', v)}
           />
           
@@ -318,7 +318,7 @@ export default function PrivacySettingsPage() {
             icon={Shield}
             title="الإنجازات"
             description="إظهار شاراتك وإنجازاتك"
-            enabled={settings.showAchievements}
+            enabled={settings.showAchievements ?? false}
             onToggle={(v) => updateSetting('showAchievements', v)}
           />
         </div>
@@ -370,7 +370,7 @@ export default function PrivacySettingsPage() {
             icon={Users}
             title="طلبات الصداقة"
             description="السماح للآخرين بإرسال طلبات صداقة"
-            enabled={settings.allowFriendRequests}
+            enabled={settings.allowFriendRequests ?? false}
             onToggle={(v) => updateSetting('allowFriendRequests', v)}
           />
         </div>
@@ -391,7 +391,7 @@ export default function PrivacySettingsPage() {
             icon={FileText}
             title="جمع البيانات"
             description="السماح بجمع بيانات الاستخدام لتحسين الخدمة"
-            enabled={settings.dataCollection}
+            enabled={settings.dataCollection ?? false}
             onToggle={(v) => updateSetting('dataCollection', v)}
           />
           
@@ -399,7 +399,7 @@ export default function PrivacySettingsPage() {
             icon={Shield}
             title="التخصيص"
             description="استخدام بياناتك لتخصيص التجربة"
-            enabled={settings.personalization}
+            enabled={settings.personalization ?? false}
             onToggle={(v) => updateSetting('personalization', v)}
           />
           
@@ -407,7 +407,7 @@ export default function PrivacySettingsPage() {
             icon={History}
             title="التحليلات"
             description="المشاركة في تحسين المنتج"
-            enabled={settings.analytics}
+            enabled={settings.analytics ?? false}
             onToggle={(v) => updateSetting('analytics', v)}
           />
         </div>

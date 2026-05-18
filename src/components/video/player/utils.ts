@@ -146,11 +146,11 @@ function parseTimestampToSeconds(timestamp: string) {
   }
 
   if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
+    return parts[0]! * 60 + parts[1]!;
   }
 
   if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
   }
 
   return null;
@@ -175,13 +175,13 @@ export function parseCloudTimelineNotes(content: string) {
       const match = /^\[(\d{2}(?::\d{2}){1,2})\]\s*(\S.*)$/.exec(line.trim());
       if (!match) return null;
 
-      const time = parseTimestampToSeconds(match[1]);
+      const time = parseTimestampToSeconds(match[1]!);
       if (time === null) return null;
 
       return {
-        id: `${time}-${index}-${match[2]}`,
+        id: `${time}-${index}-${match[2]!}`,
         time,
-        text: match[2],
+        text: match[2]!,
         createdAt: Date.now() + index,
       } satisfies TimelineNote;
     })
@@ -227,18 +227,18 @@ export function createTimelineNote(time: number, text: string): TimelineNote {
 }
 
 function parseVttTimestamp(value: string) {
-  const normalized = value.trim().split(".")[0];
+  const normalized = value.trim().split(".")[0]!;
   const parts = normalized.split(":").map((item) => Number(item));
   if (parts.some((item) => Number.isNaN(item))) {
     return null;
   }
 
   if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
   }
 
   if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
+    return parts[0]! * 60 + parts[1]!;
   }
 
   return null;
@@ -262,8 +262,8 @@ export function parseThumbnailVtt(
       }
 
       const [rawStart, rawEnd] = timeLine.split("-->").map((part) => part.trim());
-      const start = parseVttTimestamp(rawStart.split(" ")[0] ?? rawStart);
-      const end = parseVttTimestamp(rawEnd.split(" ")[0] ?? rawEnd);
+      const start = parseVttTimestamp((rawStart ?? "").split(" ")[0] ?? rawStart ?? "");
+      const end = parseVttTimestamp((rawEnd ?? "").split(" ")[0] ?? rawEnd ?? "");
 
       if (start === null || end === null) {
         return null;
@@ -277,7 +277,7 @@ export function parseThumbnailVtt(
       return {
         start,
         end,
-        imageUrl: new URL(path, vttUrl).toString(),
+        imageUrl: new URL(path!, vttUrl).toString(),
         x,
         y,
         width,

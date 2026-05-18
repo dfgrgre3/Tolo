@@ -17,7 +17,7 @@ import { LazyMotion, domAnimation } from 'framer-motion';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 
-const FooterLazy = dynamic(() => import('@/components/footer'), {
+const FooterLazy = dynamic(() => import('@/components/Footer'), {
   ssr: false,
   loading: () => <footer className="min-h-[100px] w-full" aria-hidden />,
 });

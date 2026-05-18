@@ -1,54 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { m, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight,
-  BarChart3,
-  Calendar,
-  CheckSquare,
-  Settings,
-  Sparkles,
-  Trophy,
-  User,
-  Zap,
-  Sword,
-  Shield,
-
-
-  BookOpen,
-
-  Target,
-
-  LayoutDashboard,
-  AlertCircle,
-  Clock as ClockIcon,
-
-  ChevronRight,
-  TrendingUp,
-  Award,
-  Play } from
-
-"lucide-react";
+  ArrowRight, BarChart3, Calendar, CheckSquare,
+  Settings, Sparkles, Trophy, User, Zap, Sword, Shield,
+  BookOpen, Target, LayoutDashboard, AlertCircle,
+  Clock as ClockIcon, ChevronRight, TrendingUp, Award, Play
+} from "lucide-react";
+import Image from "next/image";
 
 import { useAuth } from "@/contexts/auth-context";
 import { useGamification } from "@/hooks/use-gamification";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-
 import dynamic from "next/dynamic";
+import { logger } from '@/lib/logger';
+import { BotIcon } from "./components/bot-icon";
 
-// Import custom components
 const AnnouncementTicker = dynamic(() => import("./components/announcement-ticker").then((mod) => mod.AnnouncementTicker), { ssr: false });
 const StatsGrid = dynamic(() => import("./components/stats-grid").then((mod) => mod.StatsGrid), { ssr: true });
 const QuestCard = dynamic(() => import("./components/quest-card").then((mod) => mod.QuestCard), { ssr: false });
 const LeaderboardCard = dynamic(() => import("./components/leaderboard-card").then((mod) => mod.LeaderboardCard), { ssr: false });
 const QuickActions = dynamic(() => import("./components/quick-actions").then((mod) => mod.QuickActions), { ssr: false });
 import { Clock } from "./components/clock";
-// Removed redundant Bot import to favor local custom SVG if needed, or aliased below
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5",
@@ -109,8 +86,8 @@ export default function DashboardPage() {
     userId: user?.id || ""
   });
   const [mounted, setMounted] = useState(false);
-  const [lastCourse, setLastCourse] = useState<any>(null);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [lastCourse, setLastCourse] = useState<{ id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null>(null);
+  const [recentActivities, setRecentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
   useEffect(() => {
@@ -135,7 +112,8 @@ export default function DashboardPage() {
         if (activitiesRes.ok) {
           const data = await activitiesRes.json();
           const notifications = data.data?.notifications || data.notifications || [];
-          setRecentActivities(notifications.map((n: any) => ({
+          type ApiNotification = { id: string; title: string; createdAt: string; type: string; icon: string };
+          setRecentActivities(notifications.map((n: ApiNotification) => ({
             id: n.id,
             title: n.title,
             time: new Date(n.createdAt).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
@@ -145,7 +123,7 @@ export default function DashboardPage() {
           })));
         }
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        logger.error("Error fetching dashboard data:", error);
       } finally {
         setIsDataLoading(false);
       }
@@ -180,7 +158,7 @@ export default function DashboardPage() {
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }} />
       </div>
 
       <AnnouncementTicker />
@@ -468,7 +446,7 @@ export default function DashboardPage() {
               </h2>
               
               <Card className={STYLES.glass + " border-white/5 bg-transparent p-6 space-y-6"}>
-                {recentActivities.length > 0 ? recentActivities.map((activity: any) => {
+                {recentActivities.length > 0 ? recentActivities.map((activity: { id: string; title: string; time?: string; xp?: string; icon: React.ElementType; color?: string }) => {
                   const Icon = activity.icon;
                   return (
                     <m.div
@@ -513,7 +491,7 @@ export default function DashboardPage() {
                   transition={{ duration: 1, type: "spring" }}
                   className="mx-auto w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-primary to-indigo-600 flex items-center justify-center shadow-2xl relative z-10">
                   
-                   <Bot className="w-12 h-12 text-white drop-shadow-lg" />
+                   <BotIcon className="w-12 h-12 text-white drop-shadow-lg" />
                    <div className="absolute inset-0 rounded-[2.5rem] bg-white/20 animate-pulse pointer-events-none" />
                 </m.div>
               </div>
@@ -637,26 +615,3 @@ export default function DashboardPage() {
 
 }
 
-function Bot(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      
-      <path d="M12 8V4H8" />
-      <rect width="16" height="12" x="4" y="8" rx="2" />
-      <path d="M2 14h2" />
-      <path d="M20 14h2" />
-      <path d="M15 13v2" />
-      <path d="M9 13v2" />
-    </svg>);
-
-}

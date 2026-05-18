@@ -3,6 +3,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from '@/lib/logger';
 
 // Skeleton for admin sections loading state
 function AdminSectionSkeleton({
@@ -184,7 +185,7 @@ export function useComponentMetrics(componentName: string) {
   const end = React.useCallback(() => {
     metrics.current.endTime = performance.now();
     const duration = metrics.current.endTime - metrics.current.startTime;
-    console.log(`[Performance] ${componentName} loaded in ${duration.toFixed(2)}ms`);
+    logger.debug(`[Performance] ${componentName} loaded in ${duration.toFixed(2)}ms`);
     return duration;
   }, [componentName]);
 

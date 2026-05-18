@@ -74,6 +74,21 @@ func AdminAIGet(c *gin.Context) {
 	})
 }
 
+// AdminResetCircuitBreaker resets all circuit breakers to closed state
+func AdminResetCircuitBreaker(c *gin.Context) {
+	svc := services.GetCircuitBreakerService()
+	status := svc.GetStatus()
+
+	for name := range status {
+		svc.ResetCircuitBreaker(name)
+	}
+
+	api_response.Success(c, gin.H{
+		"message": "All circuit breakers have been reset",
+		"status":  svc.GetStatus(),
+	})
+}
+
 func AdminAIPost(c *gin.Context) {
 	var req struct {
 		Action string `json:"action"`

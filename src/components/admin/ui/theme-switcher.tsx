@@ -90,7 +90,7 @@ export function QuickThemeToggle({
     const themes = ["light", "dark", "system"];
     const currentIndex = themes.indexOf(theme || "system");
     const nextIndex = (currentIndex + 1) % themes.length;
-    setTheme(themes[nextIndex]);
+    setTheme(themes[nextIndex]!);
   }, [theme, setTheme]);
 
   if (!mounted) {

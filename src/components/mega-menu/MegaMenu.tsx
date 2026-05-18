@@ -12,6 +12,9 @@ interface MegaMenuComponentProps extends MegaMenuProps {
   onOpen?: () => void;
 }
 
+const OPEN_DELAY = 80;
+const CLOSE_DELAY = 100;
+
 export function MegaMenu({
   categories,
   isOpen,
@@ -24,6 +27,7 @@ export function MegaMenu({
 }: MegaMenuComponentProps) {
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -32,39 +36,53 @@ export function MegaMenu({
     }
   }, []);
 
+  const clearOpenTimeout = useCallback(() => {
+    if (openTimeoutRef.current) {
+      clearTimeout(openTimeoutRef.current);
+      openTimeoutRef.current = null;
+    }
+  }, []);
+
   const scheduleClose = useCallback(() => {
+    clearOpenTimeout();
     clearCloseTimeout();
     closeTimeoutRef.current = setTimeout(() => {
       onClose();
       closeTimeoutRef.current = null;
-    }, 140);
-  }, [clearCloseTimeout, onClose]);
+    }, CLOSE_DELAY);
+  }, [clearCloseTimeout, clearOpenTimeout, onClose]);
 
   const handleMouseEnter = useCallback(() => {
     clearCloseTimeout();
-    if (onOpen && !isOpen) {
-      onOpen();
+    clearOpenTimeout();
+    if (!isOpen) {
+      openTimeoutRef.current = setTimeout(() => {
+        onOpen?.();
+        openTimeoutRef.current = null;
+      }, OPEN_DELAY);
     }
-  }, [clearCloseTimeout, onOpen, isOpen]);
+  }, [clearCloseTimeout, clearOpenTimeout, onOpen, isOpen]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
     clearCloseTimeout();
+    clearOpenTimeout();
     if (onOpen && !isOpen) {
       onOpen();
     } else if (isOpen) {
       onClose();
     }
-  }, [clearCloseTimeout, onOpen, isOpen, onClose]);
+  }, [clearCloseTimeout, clearOpenTimeout, onOpen, isOpen, onClose]);
 
   const handleClick = useCallback(() => {
     clearCloseTimeout();
+    clearOpenTimeout();
     if (isOpen) {
       onClose();
     } else if (onOpen) {
       onOpen();
     }
-  }, [clearCloseTimeout, isOpen, onClose, onOpen]);
+  }, [clearCloseTimeout, clearOpenTimeout, isOpen, onClose, onOpen]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -77,8 +95,11 @@ export function MegaMenu({
   );
 
   useEffect(() => {
-    return () => clearCloseTimeout();
-  }, [clearCloseTimeout]);
+    return () => {
+      clearCloseTimeout();
+      clearOpenTimeout();
+    };
+  }, [clearCloseTimeout, clearOpenTimeout]);
 
   return (
     <div className="relative group" ref={megaMenuRef}>
@@ -89,6 +110,7 @@ export function MegaMenu({
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onFocus={handleMouseEnter}
+        onBlur={scheduleClose}
         data-mega-menu-trigger
       >
         <HeaderMenuTrigger
@@ -101,9 +123,9 @@ export function MegaMenu({
 
       <AnimatePresence>
         {isOpen && (
-          <div 
-            data-mega-menu-content 
-            onMouseEnter={clearCloseTimeout} 
+          <div
+            data-mega-menu-content
+            onMouseEnter={clearCloseTimeout}
             onMouseLeave={scheduleClose}
             onTouchStart={clearCloseTimeout}
           >

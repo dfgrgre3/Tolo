@@ -9,6 +9,15 @@ import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
   CreditCard,
   DollarSign,
   Download,
@@ -35,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePaymentRealtime } from "@/hooks/use-admin-realtime";
 
 interface Payment {
   id: string;
@@ -115,6 +125,21 @@ export default function AdminPaymentsPage() {
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const deferredSearch = React.useDeferredValue(search);
+  const [refundDialogOpen, setRefundDialogOpen] = React.useState(false);
+  const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+  const [refundAmount, setRefundAmount] = React.useState("");
+  const [refundReason, setRefundReason] = React.useState("");
+  const [isRefunding, setIsRefunding] = React.useState(false);
+
+  const { isConnected: isWsConnected } = usePaymentRealtime(
+    () => {
+      refetch();
+      toast.info("دفعة جديدة وصلت!");
+    },
+    () => {
+      refetch();
+    }
+  );
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin", "payments", page, limit, deferredSearch, statusFilter],
@@ -168,6 +193,44 @@ export default function AdminPaymentsPage() {
     ];
     exportToCSV(payments, exportColumns, "payments");
     toast.success("تم التصدير بنجاح");
+  };
+
+  const handleRefund = async () => {
+    if (!selectedPayment) return;
+    const amount = parseFloat(refundAmount);
+    if (isNaN(amount) || amount <= 0 || amount > selectedPayment.amount) {
+      toast.error("مبلغ الاسترداد غير صالح");
+      return;
+    }
+
+    setIsRefunding(true);
+    try {
+      const response = await adminApi.fetch("/admin/payments/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentId: selectedPayment.id,
+          amount,
+          reason: refundReason || "استرداد من قبل المسؤول",
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("تم استرداد المبلغ بنجاح");
+        setRefundDialogOpen(false);
+        setSelectedPayment(null);
+        setRefundAmount("");
+        setRefundReason("");
+        refetch();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "فشل في استرداد المبلغ");
+      }
+    } catch {
+      toast.error("خطأ في الاتصال");
+    } finally {
+      setIsRefunding(false);
+    }
   };
 
   const columns: ColumnDef<Payment>[] = [
@@ -253,7 +316,7 @@ export default function AdminPaymentsPage() {
       accessorKey: "status",
       header: "الحالة",
       cell: ({ row }) => {
-        const config = statusConfig[row.original.status] || statusConfig.PENDING;
+        const config = (statusConfig[row.original.status] || statusConfig.PENDING)!;
         const StatusIcon = config.icon;
         return (
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bgColor}`}>
@@ -273,6 +336,30 @@ export default function AdminPaymentsPage() {
           {row.original.method || "غير محدد"}
         </span>
       ),
+    },
+    {
+      id: "actions",
+      header: "الإجراءات",
+      cell: ({ row }) => {
+        const payment = row.original;
+        const canRefund = payment.status === "COMPLETED";
+        return (
+          <div className="flex items-center gap-2">
+            {canRefund && (
+              <button
+                onClick={() => {
+                  setSelectedPayment(payment);
+                  setRefundAmount(payment.amount.toString());
+                  setRefundDialogOpen(true);
+                }}
+                className="px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+              >
+                استرداد
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

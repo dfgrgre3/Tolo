@@ -100,8 +100,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     return (
       <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl text-xs sm:text-sm">
         <p className="font-bold mb-1 text-gray-200">{label}</p>
-        <p className="text-primary">{`الدقائق: ${payload[0].value} دقيقة`}</p>
-        {payload[1] && <p className="text-amber-500">{`الهدف: ${payload[1].value} دقيقة`}</p>}
+        <p className="text-primary">{`الدقائق: ${payload[0]!.value} دقيقة`}</p>
+        {payload[1] && <p className="text-amber-500">{`الهدف: ${payload[1]!.value} دقيقة`}</p>}
       </div>);
   }
   return null;

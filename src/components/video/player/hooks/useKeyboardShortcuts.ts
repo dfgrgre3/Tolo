@@ -42,12 +42,12 @@ export function useKeyboardShortcuts({
   const handleRateKeys = (key: string, shiftKey: boolean, originalKey: string) => {
     if ((key === ">" || key === ".") && (shiftKey || originalKey !== ".")) {
       const idx = PLAYBACK_RATES.indexOf(playbackRate);
-      if (idx < PLAYBACK_RATES.length - 1) handlePlaybackRateChange(PLAYBACK_RATES[idx + 1]);
+      if (idx < PLAYBACK_RATES.length - 1) handlePlaybackRateChange(PLAYBACK_RATES[idx + 1]!);
       return true;
     }
     if ((key === "<" || key === ",") && (shiftKey || originalKey !== ",")) {
       const idx = PLAYBACK_RATES.indexOf(playbackRate);
-      if (idx > 0) handlePlaybackRateChange(PLAYBACK_RATES[idx - 1]);
+      if (idx > 0) handlePlaybackRateChange(PLAYBACK_RATES[idx - 1]!);
       return true;
     }
     return false;

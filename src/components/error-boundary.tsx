@@ -1,3 +1,5 @@
+'use client';
+
 import React, { Component, ErrorInfo, ReactNode, useState, useCallback } from 'react';
 import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
 import { errorService as errorManager } from '@/lib/logging/error-service';
@@ -68,7 +70,7 @@ class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidMount() {
+  override componentDidMount() {
     // Register this boundary with the error manager
     errorManager.registerBoundaryCallback(this.handleBoundaryError);
 
@@ -76,7 +78,7 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({ isHydrated: true });
   }
 
-  componentWillUnmount() {
+  override componentWillUnmount() {
     // Unregister when unmounting
     errorManager.registerBoundaryCallback(() => {});
 
@@ -105,7 +107,7 @@ class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Check if this is a hydration mismatch
     const isHydrationError = error.message.toLowerCase().includes('hydration') ||
     error.message.toLowerCase().includes('server') ||
@@ -136,7 +138,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props) {
+  override componentDidUpdate(prevProps: Props) {
     // Reset error state when children change (useful for route changes)
     if (prevProps.children !== this.props.children && this.state.hasError) {
       this.handleReset();
@@ -331,7 +333,7 @@ class ErrorBoundary extends Component<Props, State> {
     );
   }
 
-  render() {
+  override render() {
     const { hasError, error, errorId } = this.state;
     const { children, fallback, showErrorPage, errorType, showDetails, variant = "global" } = this.props;
 

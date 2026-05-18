@@ -35,6 +35,8 @@ import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { usePermission } from "@/components/auth/PermissionGuard";
+import { MarkdownEditor } from "@/components/admin/ui/markdown-editor";
+import { logAdminAction } from "@/lib/admin-audit";
 
 interface Announcement {
   id: string;
@@ -154,7 +156,19 @@ export default function AdminAnnouncementsPage() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast.success(editingAnnouncement ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان للمستخدمين بنجاح");
+        
+        logAdminAction(
+          editingAnnouncement ? "UPDATE" : "CREATE",
+          "announcement",
+          {
+            entityId: editingAnnouncement?.id || result?.data?.id,
+            entityName: values.title,
+            details: { type: values.type, isActive: values.isActive },
+          }
+        );
+
         setDialogOpen(false);
         await requestPublicCacheRevalidation(["/announcements"]);
         refetch();
@@ -169,6 +183,7 @@ export default function AdminAnnouncementsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
+      const announcementToDelete = announcements.find(a => a.id === deleteDialog.id);
       const response = await adminFetch(apiRoutes.admin.announcements, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -177,6 +192,12 @@ export default function AdminAnnouncementsPage() {
 
       if (response.ok) {
         toast.success("تم حذف الإعلان بنجاح");
+        
+        logAdminAction("DELETE", "announcement", {
+          entityId: deleteDialog.id,
+          entityName: announcementToDelete?.title,
+        });
+
         await requestPublicCacheRevalidation(["/announcements"]);
         refetch();
       } else {
@@ -202,7 +223,7 @@ export default function AdminAnnouncementsPage() {
       header: "الإعلان",
       cell: ({ row }) => {
         const announcement = row.original;
-        const config = typeConfig[announcement.type] || typeConfig.INFO;
+        const config = (typeConfig[announcement.type] || typeConfig.INFO)!;
         return (
           <div className="flex items-center gap-4">
             <div 
@@ -226,7 +247,7 @@ export default function AdminAnnouncementsPage() {
       header: "نوع الإعلان",
       cell: ({ row }) => {
         const type = row.original.type;
-        const config = typeConfig[type] || typeConfig.INFO;
+        const config = (typeConfig[type] || typeConfig.INFO)!;
         return (
           <Badge 
             variant="outline" 
@@ -397,7 +418,26 @@ export default function AdminAnnouncementsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">محتوى الإعلان</FormLabel>
-                      <FormControl><Textarea {...field} placeholder="أعزائي الطلاب والمستخدمين..." className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 font-medium" /></FormControl>
+                      <FormControl>
+                        <MarkdownEditor
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="أعزائي الطلاب والمستخدمين..."
+                          minHeight={150}
+                          onImageUpload={async (file) => {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            const response = await fetch("/api/upload", {
+                              method: "POST",
+                              body: formData,
+                              credentials: "include",
+                            });
+                            if (!response.ok) throw new Error("فشل رفع الصورة");
+                            const data = await response.json();
+                            return data.fileUrl;
+                          }}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

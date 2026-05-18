@@ -6,9 +6,11 @@ import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, Eye, FileText, Calendar, Globe, 
-  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight, Search, Edit, Trash2
+  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight, Search, Edit, Trash2,
+  Send, Download, EyeOff
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -37,6 +39,10 @@ import { adminFetch } from "@/lib/api/admin-api";
 import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { apiRoutes } from "@/lib/api/routes";
 import { usePermission } from "@/components/auth/PermissionGuard";
+import { MarkdownEditor } from "@/components/admin/ui/markdown-editor";
+import { AdminUpload } from "@/components/admin/ui/admin-upload";
+import { logAdminAction } from "@/lib/admin-audit";
+import { exportToCSV, ExportColumn } from '@/lib/export-utils';
 
 interface BlogPost {
   id: string;
@@ -167,7 +173,19 @@ export default function AdminBlogPage() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast.success(editingPost ? "تم تحديث المقال بنجاح" : "تم حفظ المقال في المدونة بنجاح");
+        
+        logAdminAction(
+          editingPost ? "UPDATE" : "CREATE",
+          "blog",
+          {
+            entityId: editingPost?.id || result?.data?.id,
+            entityName: values.title,
+            details: { status: values.status },
+          }
+        );
+
         setDialogOpen(false);
         refetch();
         const paths = ["/blog"];
@@ -187,6 +205,7 @@ export default function AdminBlogPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
+      const postToDelete = posts.find(p => p.id === deleteDialog.id);
       const response = await adminFetch(apiRoutes.admin.blog, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -195,6 +214,12 @@ export default function AdminBlogPage() {
 
       if (response.ok) {
         toast.success("تم حذف المقال بنجاح");
+        
+        logAdminAction("DELETE", "blog", {
+          entityId: deleteDialog.id,
+          entityName: postToDelete?.title,
+        });
+
         refetch();
         void requestPublicCacheRevalidation(["/blog"]).catch(() => {});
       } else {
@@ -209,6 +234,27 @@ export default function AdminBlogPage() {
   };
 
   const columns: ColumnDef<BlogPost>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="تحديد الكل"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="تحديد الصف"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "title",
       header: "المقال",
@@ -335,12 +381,92 @@ export default function AdminBlogPage() {
         data={posts}
         loading={isLoading}
         serverSide
+        selectable
         totalRows={pagination?.total || 0}
         pageCount={pagination?.totalPages || 1}
         currentPage={page}
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         pageSize={limit}
+        bulkActions={[
+          {
+            label: "نشر المحدد",
+            icon: Globe,
+            onClick: async (rows) => {
+              const ids = rows.map((r: BlogPost) => r.id);
+              const response = await adminFetch(apiRoutes.admin.blog, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids, status: "PUBLISHED" }),
+              });
+              if (response.ok) {
+                toast.success(`تم نشر ${ids.length} مقال`);
+                logAdminAction("PUBLISH", "blog", { details: { count: ids.length } });
+                refetch();
+                void requestPublicCacheRevalidation(["/blog"]).catch(() => {});
+              } else {
+                toast.error("فشل في نشر المقالات");
+              }
+            },
+          },
+          {
+            label: "تحويل لمسودات",
+            icon: EyeOff,
+            onClick: async (rows) => {
+              const ids = rows.map((r: BlogPost) => r.id);
+              const response = await adminFetch(apiRoutes.admin.blog, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids, status: "DRAFT" }),
+              });
+              if (response.ok) {
+                toast.success(`تم تحويل ${ids.length} مقال لمسودة`);
+                logAdminAction("UNPUBLISH", "blog", { details: { count: ids.length } });
+                refetch();
+                void requestPublicCacheRevalidation(["/blog"]).catch(() => {});
+              } else {
+                toast.error("فشل في تحويل المقالات");
+              }
+            },
+          },
+          {
+            label: "تصدير CSV",
+            icon: Download,
+            onClick: (rows) => {
+              const exportColumns: ExportColumn<BlogPost>[] = [
+                { header: 'العنوان', accessor: 'title' },
+                { header: 'الرابط', accessor: 'slug' },
+                { header: 'الحالة', accessor: (p) => p.status === 'PUBLISHED' ? 'منشور' : 'مسودة' },
+                { header: 'المشاهدات', accessor: (p) => p.views },
+                { header: 'التعليقات', accessor: (p) => p._count?.comments || 0 },
+                { header: 'تاريخ النشر', accessor: (p) => new Date(p.createdAt).toLocaleDateString('ar-EG') },
+              ];
+              exportToCSV(rows, exportColumns, 'blog-posts');
+              toast.success('تم تصدير المقالات بنجاح');
+            },
+          },
+          {
+            label: "حذف المحدد",
+            icon: Trash2,
+            variant: "destructive",
+            onClick: async (rows) => {
+              const ids = rows.map((r: BlogPost) => r.id);
+              const response = await adminFetch(apiRoutes.admin.blog, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids }),
+              });
+              if (response.ok) {
+                toast.success(`تم حذف ${ids.length} مقال`);
+                logAdminAction("DELETE", "blog", { details: { count: ids.length } });
+                refetch();
+                void requestPublicCacheRevalidation(["/blog"]).catch(() => {});
+              } else {
+                toast.error("فشل في حذف المقالات");
+              }
+            },
+          },
+        ]}
         actions={{ onRefresh: () => refetch() }}
         toolbar={
           <div className="relative">
@@ -413,7 +539,26 @@ export default function AdminBlogPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">محتوى المقال</FormLabel>
-                      <FormControl><Textarea {...field} rows={10} className="rounded-2xl border-white/10 bg-white/5 p-6 font-medium leading-relaxed" /></FormControl>
+                      <FormControl>
+                        <MarkdownEditor
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="اكتب محتوى المقال هنا باستخدام Markdown..."
+                          minHeight={350}
+                          onImageUpload={async (file) => {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            const response = await fetch("/api/upload", {
+                              method: "POST",
+                              body: formData,
+                              credentials: "include",
+                            });
+                            if (!response.ok) throw new Error("فشل رفع الصورة");
+                            const data = await response.json();
+                            return data.fileUrl;
+                          }}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

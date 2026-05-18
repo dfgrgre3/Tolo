@@ -11,23 +11,6 @@ type GestureOverlayProps = {
   visible: boolean;
 };
 
-export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProps) => {
-  if (!mode || !visible) return null;
-
-  const getIcon = () => {
-    switch (mode) {
-      case "volume": return Volume2;
-      case "brightness": return SunMedium;
-      case "speed": return Zap;
-      case "seek": return Number(value) > 0 ? FastForward : Rewind;
-      default: return Volume2;
-    }
-  };
-
-  const Icon = getIcon();
-  const percentage = typeof value === "number" ? Math.round(value * 100) : null;
-  const seekValue = typeof value === "string" ? value : null;
-
 const modeColors = {
   volume: { ring: "border-blue-400/50", bg: "bg-blue-500/10", text: "text-blue-400" },
   brightness: { ring: "border-amber-400/50", bg: "bg-amber-500/10", text: "text-amber-400" },

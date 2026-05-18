@@ -197,7 +197,7 @@ export function CommandPalette() {
 
   const groupedActions = allActions.reduce((acc, action) => {
     if (!acc[action.group]) acc[action.group] = [];
-    acc[action.group].push(action);
+    acc[action.group]!.push(action);
     return acc;
   }, {} as Record<string, CommandAction[]>);
 
@@ -250,7 +250,7 @@ export function CommandPalette() {
                   {groupActions.map((action, actionIdx) => {
                     let globalIdx = 0;
                     Object.keys(groupedActions).forEach((g, i) => {
-                      if (i < groupIdx) globalIdx += groupedActions[g].length;
+                      if (i < groupIdx) globalIdx += groupedActions[g]!.length;
                     });
                     globalIdx += actionIdx;
 

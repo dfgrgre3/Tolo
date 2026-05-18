@@ -4,33 +4,18 @@ import React, { createContext, useContext, useEffect, useCallback, useRef } from
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
-import { apiRoutes } from '@/lib/api/routes';
 import { logger } from '@/lib/logger';
-
-// Local definition of buildLoginUrl (was previously imported incorrectly)
-const buildLoginUrl = (redirect?: string): string => {
-  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
-};
+import { apiRoutes } from '@/lib/api/routes';
+import { authApiService } from '@/services/auth/auth-api-service';
 
 const isTimeoutError = (error: unknown) => {
-  return error === 'timeout' || 
+  return error === 'timeout' ||
     (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
 };
 
-const createAbortTimeout = (ms: number = 10000) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    try {
-      controller.abort('timeout');
-    } catch (e) {
-      controller.abort();
-    }
-  }, ms);
-  return { controller, timeoutId };
-};
-
 const fetchWithTimeout = async (url: string, options: RequestInit, ms: number = 10000) => {
-  const { controller, timeoutId } = createAbortTimeout(ms);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort('timeout'), ms);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
@@ -567,67 +552,11 @@ export function AuthProvider({
     verify2FA,
     refreshUser,
     fetchWithAuth,
-    forgotPassword: async (email: string) => {
-      try {
-        const res = await fetch(apiRoutes.auth.forgotPassword, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        return { success: res.ok, ...data };
-      } catch (err) {
-        return { success: false, error: 'Network error' };
-      }
-    },
-    resetPassword: async (token: string, newPassword: string) => {
-      try {
-        const res = await fetch(apiRoutes.auth.resetPassword, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword })
-        });
-        const data = await res.json();
-        return { success: res.ok, ...data };
-      } catch (err) {
-        return { success: false, error: 'Network error' };
-      }
-    },
-    verifyEmail: async (token: string) => {
-      try {
-        const res = await fetch(`${apiRoutes.auth.verifyEmail}?token=${token}`);
-        const data = await res.json();
-        return { success: res.ok, ...data };
-      } catch (err) {
-        return { success: false, error: 'Network error' };
-      }
-    },
-    resendVerification: async (email: string) => {
-      try {
-        const res = await fetch(apiRoutes.auth.resendVerification, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        return { success: res.ok, ...data };
-      } catch (err) {
-        return { success: false, error: 'Network error' };
-      }
-    },
-    requestMagicLink: async (email: string) => {
-      try {
-        const res = await fetch(apiRoutes.auth.magicLink.request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        return { success: res.ok, ...data };
-      } catch (err) {
-        return { success: false, error: 'Network error' };
-      }
-    }
+    forgotPassword: authApiService.forgotPassword,
+    resetPassword: authApiService.resetPassword,
+    verifyEmail: authApiService.verifyEmail,
+    resendVerification: authApiService.resendVerification,
+    requestMagicLink: authApiService.requestMagicLink
   };
 
   return (

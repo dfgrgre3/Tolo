@@ -76,7 +76,7 @@ export function VirtualTable<T>({
         }}
       >
         {virtualItems.map((virtualRow) => {
-          const item = data[virtualRow.index];
+          const item = data[virtualRow.index]!;
           const rowId = getRowId(item);
           const isSelected = selectedRowId === rowId;
 
@@ -102,7 +102,7 @@ export function VirtualTable<T>({
                   className="flex items-center px-4 py-2 border-l last:border-l-0 overflow-hidden"
                   style={{ width: col.width, minWidth: col.width }}
                 >
-                  {col.cell(item)}
+                  {col.cell(item!)}
                 </div>
               ))}
             </div>
@@ -152,7 +152,7 @@ export function useVirtualData<T>(
 
         const newData = [...data];
         results.forEach((result, idx) => {
-          const page = pagesToLoad[idx];
+          const page = pagesToLoad[idx]!;
           const startIdx = page * pageSize;
           result.data.forEach((item, i) => {
             newData[startIdx + i] = item;

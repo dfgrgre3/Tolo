@@ -112,7 +112,7 @@ class PerformanceMonitor {
         stats[m.name] = { avg: 0, max: 0, count: 0 };
       }
       
-      const s = stats[m.name];
+      const s = stats[m.name]!;
       s.count++;
       s.max = Math.max(s.max, m.value);
       s.avg = (s.avg * (s.count - 1) + m.value) / s.count;

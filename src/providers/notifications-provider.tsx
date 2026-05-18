@@ -50,7 +50,7 @@ function parseNotificationsResponse(response: unknown, limit: number) {
         nextUnreadCount: (response as Notification[]).filter((n) => !n.isRead).length,
         nextHasMore: response.length === limit
       };
-    } else if ('notifications' in response && Array.isArray((response as any).notifications)) {
+    } else if ('notifications' in response && Array.isArray((response as Record<string, unknown>).notifications)) {
       const resp = response as NotificationsResponse;
       return {
         nextNotifications: resp.notifications,
@@ -69,7 +69,7 @@ function handleNewNotificationToast(
 ) {
   if (isFirstFetch || nextNotifications.length === 0) return;
   
-  const newest = nextNotifications[0];
+  const newest = nextNotifications[0]!;
   if (!newest.isRead && newest.id !== lastNotifiedIdRef.current) {
     toast(newest.title, {
       description: newest.message,

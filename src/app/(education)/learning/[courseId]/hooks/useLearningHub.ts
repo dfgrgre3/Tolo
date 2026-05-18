@@ -16,8 +16,8 @@ import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer"
 import type { Course, Chapter, Lesson, LessonQuestion, TabKey } from "../types";
 
 function applyMockInteractiveQuestions(chapters: Chapter[]) {
-  if (chapters.length > 0 && chapters[0].subTopics.length > 0) {
-    chapters[0].subTopics[0].interactiveQuestions = [
+  if (chapters.length > 0 && chapters[0]!.subTopics.length > 0) {
+    chapters[0]!.subTopics[0]!.interactiveQuestions = [
       {
         id: "q1",
         time: 15,
@@ -278,7 +278,7 @@ export function useLearningHub() {
       const hours = match[1] ? Number(match[1]) : 0;
       const minutes = Number(match[2]);
       const seconds = Number(match[3]);
-      const label = match[4].trim();
+      const label = match[4]!.trim();
 
       nextBookmarks.push({
         time: hours * 3600 + minutes * 60 + seconds,

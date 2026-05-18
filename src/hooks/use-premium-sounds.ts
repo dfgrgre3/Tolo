@@ -9,10 +9,11 @@ export function usePremiumSounds() {
 
   const initContext = useCallback(() => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AC = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (AC) audioContextRef.current = new AC();
     }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current?.resume();
     }
   }, []);
 
@@ -97,9 +98,8 @@ export function usePremiumSounds() {
         filter.frequency.setValueAtTime(2000, now);
         filter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
         
-        osc.type = 'white' as any; // White noise simulation
-        // Since Web Audio doesn't have native white noise oscillator
-        // We just use a very fast square wave as a "mechanical" sound
+        // Web Audio doesn't have native white noise oscillator
+        // Using square wave as a "mechanical" transition sound
         osc.type = 'square';
         osc.frequency.setValueAtTime(1000, now);
         osc.frequency.exponentialRampToValueAtTime(10, now + 0.3);

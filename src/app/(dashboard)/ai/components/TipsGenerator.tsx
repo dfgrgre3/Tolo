@@ -2,9 +2,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { m } from 'framer-motion';
+import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Tip {
   category: 'استراتيجيات الدراسة' | 'التغلب على التحديات' | 'المصادر التعليمية' | 'الخطة الدراسية' | 'تحسين الأداء';
@@ -50,7 +54,7 @@ export default function TipsGenerator({
           studyGoal: studyGoal || undefined,
           challenges: challenges || undefined,
           currentGrade: currentGrade || undefined,
-          provider: 'gemini' // استخدام Gemini كخيار افتراضي
+          provider: 'gemini'
         })
       });
 
@@ -86,33 +90,33 @@ export default function TipsGenerator({
     }
   };
 
-  const getCategoryColor = (category: Tip['category']) => {
+  const getCategoryStyle = (category: Tip['category']) => {
     switch (category) {
       case 'استراتيجيات الدراسة':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'التغلب على التحديات':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'المصادر التعليمية':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       case 'الخطة الدراسية':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       case 'تحسين الأداء':
-        return 'bg-indigo-100 text-indigo-800';
+        return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
-  const getPriorityColor = (priority: Tip['priority']) => {
+  const getPriorityStyle = (priority: Tip['priority']) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'low':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
@@ -130,147 +134,165 @@ export default function TipsGenerator({
   };
 
   return (
-    <div className={`bg-white rounded-xl shadow-lg p-6 ${className}`}>
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <Lightbulb className="h-6 w-6 text-blue-600" />
+    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden ${className}`}>
+      <div className="p-8 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-amber-500/30 blur-lg rounded-full" />
+            <div className="relative p-3 bg-amber-500/20 rounded-xl border border-amber-500/30">
+              <Lightbulb className="h-6 w-6 text-amber-400" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white">النصائح التعليمية</h2>
+            <p className="text-gray-400 text-sm mt-1">نصائح مخصصة لتحسين أدائك الدراسي</p>
+          </div>
         </div>
-        <h2 className="text-xl font-bold text-gray-800">النصائح التعليمية</h2>
-        <div className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-          Gemini 2.0 Flash
+        <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
+          <Zap className="h-3 w-3" />
+          <span>Gemini 2.0 Flash</span>
         </div>
       </div>
 
-      {!tipsData ?
-      <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {subjects.length > 0 &&
-          <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  المادة (اختياري)
-                </label>
-                <select
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              
-                  <option value="">اختر المادة</option>
-                  {subjects.map((subject) =>
-              <option key={subject} value={subject}>
-                      {subject}
-                    </option>
-              )}
-                </select>
-              </div>
-          }
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                المستوى الدراسي (اختياري)
-              </label>
-              <input
-              type="text"
-              value={currentGrade}
-              onChange={(e) => setCurrentGrade(e.target.value)}
-              placeholder="مثال: أول ثانوي، ثالث إعدادي..."
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                الهدف الدراسي (اختياري)
-              </label>
-              <input
-              type="text"
-              value={studyGoal}
-              onChange={(e) => setStudyGoal(e.target.value)}
-              placeholder="مثال: تحسين الدرجات، فهم مفاهيم صعبة..."
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                التحديات (اختياري)
-              </label>
-              <input
-              type="text"
-              value={challenges}
-              onChange={(e) => setChallenges(e.target.value)}
-              placeholder="مثال: صعوبة الحف١ قلة التركيز..."
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            
-            </div>
-          </div>
-
-          {error &&
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg">
-              {error}
-            </div>
-        }
-
-          <button
-          type="submit"
-          disabled={isGenerating}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-          
-            {isGenerating ?
-          <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                جاري إنشاء النصائح...
-              </> :
-
-          <>
-                <Lightbulb className="h-5 w-5" />
-                احصل على نصائح تعليمية
-              </>
-          }
-          </button>
-        </form> :
-
-      <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium text-gray-800">نصائح مخصصة لك</h3>
-            <button
-            onClick={() => {
-              setTipsData(null);
-              setError('');
-            }}
-            className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center gap-1">
-            
-              <RefreshCw className="h-4 w-4" />
-              نصائح جديدة
-            </button>
-          </div>
-
-          {tipsData.summary &&
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">ملخص النصائح</h4>
-              <p className="text-blue-700">{tipsData.summary}</p>
-            </div>
-        }
-
-          <div className="space-y-4">
-            {tipsData.tips?.map((tip, index) =>
-          <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`p-2 rounded-lg ${getCategoryColor(tip.category)}`}>
-                      {getCategoryIcon(tip.category)}
-                    </div>
-                    <h4 className="font-bold text-gray-800">{tip.title}</h4>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(tip.priority)}`}>
-                    {getPriorityText(tip.priority)}
-                  </span>
+      <div className="p-8">
+        {!tipsData ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {subjects.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                    المادة
+                  </label>
+                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                    <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50">
+                      <SelectValue placeholder="اختر المادة" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10 text-white">
+                      <SelectItem value="">اختر المادة</SelectItem>
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <p className="text-gray-600">{tip.content}</p>
-              </div>
-          )}
-          </div>
-        </div>
-      }
-    </div>);
+              )}
 
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                  المستوى الدراسي
+                </label>
+                <Input
+                  type="text"
+                  value={currentGrade}
+                  onChange={(e) => setCurrentGrade(e.target.value)}
+                  placeholder="مثال: أول ثانوي، ثالث إعدادي..."
+                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                  الهدف الدراسي
+                </label>
+                <Input
+                  type="text"
+                  value={studyGoal}
+                  onChange={(e) => setStudyGoal(e.target.value)}
+                  placeholder="مثال: تحسين الدرجات، فهم مفاهيم صعبة..."
+                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                  التحديات
+                </label>
+                <Input
+                  type="text"
+                  value={challenges}
+                  onChange={(e) => setChallenges(e.target.value)}
+                  placeholder="مثال: صعوبة الحفظ، قلة التركيز..."
+                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isGenerating}
+              className="w-full md:w-auto px-12 h-14 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-2xl shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  جاري إنشاء النصائح...
+                </>
+              ) : (
+                <>
+                  <Lightbulb className="h-5 w-5 mr-3" />
+                  احصل على نصائح تعليمية
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
+          <m.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-lg">نصائح مخصصة لك</h3>
+              <Button
+                onClick={() => {
+                  setTipsData(null);
+                  setError('');
+                }}
+                variant="outline"
+                className="h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/10"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                نصائح جديدة
+              </Button>
+            </div>
+
+            {tipsData.summary && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5">
+                <h4 className="font-bold text-blue-400 mb-2">ملخص النصائح</h4>
+                <p className="text-blue-300">{tipsData.summary}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {tipsData.tips?.map((tip, index) => (
+                <div
+                  key={index}
+                  className="border border-white/10 rounded-xl p-5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl border ${getCategoryStyle(tip.category)}`}>
+                        {getCategoryIcon(tip.category)}
+                      </div>
+                      <h4 className="font-bold text-white text-lg">{tip.title}</h4>
+                    </div>
+                    <span className={`text-xs px-3 py-1.5 rounded-full border font-bold ${getPriorityStyle(tip.priority)}`}>
+                      {getPriorityText(tip.priority)}
+                    </span>
+                  </div>
+                  <p className="text-gray-300 leading-relaxed">{tip.content}</p>
+                </div>
+              ))}
+            </div>
+          </m.div>
+        )}
+      </div>
+    </div>
+  );
 }

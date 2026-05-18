@@ -33,8 +33,8 @@ export function PremiumLogViewer() {
         
         const newLog = {
           timestamp: new Date().toLocaleTimeString(),
-          level: levels[Math.floor(getRandomFloat() * levels.length)],
-          message: messages[Math.floor(getRandomFloat() * messages.length)],
+          level: levels[Math.floor(getRandomFloat() * levels.length)]!,
+          message: messages[Math.floor(getRandomFloat() * messages.length)]!,
         };
         
         setLogs(prev => [...prev.slice(-49), newLog]);

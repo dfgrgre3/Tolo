@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  Plus, BookOpen, Download, Star, Eye, Users, Search
+  Plus, BookOpen, Download, Star, Eye, Users, Search, Trash2
 } from "lucide-react";
 import Image from "next/image";
 import { ColumnDef } from "@tanstack/react-table";
@@ -32,6 +33,8 @@ import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { usePermission } from "@/components/auth/PermissionGuard";
+import { exportToCSV, ExportColumn } from '@/lib/export-utils';
+import { logAdminAction } from "@/lib/admin-audit";
 
 interface Book {
   id: string;
@@ -223,6 +226,27 @@ export default function AdminBooksPage() {
 
   const columns: ColumnDef<Book>[] = [
     {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="تحديد الكل"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="تحديد الصف"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: "title",
       header: "المجلد العلمي",
       cell: ({ row }) => {
@@ -340,12 +364,52 @@ export default function AdminBooksPage() {
         data={books}
         loading={isLoading}
         serverSide
+        selectable
         totalRows={pagination?.total || 0}
         pageCount={pagination?.totalPages || 1}
         currentPage={page}
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         pageSize={limit}
+        bulkActions={[
+          {
+            label: "تصدير CSV",
+            icon: Download,
+            onClick: (rows) => {
+              const exportColumns: ExportColumn<Book>[] = [
+                { header: 'العنوان', accessor: 'title' },
+                { header: 'المؤلف', accessor: 'author' },
+                { header: 'التقييم', accessor: (b) => b.rating },
+                { header: 'المشاهدات', accessor: (b) => b.views },
+                { header: 'التحميلات', accessor: (b) => b.downloads },
+                { header: 'تاريخ الإضافة', accessor: (b) => new Date(b.createdAt).toLocaleDateString('ar-EG') },
+              ];
+              exportToCSV(rows, exportColumns, 'books');
+              toast.success('تم تصدير الكتب بنجاح');
+            },
+          },
+          {
+            label: "حذف المحدد",
+            icon: Trash2,
+            variant: "destructive",
+            onClick: async (rows) => {
+              const ids = rows.map((r: Book) => r.id);
+              const response = await adminFetch(apiRoutes.admin.books, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids }),
+              });
+              if (response.ok) {
+                toast.success(`تم حذف ${ids.length} كتاب`);
+                logAdminAction("DELETE", "book", { details: { count: ids.length } });
+                refetch();
+                void requestPublicCacheRevalidation(["/library"]).catch(() => {});
+              } else {
+                toast.error("فشل في حذف الكتب");
+              }
+            },
+          },
+        ]}
         actions={{ onRefresh: () => refetch() }}
         toolbar={
           <div className="relative">

@@ -1,3 +1,4 @@
+import 'server-only';
 import Redis from 'ioredis';
 import { logger } from './logger';
 

@@ -178,13 +178,13 @@ export function useTouchGestures({
 
     useEffect(() => {
         const handleTouchStart = (e: TouchEvent) => {
-            touchStart.x = e.touches[0].clientX;
-            touchStart.y = e.touches[0].clientY;
+            touchStart.x = e.touches[0]!.clientX;
+            touchStart.y = e.touches[0]!.clientY;
         };
 
         const handleTouchEnd = (e: TouchEvent) => {
-            const dx = e.changedTouches[0].clientX - touchStart.x;
-            const dy = e.changedTouches[0].clientY - touchStart.y;
+            const dx = e.changedTouches[0]!.clientX - touchStart.x;
+            const dy = e.changedTouches[0]!.clientY - touchStart.y;
 
             if (Math.abs(dx) > Math.abs(dy)) {
                 // Horizontal swipe

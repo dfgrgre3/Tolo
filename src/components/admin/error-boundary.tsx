@@ -46,7 +46,7 @@ class AdminErrorBoundary extends React.Component<
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
 
@@ -68,7 +68,7 @@ class AdminErrorBoundary extends React.Component<
     window.location.href = "/admin";
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       const { error, isNetworkError } = this.state;
 

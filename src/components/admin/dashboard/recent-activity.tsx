@@ -40,16 +40,16 @@ export function RecentActivity({ recentActivity }: RecentActivityProps) {
         <div className="space-y-1">
           {recentActivity.length > 0 ? (
             recentActivity.map((activity) => {
-              const iconInfo = activityIcons[activity.type] || activityIcons.user;
-              const Icon = iconInfo.icon;
+              const iconInfo = activityIcons[activity.type] ?? activityIcons.user;
+              const Icon = iconInfo!.icon;
               return (
                 <div
                   key={`${activity.type}-${activity.id}`}
                   className="flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconInfo.bg}`}>
-                      <Icon className={`h-5 w-5 ${iconInfo.color}`} />
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconInfo!.bg}`}>
+                      <Icon className={`h-5 w-5 ${iconInfo!.color}`} />
                     </div>
                     <div>
                       <p className="font-medium text-sm">{activityLabels[activity.type] || activity.type}</p>

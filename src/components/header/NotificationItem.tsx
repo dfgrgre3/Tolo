@@ -69,6 +69,7 @@ export function NotificationItem({ notification, markAsRead }: NotificationItemP
 					{notification.actions && notification.actions.length > 0 && (
 						<div className="flex items-center gap-2 mt-2">
 							{notification.actions.map((action, idx) => (
+								typeof action === 'object' ?
 								<Button
 									key={idx}
 									variant="outline"
@@ -81,7 +82,7 @@ export function NotificationItem({ notification, markAsRead }: NotificationItemP
 									}}
 								>
 									{action.label}
-								</Button>
+								</Button> : null
 							))}
 						</div>
 					)}

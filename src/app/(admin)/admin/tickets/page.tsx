@@ -44,6 +44,7 @@ import { adminFetch } from "@/lib/api/admin-api";
 import { m } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { arSA } from "date-fns/locale/ar-SA";
+import { useTicketRealtime } from "@/hooks/use-admin-realtime";
 
 interface TicketModel {
   id: string;
@@ -94,6 +95,16 @@ export default function AdminTicketsPage() {
   const [replyMessage, setReplyMessage] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
+
+  const { isConnected: isWsConnected } = useTicketRealtime(
+    () => {
+      refetch();
+      toast.info("تذكرة جديدة وصلت!");
+    },
+    () => {
+      refetch();
+    }
+  );
 
   const { data: tickets = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", "tickets", statusFilter, priorityFilter],

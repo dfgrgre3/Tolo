@@ -47,7 +47,7 @@ export function useAdminNotifications() {
   useEffect(() => {
     if (!socket) return;
 
-    let reconnectTimeout: NodeJS.Timeout;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -86,7 +86,7 @@ export function useAdminNotifications() {
     return () => {
       socket.removeEventListener("message", handleMessage);
       socket.removeEventListener("open", handleReconnect);
-      clearTimeout(reconnectTimeout);
+      if (reconnectTimeout !== null) clearTimeout(reconnectTimeout);
     };
   }, [socket, queryClient]);
 

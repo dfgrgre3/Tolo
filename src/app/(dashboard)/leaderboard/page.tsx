@@ -106,12 +106,12 @@ export default function LeaderboardPage() {
 
         {/* --- Top 3 Podium: The Champions --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-12">
-           {topThree.map((entry, idx) => {
-            const colors = [
-              { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
-              { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
-              { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }
-            ][idx];
+            {topThree.map((entry, idx) => {
+             const colors = [
+               { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
+               { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
+               { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }
+             ][idx]!;
 
             const isFirst = idx === 0;
 
@@ -129,15 +129,15 @@ export default function LeaderboardPage() {
                          <div className="absolute inset-x-0 -top-8 flex justify-center">
                             {isFirst ? <Crown className="w-12 h-12 text-amber-500 animate-bounce drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" /> : <Medal className={`w-8 h-8 ${colors.text}`} />}
                          </div>
-                         <div className="w-full h-full rounded-[2rem] bg-gradient-to-tr from-white/10 to-transparent flex items-center justify-center text-4xl font-black text-white">
-                            {entry.username.charAt(0).toUpperCase()}
-                         </div>
+                          <div className="w-full h-full rounded-[2rem] bg-gradient-to-tr from-white/10 to-transparent flex items-center justify-center text-4xl font-black text-white">
+                             {entry.username!.charAt(0).toUpperCase()}
+                          </div>
                          <div className="absolute -bottom-3 inset-x-4 h-6 px-4 bg-black border border-white/20 rounded-full flex items-center justify-center text-[10px] font-black transform skew-x-12">
                             LVL {entry.level}
                          </div>
                       </div>
                       <div className="text-center">
-                         <h3 className="text-xl font-black text-white">{entry.username}</h3>
+                          <h3 className="text-xl font-black text-white">{entry.username!}</h3>
                          <p className={`${colors.text} font-black text-sm uppercase tracking-widest`}>{idx === 0 ? 'الإمبراطور' : idx === 1 ? 'الملك' : 'الفارس'}</p>
                       </div>
                    </div>
@@ -146,7 +146,7 @@ export default function LeaderboardPage() {
                    <div className={`w-full ${isFirst ? 'bg-primary/20 border-primary/40' : 'bg-white/5 border-white/10'} border-t-2 rounded-t-[3rem] p-8 text-center backdrop-blur-3xl shadow-2xl relative overflow-hidden group`}>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                       <div className="relative z-10 space-y-2">
-                         <p className="text-3xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
+                          <p className="text-3xl font-black text-white">{entry.totalXP!.toLocaleString()}</p>
                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP كلي</p>
                       </div>
                    </div>
@@ -235,7 +235,7 @@ export default function LeaderboardPage() {
                           <div className="flex items-center gap-8">
                              <span className="w-12 text-2xl font-black text-gray-700 group-hover:text-primary transition-colors text-center">{entry.rank}</span>
                              <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:scale-110 group-hover:rotate-6 transition-all">
-                                {entry.username.charAt(0).toUpperCase()}
+                                 {entry.username!.charAt(0).toUpperCase()}
                              </div>
                              <div className="space-y-1">
                                 <p className="font-black text-lg text-white group-hover:text-primary transition-colors">
@@ -266,7 +266,7 @@ export default function LeaderboardPage() {
             {[
           { label: "المحاربون المسجلون", val: safeLeaderboard.length, icon: Users, color: "text-blue-400" },
           { label: "أعلى نقاط مسجلة", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map((l) => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
-          { label: "ساعات التفوق", val: userProgress ? Math.floor(userProgress.totalStudyTime / 60) : 0, icon: Clock, color: "text-purple-400" }].
+          { label: "ساعات التفوق", val: userProgress ? Math.floor((userProgress.totalStudyTime ?? 0) / 60) : 0, icon: Clock, color: "text-purple-400" }].
           map((stat, i) =>
           <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group hover:translate-y-[-5px] transition-all"}>
                  <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>

@@ -52,6 +52,7 @@ class ErrorService {
   private readonly maxLogs = 100;
   private boundaryCallback: ((error: Error, errorId: string) => void) | null = null;
   private initialized = false;
+  private cleanupFns: Array<() => void> = [];
 
   constructor() {
     this.sessionId = this.getOrCreateSessionId();
@@ -60,6 +61,19 @@ class ErrorService {
       this.setupGlobalErrorHandlers();
       this.initialized = true;
     }
+  }
+
+  public destroy(): void {
+    for (const cleanup of this.cleanupFns) {
+      try {
+        cleanup();
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+    this.cleanupFns = [];
+    this.logs = [];
+    this.initialized = false;
   }
 
   private getOrCreateSessionId(): string {
@@ -101,8 +115,7 @@ class ErrorService {
   private setupGlobalErrorHandlers(): void {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('error', (event) => {
-      // Avoid next-devtools loops
+    const handleError = (event: ErrorEvent) => {
       if (event.filename?.includes('next-devtools')) return;
       if (event.error?.stack?.includes('next-devtools')) return;
 
@@ -110,9 +123,9 @@ class ErrorService {
         source: 'Global Error Handler',
         severity: 'high' 
       });
-    });
+    };
 
-    window.addEventListener('unhandledrejection', (event) => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
       if (!event.reason) return;
       if (String(event.reason.stack || '').includes('next-devtools')) return;
 
@@ -120,6 +133,14 @@ class ErrorService {
         source: 'Unhandled Promise Rejection',
         severity: 'high'
       });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    this.cleanupFns.push(() => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
     });
   }
 

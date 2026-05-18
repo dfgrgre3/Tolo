@@ -55,9 +55,8 @@ func SetupPublicRoutes(router *gin.Engine) {
 	// Guest User
 	router.GET("/api/users/guest", handlers.GetGuestUser)
 
-	// Paymob Webhook
+	// Paymob Webhook (POST only — GET is a CSRF vector)
 	router.POST("/api/payments/paymob/callback", handlers.PaymobWebhook)
-	router.GET("/api/payments/paymob/callback", handlers.PaymobWebhook)
 
 	// Clerk Webhook
 	router.POST("/api/webhooks/clerk", handlers.ClerkWebhook)

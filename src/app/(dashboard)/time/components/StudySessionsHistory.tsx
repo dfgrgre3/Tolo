@@ -1,131 +1,23 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
-import { 
-  Clock,
-  BookOpen,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Brain,
-  Coffee,
-  Eye,
-  EyeOff,
-  Filter,
-  Search,
-  SortAsc,
-  SortDesc,
-  Download,
-  Zap,
-  Trophy,
-  LineChart,
-  PieChart,
-  Flame,
-  MoreHorizontal,
-  ChevronLeft,
-  ChevronRight
+import {
+  Trophy, Activity, Clock, Brain, BarChart3,
+  Filter, Eye, EyeOff, Download
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format, startOfWeek, subDays, subMonths, startOfMonth } from 'date-fns';
+import { format, startOfWeek, subMonths, startOfMonth, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 import { logger } from '@/lib/logger';
-
-interface StudySession {
-  id: string;
-  userId: string;
-  taskId?: string;
-  durationMin: number;
-  subject?: string | { name: string };
-  notes?: string;
-  mood?: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
-  productivity?: number;
-  breaks?: number;
-  distractions?: number;
-  focusScore?: number;
-  energyLevel?: number;
-  difficulty?: number;
-  satisfaction?: number;
-  tags?: string[];
-  location?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface StudySessionsHistoryProps {
-  readonly sessions: StudySession[];
-  readonly subjects: string[];
-}
-
-interface SessionStats {
-  totalSessions: number;
-  totalHours: number;
-  averageSessionLength: number;
-  averageProductivity: number;
-  averageFocusScore: number;
-  averageMood: number;
-  totalBreaks: number;
-  totalDistractions: number;
-  longestSession: number;
-  shortestSession: number;
-  mostProductiveDay: string;
-  mostProductiveTime: string;
-  favoriteSubject: string;
-  studyStreak: number;
-  weeklyTrend: number;
-  monthlyTrend: number;
-}
-
-interface ChartData {
-  date: string;
-  hours: number;
-  sessions: number;
-  productivity: number;
-  mood: number;
-}
-
-const MOOD_COLORS = {
-  'EXCELLENT': 'bg-green-500 text-green-50',
-  'GOOD': 'bg-blue-500 text-blue-50',
-  'AVERAGE': 'bg-yellow-500 text-yellow-50',
-  'POOR': 'bg-red-500 text-red-50'
-};
-
-const MOOD_LABELS = {
-  'EXCELLENT': 'ممتاز',
-  'GOOD': 'جيد',
-  'AVERAGE': 'متوسط',
-  'POOR': 'ضعيف'
-};
-
-const MOOD_ICONS = {
-  'EXCELLENT': '🤩',
-  'GOOD': '🙂',
-  'AVERAGE': '😑',
-  'POOR': '😔'
-};
-
-const TIME_PERIODS = [
-  { value: 'week', label: 'هذا الأسبوع' },
-  { value: 'month', label: 'هذا الشهر' },
-  { value: 'quarter', label: 'هذا الربع' },
-  { value: 'year', label: 'هذا العام' },
-  { value: 'all', label: 'كل الوقت' }
-];
-
-const _CHART_TYPES = [
-  { value: 'line', label: 'خط', icon: LineChart },
-  { value: 'bar', label: 'أعمدة', icon: BarChart3 },
-  { value: 'pie', label: 'دائري', icon: PieChart }
-];
+import type { StudySession, StudySessionsHistoryProps, SessionStats, ChartData } from './_components/study-session-types';
+import { StudyChart } from './_components/StudyChart';
+import { SessionsListView } from './_components/SessionsListView';
+import { SessionsGridView } from './_components/SessionsGridView';
+import { StatsSection } from './_components/StatsSection';
+import { FilterPanel } from './_components/FilterPanel';
+import { PaginationBar } from './_components/PaginationBar';
 
 export default function StudySessionsHistory({ sessions, subjects }: StudySessionsHistoryProps) {
   const [timePeriod, setTimePeriod] = useState('month');
@@ -135,16 +27,15 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'productivity' | 'mood'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'chart'>('list');
-  const [_chartType] = useState('line');
   const [showStats, setShowStats] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [bulkSelectMode, setBulkSelectMode] = useState(false);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  
+
   // Date range
   const [customDateRange] = useState({
     start: '',
@@ -234,20 +125,12 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   }, [sessions, timePeriod, selectedSubject, selectedMood, searchQuery, sortBy, sortOrder, customDateRange]);
 
   // Handler for session toggle in bulk select mode
-  const updateSelectedSessions = useCallback((sessionId: string, isChecked: boolean) => {
+  const handleToggleSession = useCallback((sessionId: string, checked: boolean) => {
     setSelectedSessions(prev => {
-      if (isChecked) {
-        return [...prev, sessionId];
-      }
+      if (checked) return [...prev, sessionId];
       return prev.filter(id => id !== sessionId);
     });
   }, []);
-
-  const handleSessionToggle = useCallback((sessionId: string) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateSelectedSessions(sessionId, e.target.checked);
-    };
-  }, [updateSelectedSessions]);
 
   // Calculate comprehensive statistics
   const stats: SessionStats = useMemo(() => {
@@ -276,30 +159,30 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     const totalMinutes = filteredSessions.reduce((acc, session) => acc + session.durationMin, 0);
     const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
     const averageSessionLength = Math.round(totalMinutes / totalSessions);
-    
+
     const productiveSessions = filteredSessions.filter(s => s.productivity !== undefined);
     const averageProductivity = productiveSessions.length > 0
       ? Math.round(productiveSessions.reduce((acc, s) => acc + (s.productivity || 0), 0) / productiveSessions.length)
       : 0;
-    
+
     const focusSessions = filteredSessions.filter(s => s.focusScore !== undefined);
     const averageFocusScore = focusSessions.length > 0
       ? Math.round(focusSessions.reduce((acc, s) => acc + (s.focusScore || 0), 0) / focusSessions.length)
       : 0;
-    
+
     const moodSessions = filteredSessions.filter(s => s.mood !== undefined);
     const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
     const averageMood = moodSessions.length > 0
       ? Math.round(moodSessions.reduce((acc, s) => acc + (moodValues[s.mood || 'AVERAGE'] || 2), 0) / moodSessions.length)
       : 0;
-    
+
     const totalBreaks = filteredSessions.reduce((acc, s) => acc + (s.breaks || 0), 0);
     const totalDistractions = filteredSessions.reduce((acc, s) => acc + (s.distractions || 0), 0);
-    
+
     const durations = filteredSessions.map(s => s.durationMin);
     const longestSession = Math.max(...durations);
     const shortestSession = Math.min(...durations);
-    
+
     // Find most productive day of week
     const dayStats = filteredSessions.reduce((acc, session) => {
       const day = format(new Date(session.createdAt), 'EEEE', { locale: ar });
@@ -308,13 +191,13 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       acc[day].totalProductivity += session.productivity || 0;
       return acc;
     }, {} as Record<string, { sessions: number; totalProductivity: number }>);
-    
+
     const mostProductiveDay = Object.keys(dayStats).reduce((best, day) => {
-      const avgProductivity = dayStats[day].totalProductivity / dayStats[day].sessions;
-      const bestAvg = dayStats[best]?.totalProductivity / dayStats[best]?.sessions || 0;
+      const avgProductivity = dayStats[day]!.totalProductivity / dayStats[day]!.sessions;
+      const bestAvg = (dayStats[best]?.totalProductivity ?? 0) / (dayStats[best]?.sessions ?? 1);
       return avgProductivity > bestAvg ? day : best;
-    }, Object.keys(dayStats)[0] || '');
-    
+    }, Object.keys(dayStats)[0] ?? '');
+
     // Find most productive time
     const hourStats = filteredSessions.reduce((acc, session) => {
       const hour = new Date(session.createdAt).getHours();
@@ -323,15 +206,15 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       acc[hour].totalProductivity += session.productivity || 0;
       return acc;
     }, {} as Record<number, { sessions: number; totalProductivity: number }>);
-    
+
     const mostProductiveHour = Object.keys(hourStats).reduce((best, hour) => {
-      const avgProductivity = hourStats[Number.parseInt(hour)].totalProductivity / hourStats[Number.parseInt(hour)].sessions;
-      const bestAvg = hourStats[Number.parseInt(best)]?.totalProductivity / hourStats[Number.parseInt(best)]?.sessions || 0;
+      const avgProductivity = hourStats[Number.parseInt(hour)]!.totalProductivity / hourStats[Number.parseInt(hour)]!.sessions;
+      const bestAvg = (hourStats[Number.parseInt(best)]?.totalProductivity ?? 0) / (hourStats[Number.parseInt(best)]?.sessions ?? 1);
       return avgProductivity > bestAvg ? hour : best;
-    }, Object.keys(hourStats)[0] || '0');
-    
+    }, Object.keys(hourStats)[0] ?? '0');
+
     const mostProductiveTime = `${mostProductiveHour}:00 - ${Number.parseInt(mostProductiveHour) + 1}:00`;
-    
+
     // Find favorite subject
     const subjectStats = filteredSessions.reduce((acc, session) => {
       const subjectName = typeof session.subject === 'string' ? session.subject : session.subject?.name;
@@ -340,63 +223,63 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       }
       return acc;
     }, {} as Record<string, number>);
-    
-    const favoriteSubject = Object.keys(subjectStats).reduce((best, subject) => 
-      subjectStats[subject] > (subjectStats[best] || 0) ? subject : best, ''
+
+    const favoriteSubject = Object.keys(subjectStats).reduce((best, subject) =>
+      subjectStats[subject]! > (subjectStats[best] ?? 0) ? subject : best, ''
     );
-    
+
     // Calculate study streak (consecutive days with sessions)
-    const sortedSessions = [...filteredSessions].sort((a, b) => 
+    const sortedSessions = [...filteredSessions].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    
+
     let studyStreak = 0;
     let currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    
-    for (let i = 0; i < 365; i++) { // Check up to a year
+
+    for (let i = 0; i < 365; i++) {
       const dayStart = new Date(currentDate);
       const dayEnd = new Date(currentDate);
       dayEnd.setHours(23, 59, 59, 999);
-      
+
       const hasSessionThisDay = sortedSessions.some(session => {
         const sessionDate = new Date(session.createdAt);
         return sessionDate >= dayStart && sessionDate <= dayEnd;
       });
-      
+
       if (hasSessionThisDay) {
         studyStreak++;
       } else if (studyStreak > 0) {
-        break; // Streak broken
+        break;
       }
-      
+
       currentDate.setDate(currentDate.getDate() - 1);
     }
-    
+
     // Calculate trends
     const now = new Date();
     const weekAgo = subDays(now, 7);
     const twoWeeksAgo = subDays(now, 14);
     const monthAgo = subDays(now, 30);
     const twoMonthsAgo = subDays(now, 60);
-    
+
     const thisWeekSessions = filteredSessions.filter(s => new Date(s.createdAt) >= weekAgo);
     const lastWeekSessions = filteredSessions.filter(s => {
       const date = new Date(s.createdAt);
       return date >= twoWeeksAgo && date < weekAgo;
     });
-    
+
     const thisMonthSessions = filteredSessions.filter(s => new Date(s.createdAt) >= monthAgo);
     const lastMonthSessions = filteredSessions.filter(s => {
       const date = new Date(s.createdAt);
       return date >= twoMonthsAgo && date < monthAgo;
     });
-    
+
     const thisWeekHours = thisWeekSessions.reduce((acc, s) => acc + s.durationMin, 0) / 60;
     const lastWeekHours = lastWeekSessions.reduce((acc, s) => acc + s.durationMin, 0) / 60;
     const thisMonthHours = thisMonthSessions.reduce((acc, s) => acc + s.durationMin, 0) / 60;
     const lastMonthHours = lastMonthSessions.reduce((acc, s) => acc + s.durationMin, 0) / 60;
-    
+
     const weeklyTrend = lastWeekHours > 0 ? Math.round(((thisWeekHours - lastWeekHours) / lastWeekHours) * 100) : 0;
     const monthlyTrend = lastMonthHours > 0 ? Math.round(((thisMonthHours - lastMonthHours) / lastMonthHours) * 100) : 0;
 
@@ -423,10 +306,10 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   // Generate chart data
   const chartData: ChartData[] = useMemo(() => {
     const data: Record<string, ChartData> = {};
-    
+
     for (const session of filteredSessions) {
       const date = format(new Date(session.createdAt), 'yyyy-MM-dd');
-      
+
       if (!data[date]) {
         data[date] = {
           date,
@@ -436,22 +319,21 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           mood: 0
         };
       }
-      
+
       data[date].hours += session.durationMin / 60;
       data[date].sessions += 1;
       data[date].productivity += session.productivity || 0;
-      
+
       const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
       data[date].mood += moodValues[session.mood || 'AVERAGE'] || 2;
     }
-    
-    // Calculate averages
+
     for (const day of Object.values(data)) {
       day.productivity = Math.round(day.productivity / day.sessions);
       day.mood = Math.round(day.mood / day.sessions);
       day.hours = Math.round(day.hours * 10) / 10;
     }
-    
+
     return Object.values(data).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredSessions]);
 
@@ -461,16 +343,6 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours > 0) {
-      return `${hours}س ${mins}د`;
-    }
-    return `${mins}د`;
-  };
 
   const exportData = useCallback(() => {
     try {
@@ -486,7 +358,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           searchQuery
         }
       };
-      
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -500,240 +372,6 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       logger.error('Error exporting data:', error instanceof Error ? error.message : String(error));
     }
   }, [filteredSessions, stats, chartData, timePeriod, selectedSubject, selectedMood, searchQuery]);
-
-  const renderChart = () => {
-    if (chartData.length === 0) {
-      return (
-        <div className="text-center py-8 text-gray-500">
-          <BarChart3 className="mx-auto h-12 w-12 opacity-50 mb-2" />
-          <p>لا توجد بيانات لعرض الرسم البياني</p>
-        </div>
-      );
-    }
-
-    // Simple chart representation (in a real app, you'd use a charting library like Chart.js or Recharts)
-    const maxHours = Math.max(...chartData.map(d => d.hours));
-    
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.totalHours}س</div>
-                <div className="text-sm text-gray-600">إجمالي الساعات</div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.totalSessions}</div>
-                <div className="text-sm text-gray-600">إجمالي الجلسات</div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.averageProductivity}%</div>
-                <div className="text-sm text-gray-600">متوسط الإنتاجية</div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">{stats.studyStreak}</div>
-                <div className="text-sm text-gray-600">أيام متتالية</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Simple bar chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>الساعات اليومية</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {chartData.slice(-14).map((day) => (
-                <div key={day.date} className="flex items-center gap-3">
-                  <div className="w-20 text-sm text-gray-600">
-                    {format(new Date(day.date), 'dd/MM', { locale: ar })}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      {/* CSS variables for dynamic values are acceptable */}
-                      <div 
-                        className="bg-primary h-6 rounded min-w-[2px]"
-                        style={{ width: `${(day.hours / maxHours) * 100}%` }}
-                      />
-                      <span className="text-sm font-medium">{day.hours}س</span>
-                    </div>
-                  </div>
-                  <div className="w-16 text-sm text-gray-500">
-                    {day.sessions} جلسة
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  const renderSessionsList = () => (
-    <div className="space-y-3">
-      {paginatedSessions.map((session) => (
-        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    <span className="font-black text-blue-500">{formatDuration(session.durationMin)}</span>
-                  </div>
-                  
-                  {session.subject && (
-                    <Badge variant="outline" className="text-xs">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      {typeof session.subject === 'string' ? session.subject : session.subject.name}
-                    </Badge>
-                  )}
-                  
-                  {session.mood && (
-                    <Badge className={cn("text-xs", MOOD_COLORS[session.mood])}>
-                      {MOOD_ICONS[session.mood]} {MOOD_LABELS[session.mood]}
-                    </Badge>
-                  )}
-                  
-                  {session.productivity !== undefined && (
-                    <Badge variant="secondary" className="text-xs">
-                      <Activity className="h-3 w-3 mr-1" />
-                      {session.productivity}%
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="text-sm text-gray-600 mb-2">
-                  {format(new Date(session.createdAt), 'EEEE، dd MMMM yyyy - HH:mm', { locale: ar })}
-                </div>
-                
-                {session.notes && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2 line-clamp-2">
-                    {session.notes}
-                  </p>
-                )}
-                
-                <div className="flex flex-wrap gap-2">
-                  {session.breaks !== undefined && session.breaks > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      <Coffee className="h-3 w-3 mr-1" />
-                      {session.breaks} استراحة
-                    </Badge>
-                  )}
-                  
-                  {session.distractions !== undefined && session.distractions > 0 && (
-                    <Badge variant="outline" className="text-xs text-red-600">
-                      <Zap className="h-3 w-3 mr-1" />
-                      {session.distractions} تشتت
-                    </Badge>
-                  )}
-                  
-                  {session.focusScore !== undefined && (
-                    <Badge variant="outline" className="text-xs">
-                      <Brain className="h-3 w-3 mr-1" />
-                      تركيز {session.focusScore}%
-                    </Badge>
-                  )}
-                  
-                  {session.tags?.map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                {bulkSelectMode && (
-                  <input
-                    type="checkbox"
-                    aria-label={session.subject ? `تحديد جلسة المذاكرة للمادة ${session.subject}` : 'تحديد جلسة المذاكرة'}
-                    checked={selectedSessions.includes(session.id)}
-                    onChange={handleSessionToggle(session.id)}
-                  />
-                )}
-                
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-
-  const renderSessionsGrid = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {paginatedSessions.map((session) => (
-        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
-          <CardContent className="p-4">
-            <div className="text-center mb-3">
-              <div className="text-2xl font-bold text-blue-600 mb-1">
-                {formatDuration(session.durationMin)}
-              </div>
-              <div className="text-sm text-gray-500">
-                {format(new Date(session.createdAt), 'dd/MM/yyyy', { locale: ar })}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              {session.subject && (
-                <div className="flex items-center justify-center">
-                  <Badge variant="outline">
-                    <BookOpen className="h-3 w-3 mr-1" />
-                    {typeof session.subject === 'string' ? session.subject : session.subject.name}
-                  </Badge>
-                </div>
-              )}
-              
-              {session.mood && (
-                <div className="flex items-center justify-center">
-                  <Badge className={cn("text-xs", MOOD_COLORS[session.mood])}>
-                    {MOOD_ICONS[session.mood]} {MOOD_LABELS[session.mood]}
-                  </Badge>
-                </div>
-              )}
-              
-              {session.productivity !== undefined && (
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">الإنتاجية</div>
-                  <Progress value={session.productivity} className="h-2" />
-                  <div className="text-xs text-gray-500 mt-1">{session.productivity}%</div>
-                </div>
-              )}
-              
-              {session.notes && (
-                <p className="text-xs text-gray-600 text-center line-clamp-3 mt-2">
-                  {session.notes}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -750,7 +388,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
             <span className="flex items-center gap-1.5"><Brain className="h-4 w-4 text-purple-400" /> الإنتاجية: {stats.averageProductivity}%</span>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {/* View Mode Buttons */}
           <div className="flex rounded-lg border">
@@ -776,7 +414,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
               رسم بياني
             </Button>
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -784,7 +422,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           >
             <BarChart3 className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -792,7 +430,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           >
             <Filter className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -800,7 +438,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           >
             {bulkSelectMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -811,239 +449,28 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      {showStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">أطول جلسة</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatDuration(stats.longestSession)}</p>
-                </div>
-                <Trophy className="h-8 w-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">سلسلة الدراسة</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.studyStreak} يوم</p>
-                </div>
-                <Flame className="h-8 w-8 text-red-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">المادة المفضلة</p>
-                  <p className="text-lg font-bold text-purple-600">{stats.favoriteSubject || 'غير محدد'}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">الوقت الأمثل</p>
-                  <p className="text-sm font-bold text-orange-600">{stats.mostProductiveTime}</p>
-                </div>
-                <Clock className="h-8 w-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Trends */}
-      {showStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">الاتجاه الأسبوعي</p>
-                  <div className="flex items-center gap-2">
-                    {(() => {
-                      let trendColor = "text-gray-600";
-                      let trendPrefix = '';
-                      let TrendIcon: typeof TrendingUp | typeof TrendingDown | null = null;
-                      let iconClassName = '';
-                      
-                      if (stats.weeklyTrend > 0) {
-                        trendColor = "text-green-600";
-                        trendPrefix = '+';
-                        TrendIcon = TrendingUp;
-                        iconClassName = "text-green-600";
-                      } else if (stats.weeklyTrend < 0) {
-                        trendColor = "text-red-600";
-                        TrendIcon = TrendingDown;
-                        iconClassName = "text-red-600";
-                      }
-                      
-                      return (
-                        <>
-                          <span className={cn("text-lg font-bold", trendColor)}>
-                            {trendPrefix}{stats.weeklyTrend}%
-                          </span>
-                          {TrendIcon && <TrendIcon className={cn("h-4 w-4", iconClassName)} />}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">الاتجاه الشهري</p>
-                  <div className="flex items-center gap-2">
-                    {(() => {
-                      let trendColor = "text-gray-600";
-                      let trendPrefix = '';
-                      let TrendIcon: typeof TrendingUp | typeof TrendingDown | null = null;
-                      let iconClassName = '';
-                      
-                      if (stats.monthlyTrend > 0) {
-                        trendColor = "text-green-600";
-                        trendPrefix = '+';
-                        TrendIcon = TrendingUp;
-                        iconClassName = "text-green-600";
-                      } else if (stats.monthlyTrend < 0) {
-                        trendColor = "text-red-600";
-                        TrendIcon = TrendingDown;
-                        iconClassName = "text-red-600";
-                      }
-                      
-                      return (
-                        <>
-                          <span className={cn("text-lg font-bold", trendColor)}>
-                            {trendPrefix}{stats.monthlyTrend}%
-                          </span>
-                          {TrendIcon && <TrendIcon className={cn("h-4 w-4", iconClassName)} />}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Statistics Cards & Trends */}
+      {showStats && <StatsSection stats={stats} />}
 
       {/* Filters */}
       {showFilters && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="time-period-select">الفترة الزمنية</Label>
-                <Select value={timePeriod} onValueChange={setTimePeriod}>
-                  <SelectTrigger id="time-period-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_PERIODS.map(period => (
-                      <SelectItem key={period.value} value={period.value}>
-                        {period.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="subject-select">المادة</Label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger id="subject-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع المواد</SelectItem>
-                    {subjects.map(subject => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="mood-select">المزاج</Label>
-                <Select value={selectedMood} onValueChange={setSelectedMood}>
-                  <SelectTrigger id="mood-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    {Object.entries(MOOD_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {MOOD_ICONS[value as keyof typeof MOOD_ICONS]} {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="search-input">البحث</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="search-input"
-                    placeholder="البحث في الملاحظات..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center mt-4">
-              <div className="flex gap-2">
-                <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as any)}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">التاريخ</SelectItem>
-                    <SelectItem value="duration">المدة</SelectItem>
-                    <SelectItem value="productivity">الإنتاجية</SelectItem>
-                    <SelectItem value="mood">المزاج</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
-                </Button>
-              </div>
-              
-              <div className="text-sm text-gray-600">
-                {filteredSessions.length} من {sessions.length} جلسة
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <FilterPanel
+          timePeriod={timePeriod}
+          setTimePeriod={setTimePeriod}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          selectedMood={selectedMood}
+          setSelectedMood={setSelectedMood}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          subjects={subjects}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          filteredSessions={filteredSessions}
+          allSessions={sessions}
+        />
       )}
 
       {/* Content */}
@@ -1051,13 +478,13 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
         <CardContent className="p-6">
           {(() => {
             if (viewMode === 'chart') {
-              return renderChart();
+              return <StudyChart chartData={chartData} stats={stats} />;
             }
             if (filteredSessions.length === 0) {
               const hasFilters = Boolean(
                 searchQuery || timePeriod !== 'all' || selectedSubject !== 'all' || selectedMood !== 'all'
               );
-              const emptyMessage = hasFilters 
+              const emptyMessage = hasFilters
                 ? 'لا توجد جلسات تطابق المرشحات المحددة'
                 : 'ابدأ أول جلسة مذاكرة!';
               return (
@@ -1068,57 +495,29 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                 </div>
               );
             }
-            const sessionView = viewMode === 'list' ? renderSessionsList() : renderSessionsGrid();
+            const sessionView = viewMode === 'list' ? (
+              <SessionsListView
+                sessions={paginatedSessions}
+                bulkSelectMode={bulkSelectMode}
+                selectedSessions={selectedSessions}
+                onToggleSession={handleToggleSession}
+              />
+            ) : (
+              <SessionsGridView sessions={paginatedSessions} />
+            );
             return (
               <>
                 {sessionView}
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
-                      عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredSessions.length)} من {filteredSessions.length}
-                    </span>
-                    
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number.parseInt(value))}>
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    
-                    <span className="px-3 py-1 text-sm">
-                      {currentPage} من {totalPages}
-                    </span>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+                {totalPages > 1 && (
+                  <PaginationBar
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    totalPages={totalPages}
+                    itemsPerPage={itemsPerPage}
+                    setItemsPerPage={setItemsPerPage}
+                    totalItems={filteredSessions.length}
+                  />
+                )}
               </>
             );
           })()}

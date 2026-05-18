@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { adminApi } from "@/lib/api/admin-api";
+import { adminApi, adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable } from "@/components/admin/ui/admin-table";
 
@@ -37,13 +38,13 @@ export default function PermissionsPage() {
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["admin", "staff-users"],
     queryFn: async () => {
-      const res = await adminApi.fetch("/admin/users?role=ADMIN&limit=100");
+      const res = await adminFetch(`${apiRoutes.admin.users}?role=ADMIN&limit=100`);
       const admins = await res.json();
 
-      const res2 = await adminApi.fetch("/admin/users?role=TEACHER&limit=100");
+      const res2 = await adminFetch(`${apiRoutes.admin.users}?role=TEACHER&limit=100`);
       const teachers = await res2.json();
 
-      const res3 = await adminApi.fetch("/admin/users?role=MODERATOR&limit=100");
+      const res3 = await adminFetch(`${apiRoutes.admin.users}?role=MODERATOR&limit=100`);
       const moderators = await res3.json();
 
       return [
@@ -56,7 +57,7 @@ export default function PermissionsPage() {
 
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ userId, permissions }: {userId: string;permissions: string[];}) => {
-      const res = await adminApi.fetch("/admin/users", {
+      const res = await adminFetch(apiRoutes.admin.users, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, permissions })

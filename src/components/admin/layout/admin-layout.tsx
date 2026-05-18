@@ -31,11 +31,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   // Touch gestures for mobile sidebar
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
+    touchStartX.current = e.touches[0]!.clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0]!.clientX;
   };
 
   const handleTouchEnd = () => {

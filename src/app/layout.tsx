@@ -17,8 +17,21 @@ const alexandria = Alexandria({
 });
 
 export const metadata: Metadata = {
-  title: 'Tolo',
-  description: 'منصة تعليمية تفاعلية',
+  title: { default: 'Tolo - منصة تعليمية تفاعلية', template: '%s | Tolo' },
+  description: 'منصة تعليمية تفاعلية للثانوية العامة - كورسات، امتحانات، ومدرسين',
+  openGraph: {
+    title: 'Tolo - منصة تعليمية تفاعلية',
+    description: 'منصة تعليمية تفاعلية للثانوية العامة',
+    type: 'website',
+    locale: 'ar_AR',
+    siteName: 'Tolo',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tolo - منصة تعليمية تفاعلية',
+    description: 'منصة تعليمية تفاعلية للثانوية العامة',
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport = {

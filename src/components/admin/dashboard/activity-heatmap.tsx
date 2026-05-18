@@ -104,7 +104,7 @@ export function ActivityHeatmap({
       const weekData: Array<{ date: string; count: number; level: number }> = [];
       
       for (let day = 0; day < 7; day++) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = currentDate.toISOString().split('T')[0]!;
         const count = dataMap.get(dateStr) || 0;
         weekData.push({ date: dateStr, count, level: 0 });
         currentDate.setDate(currentDate.getDate() + 1);
@@ -133,12 +133,12 @@ export function ActivityHeatmap({
     let colSpan = 0;
 
     gridData.forEach((week) => {
-      const date = new Date(week[0].date);
+      const date = new Date(week[0]!.date);
       const month = date.getMonth();
       
       if (month !== currentMonth) {
         if (currentMonth !== -1) {
-          months.push({ month: MONTHS_AR[currentMonth], colSpan });
+          months.push({ month: MONTHS_AR[currentMonth]!, colSpan });
         }
         currentMonth = month;
         colSpan = 1;
@@ -148,7 +148,7 @@ export function ActivityHeatmap({
     });
 
     if (currentMonth !== -1) {
-      months.push({ month: MONTHS_AR[currentMonth], colSpan });
+      months.push({ month: MONTHS_AR[currentMonth]!, colSpan });
     }
 
     return months;

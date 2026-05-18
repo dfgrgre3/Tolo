@@ -1,0 +1,102 @@
+'use client';
+
+import { m } from 'framer-motion';
+import { User, Mail, Lock, Eye, EyeOff, Phone, Flag, Calendar, ArrowRight } from 'lucide-react';
+import { type UseFormRegister, type FieldErrors } from 'react-hook-form';
+import { PremiumInput } from '@/components/auth/premium-input';
+import { Button } from '@/components/ui/button';
+import { PasswordStrengthMeter } from './password-strength-meter';
+
+interface PersonalInfoStepProps {
+  register: UseFormRegister<any>;
+  errors: FieldErrors<any>;
+  showPassword: boolean;
+  setShowPassword: (v: boolean) => void;
+  showConfirmPassword: boolean;
+  setShowConfirmPassword: (v: boolean) => void;
+  selectedCountry: string;
+  handleCountryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  handlePhoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  passwordValue: string;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+export function PersonalInfoStep({
+  register, errors, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword,
+  selectedCountry, handleCountryChange, handlePhoneChange, passwordValue, onNext, onBack
+}: PersonalInfoStepProps) {
+  return (
+    <m.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+        <PremiumInput registration={register('username')} label="اسم المستخدم" icon={<User size={20} />} error={errors.username?.message} />
+        <PremiumInput registration={register('email')} type="email" label="البريد الإلكتروني" icon={<Mail size={20} />} error={errors.email?.message} />
+
+        <div className="space-y-3">
+          <PremiumInput
+            registration={register('password')}
+            type={showPassword ? 'text' : 'password'}
+            label="كلمة المرور"
+            icon={<Lock size={20} />}
+            endAdornment={
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
+            error={errors.password?.message}
+          />
+          <PasswordStrengthMeter passwordValue={passwordValue} />
+        </div>
+
+        <PremiumInput
+          registration={register('confirmPassword')}
+          type={showConfirmPassword ? 'text' : 'password'}
+          label="تأكيد كلمة المرور"
+          icon={<Lock size={20} />}
+          endAdornment={
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
+          error={errors.confirmPassword?.message}
+        />
+
+        <div className="space-y-2">
+          <m.div animate={{ backgroundColor: selectedCountry ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.05)" }}
+            className="relative border border-white/10 rounded-2xl h-16 flex items-center">
+            <select value={selectedCountry} onChange={handleCountryChange}
+              className="w-full h-full bg-transparent px-12 font-bold text-white outline-none appearance-none cursor-pointer">
+              {COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code} className="bg-[#0a0a0a] text-white">{country.name}</option>
+              ))}
+            </select>
+            <Flag className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+            <label className="absolute right-12 top-1/2 -translate-y-[180%] text-[10px] font-black uppercase text-primary/80 tracking-widest">الدولة</label>
+          </m.div>
+        </div>
+
+        <PremiumInput registration={{ ...register('phone'), onChange: handlePhoneChange } as any} label="رقم الهاتف" icon={<Phone size={20} />} error={errors.phone?.message} />
+        <PremiumInput registration={register('dateOfBirth')} type="date" label="تاريخ الميلاد" icon={<Calendar size={20} />} error={errors.dateOfBirth?.message} />
+      </div>
+
+      <div className="flex gap-6 pt-6">
+        <Button type="button" variant="outline" onClick={onBack} className="h-18 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-lg hover:bg-white/10 transition-colors">سابـق</Button>
+        <Button type="button" onClick={onNext} className="h-18 flex-[2] rounded-2xl bg-primary font-black text-black text-lg shadow-xl shadow-primary/10 group overflow-hidden relative">
+          <m.div className="absolute inset-0 bg-white/20" initial={{ y: "100%" }} whileHover={{ y: 0 }} transition={{ duration: 0.3 }} />
+          <div className="relative z-10 flex items-center justify-center gap-3">تأكيد البيانات <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" /></div>
+        </Button>
+      </div>
+    </m.div>
+  );
+}
+
+const COUNTRIES = [
+  { code: 'EG', name: 'مصر', phoneCode: '+20' },
+  { code: 'SA', name: 'السعودية', phoneCode: '+966' },
+  { code: 'AE', name: 'الإمارات', phoneCode: '+971' },
+  { code: 'KW', name: 'الكويت', phoneCode: '+965' },
+  { code: 'QA', name: 'قطر', phoneCode: '+974' },
+  { code: 'OM', name: 'عمان', phoneCode: '+968' },
+  { code: 'BH', name: 'البحرين', phoneCode: '+973' },
+  { code: 'JO', name: 'الأردن', phoneCode: '+962' }
+];

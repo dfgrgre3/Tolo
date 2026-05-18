@@ -4,7 +4,8 @@
  */
 export function buildAppUserWebSocketUrl(userId: string): string {
   if (typeof window === "undefined" || !userId) return "";
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const isProduction = process.env.NODE_ENV === 'production';
+  const wsProtocol = isProduction || window.location.protocol === "https:" ? "wss:" : "ws:";
   const host =
     (typeof process !== "undefined" &&
       process.env.NEXT_PUBLIC_WS_HOST?.trim()) ||

@@ -175,7 +175,7 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
     // Staged restoration
     const timer = setTimeout(() => {
       if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(restoreInputs, { timeout: 2000 });
+        window.requestIdleCallback(restoreInputs, { timeout: 2000 });
       } else {
         setTimeout(restoreInputs, 500);
       }

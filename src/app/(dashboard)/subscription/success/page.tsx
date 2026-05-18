@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { m } from "framer-motion";
 import { CheckCircle2, ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +10,14 @@ import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
 
 export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center"><div className="h-12 w-12 border-t-2 border-green-500 rounded-full animate-spin" /></div>}>
+      <PaymentSuccessContent />
+    </Suspense>
+  );
+}
+
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
   const [downloading, setDownloading] = useState(false);

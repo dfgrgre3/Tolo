@@ -305,7 +305,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       if (!groups[command.category]) {
         groups[command.category] = [];
       }
-      groups[command.category].push(command);
+      groups[command.category]!.push(command);
     });
 
     return groups;

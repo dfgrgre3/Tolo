@@ -160,8 +160,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
         {/* Bottom level badge */}
         <div className="absolute bottom-3 right-3">
-          <Badge className={cn("border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md", levelInfo.bgColor, levelInfo.color, levelInfo.borderColor)}>
-            {levelInfo.label}
+          <Badge className={cn("border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md", levelInfo!.bgColor, levelInfo!.color, levelInfo!.borderColor)}>
+            {levelInfo!.label}
           </Badge>
         </div>
 

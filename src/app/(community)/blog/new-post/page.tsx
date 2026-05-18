@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Layout } from "@/components/layout/layout";
+import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -38,7 +38,7 @@ export default function NewBlogPostPage() {
       const res = await fetch("/api/blog/categories");
       const data = await res.json() as BlogCategory[];
       setCategories(data);
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0 && data[0]) {
         setCategoryId(data[0].id);
       }
     };

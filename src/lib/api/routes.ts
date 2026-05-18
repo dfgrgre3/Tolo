@@ -25,6 +25,8 @@ export const apiRoutes = {
     live: "/api/admin/live",
     analytics: "/api/admin/analytics",
     revenue: "/api/admin/analytics/revenue",
+    journeys: "/api/admin/analytics/journeys",
+    activityMetrics: "/api/admin/analytics/metrics",
     metricsHistory: "/api/admin/metrics/history",
     infrastructureStats: "/api/admin/infrastructure/stats",
     announcements: "/api/admin/announcements",

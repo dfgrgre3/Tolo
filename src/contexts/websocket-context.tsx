@@ -32,12 +32,12 @@ class WebSocketErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+  override componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
 
 
     // Completely suppress WebSocket errors - do not log
     // Errors are expected when WebSocket is disabled
-  }render() {
+  } override render() {
     if (this.state.hasError) {
       // Silently return children without WebSocket functionality
       return <>{this.props.children}</>;

@@ -63,7 +63,7 @@ describe("useAdminNotifications", () => {
     });
 
     expect(result.current.unreadCount).toBe(1);
-    expect(result.current.notifications[0].description).toBe("Test notification");
+    expect(result.current.notifications[0]!.description).toBe("Test notification");
   });
 
   it("should handle WebSocket messages", async () => {
@@ -95,7 +95,7 @@ describe("useAdminNotifications", () => {
     });
 
     expect(result.current.notifications).toHaveLength(1);
-    expect(result.current.notifications[0].description).toBe("New notification");
+    expect(result.current.notifications[0]!.description).toBe("New notification");
   });
 
   it("should mark notification as read", async () => {

@@ -7,6 +7,7 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Search, GraduationCap, BookOpen, Star, Trash2, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
@@ -42,6 +43,7 @@ interface ApiResponse {
 }
 
 export default function AdminTeachersPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
@@ -145,7 +147,7 @@ export default function AdminTeachersPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={() => toast.info("تعديل المعلم قريباً")}
+            onClick={() => router.push(`/admin/teachers/${row.original.id}/edit`)}
             className="p-2 hover:bg-accent rounded-lg transition-colors"
           >
             <Edit className="h-4 w-4 text-blue-500" />
@@ -179,7 +181,7 @@ export default function AdminTeachersPage() {
           <AdminButton
             variant="premium"
             icon={UserPlus}
-            onClick={() => toast.info("إضافة معلم جديد قريباً")}
+            onClick={() => router.push("/admin/teachers/create")}
             className="rounded-2xl shadow-xl"
           >
             إضافة معلم

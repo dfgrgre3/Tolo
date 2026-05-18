@@ -155,7 +155,7 @@ export function useSessionManagement() {
     if (!acc[session.userId]) {
       acc[session.userId] = [];
     }
-    acc[session.userId].push(session);
+    acc[session.userId]!.push(session);
     return acc;
   }, {} as Record<string, DeviceInfo[]>);
 

@@ -13,7 +13,7 @@ export default function GrpcDemoPage() {
     async function fetchCourses() {
       try {
         const response = await rpcClient.getCourses({});
-        setCourses(response.courses);
+        setCourses((response as any).courses);
       } catch (err) {
         console.error('Failed to fetch courses via gRPC/Connect:', err);
         setError('Failed to fetch courses. Check console for details.');

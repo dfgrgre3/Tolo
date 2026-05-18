@@ -119,3 +119,5 @@ docker-compose.override.yml
 
 # Local Netlify folder
 .netlify
+node_modules/ 
+**/node_modules/ 

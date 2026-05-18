@@ -101,8 +101,9 @@ export function useGlobalSettings() {
       
       if (savedEfficiency === null && typeof navigator !== 'undefined') {
         // Auto-enable if CPU cores < 4 or RAM < 4GB (if supported)
+        const nav = navigator as Navigator & { deviceMemory?: number };
         const isLowEnd = (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) || 
-                        ((navigator as any).deviceMemory && (navigator as any).deviceMemory < 4);
+                        (nav.deviceMemory !== undefined && nav.deviceMemory < 4);
         if (isLowEnd) {
           efficiencyMode = true;
           logger.info('[useGlobalSettings] Low-end device detected, auto-enabling Efficiency Mode');

@@ -121,7 +121,8 @@ export default function AdminRewardsPage() {
     try {
       const response = await adminFetch(apiRoutes.admin.rewards);
       const data = await response.json();
-      setRewards(data.data?.rewards || data.data?.items || data.data[Object.keys(data.data || {})[0]] || data.rewards || []);
+      const firstKey = Object.keys(data.data || {})[0];
+      setRewards(data.data?.rewards || data.data?.items || (firstKey ? data.data[firstKey] : undefined) || data.rewards || []);
     } catch (_error) {
       logger.error("Error fetching rewards:", _error);
       toast.error("حدث خطأ في جلب بيانات المكافآت");
@@ -305,7 +306,7 @@ export default function AdminRewardsPage() {
       header: "درجة الندرة",
       cell: ({ row }) => {
         const rarity = row.getValue("rarity") as string;
-        const config = rarityColors[rarity] || rarityColors.common;
+        const config = rarityColors[rarity] || rarityColors.common!;
         return (
           <Badge 
             variant="outline" 

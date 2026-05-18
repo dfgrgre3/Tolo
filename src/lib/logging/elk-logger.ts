@@ -48,46 +48,11 @@ const jsonFormat = winston.format.combine(
   })
 );
 
-// NOTE: Console transport removed to avoid duplicate logging.
-// The unified-logger already handles console output via its own winston instance.
-// Having a console transport here caused every log to appear twice.
-
-// Elasticsearch transport is disabled in Next.js to avoid event loop choking
-// Logging to ES is now handled by the Go backend for better performance
-let elasticsearchTransport: any | null = null;
-/*
-if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
-  try {
-    elasticsearchTransport = new ElasticsearchTransport({
-      client: esClient as any,
-      index: `thanawy-logs-${process.env.NODE_ENV || 'development'}`,
-      transformer: (logData) => {
-        return {
-          '@timestamp': logData.timestamp,
-          level: logData.level,
-          message: logData.message,
-          service: 'thanawy',
-          environment: process.env.NODE_ENV || 'development',
-          ...logData.meta,
-        };
-      },
-      bufferLimit: 100,
-      flushInterval: 2000,
-      apm: undefined as any,
-    });
-  } catch (error) {
-    // Use fallback logger to avoid circular dependency
-    fallbackLogger.error('Failed to initialize Elasticsearch transport:', error);
-  }
-}
-*/
+// Elasticsearch logging is handled by the Go backend.
+// This logger is kept as a client-side fallback for structured logging.
 
 // إنشاء Winston logger
 const transports: winston.transport[] = [];
-
-if (elasticsearchTransport) {
-  transports.push(elasticsearchTransport);
-}
 
 export const elkLogger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',

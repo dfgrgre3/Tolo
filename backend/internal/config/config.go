@@ -31,7 +31,8 @@ type Config struct {
 		UseSSL    bool
 		PublicURL string
 	}
-	InternalIPRanges []string
+	ClerkWebhookSecret string
+	InternalIPRanges    []string
 }
 
 func Load() *Config {
@@ -71,6 +72,8 @@ func Load() *Config {
 	c.S3.Region = getEnv("S3_REGION", "us-east-1")
 	c.S3.UseSSL = getEnv("S3_USE_SSL", "true") == "true"
 	c.S3.PublicURL = getEnv("S3_PUBLIC_URL", "")
+
+	c.ClerkWebhookSecret = getEnv("CLERK_WEBHOOK_SECRET", "")
 
 	// IP Whitelist Config
 	// Standard RFC 1918 and loopback ranges used as defaults

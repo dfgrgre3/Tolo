@@ -2,80 +2,173 @@ name: Thanawy CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/thanawy-app
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/thanawy-backend
+
 jobs:
-  build:
+  test-frontend:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
-    
-    - name: Setup Go
-      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.1.0
+    - run: npm ci
+    - run: npm run lint
+    - run: npm run type-check
+    - run: npm test
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version: '1.25'
         cache-dependency-path: backend/go.sum
-
-    - name: Install Frontend Dependencies
-      run: npm ci
-    
-    - name: Install Backend Dependencies
+    - run: go mod download
       working-directory: ./backend
-      run: go mod download
-
-    - name: Run Frontend Linter
-      run: npm run lint
-    
-    - name: Run Frontend Type Check
-      run: npm run type-check
-    
-    - name: Run Frontend Tests
-      run: npm test
-
-    - name: Run Backend Tests
+    - run: go test -v -race -coverprofile=coverage.out ./...
       working-directory: ./backend
-      run: go test -v ./...
-
-    - name: Run Backend Linter
-      uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.1.1
+    - uses: golangci/golangci-lint-action@v6
       with:
         version: latest
         working-directory: backend
 
-    - name: Security Audit (High and Critical)
-      run: npm audit --audit-level=high
-      # This will fail the build if high/critical vulnerabilities are found
-    
-    - name: Build Backend
-      working-directory: ./backend
-      run: go build -o main cmd/api/main.go
-
-    - name: Build Frontend Docker Image
-      run: docker build -t thanawy-app:${{ github.sha }} .
-    
-    - name: Build Backend Docker Image
-      run: docker build -t thanawy-backend:${{ github.sha }} -f Dockerfile.backend .
-    
-    - name: Login to Docker Registry
-      if: github.ref == 'refs/heads/main'
-      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.3.0
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Push Docker Images
-      if: github.ref == 'refs/heads/main'
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npm audit --audit-level=high
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        cache-dependency-path: backend/go.sum
+    - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+    - run: gosec -no-fail -fmt=json -out=gosec-report.json ./...
+      working-directory: ./backend
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          backend/gosec-report.json
+
+  build-and-push:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [test-frontend, test-backend, security-audit]
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set image tag
+      id: vars
+      run: echo "image_tag=${{ github.sha }}-$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build & push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ steps.vars.outputs.image_tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build & push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile.backend
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ steps.vars.outputs.image_tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+    - name: Deploy to staging via SSH
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.STAGING_USER }}
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: |
+          cd /opt/thanawy
+          export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker system prune -f
+
+    - name: Health check
       run: |
-        docker tag thanawy-app:${{ github.sha }} thanawy/thanawy-app:latest
-        docker push thanawy/thanawy-app:latest
-        docker tag thanawy-backend:${{ github.sha }} thanawy/thanawy-backend:latest
-        docker push thanawy/thanawy-backend:latest
+        sleep 30
+        curl -f --retry 10 --retry-delay 5 --retry-connrefused \
+          https://staging.thanawy.app/api/healthz || exit 1
+        echo "✅ Staging deployment healthy"
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-and-push, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    steps:
+    - name: Deploy to production via SSH
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: ${{ secrets.PROD_USER }}
+        key: ${{ secrets.PROD_SSH_KEY }}
+        script: |
+          cd /opt/thanawy
+          export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker system prune -f
+
+    - name: Health check
+      run: |
+        sleep 30
+        curl -f --retry 10 --retry-delay 5 --retry-connrefused \
+          https://thanawy.app/api/healthz || exit 1
+        echo "✅ Production deployment healthy"
+
+    - name: Notify deployment success
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: |
+          {
+            "text": "✅ Thanawy deployment successful\nVersion: ${{ needs.build-and-push.outputs.image_tag }}\nEnvironment: production"
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

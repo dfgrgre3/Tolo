@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useSync
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn, UserPlus } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,23 +13,14 @@ import { HeaderLogo } from "./HeaderLogo";
 import { HeaderSearch } from "./HeaderSearch";
 import { HeaderNavigation } from "./HeaderNavigation";
 import { HeaderNotifications } from "./HeaderNotifications";
-// import removed
-
 import { HeaderBreadcrumbs } from "./HeaderBreadcrumbs";
-// import removed
 import { useMegaMenuState } from "./useMegaMenuState";
 import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./UserMenu";
-import { LogIn, UserPlus } from "lucide-react";
-// Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
-const buildLoginUrl = (redirect?: string) => {
-  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
-};
 
-// Dynamic imports for better performance
 const CommandPalette = dynamic(
   () => import("./CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
@@ -55,32 +46,36 @@ const SmartNavigationSuggestions = dynamic(
   { ssr: false, loading: () => null }
 );
 
-// Enhanced mobile menu
 const HeaderMobileMenuEnhanced = dynamic(
   () => import("./HeaderMobileMenuEnhanced").then((mod) => ({ default: mod.HeaderMobileMenuEnhanced })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
-// Reading progress bar
 const ReadingProgressBar = dynamic(
   () => import("./ReadingProgressBar").then((mod) => ({ default: mod.ReadingProgressBar })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
-// Memoized components for better performance
 const MemoizedHeaderLogo = memo(HeaderLogo);
 const MemoizedHeaderSearch = memo(HeaderSearch);
 const MemoizedHeaderNavigation = memo(HeaderNavigation);
 const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
+const buildLoginUrl = (redirect?: string) => {
+  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+};
+
+const HEADER_PREFERENCES = {
+  compactMode: false,
+  showProgress: true,
+  showSuggestions: true,
+  showActivity: true,
+};
+
 export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isMounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const isMounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const shouldReduceMotion = useSyncExternalStore(
     (callback) => {
       if (typeof window === "undefined") return () => {};
@@ -94,75 +89,54 @@ export default function Header() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  
-  // Enhanced sticky header with shrink animation
-  const { isScrolled, isShrunk, isHidden } = useStickyHeader({
+
+  const { isScrolled, isShrunk } = useStickyHeader({
     shrinkThreshold: 80,
     hideThreshold: 300,
     showOnScrollUp: true,
     enableProgress: true,
   });
 
-
   const { user, isLoading } = useAuth();
-
-
-  // Mega menu state
   const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
-
   const headerRef = useRef<HTMLElement>(null);
 
-  // Measure header height once on mount - simplified
   useEffect(() => {
     if (!mounted) return;
-
     const height = headerRef.current?.offsetHeight;
     if (height) {
       document.documentElement.style.setProperty('--header-height', `${height}px`);
     }
-  }, [mounted]); // Only run once when mounted
+  }, [mounted]);
 
-  // Header preferences REMOVED - hardcoded preferences
-  const headerPreferences = {
-    compactMode: false,
-    showProgress: true,
-    showSuggestions: true,
-    showActivity: true,
-  };
-
-  // Keyboard shortcuts
   useHeaderKeyboardShortcuts({
     mounted,
     isMobileMenuOpen,
     setIsMobileMenuOpen,
   });
 
-  // Toggle mobile menu
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev);
   }, []);
 
-  // Memoized active route checker
   const isActiveRoute = useCallback((href: string) => {
     if (!pathname) return false;
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   }, [pathname]);
 
-  // Memoized header classes - minimal dependencies
   const computedHeaderClasses = useMemo(() => {
     return cn(
       "sticky top-0 z-50 w-full transition-colors duration-200 border-b bg-background/95",
       isScrolled && "shadow-sm border-primary/20",
       isMounted && user && !isScrolled && "border-primary/10",
     );
-  }, [isScrolled, isMounted, user]); // Reduced dependencies
+  }, [isScrolled, isMounted, user]);
 
-  // Container height based on shrink state
   const containerHeight = useMemo(() => {
-    if (headerPreferences.compactMode || isShrunk) return "h-12";
+    if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-12";
     return "h-16";
-  }, [headerPreferences.compactMode, isShrunk]);
+  }, [isShrunk]);
 
   const loginUrl = useMemo(() => {
     const query = searchParams.toString();
@@ -172,27 +146,13 @@ export default function Header() {
 
   return (
     <>
-      {/* Reading Progress Bar */}
-      {headerPreferences.showProgress && (
-        <ReadingProgressBar
-          position="top"
-          height={2}
-          animate={!shouldReduceMotion}
-        />
-      )}
+      {HEADER_PREFERENCES.showProgress && <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />}
 
-      <header
-        ref={headerRef}
-        className={computedHeaderClasses}
-        role="banner"
-        aria-label="رأس الصفحة الرئيسي"
-      >
+      <header ref={headerRef} className={computedHeaderClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
         <div className="container mx-auto px-2 sm:px-4">
           <div className={cn("flex items-center justify-between gap-1.5 sm:gap-2 md:gap-4 transition-all", containerHeight)}>
-            {/* Logo */}
             <MemoizedHeaderLogo />
 
-            {/* Desktop Navigation */}
             <MemoizedHeaderNavigation
               openMegaMenu={openMegaMenu}
               setOpenMegaMenu={setOpenMegaMenu}
@@ -201,62 +161,45 @@ export default function Header() {
               user={user as any}
             />
 
-            {/* Right Side Actions */}
             <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
-              {/* Progress Indicator (compact) */}
-              {headerPreferences.showProgress && isShrunk && (
+              {HEADER_PREFERENCES.showProgress && isShrunk && (
                 <AnimatePresence>
-                  <m.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="hidden md:flex"
-                  >
+                  <m.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="hidden md:flex">
                     <ProgressIndicator />
                   </m.div>
                 </AnimatePresence>
               )}
 
-              {/* Smart Navigation Suggestions */}
-              {headerPreferences.showSuggestions && (
+              {HEADER_PREFERENCES.showSuggestions && (
                 <div className="hidden lg:block">
                   <SmartNavigationSuggestions />
                 </div>
               )}
 
-              {/* Search */}
               <MemoizedHeaderSearch />
 
-              {/* Quick Actions */}
               <div className="hidden md:block">
                 <QuickActions />
               </div>
 
-              {/* Activity Widget */}
-              {headerPreferences.showActivity && (
+              {HEADER_PREFERENCES.showActivity && (
                 <div className="hidden lg:block">
                   <ActivityWidget />
                 </div>
               )}
 
-              {/* ContextualHelp */}
               <div className="hidden md:block">
                 <ContextualHelp />
               </div>
 
-              {/* Theme Toggle */}
               {mounted && (
                 <div className="hidden md:flex">
                   <ThemeToggle />
                 </div>
               )}
 
-              {/* Notifications */}
-              {isMounted && (
-                  <HeaderNotifications user={user as any} mounted={mounted} />
-              )}
+              {isMounted && <HeaderNotifications user={user as any} mounted={mounted} />}
 
-              {/* User Menu & Auth Buttons */}
               {isMounted && (
                 <div className="flex items-center gap-2">
                   {isLoading ? (
@@ -266,20 +209,13 @@ export default function Header() {
                   ) : (
                     <div className="hidden md:flex items-center gap-1.5">
                       <Link href={loginUrl}>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-4"
-                        >
+                        <Button variant="ghost" size="sm" className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-4">
                           <LogIn className="h-4 w-4" />
                           <span>تسجيل الدخول</span>
                         </Button>
                       </Link>
                       <Link href="/register">
-                        <Button 
-                          size="sm" 
-                          className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-6 hover:scale-105 active:scale-95 group relative overflow-hidden"
-                        >
+                        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-6 hover:scale-105 active:scale-95 group relative overflow-hidden">
                           <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]" />
                           <UserPlus className="h-4 w-4 transition-transform group-hover:rotate-12 relative z-10" />
                           <span className="relative z-10 font-bold">إنشاء حساب</span>
@@ -290,8 +226,6 @@ export default function Header() {
                 </div>
               )}
 
-
-              {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -304,23 +238,11 @@ export default function Header() {
               >
                 <AnimatePresence>
                   {isMobileMenuOpen ? (
-                    <m.div
-                      key="close"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
+                    <m.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
                       <X className="h-5 w-5" aria-hidden="true" />
                     </m.div>
                   ) : (
-                    <m.div
-                      key="menu"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
+                    <m.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
                       <Menu className="h-5 w-5" aria-hidden="true" />
                     </m.div>
                   )}
@@ -330,12 +252,9 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Breadcrumbs */}
         {!isShrunk && <MemoizedHeaderBreadcrumbs />}
-
       </header>
 
-      {/* Mobile Menu */}
       <HeaderMobileMenuEnhanced
         key={pathname || "root"}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -344,7 +263,6 @@ export default function Header() {
         mounted={mounted}
       />
 
-      {/* Command Palette */}
       <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
     </>
   );

@@ -89,7 +89,7 @@ describe("WebSocket Integration", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(messageHandler).toHaveBeenCalled();
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("notification");
     });
 
@@ -112,7 +112,7 @@ describe("WebSocket Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("broadcast-progress");
       expect(receivedData.stats.sent).toBe(50);
     });
@@ -133,7 +133,7 @@ describe("WebSocket Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("analytics-update");
     });
 
@@ -188,7 +188,7 @@ describe("WebSocket Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("admin-alert");
       expect(receivedData.severity).toBe("warning");
     });
@@ -212,7 +212,7 @@ describe("WebSocket Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("audit-log");
     });
 
@@ -238,7 +238,7 @@ describe("WebSocket Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const receivedData = JSON.parse(messageHandler.mock.calls[0][0].data);
+      const receivedData = JSON.parse(messageHandler.mock.calls[0]![0]!.data);
       expect(receivedData.type).toBe("system-status");
       expect(receivedData.status).toBe("healthy");
     });

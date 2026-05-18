@@ -11,44 +11,13 @@ export interface AuthUser {
   avatar: string | null;
   role: string;
   emailVerified: boolean | null;
-  status?: string;
-  phone?: string | null;
-  phoneVerified: boolean | null;
-  alternativePhone?: string | null;
-  birthDate?: string | null;
-  dateOfBirth?: string | null;
-  gender?: string | null;
-  city?: string | null;
-  country?: string | null;
-  school?: string | null;
-  grade?: string | null;
-  gradeLevel?: string | null;
-  educationType?: string | null;
-  section?: string | null;
-  studyGoal?: string | null;
-  bio?: string | null;
-  subjectsTaught?: string[];
-  experienceYears?: string | null;
-  createdAt?: string;
 
-  lastLogin?: string;
   totalXP?: number;
   level?: number;
-  currentStreak?: number;
-  longestStreak?: number;
-  totalStudyTime?: number;
-  tasksCompleted?: number;
-  examsPassed?: number;
-  pomodoroSessions?: number;
-  deepWorkSessions?: number;
-  studyXP?: number;
-  taskXP?: number;
-  examXP?: number;
-  challengeXP?: number;
-  questXP?: number;
-  seasonXP?: number;
   permissions: string[];
 }
+
+type PersistedUser = Pick<AuthUser, 'id' | 'email' | 'role' | 'permissions' | 'level'>;
 
 interface AuthState {
   user: AuthUser | null;
@@ -91,7 +60,16 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated })
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user ? {
+          id: state.user.id,
+          email: state.user.email,
+          role: state.user.role,
+          permissions: state.user.permissions,
+          level: state.user.level,
+        } : null,
+      })
     }
   )
 );

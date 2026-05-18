@@ -129,7 +129,7 @@ const ChallengeTitleCell = ({ challenge }: { challenge: Challenge }) => (
 );
 
 const ChallengeDifficultyCell = ({ difficulty }: { difficulty: string }) => {
-  const config = difficultyColors[difficulty] || difficultyColors.MEDIUM;
+  const config = (difficultyColors[difficulty] || difficultyColors.MEDIUM)!;
   return (
     <Badge 
       variant="outline" 

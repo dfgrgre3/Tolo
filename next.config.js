@@ -10,12 +10,13 @@ const nextConfig = {
   turbopack: {},
 
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn', 'info', 'debug'],
+    } : false,
   },
 
-  // Skip type checking during build (run separately in CI)
   typescript: {
-    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
+    ignoreBuildErrors: false,
   },
 
   // Optimize CSS in production
@@ -36,8 +37,6 @@ const nextConfig = {
       '@radix-ui/react-separator',
       '@radix-ui/react-switch',
       '@radix-ui/react-tooltip',
-      'chart.js',
-      'react-chartjs-2',
       'recharts',
       'date-fns',
       'zod',
@@ -83,7 +82,7 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
-    dangerouslyAllowSVG: true,
+    dangerouslyAllowSVG: process.env.ALLOW_SVG === 'true',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Performance optimizations
     unoptimized: process.env.NODE_ENV === 'development',
@@ -227,11 +226,37 @@ const nextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' https: data: blob:",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "connect-src 'self' https://*.tolo.app https://*.vercel.app wss: ws: http://127.0.0.1:*",
+              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+              "frame-ancestors 'none'",
+              "media-src 'self' https: blob:",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "upgrade-insecure-requests",
+            ].join('; '),
           },
         ],
       },

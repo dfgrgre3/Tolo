@@ -70,7 +70,7 @@ export function CourseListItem({
 }: CourseListItemProps) {
   const learnersCount = course._count?.enrollments ?? 0;
   const topicsCount = course._count?.topics ?? 0;
-  const level = levelConfig[course.level] ?? levelConfig.INTERMEDIATE;
+  const level = (levelConfig[course.level] ?? levelConfig.INTERMEDIATE)!;
   const isFree = !course.price || course.price === 0;
   const canManage = Boolean(onEdit || onDuplicate || onDelete || onToggleStatus);
 

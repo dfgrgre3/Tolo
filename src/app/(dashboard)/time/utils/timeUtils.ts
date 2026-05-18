@@ -127,8 +127,8 @@ function findOptimalTimeSlot(
     const [startHour, startMinute] = slot.start.split(':').map(Number);
     const [endHour, endMinute] = slot.end.split(':').map(Number);
     
-    const startInMinutes = startHour * 60 + startMinute;
-    const endInMinutes = endHour * 60 + endMinute;
+    const startInMinutes = startHour! * 60 + startMinute!;
+    const endInMinutes = endHour! * 60 + endMinute!;
     const slotDuration = endInMinutes - startInMinutes;
     
     if (slotDuration >= taskDuration) {

@@ -592,12 +592,13 @@ function handleFailedResponse<T>(response: Response, data: T | null, fallback: T
 
   try {
     if (data && typeof data === 'object' && data !== null) {
-      if ('error' in data && typeof (data as any).error === 'string') {
-        errorMessage = (data as any).error;
-      } else if ('message' in data && typeof (data as any).message === 'string') {
-        errorMessage = (data as any).message;
-      } else if ('details' in data && typeof (data as any).details === 'string') {
-        errorMessage = `${errorMessage} - ${(data as any).details}`;
+      const errData = data as Record<string, unknown>;
+      if (typeof errData.error === 'string') {
+        errorMessage = errData.error;
+      } else if (typeof errData.message === 'string') {
+        errorMessage = errData.message;
+      } else if (typeof errData.details === 'string') {
+        errorMessage = `${errorMessage} - ${errData.details}`;
       }
     }
   } catch (extractError) {

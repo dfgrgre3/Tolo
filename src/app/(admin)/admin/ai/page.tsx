@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -22,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { m, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { adminFetch } from "@/lib/api/admin-api";
+import { apiRoutes } from "@/lib/api/routes";
 import { apiRoutes } from "@/lib/api/routes";
 
 
@@ -81,15 +83,23 @@ interface AiResponseData {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  exam_blueprint: "اختبار مقترح",
-  curriculum_outline: "مخطط منهج",
-  article: "مقال تعليمي",
-  update_suggestion: "اقتراح تحسين المحتوى",
-  lesson_summary: "ملخص ذكي لدرس",
-  learning_path: "مسار تعليمي مخصص",
+  exam_blueprint: "ط§ط®طھط¨ط§ط± ظ…ظ‚طھط±ط­",
+  curriculum_outline: "ظ…ط®ط·ط· ظ…ظ†ظ‡ط¬",
+  article: "ظ…ظ‚ط§ظ„ طھط¹ظ„ظٹظ…ظٹ",
+  update_suggestion: "ط§ظ‚طھط±ط§ط­ طھط­ط³ظٹظ† ط§ظ„ظ…ط­طھظˆظ‰",
+  lesson_summary: "ظ…ظ„ط®طµ ط°ظƒظٹ ظ„ط¯ط±ط³",
+  learning_path: "ظ…ط³ط§ط± طھط¹ظ„ظٹظ…ظٹ ظ…ط®طµطµ",
 };
 
 export default function AdminAIPage() {
+  return (
+    <Suspense fallback={<PageHeader title="ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ظˆظ…ط±ظƒط² ط§ظ„طھظ†ط¨ط¤ط§طھ (AI Hub)" description="ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..." />}>
+      <AdminAIContent />
+    </Suspense>
+  );
+}
+
+function AdminAIContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [contentType, setContentType] = React.useState<string>("exam_blueprint");
@@ -100,7 +110,7 @@ export default function AdminAIPage() {
   const { data, isLoading: _isLoading } = useQuery<AiResponseData>({
     queryKey: ["admin", "ai_state"],
     queryFn: async () => {
-      const res = await adminFetch("/api/admin/ai");
+      const res = await adminFetch(apiRoutes.admin.ai));
       if (!res.ok) throw new Error("Failed to fetch AI data");
       return res.json();
     }
@@ -108,7 +118,7 @@ export default function AdminAIPage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await adminFetch("/api/admin/ai", {
+      const response = await adminFetch(apiRoutes.admin.ai), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -124,7 +134,7 @@ export default function AdminAIPage() {
       return result.item;
     },
     onSuccess: () => {
-      toast.success("تم التوليد وتم الإرسال للمراجعة البشرية بنجاح!");
+      toast.success("طھظ… ط§ظ„طھظˆظ„ظٹط¯ ظˆطھظ… ط§ظ„ط¥ط±ط³ط§ظ„ ظ„ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ط´ط±ظٹط© ط¨ظ†ط¬ط§ط­!");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
       setTitle("");
       setPrompt("");
@@ -134,7 +144,7 @@ export default function AdminAIPage() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ id, decision }: { id: string; decision: "approve" | "reject" }) => {
-      const response = await adminFetch("/api/admin/ai", {
+      const response = await adminFetch(apiRoutes.admin.ai), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "review_content", id, decision }),
@@ -144,7 +154,7 @@ export default function AdminAIPage() {
       return result;
     },
     onSuccess: (data, variables) => {
-      toast.success(variables.decision === "approve" ? "تم الاعتماد وتشغيل المحتوى" : "تم رفض المحتوى");
+      toast.success(variables.decision === "approve" ? "طھظ… ط§ظ„ط§ط¹طھظ…ط§ط¯ ظˆطھط´ط؛ظٹظ„ ط§ظ„ظ…ط­طھظˆظ‰" : "طھظ… ط±ظپط¶ ط§ظ„ظ…ط­طھظˆظ‰");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -152,7 +162,7 @@ export default function AdminAIPage() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ type, params }: { type: string; params: Record<string, unknown> }) => {
-      const response = await adminFetch("/api/admin/ai", {
+      const response = await adminFetch(apiRoutes.admin.ai), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "execute_action", type, params }),
@@ -162,7 +172,7 @@ export default function AdminAIPage() {
       return result;
     },
     onSuccess: (data) => {
-      toast.success(data.message || "تم تنفيذ الإجراء بنجاح");
+      toast.success(data.message || "طھظ… طھظ†ظپظٹط° ط§ظ„ط¥ط¬ط±ط§ط، ط¨ظ†ط¬ط§ط­");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -175,13 +185,13 @@ export default function AdminAIPage() {
   return (
     <div className="space-y-8 pb-20" dir="rtl">
       <PageHeader
-        title="الذكاء الاصطناعي ومركز التنبؤات (AI Hub)"
-        description="استوديو توليد المحتوى، نظام التقييم الآلي للأسئلة المقالية، ومحرك التنبؤ بمخاطر التسرب الأكاديمي للطلاب."
+        title="ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ظˆظ…ط±ظƒط² ط§ظ„طھظ†ط¨ط¤ط§طھ (AI Hub)"
+        description="ط§ط³طھظˆط¯ظٹظˆ طھظˆظ„ظٹط¯ ط§ظ„ظ…ط­طھظˆظ‰طŒ ظ†ط¸ط§ظ… ط§ظ„طھظ‚ظٹظٹظ… ط§ظ„ط¢ظ„ظٹ ظ„ظ„ط£ط³ط¦ظ„ط© ط§ظ„ظ…ظ‚ط§ظ„ظٹط©طŒ ظˆظ…ط­ط±ظƒ ط§ظ„طھظ†ط¨ط¤ ط¨ظ…ط®ط§ط·ط± ط§ظ„طھط³ط±ط¨ ط§ظ„ط£ظƒط§ط¯ظٹظ…ظٹ ظ„ظ„ط·ظ„ط§ط¨."
       >
         <div className="flex items-center gap-3">
           <StatusBadge status={generateMutation.isPending ? "pending" : "verified"} />
           <span className="text-sm font-black text-muted-foreground hidden sm:inline-block">
-            {generateMutation.isPending ? "محرك الذكاء يعمل..." : "الأنظمة الذكية مستقرة"}
+            {generateMutation.isPending ? "ظ…ط­ط±ظƒ ط§ظ„ط°ظƒط§ط، ظٹط¹ظ…ظ„..." : "ط§ظ„ط£ظ†ط¸ظ…ط© ط§ظ„ط°ظƒظٹط© ظ…ط³طھظ‚ط±ط©"}
           </span>
         </div>
       </PageHeader>
@@ -195,17 +205,17 @@ export default function AdminAIPage() {
                </div>
                <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
                   <Bot className="w-6 h-6" />
-                  الملخص التنفيذي الذكي (AI Briefing)
+                  ط§ظ„ظ…ظ„ط®طµ ط§ظ„طھظ†ظپظٹط°ظٹ ط§ظ„ط°ظƒظٹ (AI Briefing)
                </h3>
                <div className="text-lg font-bold leading-relaxed whitespace-pre-wrap max-w-4xl">
                   {data.summary.aiBriefing}
                </div>
                <div className="mt-4 flex gap-3">
                   <AdminButton variant="outline" size="sm" className="h-9 font-black" onClick={() => actionMutation.mutate({ type: 'notify_inactive', params: { days: 3 } })}>
-                    أرسل تنبيهات للطلاب المتغيبين
+                    ط£ط±ط³ظ„ طھظ†ط¨ظٹظ‡ط§طھ ظ„ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…طھط؛ظٹط¨ظٹظ†
                   </AdminButton>
-                  <AdminButton variant="outline" size="sm" className="h-9 font-black" onClick={() => toast.info("جاري تحليل المزيد من البيانات...")}>
-                    تحديث التحليل
+                  <AdminButton variant="outline" size="sm" className="h-9 font-black" onClick={() => toast.info("ط¬ط§ط±ظٹ طھط­ظ„ظٹظ„ ط§ظ„ظ…ط²ظٹط¯ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ...")}>
+                    طھط­ط¯ظٹط« ط§ظ„طھط­ظ„ظٹظ„
                   </AdminButton>
                </div>
             </AdminCard>
@@ -225,7 +235,7 @@ export default function AdminAIPage() {
              Churn Radar {data?.summary?.highRiskCount ? `(${data.summary.highRiskCount})` : ""}
           </TabsTrigger>
           <TabsTrigger value="forecast" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-500">
-             Predictions 🚀
+             Predictions ًںڑ€
           </TabsTrigger>
         </TabsList>
 
@@ -239,33 +249,33 @@ export default function AdminAIPage() {
                       <Bot className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black">غرفة التوليد (Generator)</h3>
-                      <p className="text-sm text-muted-foreground font-bold">وجه الأوامر لمحرك الذكاء الاصطناعي</p>
+                      <h3 className="text-xl font-black">ط؛ط±ظپط© ط§ظ„طھظˆظ„ظٹط¯ (Generator)</h3>
+                      <p className="text-sm text-muted-foreground font-bold">ظˆط¬ظ‡ ط§ظ„ط£ظˆط§ظ…ط± ظ„ظ…ط­ط±ظƒ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-black block">نوع المحتوى المطلوب</label>
+                      <label className="text-sm font-black block">ظ†ظˆط¹ ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ظ…ط·ظ„ظˆط¨</label>
                       <Select value={contentType} onValueChange={setContentType}>
                         <SelectTrigger className="w-full h-12 rounded-xl text-right font-bold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="update_suggestion">اقتراح تعديلات على المحتوى</SelectItem>
-                          <SelectItem value="lesson_summary">توليد ملخص درس ذكي</SelectItem>
-                          <SelectItem value="learning_path">إنشاء مسار تعلم مخصص</SelectItem>
-                          <SelectItem value="exam_blueprint">اختبار ملكي (أسئلة واختيارات)</SelectItem>
-                          <SelectItem value="curriculum_outline">مخطط منهج متكامل</SelectItem>
-                          <SelectItem value="article">مقال أو مسودة تعليمية</SelectItem>
+                          <SelectItem value="update_suggestion">ط§ظ‚طھط±ط§ط­ طھط¹ط¯ظٹظ„ط§طھ ط¹ظ„ظ‰ ط§ظ„ظ…ط­طھظˆظ‰</SelectItem>
+                          <SelectItem value="lesson_summary">طھظˆظ„ظٹط¯ ظ…ظ„ط®طµ ط¯ط±ط³ ط°ظƒظٹ</SelectItem>
+                          <SelectItem value="learning_path">ط¥ظ†ط´ط§ط، ظ…ط³ط§ط± طھط¹ظ„ظ… ظ…ط®طµطµ</SelectItem>
+                          <SelectItem value="exam_blueprint">ط§ط®طھط¨ط§ط± ظ…ظ„ظƒظٹ (ط£ط³ط¦ظ„ط© ظˆط§ط®طھظٹط§ط±ط§طھ)</SelectItem>
+                          <SelectItem value="curriculum_outline">ظ…ط®ط·ط· ظ…ظ†ظ‡ط¬ ظ…طھظƒط§ظ…ظ„</SelectItem>
+                          <SelectItem value="article">ظ…ظ‚ط§ظ„ ط£ظˆ ظ…ط³ظˆط¯ط© طھط¹ظ„ظٹظ…ظٹط©</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-black block">العنوان والتسمية</label>
+                      <label className="text-sm font-black block">ط§ظ„ط¹ظ†ظˆط§ظ† ظˆط§ظ„طھط³ظ…ظٹط©</label>
                       <SearchInput
-                        placeholder="مثال: تحليل فصل الكهرومغناطيسية"
+                        placeholder="ظ…ط«ط§ظ„: طھط­ظ„ظٹظ„ ظپطµظ„ ط§ظ„ظƒظ‡ط±ظˆظ…ط؛ظ†ط§ط·ظٹط³ظٹط©"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className="w-full h-12 bg-background/50 font-bold"
@@ -274,11 +284,11 @@ export default function AdminAIPage() {
 
                     <div className="space-y-2">
                       <label className="text-sm font-black block flex justify-between">
-                        <span>التعليمات والوصف الدقيق</span>
+                        <span>ط§ظ„طھط¹ظ„ظٹظ…ط§طھ ظˆط§ظ„ظˆطµظپ ط§ظ„ط¯ظ‚ظٹظ‚</span>
                         <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Prompt</span>
                       </label>
                       <Textarea
-                        placeholder="قم بتوضيح متطلباتك بدقة..."
+                        placeholder="ظ‚ظ… ط¨طھظˆط¶ظٹط­ ظ…طھط·ظ„ط¨ط§طھظƒ ط¨ط¯ظ‚ط©..."
                         className="min-h-[160px] resize-none bg-background/50 rounded-xl p-4 border-border font-bold focus:border-primary/50"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -294,7 +304,7 @@ export default function AdminAIPage() {
                     loading={generateMutation.isPending}
                     icon={Sparkles}
                   >
-                    توليد المحتوى الآن
+                    طھظˆظ„ظٹط¯ ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ط¢ظ†
                   </AdminButton>
                 </form>
               </AdminCard>
@@ -305,10 +315,10 @@ export default function AdminAIPage() {
                 <div className="p-6 border-b border-border/50 bg-orange-500/5">
                   <h3 className="text-xl font-black flex items-center gap-2 text-orange-500">
                     <Clock className="w-5 h-5" />
-                    طابور المراجعة البشرية
+                    ط·ط§ط¨ظˆط± ط§ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ط´ط±ظٹط©
                   </h3>
                   <p className="text-sm text-muted-foreground mt-2 font-bold">
-                    مسودات ومسارات ولّدها الذكاء وبانتظار اعتمادك قبل تنشيتا للمحاربين.
+                    ظ…ط³ظˆط¯ط§طھ ظˆظ…ط³ط§ط±ط§طھ ظˆظ„ظ‘ط¯ظ‡ط§ ط§ظ„ط°ظƒط§ط، ظˆط¨ط§ظ†طھط¸ط§ط± ط§ط¹طھظ…ط§ط¯ظƒ ظ‚ط¨ظ„ طھظ†ط´ظٹطھط§ ظ„ظ„ظ…ط­ط§ط±ط¨ظٹظ†.
                   </p>
                 </div>
 
@@ -318,8 +328,8 @@ export default function AdminAIPage() {
                       <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                         <Check className="w-8 h-8" />
                       </div>
-                      <p className="font-black text-lg">طابور المراجعة فارغ!</p>
-                      <p className="text-muted-foreground text-sm font-bold">تم اعتماد جميع التوليدات السابقة.</p>
+                      <p className="font-black text-lg">ط·ط§ط¨ظˆط± ط§ظ„ظ…ط±ط§ط¬ط¹ط© ظپط§ط±ط؛!</p>
+                      <p className="text-muted-foreground text-sm font-bold">طھظ… ط§ط¹طھظ…ط§ط¯ ط¬ظ…ظٹط¹ ط§ظ„طھظˆظ„ظٹط¯ط§طھ ط§ظ„ط³ط§ط¨ظ‚ط©.</p>
                     </div>
                   ) : (
                     pendingItems.map((item) => (
@@ -338,13 +348,13 @@ export default function AdminAIPage() {
                              variant="default" size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 flex-1 font-black"
                              onClick={() => reviewMutation.mutate({ id: item.id, decision: "approve" })}
                            >
-                             اعتماد
+                             ط§ط¹طھظ…ط§ط¯
                            </AdminButton>
                            <AdminButton
                              variant="destructive" size="sm" className="gap-2 flex-1 font-black"
                              onClick={() => reviewMutation.mutate({ id: item.id, decision: "reject" })}
                            >
-                             رفض
+                             ط±ظپط¶
                            </AdminButton>
                          </div>
                       </div>
@@ -362,16 +372,16 @@ export default function AdminAIPage() {
                <div>
                   <h3 className="text-2xl font-black text-emerald-500 flex items-center gap-2">
                     <Target className="w-6 h-6" />
-                    قائمة التصحيح الآلي للأسئلة المقالية
+                    ظ‚ط§ط¦ظ…ط© ط§ظ„طھطµط­ظٹط­ ط§ظ„ط¢ظ„ظٹ ظ„ظ„ط£ط³ط¦ظ„ط© ط§ظ„ظ…ظ‚ط§ظ„ظٹط©
                   </h3>
-                  <p className="text-muted-foreground mt-2 font-black">يقوم الذكاء الاصطناعي بقراءة إجابات الطلاب وفهمها وإعطاء العلامات والتبرير بدقة.</p>
+                  <p className="text-muted-foreground mt-2 font-black">ظٹظ‚ظˆظ… ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ط¨ظ‚ط±ط§ط،ط© ط¥ط¬ط§ط¨ط§طھ ط§ظ„ط·ظ„ط§ط¨ ظˆظپظ‡ظ…ظ‡ط§ ظˆط¥ط¹ط·ط§ط، ط§ظ„ط¹ظ„ط§ظ…ط§طھ ظˆط§ظ„طھط¨ط±ظٹط± ط¨ط¯ظ‚ط©.</p>
                </div>
                <StatusBadge status="verified" />
             </div>
 
             <div className="space-y-4">
               {gradingQueue.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground font-black">لا توجد إجابات معلقة للتقييم حالياً.</div>
+                <div className="p-12 text-center text-muted-foreground font-black">ظ„ط§ طھظˆط¬ط¯ ط¥ط¬ط§ط¨ط§طھ ظ…ط¹ظ„ظ‚ط© ظ„ظ„طھظ‚ظٹظٹظ… ط­ط§ظ„ظٹط§ظ‹.</div>
               ) : (
                 gradingQueue.map((item) => (
                   <div key={item.id} className="bg-background/80 border border-border rounded-xl p-5 hover:border-emerald-500/50 transition-colors">
@@ -382,7 +392,7 @@ export default function AdminAIPage() {
                           </div>
                           <div>
                              <h4 className="font-black text-lg">{item.studentName}</h4>
-                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.status === 'RESOLVED' ? 'تم التقييم بنجاح' : 'جاري المعالجة الذكية'}</p>
+                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.status === 'RESOLVED' ? 'طھظ… ط§ظ„طھظ‚ظٹظٹظ… ط¨ظ†ط¬ط§ط­' : 'ط¬ط§ط±ظٹ ط§ظ„ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط°ظƒظٹط©'}</p>
                           </div>
                        </div>
                        <div className={`px-3 py-1 font-black rounded-lg text-xs border ${item.status === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse'}`}>
@@ -391,15 +401,15 @@ export default function AdminAIPage() {
                     </div>
                     <div className="grid md:grid-cols-2 gap-6 bg-accent/20 p-4 rounded-xl border border-border/50">
                        <div>
-                          <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2 block">إجابة الطالب:</span>
+                          <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2 block">ط¥ط¬ط§ط¨ط© ط§ظ„ط·ط§ظ„ط¨:</span>
                           <p className="text-sm font-bold leading-relaxed">{item.answer}</p>
                        </div>
                        <div>
                           <span className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${item.feedback ? 'text-emerald-500' : 'text-amber-500'}`}>
-                            تغذية راجعة من الذكاء الاصطناعي:
+                            طھط؛ط°ظٹط© ط±ط§ط¬ط¹ط© ظ…ظ† ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ:
                           </span>
                           <p className="text-sm font-bold leading-relaxed italic">
-                            {item.feedback || "جاري توليد التقييم العادل والملاحظات..."}
+                            {item.feedback || "ط¬ط§ط±ظٹ طھظˆظ„ظٹط¯ ط§ظ„طھظ‚ظٹظٹظ… ط§ظ„ط¹ط§ط¯ظ„ ظˆط§ظ„ظ…ظ„ط§ط­ط¸ط§طھ..."}
                           </p>
                        </div>
                     </div>
@@ -414,17 +424,17 @@ export default function AdminAIPage() {
            <div className="grid gap-6 md:grid-cols-3 mb-6">
               <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-orange-500">
                  <div className="text-orange-500 w-10 h-10 flex items-center justify-center bg-orange-500/10 rounded-full mb-3"><AlertTriangle className="w-5 h-5"/></div>
-                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">الطلاب المعرضون لخطر التسرب</p>
-                 <h2 className="text-3xl font-black mt-1">{riskStudents.length} <span className="text-sm font-bold text-muted-foreground group-hover:block">طالب نشط</span></h2>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…ط¹ط±ط¶ظˆظ† ظ„ط®ط·ط± ط§ظ„طھط³ط±ط¨</p>
+                 <h2 className="text-3xl font-black mt-1">{riskStudents.length} <span className="text-sm font-bold text-muted-foreground group-hover:block">ط·ط§ظ„ط¨ ظ†ط´ط·</span></h2>
               </AdminCard>
               <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-emerald-500">
                  <div className="text-emerald-500 w-10 h-10 flex items-center justify-center bg-emerald-500/10 rounded-full mb-3"><Check className="w-5 h-5"/></div>
-                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">حالات تم تأمينها (Safe)</p>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">ط­ط§ظ„ط§طھ طھظ… طھط£ظ…ظٹظ†ظ‡ط§ (Safe)</p>
                  <h2 className="text-3xl font-black mt-1">{data?.summary?.highRiskCount === 0 ? "100%" : "92%"}</h2>
               </AdminCard>
               <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-blue-500">
                  <div className="text-blue-500 w-10 h-10 flex items-center justify-center bg-blue-500/10 rounded-full mb-3"><TrendingDown className="w-5 h-5"/></div>
-                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">معدل الانقطاع المتوقع</p>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">ظ…ط¹ط¯ظ„ ط§ظ„ط§ظ†ظ‚ط·ط§ط¹ ط§ظ„ظ…طھظˆظ‚ط¹</p>
                  <h2 className="text-3xl font-black mt-1">{riskStudents.length > 5 ? "8.4%" : "1.2%"}</h2>
               </AdminCard>
            </div>
@@ -433,13 +443,13 @@ export default function AdminAIPage() {
               <div className="p-6 border-b border-border/50 bg-accent/10">
                  <h3 className="text-xl font-black flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-orange-500" />
-                    الرادار الذكي لمخاطر الطلاب (Smart Analytics Radar)
+                    ط§ظ„ط±ط§ط¯ط§ط± ط§ظ„ط°ظƒظٹ ظ„ظ…ط®ط§ط·ط± ط§ظ„ط·ظ„ط§ط¨ (Smart Analytics Radar)
                  </h3>
-                 <p className="text-sm text-muted-foreground mt-2 font-bold">تحليل حقيقي للسلوك الأكاديمي والانتظام لضمان عدم فقدان أي طالب من جنود المملكة.</p>
+                 <p className="text-sm text-muted-foreground mt-2 font-bold">طھط­ظ„ظٹظ„ ط­ظ‚ظٹظ‚ظٹ ظ„ظ„ط³ظ„ظˆظƒ ط§ظ„ط£ظƒط§ط¯ظٹظ…ظٹ ظˆط§ظ„ط§ظ†طھط¸ط§ظ… ظ„ط¶ظ…ط§ظ† ط¹ط¯ظ… ظپظ‚ط¯ط§ظ† ط£ظٹ ط·ط§ظ„ط¨ ظ…ظ† ط¬ظ†ظˆط¯ ط§ظ„ظ…ظ…ظ„ظƒط©.</p>
               </div>
               <div className="p-6 space-y-4">
                 {riskStudents.length === 0 ? (
-                  <div className="p-10 text-center font-black opacity-50">لم يتم اكتشاف أي مخاطر حالياً. استمر في العمل الرائع!</div>
+                  <div className="p-10 text-center font-black opacity-50">ظ„ظ… ظٹطھظ… ط§ظƒطھط´ط§ظپ ط£ظٹ ظ…ط®ط§ط·ط± ط­ط§ظ„ظٹط§ظ‹. ط§ط³طھظ…ط± ظپظٹ ط§ظ„ط¹ظ…ظ„ ط§ظ„ط±ط§ط¦ط¹!</div>
                 ) : (
                   riskStudents.map((s, i) => (
                     <div key={i} className="flex flex-col md:flex-row gap-4 p-5 rounded-xl border border-border bg-background/50 items-start md:items-center justify-between hover:border-orange-500/30 transition-all">
@@ -451,13 +461,13 @@ export default function AdminAIPage() {
                                s.riskLevel === 'WARNING' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 
                                'bg-amber-500/10 text-amber-500 border-amber-500/20'
                              }`}>
-                                {s.riskLevel === 'CRITICAL' ? 'خطر حرج 🔴' : s.riskLevel === 'WARNING' ? 'تحذير 🟠' : 'ملاحظة 🟡'}
+                                {s.riskLevel === 'CRITICAL' ? 'ط®ط·ط± ط­ط±ط¬ ًں”´' : s.riskLevel === 'WARNING' ? 'طھط­ط°ظٹط± ًںں ' : 'ظ…ظ„ط§ط­ط¸ط© ًںں،'}
                              </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground font-black"><strong className="text-foreground">السبب:</strong> {s.reason}</p>
+                          <p className="text-xs text-muted-foreground font-black"><strong className="text-foreground">ط§ظ„ط³ط¨ط¨:</strong> {s.reason}</p>
                           <div className="flex items-center gap-2 bg-blue-500/5 p-3 rounded-xl mt-3 border border-blue-500/10">
                              <Bot className="w-4 h-4 text-blue-500" />
-                             <p className="text-xs text-blue-500 font-black"><strong className="text-blue-600">توصية الإنقاذ:</strong> {s.recommendation}</p>
+                             <p className="text-xs text-blue-500 font-black"><strong className="text-blue-600">طھظˆطµظٹط© ط§ظ„ط¥ظ†ظ‚ط§ط°:</strong> {s.recommendation}</p>
                           </div>
                        </div>
                        <AdminButton 
@@ -466,7 +476,7 @@ export default function AdminAIPage() {
                          onClick={() => actionMutation.mutate({ type: 'generate_revision_plan', params: { studentId: s.userId } })}
                          loading={actionMutation.isPending}
                        >
-                          تطبيق التدخل الآلي
+                          طھط·ط¨ظٹظ‚ ط§ظ„طھط¯ط®ظ„ ط§ظ„ط¢ظ„ظٹ
                        </AdminButton>
                     </div>
                   ))
@@ -481,9 +491,9 @@ export default function AdminAIPage() {
                  <div>
                     <h3 className="text-2xl font-black text-blue-500 flex items-center gap-2">
                        <TrendingDown className="w-6 h-6 rotate-180" />
-                       محرك التنبؤ بالأداء النهائي
+                       ظ…ط­ط±ظƒ ط§ظ„طھظ†ط¨ط¤ ط¨ط§ظ„ط£ط¯ط§ط، ط§ظ„ظ†ظ‡ط§ط¦ظٹ
                     </h3>
-                    <p className="text-muted-foreground mt-2 font-bold">بناءً على سلوك الطالب ونتائجه الحالية، يتنبأ الذكاء الاصطناعي بالنتيجة المتوقعة في نهاية الرحلة.</p>
+                    <p className="text-muted-foreground mt-2 font-bold">ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط³ظ„ظˆظƒ ط§ظ„ط·ط§ظ„ط¨ ظˆظ†طھط§ط¦ط¬ظ‡ ط§ظ„ط­ط§ظ„ظٹط©طŒ ظٹطھظ†ط¨ط£ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ط¨ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ…طھظˆظ‚ط¹ط© ظپظٹ ظ†ظ‡ط§ظٹط© ط§ظ„ط±ط­ظ„ط©.</p>
                  </div>
               </div>
 
@@ -497,9 +507,9 @@ export default function AdminAIPage() {
                           <div>
                              <h4 className="font-black text-lg">{item.name}</h4>
                              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                <span>دقة التنبؤ:</span>
+                                <span>ط¯ظ‚ط© ط§ظ„طھظ†ط¨ط¤:</span>
                                 <span className={item.confidence === 'HIGH' ? 'text-emerald-500' : 'text-amber-500'}>
-                                   {item.confidence === 'HIGH' ? 'عالية (بناءً على 5+ امتحانات)' : 'متوسطة'}
+                                   {item.confidence === 'HIGH' ? 'ط¹ط§ظ„ظٹط© (ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ 5+ ط§ظ…طھط­ط§ظ†ط§طھ)' : 'ظ…طھظˆط³ط·ط©'}
                                 </span>
                              </div>
                           </div>
@@ -507,12 +517,12 @@ export default function AdminAIPage() {
 
                        <div className="flex items-center gap-12 text-center">
                           <div className="space-y-1">
-                             <span className="text-[10px] font-black uppercase text-muted-foreground">الوضع الحالي</span>
+                             <span className="text-[10px] font-black uppercase text-muted-foreground">ط§ظ„ظˆط¶ط¹ ط§ظ„ط­ط§ظ„ظٹ</span>
                              <p className="text-xl font-black">{item.currentScore}%</p>
                           </div>
                           <div className="w-12 h-px bg-border hidden md:block" />
                           <div className="space-y-1 relative">
-                             <span className="text-[10px] font-black uppercase text-blue-500">متوقع مستقبلاً</span>
+                             <span className="text-[10px] font-black uppercase text-blue-500">ظ…طھظˆظ‚ط¹ ظ…ط³طھظ‚ط¨ظ„ط§ظ‹</span>
                              <p className="text-3xl font-black text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">
                                 {item.predictedFinalScore}%
                              </p>
@@ -525,12 +535,12 @@ export default function AdminAIPage() {
                        </div>
 
                        <AdminButton size="sm" variant="outline" className="h-10 px-6 rounded-xl font-black border-blue-500/20 text-blue-500 hover:bg-blue-500/5">
-                          تخصيص الخطة
+                          طھط®طµظٹطµ ط§ظ„ط®ط·ط©
                        </AdminButton>
                     </div>
                  ))}
                  {(!data?.forecast || data.forecast.length === 0) && (
-                    <div className="p-20 text-center text-muted-foreground font-black opacity-50">لا توجد بيانات كافية للتنبؤ حالياً. يحتاج الطلاب لإكمال اختبارين على الأقل.</div>
+                    <div className="p-20 text-center text-muted-foreground font-black opacity-50">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ظ„طھظ†ط¨ط¤ ط­ط§ظ„ظٹط§ظ‹. ظٹط­طھط§ط¬ ط§ظ„ط·ظ„ط§ط¨ ظ„ط¥ظƒظ…ط§ظ„ ط§ط®طھط¨ط§ط±ظٹظ† ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„.</div>
                  )}
               </div>
            </AdminCard>
@@ -539,3 +549,4 @@ export default function AdminAIPage() {
     </div>
   );
 }
+

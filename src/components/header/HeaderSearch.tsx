@@ -1,39 +1,18 @@
 "use client";
 
-
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { useRouter } from "next/navigation";
 
 import {
-
 	Search,
-
 	Command,
-
 	Mic,
-
 	X,
-
-	Clock,
-
-	BookOpen,
-
-	Users,
-
-	MessageSquare,
-
-	FileText,
-
-	ChevronDown,
-
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
-
 import { cn } from "@/lib/utils";
 
 import { m, AnimatePresence } from "framer-motion";
@@ -47,118 +26,22 @@ import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
 import { useEfficiency } from "@/hooks/use-efficiency";
 import { Zap, ZapOff } from "lucide-react";
 
-
 import { logger } from '@/lib/logger';
 
-
+export type { SearchResult, SearchScope } from "./_components/search-types";
+import type { SearchResult, SearchScope } from "./_components/search-types";
+import { DesktopSearchResultItem } from "./_components/DesktopSearchResultItem";
+import { MobileSearchResultItem } from "./_components/MobileSearchResultItem";
+import { SearchScopeFilters } from "./_components/SearchScopeFilters";
+import { RecentSearches } from "./_components/RecentSearches";
+import { SearchLoadingState } from "./_components/SearchLoadingState";
+import { SearchNoResults } from "./_components/SearchNoResults";
 
 interface HeaderSearchProps {
 	isMobile?: boolean;
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-export interface SearchResult {
-	id: string;
-	title: string;
-	url: string;
-	type: string;
-	description?: string;
-	category?: string;
-}
-
-const typeConfig = {
-	course: {
-		icon: BookOpen,
-		bgClass: "bg-blue-100 dark:bg-blue-900/40",
-		textClass: "text-blue-600 dark:text-blue-400"
-	},
-	teacher: {
-		icon: Users,
-		bgClass: "bg-orange-100 dark:bg-orange-900/40",
-		textClass: "text-orange-600 dark:text-orange-400"
-	},
-	forum: {
-		icon: MessageSquare,
-		bgClass: "bg-green-100 dark:bg-green-900/40",
-		textClass: "text-green-600 dark:text-green-400"
-	},
-	exam: {
-		icon: FileText,
-		bgClass: "bg-purple-100 dark:bg-purple-900/40",
-		textClass: "text-purple-600 dark:text-purple-400"
-	}
-} as const;
-
-const getResultConfig = (type: string) => {
-	return typeConfig[type as keyof typeof typeConfig] || {
-		icon: FileText,
-		bgClass: "bg-gray-100 dark:bg-gray-800",
-		textClass: "text-gray-600 dark:text-gray-400"
-	};
-};
-
-const DesktopSearchResultItem = ({
-	result,
-	index,
-	isSelected,
-	onSelect,
-	onClick
-}: {
-	result: SearchResult;
-	index: number;
-	isSelected: boolean;
-	onSelect: (index: number) => void;
-	onClick: (result: SearchResult) => void;
-}) => {
-	const config = getResultConfig(result.type);
-	const IconComponent = config.icon;
-		
-	return (
-		<button
-			type="button"
-			onClick={() => onClick(result)}
-			onMouseEnter={() => onSelect(index)}
-			className={cn(
-				"w-full text-right px-4 py-3 transition-all duration-150 flex items-center gap-3 border-b border-border/50 dark:border-border/50 last:border-0",
-				isSelected
-					? "bg-primary/10 dark:bg-primary/20 border-r-2 border-r-primary dark:border-r-primary"
-					: "hover:bg-accent/80 dark:hover:bg-accent/60"
-			)}
-		>
-			<div className={cn(
-				"p-2 rounded-lg transition-all duration-150",
-				config.bgClass,
-				isSelected && "scale-110"
-			)}>
-				<IconComponent className={cn(
-					"h-4 w-4 transition-colors",
-					config.textClass
-				)} />
-			</div>
-			<div className="flex-1 text-right min-w-0">
-				<p className={cn(
-					"text-sm font-medium truncate transition-colors",
-					isSelected && "text-primary dark:text-primary"
-				)}>{result.title}</p>
-				{result.description && (
-					<p className="text-xs text-muted-foreground dark:text-muted-foreground truncate mt-0.5">
-						{result.description}
-					</p>
-				)}
-				{result.category && (
-					<span className="inline-block mt-1 text-xs text-muted-foreground dark:text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30">
-						{result.category}
-					</span>
-				)}
-			</div>
-			<ChevronDown className={cn(
-				"h-4 w-4 flex-shrink-0 rotate-90 transition-colors",
-				isSelected ? "text-primary dark:text-primary" : "text-muted-foreground dark:text-muted-foreground"
-			)} />
-		</button>
-	);
-};
 
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const router = useRouter();
@@ -170,7 +53,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 	const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
 
-	const [searchScope, setSearchScope] = useState<"all" | "courses" | "teachers" | "forum" | "exams">("all");
+	const [searchScope, setSearchScope] = useState<SearchScope>("all");
 
 	const [isSearching, setIsSearching] = useState(false);
 
@@ -236,7 +119,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 			if (storedScope && ["all", "courses", "teachers", "forum", "exams"].includes(storedScope)) {
 
-				setSearchScope(storedScope as "all" | "courses" | "teachers" | "forum" | "exams");
+				setSearchScope(storedScope as SearchScope);
 
 			}
 
@@ -680,124 +563,26 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				</div>
 
 				{/* Mobile Search Scope Filters */}
-				<div className="flex items-center gap-1 flex-wrap">
-					{(["all", "courses", "teachers", "forum", "exams"] as const).map((scope) => {
-						const icons = {
-							all: Search,
-							courses: BookOpen,
-							teachers: Users,
-							forum: MessageSquare,
-							exams: FileText,
-						};
-						const labels = {
-							all: "الكل",
-							courses: "مواد",
-							teachers: "معلمين",
-							forum: "منتدى",
-							exams: "اختبارات",
-						};
-						const Icon = icons[scope];
-						return (
-							<button
-								key={scope}
-								type="button"
-								onClick={() => setSearchScope(scope)}
-								className={cn(
-									"flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all dark:transition-all touch-manipulation",
-									searchScope === scope
-										? "bg-primary text-primary-foreground dark:bg-primary dark:text-primary-foreground"
-										: "bg-accent dark:bg-accent/50 hover:bg-accent/80 dark:hover:bg-accent/70 text-muted-foreground dark:text-muted-foreground"
-								)}
-							>
-								<Icon className="h-3 w-3" />
-								<span className="text-xs">{labels[scope]}</span>
-							</button>
-						);
-					})}
-				</div>
+				<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="mobile" />
 
 				{/* Mobile Recent Searches */}
 				{searchQuery.trim().length === 0 && recentSearches.length > 0 && (
-					<div className="space-y-2">
-						<div className="px-2 py-2 text-xs font-semibold text-muted-foreground dark:text-muted-foreground flex items-center gap-2">
-							<Clock className="h-3.5 w-3.5" />
-							البحث الأخير
-						</div>
-						{recentSearches.map((search, index) => (
-							<button
-								key={index}
-								type="button"
-								onClick={() => handleRecentSearchClick(search)}
-								className="w-full text-right px-3 py-2.5 rounded-lg hover:bg-accent dark:hover:bg-accent/80 transition-colors flex items-center gap-2.5 border border-border/50 dark:border-border/50 touch-manipulation"
-							>
-								<Search className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
-								<span className="flex-1 text-sm">{search}</span>
-							</button>
-						))}
-					</div>
+					<RecentSearches searches={recentSearches} onSearchClick={handleRecentSearchClick} variant="mobile" />
 				)}
-
-				
 
 				{/* Mobile Search Results */}
 				{searchQuery.trim().length > 0 && (
 					<div className="space-y-2 max-h-64 overflow-y-auto -webkit-overflow-scrolling: touch">
-						{isSearching && (
-							<div className="flex items-center justify-center py-4">
-								<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary dark:border-primary" />
-								<span className="mr-2 text-sm text-muted-foreground dark:text-muted-foreground">جاري البحث...</span>
-							</div>
-						)}
-						{!isSearching && searchResults.length > 0 && searchResults.map((result) => {
-							const config = getResultConfig(result.type);
-							const IconComponent = config.icon;
-							
-							return (
-								<m.button
-									key={result.id}
-									initial={{ opacity: 0, x: 10 }}
-									animate={{ opacity: 1, x: 0 }}
-									type="button"
-									onClick={() => {
-										handleSearchResultClick(result);
-									}}
-									className="w-full text-right px-3 py-3 rounded-lg hover:bg-accent dark:hover:bg-accent/80 transition-all duration-150 flex items-center gap-2.5 border border-border/50 dark:border-border/50 active:scale-95 touch-manipulation"
-								>
-									<div className={cn(
-										"p-2 rounded-lg transition-all duration-150",
-										config.bgClass
-									)}>
-										<IconComponent className={cn(
-											"h-4 w-4 transition-colors",
-											config.textClass
-										)} />
-									</div>
-									<div className="flex-1 text-right min-w-0">
-										<p className="text-sm font-medium truncate dark:text-foreground">{result.title}</p>
-										{result.description && (
-											<p className="text-xs text-muted-foreground dark:text-muted-foreground truncate mt-0.5">
-												{result.description}
-											</p>
-										)}
-										{result.category && (
-											<span className="inline-block mt-1 text-xs text-muted-foreground dark:text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30">
-												{result.category}
-											</span>
-										)}
-									</div>
-								</m.button>
-							);
-						})}
-						{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
-							<m.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="px-3 py-6 text-center"
-							>
-								<Search className="h-8 w-8 text-muted-foreground dark:text-muted-foreground mx-auto mb-2 opacity-50" />
-								<p className="text-sm text-muted-foreground dark:text-muted-foreground">لا توجد نتائج</p>
-								<p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">جرب مصطلحات بحث مختلفة</p>
-							</m.div>
+						{isSearching && <SearchLoadingState animated={false} className="py-4" />}
+						{!isSearching && searchResults.length > 0 && searchResults.map((result) => (
+							<MobileSearchResultItem
+								key={result.id}
+								result={result}
+								onClick={handleSearchResultClick}
+							/>
+						))}
+						{!isSearching && searchResults.length === 0 && (
+							<SearchNoResults className="px-3" />
 						)}
 					</div>
 				)}
@@ -807,7 +592,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		);
 
 	}
-
 
 
 	return (
@@ -930,82 +714,8 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						{/* Search Scope Filters */}
 
 						{searchQuery.trim().length > 0 && (
-
-							<div className="absolute top-full left-0 right-0 mt-1 flex items-center gap-1 p-1 bg-background/95 dark:bg-background/95 backdrop-blur-md border border-border/50 dark:border-border/50 rounded-lg shadow-lg dark:shadow-xl z-40 pointer-events-auto">
-
-								{(["all", "courses", "teachers", "forum", "exams"] as const).map((scope) => {
-
-									const icons = {
-
-										all: Search,
-
-										courses: BookOpen,
-
-										teachers: Users,
-
-										forum: MessageSquare,
-
-										exams: FileText,
-
-									};
-
-									const labels = {
-
-										all: "الكل",
-
-										courses: "مواد",
-
-										teachers: "معلمين",
-
-										forum: "منتدى",
-
-										exams: "اختبارات",
-
-									};
-
-									const Icon = icons[scope];
-
-									return (
-
-										<button
-
-											key={scope}
-
-											type="button"
-
-											onClick={() => setSearchScope(scope)}
-
-											className={cn(
-
-												"flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all dark:transition-all",
-
-												searchScope === scope
-
-													? "bg-primary text-primary-foreground dark:bg-primary dark:text-primary-foreground"
-
-													: "hover:bg-accent dark:hover:bg-accent/80 text-muted-foreground dark:text-muted-foreground"
-
-											)}
-
-											title={labels[scope]}
-
-										>
-
-											<Icon className="h-3 w-3" />
-
-											<span className="hidden lg:inline">{labels[scope]}</span>
-
-										</button>
-
-									);
-
-								})}
-
-							</div>
-
+							<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="desktop" />
 						)}
-
-
 
 						{/* Instant Search Results Dropdown */}
 
@@ -1036,68 +746,12 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 									{/* Recent Searches */}
 
 									{searchQuery.trim().length === 0 && recentSearches.length > 0 && (
-
-										<div className="p-2 border-b border-border/50 dark:border-border/50">
-
-											<div className="px-3 py-2 text-xs font-semibold text-muted-foreground dark:text-muted-foreground flex items-center gap-2">
-
-												<Clock className="h-3.5 w-3.5" />
-
-												البحث الأخير
-
-											</div>
-
-											{recentSearches.map((search, index) => (
-
-												<button
-
-													key={index}
-
-													type="button"
-
-													onClick={() => handleRecentSearchClick(search)}
-
-													className="w-full text-right px-4 py-2.5 hover:bg-accent dark:hover:bg-accent/80 transition-colors flex items-center gap-3 rounded-md text-sm"
-
-												>
-
-													<Search className="h-3.5 w-3.5 text-muted-foreground dark:text-muted-foreground" />
-
-													<span className="flex-1">{search}</span>
-
-												</button>
-
-											))}
-
-										</div>
-
+										<RecentSearches searches={recentSearches} onSearchClick={handleRecentSearchClick} variant="desktop" />
 									)}
-
-									
 
 									{/* Loading State */}
 
-									{isSearching && (
-
-										<m.div
-
-											initial={{ opacity: 0 }}
-
-											animate={{ opacity: 1 }}
-
-											className="flex items-center justify-center py-6"
-
-										>
-
-											<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary dark:border-primary" />
-
-											<span className="mr-2 text-sm text-muted-foreground dark:text-muted-foreground">جاري البحث...</span>
-
-										</m.div>
-
-									)}
-
-									
+									{isSearching && <SearchLoadingState />}
 
 									{/* Search Results */}
 
@@ -1120,30 +774,10 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 									)}
 
-									
-
 									{/* No Results */}
 
 									{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
-
-										<m.div
-
-											initial={{ opacity: 0 }}
-
-											animate={{ opacity: 1 }}
-
-											className="px-4 py-6 text-center"
-
-										>
-
-											<Search className="h-8 w-8 text-muted-foreground dark:text-muted-foreground mx-auto mb-2 opacity-50" />
-
-											<p className="text-sm text-muted-foreground dark:text-muted-foreground">لا توجد نتائج</p>
-
-											<p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">جرب مصطلحات بحث مختلفة</p>
-
-										</m.div>
-
+										<SearchNoResults />
 									)}
 
 								</m.div>
@@ -1224,6 +858,3 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	);
 
 }
-
-
-

@@ -168,9 +168,9 @@ export function AiCommandCenter() {
               </span>
               <AdminButton
                 variant="premium"
-                onClick={() => copilotMutation.mutate(prompt)}
+                onClick={() => copilotMutation.mutate(prompt!)}
                 loading={copilotMutation.isPending}
-                disabled={!prompt.trim()}
+                disabled={!prompt!.trim()}
                 icon={Send}
                 className="h-12 px-8 rounded-2xl"
               >

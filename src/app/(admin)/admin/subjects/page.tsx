@@ -273,7 +273,7 @@ export default function AdminSubjectsPage() {
           HARD: { label: "متقدم", color: "amber" }, 
           EXPERT: { label: "خبير", color: "red" } 
         };
-        const config = levels[row.original.level] || levels.MEDIUM;
+        const config = levels[row.original.level] || levels.MEDIUM!;
         return (
           <Badge 
             variant="outline" 

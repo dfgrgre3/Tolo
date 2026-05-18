@@ -2,7 +2,7 @@
 
 import React from "react";
 import { MegaMenu } from "@/components/mega-menu";
-import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
+import { mainNavItemsWithMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
 import { User } from "@/types/user";
 import { HeaderNavLink } from "@/components/navigation";
@@ -47,7 +47,6 @@ export function HeaderNavigation({
                   isOpen && "bg-primary/20 text-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] border-primary/40"
                 )}
               />
-
               {item.badge && mounted && (
                 <div className="absolute -top-1 -right-1 pointer-events-none">
                   <div className="absolute inset-0 bg-primary/20 blur-sm rounded-full animate-ping" />
@@ -73,23 +72,6 @@ export function HeaderNavigation({
           </div>
         );
       })}
-
-      <div className="relative group" data-mega-menu-wrapper="true">
-        <MegaMenu
-          categories={moreMegaMenu}
-          isOpen={openMegaMenu === "more"}
-          onClose={() => setOpenMegaMenu(null)}
-          onOpen={() => setOpenMegaMenu("more")}
-          activeRoute={isActiveRoute}
-          label="المزيد"
-          user={user}
-          className={cn(
-            "relative h-11 px-6 flex items-center gap-3 transition-all duration-300 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest",
-            "hover:bg-white/5 hover:text-primary text-gray-400 border border-transparent",
-            openMegaMenu === "more" && "bg-primary/20 text-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] border-primary/40"
-          )}
-        />
-      </div>
     </nav>
   );
 }

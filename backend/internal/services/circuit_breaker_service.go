@@ -28,7 +28,7 @@ func GetCircuitBreakerService() *CircuitBreakerService {
 
 // CallAIService executes an AI service call with circuit breaker protection
 func (s *CircuitBreakerService) CallAIService(fn func() (string, error)) (string, error) {
-	cb := circuitbreaker.GetCircuitBreaker("ai-service", 3, 60*time.Second)
+	cb := circuitbreaker.GetCircuitBreaker("ai-service", 3, 15*time.Second)
 
 	var result string
 	err := cb.Execute(func() error {
@@ -49,7 +49,7 @@ func (s *CircuitBreakerService) CallPaymentService(fn func() error) error {
 
 // CallExternalAPI executes an external API call with circuit breaker protection
 func (s *CircuitBreakerService) CallExternalAPI(name string, fn func() error) error {
-	cb := circuitbreaker.GetCircuitBreaker(name, 3, 60*time.Second)
+	cb := circuitbreaker.GetCircuitBreaker(name, 3, 15*time.Second)
 	return cb.Execute(fn)
 }
 
@@ -58,7 +58,7 @@ func (s *CircuitBreakerService) GetStatus() map[string]string {
 	states := make(map[string]string)
 
 	// List of known circuit breakers
-	names := []string{"ai-service", "payment-service", "paymob-api", "openrouter-api"}
+	names := []string{"ai-service", "payment-service", "paymob-api", "openrouter-api", "ai-service-provider", "openai-openrouter", "gemini-api"}
 
 	for _, name := range names {
 		cb := circuitbreaker.GetCircuitBreaker(name, 0, 0)

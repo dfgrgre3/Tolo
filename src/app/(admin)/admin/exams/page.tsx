@@ -5,9 +5,10 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, ExternalLink, Target, 
-  FileText, Eye, Calendar, Users, Trophy, Search, UploadCloud, Edit, Send, Trash2
+  FileText, Eye, Calendar, Users, Trophy, Search, UploadCloud, Edit, Send, Trash2, Download
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -33,6 +34,8 @@ import { adminFetch } from "@/lib/api/admin-api";
 import { apiRoutes } from "@/lib/api/routes";
 import { requestPublicCacheRevalidation } from "@/lib/public-cache/revalidate-public";
 import { usePermission } from "@/components/auth/PermissionGuard";
+import { exportToCSV, ExportColumn } from '@/lib/export-utils';
+import { logAdminAction } from "@/lib/admin-audit";
 
 interface Exam {
   id: string;
@@ -211,6 +214,27 @@ export default function AdminExamsPage() {
 
   const columns: ColumnDef<Exam>[] = [
     {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="تحديد الكل"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="تحديد الصف"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: "title",
       header: "الاختبار",
       cell: ({ row }) => {
@@ -339,12 +363,51 @@ export default function AdminExamsPage() {
           data={exams}
           loading={isLoading}
           serverSide
+          selectable
           totalRows={pagination?.total || 0}
           pageCount={pagination?.totalPages || 1}
           currentPage={page}
           onPageChange={setPage}
           onPageSizeChange={setLimit}
           pageSize={limit}
+          bulkActions={[
+            {
+              label: "تصدير CSV",
+              icon: Download,
+              onClick: (rows) => {
+                const exportColumns: ExportColumn<Exam>[] = [
+                  { header: 'العنوان', accessor: 'title' },
+                  { header: 'المادة', accessor: (e) => e.subject.nameAr || e.subject.name },
+                  { header: 'السنة', accessor: (e) => e.year },
+                  { header: 'النوع', accessor: (e) => e.type || 'عام' },
+                  { header: 'عدد المشاركين', accessor: (e) => e._count?.results || 0 },
+                  { header: 'تاريخ الإضافة', accessor: (e) => new Date(e.createdAt).toLocaleDateString('ar-EG') },
+                ];
+                exportToCSV(rows, exportColumns, 'exams');
+                toast.success('تم تصدير الاختبارات بنجاح');
+              },
+            },
+            {
+              label: "حذف المحدد",
+              icon: Trash2,
+              variant: "destructive",
+              onClick: async (rows) => {
+                const ids = rows.map((r: Exam) => r.id);
+                const response = await adminFetch(apiRoutes.admin.exams, {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ids }),
+                });
+                if (response.ok) {
+                  toast.success(`تم حذف ${ids.length} اختبار`);
+                  logAdminAction("DELETE", "exam", { details: { count: ids.length } });
+                  refetch();
+                } else {
+                  toast.error("فشل في حذف الاختبارات");
+                }
+              },
+            },
+          ]}
           actions={{ onRefresh: () => refetch() }}
           toolbar={
             <div className="flex items-center gap-2">

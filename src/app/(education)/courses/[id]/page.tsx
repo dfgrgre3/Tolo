@@ -7,7 +7,6 @@ import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
-import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -19,289 +18,18 @@ import {
   CheckCircle2,
   Lock,
   GraduationCap,
-  Share2,
-  Bookmark,
-  BookmarkCheck,
-  Loader2,
-  Play,
-  Award,
-
   FileText,
-  MessageSquare,
-  Download,
-
-
-  Shield,
-
-
   Layers } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api/api-client";
-
-type Review = {
-  id: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-  user: {name: string | null;avatar: string | null;};
-};
-
-type ReviewStats = {
-  totalReviews: number;
-  avgRating: number;
-  distribution: Record<number, number>;
-};
-
-type Course = {
-  id: string;
-  title: string;
-  description: string;
-  instructor: string;
-  subject: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  duration: number;
-  thumbnailUrl?: string;
-  price: number;
-  rating: number;
-  enrolledCount: number;
-  createdAt: string;
-  tags?: string[];
-  enrolled: boolean;
-  progress?: number;
-  lessonsCount?: number;
-  whatYouLearn?: string[];
-  coursePrerequisites?: string[];
-  targetAudience?: string[];
-  requirements?: string;
-  learningObjectives?: string;
-};
-
-type CourseLesson = {
-  id: string;
-  title: string;
-  description?: string;
-  content?: string;
-  videoUrl?: string;
-  type: "VIDEO" | "ARTICLE" | "QUIZ" | "FILE" | "ASSIGNMENT";
-  isFree: boolean;
-  locked: boolean;
-  duration: number;
-  order: number;
-  completed: boolean;
-  progress: number;
-};
-
-const levelConfig = {
-  BEGINNER: { label: "مبتدئ", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  INTERMEDIATE: { label: "متوسط", color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  ADVANCED: { label: "متقدم", color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" }
-};
-
-const container = {
-  hidden: { opacity: 0 as const },
-  show: { opacity: 1 as const, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
-};
-
-const fadeUp = {
-  hidden: { opacity: 0 as const, y: 16 },
-  show: { opacity: 1 as const, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as const } }
-};
-
-function getListItems(
-  primary: string[] | undefined,
-  secondary: string | undefined,
-  fallback: string[]
-): string[] {
-  if (primary && primary.length > 0) return primary;
-  if (secondary) return secondary.split('\n').filter(Boolean);
-  return fallback;
-}
-
-function LessonVideoArea({
-  canAccess,
-  lessonData,
-  courseId,
-  courseEnrolled,
-  authName,
-  userId,
-  onAutoComplete,
-  onEnroll,
-}: {
-  canAccess: boolean;
-  lessonData: CourseLesson;
-  courseId: string;
-  courseEnrolled: boolean;
-  authName?: string | null;
-  userId: string | null;
-  onAutoComplete: () => void;
-  onEnroll: () => void;
-}) {
-  if (canAccess && lessonData.videoUrl) {
-    return (
-      <CourseVideoPlayer
-        key={lessonData.id}
-        courseId={courseId}
-        lessonId={lessonData.id}
-        lessonTitle={lessonData.title}
-        videoUrl={lessonData.videoUrl}
-        alreadyCompleted={lessonData.completed}
-        watermarkText={authName || userId || "Student"}
-        onLessonAutoComplete={onAutoComplete}
-      />
-    );
-  }
-
-  if (canAccess) {
-    return (
-      <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
-        <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
-        <p className="text-sm text-gray-500 font-medium">محتوى نصي - لا يوجد فيديو لهذا الدرس</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
-      <Lock className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
-      <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">المحتوى مقفل</h3>
-      <p className="text-sm text-gray-500 mb-4 max-w-sm">
-        سجل في الدورة لتتمكن من الوصول إلى جميع الدروس والمحتوى التعليمي.
-      </p>
-      <Button onClick={onEnroll} className="gap-2 rounded-xl bg-primary text-white shadow-lg">
-        <Shield className="h-4 w-4" />
-        <span>سجل الآن</span>
-      </Button>
-    </div>
-  );
-}
-
-function CourseActionCard({
-  course,
-  courseProgress,
-  completedCount,
-  lessonsCount,
-  courseId,
-  enrolling,
-  bookmarked,
-  setBookmarked,
-  onEnroll,
-  router,
-}: {
-  course: Course;
-  courseProgress: number;
-  completedCount: number;
-  lessonsCount: number;
-  courseId: string;
-  enrolling: boolean;
-  bookmarked: boolean;
-  setBookmarked: (v: boolean) => void;
-  onEnroll: () => void;
-  router: ReturnType<typeof useRouter>;
-}) {
-  return (
-    <div className="sticky top-24 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-6 shadow-lg shadow-black/5 dark:shadow-black/20">
-      {/* Thumbnail */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
-        {course.thumbnailUrl ? (
-          <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-600" />
-          </div>
-        )}
-        {course.enrolled && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <button
-              onClick={() => router.push(`/learning/${courseId}`)}
-              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform"
-            >
-              <Play className="h-6 w-6 text-white fill-white" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Price */}
-      <div className="flex items-center justify-between">
-        <div className="text-3xl font-black text-gray-900 dark:text-white">
-          {course.price === 0 ? (
-            <span className="text-emerald-500">مجاناً</span>
-          ) : (
-            <div className="flex items-baseline gap-1">
-              <span>{course.price}</span>
-              <span className="text-sm font-bold text-gray-400">ج.م</span>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setBookmarked(!bookmarked)}
-            className={cn("h-10 w-10 rounded-xl", bookmarked ? "text-primary bg-primary/10" : "text-gray-400")}
-          >
-            {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
-          </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-gray-400">
-            <Share2 className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Progress or Enroll */}
-      {course.enrolled ? (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-gray-500">التقدم في الدورة</span>
-              <span className="font-black text-primary">{courseProgress}%</span>
-            </div>
-            <Progress value={courseProgress} className="h-2" />
-            <p className="text-[11px] text-gray-400">
-              {completedCount} من {lessonsCount} دروس مكتملة
-            </p>
-          </div>
-          <Button
-            onClick={() => router.push(`/learning/${courseId}`)}
-            className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2"
-          >
-            <Play className="h-4 w-4 fill-current" />
-            {courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
-          </Button>
-        </div>
-      ) : (
-        <Button
-          onClick={onEnroll}
-          disabled={enrolling}
-          className="w-full h-14 bg-primary text-white font-bold text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all gap-2"
-        >
-          {enrolling ? <Loader2 className="h-5 w-5 animate-spin" /> : <Shield className="h-5 w-5" />}
-          <span>{course.price > 0 ? `سجل الآن - ${course.price} ج.م` : "ابدأ التعلم مجاناً"}</span>
-        </Button>
-      )}
-
-      {/* Course features */}
-      <div className="space-y-3 border-t border-gray-100 dark:border-white/5 pt-4">
-        {[
-          { icon: BookOpen, text: `${lessonsCount} دروس تعليمية` },
-          { icon: Clock, text: `${course.duration} ساعات محتوى` },
-          { icon: Download, text: "وصول مدى الحياة" },
-          { icon: Award, text: "شهادة إتمام" },
-          { icon: MessageSquare, text: "دعم ومناقشات" },
-        ].map((feature, i) => (
-          <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-            <feature.icon className="h-4 w-4 text-gray-400" />
-            <span>{feature.text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import type { Course, CourseLesson, Review, ReviewStats } from "./_components/types";
+import { levelConfig, container, fadeUp, getListItems } from "./_components/types";
+import { LessonVideoArea } from "./_components/lesson-video-area";
+import { CourseActionCard } from "./_components/course-action-card";
+import { ReviewsTab } from "./_components/reviews-tab";
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -428,13 +156,13 @@ export default function CourseDetailPage() {
         return;
       }
       if (course) setCourse({ ...course, enrolled: true, progress: 0 });
-    } catch (err: any) {
-      // Check if this is a payment required error (HTTP 402)
-      if (err?.status === 402 || err?.data?.requiresPayment) {
+    } catch (err: unknown) {
+      const apiErr = err as { status?: number; data?: { requiresPayment?: boolean } };
+      if (apiErr?.status === 402 || apiErr?.data?.requiresPayment) {
         router.push(`/courses/${courseId}/checkout`);
         return;
       }
-      logger.error("Error in handleEnroll", err);
+      logger.error("Error in handleEnroll", apiErr);
     } finally {
       setEnrolling(false);
     }
@@ -761,7 +489,7 @@ export default function CourseDetailPage() {
                       className="gap-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700"
                       onClick={() => {
                         const idx = lessons.findIndex((l) => l.id === activeLesson);
-                        if (idx > 0) setActiveLesson(lessons[idx - 1].id);
+                        if (idx > 0) setActiveLesson(lessons[idx - 1]!.id);
                       }}>
                       
                           <ChevronRight className="w-4 h-4" />
@@ -772,7 +500,7 @@ export default function CourseDetailPage() {
                       className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-medium"
                       onClick={() => {
                         const idx = lessons.findIndex((l) => l.id === activeLesson);
-                        if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1].id);
+                        if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1]!.id);
                       }}>
                       
                           <span>الدرس التالي</span>
@@ -877,229 +605,5 @@ export default function CourseDetailPage() {
         </m.div>
       </m.div>
     </div>);
-
-}
-
-// ============ Reviews Tab Component ============
-
-function ReviewsTab({
-  courseId,
-  courseRating,
-  enrolled,
-  reviews,
-  setReviews,
-  reviewStats,
-  setReviewStats,
-  reviewsLoading,
-  setReviewsLoading,
-  userRating,
-  setUserRating,
-  userComment,
-  setUserComment,
-  submittingReview,
-  setSubmittingReview
-
-}: {courseId: string;courseRating: number;enrolled: boolean;reviews: Review[];setReviews: (r: Review[]) => void;reviewStats: ReviewStats | null;setReviewStats: (s: ReviewStats | null) => void;reviewsLoading: boolean;setReviewsLoading: (l: boolean) => void;userRating: number;setUserRating: (r: number) => void;userComment: string;setUserComment: (c: string) => void;submittingReview: boolean;setSubmittingReview: (s: boolean) => void;}) {
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setReviewsLoading(true);
-      try {
-        const res = await fetch(`/api/courses/${courseId}/reviews`);
-        if (res.ok) {
-          const data = await res.json();
-          const reviewData = data.data || data;
-          setReviews(reviewData.reviews || []);
-          setReviewStats(reviewData.stats || null);
-        }
-      } catch {
-
-        // silently handled
-      } finally {setReviewsLoading(false);
-      }
-    };
-    fetchReviews();
-  }, [courseId, setReviews, setReviewStats, setReviewsLoading]);
-
-  const handleSubmitReview = async () => {
-    if (userRating === 0) {
-      toast.error("يرجى اختيار تقييم");
-      return;
-    }
-    setSubmittingReview(true);
-    try {
-      const res = await fetch(`/api/courses/${courseId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: userRating, comment: userComment || undefined })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(`تم إرسال تقييمك! +${data.data?.xpAwarded || 10} XP`);
-        setUserRating(0);
-        setUserComment("");
-        // Refresh reviews
-        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const reviewData = refreshData.data || refreshData;
-          setReviews(reviewData.reviews || []);
-          setReviewStats(reviewData.stats || null);
-        }
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل إرسال التقييم");
-      }
-    } catch {
-      toast.error("حدث خطأ أثناء إرسال التقييم");
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const avgRating = reviewStats?.avgRating || courseRating;
-  const totalReviews = reviewStats?.totalReviews || 0;
-
-  return (
-    <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-3xl space-y-6">
-      
-      {/* Review summary */}
-      <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6">
-        <div className="flex items-center gap-8">
-          <div className="text-center">
-            <p className="text-5xl font-black text-gray-900 dark:text-white">{avgRating.toFixed(1)}</p>
-            <div className="flex items-center justify-center gap-0.5 mt-2">
-              {Array.from({ length: 5 }).map((_, i) =>
-              <Star
-                key={i}
-                className={cn(
-                  "h-4 w-4",
-                  i < Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-gray-300"
-                )} />
-
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{totalReviews} تقييم</p>
-          </div>
-          <div className="flex-1 space-y-2">
-            {[5, 4, 3, 2, 1].map((stars) => {
-              const count = reviewStats?.distribution?.[stars] || 0;
-              const percentage = totalReviews > 0 ? count / totalReviews * 100 : 0;
-              return (
-                <div key={stars} className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-gray-500 w-3">{stars}</span>
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  <div className="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400 rounded-full transition-all"
-                      style={{ width: `${percentage}%` }} />
-                    
-                  </div>
-                  <span className="text-[10px] text-gray-400 w-6 text-left">{count}</span>
-                </div>);
-
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Submit Review Form */}
-      {enrolled &&
-      <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">شارك تقييمك</h3>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 5 }).map((_, i) =>
-          <button
-            key={i}
-            onClick={() => setUserRating(i + 1)}
-            className="p-1 transition-transform hover:scale-110">
-            
-                <Star
-              className={cn(
-                "h-7 w-7 transition-colors",
-                i < userRating ? "fill-amber-400 text-amber-400" : "text-gray-300 hover:text-amber-300"
-              )} />
-            
-              </button>
-          )}
-            {userRating > 0 &&
-          <span className="text-sm font-bold text-amber-500 mr-2">{userRating}/5</span>
-          }
-          </div>
-          <textarea
-          value={userComment}
-          onChange={(e) => setUserComment(e.target.value)}
-          placeholder="اكتب تعليقك (اختياري)..."
-          className="w-full h-24 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
-        
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">ستحصل على 10 نقطة XP عند إرسال تقييمك</p>
-            <Button
-            onClick={handleSubmitReview}
-            disabled={submittingReview || userRating === 0}
-            className="gap-2 bg-primary text-white rounded-xl h-10 px-6 font-bold text-sm shadow-lg shadow-primary/20">
-            
-              {submittingReview && <Loader2 className="h-4 w-4 animate-spin" />}
-              إرسال التقييم
-            </Button>
-          </div>
-        </div>
-      }
-
-      {/* Reviews List */}
-      {reviewsLoading ?
-      <div className="text-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-gray-500">جاري تحميل التقييمات...</p>
-        </div> :
-      reviews.length > 0 ?
-      <div className="space-y-3">
-          {reviews.map((review) =>
-        <div
-          key={review.id}
-          className="rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 p-5 space-y-3">
-          
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-sm font-bold">
-                    {review.user?.name?.charAt(0) || "U"}
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-gray-900 dark:text-white">{review.user?.name || "مستخدم"}</p>
-                    <p className="text-[10px] text-gray-400">
-                      {new Date(review.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) =>
-              <Star
-                key={i}
-                className={cn(
-                  "h-3.5 w-3.5",
-                  i < review.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"
-                )} />
-
-              )}
-                </div>
-              </div>
-              {review.comment &&
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{review.comment}</p>
-          }
-            </div>
-        )}
-        </div> :
-
-      <div className="text-center py-12 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
-          <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm text-gray-500 font-medium">لا توجد تقييمات بعد</p>
-          <p className="text-xs text-gray-400 mt-1">
-            {enrolled ? "كن أول من يشارك رأيه!" : "سجل في الدورة لتتمكن من التقييم"}
-          </p>
-        </div>
-      }
-    </m.div>);
 
 }

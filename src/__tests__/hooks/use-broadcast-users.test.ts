@@ -49,7 +49,7 @@ describe("useBroadcastUsers", () => {
       expect(result.current.users).toHaveLength(3);
     });
 
-    expect(result.current.users[0].name).toBe("User 1");
+    expect(result.current.users[0]!.name).toBe("User 1");
   });
 
   it("should filter users by search query", async () => {
@@ -72,7 +72,7 @@ describe("useBroadcastUsers", () => {
     });
 
     expect(result.current.filteredUsers).toHaveLength(1);
-    expect(result.current.filteredUsers[0].name).toBe("User 1");
+    expect(result.current.filteredUsers[0]!.name).toBe("User 1");
   });
 
   it("should filter users by role", async () => {
@@ -95,7 +95,7 @@ describe("useBroadcastUsers", () => {
     });
 
     expect(result.current.filteredUsers).toHaveLength(1);
-    expect(result.current.filteredUsers[0].role).toBe("TEACHER");
+    expect(result.current.filteredUsers[0]!.role).toBe("TEACHER");
   });
 
   it("should toggle user selection", async () => {

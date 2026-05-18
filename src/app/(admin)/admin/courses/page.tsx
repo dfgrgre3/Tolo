@@ -3,122 +3,34 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ColumnDef } from "@tanstack/react-table";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Resolver } from "react-hook-form";
-import { z } from "zod";
 import {
   BookOpen,
-  Clock,
-  DollarSign,
-  ExternalLink,
-  GraduationCap,
-  LayoutGrid,
-  Loader2,
-  Pencil,
-  PlayCircle,
-  Plus,
-
-  Tags,
-  TrendingUp,
-  Users,
-  Globe,
-  EyeOff,
-  ChevronRight,
-  ChevronLeft,
-  Trash2,
-  XCircle,
   CheckCircle2,
-  AlertCircle,
-  Download
-} from
-  "lucide-react";
-import Image from "next/image";
+  DollarSign,
+  Plus,
+  Tags,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { AdminUpload } from "@/components/admin/ui/admin-upload";
-import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { CourseStats } from "@/components/admin/courses/dashboard-stats";
-import { CourseCard } from "@/components/admin/courses/course-card";
 import { CourseFilters } from "@/components/admin/courses/course-filters";
 import { CourseContentView } from "@/components/admin/courses/course-content-view";
-import { CoursePreviewPanel } from "@/components/admin/courses/course-preview-panel";
 import { CourseBulkActions } from "@/components/admin/courses/course-bulk-actions";
 import { CoursePagination } from "@/components/admin/courses/course-pagination";
 import { CourseEmptyState } from "@/components/admin/courses/course-empty-state";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from
-  "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from
-  "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from
-  "@/components/ui/select";
 import { cn, formatPrice } from "@/lib/utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
 import { usePermission } from "@/components/auth/PermissionGuard";
 import { readJsonOrThrow, throwIfApiError } from "@/lib/api/api-error-utils";
-
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface Course {
-  id: string;
-  name: string;
-  nameAr: string | null;
-  code: string | null;
-  description: string | null;
-  price: number;
-  level: string;
-  instructorName: string | null;
-  instructorId: string | null;
-  categoryId: string | null;
-  thumbnailUrl: string | null;
-  trailerUrl: string | null;
-  isActive: boolean;
-  isPublished: boolean;
-  isFeatured?: boolean;
-  durationHours: number;
-  requirements: string | null;
-  learningObjectives: string | null;
-  slug?: string | null;
-  seoTitle?: string | null;
-  seoDescription?: string | null;
-  language?: string | null;
-  coursePrerequisites?: string[] | null;
-  targetAudience?: string[] | null;
-  whatYouLearn?: string[] | null;
-  _count: {
-    enrollments: number;
-    topics: number;
-    reviews?: number;
-    teachers?: number;
-  };
-}
+import type { Course, CourseCategory } from "./_components/types";
+import { createCourseColumns } from "./_components/course-columns";
+import { CourseFormDialog, QuickCourseValues, quickCourseSchema, quickCourseDefaults } from "./_components/course-form-dialog";
+import { CategoryDialog, CategoryFormValues, categorySchema, defaultCategoryValues } from "./_components/category-dialog";
 
 interface CoursesResponse {
   data: {
@@ -135,115 +47,11 @@ interface CoursesResponse {
   };
 }
 
-interface CourseCategory {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string | null;
-  description: string | null;
-  coursesCount: number;
-}
-
-// â”€â”€â”€ Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const categorySchema = z.object({
-  name: z.string().min(1, "اسم التصنيف مطلوب"),
-  slug: z.string().optional().nullable(),
-  icon: z.string().optional().nullable(),
-  description: z.string().optional().nullable()
-});
-
-const quickCourseSchema = z.object({
-  name: z.string().min(1, "اسم الدورة بالإنجليزية مطلوب"),
-  nameAr: z.string().min(1, "اسم الدورة بالعربية مطلوب"),
-  code: z.string().optional().nullable(),
-  price: z.coerce.number().min(0, "السعر يجب أن يكون صفرًا أو أكثر"),
-  level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]),
-  instructorName: z.string().optional().nullable(),
-  instructorId: z.string().optional().nullable(),
-  categoryId: z.string().optional().nullable(),
-  description: z.string().optional().nullable(),
-  isActive: z.boolean(),
-  isPublished: z.boolean(),
-  durationHours: z.coerce.number().min(0),
-  requirements: z.string().optional().nullable(),
-  learningObjectives: z.string().optional().nullable(),
-  thumbnailUrl: z.string().optional().nullable(),
-  trailerUrl: z.string().optional().nullable(),
-  slug: z.string().optional().nullable(),
-  seoTitle: z.string().optional().nullable(),
-  seoDescription: z.string().optional().nullable(),
-  language: z.string().optional().nullable(),
-  isFeatured: z.boolean().optional().default(false),
-  coursePrerequisites: z.string().optional().nullable(),
-  targetAudience: z.string().optional().nullable(),
-  whatYouLearn: z.string().optional().nullable()
-});
-
-type QuickCourseValues = z.infer<typeof quickCourseSchema>;
-type CategoryFormValues = z.infer<typeof categorySchema>;
-
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const levelLabels: Record<string, string> = {
-  BEGINNER: "مبتدئ",
-  INTERMEDIATE: "متوسط",
-  ADVANCED: "متقدم"
-};
-
-const levelStyles: Record<string, string> = {
-  BEGINNER: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600",
-  INTERMEDIATE: "border-sky-500/20 bg-sky-500/10 text-sky-600",
-  ADVANCED: "border-violet-500/20 bg-violet-500/10 text-violet-600"
-};
-
-const quickCourseDefaults: QuickCourseValues = {
-  name: "",
-  nameAr: "",
-  code: "",
-  price: 0,
-  level: "INTERMEDIATE",
-  instructorName: "",
-  instructorId: "",
-  categoryId: "",
-  description: "",
-  isActive: true,
-  isPublished: false,
-  durationHours: 0,
-  requirements: "",
-  learningObjectives: "",
-  thumbnailUrl: "",
-  trailerUrl: "",
-  slug: "",
-  seoTitle: "",
-  seoDescription: "",
-  language: "ar",
-  isFeatured: false,
-  coursePrerequisites: "",
-  targetAudience: "",
-  whatYouLearn: ""
-};
-
-const defaultCategoryValues: CategoryFormValues = {
-  name: "",
-  slug: "",
-  icon: "",
-  description: ""
-};
-
-// â”€â”€â”€ Loading Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-
-
-// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export default function AdminCoursesPage() {
   const router = useRouter();
   const { hasPermission } = usePermission();
   const canManageCourses = hasPermission("SUBJECTS_MANAGE");
 
-  // State
   const [quickCreateOpen, setQuickCreateOpen] = React.useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
   const [editingCourse, setEditingCourse] = React.useState<Course | null>(null);
@@ -256,7 +64,7 @@ export default function AdminCoursesPage() {
     open: boolean;
     id: string | null;
   }>({ open: false, id: null });
-  const [selectedCategoryId, ,] = React.useState<string>("all");
+  const [selectedCategoryId] = React.useState<string>("all");
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(12);
   const [search, setSearch] = React.useState("");
@@ -268,8 +76,6 @@ export default function AdminCoursesPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const deferredSearch = React.useDeferredValue(search);
-
-  // â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: [
@@ -333,8 +139,6 @@ export default function AdminCoursesPage() {
     staleTime: 300_000
   });
 
-  // Forms
-
   const quickForm = useForm<QuickCourseValues>({
     resolver: zodResolver(quickCourseSchema) as Resolver<QuickCourseValues>,
     defaultValues: quickCourseDefaults
@@ -345,7 +149,6 @@ export default function AdminCoursesPage() {
     defaultValues: defaultCategoryValues
   });
 
-  // Auto-fill instructor name when picker changes
   const selectedInstructorId = quickForm.watch("instructorId");
   React.useEffect(() => {
     if (!selectedInstructorId) return;
@@ -353,12 +156,9 @@ export default function AdminCoursesPage() {
     if (teacher) quickForm.setValue("instructorName", teacher.name);
   }, [selectedInstructorId, teachers, quickForm]);
 
-  // Reset page on filter change
   React.useEffect(() => {
     setPage(1);
   }, [deferredSearch, filterLevel, filterStatus, filterCategory]);
-
-  // â”€â”€â”€ Computed Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const statsData = React.useMemo(() => {
     const totalEnrollments = courses.reduce((s, c) => s + (c._count?.enrollments || 0), 0);
@@ -376,8 +176,6 @@ export default function AdminCoursesPage() {
       growth: { enrollments: 12, revenue: 8 }
     };
   }, [courses, pagination]);
-
-  // â”€â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const _openQuickCreate = (course?: Course) => {
     if (course) {
@@ -580,181 +378,17 @@ export default function AdminCoursesPage() {
     window.open("/api/admin/courses/export", "_blank");
   };
 
-  // â”€â”€â”€ Table Columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  const columns: ColumnDef<Course>[] = [
-    {
-      accessorKey: "name",
-      id: "nameAr",
-      header: "الدورة",
-      cell: ({ row }) => {
-        const course = row.original;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40">
-              {course.thumbnailUrl ?
-                <Image
-                  src={course.thumbnailUrl}
-                  alt={course.name}
-                  fill
-                  className="object-cover" /> :
-
-
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                  <PlayCircle className="h-6 w-6 text-primary/40" />
-                </div>
-              }
-            </div>
-            <div className="min-w-0 space-y-1">
-              <p className="truncate text-sm font-black">{course.nameAr || course.name}</p>
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                <GraduationCap className="h-3 w-3 shrink-0" />
-                <span className="truncate">{course.instructorName || "بدون مدرس"}</span>
-                {course.code &&
-                  <span className="text-primary/60 font-bold">#{course.code}</span>
-                }
-              </div>
-            </div>
-          </div>);
-
-      }
-    },
-    {
-      accessorKey: "price",
-      header: "السعر",
-      cell: ({ row }) =>
-        <div className="flex items-center gap-1 text-sm font-black">
-          {row.original.price === 0 ?
-            <span className="text-teal-500">مجانية</span> :
-
-            <>
-              <DollarSign className="h-3.5 w-3.5 text-primary" />
-              <span className="text-primary">{row.original.price} ج</span>
-            </>
-          }
-        </div>
-
-    },
-    {
-      accessorKey: "durationHours",
-      header: "المدة",
-      cell: ({ row }) =>
-        <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
-          <Clock className="h-3.5 w-3.5" />
-          {row.original.durationHours || 0}h
-        </div>
-
-    },
-    {
-      id: "enrollments",
-      header: "الطلاب",
-      cell: ({ row }) =>
-        <div className="flex items-center gap-1 text-sm font-bold">
-          <Users className="h-3.5 w-3.5 text-blue-500" />
-          {row.original._count?.enrollments || 0}
-        </div>
-
-    },
-    {
-      id: "topics",
-      header: "الوحدات",
-      cell: ({ row }) =>
-        <div className="flex items-center gap-1 text-sm font-bold">
-          <LayoutGrid className="h-3.5 w-3.5 text-violet-500" />
-          {row.original._count?.topics || 0}
-        </div>
-
-    },
-    {
-      accessorKey: "level",
-      header: "المستوى",
-      cell: ({ row }) => {
-        const level = (row.original.level || "INTERMEDIATE") as string;
-        return (
-          <Badge
-            variant="outline"
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-              levelStyles[level] || levelStyles.INTERMEDIATE
-            )}>
-
-            {levelLabels[level] || level}
-          </Badge>);
-
-      }
-    },
-    {
-      accessorKey: "isPublished",
-      header: "النشر",
-      cell: ({ row }) =>
-        <Badge
-          variant="outline"
-          className={cn(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-            row.original.isPublished ?
-              "border-emerald-500/20 bg-emerald-500/10 text-emerald-600" :
-              "border-border/60 bg-muted/30 text-muted-foreground"
-          )}>
-
-          {row.original.isPublished ? "منشورة" : "مسودة"}
-        </Badge>
-
-    },
-    {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) =>
-        <Badge
-          variant={row.original.isActive ? "default" : "secondary"}
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold">
-
-          {row.original.isActive ? "نشطة" : "موقوفة"}
-        </Badge>
-
-    },
-    {
-      id: "actions",
-      header: "إجراءات",
-      cell: ({ row }) =>
-        <RowActions
-          row={row.original}
-          onView={(course) => router.push(`/admin/courses/${course.id}`)}
-          onEdit={canManageCourses ? (course) => router.push(`/admin/courses/${course.id}`) : undefined}
-          onDelete={canManageCourses ? (course) => setDeleteDialog({ open: true, id: course.id }) : undefined}
-          extraActions={[
-            {
-              icon: BookOpen,
-              label: "إدارة المنهج",
-              onClick: (course) => router.push(`/admin/courses/${course.id}/curriculum`)
-            },
-            {
-              icon: TrendingUp,
-              label: "التحليلات",
-              onClick: (course) => router.push(`/admin/courses/${course.id}/analytics`)
-            },
-            {
-              icon: ExternalLink,
-              label: "عرض في الموقع",
-              onClick: (course) => router.push(`/courses/${course.id}`)
-            }]
-          } />
-
-
-    }];
-
-
-  // â”€â”€â”€ Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const columns = React.useMemo(
+    () => createCourseColumns({ router, canManageCourses, setDeleteDialog }),
+    [router, canManageCourses, setDeleteDialog]
+  );
 
   const emptyState = (
     <CourseEmptyState onAddCourse={() => router.push("/admin/courses/new")} />
   );
 
-
-  // ——————————————————————————————————————————————————————————————————————————————————————————————————
-
   return (
     <div className="space-y-8" dir="rtl">
-      {/* Premium Header */}
       <div className="relative overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/30 p-8 backdrop-blur-xl">
         <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[80px]" />
         <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-violet-500/10 blur-[80px]" />
@@ -791,7 +425,6 @@ export default function AdminCoursesPage() {
           </div>}
         </div>
 
-        {/* Stats Grid */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "إجمالي الدورات", value: statsData.totalCourses, icon: BookOpen, color: "text-blue-500" },
@@ -810,7 +443,6 @@ export default function AdminCoursesPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <CourseFilters
         onSearch={setSearch}
         onFilterChange={(filters) => {
@@ -826,8 +458,6 @@ export default function AdminCoursesPage() {
         totalCount={pagination?.total ?? courses.length}
         isLoading={isFetching} />
 
-
-      {/* Batch Actions Bar */}
       <CourseBulkActions
         selectedCount={selectedIds.length}
         onPublish={() => handleBatchAction("publish")}
@@ -839,7 +469,6 @@ export default function AdminCoursesPage() {
         onClear={() => setSelectedIds([])}
       />
 
-      {/* Content */}
       <CourseContentView
         view={view}
         isLoading={isLoading}
@@ -863,7 +492,6 @@ export default function AdminCoursesPage() {
         setDeleteDialog={setDeleteDialog}
       />
 
-      {/* Pagination for grid view */}
       {view === "grid" && (
         <CoursePagination
           page={page}
@@ -875,8 +503,7 @@ export default function AdminCoursesPage() {
         />
       )}
 
-      {/* â”€â”€â”€ Quick Edit Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Dialog
+      <CourseFormDialog
         open={quickCreateOpen}
         onOpenChange={(open) => {
           setQuickCreateOpen(open);
@@ -884,391 +511,17 @@ export default function AdminCoursesPage() {
             setEditingCourse(null);
             quickForm.reset(quickCourseDefaults);
           }
-        }}>
+        }}
+        editingCourse={editingCourse}
+        isSubmitting={isSubmitting}
+        teachers={teachers}
+        categories={categories}
+        quickForm={quickForm}
+        onSubmit={handleQuickSubmit}
+        onFullEditor={(courseId) => router.push(`/admin/courses/${courseId}`)}
+      />
 
-        <DialogContent className="max-w-5xl rounded-[2rem] p-0">
-          <div className="grid max-h-[88vh] gap-0 overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
-            {/* Form Side */}
-            <div className="overflow-y-auto p-6 sm:p-8" dir="rtl">
-              <DialogHeader className="space-y-2 text-right">
-                <DialogTitle className="text-2xl font-black">
-                  {editingCourse ? "تعديل بيانات الدورة" : "إنشاء دورة سريع"}
-                </DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  {editingCourse ?
-                    "عدّل البيانات الأساسية â€“ للتحكم الكامل توجّه لصفحة المحرر." :
-                    "أدخل البيانات الأساسية ثم أضف المنهج الدراسي والوسائط من صفحة الدورة."}
-                </p>
-                {!editingCourse &&
-                  <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                    <p className="text-xs font-bold text-primary">
-                      بعد الإنشاء ستُوجِّه تلقائيًا لصفحة إضافة الفصول والدروس.
-                    </p>
-                  </div>
-                }
-              </DialogHeader>
-
-              <Form {...quickForm}>
-                <form
-                  onSubmit={quickForm.handleSubmit(handleQuickSubmit)}
-                  className="mt-6 space-y-5">
-
-                  {/* Names */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={quickForm.control}
-                      name="nameAr"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">اسم الدورة بالعربية *</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="مثال: أساسيات الرياضيات"
-                              className="h-11 rounded-xl" />
-
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="name"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">Course Name (EN) *</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="Math Fundamentals"
-                              dir="ltr"
-                              className="h-11 rounded-xl" />
-
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                  </div>
-
-                  {/* Code & Slug */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={quickForm.control}
-                      name="code"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">كود الدورة</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="MATH-2026"
-                              className="h-11 rounded-xl" />
-
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="slug"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">الرابط المختصر</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              placeholder="math-fundamentals"
-                              dir="ltr"
-                              className="h-11 rounded-xl" />
-
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                  </div>
-
-                  {/* Description */}
-                  <FormField
-                    control={quickForm.control}
-                    name="description"
-                    render={({ field }) =>
-                      <FormItem>
-                        <FormLabel className="font-bold">الوصف</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="ملخص واضح لما سيتعلمه الطالب داخل الدورة..."
-                            className="min-h-[90px] rounded-xl resize-none" />
-
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    } />
-
-
-                  {/* Price, Hours, Level, Language */}
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <FormField
-                      control={quickForm.control}
-                      name="price"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">السعر (ج)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} className="h-11 rounded-xl" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="durationHours"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">الساعات</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} className="h-11 rounded-xl" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="level"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">المستوى</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-11 rounded-xl">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="BEGINNER">مبتدئ</SelectItem>
-                              <SelectItem value="INTERMEDIATE">متوسط</SelectItem>
-                              <SelectItem value="ADVANCED">متقدم</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="language"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">اللغة</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || "ar"}>
-                            <FormControl>
-                              <SelectTrigger className="h-11 rounded-xl">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ar">العربية</SelectItem>
-                              <SelectItem value="en">English</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                  </div>
-
-                  {/* Instructor & Category */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={quickForm.control}
-                      name="instructorId"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">المدرس</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="h-11 rounded-xl">
-                                <SelectValue placeholder="اختر مدرسًا" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {teachers.map((t) =>
-                                <SelectItem key={t.id} value={t.id}>
-                                  {t.name}
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="categoryId"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">التصنيف</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="h-11 rounded-xl">
-                                <SelectValue placeholder="اختر تصنيفًا" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((cat) =>
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                  </div>
-
-                  {/* Media */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={quickForm.control}
-                      name="thumbnailUrl"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">صورة الغلاف</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Input
-                                {...field}
-                                value={field.value || ""}
-                                placeholder="رابط مباشر للصورة"
-                                className="h-11 rounded-xl" />
-
-                              <AdminUpload
-                                accept="image/*"
-                                label="رفع صورة"
-                                onUploadComplete={(url) => field.onChange(url)} />
-
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                    <FormField
-                      control={quickForm.control}
-                      name="trailerUrl"
-                      render={({ field }) =>
-                        <FormItem>
-                          <FormLabel className="font-bold">فيديو تعريفي</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Input
-                                {...field}
-                                value={field.value || ""}
-                                placeholder="رابط يوتيوب أو فيديو مباشر"
-                                className="h-11 rounded-xl" />
-
-                              <AdminUpload
-                                accept="video/*"
-                                label="رفع فيديو"
-                                maxSize={5 * 1024}
-                                onUploadComplete={(url) => field.onChange(url)} />
-
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      } />
-
-                  </div>
-
-                  {/* Toggles */}
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {(["isActive", "isPublished", "isFeatured"] as const).map((name) => {
-                      const labels = {
-                        isActive: { title: "تفعيل الدورة", desc: "تظهر في النظام" },
-                        isPublished: { title: "نشر للطلاب", desc: "مرئية للجمهور" },
-                        isFeatured: { title: "دورة مميزة", desc: "تمييز خاص" }
-                      };
-                      return (
-                        <div
-                          key={name}
-                          className="flex items-center justify-between rounded-2xl border bg-muted/20 p-3.5">
-
-                          <div>
-                            <p className="text-sm font-black">{labels[name].title}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {labels[name].desc}
-                            </p>
-                          </div>
-                          <FormField
-                            control={quickForm.control}
-                            name={name}
-                            render={({ field }) =>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value as boolean}
-                                  onCheckedChange={field.onChange} />
-
-                              </FormControl>
-                            } />
-
-                        </div>);
-
-                    })}
-                  </div>
-
-                  <DialogFooter className="gap-2 pt-2">
-                    {editingCourse &&
-                      <AdminButton
-                        type="button"
-                        variant="outline"
-                        onClick={() => router.push(`/admin/courses/${editingCourse.id}`)}
-                        className="gap-2">
-
-                        <ExternalLink className="h-4 w-4" />
-                        فتح المحرر الكامل
-                      </AdminButton>
-                    }
-                    <AdminButton
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 h-12 text-base font-black gap-2">
-
-                      {isSubmitting ?
-                        <Loader2 className="h-4 w-4 animate-spin" /> :
-
-                        <CheckCircle2 className="h-4 w-4" />
-                      }
-                      {editingCourse ? "حفظ التعديلات" : "إنشاء الدورة"}
-                    </AdminButton>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </div>
-
-            {/* Preview Side */}
-            <CoursePreviewPanel quickForm={quickForm} />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* â”€â”€â”€ Category Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Dialog
+      <CategoryDialog
         open={categoryDialogOpen}
         onOpenChange={(open) => {
           setCategoryDialogOpen(open);
@@ -1276,143 +529,16 @@ export default function AdminCoursesPage() {
             setEditingCategory(null);
             categoryForm.reset(defaultCategoryValues);
           }
-        }}>
+        }}
+        editingCategory={editingCategory}
+        categoryForm={categoryForm}
+        onSubmit={handleCategorySubmit}
+        onDeleteRequest={(category) => {
+          setCategoryDeleteDialog({ open: true, id: category.id });
+          setCategoryDialogOpen(false);
+        }}
+      />
 
-        <DialogContent className="max-w-2xl rounded-[2rem] p-0">
-          <div className="p-6 sm:p-8" dir="rtl">
-            <DialogHeader className="space-y-2 text-right">
-              <DialogTitle className="text-2xl font-black">
-                {editingCategory ? "تعديل تصنيف" : "إضافة تصنيف جديد"}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                استخدم التصنيفات لتنظيم دوراتك في مجموعات منطقية.
-              </p>
-            </DialogHeader>
-
-            <Form {...categoryForm}>
-              <form
-                onSubmit={categoryForm.handleSubmit(handleCategorySubmit)}
-                className="mt-6 space-y-5">
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={categoryForm.control}
-                    name="name"
-                    render={({ field }) =>
-                      <FormItem>
-                        <FormLabel className="font-bold">اسم التصنيف *</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="مثال: الرياضيات"
-                            className="h-11 rounded-xl" />
-
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    } />
-
-                  <FormField
-                    control={categoryForm.control}
-                    name="slug"
-                    render={({ field }) =>
-                      <FormItem>
-                        <FormLabel className="font-bold">الرابط المختصر</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="mathematics"
-                            dir="ltr"
-                            className="h-11 rounded-xl" />
-
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    } />
-
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={categoryForm.control}
-                    name="icon"
-                    render={({ field }) =>
-                      <FormItem>
-                        <FormLabel className="font-bold">الأيقونة (اسم Lucide)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value || ""}
-                            placeholder="BookOpen"
-                            className="h-11 rounded-xl" />
-
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    } />
-
-                  <div className="rounded-2xl border bg-muted/20 p-4">
-                    <p className="text-xs font-black text-muted-foreground">الدورات المرتبطة</p>
-                    <p className="mt-2 text-3xl font-black">{editingCategory?.coursesCount ?? 0}</p>
-                  </div>
-                </div>
-                <FormField
-                  control={categoryForm.control}
-                  name="description"
-                  render={({ field }) =>
-                    <FormItem>
-                      <FormLabel className="font-bold">الوصف</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          value={field.value || ""}
-                          className="min-h-[100px] rounded-xl"
-                          placeholder="وصف مختصر لهذا التصنيف..." />
-
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  } />
-
-                <DialogFooter className="gap-2 sm:justify-between">
-                  {editingCategory &&
-                    <AdminButton
-                      type="button"
-                      variant="ghost"
-                      className="text-red-500 hover:bg-red-500/10"
-                      onClick={() => {
-                        setCategoryDeleteDialog({ open: true, id: editingCategory.id });
-                        setCategoryDialogOpen(false);
-                      }}>
-
-                      حذف هذا التصنيف
-                    </AdminButton>
-                  }
-                  <div className="flex gap-2">
-                    <AdminButton
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setCategoryDialogOpen(false);
-                        setEditingCategory(null);
-                        categoryForm.reset(defaultCategoryValues);
-                      }}>
-
-                      إلغاء
-                    </AdminButton>
-                    <AdminButton type="submit" icon={editingCategory ? Pencil : Plus}>
-                      {editingCategory ? "حفظ التعديلات" : "إنشاء التصنيف"}
-                    </AdminButton>
-                  </div>
-                </DialogFooter>
-              </form>
-            </Form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* â”€â”€â”€ Confirm Dialogs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: open ? deleteDialog.id : null })}
@@ -1431,7 +557,7 @@ export default function AdminCoursesPage() {
         confirmText="حذف التصنيف"
         variant="destructive" />
 
-    </div>);
+    </div>
+  );
 
 }
-

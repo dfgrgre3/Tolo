@@ -120,7 +120,7 @@ func (s *AIService) GenerateContentWithMessages(ctx context.Context, messages []
 	}
 
 	if model == "" {
-		model = "google/gemini-2.0-flash-001"
+		model = "deepseek/deepseek-v4-flash:free"
 	}
 
 	// Use circuit breaker to prevent cascading failures
@@ -312,7 +312,7 @@ func (s *AIService) callOpenAICompatible(ctx context.Context, systemPrompt, user
 	var apiResult string
 	err := service.CallExternalAPI("openai-openrouter", func() error {
 		payload := map[string]interface{}{
-			"model": "google/gemini-2.0-flash-001", // Default for OpenRouter
+			"model": "deepseek/deepseek-v4-flash:free", // Default for OpenRouter
 			"messages": []map[string]string{
 				{"role": "system", "content": systemPrompt},
 				{"role": "user", "content": userMessage},

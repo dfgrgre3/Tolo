@@ -63,9 +63,9 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
       if (!subjectPerformance[task.subject]) {
         subjectPerformance[task.subject] = { completed: 0, total: 0 };
       }
-      subjectPerformance[task.subject].total++;
+      subjectPerformance[task.subject]!.total++;
       if (task.status === 'COMPLETED') {
-        subjectPerformance[task.subject].completed++;
+        subjectPerformance[task.subject]!.completed++;
       }
     }
   });

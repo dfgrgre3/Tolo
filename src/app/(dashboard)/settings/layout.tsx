@@ -544,8 +544,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           >
             <SidebarContent
               isSidebarOpen={isSidebarOpen}
-              user={user}
-              currentItem={currentItem}
+              user={{...user, name: user.name ?? undefined, username: user.username ?? undefined, avatar: user.avatar ?? undefined, phone: user.phone ?? undefined, school: user.school ?? undefined, bio: user.bio ?? undefined, emailVerified: user.emailVerified ?? undefined}}
+              currentItem={currentItem!}
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onCloseMobile={() => setIsMobileSidebarOpen(false)}
               onLogout={handleLogout}
@@ -575,8 +575,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 <SidebarContent
                   mobile
                   isSidebarOpen={isSidebarOpen}
-                  user={user}
-                  currentItem={currentItem}
+                  user={{...user, name: user.name ?? undefined, username: user.username ?? undefined, avatar: user.avatar ?? undefined, phone: user.phone ?? undefined, school: user.school ?? undefined, bio: user.bio ?? undefined, emailVerified: user.emailVerified ?? undefined}}
+                  currentItem={currentItem!}
                   onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                   onCloseMobile={() => setIsMobileSidebarOpen(false)}
                   onLogout={handleLogout}

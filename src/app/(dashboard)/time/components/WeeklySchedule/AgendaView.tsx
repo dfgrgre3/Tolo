@@ -96,7 +96,7 @@ export function AgendaView({
 
     // Block render
     const block = item.block as TimeBlock;
-    const typeInfo = getBlockTypeInfo(block.type);
+    const typeInfo = getBlockTypeInfo(block.type)!;
     const Icon = typeInfo.icon;
     
     return (
