@@ -342,6 +342,50 @@ func Upload(c *gin.Context) {
 	})
 }
 
+// PresignUpload generates a pre-signed URL for direct browser-to-S3 upload.
+// The frontend uploads the file directly to S3/R2, then sends the key back to the backend.
+func PresignUpload(c *gin.Context) {
+	var req struct {
+		FileName    string `json:"fileName" binding:"required"`
+		ContentType string `json:"contentType" binding:"required"`
+		FileSize    int64  `json:"fileSize"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api_response.Error(c, http.StatusBadRequest, "fileName and contentType are required")
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(req.FileName))
+	allowedExts := map[string]bool{
+		".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
+		".pdf": true, ".doc": true, ".docx": true,
+		".mp4": true, ".mp3": true,
+	}
+	if !allowedExts[ext] {
+		api_response.Error(c, http.StatusBadRequest, "File type not allowed")
+		return
+	}
+
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+	presignedURL, err := storage.GlobalStorage.GeneratePresignedUploadURL(
+		c.Request.Context(),
+		filename,
+		req.ContentType,
+		15*time.Minute,
+	)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to generate upload URL")
+		return
+	}
+
+	publicURL, _ := storage.GlobalStorage.GetURL(c.Request.Context(), filename)
+	api_response.Success(c, gin.H{
+		"uploadUrl": presignedURL,
+		"fileKey":   filename,
+		"publicUrl": publicURL,
+	})
+}
+
 func AdminExamsBulkUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -453,13 +497,11 @@ func handlePostInitChunked(c *gin.Context) {
 	uploadID := uuid.New().String()
 	metadataBytes, _ := json.Marshal(req)
 
-	if db.Redis != nil {
-		db.Redis.Set(c.Request.Context(), uploadMetadataKeyPrefix+uploadID, metadataBytes, 24*time.Hour)
-	} else {
-		tempDir := filepath.Join("uploads", "temp", uploadID)
-		os.MkdirAll(tempDir, 0755)
-		os.WriteFile(filepath.Join(tempDir, "metadata.json"), metadataBytes, 0644)
+	if db.Redis == nil {
+		api_response.Error(c, http.StatusInternalServerError, "Redis is required for chunked uploads")
+		return
 	}
+	db.Redis.Set(c.Request.Context(), uploadMetadataKeyPrefix+uploadID, metadataBytes, 24*time.Hour)
 
 	api_response.Success(c, gin.H{"uploadId": uploadID})
 }
@@ -528,20 +570,14 @@ func handlePatchMergeChunks(c *gin.Context) {
 
 func getUploadMetadata(ctx context.Context, uploadID string) (chunkMetadata, error) {
 	var metadata chunkMetadata
-	if db.Redis != nil {
-		val, err := db.Redis.Get(ctx, uploadMetadataKeyPrefix+uploadID).Bytes()
-		if err != nil {
-			return metadata, err
-		}
-		json.Unmarshal(val, &metadata)
-	} else {
-		tempDir := filepath.Join("uploads", "temp", uploadID)
-		metadataBytes, err := os.ReadFile(filepath.Join(tempDir, "metadata.json"))
-		if err != nil {
-			return metadata, err
-		}
-		json.Unmarshal(metadataBytes, &metadata)
+	if db.Redis == nil {
+		return metadata, fmt.Errorf("Redis is required for chunked uploads")
 	}
+	val, err := db.Redis.Get(ctx, uploadMetadataKeyPrefix+uploadID).Bytes()
+	if err != nil {
+		return metadata, err
+	}
+	json.Unmarshal(val, &metadata)
 	return metadata, nil
 }
 

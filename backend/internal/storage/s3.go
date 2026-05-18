@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 	"time"
 
@@ -51,12 +52,11 @@ func (s *S3Storage) GetURL(ctx context.Context, filename string) (string, error)
 		return fmt.Sprintf("%s/%s", s.publicURL, filename), nil
 	}
 
-	// Default to presigned URL if no public URL is provided (Distributed System Pattern)
 	presignedURL, err := s.client.PresignedGetObject(ctx, s.bucket, filename, time.Hour*24, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned url: %w", err)
 	}
-	
+
 	return presignedURL.String(), nil
 }
 
@@ -81,4 +81,22 @@ func (s *S3Storage) List(ctx context.Context, prefix string) ([]string, error) {
 
 func (s *S3Storage) Download(ctx context.Context, filename string) (io.ReadCloser, error) {
 	return s.client.GetObject(ctx, s.bucket, filename, minio.GetObjectOptions{})
+}
+
+func (s *S3Storage) GeneratePresignedUploadURL(ctx context.Context, filename string, contentType string, expiry time.Duration) (string, error) {
+	reqParams := make(url.Values)
+	if contentType != "" {
+		reqParams.Set("Content-Type", contentType)
+	}
+
+	presignedURL, err := s.client.PresignedPutObject(ctx, s.bucket, filename, expiry)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned upload url: %w", err)
+	}
+
+	if s.publicURL != "" {
+		return fmt.Sprintf("%s/%s", s.publicURL, filename), nil
+	}
+
+	return presignedURL.String(), nil
 }

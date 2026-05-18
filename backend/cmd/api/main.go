@@ -51,14 +51,17 @@ func main() {
 	cfg := config.Load()
 	config.GlobalConfig = cfg
 
-	// Initialize Database
-	_, err := db.Connect(cfg.DatabaseURL)
+	// Initialize Database with explicit Read/Write DSNs for CQRS
+	_, err := db.ConnectWithWriteDSN(cfg.DatabaseURL, cfg.DatabaseWriteURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	if len(cfg.DatabaseReadReplicas) > 0 {
+		log.Printf("Database configured with %d read replica(s)", len(cfg.DatabaseReadReplicas))
+	}
 
-	// Initialize Storage
-	initStorage(cfg)
+	// Initialize S3 Storage (Cloudflare R2 / AWS S3 / MinIO)
+	initS3Storage(cfg)
 
 	// SQL migrations and seeding are now handled by a separate process (cmd/migrate/main.go)
 	// to avoid race conditions in distributed environments.
@@ -84,10 +87,21 @@ func main() {
 	grpcServer := startGRPCServer(courseSvc, authSvc, analyticsSvc)
 
 
-	// Start Background Worker
+	// Start Background Worker and Periodic Scheduler
 	go func() {
 		log.Println("Starting background worker...")
 		worker.StartWorker()
+	}()
+
+	go func() {
+		log.Println("Starting periodic task scheduler...")
+		worker.StartScheduler()
+	}()
+
+	// Start Analytics Batch Worker (separate from Asynq — uses Redis Stream)
+	go func() {
+		log.Println("Starting analytics batch worker (Redis Stream consumer)...")
+		worker.StartAnalyticsBatchWorker()
 	}()
 
 	// Start HTTP Server with graceful shutdown
@@ -142,29 +156,25 @@ func main() {
 	log.Println("Server exited")
 }
 
-func initStorage(cfg *config.Config) {
-	if cfg.StorageType == "s3" {
-		storageSvc, err := storage.NewS3Storage(
-			cfg.S3.Endpoint,
-			cfg.S3.AccessKey,
-			cfg.S3.SecretKey,
-			cfg.S3.Bucket,
-			cfg.S3.Region,
-			cfg.S3.UseSSL,
-			cfg.S3.PublicURL,
-		)
-		if err != nil {
-			log.Fatalf("Failed to initialize S3 storage: %v", err)
-		}
-		storage.GlobalStorage = storageSvc
-		log.Println("Storage initialized with S3 provider")
-	} else {
-		storage.GlobalStorage = storage.NewLocalStorage(
-			cfg.LocalStorage.BasePath,
-			cfg.LocalStorage.BaseURL,
-		)
-		log.Println("Storage initialized with Local provider")
+func initS3Storage(cfg *config.Config) {
+	if cfg.StorageType != "s3" {
+		log.Fatalf("FATAL: Only S3-compatible storage is supported. Set STORAGE_TYPE=s3 (Cloudflare R2 / AWS S3 / MinIO).")
 	}
+
+	storageSvc, err := storage.NewS3Storage(
+		cfg.S3.Endpoint,
+		cfg.S3.AccessKey,
+		cfg.S3.SecretKey,
+		cfg.S3.Bucket,
+		cfg.S3.Region,
+		cfg.S3.UseSSL,
+		cfg.S3.PublicURL,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize S3 storage: %v", err)
+	}
+	storage.GlobalStorage = storageSvc
+	log.Println("Storage initialized with S3 provider (Cloudflare R2)")
 }
 
 func setupRouter(cfg *config.Config) *gin.Engine {
@@ -180,10 +190,6 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	r.Use(middleware.GlobalRateLimiter(200, time.Minute))
 	r.Use(middleware.CSRFMiddleware())
 	r.Use(middleware.DBConsistencyMiddleware(db.DB))
-
-	if cfg.StorageType == "local" {
-		r.Static("/uploads", cfg.LocalStorage.BasePath)
-	}
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "UP"})

@@ -30,6 +30,10 @@ func (PrismaNamingStrategy) TableName(table string) string {
 }
 
 func Connect(dsn string) (*gorm.DB, error) {
+	return ConnectWithWriteDSN(dsn, os.Getenv("DATABASE_WRITE_DSN"))
+}
+
+func ConnectWithWriteDSN(dsn, writeDSN string) (*gorm.DB, error) {
 	logMode := getGormLogLevel()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -51,16 +55,22 @@ func Connect(dsn string) (*gorm.DB, error) {
 		db = db.Debug()
 	}
 
+	sourceDSN := dsn
+	if writeDSN != "" {
+		sourceDSN = writeDSN
+	}
+
 	replicaDialectors := getReplicaDialectors()
 	pool := getPoolSettings()
 
 	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d, ConnMaxLifetime=%s, ConnMaxIdleTime=%s",
 		pool.MaxIdleConns, pool.MaxOpenConns, pool.MaxLifetime, pool.MaxIdleTime)
 
-	// Register DBResolver with connection pool configuration
+	// Register DBResolver with explicit source/replica splitting for CQRS
 	resolver := dbresolver.Register(dbresolver.Config{
-		Sources:  []gorm.Dialector{postgres.Open(dsn)},
-		Replicas: replicaDialectors,
+		Sources:  []gorm.Dialector{postgres.Open(sourceDSN)},
+		Replicas: append([]gorm.Dialector{postgres.Open(dsn)}, replicaDialectors...),
+		Policy:   dbresolver.RandomPolicy{},
 	}).
 		SetMaxIdleConns(pool.MaxIdleConns).
 		SetMaxOpenConns(pool.MaxOpenConns).
@@ -79,6 +89,33 @@ func Connect(dsn string) (*gorm.DB, error) {
 	log.Println("Database ready. Schema changes are controlled by explicit migration flags.")
 
 	return db, nil
+}
+
+// ReadDB returns a GORM session explicitly routed to a read replica.
+// Use this in all query (read) handlers to enforce CQRS read path.
+func ReadDB() *gorm.DB {
+	if DB == nil {
+		return nil
+	}
+	return DB.Clauses(dbresolver.Read)
+}
+
+// WriteDB returns a GORM session explicitly routed to the write source.
+// Use this in all command (write) handlers to enforce CQRS write path.
+func WriteDB() *gorm.DB {
+	if DB == nil {
+		return nil
+	}
+	return DB.Clauses(dbresolver.Write)
+}
+
+// WithWriteTx executes fn within a write-routed transaction.
+// This guarantees all operations in fn go to the write source.
+func WithWriteTx(fn func(tx *gorm.DB) error) error {
+	if DB == nil {
+		return nil
+	}
+	return DB.Clauses(dbresolver.Write).Transaction(fn)
 }
 
 func getGormLogLevel() logger.LogLevel {

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"io"
+	"time"
 )
 
 // Storage defines the interface for file storage operations
@@ -17,6 +18,8 @@ type Storage interface {
 	List(ctx context.Context, prefix string) ([]string, error)
 	// Download returns the content of a file
 	Download(ctx context.Context, filename string) (io.ReadCloser, error)
+	// GeneratePresignedUploadURL returns a pre-signed URL for direct browser upload to S3/R2
+	GeneratePresignedUploadURL(ctx context.Context, filename string, contentType string, expiry time.Duration) (string, error)
 }
 
 var GlobalStorage Storage

@@ -10,7 +10,13 @@ import (
 	"thanawy-backend/internal/db"
 
 	"github.com/hibiken/asynq"
+	"gorm.io/gorm"
 )
+
+// writeDB returns the write-routed DB connection for CQRS write path.
+func writeDB() *gorm.DB {
+	return db.WriteDB()
+}
 
 const (
 	TypeProgressUpdate = "progress:update"
@@ -95,13 +101,13 @@ func (h *ProgressHandler) ProcessTask(ctx context.Context, t *asynq.Task) error 
 }
 
 func (h *ProgressHandler) handleLessonCompleted(ctx context.Context, p ProgressUpdatePayload) error {
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		INSERT INTO "TopicProgress" ("id", "userId", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, 'COMPLETED', true, $3, 0, $4, $4)
 		ON CONFLICT ("userId", "sub_topic_id")
@@ -121,13 +127,13 @@ func (h *ProgressHandler) handleLessonCompleted(ctx context.Context, p ProgressU
 }
 
 func (h *ProgressHandler) handleLessonProgress(ctx context.Context, p ProgressUpdatePayload) error {
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		INSERT INTO "TopicProgress" ("id", "userId", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, 'IN_PROGRESS', false, $3, 0, $4, $4)
 		ON CONFLICT ("userId", "sub_topic_id")
@@ -145,13 +151,13 @@ func (h *ProgressHandler) handleLessonProgress(ctx context.Context, p ProgressUp
 }
 
 func (h *ProgressHandler) handleExamCompleted(ctx context.Context, p ProgressUpdatePayload) error {
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		INSERT INTO "ExamResult" ("id", "exam_id", "user_id", "score", "passed", "taken_at", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $5, $5)
 	`, p.ExamID, p.UserID, p.ExamScore, p.ExamPassed, now)
@@ -170,7 +176,7 @@ func (h *ProgressHandler) handleTaskCompleted(ctx context.Context, p ProgressUpd
 		return fmt.Errorf("database not connected")
 	}
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		UPDATE "Task" SET "status" = 'DONE', "updated_at" = NOW()
 		WHERE "id" = $1 AND "userId" = $2
 	`, p.TaskID, p.UserID)
@@ -187,14 +193,14 @@ func (h *ProgressHandler) handleTaskCompleted(ctx context.Context, p ProgressUpd
 }
 
 func (h *ProgressHandler) handleStudySession(ctx context.Context, p ProgressUpdatePayload) error {
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 	endTime := now.Add(time.Duration(p.StudySessionMinutes) * time.Minute)
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		INSERT INTO "StudySession" ("id", "userId", "duration_min", "start_time", "end_time", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $3, $3)
 	`, p.UserID, p.StudySessionMinutes, now, endTime)
@@ -217,7 +223,7 @@ func (h *GamificationHandler) ProcessTask(ctx context.Context, t *asynq.Task) er
 	log.Printf("[GamificationWorker] Syncing gamification for user %s: +%d %s XP (%s)",
 		p.UserID, p.XPAmount, p.XPType, p.Source)
 
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
@@ -239,7 +245,7 @@ func (h *GamificationHandler) ProcessTask(ctx context.Context, t *asynq.Task) er
 		updateColumn = `"totalXP"`
 	}
 
-	result := db.DB.Exec(fmt.Sprintf(`
+	result := writeDB().Exec(fmt.Sprintf(`
 		UPDATE "User" SET
 			"totalXP" = "totalXP" + $1,
 			%s = %s + $1,
@@ -271,11 +277,11 @@ func (h *BatchProgressFlushHandler) ProcessTask(ctx context.Context, t *asynq.Ta
 
 	log.Printf("[BatchFlushWorker] Flushing aggregated progress for user %s", p.UserID)
 
-	if db.DB == nil {
+	if writeDB() == nil {
 		return fmt.Errorf("database not connected")
 	}
 
-	result := db.DB.Exec(`
+	result := writeDB().Exec(`
 		UPDATE "User" SET
 			"totalStudyTime" = "totalStudyTime" + COALESCE((
 				SELECT SUM("time_spent_seconds") / 60

@@ -3,11 +3,14 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"thanawy-backend/internal/db"
-	"thanawy-backend/internal/models"
+	"thanawy-backend/internal/cqrs/queries"
 	api_response "thanawy-backend/internal/api/response"
 
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	gamificationQuery = queries.NewGamificationQueryService()
 )
 
 // GetLeaderboard returns the top users by XP
@@ -18,23 +21,22 @@ func GetLeaderboard(c *gin.Context) {
 		limit = 10
 	}
 
-	var users []models.User
-	// Fetch top users by XP
-	if err := db.DB.Order("total_xp DESC").Limit(limit).Find(&users).Error; err != nil {
+	entries, err := gamificationQuery.GetLeaderboard(limit)
+	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch leaderboard")
 		return
 	}
 
-	leaderboard := make([]gin.H, 0, len(users))
-	for i, u := range users {
+	leaderboard := make([]gin.H, 0, len(entries))
+	for _, e := range entries {
 		leaderboard = append(leaderboard, gin.H{
-			"rank":     i + 1,
-			"id":       u.ID,
-			"name":     firstNonEmpty(stringOrEmpty(u.Name), stringOrEmpty(u.Username), u.Email),
-			"avatar":   u.Avatar,
-			"totalXP":  u.TotalXP,
-			"level":    u.Level,
-			"role":     u.Role,
+			"rank":    e.Rank,
+			"id":      e.ID,
+			"name":    e.Name,
+			"avatar":  e.Avatar,
+			"totalXP": e.TotalXP,
+			"level":   e.Level,
+			"role":    e.Role,
 		})
 	}
 
@@ -47,7 +49,6 @@ func GetLeaderboard(c *gin.Context) {
 func GetUserAchievements(c *gin.Context) {
 	userID := c.Query("userId")
 	if userID == "" {
-		// Fallback to current user from context
 		ctxID, exists := c.Get("userId")
 		if !exists {
 			api_response.Error(c, http.StatusBadRequest, "User ID is required")
@@ -56,28 +57,26 @@ func GetUserAchievements(c *gin.Context) {
 		userID = ctxID.(string)
 	}
 
-	var userAchievements []models.UserAchievement
-	if err := db.DB.Preload("Achievement").Where("user_id = ?", userID).Find(&userAchievements).Error; err != nil {
+	achievements, err := gamificationQuery.GetUserAchievements(userID)
+	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch achievements")
 		return
 	}
 
-	achievements := make([]gin.H, 0, len(userAchievements))
-	for _, ua := range userAchievements {
-		if ua.Achievement != nil {
-			achievements = append(achievements, gin.H{
-				"id":          ua.Achievement.ID,
-				"title":       ua.Achievement.Title,
-				"description": ua.Achievement.Description,
-				"icon":        ua.Achievement.Icon,
-				"unlockedAt":  ua.UnlockedAt,
-				"rarity":      ua.Achievement.Rarity,
-				"xpReward":    ua.Achievement.XpReward,
-			})
-		}
+	result := make([]gin.H, 0, len(achievements))
+	for _, a := range achievements {
+		result = append(result, gin.H{
+			"id":          a.ID,
+			"title":       a.Title,
+			"description": a.Description,
+			"icon":        a.Icon,
+			"unlockedAt":  a.UnlockedAt,
+			"rarity":      a.Rarity,
+			"xpReward":    a.XpReward,
+		})
 	}
 
 	api_response.Success(c, gin.H{
-		"achievements": achievements,
+		"achievements": result,
 	})
 }

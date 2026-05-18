@@ -17,6 +17,7 @@ const (
 func SetupProtectedRoutes(router *gin.Engine) {
 	protected := router.Group("/api")
 	protected.Use(middleware.Auth())
+	protected.Use(middleware.Idempotency())
 	{
 		protected.GET("/progress/summary", handlers.GetProgressSummary)
 		protected.GET("/analytics/weekly", handlers.GetWeeklyAnalytics)
@@ -101,6 +102,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/courses/:id/reviews", handlers.CreateCourseReview)
 
 		// Upload
+		protected.POST("/upload/presign", handlers.PresignUpload)
 		protected.POST(pathUpload, handlers.Upload)
 		protected.POST(pathUploadChunked, handlers.UploadChunked)
 		protected.PUT(pathUploadChunked, handlers.UploadChunked)
@@ -112,6 +114,9 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		// Gamification routes
 		protected.GET("/gamification/leaderboard", handlers.GetLeaderboard)
 		protected.GET("/gamification/achievements", handlers.GetUserAchievements)
+
+		// Event Ingestion (lightweight, fire-and-forget to Redis Stream)
+		protected.POST("/events/ingest", handlers.IngestEvent)
 
 		// Payment routes
 		protected.POST("/payments/create", handlers.CreatePayment)

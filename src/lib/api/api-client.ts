@@ -87,13 +87,21 @@ class ApiClient {
             ...customOptions.headers,
         });
 
+        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
+
         // Add CSRF token for state-changing requests in browser
-        if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET')) {
+        if (typeof window !== 'undefined' && isWriteMethod) {
             const csrfToken = this.getCookie('_csrf');
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
             }
         }
+
+        // Auto-generate Idempotency-Key for write requests (idempotency middleware)
+        if (isWriteMethod && !headers.has('Idempotency-Key')) {
+            headers.set('Idempotency-Key', crypto.randomUUID());
+        }
+
         return headers;
     }
 

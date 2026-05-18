@@ -12,16 +12,14 @@ import (
 var GlobalConfig *Config
 
 type Config struct {
-	DatabaseURL string
-	JWTSecret   string
-	Environment string
+	DatabaseURL        string
+	DatabaseWriteURL   string
+	DatabaseReadReplicas []string
+	JWTSecret          string
+	Environment        string
 
 	// Storage Configuration
-	StorageType  string // "local" or "s3"
-	LocalStorage struct {
-		BasePath string
-		BaseURL  string
-	}
+	StorageType  string // "s3" (Cloudflare R2 / AWS S3 / MinIO)
 	S3 struct {
 		Endpoint  string
 		AccessKey string
@@ -54,15 +52,13 @@ func Load() *Config {
 	}
 
 	c := &Config{
-		DatabaseURL: dbURL,
-		JWTSecret:   jwtSecret,
-		Environment: environment,
-		StorageType: getEnv("STORAGE_TYPE", "local"),
+		DatabaseURL:        dbURL,
+		DatabaseWriteURL:   getEnv("DATABASE_WRITE_DSN", ""),
+		DatabaseReadReplicas: parseReplicas(getEnv("DATABASE_REPLICAS", "")),
+		JWTSecret:          jwtSecret,
+		Environment:        environment,
+		StorageType:        getEnv("STORAGE_TYPE", "s3"),
 	}
-
-	// Local Storage Config
-	c.LocalStorage.BasePath = getEnv("LOCAL_STORAGE_PATH", "./uploads")
-	c.LocalStorage.BaseURL = getEnv("LOCAL_STORAGE_URL", "/uploads")
 
 	// S3 Storage Config
 	c.S3.Endpoint = getEnv("S3_ENDPOINT", "")
@@ -105,6 +101,21 @@ func generateRandomString(n int) string {
 	result := uuid.New().String()
 	if len(result) > n {
 		return result[:n]
+	}
+	return result
+}
+
+func parseReplicas(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
 	}
 	return result
 }

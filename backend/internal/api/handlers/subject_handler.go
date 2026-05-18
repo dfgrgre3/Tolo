@@ -575,9 +575,8 @@ func UpdateLessonProgress(c *gin.Context) {
 		Status:              progressStatus,
 	}
 
-	// Create or update, accumulating timeSpentSeconds if it exists.
-	// We use raw SQL for accumulation on conflict to be safe and elegant.
-	if err := db.DB.Clauses(clause.OnConflict{
+	// Write to database using WriteDB for CQRS write path
+	if err := db.WriteDB().Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}, {Name: "sub_topic_id"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"completed":             input.Completed,

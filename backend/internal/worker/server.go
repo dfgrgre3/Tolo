@@ -42,16 +42,19 @@ func StartWorker() {
 	mux := asynq.NewServeMux()
 
 	notificationHandler := &NotificationHandler{}
-	mux.HandleFunc(TypeMultiChannelNotification, notificationHandler.ProcessTask)
+	mux.HandleFunc(TypeMultiChannelNotification, WithTaskIdempotency(notificationHandler.ProcessTask))
 
 	progressHandler := &ProgressHandler{}
-	mux.HandleFunc(TypeProgressUpdate, progressHandler.ProcessTask)
+	mux.HandleFunc(TypeProgressUpdate, WithTaskIdempotency(progressHandler.ProcessTask))
 
 	gamificationHandler := &GamificationHandler{}
-	mux.HandleFunc(TypeGamificationSync, gamificationHandler.ProcessTask)
+	mux.HandleFunc(TypeGamificationSync, WithTaskIdempotency(gamificationHandler.ProcessTask))
 
 	batchFlushHandler := &BatchProgressFlushHandler{}
-	mux.HandleFunc(TypeBatchProgressFlush, batchFlushHandler.ProcessTask)
+	mux.HandleFunc(TypeBatchProgressFlush, WithTaskIdempotency(batchFlushHandler.ProcessTask))
+
+	cqrsRefreshHandler := &CQRSRefreshHandler{}
+	mux.HandleFunc(TypeRefreshMaterializedViews, WithTaskIdempotency(cqrsRefreshHandler.ProcessTask))
 
 	log.Printf("Worker server starting on Redis %s", redisAddr)
 	if err := srv.Run(mux); err != nil {

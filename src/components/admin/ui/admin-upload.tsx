@@ -121,6 +121,57 @@ export function AdminUpload({
     [buildMetadata, onUploadComplete],
   );
 
+  const uploadDirectToS3 = React.useCallback(
+    async (file: File, durationSeconds?: number) => {
+      setProgress(0);
+
+      const presignResponse = await fetch("/api/upload/presign", {
+        credentials: "include",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          fileSize: file.size,
+        }),
+      });
+
+      const presignResult = await presignResponse.json();
+      if (!presignResponse.ok || !presignResult?.data?.uploadUrl) {
+        throw new Error(presignResult?.error || presignResult?.details || "فشل الحصول على رابط الرفع");
+      }
+
+      const { uploadUrl, fileKey, publicUrl } = presignResult.data;
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl, true);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            setProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`فشل رفع الملف إلى السحابة (Status: ${xhr.status})`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("خطأ في الاتصال بسحابة التخزين"));
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
+      });
+
+      setProgress(100);
+      onUploadComplete(publicUrl || `${uploadUrl.split("?")[0]}`, buildMetadata(file, durationSeconds));
+    },
+    [buildMetadata, onUploadComplete],
+  );
+
   const uploadChunked = React.useCallback(
     async (file: File, durationSeconds?: number) => {
       const initResponse = await fetch("/api/upload/chunked", { credentials: "include",
@@ -203,7 +254,7 @@ export function AdminUpload({
       if (file.size > CHUNK_UPLOAD_THRESHOLD_BYTES) {
         await uploadChunked(file, durationSeconds);
       } else {
-        await uploadSingleRequest(file, durationSeconds);
+        await uploadDirectToS3(file, durationSeconds);
       }
 
       toast.success("تم رفع الملف بنجاح");

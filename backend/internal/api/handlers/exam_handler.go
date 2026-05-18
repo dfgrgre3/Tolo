@@ -19,8 +19,8 @@ import (
 
 
 func GetExams(c *gin.Context) {
-	if db.DB == nil {
-		log.Println("[GetExams] Critical: Database connection (db.DB) is nil")
+	if db.ReadDB() == nil {
+		log.Println("[GetExams] Critical: Database connection (db.ReadDB()) is nil")
 		api_response.Error(c, http.StatusInternalServerError, "Internal Server Error: Database not initialized")
 		return
 	}
@@ -36,7 +36,7 @@ func GetExams(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	query := db.DB.Model(&models.Exam{})
+	query := db.ReadDB().Model(&models.Exam{})
 	if search := c.Query("search"); search != "" {
 		query = query.Where("title ILIKE ?", "%"+search+"%")
 	}
@@ -168,7 +168,7 @@ func CreateExam(c *gin.Context) {
 		exam.Type = models.ExamTypeQuiz
 	}
 
-	if err := db.DB.Create(&exam).Error; err != nil {
+	if err := db.WriteDB().Create(&exam).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exam"})
 		return
 	}
@@ -191,7 +191,7 @@ func UpdateExam(c *gin.Context) {
 	}
 
 	var exam models.Exam
-	if err := db.DB.First(&exam, idQuery, input.ID).Error; err != nil {
+	if err := db.ReadDB().First(&exam, idQuery, input.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}
@@ -207,7 +207,7 @@ func UpdateExam(c *gin.Context) {
 	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID }
 	if input.Type != "" { updates.Type = &input.Type }
 
-	if err := db.DB.Model(&models.Exam{}).Where(idQuery, exam.ID).
+	if err := db.WriteDB().Model(&models.Exam{}).Where(idQuery, exam.ID).
 		Updates(&updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exam"})
 		return
@@ -227,7 +227,7 @@ func DeleteExam(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&models.Exam{}, idQuery, input.ID).Error; err != nil {
+	if err := db.WriteDB().Delete(&models.Exam{}, idQuery, input.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete exam"})
 		return
 	}
@@ -238,8 +238,8 @@ func DeleteExam(c *gin.Context) {
 }
 
 func SubmitExam(c *gin.Context) {
-	userId, _ := c.Get("userId")
-	examId := c.Param("id")
+	userID, _ := c.Get("userId")
+	examID := c.Param("id")
 
 	var submission struct {
 		Answers map[string]string `json:"answers"`
@@ -250,79 +250,61 @@ func SubmitExam(c *gin.Context) {
 		return
 	}
 
-	// 1. Fetch exam with questions (only load necessary fields to reduce memory usage)
+	// ---- READ: Fetch exam from read replica ----
 	var exam models.Exam
-	if err := db.DB.Preload("Questions", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "answer")
-	}).First(&exam, idQuery, examId).Error; err != nil {
+	if err := db.ReadDB().Preload("Questions", func(d *gorm.DB) *gorm.DB {
+		return d.Select("id", "answer")
+	}).First(&exam, idQuery, examID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}
 
-	// 2. Grade the exam
+	// ---- BUSINESS LOGIC: Grade the exam (no DB) ----
 	correctCount := 0
 	totalQuestions := len(exam.Questions)
-
 	for _, question := range exam.Questions {
 		userAnswer, ok := submission.Answers[question.ID]
 		if !ok {
-			continue // Question not answered, treat as incorrect
+			continue
 		}
-
-		// Compare answers (exact match for simplicity)
 		if userAnswer == question.Answer {
 			correctCount++
 		}
 	}
 
-	// 3. Calculate score
 	var score float64
 	if totalQuestions > 0 {
 		score = (float64(correctCount) / float64(totalQuestions)) * exam.MaxScore
 	}
-
-	// 4. Determine if passed (passing threshold: 50% of max score)
 	passed := score >= (exam.MaxScore * 0.5)
 
-	// 5. Save result in a transaction to ensure consistency
+	// ---- WRITE: Save result using write source ----
 	answersJSON, _ := json.Marshal(submission.Answers)
 	result := models.ExamResult{
-		UserID:  userId.(string),
-		ExamID:  examId,
+		UserID:  userID.(string),
+		ExamID:  examID,
 		Score:   score,
 		Passed:  passed,
 		Answers: string(answersJSON),
 		TakenAt: time.Now(),
 	}
 
-	tx := db.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Create(&result).Error; err != nil {
-		tx.Rollback()
+	if err := db.WithWriteTx(func(tx *gorm.DB) error {
+		return tx.Create(&result).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
 		return
 	}
 
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save result"})
-		return
-	}
+	services.GetAuditService().LogAsync(userID.(string), services.AuditEventExamFinished, "exam", examID,
+		map[string]interface{}{"score": score, "passed": passed}, c.ClientIP(), c.Request.UserAgent())
 
-	services.GetAuditService().LogAsync(userId.(string), services.AuditEventExamFinished, "exam", examId, map[string]interface{}{"score": score, "passed": passed}, c.ClientIP(), c.Request.UserAgent())
-
-	// Notify admins about exam completion
 	statusStr := "فشل"
 	if passed {
 		statusStr = "نجح"
 	}
-	GlobalNotifyAdmins("اكتمال اختبار", fmt.Sprintf("أكمل المستخدم اختبار %s بنتيجة %.1f (%s)", exam.Title, score, statusStr), "info")
+	GlobalNotifyAdmins("اكتمال اختبار",
+		fmt.Sprintf("أكمل المستخدم اختبار %s بنتيجة %.1f (%s)", exam.Title, score, statusStr), "info")
 
 	c.JSON(http.StatusOK, result)
 }
@@ -339,7 +321,7 @@ func GetExamResults(c *gin.Context) {
 	}
 
 	var results []models.ExamResult
-	if err := db.DB.Preload("Exam.Subject").Preload("Exam.Questions").Where("user_id = ?", userId).Order("taken_at desc").Find(&results).Error; err != nil {
+	if err := db.ReadDB().Preload("Exam.Subject").Preload("Exam.Questions").Where("user_id = ?", userId).Order("taken_at desc").Find(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch results"})
 		return
 	}

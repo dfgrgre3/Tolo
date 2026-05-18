@@ -89,7 +89,7 @@ func TrackUserJourney(c *gin.Context) {
 		}
 	}
 
-	if err := db.DB.Create(&journey).Error; err != nil {
+	if err := db.WriteDB().Create(&journey).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save journey"})
 		return
 	}
@@ -126,7 +126,7 @@ func TrackConversionEvent(c *gin.Context) {
 		JourneySteps: req.JourneySteps,
 	}
 
-	if err := db.DB.Create(&conversion).Error; err != nil {
+	if err := db.WriteDB().Create(&conversion).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save conversion"})
 		return
 	}
@@ -165,7 +165,7 @@ func GetUserJourneys(c *gin.Context) {
 	goal := c.Query("goal")
 	completed := c.Query("completed")
 
-	query := db.DB.Model(&models.UserJourney{}).Preload("Steps")
+	query := db.ReadDB().Model(&models.UserJourney{}).Preload("Steps")
 
 	if userID != "" {
 		query = query.Where("user_id = ?", userID)
@@ -279,34 +279,34 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 
 	// Calculate DAU, WAU, MAU
 	now := time.Now()
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where(startedAtGteQuery, now.AddDate(0, 0, -1)).
 		Select(countDistinctUserQuery).
 		Scan(&metrics.DailyActiveUsers)
 
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where(startedAtGteQuery, now.AddDate(0, 0, -7)).
 		Select(countDistinctUserQuery).
 		Scan(&metrics.WeeklyActiveUsers)
 
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where(startedAtGteQuery, now.AddDate(0, 0, -30)).
 		Select(countDistinctUserQuery).
 		Scan(&metrics.MonthlyActiveUsers)
 
 	// Calculate average session duration
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where("started_at >= ? AND started_at <= ?", from, to).
 		Select("AVG(total_duration)").
 		Scan(&metrics.AverageSessionDuration)
 
 	// Calculate bounce rate (sessions with only 1 step)
 	var totalSessions, bouncedSessions int64
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where("started_at >= ? AND started_at <= ?", from, to).
 		Count(&totalSessions)
 
-	db.DB.Model(&models.UserJourney{}).
+	db.ReadDB().Model(&models.UserJourney{}).
 		Where("started_at >= ? AND started_at <= ? AND (SELECT COUNT(*) FROM user_journey_steps WHERE user_journey_id = user_journeys.id) = 1", from, to).
 		Count(&bouncedSessions)
 
@@ -315,7 +315,7 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 	}
 
 	// Top pages
-	db.DB.Raw(`
+	db.ReadDB().Raw(`
 		SELECT page, COUNT(*) as views, COUNT(DISTINCT user_id) as unique_visitors
 		FROM user_journey_steps
 		WHERE timestamp >= ? AND timestamp <= ?
@@ -325,7 +325,7 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 	`, from, to).Scan(&metrics.TopPages)
 
 	// User flows (page transitions)
-	db.DB.Raw(`
+	db.ReadDB().Raw(`
 		WITH step_pairs AS (
 			SELECT 
 				l.page as from_page,
@@ -347,7 +347,7 @@ func calculateActivityMetrics(from, to time.Time) ActivityMetrics {
 		Total    int64
 		Achieved int64
 	}
-	db.DB.Raw(`
+	db.ReadDB().Raw(`
 		SELECT 
 			conversion_goal as goal,
 			COUNT(*) as total,
@@ -393,7 +393,7 @@ func ExportJourneys(c *gin.Context) {
 	}
 
 	// Fetch journeys
-	query := db.DB.Model(&models.UserJourney{}).Preload("Steps")
+	query := db.ReadDB().Model(&models.UserJourney{}).Preload("Steps")
 
 	if filters.UserID != "" {
 		query = query.Where("user_id = ?", filters.UserID)

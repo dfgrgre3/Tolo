@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"thanawy-backend/internal/db"
-	"thanawy-backend/internal/models"
+	"thanawy-backend/internal/cqrs/queries"
 
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	analyticsQuery = queries.NewAnalyticsQueryService()
 )
 
 func GetTimeAnalytics(c *gin.Context) {
@@ -16,28 +19,17 @@ func GetTimeAnalytics(c *gin.Context) {
 	}
 	userId := userIdValue.(string)
 
-	var sessionStats struct {
-		TotalStudyMinutes int
-		TotalSessions     int
-	}
-	db.DB.Model(&models.StudySession{}).Where("user_id = ?", userId).Select("COALESCE(SUM(duration_min), 0) as total_study_minutes, COUNT(id) as total_sessions").Scan(&sessionStats)
-
-	var taskStats struct {
-		TotalTasks     int
-		CompletedTasks int
-	}
-	db.DB.Model(&models.Task{}).Where("user_id = ?", userId).Select("COUNT(id) as total_tasks, SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_tasks").Scan(&taskStats)
-
-	completionRate := 0.0
-	if taskStats.TotalTasks > 0 {
-		completionRate = float64(taskStats.CompletedTasks) / float64(taskStats.TotalTasks) * 100
+	result, err := analyticsQuery.GetTimeAnalytics(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch time analytics"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"totalStudyMinutes": sessionStats.TotalStudyMinutes,
-		"totalSessions":     sessionStats.TotalSessions,
-		"totalTasks":        taskStats.TotalTasks,
-		"completedTasks":    taskStats.CompletedTasks,
-		"completionRate":    completionRate,
+		"totalStudyMinutes": result.TotalStudyMinutes,
+		"totalSessions":     result.TotalSessions,
+		"totalTasks":        result.TotalTasks,
+		"completedTasks":    result.CompletedTasks,
+		"completionRate":    result.CompletionRate,
 	})
 }
