@@ -51,7 +51,8 @@ interface BlogPost {
   content: string;
   excerpt: string | null;
   views: number;
-  status: "DRAFT" | "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED" | "SCHEDULED";
+  publishAt: string | null;
   createdAt: string;
   author: {
     id: string;
@@ -68,6 +69,7 @@ interface BlogPost {
 }
 
 const isPublished = (status: string) => status === "PUBLISHED";
+const isScheduled = (status: string) => status === "SCHEDULED";
 
 interface BlogPostsResponse {
   data: {
@@ -86,7 +88,8 @@ const blogPostSchema = z.object({
   slug: z.string().min(1, "الرابط المختصر (Slug) مطلوب"),
   content: z.string().min(1, "محتوى المقال مطلوب"),
   excerpt: z.string().optional(),
-  status: z.enum(["DRAFT", "PUBLISHED"]),
+  status: z.enum(["DRAFT", "PUBLISHED", "SCHEDULED"]),
+  publishAt: z.string().optional().or(z.literal("")),
 });
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
@@ -136,6 +139,7 @@ export default function AdminBlogPage() {
       content: "",
       excerpt: "",
       status: "DRAFT" as const,
+      publishAt: "",
     },
   });
 
@@ -148,6 +152,7 @@ export default function AdminBlogPage() {
         content: post.content,
         excerpt: post.excerpt || "",
         status: post.status,
+        publishAt: post.publishAt ? new Date(post.publishAt).toISOString().slice(0, 16) : "",
       });
     } else {
       setEditingPost(null);
@@ -157,6 +162,7 @@ export default function AdminBlogPage() {
         content: "",
         excerpt: "",
         status: "DRAFT" as const,
+        publishAt: "",
       });
     }
     setDialogOpen(true);
@@ -575,11 +581,12 @@ export default function AdminBlogPage() {
                       </div>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="w-32 rounded-xl border-white/10 bg-white/5 h-9">
+                          <SelectTrigger className="w-40 rounded-xl border-white/10 bg-white/5 h-9">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-white/10">
-                            <SelectItem value="PUBLISHED" className="cursor-pointer py-2 font-bold text-emerald-500">منشور</SelectItem>
+                            <SelectItem value="PUBLISHED" className="cursor-pointer py-2 font-bold text-emerald-500">منشور الآن</SelectItem>
+                            <SelectItem value="SCHEDULED" className="cursor-pointer py-2 font-bold text-blue-500">مجدول</SelectItem>
                             <SelectItem value="DRAFT" className="cursor-pointer py-2 font-bold text-amber-500">مسودة</SelectItem>
                           </SelectContent>
                         </Select>
@@ -587,6 +594,32 @@ export default function AdminBlogPage() {
                     </FormItem>
                   )}
                 />
+
+                {form.watch("status") === "SCHEDULED" && (
+                  <FormField
+                    control={form.control}
+                    name="publishAt"
+                    render={({ field }) => (
+                      <FormItem className="rounded-2xl border border-blue-500/20 p-4 bg-blue-500/5">
+                        <FormLabel className="font-black text-xs text-blue-500 flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          وقت النشر المجدول
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="datetime-local"
+                            className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold"
+                          />
+                        </FormControl>
+                        <p className="text-[10px] font-bold text-muted-foreground mt-1">
+                          سيتم نشر المقال تلقائياً في الوقت المحدد
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <DialogFooter className="pt-4">
                   <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl">

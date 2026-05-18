@@ -8,12 +8,13 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Download, Mail, Shield, Users, Zap, Search, Send, LogIn } from "lucide-react";
+import { UserPlus, Download, Mail, Shield, Users, Zap, Search, Send, LogIn, Upload } from "lucide-react";
 import { exportToCSV, ExportColumn } from '@/lib/export-utils';
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { AdminConfirm } from "@/components/admin/ui/admin-confirm";
 import { BroadcastModal as MessageModal } from "@/components/admin/broadcast/broadcast-modal";
+import { CsvImportDialog } from "@/components/admin/ui/csv-import-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { apiRoutes } from "@/lib/api/routes";
@@ -76,6 +77,7 @@ export default function AdminUsersPage() {
     user: null,
   });
   const [impersonating, setImpersonating] = React.useState(false);
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "users", page, limit, search, role],
@@ -274,6 +276,9 @@ export default function AdminUsersPage() {
           <AdminButton variant="outline" icon={Download} onClick={handleExportCSV} className="rounded-2xl border-white/10">
             تصدير البيانات CSV
           </AdminButton>
+          <AdminButton variant="outline" icon={Upload} onClick={() => setImportDialogOpen(true)} className="rounded-2xl border-white/10">
+            استيراد CSV
+          </AdminButton>
           <AdminButton variant="premium" icon={UserPlus} onClick={() => router.push("/admin/users/create")} className="rounded-2xl shadow-xl">
             إضافة مستخدم جديد
           </AdminButton>
@@ -379,6 +384,53 @@ export default function AdminUsersPage() {
         open={messageDialog.open}
         onOpenChange={(open) => setMessageDialog({ open, users: open ? messageDialog.users : [] })}
         users={messageDialog.users}
+      />
+      <CsvImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        title="استيراد مستخدمين من CSV"
+        description="قم برفع ملف CSV يحتوي على بيانات المستخدمين لإضافتهم دفعة واحدة."
+        columns={[
+          { key: "email", label: "البريد الإلكتروني", required: true },
+          { key: "name", label: "الاسم", required: true },
+          { key: "username", label: "اسم المستخدم", required: false },
+          { key: "password", label: "كلمة المرور", required: true },
+          { key: "role", label: "الدور", required: false },
+        ]}
+        templateFileName="users-template.csv"
+        onImport={async (rows) => {
+          let successCount = 0;
+          let errorCount = 0;
+          for (const row of rows) {
+            try {
+              const response = await adminFetch(apiRoutes.admin.users, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: row.email,
+                  name: row.name,
+                  username: row.username || undefined,
+                  password: row.password,
+                  role: row.role || "STUDENT",
+                }),
+              });
+              if (response.ok) {
+                successCount++;
+              } else {
+                errorCount++;
+              }
+            } catch {
+              errorCount++;
+            }
+          }
+          if (successCount > 0) {
+            toast.success(`تم استيراد ${successCount} مستخدم بنجاح`);
+            refetch();
+          }
+          if (errorCount > 0) {
+            toast.warning(`فشل في استيراد ${errorCount} مستخدم`);
+          }
+        }}
       />
     </div>
   );

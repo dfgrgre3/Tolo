@@ -464,6 +464,73 @@ export default function AdminPaymentsPage() {
           }
         />
       </m.div>
+
+      {/* Refund Dialog */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpRight className="w-5 h-5 text-amber-500" />
+              استرداد مبلغ
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPayment && (
+                <span>
+                  استرداد مبلغ من عملية <strong>{selectedPayment.transactionId || selectedPayment.id.slice(0, 8)}</strong> 
+                  للمستخدم <strong>{selectedPayment.user?.name || "غير معروف"}</strong>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-bold mb-2 block">المبلغ الأصلي</label>
+              <p className="text-2xl font-black text-emerald-500">
+                {selectedPayment?.amount.toLocaleString()} {selectedPayment?.currency || "EGP"}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-bold mb-2 block">مبلغ الاسترداد</label>
+              <Input
+                type="number"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                max={selectedPayment?.amount}
+                min={0}
+                step="0.01"
+                className="rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold mb-2 block">سبب الاسترداد</label>
+              <Input
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="مثال: طلب من المستخدم..."
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setRefundDialogOpen(false);
+                setSelectedPayment(null);
+              }}
+              className="px-4 py-2 text-sm font-bold rounded-xl border border-border hover:bg-accent transition-colors"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={handleRefund}
+              disabled={isRefunding}
+              className="px-4 py-2 text-sm font-bold rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
+            >
+              {isRefunding ? "جاري الاسترداد..." : "تأكيد الاسترداد"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

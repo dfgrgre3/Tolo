@@ -21,6 +21,19 @@ import { toast } from "sonner";
 import { readApiErrorMessage } from "@/lib/api/api-error-utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { adminFetch } from "@/lib/api/admin-api";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+   Dialog,
+   DialogContent,
+   DialogDescription,
+   DialogFooter,
+   DialogHeader,
+   DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ActiveUser {
    userId: string;
@@ -60,7 +73,30 @@ interface LiveStats {
    };
 }
 
+interface DeviceFingerprint {
+   id: string;
+   userId: string;
+   userName: string;
+   fingerprint: string;
+   ip: string;
+   userAgent: string;
+   deviceType: string;
+   lastSeen: string;
+   isBlocked: boolean;
+   blockReason: string | null;
+   loginCount: number;
+}
+
+interface RolePermission {
+   id: string;
+   name: string;
+   description: string;
+   permissions: string[];
+   userCount: number;
+}
+
 export default function LiveMonitoringPage() {
+   const queryClient = useQueryClient();
 
    const [activeUsers, setActiveUsers] = React.useState<ActiveUser[]>([]);
    const [stats, setStats] = React.useState<LiveStats | null>(null);
@@ -68,6 +104,10 @@ export default function LiveMonitoringPage() {
    const [error, setError] = React.useState<string | null>(null);
    const [filter, setFilter] = React.useState<'all' | 'exam' | 'study' | 'online'>('all');
    const [autoRefresh, setAutoRefresh] = React.useState(true);
+   const [securityTab, setSecurityTab] = React.useState("fingerprint");
+   const [blockDialogOpen, setBlockDialogOpen] = React.useState(false);
+   const [selectedDevice, setSelectedDevice] = React.useState<DeviceFingerprint | null>(null);
+   const [blockReason, setBlockReason] = React.useState("");
 
    const fetchLiveData = React.useCallback(async () => {
       try {
@@ -132,6 +172,66 @@ export default function LiveMonitoringPage() {
          toast.error(msg);
       }
    };
+
+   const { data: fingerprintsData, isLoading: fingerprintsLoading } = useQuery<{ data: { devices: DeviceFingerprint[] } }>({
+      queryKey: ["admin", "device-fingerprints"],
+      queryFn: async () => {
+         const response = await adminFetch("/api/admin/live/fingerprints");
+         if (!response.ok) throw new Error("فشل في جلب بصمات الأجهزة");
+         return response.json();
+      },
+   });
+
+   const { data: rolesData, isLoading: rolesLoading } = useQuery<{ data: { roles: RolePermission[] } }>({
+      queryKey: ["admin", "rbac-roles"],
+      queryFn: async () => {
+         const response = await adminFetch("/api/admin/live/roles");
+         if (!response.ok) throw new Error("فشل في جلب الأدوار");
+         return response.json();
+      },
+   });
+
+   const blockDeviceMutation = useMutation({
+      mutationFn: async ({ fingerprintId, reason }: { fingerprintId: string; reason: string }) => {
+         const response = await adminFetch("/api/admin/live/fingerprints/block", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fingerprintId, reason }),
+         });
+         if (!response.ok) throw new Error("فشل في حظر الجهاز");
+         return response.json();
+      },
+      onSuccess: () => {
+         toast.success("تم حظر الجهاز بنجاح");
+         setBlockDialogOpen(false);
+         setSelectedDevice(null);
+         setBlockReason("");
+         queryClient.invalidateQueries({ queryKey: ["admin", "device-fingerprints"] });
+      },
+      onError: (err) => {
+         toast.error(err instanceof Error ? err.message : "فشل في حظر الجهاز");
+      },
+   });
+
+   const unblockDeviceMutation = useMutation({
+      mutationFn: async (fingerprintId: string) => {
+         const response = await adminFetch(`/api/admin/live/fingerprints/${fingerprintId}/unblock`, {
+            method: "POST",
+         });
+         if (!response.ok) throw new Error("فشل في إلغاء حظر الجهاز");
+         return response.json();
+      },
+      onSuccess: () => {
+         toast.success("تم إلغاء حظر الجهاز بنجاح");
+         queryClient.invalidateQueries({ queryKey: ["admin", "device-fingerprints"] });
+      },
+      onError: (err) => {
+         toast.error(err instanceof Error ? err.message : "فشل في إلغاء حظر الجهاز");
+      },
+   });
+
+   const fingerprints = fingerprintsData?.data?.devices || [];
+   const roles = rolesData?.data?.roles || [];
 
    // Filter users based on selected tab
    const filteredUsers = React.useMemo(() => {
@@ -351,41 +451,206 @@ export default function LiveMonitoringPage() {
             </TabsContent>
          </Tabs>
 
-         {/* Other tabs (fingerprint, RBAC) remain as static for now */}
-         <Tabs defaultValue="fingerprint" className="w-full">
-            <TabsList className="w-full bg-background/50 h-14 p-1 border-border rounded-xl mb-6">
-               <TabsTrigger value="fingerprint" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-500">
-                  <Fingerprint className="w-4 h-4 ml-2" /> بصمة الأجهزة (Device Fingerprint)
-               </TabsTrigger>
-               <TabsTrigger value="rbac" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-500">
-                  <UserCog className="w-4 h-4 ml-2" /> الأدوار الوظيفية (Granular RBAC)
-               </TabsTrigger>
-            </TabsList>
+          {/* Security tabs: Fingerprint & RBAC */}
+          <Tabs value={securityTab} onValueChange={setSecurityTab} className="w-full">
+             <TabsList className="w-full bg-background/50 h-14 p-1 border-border rounded-xl mb-6">
+                <TabsTrigger value="fingerprint" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-500">
+                   <Fingerprint className="w-4 h-4 ml-2" /> بصمة الأجهزة ({fingerprints.length})
+                </TabsTrigger>
+                <TabsTrigger value="rbac" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-500">
+                   <UserCog className="w-4 h-4 ml-2" /> الأدوار والصلاحيات ({roles.length})
+                </TabsTrigger>
+             </TabsList>
 
-            <TabsContent value="fingerprint" className="space-y-6">
-               {/* Keep existing static content for fingerprint tab */}
-               <AdminCard variant="glass" className="bg-gradient-to-l from-blue-500/10 to-transparent border-blue-500/30">
-                  <div className="flex justify-between items-start">
-                     <div>
-                        <h3 className="text-2xl font-black text-blue-500 flex items-center gap-2"><Fingerprint /> إدارة بصمة الأجهزة (Device Fingerprinting)</h3>
-                        <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">يمنع هذا المحرك مشاركة الحسابات باستخدام تقنيات مطابقة معلومات المتصفح، الـ IP، والموقع الجغرافي. إذا تم رصد أجهزة متناقضة تعمل في نفس الوقت، سيتم اتخاذ إجراء تلقائي.</p>
-                     </div>
-                  </div>
-               </AdminCard>
-            </TabsContent>
+             <TabsContent value="fingerprint" className="space-y-6">
+                <AdminCard variant="glass" className="bg-gradient-to-l from-blue-500/10 to-transparent border-blue-500/30">
+                   <div className="flex justify-between items-start">
+                      <div>
+                         <h3 className="text-2xl font-black text-blue-500 flex items-center gap-2"><Fingerprint /> إدارة بصمة الأجهزة (Device Fingerprinting)</h3>
+                         <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">يمنع هذا المحرك مشاركة الحسابات باستخدام تقنيات مطابقة معلومات المتصفح، الـ IP، والموقع الجغرافي. إذا تم رصد أجهزة متناقضة تعمل في نفس الوقت، سيتم اتخاذ إجراء تلقائي.</p>
+                      </div>
+                   </div>
+                </AdminCard>
 
-            <TabsContent value="rbac" className="space-y-6">
-               {/* Keep existing static content for RBAC tab */}
-               <AdminCard variant="glass" className="bg-gradient-to-l from-emerald-500/10 to-transparent border-emerald-500/30">
-                  <div className="flex justify-between items-start">
-                     <div>
-                        <h3 className="text-2xl font-black text-emerald-500 flex items-center gap-2"><KeyRound /> الصلاحيات الجزئية (Granular RBAC)</h3>
-                        <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">صناعة وتخصيص أدوار دقيقة للموظفين والمعلمين. لا تعطى الصلاحية الكاملة لأحد. حدد من يقرأ، ومن يضيف، ومن يمسح، ومن يعدل الأسعار.</p>
-                     </div>
-                  </div>
-               </AdminCard>
-            </TabsContent>
-         </Tabs>
+                {fingerprintsLoading ? (
+                   <div className="text-center py-10 text-muted-foreground font-bold">جاري تحميل بصمات الأجهزة...</div>
+                ) : fingerprints.length === 0 ? (
+                   <AdminCard variant="glass" className="text-center py-10">
+                      <Fingerprint className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="font-bold">لا توجد بصمات أجهزة مسجلة بعد</p>
+                   </AdminCard>
+                ) : (
+                   <AdminCard variant="glass" className="p-0 overflow-hidden">
+                      <div className="overflow-x-auto">
+                         <table className="w-full text-sm">
+                            <thead className="bg-accent/20 border-b border-border">
+                               <tr>
+                                  <th className="p-4 text-right font-bold">المستخدم</th>
+                                  <th className="p-4 text-right font-bold">الجهاز</th>
+                                  <th className="p-4 text-right font-bold">العنوان IP</th>
+                                  <th className="p-4 text-right font-bold">آخر ظهور</th>
+                                  <th className="p-4 text-right font-bold">عدد الدخول</th>
+                                  <th className="p-4 text-right font-bold">الحالة</th>
+                                  <th className="p-4 text-right font-bold">الإجراءات</th>
+                               </tr>
+                            </thead>
+                            <tbody>
+                               {fingerprints.map((device) => (
+                                  <tr key={device.id} className="border-b border-border/50 hover:bg-accent/10">
+                                     <td className="p-4 font-bold">{device.userName}</td>
+                                     <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                           <Smartphone className="w-4 h-4 text-muted-foreground" />
+                                           <span className="text-xs">{device.deviceType}</span>
+                                        </div>
+                                     </td>
+                                     <td className="p-4 font-mono text-xs">{device.ip}</td>
+                                     <td className="p-4 text-xs">{new Date(device.lastSeen).toLocaleDateString("ar-EG")}</td>
+                                     <td className="p-4 font-bold">{device.loginCount}</td>
+                                     <td className="p-4">
+                                        {device.isBlocked ? (
+                                           <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+                                              <Ban className="w-3 h-3 ml-1" /> محظور
+                                           </Badge>
+                                        ) : (
+                                           <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                                              <CheckCircle2 className="w-3 h-3 ml-1" /> نشط
+                                           </Badge>
+                                        )}
+                                     </td>
+                                     <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                           {device.isBlocked ? (
+                                              <button
+                                                 onClick={() => unblockDeviceMutation.mutate(device.id)}
+                                                 className="px-3 py-1.5 text-xs font-bold text-green-500 hover:bg-green-500/10 rounded-lg transition-colors"
+                                              >
+                                                 إلغاء الحظر
+                                              </button>
+                                           ) : (
+                                              <button
+                                                 onClick={() => {
+                                                    setSelectedDevice(device);
+                                                    setBlockDialogOpen(true);
+                                                 }}
+                                                 className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                              >
+                                                 حظر
+                                              </button>
+                                           )}
+                                        </div>
+                                     </td>
+                                  </tr>
+                               ))}
+                            </tbody>
+                         </table>
+                      </div>
+                   </AdminCard>
+                )}
+             </TabsContent>
+
+             <TabsContent value="rbac" className="space-y-6">
+                <AdminCard variant="glass" className="bg-gradient-to-l from-emerald-500/10 to-transparent border-emerald-500/30">
+                   <div className="flex justify-between items-start">
+                      <div>
+                         <h3 className="text-2xl font-black text-emerald-500 flex items-center gap-2"><KeyRound /> الصلاحيات الجزئية (Granular RBAC)</h3>
+                         <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">صناعة وتخصيص أدوار دقيقة للموظفين والمعلمين. لا تعطى الصلاحية الكاملة لأحد. حدد من يقرأ، ومن يضيف، ومن يمسح، ومن يعدل الأسعار.</p>
+                      </div>
+                   </div>
+                </AdminCard>
+
+                {rolesLoading ? (
+                   <div className="text-center py-10 text-muted-foreground font-bold">جاري تحميل الأدوار...</div>
+                ) : roles.length === 0 ? (
+                   <AdminCard variant="glass" className="text-center py-10">
+                      <UserCog className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="font-bold">لا توجد أدوار مخصصة بعد</p>
+                   </AdminCard>
+                ) : (
+                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {roles.map((role) => (
+                         <AdminCard key={role.id} variant="glass" className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                               <div>
+                                  <h4 className="font-black text-lg">{role.name}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">{role.description}</p>
+                               </div>
+                               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                  {role.userCount} مستخدم
+                               </Badge>
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-xs font-bold text-muted-foreground uppercase">الصلاحيات:</p>
+                               <div className="flex flex-wrap gap-1">
+                                  {role.permissions.map((perm) => (
+                                     <Badge key={perm} variant="outline" className="text-[10px] font-bold">
+                                        {perm}
+                                     </Badge>
+                                  ))}
+                               </div>
+                            </div>
+                         </AdminCard>
+                      ))}
+                   </div>
+                )}
+             </TabsContent>
+          </Tabs>
+
+          {/* Block Device Dialog */}
+          <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+             <DialogContent className="max-w-md">
+                <DialogHeader>
+                   <DialogTitle className="flex items-center gap-2">
+                      <Ban className="w-5 h-5 text-red-500" />
+                      حظر جهاز
+                   </DialogTitle>
+                   <DialogDescription>
+                      {selectedDevice && (
+                         <span>
+                            حظر جهاز <strong>{selectedDevice.deviceType}</strong> للمستخدم <strong>{selectedDevice.userName}</strong>
+                         </span>
+                      )}
+                   </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                   <div>
+                      <Label className="text-sm font-bold mb-2 block">سبب الحظر</Label>
+                      <Textarea
+                         value={blockReason}
+                         onChange={(e) => setBlockReason(e.target.value)}
+                         placeholder="مثال: مشاركة حساب، نشاط مشبوه..."
+                         rows={3}
+                      />
+                   </div>
+                </div>
+                <DialogFooter>
+                   <button
+                      onClick={() => {
+                         setBlockDialogOpen(false);
+                         setSelectedDevice(null);
+                         setBlockReason("");
+                      }}
+                      className="px-4 py-2 text-sm font-bold rounded-xl border border-border hover:bg-accent transition-colors"
+                   >
+                      إلغاء
+                   </button>
+                   <button
+                      onClick={() => {
+                         if (selectedDevice) {
+                            blockDeviceMutation.mutate({
+                               fingerprintId: selectedDevice.id,
+                               reason: blockReason || "حظر من قبل المسؤول",
+                            });
+                         }
+                      }}
+                      disabled={blockDeviceMutation.isPending}
+                      className="px-4 py-2 text-sm font-bold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                   >
+                      {blockDeviceMutation.isPending ? "جاري الحظر..." : "تأكيد الحظر"}
+                   </button>
+                </DialogFooter>
+             </DialogContent>
+          </Dialog>
       </div>
    );
 }

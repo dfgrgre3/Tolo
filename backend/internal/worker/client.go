@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hibiken/asynq"
 )
@@ -22,7 +23,6 @@ func GetClient() *asynq.Client {
 			parsedOpts, err := asynq.ParseRedisURI(redisAddr)
 			if err != nil {
 				log.Printf("failed to parse redis uri for worker client: %v", err)
-				// Fallback to basic opts if parse fails
 				opts = asynq.RedisClientOpt{Addr: redisAddr}
 			} else {
 				opts = parsedOpts
@@ -41,7 +41,38 @@ func EnqueueNotification(payload NotificationPayload) error {
 	if err != nil {
 		return err
 	}
-	
+
 	_, err = GetClient().Enqueue(task)
+	return err
+}
+
+func EnqueueProgressUpdate(payload ProgressUpdatePayload) error {
+	task, err := NewProgressUpdateTask(payload)
+	if err != nil {
+		return err
+	}
+
+	_, err = GetClient().Enqueue(task, asynq.Queue("progress"), asynq.ProcessIn(5*time.Second))
+	return err
+}
+
+func EnqueueGamificationSync(payload GamificationSyncPayload) error {
+	task, err := NewGamificationSyncTask(payload)
+	if err != nil {
+		return err
+	}
+
+	_, err = GetClient().Enqueue(task, asynq.Queue("gamification"), asynq.ProcessIn(5*time.Second))
+	return err
+}
+
+func EnqueueBatchProgressFlush(userID string) error {
+	payload := BatchProgressFlushPayload{UserID: userID}
+	task, err := NewBatchProgressFlushTask(payload)
+	if err != nil {
+		return err
+	}
+
+	_, err = GetClient().Enqueue(task, asynq.Queue("progress"), asynq.ProcessIn(5*time.Second))
 	return err
 }
