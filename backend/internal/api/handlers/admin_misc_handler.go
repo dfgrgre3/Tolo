@@ -65,11 +65,9 @@ func AdminAIGet(c *gin.Context) {
 
 	api_response.Success(c, gin.H{
 		"riskStudents": riskItems,
-		"reviewQueue":  []interface{}{},
 		"subjects":     subjectItems,
 		"summary": gin.H{
-			"highRiskCount":      len(riskItems),
-			"reviewPendingCount": 0,
+			"highRiskCount": len(riskItems),
 		},
 	})
 }
@@ -91,8 +89,11 @@ func AdminResetCircuitBreaker(c *gin.Context) {
 
 func AdminAIPost(c *gin.Context) {
 	var req struct {
-		Action string `json:"action"`
-		Prompt string `json:"prompt"`
+		Action      string `json:"action"`
+		Prompt      string `json:"prompt"`
+		Title       string `json:"title"`
+		ContentType string `json:"contentType"`
+		SubjectId   string `json:"subjectId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		api_response.Error(c, http.StatusBadRequest, "Invalid request")
@@ -138,9 +139,20 @@ func AdminAIPost(c *gin.Context) {
 		api_response.Success(c, gin.H{"message": reply})
 
 	case "generate_content":
-		api_response.Success(c, gin.H{"message": "تم إنشاء المحتوى بنجاح"})
-	case "review_content":
-		api_response.Success(c, nil)
+		systemPrompt := fmt.Sprintf("أنت مستشار ذكي لإنشاء محتوى من نوع %s. قم بإنشاء المحتوى المطلوب.", req.ContentType)
+		messages := []map[string]interface{}{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": req.Prompt},
+		}
+
+		aiHandler := NewAIHandler()
+		reply, _, err := aiHandler.callAIWithRetryCustom(messages, "google/gemini-2.0-flash-001")
+		if err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "فشل توليد المحتوى، الرجاء المحاولة مرة أخرى.")
+			return
+		}
+		api_response.Success(c, gin.H{"message": reply})
+
 	default:
 		api_response.Error(c, http.StatusBadRequest, "Unknown action")
 	}

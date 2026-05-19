@@ -11,6 +11,7 @@ func SetupAuthRoutes(router *gin.Engine) {
 	auth := router.Group("/api/auth")
 	{
 		auth.POST("/login", middleware.LoginRateLimiter(), handlers.Login)
+		auth.POST("/admin-login", middleware.LoginRateLimiter(), handlers.AdminLogin)
 		auth.POST("/register", middleware.AuthRateLimiter(), handlers.Register)
 		auth.POST("/logout", handlers.Logout)
 		auth.POST("/refresh", handlers.RefreshToken)

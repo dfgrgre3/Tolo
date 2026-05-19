@@ -36,80 +36,25 @@ function ChartSkeleton() {
   );
 }
 
-// Admin section components with lazy loading
+// Admin section components (Stubs since admin was separated)
 export const AdminSections = {
-  // Dashboard - loaded immediately
-  Dashboard: dynamic(() => import("@/app/(admin)/admin/page"), {
-    ssr: false,
-  }),
-
-  // Users - loaded on demand
-  Users: dynamic(() => import("@/app/(admin)/admin/users/page"), {
-    loading: () => <AdminSectionSkeleton title="المستخدمين" />,
-    ssr: false,
-  }),
-
-  // Analytics - loaded on demand
-  Analytics: dynamic(() => import("@/app/(admin)/admin/analytics/page"), {
-    loading: () => <AdminSectionSkeleton title="التحليلات" />,
-    ssr: false,
-  }),
-
-  // Reports - loaded on demand
-  Reports: dynamic(() => import("@/app/(admin)/admin/reports/page"), {
-    loading: () => <AdminSectionSkeleton title="التقارير" />,
-    ssr: false,
-  }),
-
-  // Infrastructure - loaded on demand (rarely used)
-  Infrastructure: dynamic(() => import("@/app/(admin)/admin/infrastructure/page"), {
-    loading: () => <AdminSectionSkeleton title="البنية التحتية" />,
-    ssr: false,
-  }),
-
-  // Settings - loaded on demand
-  Settings: dynamic(() => import("@/app/(admin)/admin/settings/page"), {
-    loading: () => <AdminSectionSkeleton title="الإعدادات" />,
-    ssr: false,
-  }),
-
-  // Coupons - loaded on demand
-  Coupons: dynamic(() => import("@/app/(admin)/admin/coupons/page"), {
-    loading: () => <AdminSectionSkeleton title="أكواد الخصم" />,
-    ssr: false,
-  }),
-
-  // Revenue - loaded on demand (rarely used)
-  Revenue: dynamic(() => import("@/app/(admin)/admin/revenue/page"), {
-    loading: () => <AdminSectionSkeleton title="الإيرادات" />,
-    ssr: false,
-  }),
+  Dashboard: () => null,
+  Users: () => null,
+  Analytics: () => null,
+  Reports: () => null,
+  Infrastructure: () => null,
+  Settings: () => null,
+  Coupons: () => null,
+  Revenue: () => null,
 };
 
-// Charts lazy loading
+// Charts lazy loading (Stubs)
 export const ChartComponents = {
-  DailyActiveUsers: dynamic(
-    () => import("@/app/(admin)/admin/analytics/charts").then((m) => m.DailyActiveUsersChart),
-    {
-      loading: () => <ChartSkeleton />,
-      ssr: false,
-    }
-  ),
-  DailyRegistrations: dynamic(
-    () => import("@/app/(admin)/admin/analytics/charts").then((m) => m.DailyRegistrationsChart),
-    {
-      loading: () => <ChartSkeleton />,
-      ssr: false,
-    }
-  ),
-  RoleDistribution: dynamic(
-    () => import("@/app/(admin)/admin/analytics/charts").then((m) => m.RoleDistributionChart),
-    {
-      loading: () => <ChartSkeleton />,
-      ssr: false,
-    }
-  ),
+  DailyActiveUsers: () => null,
+  DailyRegistrations: () => null,
+  RoleDistribution: () => null,
 };
+
 
 // Hook for lazy loading components
 export function useLazyComponent<T extends React.ComponentType<any>>(

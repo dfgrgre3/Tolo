@@ -36,7 +36,7 @@ type User struct {
 	Name         *string        `gorm:"index" json:"name"`
 	Username     *string        `gorm:"uniqueIndex" json:"username"`
 	Avatar       *string        `json:"avatar"`
-	PasswordHash string         `gorm:"not null" json:"-"`
+	PasswordHash string         `gorm:"column:passwordHash;not null" json:"-"`
 	Role         UserRole       `gorm:"default:'STUDENT';index" json:"role"`
 	Status       UserStatus     `gorm:"default:'ACTIVE';index" json:"status"`
 	CreatedAt    time.Time      `gorm:"index;column:created_at" json:"createdAt"`

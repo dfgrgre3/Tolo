@@ -1,0 +1,551 @@
+/**
+ * Unified Logging System
+ * نظام تسجيل موحد للمشروع
+ * 
+ * هذا النظام يوحد جميع أنظمة التسجيل في المشروع ويوفر:
+ * - دعم للتسجيل على الخادم والعميل
+ * - تكامل مع ELK Stack
+ * - تسجيل الأخطاء المتقدم
+ * - تسجيل الأحداث الأمنية
+ * - تسجيل أحداث المصادقة
+ */
+
+import { getRequestContext } from './correlation';
+import { sanitizeLogContext, sanitizeErrorMessage, containsSensitiveData } from './sanitizer';
+
+// Types
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogContext = Record<string, any>;
+type LoggableContext = LogContext | unknown;
+
+interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  context?: LogContext;
+  error?: {
+    message: string;
+    stack?: string;
+    name?: string;
+  };
+  source?: string;
+  userId?: string;
+  sessionId?: string;
+  ip?: string;
+  userAgent?: string;
+}
+
+interface LoggerConfig {
+  level: LogLevel;
+  enableConsole: boolean;
+  enableELK: boolean;
+  enableErrorLogger: boolean;
+  serviceName?: string;
+  environment?: string;
+}
+
+// Check if we're on the server
+const isServer = typeof window === 'undefined';
+
+// Lazy load winston only on server-side
+let winstonLoggerInstance: any = null;
+
+async function getWinstonLogger() {
+  if (!isServer) return null;
+
+  if (!winstonLoggerInstance) {
+    try {
+      const winstonModule = await import('winston');
+      // Winston can be imported as default or namespace
+      const winston = (winstonModule as any).default || winstonModule;
+
+      winstonLoggerInstance = winston.createLogger({
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        format: winston.format.combine(
+          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          winston.format.errors({ stack: true }),
+          winston.format.colorize(),
+          winston.format.printf(({ timestamp, level, message, ...meta }: any) => {
+            const rid = meta.requestId || meta.context?.requestId || '';
+            const ridStr = rid ? ` [RID:${rid.substring(0, 8)}]` : '';
+            const metaToClean = { ...meta };
+            delete metaToClean.requestId;
+            if (metaToClean.context?.requestId) delete metaToClean.context.requestId;
+
+            const metaString = Object.keys(metaToClean).length && JSON.stringify(metaToClean) !== "{}" ?
+            `\n${JSON.stringify(metaToClean, null, 2)}` :
+            '';
+
+            return `${timestamp} ${level}${ridStr}: ${message}${metaString}`;
+          })
+        ),
+        transports: [
+        new winston.transports.Console({
+          silent: !isServer
+        })]
+      });
+    } catch (_err) {
+      // If winston fails to load, return null
+      return null;
+    }
+  }
+
+  return winstonLoggerInstance;
+}
+
+// Default configuration
+const defaultConfig: LoggerConfig = {
+  level: process.env.LOG_LEVEL as LogLevel || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+  enableConsole: true,
+  enableELK: process.env.ELASTICSEARCH_ENABLED !== 'false' && isServer,
+  enableErrorLogger: true,
+  serviceName: 'thanawy',
+  environment: process.env.NODE_ENV || 'development'
+};
+
+class UnifiedLogger {
+  private config: LoggerConfig;
+  private elkLogger: any = null;
+  private errorLogger: any = null;
+  private initialized = false;
+  private initializing = false;
+
+  constructor(config: Partial<LoggerConfig> = {}) {
+    this.config = { ...defaultConfig, ...config };
+    // Initialize lazily on first use
+  }
+
+  /**
+   * Initialize all logging systems (lazy initialization)
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized || this.initializing) return;
+
+    this.initializing = true;
+
+    try {
+      // Initialize ELK logger (server-side only, exclude Edge)
+      if (this.config.enableELK && isServer && process.env.NEXT_RUNTIME !== 'edge') {
+        try {
+          const { elkLogger } = await import('./elk-logger');
+          this.elkLogger = elkLogger;
+        } catch (_error) {
+          // ELK logger initialization failed, continue without it
+          this.config.enableELK = false;
+        }
+      }
+
+      // Initialize Error Service (client-side)
+      if (this.config.enableErrorLogger && !isServer) {
+        try {
+          const { errorService } = await import('./error-service');
+          this.errorLogger = errorService;
+        } catch (_error) {
+          // Error service initialization failed, continue without it
+          this.config.enableErrorLogger = false;
+        }
+      }
+
+    } finally {
+      this.initialized = true;
+      this.initializing = false;
+    }
+  }
+
+  /**
+   * Format log message
+   */
+  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+    const timestamp = new Date().toISOString();
+    const contextStr = context ? ` ${JSON.stringify(context)}` : '';
+    return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
+  }
+
+  private formatErrorForLog(error: Error | unknown): { message: string; stack?: string; name?: string } {
+    if (error instanceof Error) {
+      return {
+        message: containsSensitiveData(error.message) 
+          ? sanitizeErrorMessage(error.message) 
+          : error.message,
+        stack: error.stack,
+        name: error.name
+      };
+    } 
+
+    let errorMsg = String(error);
+    if (typeof error === 'object' && error !== null) {
+      try {
+        const json = JSON.stringify(error);
+        if (json !== '{}') errorMsg = json;
+      } catch (_e) {
+        // Fallback to String(error) if JSON.stringify fails (e.g. circular)
+      }
+    }
+    
+    return {
+      message: containsSensitiveData(errorMsg) 
+        ? sanitizeErrorMessage(errorMsg) 
+        : errorMsg
+    };
+  }
+
+  private addMetadataToEntry(entry: LogEntry, context?: LogContext): void {
+    if (!context) return;
+    
+    if (context.userId) entry.userId = String(context.userId);
+    if (context.sessionId) entry.sessionId = String(context.sessionId);
+    if (context.ip) entry.ip = String(context.ip);
+    if (context.userAgent) entry.userAgent = String(context.userAgent);
+    if (context.source) entry.source = String(context.source);
+  }
+
+  /**
+   * Create log entry with sanitization
+   */
+  private createLogEntry(
+    level: LogLevel,
+    message: string,
+    error?: Error | unknown,
+    context?: LogContext)
+    : LogEntry {
+    const contextStore = getRequestContext();
+
+    // Sanitize message and context before logging
+    const sanitizedMessage = containsSensitiveData(message, context) 
+      ? sanitizeErrorMessage(message) 
+      : message;
+
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message: sanitizedMessage,
+      context: {
+        ...(context ? (sanitizeLogContext(context) as Record<string, unknown>) : {}),
+        requestId: context?.requestId || contextStore?.requestId
+      }
+    };
+
+    if (error !== undefined) {
+      entry.error = this.formatErrorForLog(error);
+    }
+
+    this.addMetadataToEntry(entry, context);
+
+    return entry;
+  }
+
+  /**
+   * Check if level should be logged
+   */
+  private shouldLog(level: LogLevel): boolean {
+    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+    const currentLevelIndex = levels.indexOf(this.config.level);
+    const messageLevelIndex = levels.indexOf(level);
+    return messageLevelIndex >= currentLevelIndex;
+  }
+
+  private formatError(error: Error | unknown): string {
+    if (error === undefined) return '';
+    if (error instanceof Error) {
+      return `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ''}`;
+    }
+    if (typeof error === 'object' && error !== null) {
+      try {
+        return `\nError: ${JSON.stringify(error, null, 2)}`;
+      } catch (_e) {
+        return `\nError: ${String(error)}`;
+      }
+    }
+    return `\nError: ${String(error)}`;
+  }
+
+  private outputToStandardConsole(level: LogLevel, fullMessage: string): void {
+    switch (level) {
+      case 'debug':
+        if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
+        break;
+      case 'info':
+        console.info(fullMessage);
+        break;
+      case 'warn':
+        console.warn(fullMessage);
+        break;
+      case 'error':
+        console.error(fullMessage);
+        break;
+    }
+  }
+
+  private outputToWinston(winstonLogger: any, level: LogLevel, fullMessage: string): void {
+    switch (level) {
+      case 'debug':
+        if (process.env.NODE_ENV === 'development') winstonLogger.debug(fullMessage);
+        break;
+      case 'info':
+        winstonLogger.info(fullMessage);
+        break;
+      case 'warn':
+        winstonLogger.warn(fullMessage);
+        break;
+      case 'error':
+        winstonLogger.error(fullMessage);
+        break;
+    }
+  }
+
+  /**
+   * Log to console
+   */
+  private async logToConsole(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): Promise<void> {
+    if (!this.config.enableConsole) return;
+
+    const formattedMessage = this.formatMessage(level, message, context);
+    const errorStr = this.formatError(error);
+    const fullMessage = formattedMessage + errorStr;
+
+    if (!isServer) {
+      this.outputToStandardConsole(level, fullMessage);
+      return;
+    }
+
+    try {
+      const winstonLogger = await getWinstonLogger();
+      if (winstonLogger) {
+        this.outputToWinston(winstonLogger, level, fullMessage);
+      }
+    } catch (_err) {
+      this.outputToStandardConsole(level, fullMessage);
+    }
+  }
+
+  /**
+   * Log to ELK
+   */
+  private async logToELK(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): Promise<void> {
+    if (!this.config.enableELK) return;
+
+    await this.ensureInitialized();
+
+    if (!this.elkLogger) return;
+
+    try {
+      const logEntry = this.createLogEntry(level, message, error, context);
+      const meta = {
+        ...logEntry.context,
+        ...(logEntry.error && { error: logEntry.error }),
+        service: this.config.serviceName,
+        environment: this.config.environment
+      };
+
+      this.elkLogger.log(level, message, meta);
+    } catch (_err) {
+      // If ELK logging fails, don't throw - just log to console
+      this.logToConsole('warn', 'Failed to log to ELK', { error: String(_err) });
+    }
+  }
+
+  /**
+   * Log to Error Logger (client-side)
+   */
+  private async logToErrorLogger(level: LogLevel, message: string, error?: Error | unknown, context?: LogContext): Promise<void> {
+    if (!this.config.enableErrorLogger || isServer) return;
+
+    await this.ensureInitialized();
+
+    if (!this.errorLogger) return;
+
+    try {
+      if (level === 'error' && error) {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        this.errorLogger.logError(errorObj, {
+          source: context?.source || 'UnifiedLogger',
+          severity: context?.severity || 'medium',
+          ...context
+        });
+      }
+    } catch (_err) {
+      // If error logger fails, don't throw
+      this.logToConsole('warn', 'Failed to log to ErrorLogger', { error: String(_err) });
+    }
+  }
+
+
+  /**
+   * Main log method
+   */
+  private normalizeContext(context?: LoggableContext): LogContext | undefined {
+    if (context === undefined || context === null) {
+      return undefined;
+    }
+
+    if (context instanceof Error) {
+      return {
+        error: {
+          message: context.message,
+          stack: context.stack,
+          name: context.name
+        }
+      };
+    }
+
+    if (typeof context === 'object') {
+      if (Array.isArray(context)) {
+        return { data: context };
+      }
+
+      return context as LogContext;
+    }
+
+    return { value: context };
+  }
+
+  private async log(
+    level: LogLevel,
+    message: string,
+    error?: Error | unknown,
+    context?: LoggableContext)
+    : Promise<void> {
+    if (!this.shouldLog(level)) return;
+
+    const normalizedContext = this.normalizeContext(context);
+
+    // Log to console (async now)
+    this.logToConsole(level, message, normalizedContext, error).catch(() => {
+      // Silently handle async errors
+    });
+    // Log to ELK (server-side, async)
+    this.logToELK(level, message, normalizedContext, error).catch(() => {
+      // Silently handle async errors
+    });
+    // Log to Error Logger (client-side, async)
+    this.logToErrorLogger(level, message, error, normalizedContext).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+  /**
+   * Debug log
+   */
+  debug(message: string, context?: LoggableContext): void {
+    this.log('debug', message, undefined, context).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+  /**
+   * Info log
+   */
+  info(message: string, context?: LoggableContext): void {
+    this.log('info', message, undefined, context).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+  /**
+   * Warn log
+   */
+  warn(message: string, context?: LoggableContext): void {
+    this.log('warn', message, undefined, context).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+  /**
+   * Error log
+   */
+  error(message: string, error?: Error | unknown, context?: LoggableContext): void {
+    this.log('error', message, error, context).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+  /**
+   * HTTP request log
+   */
+  http(req: {
+    method: string;
+    url: string;
+    statusCode?: number;
+    duration?: number;
+    ip?: string;
+    userAgent?: string;
+    userId?: string;
+  }): void {
+    this.info('HTTP Request', {
+      type: 'http',
+      method: req.method,
+      url: req.url,
+      statusCode: req.statusCode,
+      duration: req.duration,
+      ip: req.ip,
+      userAgent: req.userAgent,
+      userId: req.userId
+    });
+  }
+
+  /**
+   * Audit log for security-critical actions
+   */
+  audit(action: string, actor: string, details: LogContext): void {
+    this.info(`AUDIT: ${action}`, {
+      type: 'audit',
+      action,
+      actor,
+      ...details
+    });
+  }
+
+  /**
+   * Database query log
+   */
+  db(query: {
+    operation: string;
+    table?: string;
+    duration: number;
+    success: boolean;
+    error?: string;
+  }): void {
+    const level = query.success ? 'info' : 'error';
+    this.log(level, `DB [${query.operation}] ${query.table || ''}`, query.error ? new Error(query.error) : undefined, {
+      type: 'database',
+      operation: query.operation,
+      table: query.table,
+      duration: `${query.duration}ms`,
+      success: query.success
+    }).catch(() => {
+      // Silently handle async errors
+    });
+  }
+
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<LoggerConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): LoggerConfig {
+    return { ...this.config };
+  }
+}
+
+// Create singleton instance
+let loggerInstance: UnifiedLogger | null = null;
+
+/**
+ * Get the unified logger instance
+ */
+function getLogger(): UnifiedLogger {
+  if (!loggerInstance) {
+    loggerInstance = new UnifiedLogger();
+  }
+  return loggerInstance;
+}
+
+// Create and export instances
+const defaultLogger = getLogger();
+export { defaultLogger as logger };

@@ -1,0 +1,94 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+
+
+/**
+ * Hook لتأخير تحديث القيمة (Debouncing)
+ * 
+ * مفيد لتحسين الأداء عند البحث أو التحقق من المدخلات
+ * 
+ * @template T - نوع القيمة
+ * @param {T} value - القيمة المراد تأخيرها
+ * @param {number} delay - وقت التأخير بالميلي ثانية
+ * @returns {T} القيمة المؤخرة
+ * 
+ * @example
+ * ```tsx
+ * function SearchComponent() {
+ *   const [searchTerm, setSearchTerm] = useState('');
+ *   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+ * 
+ *   useEffect(() => {
+ *     if (debouncedSearchTerm) {
+ *       // تنفيذ البحث فقط بعد توقف المستخدم عن الكتابة لمدة 500ms
+ *       searchAPI(debouncedSearchTerm);
+ *     }
+ *   }, [debouncedSearchTerm]);
+ * 
+ *   return (
+ *     <input
+ *       value={searchTerm}
+ *       onChange={(e) => setSearchTerm(e.target.value)}
+ *       placeholder="ابحث..."
+ *     />
+ *   );
+ * }
+ * ```
+ */
+function useDebounce<T>(value: T, delay: number = 500): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    // تعيين مؤقت لتحديث القيمة المؤخرة
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // إلغاء المؤقت إذا تغيرت القيمة قبل انتهاء الوقت
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+/**
+ * Hook لتأخير تنفيذ دالة (Debounced Callback)
+ * 
+ * @param {Function} callback - الدالة المراد تأخيرها
+ * @param {number} delay - وقت التأخير بالميلي ثانية
+ * @returns {Function} الدالة المؤخرة
+ * 
+ * @example
+ * ```tsx
+ * function Component() {
+ *   const handleSearch = useDebouncedCallback((term: string) => {
+ *     logger.info('Searching for:', term);
+ *   }, 500);
+ * 
+ *   return (
+ *     <input onChange={(e) => handleSearch(e.target.value)} />
+ *   );
+ * }
+ * ```
+ */
+function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
+callback: T,
+delay: number = 500)
+: (...args: Parameters<T>) => void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedFn = useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+      timeoutRef.current = null;
+    }, delay);
+  }, [callback, delay]);
+
+  return debouncedFn;
+}

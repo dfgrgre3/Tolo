@@ -22,6 +22,7 @@ export const apiRoutes = {
   },
   admin: {
     dashboard: "/api/admin/dashboard",
+    ai: "/api/admin/ai",
     live: "/api/admin/live",
     analytics: "/api/admin/analytics",
     revenue: "/api/admin/analytics/revenue",
