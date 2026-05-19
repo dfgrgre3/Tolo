@@ -211,7 +211,6 @@ func setupRouter(cfg *config.Config, hexHandlers *app.Handlers) *gin.Engine {
 	router.SetupAuthRoutes(r)
 	router.SetupPublicRoutes(r)
 	router.SetupProtectedRoutes(r)
-	router.SetupAdminRoutes(r)
 
 	// Hexagonal Architecture routes (new)
 	router.SetupHexagonalRoutes(r, hexHandlers)
