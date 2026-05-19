@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"thanawy-backend/internal/app"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/router"
@@ -72,6 +73,10 @@ func main() {
 		db.ConnectRedis(redisURL)
 	}
 
+	// Initialize Hexagonal Architecture (Dependency Injection)
+	services, hexHandlers := app.Initialize(db.DB)
+	_ = services // Used for domain services
+
 	// Initialize WebSocket Hub with Redis Pub/Sub support
 	handlers.InitHub()
 
@@ -81,7 +86,7 @@ func main() {
 	analyticsSvc := &internalgrpc.AnalyticsServiceServer{}
 
 	// Setup Router
-	r := setupRouter(cfg)
+	r := setupRouter(cfg, hexHandlers)
 
 	// Start gRPC Server
 	grpcServer := startGRPCServer(courseSvc, authSvc, analyticsSvc)
@@ -177,7 +182,7 @@ func initS3Storage(cfg *config.Config) {
 	log.Println("Storage initialized with S3 provider (Cloudflare R2)")
 }
 
-func setupRouter(cfg *config.Config) *gin.Engine {
+func setupRouter(cfg *config.Config, hexHandlers *app.Handlers) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "release" || cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -207,6 +212,9 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	router.SetupPublicRoutes(r)
 	router.SetupProtectedRoutes(r)
 	router.SetupAdminRoutes(r)
+
+	// Hexagonal Architecture routes (new)
+	router.SetupHexagonalRoutes(r, hexHandlers)
 
 	return r
 }

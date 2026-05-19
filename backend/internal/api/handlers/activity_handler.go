@@ -41,7 +41,7 @@ func CreateTask(c *gin.Context) {
 	}
 	task.UserID = userIdValue.(string)
 
-	if err := db.DB.Create(&task).Error; err != nil {
+	if err := SafeCreate(db.DB, &task); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
 		return
 	}
@@ -135,7 +135,7 @@ func CreateStudySession(c *gin.Context) {
 		session.UserID = userId.(string)
 	}
 
-	if err := db.DB.Create(&session).Error; err != nil {
+	if err := SafeCreate(db.DB, &session); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create study session"})
 		return
 	}
@@ -179,7 +179,7 @@ func UpdateSchedule(c *gin.Context) {
 			UserID:   uid,
 			PlanJson: input.PlanJson,
 		}
-		db.DB.Create(&schedule)
+		SafeCreate(db.DB, &schedule)
 	} else {
 		// Update existing
 		db.DB.Model(&schedule).Update("planJson", input.PlanJson)
@@ -217,7 +217,7 @@ func CreateReminder(c *gin.Context) {
 		reminder.UserID = userId.(string)
 	}
 
-	if err := db.DB.Create(&reminder).Error; err != nil {
+	if err := SafeCreate(db.DB, &reminder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create reminder"})
 		return
 	}

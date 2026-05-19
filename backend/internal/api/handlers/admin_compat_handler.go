@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 const createdAtDesc = "created_at DESC"
@@ -87,96 +86,6 @@ func mergeMaps(dest map[string]interface{}, src map[string]interface{}) {
 	}
 }
 
-func adminCollectionPayload(c *gin.Context, key string) gin.H {
-	items := []gin.H{}
-	pagination := emptyPagination(c)
-	return gin.H{
-		"success":    true,
-		key:          items,
-		"items":      items,
-		"data":       gin.H{key: items, "items": items, "pagination": pagination},
-		"pagination": pagination,
-		"stats":      gin.H{},
-	}
-}
-
-func AdminCollection(modelType string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		if page <= 0 {
-			page = 1
-		}
-		if limit <= 0 {
-			limit = 10
-		}
-
-		switch c.Request.Method {
-		case http.MethodGet:
-			var total int64
-			var items interface{}
-
-			// Fetch from database based on modelType
-			switch modelType {
-			case "resources":
-				var resources []models.SubTopic
-				db.DB.Model(&models.SubTopic{}).Where("type != ?", models.SubTopicQuiz).Count(&total)
-				db.DB.Where("type != ?", models.SubTopicQuiz).Limit(limit).Offset((page - 1) * limit).Order(createdAtDesc).Find(&resources)
-				items = resources
-			default:
-				items = []interface{}{}
-			}
-
-			pagination := gin.H{
-				"page":       page,
-				"limit":      limit,
-				"total":      total,
-				"totalPages": (total + int64(limit) - 1) / int64(limit),
-			}
-
-			api_response.Success(c, gin.H{
-				modelType:    items,
-				"items":      items,
-				"data":       gin.H{modelType: items, "items": items, "pagination": pagination},
-				"pagination": pagination,
-				"stats":      gin.H{},
-			})
-
-		case http.MethodPost, http.MethodPatch, http.MethodPut:
-			api_response.Error(c, http.StatusNotImplemented, "POST/PUT not implemented for dynamic collections via this endpoint")
-
-		case http.MethodDelete:
-			api_response.Error(c, http.StatusNotImplemented, "DELETE not implemented for dynamic collections via this endpoint")
-
-		default:
-			api_response.Error(c, http.StatusMethodNotAllowed, msgMethodNotAllowed)
-		}
-	}
-}
-
-func AdminCoupons(c *gin.Context) {
-	switch c.Request.Method {
-	case http.MethodGet:
-		api_response.Success(c, []gin.H{})
-	case http.MethodPost, http.MethodPatch, http.MethodPut:
-		body := requestBodyOrEmpty(c)
-		if body["id"] == nil || body["id"] == "" {
-			body["id"] = uuid.NewString()
-		}
-		if body["usedCount"] == nil {
-			body["usedCount"] = 0
-		}
-		if body["createdAt"] == nil {
-			body["createdAt"] = time.Now()
-		}
-		api_response.Success(c, body)
-	case http.MethodDelete:
-		api_response.Success(c, nil)
-	default:
-		api_response.Error(c, http.StatusMethodNotAllowed, msgMethodNotAllowed)
-	}
-}
-
 func AdminSettings(c *gin.Context) {
 	var dbSetting models.SystemSetting
 	settings := make(map[string]interface{})
@@ -210,40 +119,6 @@ func AdminSettings(c *gin.Context) {
 	}
 
 	api_response.Success(c, gin.H{"settings": settings})
-}
-
-func AdminAchievements(c *gin.Context) {
-	switch c.Request.Method {
-	case http.MethodGet:
-		api_response.Success(c, gin.H{"achievements": []gin.H{}})
-	case http.MethodPost, http.MethodPatch, http.MethodPut:
-		body := requestBodyOrEmpty(c)
-		if body["id"] == nil || body["id"] == "" {
-			body["id"] = uuid.NewString()
-		}
-		api_response.Success(c, body)
-	case http.MethodDelete:
-		api_response.Success(c, nil)
-	default:
-		api_response.Error(c, http.StatusMethodNotAllowed, msgMethodNotAllowed)
-	}
-}
-
-func AdminAutomations(c *gin.Context) {
-	switch c.Request.Method {
-	case http.MethodGet:
-		api_response.Success(c, gin.H{"rules": []gin.H{}})
-	case http.MethodPost, http.MethodPatch, http.MethodPut:
-		body := requestBodyOrEmpty(c)
-		if body["id"] == nil || body["id"] == "" {
-			body["id"] = uuid.NewString()
-		}
-		api_response.Success(c, body)
-	case http.MethodDelete:
-		api_response.Success(c, nil)
-	default:
-		api_response.Error(c, http.StatusMethodNotAllowed, msgMethodNotAllowed)
-	}
 }
 
 func AdminReportsContent(c *gin.Context) {
@@ -481,7 +356,7 @@ func handleMarketingPost(c *gin.Context) {
 		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := db.DB.Create(&item).Error; err != nil {
+	if err := SafeCreate(db.DB, &item); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create campaign")
 		return
 	}
@@ -626,7 +501,7 @@ func handleContestsPost(c *gin.Context) {
 		Status:      "DRAFT",
 	}
 
-	if err := db.DB.Create(&contest).Error; err != nil {
+	if err := SafeCreate(db.DB, &contest); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create contest")
 		return
 	}

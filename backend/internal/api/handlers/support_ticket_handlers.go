@@ -96,7 +96,7 @@ func CreateSupportTicket(c *gin.Context) {
 		UpdatedAt:         time.Now(),
 	}
 
-	if err := db.DB.Create(&ticket).Error; err != nil {
+	if err := SafeCreate(db.DB, &ticket); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ticket"})
 		return
 	}
@@ -118,7 +118,7 @@ func CreateSupportTicket(c *gin.Context) {
 		IsInternal: true,
 		CreatedAt:  time.Now(),
 	}
-	db.DB.Create(&systemMessage)
+	SafeCreate(db.DB, &systemMessage)
 
 	// Notify user
 	services.GetNotificationService().QueueNotification(models.Notification{
@@ -272,7 +272,7 @@ func SendTicketMessage(c *gin.Context) {
 		CreatedAt:  time.Now(),
 	}
 
-	if err := db.DB.Create(&message).Error; err != nil {
+	if err := SafeCreate(db.DB, &message); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send message"})
 		return
 	}

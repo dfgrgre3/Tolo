@@ -86,7 +86,7 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.POST(pathUsers+"/bulk-send-message", middleware.PermissionRequired(models.PermUsersManage), handlers.AdminBulkSendMessage)
 
 	// Teacher Management
-	admin.GET(pathTeachers, middleware.PermissionRequired(models.PermTeachersView), handlers.GetTeachers)
+	admin.GET(pathTeachers, middleware.PermissionRequired(models.PermTeachersView), handlers.GetTeachersForAdmin)
 	admin.POST(pathTeachers, middleware.PermissionRequired(models.PermTeachersManage), handlers.CreateTeacher)
 	admin.PATCH(pathTeachers, middleware.PermissionRequired(models.PermTeachersManage), handlers.UpdateTeacher)
 	admin.DELETE(pathTeachers, middleware.PermissionRequired(models.PermTeachersManage), handlers.DeleteTeacher)
@@ -103,7 +103,7 @@ func setupAdminRoutes(admin *gin.RouterGroup) {
 	admin.GET(pathCourses+"/export", middleware.PermissionRequired(models.PermSubjectsView), handlers.AdminCourseAction)
 	admin.GET(pathCoursesID, middleware.PermissionRequired(models.PermSubjectsView), handlers.GetSubject)
 	admin.DELETE(pathCourses, middleware.PermissionRequired(models.PermSubjectsManage), handlers.DeleteSubject)
-	admin.GET(pathCourseCategories, middleware.PermissionRequired(models.PermSubjectsView), handlers.GetCategories)
+	admin.GET(pathCourseCategories, middleware.PermissionRequired(models.PermSubjectsView), handlers.GetCategoriesForAdmin)
 	admin.POST(pathCourseCategories, middleware.PermissionRequired(models.PermSubjectsManage), handlers.CreateCategory)
 	admin.PATCH(pathCourseCategories, middleware.PermissionRequired(models.PermSubjectsManage), handlers.UpdateCategory)
 	admin.DELETE(pathCourseCategories, middleware.PermissionRequired(models.PermSubjectsManage), handlers.DeleteCategory)

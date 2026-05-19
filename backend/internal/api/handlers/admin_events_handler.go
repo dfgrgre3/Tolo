@@ -121,7 +121,7 @@ func AdminCreateEvent(c *gin.Context) {
 		IsActive:     true,
 	}
 
-	if err := db.DB.Create(&event).Error; err != nil {
+	if err := SafeCreate(db.DB, &event); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create event")
 		return
 	}

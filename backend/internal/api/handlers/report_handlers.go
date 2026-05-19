@@ -111,7 +111,7 @@ func CreateCustomReport(c *gin.Context) {
 		report.ScheduleEmailTo = req.Schedule.EmailTo
 	}
 
-	if err := db.DB.Create(&report).Error; err != nil {
+	if err := SafeCreate(db.DB, &report); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create report"})
 		return
 	}

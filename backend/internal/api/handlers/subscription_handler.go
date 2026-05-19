@@ -356,7 +356,7 @@ func InitiatePlanPayment(c *gin.Context) {
 		Reference:     generateSecureReference("PLAN"),
 		PaymobOrderID: orderID,
 	}
-	if err := db.DB.Create(&payment).Error; err != nil {
+	if err := SafeCreate(db.DB, &payment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment record"})
 		return
 	}

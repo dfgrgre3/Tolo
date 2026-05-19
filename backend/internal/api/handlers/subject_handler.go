@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	api_response "thanawy-backend/internal/api/response"
+	"thanawy-backend/internal/cache"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
@@ -524,7 +524,7 @@ func createPendingPayment(userId, courseId string, amount float64, method string
 		Reference:     generateSecureReference("COURSE"),
 		PaymobOrderID: orderID,
 	}
-	return db.DB.Create(&payment).Error
+	return SafeCreate(db.DB, &payment)
 }
 
 func handleWalletRedirect(c *gin.Context, svc *services.PaymobService, paymentKey, phone string, orderID int64) {
@@ -671,6 +671,7 @@ func UpdateSubject(c *gin.Context) {
 	// Refresh from DB to get all fields
 	db.DB.First(&subject, idQuery, id)
 	getSubjectRepo().Update(&subject) // Update cache
+	cache.NewCacheInvalidator().InvalidateSubject(id)
 
 	LogAudit(c, "UPDATE", "subject", id, input)
 	api_response.Success(c, gin.H{"course": subject})
@@ -890,10 +891,7 @@ func DeleteSubject(c *gin.Context) {
 	}
 
 	// Clear cache
-	if db.Redis != nil {
-		ctx := context.Background()
-		db.Redis.Del(ctx, fmt.Sprintf("%sid:%s", repository.SubjectCachePrefix, id))
-	}
+	cache.NewCacheInvalidator().InvalidateSubject(id)
 
 	LogAudit(c, "DELETE", "subject", id, nil)
 	log.Printf("Successfully deleted subject: %q (%q)", id, subject.Name)
@@ -1004,6 +1002,7 @@ func UpdateCourseCurriculum(c *gin.Context) {
 	}
 
 	getSubjectRepo().InvalidateSubjectCache(id)
+	cache.NewCacheInvalidator().InvalidateSubject(id)
 
 	var subject models.Subject
 	if err := db.DB.Preload(preloadTopicsSubTopics).First(&subject, idQuery, id).Error; err != nil {
@@ -1120,7 +1119,7 @@ func AddLessonAttachment(c *gin.Context) {
 	}
 
 	attachment.SubTopicID = lessonId
-	if err := db.DB.Create(&attachment).Error; err != nil {
+	if err := SafeCreate(db.DB, &attachment); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to add attachment")
 		return
 	}
@@ -1131,6 +1130,7 @@ func AddLessonAttachment(c *gin.Context) {
 		var topic models.Topic
 		if err := db.DB.First(&topic, idQuery, subTopic.TopicID).Error; err == nil && topic.SubjectID != "" {
 			getSubjectRepo().InvalidateSubjectCache(topic.SubjectID)
+			cache.NewCacheInvalidator().InvalidateSubject(topic.SubjectID)
 		}
 	}
 
@@ -1150,7 +1150,7 @@ func CreateCourseReview(c *gin.Context) {
 	review.UserID = userId.(string)
 	review.SubjectID = subjectId
 
-	if err := db.DB.Create(&review).Error; err != nil {
+	if err := SafeCreate(db.DB, &review); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create review"})
 		return
 	}
@@ -1159,6 +1159,8 @@ func CreateCourseReview(c *gin.Context) {
 	var avg float64
 	db.DB.Model(&models.CourseReview{}).Where(subjectIDQuotedQuery, subjectId).Select("avg(rating)").Scan(&avg)
 	db.DB.Model(&models.Subject{}).Where(idQuery, subjectId).Update("rating", avg)
+
+	cache.NewCacheInvalidator().InvalidateSubject(subjectId)
 
 	c.JSON(http.StatusCreated, review)
 }

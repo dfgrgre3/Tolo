@@ -61,5 +61,6 @@ const (
 	PermSettingsView       = "settings:view"
 	PermSeasonsView        = "seasons:view"
 	PermSeasonsManage      = "seasons:manage"
-	PermAdminBypass        = "*:*"
+	PermAdminBypass        = "admin:bypass"
+	PermSystemManage       = "system:manage"
 )

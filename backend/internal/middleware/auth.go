@@ -30,6 +30,15 @@ var (
 	jwksTTL      = 1 * time.Hour // Default TTL, can be overridden by JWKS_CACHE_TTL_HOURS env var
 )
 
+// Context keys for storing user information in request context
+type ContextKey string
+
+const (
+	UserContextKey  ContextKey = "user_id"
+	RoleContextKey  ContextKey = "user_role"
+	EmailContextKey ContextKey = "user_email"
+)
+
 func getConfig() *config.Config {
 	configOnce.Do(func() {
 		cachedConfig = config.Load()
@@ -182,8 +191,32 @@ func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("role")
 		rs, _ := role.(string)
+		if rs != "ADMIN" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+			return
+		}
+		c.Next()
+	}
+}
+
+func ModeratorRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, _ := c.Get("role")
+		rs, _ := role.(string)
 		if rs != "ADMIN" && rs != "MODERATOR" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin panel access required"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Moderator access required"})
+			return
+		}
+		c.Next()
+	}
+}
+
+func AdminOrModerator() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, _ := c.Get("role")
+		rs, _ := role.(string)
+		if rs != "ADMIN" && rs != "MODERATOR" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin or Moderator access required"})
 			return
 		}
 		c.Next()

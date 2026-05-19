@@ -192,7 +192,7 @@ func (u *User) GetEffectivePermissions() []string {
 func GetDefaultPermissions(role UserRole) []string {
 	switch role {
 	case RoleAdmin:
-		return []string{"*:*"}
+		return []string{PermAdminBypass}
 	case RoleModerator:
 		return []string{
 			PermDashboardView, PermAnalyticsView, PermReportsView,
@@ -208,6 +208,13 @@ func GetDefaultPermissions(role UserRole) []string {
 			PermStudentsView, PermSubjectsView, PermOwnSubjectsManage,
 			PermBooksView, PermOwnBooksManage, PermResourcesView, PermOwnResourcesManage,
 			PermExamsView, PermOwnExamsManage, PermChallengesView, PermOwnChallengesManage,
+		}
+	case RoleStudent:
+		return []string{
+			PermDashboardView, PermAnalyticsView,
+			PermStudentsView, PermSubjectsView,
+			PermBooksView, PermResourcesView,
+			PermExamsView, PermChallengesView,
 		}
 	default:
 		return []string{}

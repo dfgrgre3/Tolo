@@ -497,7 +497,7 @@ func AddIPToWhitelist(c *gin.Context) {
 		CreatedAt:   time.Now(),
 	}
 
-	if err := db.DB.Create(&entry).Error; err != nil {
+	if err := SafeCreate(db.DB, &entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add IP"})
 		return
 	}
@@ -593,7 +593,7 @@ func UpdateIPWhitelistSettings(c *gin.Context) {
 	if err := db.DB.First(&existing).Error; err != nil {
 		// Create new
 		req.ID = "default"
-		db.DB.Create(&req)
+		SafeCreate(db.DB, &req)
 	} else {
 		type whitelistSettingsUpdates struct {
 			IsEnabled          *bool   `gorm:"column:is_enabled"`

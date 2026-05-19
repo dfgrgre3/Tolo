@@ -917,7 +917,17 @@ func CreateUser(c *gin.Context) {
 		PasswordHash: string(hashedPassword),
 	}
 
-	if err := db.DB.Create(&user).Error; err != nil {
+	var existingUser models.User
+	if err := db.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		api_response.Error(c, http.StatusConflict, "User with this email already exists")
+		return
+	}
+
+	if err := SafeCreate(db.DB, &user); err != nil {
+		if IsDuplicateKeyError(err) {
+			api_response.Error(c, http.StatusConflict, "User with this email already exists")
+			return
+		}
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
@@ -1355,7 +1365,11 @@ func EnsureUserExists(userId string, email string) error {
 		Level:         1,
 	}
 
-	if err := db.DB.Create(&newUser).Error; err != nil {
+	if err := SafeCreate(db.DB, &newUser); err != nil {
+		if IsDuplicateKeyError(err) {
+			log.Printf("[Auth] User already exists (race condition handled): %s", sanitizeLog(email))
+			return nil
+		}
 		return err
 	}
 

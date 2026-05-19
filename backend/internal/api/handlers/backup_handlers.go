@@ -83,7 +83,7 @@ func CreateBackup(c *gin.Context) {
 		CreatedAt:        time.Now(),
 	}
 
-	if err := db.DB.Create(&backup).Error; err != nil {
+	if err := SafeCreate(db.DB, &backup); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create backup"})
 		return
 	}

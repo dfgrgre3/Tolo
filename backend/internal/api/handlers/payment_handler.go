@@ -279,7 +279,7 @@ func CreatePayment(c *gin.Context) {
 		Reference: generateSecureReference("REF"),
 	}
 
-	if err := db.DB.Create(&payment).Error; err != nil {
+	if err := SafeCreate(db.DB, &payment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment"})
 		return
 	}
@@ -520,7 +520,7 @@ func HandleWalletDeposit(c *gin.Context) {
 		Reference:   generateSecureReference("TOPUP"),
 		CompletedAt: time.Now(),
 	}
-	if err := db.DB.Create(&payment).Error; err != nil {
+	if err := SafeCreate(db.DB, &payment); err != nil {
 		// Log but don't fail — the deposit itself succeeded
 		fmt.Printf("Warning: failed to create payment audit record for user %s: %v\n", userId, err)
 	} else {

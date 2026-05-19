@@ -72,7 +72,7 @@ func CreateScheduledItem(c *gin.Context) {
 		CreatedAt:    time.Now(),
 	}
 
-	if err := db.DB.Create(&item).Error; err != nil {
+	if err := SafeCreate(db.DB, &item); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create schedule"})
 		return
 	}

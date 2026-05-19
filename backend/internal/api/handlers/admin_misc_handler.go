@@ -424,7 +424,7 @@ func AdminExamsBulkUpload(c *gin.Context) {
 		Title:     examTitle,
 		Type:      models.ExamTypeQuiz,
 	}
-	if err := db.DB.Create(&exam).Error; err != nil {
+	if err := SafeCreate(db.DB, &exam); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create exam")
 		return
 	}
@@ -449,7 +449,7 @@ func AdminExamsBulkUpload(c *gin.Context) {
 			Answer:  answer,
 		}
 
-		if err := db.DB.Create(&question).Error; err == nil {
+		if err := SafeCreate(db.DB, &question); err == nil {
 			importedCount++
 		}
 	}
@@ -886,7 +886,7 @@ func SubscriptionCheckout(c *gin.Context) {
 		Reference:     fmt.Sprintf("SUB-%d", time.Now().Unix()),
 		PaymobOrderID: orderID,
 	}
-	if err := db.DB.Create(&payment).Error; err != nil {
+	if err := SafeCreate(db.DB, &payment); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to save payment record")
 		return
 	}
@@ -956,7 +956,7 @@ func CreateLibraryBook(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Create(&book).Error; err != nil {
+	if err := SafeCreate(db.DB, &book); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create book record")
 		return
 	}
@@ -1061,33 +1061,59 @@ func GetAdminDashboard(c *gin.Context) {
 	var achievementsEarned int64
 	db.DB.Model(&models.UserAchievement{}).Count(&achievementsEarned)
 
+	sixMonthsAgo := now.AddDate(0, -5, 0)
+	startOfSixMonths := time.Date(sixMonthsAgo.Year(), sixMonthsAgo.Month(), 1, 0, 0, 0, 0, sixMonthsAgo.Location())
+	sevenDaysAgo := now.AddDate(0, 0, -7)
+	startOfSevenDays := time.Date(sevenDaysAgo.Year(), sevenDaysAgo.Month(), sevenDaysAgo.Day(), 0, 0, 0, 0, sevenDaysAgo.Location())
+
+	type monthlyCount struct {
+		Month int
+		Count int64
+	}
+	var userGrowthData []monthlyCount
+	db.DB.Model(&models.User{}).
+		Select("EXTRACT(MONTH FROM created_at) as month, COUNT(*) as count").
+		Where("created_at >= ?", startOfSixMonths).
+		Group("EXTRACT(MONTH FROM created_at)").
+		Scan(&userGrowthData)
+
+	userGrowthMap := make(map[int]int64)
+	for _, m := range userGrowthData {
+		userGrowthMap[m.Month] = m.Count
+	}
+
 	userGrowth := make([]gin.H, 0, 6)
 	for i := 5; i >= 0; i-- {
 		d := now.AddDate(0, -i, 0)
-		startMonth := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, d.Location())
-		endMonth := startMonth.AddDate(0, 1, 0)
-
-		var count int64
-		db.DB.Model(&models.User{}).Where(createdAtRangeQuery, startMonth, endMonth).Count(&count)
-
 		userGrowth = append(userGrowth, gin.H{
 			"month": int(d.Month()),
-			"users": count,
+			"users": userGrowthMap[int(d.Month())],
 		})
+	}
+
+	type dailyCount struct {
+		Day   string
+		Count int64
+	}
+	var activityData []dailyCount
+	db.DB.Model(&models.StudySession{}).
+		Select("TO_CHAR(start_time, 'DD/MM') as day, COUNT(*) as count").
+		Where("start_time >= ?", startOfSevenDays).
+		Group("TO_CHAR(start_time, 'DD/MM')").
+		Scan(&activityData)
+
+	activityMap := make(map[string]int64)
+	for _, d := range activityData {
+		activityMap[d.Day] = d.Count
 	}
 
 	activityChart := make([]gin.H, 0, 7)
 	for i := 6; i >= 0; i-- {
 		d := now.AddDate(0, 0, -i)
-		startDay := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
-		endDay := startDay.AddDate(0, 0, 1)
-
-		var count int64
-		db.DB.Model(&models.StudySession{}).Where("start_time >= ? AND start_time < ?", startDay, endDay).Count(&count)
-
+		dayKey := d.Format("02/01")
 		activityChart = append(activityChart, gin.H{
-			"day":      startDay.Format("02/01"),
-			"sessions": count,
+			"day":      dayKey,
+			"sessions": activityMap[dayKey],
 		})
 	}
 
@@ -1431,7 +1457,7 @@ func CreateAdminAnnouncement(c *gin.Context) {
 		notification.Type = models.NotificationInfo
 	}
 
-	if err := db.DB.Create(&notification).Error; err != nil {
+	if err := SafeCreate(db.DB, &notification); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create announcement"})
 		return
 	}

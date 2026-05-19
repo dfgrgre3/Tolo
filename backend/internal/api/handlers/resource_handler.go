@@ -152,7 +152,7 @@ func AdminCreateResource(c *gin.Context) {
 		Free:        free,
 		SubjectID:   input.SubjectID,
 	}
-	if err := db.DB.Create(&resource).Error; err != nil {
+	if err := SafeCreate(db.DB, &resource); err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to create resource")
 		return
 	}

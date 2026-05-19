@@ -86,7 +86,7 @@ func SendNotificationBroadcast(c *gin.Context) {
 		broadcast.ScheduledFor = req.ScheduledFor
 	}
 
-	if err := db.DB.Create(&broadcast).Error; err != nil {
+	if err := SafeCreate(db.DB, &broadcast); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create broadcast"})
 		return
 	}
