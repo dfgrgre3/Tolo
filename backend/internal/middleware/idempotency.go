@@ -41,8 +41,14 @@ func Idempotency() gin.HandlerFunc {
 			key = uuid.New().String()
 		}
 
-		bodyBytes, _ := c.Get(gin.BodyBytesKey)
-		bodyHash := sha256.Sum256(bodyBytes.([]byte))
+		bodyBytes, exists := c.Get(gin.BodyBytesKey)
+		var bodyData []byte
+		if exists {
+			if b, ok := bodyBytes.([]byte); ok {
+				bodyData = b
+			}
+		}
+		bodyHash := sha256.Sum256(bodyData)
 		dedupKey := idempotencyPrefix + c.Request.Method + ":" + c.FullPath() + ":" + key
 
 		// Check if we've already processed this exact request

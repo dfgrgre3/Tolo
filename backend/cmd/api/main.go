@@ -91,7 +91,6 @@ func main() {
 	// Start gRPC Server
 	grpcServer := startGRPCServer(courseSvc, authSvc, analyticsSvc)
 
-
 	// Start Background Worker and Periodic Scheduler
 	go func() {
 		log.Println("Starting background worker...")

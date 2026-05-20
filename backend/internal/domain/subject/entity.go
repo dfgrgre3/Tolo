@@ -49,17 +49,17 @@ type Topic struct {
 }
 
 type SubTopic struct {
-	ID        string
-	TopicID   string
-	Title     string
-	Type      string
-	Order     int
-	IsFree    bool
-	VideoUrl  *string
-	Duration  int
+	ID          string
+	TopicID     string
+	Title       string
+	Type        string
+	Order       int
+	IsFree      bool
+	VideoUrl    *string
+	Duration    int
 	DurationMin int
 	Description *string
-	CreatedAt time.Time
+	CreatedAt   time.Time
 }
 
 type CreateSubjectInput struct {

@@ -11,7 +11,6 @@ import (
 const whereUserID = "user_id = ?"
 
 type ProgressQueryService struct {
-	readDB *gorm.DB
 }
 
 type ProgressSummaryReadModel struct {
@@ -22,11 +21,11 @@ type ProgressSummaryReadModel struct {
 }
 
 type WeeklyAnalyticsReadModel struct {
-	ProgressRate   int              `json:"progressRate"`
-	SkillsAcquired int              `json:"skillsAcquired"`
-	StudyHours     int              `json:"studyHours"`
-	DailyProgress  []DailyProgress  `json:"dailyProgress"`
-	Timestamp      time.Time        `json:"timestamp"`
+	ProgressRate   int             `json:"progressRate"`
+	SkillsAcquired int             `json:"skillsAcquired"`
+	StudyHours     int             `json:"studyHours"`
+	DailyProgress  []DailyProgress `json:"dailyProgress"`
+	Timestamp      time.Time       `json:"timestamp"`
 }
 
 type DailyProgress struct {
@@ -35,13 +34,23 @@ type DailyProgress struct {
 }
 
 func NewProgressQueryService() *ProgressQueryService {
-	return &ProgressQueryService{readDB: db.ReadDB()}
+	return &ProgressQueryService{}
+}
+
+// readDBOrFallback dynamically retrieves the read DB connection.
+func (s *ProgressQueryService) readDBOrFallback() *gorm.DB {
+	return db.ReadDB()
 }
 
 func (s *ProgressQueryService) GetSummary(userID string) (*ProgressSummaryReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return s.getSummaryFallback(userID)
+	}
+
 	// Read from materialized view for fast single-query aggregation
 	var mv UserProgressSummaryReadModel
-	if err := s.readDB.Where(whereUserID, userID).First(&mv).Error; err != nil {
+	if err := rdb.Where(whereUserID, userID).First(&mv).Error; err != nil {
 		return s.getSummaryFallback(userID)
 	}
 
@@ -54,6 +63,11 @@ func (s *ProgressQueryService) GetSummary(userID string) (*ProgressSummaryReadMo
 }
 
 func (s *ProgressQueryService) getSummaryFallback(userID string) (*ProgressSummaryReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return &ProgressSummaryReadModel{}, nil
+	}
+
 	summary := &ProgressSummaryReadModel{}
 
 	type studyStats struct {
@@ -61,7 +75,7 @@ func (s *ProgressQueryService) getSummaryFallback(userID string) (*ProgressSumma
 		AvgFocus     float64
 	}
 	var stats studyStats
-	if err := s.readDB.Model(&models.StudySession{}).
+	if err := rdb.Model(&models.StudySession{}).
 		Where(whereUserID, userID).
 		Select("COALESCE(SUM(duration_min), 0) as total_minutes, COALESCE(AVG(focus_score), 0) as avg_focus").
 		Scan(&stats).Error; err != nil {
@@ -70,7 +84,7 @@ func (s *ProgressQueryService) getSummaryFallback(userID string) (*ProgressSumma
 	summary.TotalMinutes = stats.TotalMinutes
 	summary.AverageFocus = stats.AvgFocus
 
-	s.readDB.Model(&models.Task{}).
+	rdb.Model(&models.Task{}).
 		Where("user_id = ? AND status = ?", userID, "COMPLETED").
 		Count(&summary.TasksCompleted)
 
@@ -79,11 +93,16 @@ func (s *ProgressQueryService) getSummaryFallback(userID string) (*ProgressSumma
 }
 
 func (s *ProgressQueryService) calculateStreakDays(userID string) int {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return 0
+	}
+
 	type dayResult struct {
 		Day string
 	}
 	var days []dayResult
-	s.readDB.Model(&models.StudySession{}).
+	rdb.Model(&models.StudySession{}).
 		Select("DISTINCT DATE(start_time) as day").
 		Where("user_id = ? AND start_time >= ?", userID, time.Now().AddDate(-1, 0, 0)).
 		Order("day DESC").
@@ -113,9 +132,14 @@ func (s *ProgressQueryService) calculateStreakDays(userID string) int {
 }
 
 func (s *ProgressQueryService) GetWeeklyAnalytics(userID string) (*WeeklyAnalyticsReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return s.getWeeklyAnalyticsFallback(userID)
+	}
+
 	// Read from materialized view
 	var mv WeeklyAnalyticsReadModelV2
-	if err := s.readDB.Where(whereUserID, userID).First(&mv).Error; err != nil {
+	if err := rdb.Where(whereUserID, userID).First(&mv).Error; err != nil {
 		return s.getWeeklyAnalyticsFallback(userID)
 	}
 
@@ -145,9 +169,20 @@ func (s *ProgressQueryService) GetWeeklyAnalytics(userID string) (*WeeklyAnalyti
 }
 
 func (s *ProgressQueryService) getWeeklyAnalyticsFallback(userID string) (*WeeklyAnalyticsReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return &WeeklyAnalyticsReadModel{
+			ProgressRate:   0,
+			SkillsAcquired: 0,
+			StudyHours:     0,
+			DailyProgress:  nil,
+			Timestamp:      time.Now(),
+		}, nil
+	}
+
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
 	var sessions []models.StudySession
-	if err := s.readDB.Where("user_id = ? AND start_time >= ?", userID, sevenDaysAgo).
+	if err := rdb.Where("user_id = ? AND start_time >= ?", userID, sevenDaysAgo).
 		Order("start_time asc").Find(&sessions).Error; err != nil {
 		return nil, err
 	}
@@ -176,7 +211,7 @@ func (s *ProgressQueryService) getWeeklyAnalyticsFallback(userID string) (*Weekl
 	}
 
 	var skillsAcquired int64
-	s.readDB.Model(&models.Task{}).Where("user_id = ? AND status = ?", userID, "COMPLETED").Count(&skillsAcquired)
+	rdb.Model(&models.Task{}).Where("user_id = ? AND status = ?", userID, "COMPLETED").Count(&skillsAcquired)
 
 	return &WeeklyAnalyticsReadModel{
 		ProgressRate:   progressRate,

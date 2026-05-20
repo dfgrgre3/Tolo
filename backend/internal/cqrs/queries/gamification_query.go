@@ -1,9 +1,9 @@
 package queries
 
 import (
-	"time"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -29,16 +29,25 @@ type UserAchievementReadModel struct {
 }
 
 type GamificationQueryService struct {
-	readDB *gorm.DB
 }
 
 func NewGamificationQueryService() *GamificationQueryService {
-	return &GamificationQueryService{readDB: db.ReadDB()}
+	return &GamificationQueryService{}
+}
+
+// readDBOrFallback dynamically retrieves the read DB connection.
+func (s *GamificationQueryService) readDBOrFallback() *gorm.DB {
+	return db.ReadDB()
 }
 
 func (s *GamificationQueryService) GetLeaderboard(limit int) ([]LeaderboardEntryReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return nil, nil
+	}
+
 	var users []models.User
-	if err := s.readDB.Order("total_xp DESC").Limit(limit).Find(&users).Error; err != nil {
+	if err := rdb.Order("total_xp DESC").Limit(limit).Find(&users).Error; err != nil {
 		return nil, err
 	}
 
@@ -50,7 +59,7 @@ func (s *GamificationQueryService) GetLeaderboard(limit int) ([]LeaderboardEntry
 		} else if u.Username != nil && *u.Username != "" {
 			name = *u.Username
 		}
-			avatar := ""
+		avatar := ""
 		if u.Avatar != nil {
 			avatar = *u.Avatar
 		}
@@ -68,8 +77,13 @@ func (s *GamificationQueryService) GetLeaderboard(limit int) ([]LeaderboardEntry
 }
 
 func (s *GamificationQueryService) GetUserAchievements(userID string) ([]UserAchievementReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return nil, nil
+	}
+
 	var userAchievements []models.UserAchievement
-	if err := s.readDB.Preload("Achievement").Where("user_id = ?", userID).Find(&userAchievements).Error; err != nil {
+	if err := rdb.Preload("Achievement").Where("user_id = ?", userID).Find(&userAchievements).Error; err != nil {
 		return nil, err
 	}
 

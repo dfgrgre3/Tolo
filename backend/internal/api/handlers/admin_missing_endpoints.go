@@ -11,8 +11,6 @@ import (
 	"thanawy-backend/internal/models"
 )
 
-
-
 func parsePositiveInt(value string, fallback int) int {
 	parsed, err := strconv.Atoi(value)
 	if err != nil || parsed <= 0 {

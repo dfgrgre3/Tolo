@@ -40,19 +40,28 @@ type FlowStats struct {
 }
 
 type AnalyticsQueryService struct {
-	readDB *gorm.DB
 }
 
 func NewAnalyticsQueryService() *AnalyticsQueryService {
-	return &AnalyticsQueryService{readDB: db.ReadDB()}
+	return &AnalyticsQueryService{}
+}
+
+// readDBOrFallback dynamically retrieves the read DB connection.
+func (s *AnalyticsQueryService) readDBOrFallback() *gorm.DB {
+	return db.ReadDB()
 }
 
 func (s *AnalyticsQueryService) GetTimeAnalytics(userID string) (*TimeAnalyticsReadModel, error) {
+	rdb := s.readDBOrFallback()
+	if rdb == nil {
+		return nil, nil // Or a default value if appropriate
+	}
+
 	var sessionStats struct {
 		TotalStudyMinutes int
 		TotalSessions     int
 	}
-	if err := s.readDB.Model(&models.StudySession{}).
+	if err := rdb.Model(&models.StudySession{}).
 		Where("user_id = ?", userID).
 		Select("COALESCE(SUM(duration_min), 0) as total_study_minutes, COUNT(id) as total_sessions").
 		Scan(&sessionStats).Error; err != nil {
@@ -63,7 +72,7 @@ func (s *AnalyticsQueryService) GetTimeAnalytics(userID string) (*TimeAnalyticsR
 		TotalTasks     int
 		CompletedTasks int
 	}
-	if err := s.readDB.Model(&models.Task{}).
+	if err := rdb.Model(&models.Task{}).
 		Where("user_id = ?", userID).
 		Select("COUNT(id) as total_tasks, SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_tasks").
 		Scan(&taskStats).Error; err != nil {

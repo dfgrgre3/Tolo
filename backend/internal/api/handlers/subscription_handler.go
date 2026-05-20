@@ -242,7 +242,6 @@ func subHandlePurchaseError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete purchase"})
 }
 
-
 // GetInvoice returns invoice data for a specific payment
 func GetInvoice(c *gin.Context) {
 	userId, _ := c.Get("userId")
@@ -471,4 +470,3 @@ func RenewSubscription(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Subscription renewed successfully"})
 }
-

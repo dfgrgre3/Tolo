@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	analyticsStream       = "analytics:events"
+	analyticsStream        = "analytics:events"
 	analyticsConsumerGroup = "analytics-workers"
-	analyticsConsumerID   = "worker-1"
-	analyticsBatchSize = 100
-	analyticsBlockTime = 5 * time.Second
+	analyticsConsumerID    = "worker-1"
+	analyticsBatchSize     = 100
+	analyticsBlockTime     = 5 * time.Second
 )
 
 // StartAnalyticsBatchWorker starts the Redis Stream consumer for analytics events.

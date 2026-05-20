@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"sync"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
@@ -11,12 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var securityLogRepo *repository.SecurityLogRepository
+var (
+	securityLogRepo     *repository.SecurityLogRepository
+	securityLogRepoOnce sync.Once
+)
 
 func getSecurityLogRepo() *repository.SecurityLogRepository {
-	if securityLogRepo == nil {
+	securityLogRepoOnce.Do(func() {
 		securityLogRepo = repository.NewSecurityLogRepository(db.DB)
-	}
+	})
 	return securityLogRepo
 }
 func GetSecurityLogs(c *gin.Context) {

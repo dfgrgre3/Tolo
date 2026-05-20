@@ -35,6 +35,6 @@ func main() {
 	} else {
 		log.Println("Database seeded successfully.")
 	}
-	
+
 	log.Println("Migration and seeding process completed.")
 }

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -97,7 +98,7 @@ func ReadDB() *gorm.DB {
 	if DB == nil {
 		return nil
 	}
-	return DB.Clauses(dbresolver.Read)
+	return DB.Session(&gorm.Session{}).Clauses(dbresolver.Read)
 }
 
 // WriteDB returns a GORM session explicitly routed to the write source.
@@ -106,16 +107,16 @@ func WriteDB() *gorm.DB {
 	if DB == nil {
 		return nil
 	}
-	return DB.Clauses(dbresolver.Write)
+	return DB.Session(&gorm.Session{}).Clauses(dbresolver.Write)
 }
 
 // WithWriteTx executes fn within a write-routed transaction.
 // This guarantees all operations in fn go to the write source.
 func WithWriteTx(fn func(tx *gorm.DB) error) error {
 	if DB == nil {
-		return nil
+		return fmt.Errorf("database connection is not initialized")
 	}
-	return DB.Clauses(dbresolver.Write).Transaction(fn)
+	return DB.Session(&gorm.Session{}).Clauses(dbresolver.Write).Transaction(fn)
 }
 
 func getGormLogLevel() logger.LogLevel {
@@ -190,9 +191,6 @@ func setupDatabaseFunctions(db *gorm.DB) {
 		$$ LANGUAGE plpgsql;
 	`)
 }
-
-
-
 
 // Seed populates the database with initial data
 func Seed() error {
@@ -294,4 +292,3 @@ func seedAdminUser() error {
 	log.Printf("Default admin user already exists: %s", email)
 	return nil
 }
-

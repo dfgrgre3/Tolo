@@ -13,7 +13,6 @@ import (
 
 const errItemNotFound = "Item not found"
 
-
 // ScheduledItemRequest represents a request to schedule an item
 type ScheduledItemRequest struct {
 	Type         string                 `json:"type" binding:"required,oneof=announcement exam task post content"`

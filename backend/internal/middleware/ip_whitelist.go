@@ -78,7 +78,6 @@ func isIPWhitelisted(entries []models.IPWhitelistEntry, clientIP string) bool {
 	return false
 }
 
-
 // isPublicEndpoint checks if the endpoint is public
 func isPublicEndpoint(path string) bool {
 	publicPaths := []string{

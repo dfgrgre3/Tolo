@@ -17,7 +17,6 @@ import (
 
 const redisBroadcastChannel = "websocket:broadcast"
 
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,

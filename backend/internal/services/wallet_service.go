@@ -136,9 +136,9 @@ func applyBalanceUpdate(tx *gorm.DB, userID string, currentVersion int, amount f
 	case "BALANCE":
 		updates["balance"] = gorm.Expr("balance + ?", amount)
 	case "AI_CREDITS":
-		updates["aiCredits"] = gorm.Expr("\"aiCredits\" + ?", int(amount))
+		updates["ai_credits"] = gorm.Expr("ai_credits + ?", int(amount))
 	case "EXAM_CREDITS":
-		updates["examCredits"] = gorm.Expr("\"examCredits\" + ?", int(amount))
+		updates["exam_credits"] = gorm.Expr("exam_credits + ?", int(amount))
 	}
 
 	result := tx.Model(&models.User{}).
@@ -159,13 +159,13 @@ func GetUserWalletTransactions(userID string, limit int, offset int) ([]models.W
 	var transactions []models.WalletTransaction
 	var total int64
 
-	query := db.DB.Model(&models.WalletTransaction{}).Where("\"userId\" = ?", userID)
+	query := db.DB.Model(&models.WalletTransaction{}).Where("user_id = ?", userID)
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	if err := query.Order("\"createdAt\" desc").Limit(limit).Offset(offset).Find(&transactions).Error; err != nil {
+	if err := query.Order("created_at desc").Limit(limit).Offset(offset).Find(&transactions).Error; err != nil {
 		return nil, 0, err
 	}
 

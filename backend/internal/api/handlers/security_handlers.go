@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -786,6 +788,310 @@ func VerifyTwoFactorLogin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "challengeId": req.ChallengeID})
+}
+
+// GetUser2FAStatus returns the 2FA status for the authenticated user
+func GetUser2FAStatus(c *gin.Context) {
+	userID, _ := c.Get("userId")
+
+	var settings models.TwoFactorSettings
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"enabled": false,
+			"data": gin.H{
+				"isEnabled":  false,
+				"method":     nil,
+				"isEnforced": false,
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"enabled": settings.IsEnabled,
+		"data": gin.H{
+			"isEnabled":       settings.IsEnabled,
+			"method":          settings.Method,
+			"lastUsedAt":      settings.LastUsedAt,
+			"isEnforced":      settings.IsEnforced,
+			"verifiedDevices": settings.VerifiedDevices,
+		},
+	})
+}
+
+// InitiateUser2FASetup generates TOTP secret and QR code image URL for the authenticated user
+func InitiateUser2FASetup(c *gin.Context) {
+	userID, _ := c.Get("userId")
+
+	var user models.User
+	if err := db.DB.First(&user, idQuery, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Generate TOTP secret
+	secret := make([]byte, 20)
+	rand.Read(secret)
+	secretKey := base32.StdEncoding.EncodeToString(secret)
+
+	// URL-encode the otpauth URL for the QR code api
+	otpAuthURL := fmt.Sprintf("otpauth://totp/Thanawy:%s?secret=%s&issuer=Thanawy", user.Email, secretKey)
+	qrCodeImageURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=%s", url.QueryEscape(otpAuthURL))
+
+	// Store pending setup
+	settings := models.TwoFactorSettings{
+		UserID:       userID.(string),
+		Method:       "authenticator",
+		Secret:       secretKey,
+		IsEnabled:    false, // Not enabled until verified
+		PendingSetup: true,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := db.DB.Where(userIDQuery, userID).Assign(settings).FirstOrCreate(&settings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store pending 2FA setup"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"secret": secretKey,
+		"qrCode": qrCodeImageURL,
+	})
+}
+
+// EnableUser2FA verifies the 2FA token/code and enables it for the authenticated user
+func EnableUser2FA(c *gin.Context) {
+	var req struct {
+		Secret string `json:"secret" binding:"required"`
+		Token  string `json:"token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, _ := c.Get("userId")
+
+	// Verify TOTP code
+	valid := totp.Validate(req.Token, req.Secret)
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidVerificationCode})
+		return
+	}
+
+	// Generate backup codes
+	backupCodes := generateBackupCodes(10)
+
+	tx := db.DB.Begin()
+
+	var settings models.TwoFactorSettings
+	err := tx.First(&settings, userIDQuery, userID).Error
+	if err != nil {
+		settings = models.TwoFactorSettings{
+			UserID: userID.(string),
+		}
+	}
+
+	now := time.Now()
+	settings.Method = "authenticator"
+	settings.Secret = req.Secret
+	settings.IsEnabled = true
+	settings.PendingSetup = false
+	settings.BackupCodes = backupCodes
+	settings.ActivatedAt = &now
+	settings.UpdatedAt = now
+
+	if err := tx.Save(&settings).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save 2FA settings"})
+		return
+	}
+
+	if err := tx.Model(&models.User{}).Where(idQuery, userID).Updates(map[string]interface{}{
+		"two_factor_enabled": true,
+		"two_factor_secret":  req.Secret,
+		"updated_at":         now,
+	}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to enable 2FA on user account"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+		return
+	}
+
+	middleware.LogCriticalOperation(c, "2fa_activated", map[string]interface{}{
+		"method": "authenticator",
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "2FA activated successfully",
+		"data": gin.H{
+			"backupCodes": backupCodes,
+		},
+	})
+}
+
+// DisableUser2FA disables 2FA for the authenticated user without code verification
+func DisableUser2FA(c *gin.Context) {
+	userID, _ := c.Get("userId")
+
+	var settings models.TwoFactorSettings
+	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
+		return
+	}
+
+	tx := db.DB.Begin()
+
+	settings.IsEnabled = false
+	now := time.Now()
+	settings.DeactivatedAt = &now
+	settings.UpdatedAt = now
+	if err := tx.Save(&settings).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disable 2FA settings"})
+		return
+	}
+
+	if err := tx.Model(&models.User{}).Where(idQuery, userID).Updates(map[string]interface{}{
+		"two_factor_enabled": false,
+		"two_factor_secret":  nil,
+		"updated_at":         now,
+	}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user account"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+		return
+	}
+
+	middleware.LogCriticalOperation(c, "2fa_disabled", nil)
+
+	c.JSON(http.StatusOK, gin.H{"message": "2FA disabled successfully"})
+}
+
+// SendPhoneVerification handles POST /api/auth/verify-phone/send
+func SendPhoneVerification(c *gin.Context) {
+	var req struct {
+		Phone string `json:"phone" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number is required"})
+		return
+	}
+
+	userID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Clean/validate phone number (simple validation)
+	if len(req.Phone) < 10 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid phone number format"})
+		return
+	}
+
+	// Generate 6-digit OTP
+	const digits = "0123456789"
+	otpBytes := make([]byte, 6)
+	if _, err := rand.Read(otpBytes); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate verification code"})
+		return
+	}
+	for i, b := range otpBytes {
+		otpBytes[i] = digits[b%10]
+	}
+	otpCode := string(otpBytes)
+
+	// Save to user model
+	expiresAt := time.Now().Add(10 * time.Minute)
+	now := time.Now()
+
+	err := db.DB.Model(&models.User{}).Where(idQuery, userID).Updates(map[string]interface{}{
+		"phone":                        req.Phone,
+		"phone_verification_otp":      otpCode,
+		"phone_verification_expires":  expiresAt,
+		"phone_verification_attempts": 0,
+		"phone_verification_last_sent": now,
+	}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update phone settings"})
+		return
+	}
+
+	// Mock SMS sending by logging to console
+	log.Printf("[SMS MOCK] Verification code for user %v (%s): %s", userID, req.Phone, otpCode)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent successfully"})
+}
+
+// VerifyPhoneVerification handles POST /api/auth/verify-phone/verify
+func VerifyPhoneVerification(c *gin.Context) {
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Verification code is required"})
+		return
+	}
+
+	userID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.First(&user, idQuery, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.PhoneVerificationOTP == nil || *user.PhoneVerificationOTP == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No pending verification found"})
+		return
+	}
+
+	if user.PhoneVerificationExpires == nil || user.PhoneVerificationExpires.Before(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Verification code has expired"})
+		return
+	}
+
+	if user.PhoneVerificationAttempts >= 5 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Too many failed attempts. Please request a new code."})
+		return
+	}
+
+	if *user.PhoneVerificationOTP != req.Code {
+		// Increment attempts
+		db.DB.Model(&user).Update("phone_verification_attempts", user.PhoneVerificationAttempts+1)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+		return
+	}
+
+	// Success
+	err := db.DB.Model(&user).Updates(map[string]interface{}{
+		"phone_verified":              true,
+		"phone_verification_otp":      nil,
+		"phone_verification_expires":  nil,
+		"phone_verification_attempts": 0,
+	}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete phone verification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Phone verified successfully"})
 }
 
 // Helper functions

@@ -11,7 +11,6 @@ func SetupAuthRoutes(router *gin.Engine) {
 	auth := router.Group("/api/auth")
 	{
 		auth.POST("/login", middleware.LoginRateLimiter(), handlers.Login)
-		auth.POST("/admin-login", middleware.LoginRateLimiter(), handlers.AdminLogin)
 		auth.POST("/register", middleware.AuthRateLimiter(), handlers.Register)
 		auth.POST("/logout", handlers.Logout)
 		auth.POST("/refresh", handlers.RefreshToken)
@@ -32,6 +31,12 @@ func SetupAuthRoutes(router *gin.Engine) {
 			auth.DELETE(sessionsPath, handlers.DeleteAuthSession)
 			auth.PATCH(sessionsPath, handlers.UpdateAuthSession)
 			auth.GET("/security-logs", handlers.GetSecurityLogs)
+			auth.GET("/2fa/status", handlers.GetUser2FAStatus)
+			auth.GET("/2fa/setup", handlers.InitiateUser2FASetup)
+			auth.POST("/2fa/enable", handlers.EnableUser2FA)
+			auth.POST("/2fa/disable", handlers.DisableUser2FA)
+			auth.POST("/verify-phone/send", handlers.SendPhoneVerification)
+			auth.POST("/verify-phone/verify", handlers.VerifyPhoneVerification)
 		}
 	}
 }

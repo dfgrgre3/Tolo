@@ -155,6 +155,14 @@ func setContextPermissions(c *gin.Context, permissions models.JSONStringArray) {
 // Helper to fetch and set user role/permissions in context from database or fallback
 func hydrateUserContext(c *gin.Context, userID string, fallbackRole string) {
 	var user models.User
+
+	if db.DB == nil {
+		log.Printf("WARN: Database connection is nil in hydrateUserContext for user %s", userID)
+		c.Set("role", strings.ToUpper(fallbackRole))
+		c.Set("permissions", []string{})
+		return
+	}
+
 	if err := db.DB.Unscoped().Select("role", "permissions").Where("id = ?", userID).First(&user).Error; err == nil {
 		c.Set("role", string(user.Role))
 		setContextPermissions(c, user.Permissions)
@@ -176,6 +184,11 @@ func processImpersonation(c *gin.Context, adminID string) {
 		return
 	}
 
+	if db.DB == nil {
+		log.Printf("WARN: Database connection is nil in processImpersonation")
+		return
+	}
+
 	var targetUser models.User
 	if err := db.DB.Unscoped().Select("id", "role", "permissions").First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
 		c.Set("originalAdminId", adminID)
@@ -185,7 +198,6 @@ func processImpersonation(c *gin.Context, adminID string) {
 		setContextPermissions(c, targetUser.Permissions)
 	}
 }
-
 
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -282,9 +294,11 @@ func CORS() gin.HandlerFunc {
 
 		isAllowed := isOriginAllowed(origin, isDev, allowedOrigins)
 
-		// DEBUG LOGGING - Remove after diagnosis
-		log.Printf("[CORS DEBUG] Environment: %s, Origin: '%s', IsAllowed: %v, Method: %s, Path: %s",
-			cfg.Environment, origin, isAllowed, c.Request.Method, c.Request.URL.Path)
+		// Only log CORS details in development to avoid production log noise
+		if isDev {
+			log.Printf("[CORS] Origin: '%s', IsAllowed: %v, Method: %s, Path: %s",
+				origin, isAllowed, c.Request.Method, c.Request.URL.Path)
+		}
 
 		setCorsHeaders(c, origin, isAllowed)
 
@@ -356,4 +370,3 @@ func handleOptions(c *gin.Context, origin string, isAllowed bool, isDev bool) {
 		c.AbortWithStatus(http.StatusForbidden)
 	}
 }
-

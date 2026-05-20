@@ -15,10 +15,10 @@ type RecordLessonProgressCommand struct {
 }
 
 type RecordExamCompletedCommand struct {
-	UserID    string
-	ExamID    string
-	Score     float64
-	Passed    bool
+	UserID string
+	ExamID string
+	Score  float64
+	Passed bool
 }
 
 type RecordTaskCompletedCommand struct {

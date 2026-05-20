@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	rateLimiterUnavailable = "rate limiter unavailable, please try again later"
+	rateLimiterUnavailable   = "rate limiter unavailable, please try again later"
 	headerRateLimitLimit     = "X-RateLimit-Limit"
 	headerRateLimitRemaining = "X-RateLimit-Remaining"
 	headerRateLimitReset     = "X-RateLimit-Reset"
@@ -212,12 +212,6 @@ func (rl *RateLimiter) SlidingWindowRateLimit(key string, limit int, window time
 	}
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
 
 // LoginRateLimiter provides rate limiting for login attempts
 func LoginRateLimiter() gin.HandlerFunc {

@@ -16,8 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
 func GetExams(c *gin.Context) {
 	if db.ReadDB() == nil {
 		log.Println("[GetExams] Critical: Database connection (db.ReadDB()) is nil")
@@ -145,7 +143,6 @@ func formatExamResponse(exams []models.Exam, countMap map[string]int64) []gin.H 
 	return items
 }
 
-
 func CreateExam(c *gin.Context) {
 	var input struct {
 		Title     string `json:"title" binding:"required"`
@@ -203,9 +200,15 @@ func UpdateExam(c *gin.Context) {
 	}
 
 	updates := examUpdates{}
-	if input.Title != "" { updates.Title = &input.Title }
-	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID }
-	if input.Type != "" { updates.Type = &input.Type }
+	if input.Title != "" {
+		updates.Title = &input.Title
+	}
+	if input.SubjectID != "" {
+		updates.SubjectID = &input.SubjectID
+	}
+	if input.Type != "" {
+		updates.Type = &input.Type
+	}
 
 	if err := db.WriteDB().Model(&models.Exam{}).Where(idQuery, exam.ID).
 		Updates(&updates).Error; err != nil {

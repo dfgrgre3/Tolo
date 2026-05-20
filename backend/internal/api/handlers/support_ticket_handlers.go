@@ -14,7 +14,6 @@ import (
 const channelInApp = "in-app"
 const errTicketNotFound = "Ticket not found"
 
-
 // CreateTicketRequest represents a request to create a support ticket
 type CreateTicketRequest struct {
 	UserID            string `json:"userId" binding:"required"`
@@ -327,7 +326,6 @@ func notifyUserOfTicketResponse(ticket models.SupportTicket) {
 		Channels: []string{channelInApp, "email"},
 	})
 }
-
 
 // UpdateTicketStatus updates the status of a ticket
 // @Summary Update ticket status

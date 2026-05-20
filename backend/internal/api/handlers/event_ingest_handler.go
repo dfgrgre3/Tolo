@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/events"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -28,9 +28,9 @@ func IngestEvent(c *gin.Context) {
 
 	// Extract type and userId minimally for validation
 	var header struct {
-		ID     string          `json:"id"`
+		ID     string           `json:"id"`
 		Type   events.EventType `json:"type"`
-		UserID string          `json:"userId"`
+		UserID string           `json:"userId"`
 	}
 	if err := json.Unmarshal(raw, &header); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event structure"})

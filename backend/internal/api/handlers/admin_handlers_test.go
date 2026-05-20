@@ -767,11 +767,11 @@ func TestAdminCreateAutomation_Success(t *testing.T) {
 	router.POST("/automations", AdminCreateAutomation)
 
 	body := map[string]interface{}{
-		"name":      "Auto Email",
-		"type":      "email",
-		"trigger":   "user_signup",
-		"action":    "send_welcome_email",
-		"isActive":  true,
+		"name":     "Auto Email",
+		"type":     "email",
+		"trigger":  "user_signup",
+		"action":   "send_welcome_email",
+		"isActive": true,
 	}
 	bodyBytes, _ := json.Marshal(body)
 

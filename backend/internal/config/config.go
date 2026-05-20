@@ -12,15 +12,15 @@ import (
 var GlobalConfig *Config
 
 type Config struct {
-	DatabaseURL        string
-	DatabaseWriteURL   string
+	DatabaseURL          string
+	DatabaseWriteURL     string
 	DatabaseReadReplicas []string
-	JWTSecret          string
-	Environment        string
+	JWTSecret            string
+	Environment          string
 
 	// Storage Configuration
-	StorageType  string // "s3" (Cloudflare R2 / AWS S3 / MinIO)
-	S3 struct {
+	StorageType string // "s3" (Cloudflare R2 / AWS S3 / MinIO)
+	S3          struct {
 		Endpoint  string
 		AccessKey string
 		SecretKey string
@@ -30,7 +30,7 @@ type Config struct {
 		PublicURL string
 	}
 	ClerkWebhookSecret string
-	InternalIPRanges    []string
+	InternalIPRanges   []string
 }
 
 func Load() *Config {
@@ -52,12 +52,12 @@ func Load() *Config {
 	}
 
 	c := &Config{
-		DatabaseURL:        dbURL,
-		DatabaseWriteURL:   getEnv("DATABASE_WRITE_DSN", ""),
+		DatabaseURL:          dbURL,
+		DatabaseWriteURL:     getEnv("DATABASE_WRITE_DSN", ""),
 		DatabaseReadReplicas: parseReplicas(getEnv("DATABASE_REPLICAS", "")),
-		JWTSecret:          jwtSecret,
-		Environment:        environment,
-		StorageType:        getEnv("STORAGE_TYPE", "s3"),
+		JWTSecret:            jwtSecret,
+		Environment:          environment,
+		StorageType:          getEnv("STORAGE_TYPE", "s3"),
 	}
 
 	// S3 Storage Config
@@ -94,10 +94,6 @@ func Load() *Config {
 
 // generateRandomString generates a random string for dev secrets
 func generateRandomString(n int) string {
-	if _, err := uuid.NewRandom(); err != nil {
-		return uuid.New().String()
-	}
-	// Use uuid to generate random string
 	result := uuid.New().String()
 	if len(result) > n {
 		return result[:n]

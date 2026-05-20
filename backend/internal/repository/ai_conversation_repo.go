@@ -13,7 +13,6 @@ const queryByID = "id = ?"
 const queryByUserIDActive = "\"userId\" = ? AND \"isActive\" = ?"
 const queryByConversationID = "\"conversationId\" = ?"
 
-
 // AIConversationRepo implements AIConversationRepository
 type AIConversationRepo struct {
 	db *gorm.DB

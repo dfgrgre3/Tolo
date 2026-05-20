@@ -15,7 +15,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-
 // Paymob Callback Handler
 func PaymobWebhook(c *gin.Context) {
 	var payload map[string]interface{}
@@ -206,7 +205,6 @@ func calculateSubscriptionDuration(interval models.SubscriptionInterval) time.Du
 		return 30 * 24 * time.Hour
 	}
 }
-
 
 type CreatePaymentRequest struct {
 	Amount    float64 `json:"amount" binding:"required,gt=0"`

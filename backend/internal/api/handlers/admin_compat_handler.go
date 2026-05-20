@@ -16,6 +16,7 @@ const createdAtDesc = "created_at DESC"
 const msgMethodNotAllowed = "Method not allowed"
 const msgIDRequired = "ID is required"
 const queryStatus = "status = ?"
+
 var defaultAdminSettings = map[string]interface{}{
 	"siteName":        "Thanawy",
 	"siteDescription": "منصة تعليمية لإدارة التعلم والمحتوى.",
@@ -392,14 +393,30 @@ func handleMarketingUpdate(c *gin.Context) {
 	}
 
 	var updates campaignUpdates
-	if v, ok := input["name"].(string); ok { updates.Name = &v }
-	if v, ok := input["description"].(string); ok { updates.Description = &v }
-	if v, ok := input["type"].(string); ok { updates.Type = &v }
-	if v, ok := input["status"].(string); ok { updates.Status = &v }
-	if v, ok := input["targetRole"].(string); ok { updates.TargetRole = &v }
-	if v, ok := input["content"].(string); ok { updates.Content = &v }
-	if v, ok := input["startDate"].(string); ok { updates.StartDate = &v }
-	if v, ok := input["endDate"].(string); ok { updates.EndDate = &v }
+	if v, ok := input["name"].(string); ok {
+		updates.Name = &v
+	}
+	if v, ok := input["description"].(string); ok {
+		updates.Description = &v
+	}
+	if v, ok := input["type"].(string); ok {
+		updates.Type = &v
+	}
+	if v, ok := input["status"].(string); ok {
+		updates.Status = &v
+	}
+	if v, ok := input["targetRole"].(string); ok {
+		updates.TargetRole = &v
+	}
+	if v, ok := input["content"].(string); ok {
+		updates.Content = &v
+	}
+	if v, ok := input["startDate"].(string); ok {
+		updates.StartDate = &v
+	}
+	if v, ok := input["endDate"].(string); ok {
+		updates.EndDate = &v
+	}
 
 	db.DB.Model(&models.Campaign{}).Where(queryID, id).
 		Updates(&updates)

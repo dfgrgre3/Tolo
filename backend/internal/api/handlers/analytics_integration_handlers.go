@@ -13,7 +13,6 @@ import (
 const startedAtGteQuery = "started_at >= ?"
 const countDistinctUserQuery = "COUNT(DISTINCT user_id)"
 
-
 // UserJourneyRequest represents a user journey tracking request
 type UserJourneyRequest struct {
 	UserID         string            `json:"userId" binding:"required"`

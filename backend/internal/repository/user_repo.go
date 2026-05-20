@@ -29,7 +29,6 @@ const (
 	queryByEmail            = "email ILIKE ?"
 )
 
-
 func (r *UserRepository) Create(user *models.User) error {
 	err := r.db.Create(user).Error
 	if err == nil {

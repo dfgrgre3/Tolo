@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_URL, upstreamAuthHeaders } from '@/app/api/auth/_utils';
-import { trimTrailingSlashes } from '@/lib/utils';
 
-/**
- * General API Proxy Catch-all
- * This handles any /api/* routes that don't have a specific route file.
- * It forwards authentication and CSRF tokens to the Go backend.
- */
+const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
+
+function upstreamHeaders(request: NextRequest): Record<string, string> {
+  const headers: Record<string, string> = {};
+  
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  
+  const cookie = request.headers.get('cookie');
+  if (cookie) headers['Cookie'] = cookie;
+
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+  if (ip) headers['x-forwarded-for'] = ip;
+  
+  // Forward CSRF token
+  const csrf = request.headers.get('x-csrf-token');
+  if (csrf) headers['X-CSRF-Token'] = csrf;
+  
+  // Forward content type
+  const ct = request.headers.get('content-type');
+  if (ct) headers['Content-Type'] = ct;
+  
+  return headers;
+}
+
 function getOrigins(primaryOrigin: string): string[] {
   const origins = [primaryOrigin];
   if (primaryOrigin.includes(':8082')) {
@@ -21,18 +39,20 @@ async function buildProxyRequestOptions(request: NextRequest, headers: any): Pro
   const options: RequestInit = {
     method: request.method,
     headers: { ...headers },
-    credentials: 'include',
     // @ts-ignore
     duplex: 'half',
   };
 
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-    const contentType = request.headers.get('content-type');
-    if (contentType) options.headers = { ...options.headers, 'Content-Type': contentType };
-    
-    const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 0) {
-      options.body = await request.arrayBuffer();
+    if (request.body) {
+      try {
+        const buffer = await request.arrayBuffer();
+        if (buffer.byteLength > 0) {
+          options.body = buffer;
+        }
+      } catch (e) {
+        console.warn('[API Proxy] Failed to read request body:', e);
+      }
     }
   }
 
@@ -43,6 +63,16 @@ function handleErrorResponse(response: Response, errorText: string) {
   let errorData;
   try {
     errorData = JSON.parse(errorText);
+    // Ensure we always have an error field
+    if (!errorData.error && errorData.message) {
+      errorData.error = errorData.message;
+    }
+    if (!errorData.error && errorData.msg) {
+      errorData.error = errorData.msg;
+    }
+    if (!errorData.error) {
+      errorData.error = `Backend error (HTTP ${response.status})`;
+    }
   } catch {
     errorData = { 
       error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
@@ -50,6 +80,8 @@ function handleErrorResponse(response: Response, errorText: string) {
       details: errorText.substring(0, 500)
     };
   }
+  // Always include status in response
+  errorData.status = response.status;
   return NextResponse.json(errorData, { status: response.status });
 }
 
@@ -60,9 +92,9 @@ async function handleProxy(
   const params = await props.params;
   const path = params.path.join('/');
   const { search } = new URL(request.url);
-  const headers = upstreamAuthHeaders(request);
+  const headers = upstreamHeaders(request);
   
-  const primaryOrigin = trimTrailingSlashes(BACKEND_URL);
+  const primaryOrigin = BACKEND_URL;
   const origins = getOrigins(primaryOrigin);
   const options = await buildProxyRequestOptions(request, headers);
 
@@ -117,4 +149,3 @@ export const PUT = handleProxy;
 export const PATCH = handleProxy;
 export const DELETE = handleProxy;
 export const OPTIONS = handleProxy;
-

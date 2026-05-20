@@ -21,14 +21,41 @@ var emailServiceInstance *EmailService
 
 func GetEmailService() *EmailService {
 	if emailServiceInstance == nil {
+		// Support both naming conventions: SMTP_USER/SMTP_PASS (from .env) and SMTP_USERNAME/SMTP_PASSWORD
+		username := os.Getenv("SMTP_USER")
+		if username == "" {
+			username = os.Getenv("SMTP_USERNAME")
+		}
+		password := os.Getenv("SMTP_PASS")
+		if password == "" {
+			password = os.Getenv("SMTP_PASSWORD")
+		}
+		fromEmail := os.Getenv("SMTP_FROM_EMAIL")
+		fromName := os.Getenv("SMTP_FROM_NAME")
+		// Parse SMTP_FROM format: "Name <email>" into separate fields
+		if fromRaw := os.Getenv("SMTP_FROM"); fromRaw != "" && fromEmail == "" {
+			if idx := strings.Index(fromRaw, "<"); idx > 0 {
+				fromName = strings.TrimSpace(fromRaw[:idx])
+				fromEmail = strings.Trim(fromRaw[idx:], "<> ")
+			} else {
+				fromEmail = fromRaw
+			}
+		}
+
+		// Auto-enable if SMTP_HOST is set and SMTP_ENABLED is not explicitly false
+		enabled := os.Getenv("SMTP_ENABLED") == "true"
+		if !enabled && os.Getenv("SMTP_ENABLED") == "" && os.Getenv("SMTP_HOST") != "" {
+			enabled = true
+		}
+
 		emailServiceInstance = &EmailService{
-			enabled:   os.Getenv("SMTP_ENABLED") == "true",
+			enabled:   enabled,
 			host:      os.Getenv("SMTP_HOST"),
 			port:      os.Getenv("SMTP_PORT"),
-			username:  os.Getenv("SMTP_USERNAME"),
-			password:  os.Getenv("SMTP_PASSWORD"),
-			fromEmail: os.Getenv("SMTP_FROM_EMAIL"),
-			fromName:  os.Getenv("SMTP_FROM_NAME"),
+			username:  username,
+			password:  password,
+			fromEmail: fromEmail,
+			fromName:  fromName,
 		}
 	}
 	return emailServiceInstance
@@ -37,7 +64,8 @@ func GetEmailService() *EmailService {
 // SendEmail sends an email to a single recipient
 func (s *EmailService) SendEmail(to string, subject string, body string, isHTML bool) error {
 	if !s.enabled {
-		return fmt.Errorf("email service is not enabled")
+		fmt.Printf("[Email] Service disabled, skipping email to %s: %s\n", to, subject)
+		return nil
 	}
 
 	if s.host == "" || s.username == "" {

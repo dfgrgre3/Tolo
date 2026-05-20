@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/cache"
 	"thanawy-backend/internal/db"
@@ -22,7 +23,7 @@ import (
 )
 
 const (
-	msgSubjectNotFound     = "Subject not found"
+	msgSubjectNotFound      = "Subject not found"
 	preloadTopicsSubTopics  = "Topics.SubTopics"
 	msgUserNotAuthenticated = "User not authenticated"
 	msgInvalidInput         = "Invalid input"
@@ -30,12 +31,15 @@ const (
 	subjectIDQuotedQuery    = "subject_id = ?"
 )
 
-var subjectRepo *repository.SubjectRepository
+var (
+	subjectRepo     *repository.SubjectRepository
+	subjectRepoOnce sync.Once
+)
 
 func getSubjectRepo() *repository.SubjectRepository {
-	if subjectRepo == nil {
+	subjectRepoOnce.Do(func() {
 		subjectRepo = repository.NewSubjectRepository(db.DB)
-	}
+	})
 	return subjectRepo
 }
 
@@ -174,7 +178,7 @@ func GetSubject(c *gin.Context) {
 
 	// Support both ID (UUID) and Slug
 	query := db.DB.Preload("Topics.SubTopics.Attachments").Preload("Topics.SubTopics.Exam")
-	
+
 	// Check if it's a UUID or Slug
 	query = applyIDOrSlugQuery(query, id)
 
@@ -241,8 +245,6 @@ func applyIDOrSlugQuery(query *gorm.DB, id string) *gorm.DB {
 	}
 	return query.Where("slug = ? OR id = ?", id, id)
 }
-
-
 
 func EnrollCourse(c *gin.Context) {
 	userId, ok := getAuthenticatedUserID(c)
@@ -616,10 +618,18 @@ func CreateSubject(c *gin.Context) {
 }
 
 func normalizeSubjectFields(s *models.Subject) {
-	if s.Code != nil && *s.Code == "" { s.Code = nil }
-	if s.Slug != nil && *s.Slug == "" { s.Slug = nil }
-	if s.InstructorId != nil && *s.InstructorId == "" { s.InstructorId = nil }
-	if s.CategoryId != nil && *s.CategoryId == "" { s.CategoryId = nil }
+	if s.Code != nil && *s.Code == "" {
+		s.Code = nil
+	}
+	if s.Slug != nil && *s.Slug == "" {
+		s.Slug = nil
+	}
+	if s.InstructorId != nil && *s.InstructorId == "" {
+		s.InstructorId = nil
+	}
+	if s.CategoryId != nil && *s.CategoryId == "" {
+		s.CategoryId = nil
+	}
 }
 
 func getCreateSubjectErrorMessage(err error) string {
@@ -805,7 +815,6 @@ func mapSubjectFinancialAndStatusFields(input map[string]interface{}, updates *s
 		updates.IsFeatured = &v
 	}
 }
-
 
 func getUpdateSubjectErrorMessage(err error) string {
 	if strings.Contains(err.Error(), "duplicate key") {

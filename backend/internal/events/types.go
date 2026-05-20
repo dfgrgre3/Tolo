@@ -30,10 +30,10 @@ type LessonProgressPayload struct {
 }
 
 type ExamSubmitPayload struct {
-	ExamID  string             `json:"examId"`
-	Answers map[string]string  `json:"answers"`
-	Score   float64            `json:"score"`
-	Passed  bool               `json:"passed"`
+	ExamID  string            `json:"examId"`
+	Answers map[string]string `json:"answers"`
+	Score   float64           `json:"score"`
+	Passed  bool              `json:"passed"`
 }
 
 type StudySessionPayload struct {
@@ -43,10 +43,10 @@ type StudySessionPayload struct {
 }
 
 type VideoHeartbeatPayload struct {
-	SubTopicID    string `json:"subTopicId"`
-	Position      int    `json:"position"`
-	Duration      int    `json:"duration"`
-	PlaybackRate  float64 `json:"playbackRate"`
+	SubTopicID   string  `json:"subTopicId"`
+	Position     int     `json:"position"`
+	Duration     int     `json:"duration"`
+	PlaybackRate float64 `json:"playbackRate"`
 }
 
 type XPEventPayload struct {

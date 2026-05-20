@@ -17,8 +17,8 @@ var (
 )
 
 type Service struct {
-	repo     Repository
-	hasher   PasswordHasher
+	repo      Repository
+	hasher    PasswordHasher
 	publisher EventPublisher
 }
 

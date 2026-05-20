@@ -3,9 +3,9 @@ package app
 import (
 	"thanawy-backend/internal/adapters/http"
 	"thanawy-backend/internal/adapters/repository"
+	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/domain/subject"
 	"thanawy-backend/internal/domain/user"
-	"thanawy-backend/internal/db"
 
 	"gorm.io/gorm"
 )

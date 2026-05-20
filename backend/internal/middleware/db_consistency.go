@@ -19,7 +19,10 @@ func DBConsistencyMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		method := c.Request.Method
-		userID := c.GetString("user_id")
+		userID := c.GetString("userId")
+		if userID == "" {
+			userID = c.GetString("user_id")
+		}
 		if userID == "" {
 			userID = c.ClientIP()
 		}
@@ -35,13 +38,13 @@ func DBConsistencyMiddleware(db *gorm.DB) gin.HandlerFunc {
 		if lastWrite, ok := writeTracker.Load(userID); ok {
 			if time.Since(lastWrite.(time.Time)) < consistencyWindow {
 				// Force read from Source to ensure consistency
-				c.Set("db", db.Clauses(dbresolver.Write))
+				c.Set("db", db.Session(&gorm.Session{}).Clauses(dbresolver.Write))
 			}
 		}
 
 		// Also check for explicit consistency header
 		if c.GetHeader("X-Consistency-Level") == "strong" {
-			c.Set("db", db.Clauses(dbresolver.Write))
+			c.Set("db", db.Session(&gorm.Session{}).Clauses(dbresolver.Write))
 		}
 
 		c.Next()

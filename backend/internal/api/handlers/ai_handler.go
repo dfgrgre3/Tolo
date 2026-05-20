@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
-	"crypto/rand"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -183,7 +183,6 @@ func (h *AIHandler) validateRequestStructure(c *gin.Context, req *ChatRequest) b
 	}
 	return true
 }
-
 
 func (h *AIHandler) getAuthorizedUserID(c *gin.Context) (string, bool) {
 	userIDValue, exists := c.Get("userId")

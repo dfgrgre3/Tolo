@@ -224,7 +224,6 @@ func (s *sqlSplitter) finalize() {
 	s.addStatement()
 }
 
-
 func RunSQLMigrations(database *gorm.DB) error {
 	if database == nil {
 		return nil
@@ -357,4 +356,3 @@ func executeMigrationStatements(tx *gorm.DB, id, contents, checksum string) erro
 
 	return tx.Create(&migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}).Error
 }
-

@@ -12,8 +12,6 @@ import (
 	"thanawy-backend/internal/services"
 )
 
-
-
 // NotificationRequest represents a broadcast notification request
 type NotificationRequest struct {
 	UserIDs      []string   `json:"userIds" binding:"required,min=1"`

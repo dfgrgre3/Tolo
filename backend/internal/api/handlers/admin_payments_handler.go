@@ -15,7 +15,6 @@ import (
 
 const revenueSumQuery = "COALESCE(SUM(amount), 0)"
 
-
 // GetAdminPayments returns paginated payments with summary stats
 func GetAdminPayments(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

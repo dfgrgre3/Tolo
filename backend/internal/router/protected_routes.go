@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	pathTasks   = "/tasks"
-	pathTasksID = pathTasks + "/:id"
+	pathTasks         = "/tasks"
+	pathTasksID       = pathTasks + "/:id"
 	pathUpload        = "/upload"
 	pathUploadChunked = pathUpload + "/chunked"
 )
@@ -52,6 +52,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 
 		// Profile
 		protected.GET("/users/billing-summary", handlers.GetBillingSummary)
+		protected.GET("/users/profile", handlers.GetUserProfile)
 		protected.PATCH("/users/profile", handlers.UpdateProfile)
 
 		// Activities

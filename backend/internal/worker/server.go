@@ -30,10 +30,10 @@ func StartWorker() {
 		asynq.Config{
 			Concurrency: 10,
 			Queues: map[string]int{
-				"critical":    6,
-				"default":     3,
-				"low":         1,
-				"progress":    2,
+				"critical":     6,
+				"default":      3,
+				"low":          1,
+				"progress":     2,
 				"gamification": 1,
 			},
 		},

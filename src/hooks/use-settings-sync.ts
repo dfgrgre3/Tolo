@@ -9,24 +9,65 @@ import { logger } from '@/lib/logger';
 
 /**
  * Hook to synchronize settings between localStorage and server
- * Fixes the issue where settings are lost on refresh
+ * Exposes a debounced auto-save mechanism to avoid redundant/excessive PATCH requests
  */
 export function useSettingsSync() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingChangesRef = useRef<SettingsPreferencesPatch | null>(null);
-  const queueAutoSave = useCallback(() => {
+
+  const scheduleAutoSave = useCallback((patch: SettingsPreferencesPatch) => {
+    // 1. Merge new patch into pendingChangesRef (nested structures)
+    const current = pendingChangesRef.current || {};
+    
+    pendingChangesRef.current = {
+      ...current,
+      ...(patch.appearance ? {
+        appearance: {
+          ...current.appearance,
+          ...patch.appearance,
+        }
+      } : {}),
+      ...(patch.language ? {
+        language: {
+          ...current.language,
+          ...patch.language,
+        }
+      } : {}),
+      ...(patch.notifications ? {
+        notifications: {
+          ...current.notifications,
+          ...patch.notifications,
+        }
+      } : {}),
+      ...(patch.privacy ? {
+        privacy: {
+          ...current.privacy,
+          ...patch.privacy,
+        }
+      } : {}),
+    };
+
+    // 2. Clear existing debounce timer
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
+    // 3. Set a new timer to execute the merged PATCH request after 2 seconds
     saveTimeoutRef.current = setTimeout(async () => {
-      if (pendingChangesRef.current) {
+      const changes = pendingChangesRef.current;
+      if (changes && Object.keys(changes).length > 0) {
+        pendingChangesRef.current = null; // Clear queue before network request to prevent race conditions
         try {
-          await saveSettingsPreferences(pendingChangesRef.current);
-          pendingChangesRef.current = null;
+          logger.info('Auto-saving accumulated settings:', changes);
+          await saveSettingsPreferences(changes);
         } catch (error) {
-          logger.error('Auto-save failed:', error);
+          logger.error('Auto-save settings failed:', error);
           toast.error('فشل حفظ الإعدادات تلقائياً');
+          // Re-queue the failed changes, merging with any new ones that might have arrived in the meantime
+          pendingChangesRef.current = {
+            ...changes,
+            ...pendingChangesRef.current,
+          };
         }
       }
     }, 2000);
@@ -34,51 +75,38 @@ export function useSettingsSync() {
 
   const syncFromLocalStorage = useCallback(async () => {
     try {
-      // Get current server settings
       const serverPreferences = await fetchSettingsPreferences();
-
-      // Get localStorage settings
-      // Check if there are local settings that need to be synced to server
-      const hasLocalChanges = false;
-
-      if (hasLocalChanges) {
-        return serverPreferences;
-      }
-
       return serverPreferences;
     } catch (error) {
       logger.error('Settings sync error:', error);
       return null;
     }
-  }, [queueAutoSave]);
-
-  const scheduleAutoSave = useCallback(() => {
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Schedule auto-save after 2 seconds of no changes
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (pendingChangesRef.current) {
-        try {
-          await saveSettingsPreferences(pendingChangesRef.current);
-          pendingChangesRef.current = null;
-        } catch (error) {
-          logger.error('Auto-save failed:', error);
-          toast.error('فشل حفظ الإعدادات تلقائياً');
-        }
-      }
-    }, 2000);
   }, []);
 
   const applySettingsFromPreferences = useCallback((_preferences: SettingsPreferences) => {
-
+    // Can be used to apply theme or language settings globally if needed
   }, []);
 
   const immediateSave = useCallback(async (patch: SettingsPreferencesPatch) => {
+    // If there are pending debounced changes, merge them and save immediately
+    const current = pendingChangesRef.current || {};
+    const mergedPatch = {
+      ...current,
+      ...patch,
+      appearance: { ...current.appearance, ...patch.appearance },
+      language: { ...current.language, ...patch.language },
+      notifications: { ...current.notifications, ...patch.notifications },
+      privacy: { ...current.privacy, ...patch.privacy },
+    };
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    pendingChangesRef.current = null;
+
     try {
-      await saveSettingsPreferences(patch);
+      await saveSettingsPreferences(mergedPatch);
       return true;
     } catch (error) {
       logger.error('Immediate save failed:', error);
@@ -102,4 +130,4 @@ export function useSettingsSync() {
     immediateSave,
     scheduleAutoSave
   };
-}
+}

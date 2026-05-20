@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
 const whereIDEquals = "id = ?"
 
 // AdminGetEvents returns a paginated list of platform events
@@ -197,8 +198,6 @@ func AdminUpdateEvent(c *gin.Context) {
 	LogAudit(c, "UPDATE", "event", input.ID, updates)
 	api_response.Success(c, nil)
 }
-
-
 
 // AdminDeleteEvent deletes a platform event
 func AdminDeleteEvent(c *gin.Context) {

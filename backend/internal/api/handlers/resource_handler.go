@@ -115,7 +115,6 @@ func formatResourceItem(resource models.Resource, admin bool) gin.H {
 	return item
 }
 
-
 func GetResources(c *gin.Context) {
 	listResources(c, false)
 }
@@ -188,13 +187,34 @@ func AdminUpdateResource(c *gin.Context) {
 
 	updates := resourceUpdates{}
 	hasUpdates := false
-	if input.Title != "" { updates.Title = &input.Title; hasUpdates = true }
-	if input.Description != nil { updates.Description = input.Description; hasUpdates = true }
-	if input.URL != "" { updates.URL = &input.URL; hasUpdates = true }
-	if input.Type != "" { updates.Type = &input.Type; hasUpdates = true }
-	if input.Source != nil { updates.Source = input.Source; hasUpdates = true }
-	if input.Free != nil { updates.Free = input.Free; hasUpdates = true }
-	if input.SubjectID != "" { updates.SubjectID = &input.SubjectID; hasUpdates = true }
+	if input.Title != "" {
+		updates.Title = &input.Title
+		hasUpdates = true
+	}
+	if input.Description != nil {
+		updates.Description = input.Description
+		hasUpdates = true
+	}
+	if input.URL != "" {
+		updates.URL = &input.URL
+		hasUpdates = true
+	}
+	if input.Type != "" {
+		updates.Type = &input.Type
+		hasUpdates = true
+	}
+	if input.Source != nil {
+		updates.Source = input.Source
+		hasUpdates = true
+	}
+	if input.Free != nil {
+		updates.Free = input.Free
+		hasUpdates = true
+	}
+	if input.SubjectID != "" {
+		updates.SubjectID = &input.SubjectID
+		hasUpdates = true
+	}
 
 	if !hasUpdates {
 		api_response.Error(c, http.StatusBadRequest, "no updates provided")

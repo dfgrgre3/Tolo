@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"thanawy-backend/internal/cqrs/queries"
 	api_response "thanawy-backend/internal/api/response"
+	"thanawy-backend/internal/cqrs/queries"
 
 	"github.com/gin-gonic/gin"
 )

@@ -335,7 +335,7 @@ func Upload(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	
+
 	f, err := file.Open()
 	if err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to open file")
@@ -674,7 +674,6 @@ func cleanupChunkedUpload(uploadID string, chunks []chunkEntry) {
 	}
 	os.RemoveAll(filepath.Join("uploads", "temp", uploadID))
 }
-
 
 func MarkActivityRead(c *gin.Context) {
 	userId, exists := c.Get("userId")
@@ -1220,7 +1219,6 @@ func populateSessionSubjectMap(sessions []models.StudySession, summary *liveActi
 	}
 }
 
-
 type liveUserActivity struct {
 	Type    string
 	Details interface{}
@@ -1348,7 +1346,7 @@ func GetAdminLive(c *gin.Context) {
 		}
 
 		activity := determineUserLiveActivity(user, examResults, studySessions, summary)
-		
+
 		switch activity.Type {
 		case "taking_exam":
 			stats.TakingExam++
@@ -1507,9 +1505,15 @@ func UpdateAdminAnnouncement(c *gin.Context) {
 	}
 
 	updates := announcementUpdates{}
-	if input.Title != "" { updates.Title = &input.Title }
-	if input.Content != "" { updates.Message = &input.Content }
-	if input.Type != "" { updates.Type = &input.Type }
+	if input.Title != "" {
+		updates.Title = &input.Title
+	}
+	if input.Content != "" {
+		updates.Message = &input.Content
+	}
+	if input.Type != "" {
+		updates.Type = &input.Type
+	}
 
 	if err := db.DB.Model(&models.Notification{}).Where(queryID, input.ID).
 		Updates(&updates).Error; err != nil {
@@ -1816,8 +1820,6 @@ func GetAdminReportsBooks(c *gin.Context) {
 		},
 	})
 }
-
-
 
 func calculateUserGrowthTrend() float64 {
 	now := time.Now()

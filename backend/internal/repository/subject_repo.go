@@ -27,7 +27,6 @@ const (
 	subjectCacheKeyFormat = "%sid:%s"
 )
 
-
 // allowedSubjectFilters is a whitelist of safe column names for dynamic filtering.
 // This prevents SQL injection through user-controlled filter keys.
 var allowedSubjectFilters = map[string]string{

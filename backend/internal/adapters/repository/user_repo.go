@@ -111,26 +111,26 @@ func (r *userRepository) CountCreatedSince(ctx context.Context, since time.Time)
 }
 
 type userRecord struct {
-	ID            string    `gorm:"column:id;primaryKey;type:uuid"`
-	Email         string    `gorm:"column:email"`
-	Name          *string   `gorm:"column:name"`
-	Username      *string   `gorm:"column:username"`
-	Phone         *string   `gorm:"column:phone"`
-	Avatar        *string   `gorm:"column:avatar"`
-	Role          string    `gorm:"column:role"`
-	Status        string    `gorm:"column:status"`
-	PasswordHash  string    `gorm:"column:passwordHash"`
-	EmailVerified bool      `gorm:"column:emailVerified"`
-	Bio           *string   `gorm:"column:bio"`
-	Balance       float64   `gorm:"column:balance"`
-	AiCredits     int       `gorm:"column:aiCredits"`
-	ExamCredits   int       `gorm:"column:examCredits"`
-	TotalXP       int       `gorm:"column:totalXP"`
-	Level         int       `gorm:"column:level"`
-	CurrentStreak int       `gorm:"column:currentStreak"`
-	LongestStreak int       `gorm:"column:longestStreak"`
-	CreatedAt     time.Time `gorm:"column:createdAt"`
-	UpdatedAt     time.Time `gorm:"column:updatedAt"`
+	ID            string     `gorm:"column:id;primaryKey;type:uuid"`
+	Email         string     `gorm:"column:email"`
+	Name          *string    `gorm:"column:name"`
+	Username      *string    `gorm:"column:username"`
+	Phone         *string    `gorm:"column:phone"`
+	Avatar        *string    `gorm:"column:avatar"`
+	Role          string     `gorm:"column:role"`
+	Status        string     `gorm:"column:status"`
+	PasswordHash  string     `gorm:"column:passwordHash"`
+	EmailVerified bool       `gorm:"column:emailVerified"`
+	Bio           *string    `gorm:"column:bio"`
+	Balance       float64    `gorm:"column:balance"`
+	AiCredits     int        `gorm:"column:aiCredits"`
+	ExamCredits   int        `gorm:"column:examCredits"`
+	TotalXP       int        `gorm:"column:totalXP"`
+	Level         int        `gorm:"column:level"`
+	CurrentStreak int        `gorm:"column:currentStreak"`
+	LongestStreak int        `gorm:"column:longestStreak"`
+	CreatedAt     time.Time  `gorm:"column:createdAt"`
+	UpdatedAt     time.Time  `gorm:"column:updatedAt"`
 	LastLogin     *time.Time `gorm:"column:lastLogin"`
 }
 

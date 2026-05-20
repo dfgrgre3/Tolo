@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
@@ -32,16 +33,21 @@ import (
 
 var authService = &services.AuthService{}
 var tokenService = &services.TokenService{}
-var userRepo *repository.UserRepository
-var sessionRepo *repository.SessionRepository
+
+var (
+	userRepo        *repository.UserRepository
+	userRepoOnce    sync.Once
+	sessionRepo     *repository.SessionRepository
+	sessionRepoOnce sync.Once
+)
 
 const (
-	MaxLoginAttempts           = 5
-	LockoutDuration            = 15 * time.Minute
-	errFailedToGenerateTokens  = "Failed to generate tokens"
-	refreshTokenPath           = "/api/auth/refresh"
-	errInvalidEmail            = "Invalid email"
-	userIDQuery                = "user_id = ?"
+	MaxLoginAttempts          = 5
+	LockoutDuration           = 15 * time.Minute
+	errFailedToGenerateTokens = "Failed to generate tokens"
+	refreshTokenPath          = "/api/auth/refresh"
+	errInvalidEmail           = "Invalid email"
+	userIDQuery               = "user_id = ?"
 )
 
 func getLoginAttemptsKey(email, ip string) string {
@@ -74,18 +80,17 @@ func recordLoginAttempt(c *gin.Context, email, ip string, success bool) {
 	db.Redis.Expire(c.Request.Context(), key, LockoutDuration)
 }
 
-
 func getUserRepo() *repository.UserRepository {
-	if userRepo == nil {
+	userRepoOnce.Do(func() {
 		userRepo = repository.NewUserRepository(db.DB)
-	}
+	})
 	return userRepo
 }
 
 func getSessionRepo() *repository.SessionRepository {
-	if sessionRepo == nil {
+	sessionRepoOnce.Do(func() {
 		sessionRepo = repository.NewSessionRepository(db.DB)
-	}
+	})
 	return sessionRepo
 }
 
@@ -342,12 +347,15 @@ func RequestMagicLink(c *gin.Context) {
 
 	_ = LogSecurityEvent("", models.SecurityEventMagicLinkRequested, c.ClientIP(), c.Request.UserAgent(), nil, &token)
 
-	link := "/verify-magic-link?token=" + token
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"success": true,
 		"message": "Magic link sent successfully",
-		"debug":   link,
-	})
+	}
+	if !isProduction() {
+		link := "/verify-magic-link?token=" + token
+		response["debug"] = link
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func VerifyMagicLink(c *gin.Context) {
@@ -408,11 +416,14 @@ func ForgotPassword(c *gin.Context) {
 
 	_ = LogSecurityEvent("", models.SecurityEventPasswordResetReq, c.ClientIP(), c.Request.UserAgent(), nil, &token)
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"success": true,
 		"message": "Password reset link sent",
-		"debug":   "/reset-password?token=" + token,
-	})
+	}
+	if !isProduction() {
+		response["debug"] = "/reset-password?token=" + token
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func ResetPassword(c *gin.Context) {
@@ -463,11 +474,14 @@ func ResendVerification(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"success": true,
 		"message": "Verification email sent",
-		"debug":   "/verify-email?token=" + token,
-	})
+	}
+	if !isProduction() {
+		response["debug"] = "/verify-email?token=" + token
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func RefreshToken(c *gin.Context) {
@@ -631,12 +645,15 @@ func Register(c *gin.Context) {
 	services.GetAuditService().LogAsync(user.ID, "user.register", "user", user.ID, nil, c.ClientIP(), c.Request.UserAgent())
 	GlobalNotifyAdmins("مستخدم جديد", fmt.Sprintf("انضم %s إلى المنصة", user.Email), "success")
 
-	c.JSON(http.StatusCreated, gin.H{
+	response := gin.H{
 		"success": true,
 		"user":    user,
 		"message": "Registration successful. Please verify your email.",
-		"debug":   "/verify-email?token=" + token,
-	})
+	}
+	if !isProduction() {
+		response["debug"] = "/verify-email?token=" + token
+	}
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetProfile returns current user profile
@@ -783,14 +800,14 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	type userUpdates struct {
-		Role          *string               `gorm:"column:role"`
-		Name          *string               `gorm:"column:name"`
-		Username      *string               `gorm:"column:username"`
-		Email         *string               `gorm:"column:email"`
-		Phone         *string               `gorm:"column:phone"`
-		Bio           *string               `gorm:"column:bio"`
-		GradeLevel    *string               `gorm:"column:gradeLevel"`
-		EducationType *string               `gorm:"column:educationType"`
+		Role          *string                `gorm:"column:role"`
+		Name          *string                `gorm:"column:name"`
+		Username      *string                `gorm:"column:username"`
+		Email         *string                `gorm:"column:email"`
+		Phone         *string                `gorm:"column:phone"`
+		Bio           *string                `gorm:"column:bio"`
+		GradeLevel    *string                `gorm:"column:grade_level"`
+		EducationType *string                `gorm:"column:education_type"`
 		Permissions   models.JSONStringArray `gorm:"column:permissions"`
 	}
 
@@ -1012,6 +1029,48 @@ func buildUserDetailsPayload(user models.User) gin.H {
 	}
 }
 
+// GetUserProfile returns the authenticated user's profile details including recovery codes if configured
+func GetUserProfile(c *gin.Context) {
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.First(&user, idQuery, userId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
+		return
+	}
+
+	var settings models.TwoFactorSettings
+	recoveryCodesJSON := ""
+	if err := db.DB.First(&settings, userIDQuery, userId).Error; err == nil {
+		if len(settings.BackupCodes) > 0 {
+			if codesBytes, err := json.Marshal(settings.BackupCodes); err == nil {
+				recoveryCodesJSON = string(codesBytes)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":            user.ID,
+		"email":         user.Email,
+		"username":      user.Username,
+		"name":          user.Name,
+		"avatar":        user.Avatar,
+		"phone":         user.Phone,
+		"phoneVerified": user.PhoneVerified,
+		"emailVerified": user.EmailVerified,
+		"gradeLevel":    user.GradeLevel,
+		"educationType": user.EducationType,
+		"section":       user.Section,
+		"bio":           user.Bio,
+		"country":       user.Country,
+		"recoveryCodes": recoveryCodesJSON,
+	})
+}
+
 func UpdateProfile(c *gin.Context) {
 	userId, exists := c.Get("userId")
 	if !exists {
@@ -1050,8 +1109,8 @@ func UpdateProfile(c *gin.Context) {
 		Username      *string `gorm:"column:username"`
 		Phone         *string `gorm:"column:phone"`
 		Bio           *string `gorm:"column:bio"`
-		GradeLevel    *string `gorm:"column:gradeLevel"`
-		EducationType *string `gorm:"column:educationType"`
+		GradeLevel    *string `gorm:"column:grade_level"`
+		EducationType *string `gorm:"column:education_type"`
 		Section       *string `gorm:"column:section"`
 		Country       *string `gorm:"column:country"`
 		Avatar        *string `gorm:"column:avatar"`
@@ -1059,16 +1118,36 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	updates := profileUpdates{}
-	if req.Name != "" { updates.Name = &req.Name }
-	if req.Username != "" { updates.Username = &req.Username }
-	if req.Phone != "" { updates.Phone = &req.Phone }
-	if req.Bio != "" { updates.Bio = &req.Bio }
-	if req.GradeLevel != "" { updates.GradeLevel = &req.GradeLevel }
-	if req.EducationType != "" { updates.EducationType = &req.EducationType }
-	if req.Section != "" { updates.Section = &req.Section }
-	if req.Country != "" { updates.Country = &req.Country }
-	if req.Avatar != "" { updates.Avatar = &req.Avatar }
-	if req.Gender != "" { updates.Gender = &req.Gender }
+	if req.Name != "" {
+		updates.Name = &req.Name
+	}
+	if req.Username != "" {
+		updates.Username = &req.Username
+	}
+	if req.Phone != "" {
+		updates.Phone = &req.Phone
+	}
+	if req.Bio != "" {
+		updates.Bio = &req.Bio
+	}
+	if req.GradeLevel != "" {
+		updates.GradeLevel = &req.GradeLevel
+	}
+	if req.EducationType != "" {
+		updates.EducationType = &req.EducationType
+	}
+	if req.Section != "" {
+		updates.Section = &req.Section
+	}
+	if req.Country != "" {
+		updates.Country = &req.Country
+	}
+	if req.Avatar != "" {
+		updates.Avatar = &req.Avatar
+	}
+	if req.Gender != "" {
+		updates.Gender = &req.Gender
+	}
 
 	if err := db.DB.Model(&models.User{}).Where(idQuery, user.ID).
 		Updates(&updates).Error; err != nil {
@@ -1257,7 +1336,11 @@ func verifyWebhookTimestamp(svixTimestamp string) error {
 func verifyWebhookSignature(c *gin.Context, body []byte, svixID, svixTimestamp, svixSignature string) error {
 	secret := config.Load().ClerkWebhookSecret
 	if secret == "" {
-		log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification")
+		if config.Load().Environment == "production" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Webhook verification not configured"})
+			return fmt.Errorf("CLERK_WEBHOOK_SECRET not set in production")
+		}
+		log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification (dev only)")
 		return nil
 	}
 

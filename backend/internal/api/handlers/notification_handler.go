@@ -7,8 +7,8 @@ import (
 	"thanawy-backend/internal/models"
 
 	"encoding/json"
-	"thanawy-backend/internal/worker"
 	"github.com/gin-gonic/gin"
+	"thanawy-backend/internal/worker"
 )
 
 func GetNotifications(c *gin.Context) {

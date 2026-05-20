@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 // Tasks
 func GetTasks(c *gin.Context) {
 	userIdValue, exists := c.Get("userId")

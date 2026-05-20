@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -23,6 +24,15 @@ func GetSettings(c *gin.Context) {
 	}
 
 	var settings models.UserSettings
+
+	if db.DB == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Database connection is not initialized",
+		})
+		return
+	}
+
 	// Use struct-based query to let GORM handle naming strategy correctly
 	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
 
@@ -97,6 +107,14 @@ func GetSettings(c *gin.Context) {
 
 // UpdateSettings updates user settings/preferences
 func UpdateSettings(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("CRITICAL: Panic in UpdateSettings: %v", r)
+			api_response.Error(c, http.StatusInternalServerError, "Internal server error during settings update")
+			c.Abort()
+		}
+	}()
+
 	userID, exists := c.Get("userId")
 	if !exists || userID == nil {
 		api_response.Error(c, http.StatusUnauthorized, "Unauthorized")
@@ -105,31 +123,43 @@ func UpdateSettings(c *gin.Context) {
 
 	var patch map[string]interface{}
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		api_response.Error(c, http.StatusBadRequest, err.Error())
+		log.Printf("ERROR: UpdateSettings - ShouldBindJSON failed for user %v: %v", userID, err)
+		api_response.Error(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
+
+	log.Printf("DEBUG: UpdateSettings - User %v patch received: %+v", userID, patch)
 
 	settings, err := fetchOrCreateUserSettings(userID.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to fetch or create settings",
-			"details": err.Error(),
-		})
+		log.Printf("ERROR: UpdateSettings - fetchOrCreateUserSettings failed for user %v: %v", userID, err)
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch or create settings: "+err.Error())
 		return
 	}
 
+	log.Printf("DEBUG: UpdateSettings - Current settings before patch: theme=%v", settings.Theme)
+
 	applySettingsPatch(&settings, patch)
 
+	log.Printf("DEBUG: UpdateSettings - Settings after patch: theme=%v", settings.Theme)
+
 	if err := db.DB.Save(&settings).Error; err != nil {
+		log.Printf("ERROR: UpdateSettings - DB.Save failed for user %v: %v", userID, err)
 		api_response.Error(c, http.StatusInternalServerError, "Failed to update settings")
 		return
 	}
 
+	log.Printf("INFO: UpdateSettings - Successfully updated settings for user %v", userID)
 	api_response.Success(c, gin.H{"settings": settings})
 }
 
 func fetchOrCreateUserSettings(userID string) (models.UserSettings, error) {
 	var settings models.UserSettings
+
+	if db.DB == nil {
+		return settings, fmt.Errorf("database connection is nil")
+	}
+
 	result := db.DB.Where(&models.UserSettings{UserID: userID}).First(&settings)
 
 	if result.Error == nil {
@@ -305,7 +335,6 @@ func applyQuietHoursAndSoundSettings(settings *models.UserSettings, patch map[st
 		settings.VibrationEnabled = v
 	}
 }
-
 
 // GetSystemSettings retrieves public system settings (feature toggles, etc)
 func GetSystemSettings(c *gin.Context) {

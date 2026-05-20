@@ -19,31 +19,31 @@ func writeDB() *gorm.DB {
 }
 
 const (
-	TypeProgressUpdate = "progress:update"
-	TypeGamificationSync = "gamification:sync"
+	TypeProgressUpdate     = "progress:update"
+	TypeGamificationSync   = "gamification:sync"
 	TypeBatchProgressFlush = "progress:batch_flush"
 )
 
 type ProgressUpdatePayload struct {
-	UserID              string `json:"userId"`
-	SubTopicID          string `json:"subTopicId,omitempty"`
-	EventType           string `json:"eventType"`
-	TimeSpentSeconds    int    `json:"timeSpentSeconds,omitempty"`
-	Completed           bool   `json:"completed,omitempty"`
-	ExamID              string `json:"examId,omitempty"`
+	UserID              string  `json:"userId"`
+	SubTopicID          string  `json:"subTopicId,omitempty"`
+	EventType           string  `json:"eventType"`
+	TimeSpentSeconds    int     `json:"timeSpentSeconds,omitempty"`
+	Completed           bool    `json:"completed,omitempty"`
+	ExamID              string  `json:"examId,omitempty"`
 	ExamScore           float64 `json:"examScore,omitempty"`
-	ExamPassed          bool   `json:"examPassed,omitempty"`
-	TaskID              string `json:"taskId,omitempty"`
-	TaskCompleted       bool   `json:"taskCompleted,omitempty"`
-	StudySessionMinutes int    `json:"studySessionMinutes,omitempty"`
+	ExamPassed          bool    `json:"examPassed,omitempty"`
+	TaskID              string  `json:"taskId,omitempty"`
+	TaskCompleted       bool    `json:"taskCompleted,omitempty"`
+	StudySessionMinutes int     `json:"studySessionMinutes,omitempty"`
 }
 
 type GamificationSyncPayload struct {
-	UserID    string `json:"userId"`
-	XPType    string `json:"xpType"`
-	XPAmount  int    `json:"xpAmount"`
-	Source    string `json:"source"`
-	SourceID  string `json:"sourceId,omitempty"`
+	UserID   string `json:"userId"`
+	XPType   string `json:"xpType"`
+	XPAmount int    `json:"xpAmount"`
+	Source   string `json:"source"`
+	SourceID string `json:"sourceId,omitempty"`
 }
 
 type BatchProgressFlushPayload struct {

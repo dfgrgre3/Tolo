@@ -110,10 +110,10 @@ func generateCSRFToken() string {
 // JavaScript needs to read this cookie and set it as the X-CSRF-Token header
 func setCSRFCookie(c *gin.Context, token string) {
 	// Check environment consistently with config
-  // Prefer secure cookies when the request is over TLS. This allows
-  // local development over HTTP to receive the cookie (so JS can read it)
-  // while still ensuring production deployments using HTTPS get Secure cookies.
-  secure := c.Request.TLS != nil
+	// Prefer secure cookies when the request is over TLS. This allows
+	// local development over HTTP to receive the cookie (so JS can read it)
+	// while still ensuring production deployments using HTTPS get Secure cookies.
+	secure := c.Request.TLS != nil
 
 	c.SetCookie(
 		csrfCookieName,

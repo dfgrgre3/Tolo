@@ -118,7 +118,7 @@ func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() 
 	// embeds this struct for forward compatibility.
 }
 func (UnimplementedAuthServiceServer) testEmbeddedByValue() {
-	// This method is intentionally left empty and is used by the gRPC-Go framework to 
+	// This method is intentionally left empty and is used by the gRPC-Go framework to
 	// verify that the server implementation is embedded by value rather than by pointer.
 }
 

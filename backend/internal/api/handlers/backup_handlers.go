@@ -14,7 +14,6 @@ import (
 
 const errBackupNotFound = "Backup not found"
 
-
 // CreateBackupRequest represents a request to create a backup
 type CreateBackupRequest struct {
 	Name             string   `json:"name" binding:"required,max=100"`
