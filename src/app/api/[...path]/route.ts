@@ -102,7 +102,7 @@ function handleErrorResponse(response: Response, errorText: string) {
       ? (response.headers as any).getSetCookie()
       : [response.headers.get('set-cookie')].filter(Boolean) as string[];
 
-    setCookieHeaders.forEach(cookieVal => {
+    setCookieHeaders.forEach((cookieVal: string) => {
       responseHeaders.append('Set-Cookie', cookieVal);
     });
   }
@@ -174,7 +174,7 @@ async function handleProxy(
           ? (response.headers as any).getSetCookie()
           : [response.headers.get('set-cookie')].filter(Boolean) as string[];
 
-        setCookieHeaders.forEach(cookieVal => {
+        setCookieHeaders.forEach((cookieVal: string) => {
           responseHeaders.append('Set-Cookie', cookieVal);
         });
       }

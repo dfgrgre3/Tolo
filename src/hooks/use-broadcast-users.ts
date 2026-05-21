@@ -3,7 +3,15 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { adminFetch } from "@/lib/api/admin-api";
-import type { UserModel } from "@/components/admin/broadcast/types";
+
+export interface UserModel {
+  id: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  role?: string;
+  lastLogin?: string | Date;
+}
 
 interface BroadcastMessage {
   title: string;

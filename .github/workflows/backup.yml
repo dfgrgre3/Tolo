@@ -2,7 +2,7 @@ name: Database Backup
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Daily at 4 AM Cairo time (UTC+2)
+    - cron: '0 2 * * *'  # Daily at 2 AM Cairo time (UTC+2)
   workflow_dispatch:
 
 jobs:

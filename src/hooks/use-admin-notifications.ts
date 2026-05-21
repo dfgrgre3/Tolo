@@ -4,7 +4,17 @@ import { useEffect, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/lib/api/admin-api";
 import { useWebSocket } from "@/contexts/websocket-context";
-import type { RealtimeNotification } from "@/components/admin/dashboard/realtime-notifications";
+
+export interface RealtimeNotification {
+  id: string;
+  type: "info" | "success" | "warning" | "error" | "system";
+  title: string;
+  description?: string;
+  timestamp: Date;
+  read: boolean;
+  actionUrl?: string;
+  metadata?: any;
+}
 
 export type AdminNotification = RealtimeNotification;
 

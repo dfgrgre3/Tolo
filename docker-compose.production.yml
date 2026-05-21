@@ -63,6 +63,7 @@ services:
   backend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_BACKEND:-thanawy/thanawy-backend}:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    stop_grace_period: 60s
     networks:
       - thanawy-net
     depends_on:
@@ -95,6 +96,7 @@ services:
   frontend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_FRONTEND:-thanawy/thanawy-app}:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    stop_grace_period: 60s
     networks:
       - thanawy-net
     ports:

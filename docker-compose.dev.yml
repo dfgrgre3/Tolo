@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: thanawy-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
-      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-thanawy}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -19,22 +19,31 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: thanawy-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile.backend
     container_name: thanawy-backend-dev
     ports:
       - "8082:8082"
     environment:
       - PORT=8082
-      - DATABASE_URL=${DATABASE_URL:?}
-      - JWT_SECRET=${JWT_SECRET:?}
-      - REDIS_URL=${REDIS_URL:?}
+      - DATABASE_URL=${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/thanawy?sslmode=disable}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-development-key-that-is-long-enough-and-secure-enough}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - DB_AUTO_MIGRATE=true
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

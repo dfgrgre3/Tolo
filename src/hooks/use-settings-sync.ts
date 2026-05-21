@@ -66,7 +66,7 @@ export function useSettingsSync() {
           // Re-queue the failed changes, merging with any new ones that might have arrived in the meantime
           pendingChangesRef.current = {
             ...changes,
-            ...pendingChangesRef.current,
+            ...(pendingChangesRef.current || {}),
           };
         }
       }
