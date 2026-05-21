@@ -62,7 +62,7 @@ func SetupProtectedRoutes(router *gin.Engine) {
 
 		// Billing & Subscriptions
 		protected.GET("/billing/wallet", handlers.GetWalletBalance)
-		protected.POST("/billing/wallet", handlers.HandleWalletDeposit)
+		protected.POST("/billing/wallet", middleware.AdminRequired(), handlers.HandleWalletDeposit)
 		protected.GET("/billing/wallet/transactions", handlers.GetUserWalletTransactions)
 		protected.GET("/subscriptions/plans", handlers.GetSubscriptionPlans)
 		protected.GET("/subscriptions", handlers.GetUserSubscription)

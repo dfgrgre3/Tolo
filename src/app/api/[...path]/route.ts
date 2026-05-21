@@ -82,7 +82,39 @@ function handleErrorResponse(response: Response, errorText: string) {
   }
   // Always include status in response
   errorData.status = response.status;
-  return NextResponse.json(errorData, { status: response.status });
+
+  const responseHeaders = new Headers();
+  const excludeHeaders = [
+    'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+    'te', 'trailers', 'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'
+  ];
+
+  response.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === 'set-cookie') return;
+    if (!excludeHeaders.includes(lowerKey)) {
+      responseHeaders.set(key, value);
+    }
+  });
+
+  if (response.headers.has('set-cookie')) {
+    const setCookieHeaders = typeof (response.headers as any).getSetCookie === 'function'
+      ? (response.headers as any).getSetCookie()
+      : [response.headers.get('set-cookie')].filter(Boolean) as string[];
+
+    setCookieHeaders.forEach(cookieVal => {
+      responseHeaders.append('Set-Cookie', cookieVal);
+    });
+  }
+
+  if (!responseHeaders.has('content-type')) {
+    responseHeaders.set('content-type', 'application/json');
+  }
+
+  return NextResponse.json(errorData, { 
+    status: response.status,
+    headers: responseHeaders
+  });
 }
 
 async function handleProxy(
@@ -122,13 +154,41 @@ async function handleProxy(
         return handleErrorResponse(response, errorText);
       }
 
-      // Success! Return the response
+      // Success! Copy all relevant response headers from upstream backend
+      const responseHeaders = new Headers();
+      const excludeHeaders = [
+        'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+        'te', 'trailers', 'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'
+      ];
+
+      response.headers.forEach((value, key) => {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey === 'set-cookie') return;
+        if (!excludeHeaders.includes(lowerKey)) {
+          responseHeaders.set(key, value);
+        }
+      });
+
+      if (response.headers.has('set-cookie')) {
+        const setCookieHeaders = typeof (response.headers as any).getSetCookie === 'function'
+          ? (response.headers as any).getSetCookie()
+          : [response.headers.get('set-cookie')].filter(Boolean) as string[];
+
+        setCookieHeaders.forEach(cookieVal => {
+          responseHeaders.append('Set-Cookie', cookieVal);
+        });
+      }
+
+      if (!responseHeaders.has('content-type')) {
+        responseHeaders.set('content-type', response.headers.get('content-type') || 'application/json');
+      }
+      if (!responseHeaders.has('cache-control')) {
+        responseHeaders.set('cache-control', response.headers.get('cache-control') || 'no-store');
+      }
+
       return new NextResponse(response.body, {
         status: response.status,
-        headers: {
-          'Content-Type': response.headers.get('content-type') || 'application/json',
-          'Cache-Control': response.headers.get('cache-control') || 'no-store',
-        },
+        headers: responseHeaders,
       });
     } catch (error: any) {
       console.warn(`[API Proxy] Attempt failed for ${origin}:`, error.message);

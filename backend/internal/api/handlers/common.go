@@ -54,10 +54,11 @@ func IsDuplicateKeyError(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := err.Error()
+	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "duplicate key") ||
 		strings.Contains(msg, "unique constraint") ||
-		strings.Contains(msg, "23505")
+		strings.Contains(msg, "23505") ||
+		strings.Contains(msg, "record already exists")
 }
 
 // SafeCreate attempts to create a record and returns a friendly error if it's a duplicate.

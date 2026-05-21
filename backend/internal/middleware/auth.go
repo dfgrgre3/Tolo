@@ -3,7 +3,9 @@ package middleware
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -334,19 +336,35 @@ func isOriginAllowed(origin string, isDev bool, allowedOrigins []string) bool {
 
 // Helper to check if origin is localhost or a LAN IP
 func isLocalhostOrLAN(origin string) bool {
-	prefixes := []string{
-		"http://localhost:",
-		"https://localhost:",
-		"http://127.0.0.1:",
-		"http://192.168.",
-		"http://172.",
-		"http://10.",
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
 	}
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(origin, prefix) {
+	
+	host := u.Hostname()
+	if host == "" {
+		host = u.Host
+	}
+
+	if strings.Contains(host, ":") {
+		h, _, err := net.SplitHostPort(host)
+		if err == nil {
+			host = h
+		}
+	}
+
+	lowerHost := strings.ToLower(host)
+	if lowerHost == "localhost" || lowerHost == "127.0.0.1" || lowerHost == "::1" {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		if ip.IsLoopback() || ip.IsPrivate() {
 			return true
 		}
 	}
+
 	return false
 }
 

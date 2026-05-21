@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestIsDuplicateKeyError(t *testing.T) {
 		{"duplicate key message", errors.New("pq: duplicate key value violates unique constraint"), true},
 		{"unique constraint message", errors.New("UNIQUE constraint failed: UserSettings.user_id"), true},
 		{"PostgreSQL code 23505", errors.New("ERROR: duplicate key value (SQLSTATE 23505)"), true},
-		{"mixed case", errors.New("Duplicate Key Value"), false},
+		{"mixed case", errors.New("Duplicate Key Value"), true},
 	}
 
 	for _, tt := range tests {
@@ -79,12 +78,12 @@ func TestBuildSlug(t *testing.T) {
 		explicit *string
 		expected string
 	}{
-		{"basic name", "Hello World", nil, "hello world"},
+		{"basic name", "Hello World", nil, "hello-world"},
 		{"explicit slug", "Hello World", ptr("custom-slug"), "custom-slug"},
 		{"whitespace name", "  Test  ", nil, "test"},
 		{"explicit empty", "Test", ptr(""), "test"},
 		{"explicit whitespace", "Test", ptr("  "), "test"},
-		{"arabic name", "كتب مدرسية", nil, "كتب مدرسية"},
+		{"arabic name", "كتب مدرسية", nil, "كتب-مدرسية"},
 	}
 
 	for _, tt := range tests {
@@ -198,9 +197,9 @@ func TestBuildSlug_SpecialCharacters(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"numbers", "Test 123", "test 123"},
-		{"special chars", "Hello! @#$", "hello! @#$"},
-		{"multiple spaces", "a  b  c", "a  b  c"},
+		{"numbers", "Test 123", "test-123"},
+		{"special chars", "Hello! @#$", "hello!-@#$"},
+		{"multiple spaces", "a  b  c", "a--b--c"},
 		{"tabs", "a\tb", "a\tb"},
 	}
 
@@ -226,11 +225,7 @@ func TestIsDuplicateKeyError_UniqueConstraintVariants(t *testing.T) {
 	for _, variant := range variants {
 		t.Run(variant, func(t *testing.T) {
 			err := errors.New(variant)
-			msg := err.Error()
-			isDup := strings.Contains(msg, "duplicate key") ||
-				strings.Contains(msg, "unique constraint") ||
-				strings.Contains(msg, "23505")
-			assert.True(t, isDup, "Should match: %s", variant)
+			assert.True(t, IsDuplicateKeyError(err), "Should match: %s", variant)
 		})
 	}
 }

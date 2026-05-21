@@ -11,7 +11,6 @@ import (
 	"thanawy-backend/internal/db"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 const (
@@ -38,7 +37,8 @@ func Idempotency() gin.HandlerFunc {
 
 		key := c.GetHeader("Idempotency-Key")
 		if key == "" {
-			key = uuid.New().String()
+			c.Next()
+			return
 		}
 
 		bodyBytes, exists := c.Get(gin.BodyBytesKey)
@@ -61,8 +61,8 @@ func Idempotency() gin.HandlerFunc {
 			}
 		}
 
-		// Lock with NX to prevent concurrent duplicates
-		locked, err := db.Redis.SetNX(c.Request.Context(), dedupKey+":lock", string(bodyHash[:]), idempotencyTTL).Result()
+		// Lock with NX to prevent concurrent duplicates, TTL reduced to 30 seconds
+		locked, err := db.Redis.SetNX(c.Request.Context(), dedupKey+":lock", string(bodyHash[:]), 30*time.Second).Result()
 		if err != nil {
 			log.Printf("[Idempotency] Redis error: %v", err)
 			c.Next()
@@ -74,6 +74,9 @@ func Idempotency() gin.HandlerFunc {
 			})
 			return
 		}
+
+		// Guarantee the lock is always deleted when the handler cycle completes
+		defer db.Redis.Del(c.Request.Context(), dedupKey+":lock")
 
 		// Capture response
 		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
@@ -90,9 +93,6 @@ func Idempotency() gin.HandlerFunc {
 			data, _ := json.Marshal(resp)
 			db.Redis.Set(c.Request.Context(), dedupKey, string(data), idempotencyTTL)
 		}
-
-		// Release lock after caching
-		db.Redis.Del(c.Request.Context(), dedupKey+":lock")
 	}
 }
 

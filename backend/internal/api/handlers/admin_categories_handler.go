@@ -187,7 +187,7 @@ func DeleteCategory(c *gin.Context) {
 	}
 
 	var count int64
-	db.DB.Model(&models.Subject{}).Where("\"categoryId\" = ?", input.ID).Count(&count)
+	db.DB.Model(&models.Subject{}).Where("category_id = ?", input.ID).Count(&count)
 	if count > 0 {
 		apiresponse.Error(c, http.StatusBadRequest, "Category is linked to courses")
 		return

@@ -1336,12 +1336,13 @@ func verifyWebhookTimestamp(svixTimestamp string) error {
 func verifyWebhookSignature(c *gin.Context, body []byte, svixID, svixTimestamp, svixSignature string) error {
 	secret := config.Load().ClerkWebhookSecret
 	if secret == "" {
-		if config.Load().Environment == "production" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Webhook verification not configured"})
-			return fmt.Errorf("CLERK_WEBHOOK_SECRET not set in production")
+		env := config.Load().Environment
+		if env == "development" || env == "test" || env == "" {
+			log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification (dev only)")
+			return nil
 		}
-		log.Println("[Clerk Webhook] WARNING: CLERK_WEBHOOK_SECRET not set, skipping verification (dev only)")
-		return nil
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Webhook verification not configured"})
+		return fmt.Errorf("CLERK_WEBHOOK_SECRET not set in non-dev environment: %s", env)
 	}
 
 	signedContent := svixID + "." + svixTimestamp + "." + string(body)

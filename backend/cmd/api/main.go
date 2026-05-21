@@ -190,6 +190,7 @@ func setupRouter(cfg *config.Config, hexHandlers *app.Handlers) *gin.Engine {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS())
+	r.Use(middleware.ValidateSecrets(middleware.DefaultSecretsValidatorConfig()))
 	r.Use(middleware.PerformanceMonitor())
 	r.Use(middleware.GlobalRateLimiter(200, time.Minute))
 	r.Use(middleware.CSRFMiddleware())
@@ -210,6 +211,7 @@ func setupRouter(cfg *config.Config, hexHandlers *app.Handlers) *gin.Engine {
 	router.SetupAuthRoutes(r)
 	router.SetupPublicRoutes(r)
 	router.SetupProtectedRoutes(r)
+	router.SetupAdminRoutes(r)
 
 	// Hexagonal Architecture routes (new)
 	router.SetupHexagonalRoutes(r, hexHandlers)

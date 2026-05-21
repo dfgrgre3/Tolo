@@ -50,6 +50,7 @@ func AdminUpdateChallenge(c *gin.Context) {
 		Title       *string `json:"title"`
 		Description *string `json:"description"`
 		Points      *int    `json:"points"`
+		XpReward    *int    `json:"xpReward"`
 		IsActive    *bool   `json:"isActive"`
 	}
 
@@ -65,8 +66,10 @@ func AdminUpdateChallenge(c *gin.Context) {
 	if input.Description != nil {
 		updates["description"] = *input.Description
 	}
-	if input.Points != nil {
-		updates["points"] = *input.Points
+	if input.XpReward != nil {
+		updates["xp_reward"] = *input.XpReward
+	} else if input.Points != nil {
+		updates["xp_reward"] = *input.Points
 	}
 	if input.IsActive != nil {
 		updates["is_active"] = *input.IsActive

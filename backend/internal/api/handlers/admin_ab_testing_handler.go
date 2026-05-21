@@ -51,6 +51,7 @@ func AdminUpdateABTest(c *gin.Context) {
 		Description  *string  `json:"description"`
 		Status       *string  `json:"status"`
 		TrafficSplit *float64 `json:"trafficSplit"`
+		TrafficPct   *int     `json:"trafficPct"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -68,8 +69,10 @@ func AdminUpdateABTest(c *gin.Context) {
 	if input.Status != nil {
 		updates["status"] = *input.Status
 	}
-	if input.TrafficSplit != nil {
-		updates["traffic_split"] = *input.TrafficSplit
+	if input.TrafficPct != nil {
+		updates["traffic_pct"] = *input.TrafficPct
+	} else if input.TrafficSplit != nil {
+		updates["traffic_pct"] = int(*input.TrafficSplit)
 	}
 
 	if len(updates) > 0 {

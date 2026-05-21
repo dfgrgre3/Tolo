@@ -414,13 +414,39 @@ func GetBackupProgress(c *gin.Context) {
 	// Get progress from service
 	progress := services.GetBackupService().GetProgress(backup.ID)
 
+	var percent int
+	var message string
+	var eta int
+
+	if progress != nil {
+		percent = progress.Percent
+		message = progress.Message
+		eta = progress.ETA
+	} else {
+		// Fallback based on DB status
+		switch backup.Status {
+		case "completed":
+			percent = 100
+			message = "Completed"
+			eta = 0
+		case "failed":
+			percent = 0
+			message = "Failed"
+			eta = 0
+		default:
+			percent = 0
+			message = "Backup status: " + backup.Status
+			eta = 0
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"backupId": id,
 			"status":   backup.Status,
-			"percent":  progress.Percent,
-			"message":  progress.Message,
-			"eta":      progress.ETA,
+			"percent":  percent,
+			"message":  message,
+			"eta":      eta,
 		},
 	})
 }

@@ -619,49 +619,68 @@ func getSortedChunks(ctx context.Context, uploadID string) ([]chunkEntry, error)
 	return chunks, nil
 }
 
+type chunkStreamReader struct {
+	ctx           context.Context
+	chunks        []chunkEntry
+	currentIdx    int
+	currentReader io.ReadCloser
+}
+
+func (r *chunkStreamReader) Read(p []byte) (n int, err error) {
+	for {
+		if r.currentReader == nil {
+			if r.currentIdx >= len(r.chunks) {
+				return 0, io.EOF
+			}
+			chunkPath := r.chunks[r.currentIdx].path
+			rc, err := storage.GlobalStorage.Download(r.ctx, chunkPath)
+			if err != nil {
+				return 0, fmt.Errorf("failed to download chunk %s: %w", chunkPath, err)
+			}
+			r.currentReader = rc
+		}
+
+		n, err = r.currentReader.Read(p)
+		if err == io.EOF {
+			_ = r.currentReader.Close()
+			r.currentReader = nil
+			r.currentIdx++
+			if n > 0 {
+				return n, nil
+			}
+			continue
+		}
+		return n, err
+	}
+}
+
+func (r *chunkStreamReader) Close() error {
+	if r.currentReader != nil {
+		err := r.currentReader.Close()
+		r.currentReader = nil
+		return err
+	}
+	return nil
+}
+
 func assembleAndUploadFinalFile(ctx context.Context, uploadID string, metadata chunkMetadata, chunks []chunkEntry) (string, error) {
 	ext := strings.ToLower(filepath.Ext(metadata.FileName))
 	finalFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 
-	tempLocalFile, err := os.CreateTemp("", "upload-*"+ext)
-	if err != nil {
-		return "", fmt.Errorf("Failed to create merge buffer")
+	stream := &chunkStreamReader{
+		ctx:    ctx,
+		chunks: chunks,
 	}
-	defer os.Remove(tempLocalFile.Name())
+	defer stream.Close()
 
-	for _, chunk := range chunks {
-		if err := appendChunkToLocalFile(ctx, tempLocalFile, chunk.path); err != nil {
-			tempLocalFile.Close()
-			return "", err
-		}
-	}
-
-	info, _ := tempLocalFile.Stat()
-	size := info.Size()
-	tempLocalFile.Seek(0, 0)
-
-	url, err := storage.GlobalStorage.Upload(ctx, finalFilename, tempLocalFile, size, metadata.FileType)
-	tempLocalFile.Close()
+	url, err := storage.GlobalStorage.Upload(ctx, finalFilename, stream, metadata.FileSize, metadata.FileType)
 	if err != nil {
-		return "", fmt.Errorf("Failed to upload final file")
+		return "", fmt.Errorf("failed to upload final file: %w", err)
 	}
 
 	go cleanupChunkedUpload(uploadID, chunks)
 
 	return url, nil
-}
-
-func appendChunkToLocalFile(ctx context.Context, dest *os.File, chunkPath string) error {
-	rc, err := storage.GlobalStorage.Download(ctx, chunkPath)
-	if err != nil {
-		return fmt.Errorf("Failed to download chunk %s", chunkPath)
-	}
-	defer rc.Close()
-
-	if _, err = io.Copy(dest, rc); err != nil {
-		return fmt.Errorf("Failed to join chunk %s", chunkPath)
-	}
-	return nil
 }
 
 func cleanupChunkedUpload(uploadID string, chunks []chunkEntry) {
@@ -672,7 +691,6 @@ func cleanupChunkedUpload(uploadID string, chunks []chunkEntry) {
 	if db.Redis != nil {
 		db.Redis.Del(bgCtx, uploadMetadataKeyPrefix+uploadID)
 	}
-	os.RemoveAll(filepath.Join("uploads", "temp", uploadID))
 }
 
 func MarkActivityRead(c *gin.Context) {

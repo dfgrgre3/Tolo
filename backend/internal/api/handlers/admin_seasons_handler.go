@@ -49,6 +49,7 @@ func AdminUpdateSeason(c *gin.Context) {
 
 	var input struct {
 		Name      *string    `json:"name"`
+		Title     *string    `json:"title"`
 		StartDate *time.Time `json:"startDate"`
 		EndDate   *time.Time `json:"endDate"`
 		IsActive  *bool      `json:"isActive"`
@@ -60,8 +61,10 @@ func AdminUpdateSeason(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{}
-	if input.Name != nil {
-		updates["name"] = *input.Name
+	if input.Title != nil {
+		updates["title"] = *input.Title
+	} else if input.Name != nil {
+		updates["title"] = *input.Name
 	}
 	if input.StartDate != nil {
 		updates["start_date"] = *input.StartDate

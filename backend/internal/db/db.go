@@ -67,10 +67,17 @@ func ConnectWithWriteDSN(dsn, writeDSN string) (*gorm.DB, error) {
 	log.Printf("Database connection pool settings: MaxIdleConns=%d, MaxOpenConns=%d, ConnMaxLifetime=%s, ConnMaxIdleTime=%s",
 		pool.MaxIdleConns, pool.MaxOpenConns, pool.MaxLifetime, pool.MaxIdleTime)
 
+	var replicas []gorm.Dialector
+	if len(replicaDialectors) > 0 {
+		replicas = replicaDialectors
+	} else {
+		replicas = []gorm.Dialector{postgres.Open(dsn)}
+	}
+
 	// Register DBResolver with explicit source/replica splitting for CQRS
 	resolver := dbresolver.Register(dbresolver.Config{
 		Sources:  []gorm.Dialector{postgres.Open(sourceDSN)},
-		Replicas: append([]gorm.Dialector{postgres.Open(dsn)}, replicaDialectors...),
+		Replicas: replicas,
 		Policy:   dbresolver.RandomPolicy{},
 	}).
 		SetMaxIdleConns(pool.MaxIdleConns).

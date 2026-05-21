@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -40,6 +41,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		&models.Book{},
 		&models.Campaign{},
 		&models.Automation{},
+		&models.AuditLog{},
 	)
 	require.NoError(t, err)
 
@@ -285,6 +287,11 @@ func TestDeleteCategory_WithSubjects(t *testing.T) {
 	}
 	testDB.Create(&category)
 
+	testDB.Create(&models.Subject{
+		Name:       "Test Subject",
+		CategoryId: &category.ID,
+	})
+
 	router := setupTestRouter()
 	router.DELETE("/categories", DeleteCategory)
 
@@ -482,9 +489,10 @@ func TestAdminCreateAchievement_Success(t *testing.T) {
 	router.POST("/achievements", AdminCreateAchievement)
 
 	body := map[string]interface{}{
-		"name":        "First Achievement",
+		"key":         "first_achievement",
+		"title":       "First Achievement",
 		"description": "Complete first task",
-		"points":      100,
+		"xpReward":    100,
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -502,9 +510,10 @@ func TestAdminGetAchievements_Success(t *testing.T) {
 	db.DB = testDB
 
 	testDB.Create(&models.Achievement{
-		Name:        "Achievement 1",
+		Key:         "achievement_1",
+		Title:       "Achievement 1",
 		Description: "Desc 1",
-		Points:      100,
+		XpReward:    100,
 	})
 
 	router := setupTestRouter()
@@ -523,9 +532,10 @@ func TestAdminUpdateAchievement_Success(t *testing.T) {
 	db.DB = testDB
 
 	achievement := models.Achievement{
-		Name:        "Old Name",
+		Key:         "old_key",
+		Title:       "Old Name",
 		Description: "Old Desc",
-		Points:      100,
+		XpReward:    100,
 	}
 	testDB.Create(&achievement)
 
@@ -551,8 +561,9 @@ func TestAdminDeleteAchievement_Success(t *testing.T) {
 	db.DB = testDB
 
 	achievement := models.Achievement{
-		Name:   "To Delete",
-		Points: 100,
+		Key:      "to_delete",
+		Title:    "To Delete",
+		XpReward: 100,
 	}
 	testDB.Create(&achievement)
 
@@ -1070,7 +1081,7 @@ func TestAdminGetRewards_Success(t *testing.T) {
 	db.DB = testDB
 
 	testDB.Create(&models.Reward{
-		Name:        "Free Month",
+		Title:       "Free Month",
 		Description: "Get a free month",
 		Cost:        500,
 		Type:        "subscription",
@@ -1092,7 +1103,7 @@ func TestAdminGetSeasons_Success(t *testing.T) {
 	db.DB = testDB
 
 	testDB.Create(&models.Season{
-		Name:     "Summer 2024",
+		Title:    "Summer 2024",
 		IsActive: true,
 	})
 
@@ -1113,7 +1124,7 @@ func TestAdminGetChallenges_Success(t *testing.T) {
 
 	testDB.Create(&models.Challenge{
 		Title:    "Math Challenge",
-		Points:   50,
+		XpReward: 50,
 		IsActive: true,
 	})
 
@@ -1154,9 +1165,9 @@ func TestAdminGetABTests_Success(t *testing.T) {
 	db.DB = testDB
 
 	testDB.Create(&models.ABExperiment{
-		Name:         "Test A/B",
-		Status:       "draft",
-		TrafficSplit: 50.0,
+		Name:       "Test A/B",
+		Status:     "draft",
+		TrafficPct: 50,
 	})
 
 	router := setupTestRouter()
@@ -1196,7 +1207,7 @@ func TestAdminGetAutomations_Success(t *testing.T) {
 
 	testDB.Create(&models.Automation{
 		Name:     "Auto Email",
-		Type:     "email",
+		Event:    "email",
 		IsActive: true,
 	})
 
@@ -1216,7 +1227,7 @@ func TestAdminUpdateReward_Success(t *testing.T) {
 	db.DB = testDB
 
 	reward := models.Reward{
-		Name:        "Old Reward",
+		Title:       "Old Reward",
 		Description: "Old Desc",
 		Cost:        100,
 		Type:        "discount",
@@ -1245,7 +1256,7 @@ func TestAdminUpdateSeason_Success(t *testing.T) {
 	db.DB = testDB
 
 	season := models.Season{
-		Name:     "Old Season",
+		Title:    "Old Season",
 		IsActive: false,
 	}
 	testDB.Create(&season)
@@ -1303,7 +1314,7 @@ func TestAdminUpdateChallenge_Success(t *testing.T) {
 
 	challenge := models.Challenge{
 		Title:    "Old Challenge",
-		Points:   50,
+		XpReward: 50,
 		IsActive: true,
 	}
 	testDB.Create(&challenge)
@@ -1358,9 +1369,9 @@ func TestAdminUpdateABTest_Success(t *testing.T) {
 	db.DB = testDB
 
 	experiment := models.ABExperiment{
-		Name:         "Old Test",
-		Status:       "draft",
-		TrafficSplit: 50.0,
+		Name:       "Old Test",
+		Status:     "draft",
+		TrafficPct: 50,
 	}
 	testDB.Create(&experiment)
 
@@ -1415,7 +1426,7 @@ func TestAdminUpdateAutomation_Success(t *testing.T) {
 
 	automation := models.Automation{
 		Name:     "Old Automation",
-		Type:     "email",
+		Event:    "email",
 		IsActive: false,
 	}
 	testDB.Create(&automation)
@@ -1443,7 +1454,7 @@ func TestAdminDeleteReward_Success(t *testing.T) {
 	db.DB = testDB
 
 	reward := models.Reward{
-		Name: "To Delete",
+		Title: "To Delete",
 		Cost: 100,
 		Type: "discount",
 	}
@@ -1465,7 +1476,7 @@ func TestAdminDeleteSeason_Success(t *testing.T) {
 	db.DB = testDB
 
 	season := models.Season{
-		Name:     "To Delete",
+		Title:    "To Delete",
 		IsActive: false,
 	}
 	testDB.Create(&season)
@@ -1510,7 +1521,7 @@ func TestAdminDeleteChallenge_Success(t *testing.T) {
 
 	challenge := models.Challenge{
 		Title:    "To Delete",
-		Points:   50,
+		XpReward: 50,
 		IsActive: true,
 	}
 	testDB.Create(&challenge)
@@ -1553,9 +1564,9 @@ func TestAdminDeleteABTest_Success(t *testing.T) {
 	db.DB = testDB
 
 	experiment := models.ABExperiment{
-		Name:         "To Delete",
-		Status:       "draft",
-		TrafficSplit: 50.0,
+		Name:       "To Delete",
+		Status:     "draft",
+		TrafficPct: 50,
 	}
 	testDB.Create(&experiment)
 
@@ -1597,7 +1608,7 @@ func TestAdminDeleteAutomation_Success(t *testing.T) {
 
 	automation := models.Automation{
 		Name:     "To Delete",
-		Type:     "email",
+		Event:    "email",
 		IsActive: false,
 	}
 	testDB.Create(&automation)

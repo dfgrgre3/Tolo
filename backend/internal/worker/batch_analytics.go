@@ -67,27 +67,49 @@ func hasPrefix(s, prefix string) bool {
 func processBatch() error {
 	ctx := context.Background()
 
+	// 1. Try to read pending messages first (using ID "0")
+	var messages []redis.XMessage
 	entries, err := db.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    analyticsConsumerGroup,
 		Consumer: analyticsConsumerID,
-		Streams:  []string{analyticsStream, ">"},
+		Streams:  []string{analyticsStream, "0"},
 		Count:    int64(analyticsBatchSize),
-		Block:    analyticsBlockTime,
+		Block:    0,
 		NoAck:    false,
 	}).Result()
-	if err != nil {
-		if err == redis.Nil {
-			return nil
-		}
+
+	if err == nil && len(entries) > 0 && len(entries[0].Messages) > 0 {
+		messages = entries[0].Messages
+		log.Printf("[AnalyticsWorker] Processing batch of %d pending (unacknowledged) events", len(messages))
+	} else if err != nil && err != redis.Nil {
 		return err
 	}
 
-	if len(entries) == 0 || len(entries[0].Messages) == 0 {
-		return nil
+	// 2. If no pending messages, read new messages using ">"
+	if len(messages) == 0 {
+		entries, err = db.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
+			Group:    analyticsConsumerGroup,
+			Consumer: analyticsConsumerID,
+			Streams:  []string{analyticsStream, ">"},
+			Count:    int64(analyticsBatchSize),
+			Block:    analyticsBlockTime,
+			NoAck:    false,
+		}).Result()
+		if err != nil {
+			if err == redis.Nil {
+				return nil
+			}
+			return err
+		}
+		if len(entries) > 0 && len(entries[0].Messages) > 0 {
+			messages = entries[0].Messages
+			log.Printf("[AnalyticsWorker] Processing batch of %d new events", len(messages))
+		}
 	}
 
-	messages := entries[0].Messages
-	log.Printf("[AnalyticsWorker] Processing batch of %d events", len(messages))
+	if len(messages) == 0 {
+		return nil
+	}
 
 	records := make([]map[string]interface{}, 0, len(messages))
 	ids := make([]string, 0, len(messages))

@@ -61,7 +61,7 @@ func AdminUpdateReward(c *gin.Context) {
 
 	updates := map[string]interface{}{}
 	if input.Name != nil {
-		updates["name"] = *input.Name
+		updates["title"] = *input.Name
 	}
 	if input.Description != nil {
 		updates["description"] = *input.Description

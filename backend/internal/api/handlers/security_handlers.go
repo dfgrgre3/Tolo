@@ -1,15 +1,22 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base32"
+	"encoding/base64"
 	"fmt"
+	"image/png"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
 	"thanawy-backend/internal/config"
@@ -57,6 +64,23 @@ func GetTwoFactorStatus(c *gin.Context) {
 	})
 }
 
+// generateQRCodeBase64 generates a base64-encoded QR code PNG image from a string.
+func generateQRCodeBase64(data string) (string, error) {
+	qrCode, err := qr.Encode(data, qr.M, qr.Auto)
+	if err != nil {
+		return "", err
+	}
+	qrCode, err = barcode.Scale(qrCode, 200, 200)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, qrCode); err != nil {
+		return "", err
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
 // InitiateTwoFactorSetup starts the 2FA setup process
 // @Summary Initiate 2FA setup
 // @Description Start setting up two-factor authentication
@@ -79,6 +103,12 @@ func InitiateTwoFactorSetup(c *gin.Context) {
 	userEmail, _ := c.Get("user_email")
 	userPhone, _ := c.Get("user_phone")
 
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	var response gin.H
 
 	switch req.Method {
@@ -88,24 +118,36 @@ func InitiateTwoFactorSetup(c *gin.Context) {
 		rand.Read(secret)
 		secretKey := base32.StdEncoding.EncodeToString(secret)
 
+		emailStr := ""
+		if userEmail != nil {
+			if s, ok := userEmail.(string); ok {
+				emailStr = s
+			}
+		}
+
 		// Generate QR code URL
-		qrURL := fmt.Sprintf("otpauth://totp/Thanawy%%20Admin:%s?secret=%s&issuer=Thanawy%%20Admin", userEmail.(string), secretKey)
+		qrURL := fmt.Sprintf("otpauth://totp/Thanawy Admin:%s?secret=%s&issuer=Thanawy Admin", emailStr, secretKey)
+		qrCodeBase64, err := generateQRCodeBase64(qrURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+			return
+		}
 
 		response = gin.H{
 			"secret": secretKey,
-			"qrCode": qrURL,
+			"qrCode": qrCodeBase64,
 		}
 
 		// Store pending setup
 		settings := models.TwoFactorSettings{
-			UserID:       userID.(string),
+			UserID:       userIDStr,
 			Method:       "authenticator",
 			Secret:       secretKey,
 			IsEnabled:    false, // Not enabled until verified
 			PendingSetup: true,
 			CreatedAt:    time.Now(),
 		}
-		db.DB.Where(userIDQuery, userID).Assign(settings).FirstOrCreate(&settings)
+		db.DB.Where(userIDQuery, userIDStr).Assign(settings).FirstOrCreate(&settings)
 
 	case "sms":
 		if userPhone == nil || userPhone == "" {
@@ -823,8 +865,14 @@ func GetUser2FAStatus(c *gin.Context) {
 func InitiateUser2FASetup(c *gin.Context) {
 	userID, _ := c.Get("userId")
 
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	var user models.User
-	if err := db.DB.First(&user, idQuery, userID).Error; err != nil {
+	if err := db.DB.First(&user, idQuery, userIDStr).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -834,13 +882,17 @@ func InitiateUser2FASetup(c *gin.Context) {
 	rand.Read(secret)
 	secretKey := base32.StdEncoding.EncodeToString(secret)
 
-	// URL-encode the otpauth URL for the QR code api
+	// Generate QR code locally as base64
 	otpAuthURL := fmt.Sprintf("otpauth://totp/Thanawy:%s?secret=%s&issuer=Thanawy", user.Email, secretKey)
-	qrCodeImageURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=%s", url.QueryEscape(otpAuthURL))
+	qrCodeBase64, err := generateQRCodeBase64(otpAuthURL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+		return
+	}
 
 	// Store pending setup
 	settings := models.TwoFactorSettings{
-		UserID:       userID.(string),
+		UserID:       userIDStr,
 		Method:       "authenticator",
 		Secret:       secretKey,
 		IsEnabled:    false, // Not enabled until verified
@@ -849,14 +901,14 @@ func InitiateUser2FASetup(c *gin.Context) {
 		UpdatedAt:    time.Now(),
 	}
 
-	if err := db.DB.Where(userIDQuery, userID).Assign(settings).FirstOrCreate(&settings).Error; err != nil {
+	if err := db.DB.Where(userIDQuery, userIDStr).Assign(settings).FirstOrCreate(&settings).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store pending 2FA setup"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"secret": secretKey,
-		"qrCode": qrCodeImageURL,
+		"qrCode": qrCodeBase64,
 	})
 }
 
@@ -977,6 +1029,63 @@ func DisableUser2FA(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "2FA disabled successfully"})
 }
 
+func isTwilioConfigured() (string, string, string, bool) {
+	accountSID := os.Getenv("TWILIO_ACCOUNT_SID")
+	authToken := os.Getenv("TWILIO_AUTH_TOKEN")
+	fromNumber := os.Getenv("TWILIO_FROM_NUMBER")
+	if fromNumber == "" {
+		fromNumber = os.Getenv("TWILIO_PHONE_NUMBER")
+	}
+
+	accountSID = strings.TrimSpace(accountSID)
+	authToken = strings.TrimSpace(authToken)
+	fromNumber = strings.TrimSpace(fromNumber)
+
+	if accountSID == "" || strings.Contains(accountSID, "CHANGE_ME") || strings.Contains(accountSID, "YOUR_") {
+		return "", "", "", false
+	}
+	if authToken == "" || strings.Contains(authToken, "CHANGE_ME") || strings.Contains(authToken, "YOUR_") {
+		return "", "", "", false
+	}
+	if fromNumber == "" || strings.Contains(fromNumber, "CHANGE_ME") || strings.Contains(fromNumber, "YOUR_") {
+		return "", "", "", false
+	}
+
+	return accountSID, authToken, fromNumber, true
+}
+
+func sendTwilioSMS(accountSID, authToken, fromNumber, toNumber, otpCode string) error {
+	apiURL := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSID)
+
+	data := url.Values{}
+	data.Set("To", toNumber)
+	data.Set("From", fromNumber)
+	data.Set("Body", fmt.Sprintf("Your Thanawy verification code is: %s", otpCode))
+
+	req, err := http.NewRequest("POST", apiURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return err
+	}
+
+	req.SetBasicAuth(accountSID, authToken)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var buf bytes.Buffer
+		buf.ReadFrom(resp.Body)
+		return fmt.Errorf("twilio api returned status %d: %s", resp.StatusCode, buf.String())
+	}
+
+	return nil
+}
+
 // SendPhoneVerification handles POST /api/auth/verify-phone/send
 func SendPhoneVerification(c *gin.Context) {
 	var req struct {
@@ -1028,8 +1137,19 @@ func SendPhoneVerification(c *gin.Context) {
 		return
 	}
 
-	// Mock SMS sending by logging to console
-	log.Printf("[SMS MOCK] Verification code for user %v (%s): %s", userID, req.Phone, otpCode)
+	// Check if Twilio is configured
+	accountSID, authToken, fromNumber, isConfigured := isTwilioConfigured()
+	if isConfigured {
+		if err := sendTwilioSMS(accountSID, authToken, fromNumber, req.Phone, otpCode); err != nil {
+			log.Printf("[Twilio Error] Failed to send SMS to %s: %v", req.Phone, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification SMS via Twilio"})
+			return
+		}
+		log.Printf("[Twilio SMS] Verification code sent to %s", req.Phone)
+	} else {
+		// Mock SMS sending by logging to console
+		log.Printf("[SMS MOCK] Verification code for user %v (%s): %s", userID, req.Phone, otpCode)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent successfully"})
 }
