@@ -17,7 +17,7 @@ export function AuthProviders() {
         <m.button
           whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
+          onClick={() => { globalThis.location.href = `/api/auth/oauth/google`; }}
           type="button"
           className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
         >
@@ -27,7 +27,7 @@ export function AuthProviders() {
         <m.button
           whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
+          onClick={() => { globalThis.location.href = `/api/auth/oauth/github`; }}
           type="button"
           className="flex items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/[0.03] h-16 transition-all shadow-sm"
         >

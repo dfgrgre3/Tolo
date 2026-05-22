@@ -53,6 +53,41 @@ export function useKeyboardShortcuts({
     return false;
   };
 
+  const handleVolumeKeys = (key: string) => {
+    if (key === "arrowup" || key === "arrowdown") {
+      handleVolumeChange(volume + (key === "arrowup" ? 0.05 : -0.05));
+      return true;
+    }
+    return false;
+  };
+
+  const handleSubtitleKey = (key: string) => {
+    if (key === "c") {
+      const nextSub = selectedSubtitle === "off" && subtitleTracks[0] ? subtitleTracks[0].id : "off";
+      changeSubtitle(nextSub);
+      return true;
+    }
+    return false;
+  };
+
+  const handleEndKey = (key: string) => {
+    if (key === "end") {
+      const dur = getDuration();
+      if (dur > 0) handleSeek(dur);
+      return true;
+    }
+    return false;
+  };
+
+  const handleNumberKeys = (key: string) => {
+    if (/^[0-9]$/.test(key)) {
+      const dur = getDuration();
+      if (dur > 0) handleSeek((dur * Number(key)) / 10);
+      return true;
+    }
+    return false;
+  };
+
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement | null;
@@ -83,26 +118,16 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      if (handleSeekKeys(key, shift) || handleRateKeys(key, shift, event.key)) {
+      if (
+        handleSeekKeys(key, shift) ||
+        handleRateKeys(key, shift, event.key) ||
+        handleVolumeKeys(key) ||
+        handleSubtitleKey(key) ||
+        handleEndKey(key) ||
+        handleNumberKeys(key)
+      ) {
         event.preventDefault();
         return;
-      }
-
-      if (key === "arrowup" || key === "arrowdown") {
-        event.preventDefault();
-        handleVolumeChange(volume + (key === "arrowup" ? 0.05 : -0.05));
-      } else if (key === "c") {
-        event.preventDefault();
-        const nextSub = selectedSubtitle === "off" && subtitleTracks[0] ? subtitleTracks[0].id : "off";
-        changeSubtitle(nextSub);
-      } else if (key === "end") {
-        event.preventDefault();
-        const dur = getDuration();
-        if (dur > 0) handleSeek(dur);
-      } else if (/^[0-9]$/.test(key)) {
-        event.preventDefault();
-        const dur = getDuration();
-        if (dur > 0) handleSeek((dur * Number(key)) / 10);
       }
     },
     [

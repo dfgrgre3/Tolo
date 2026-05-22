@@ -4,14 +4,14 @@ import { useMemo } from 'react';
 import { m } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-export function PasswordStrengthMeter({ passwordValue }: { passwordValue: string }) {
+export function PasswordStrengthMeter({ passwordValue }: { readonly passwordValue: string }) {
   const strengthData = useMemo(() => {
     if (!passwordValue) return null;
     let score = 0;
     if (passwordValue.length >= 8) score++;
     if (/[A-Z]/.test(passwordValue)) score++;
-    if (/[0-9]/.test(passwordValue)) score++;
-    if (/[^A-Za-z0-9]/.test(passwordValue)) score++;
+    if (/\d/.test(passwordValue)) score++;
+    if (/[^A-Za-z\d]/.test(passwordValue)) score++;
     const colors = ['bg-red-500', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
     const texts = ['ضعيفة', 'ضعيفة', 'متوسطة', 'جيدة', 'قوية جداً'];
     return { strength: score * 25, color: colors[score], text: texts[score] };

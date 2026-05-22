@@ -4,7 +4,7 @@ import { m } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function StepIndicator({ step }: { step: number }) {
+export function StepIndicator({ step }: { readonly step: number }) {
   return (
     <div className="flex items-center justify-center gap-4 px-4">
       {[1, 2, 3].map((i) => (

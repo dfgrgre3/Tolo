@@ -65,6 +65,48 @@ let cachedRecommendations: AiRecommendation[] = [];
 let cachedLastRefresh: Date | null = null;
 let cachedUserId: string | null = null;
 
+async function fetchAndProcessRecommendations(forceRefresh: boolean): Promise<AiRecommendation[]> {
+  const { data, response, error: fetchErr } = await safeFetch<{
+    success: boolean;
+    recommendations: AiRecommendation[];
+  }>(`/api/ai/recommendations?limit=6&force=${forceRefresh}`);
+
+  if (response && response.status === 401) {
+    logger.debug('User unauthorized for AI recommendations');
+    throw new Error('Unauthorized');
+  }
+
+  if (fetchErr || !response || !response.ok) {
+    throw fetchErr || new Error(`HTTP ${response?.status || 'Error'}`);
+  }
+
+  let fetchedRecs = data && data.success && data.recommendations ? data.recommendations : [];
+
+  // BEHAVIORAL LOGIC (Client-side simulation for now)
+  // Check if there's an exam tomorrow (simulation)
+  const hasExamTomorrow = true; // This would typically come from user schedule context
+  if (hasExamTomorrow) {
+    const quickRevisionItem: AiRecommendation = {
+      id: 'behavior-1',
+      itemId: 'quick-revision',
+      itemType: 'content',
+      title: '🔥 مراجعة سريعة للاختبار',
+      description: 'لديك اختبار غداً في الكيمياء! ابدأ المراجعة المركزة الآن.',
+      score: 0.99,
+      algorithm: 'deep_learning',
+      reason: 'بناءً على جدولك الدراسي',
+      metadata: { isPriority: true }
+    };
+    fetchedRecs = [quickRevisionItem, ...fetchedRecs.filter((r: AiRecommendation) => r.id !== 'behavior-1')];
+  }
+
+  if ((data && data.success) || hasExamTomorrow) {
+    return fetchedRecs;
+  }
+
+  throw new Error('Invalid response format');
+}
+
 export const AiSuggestions = memo(function AiSuggestions({ 
   userId, 
   isCompact = false, 
@@ -138,7 +180,8 @@ export const AiSuggestions = memo(function AiSuggestions({
     }
 
     // Check if we need to refresh (cache for 5 minutes)
-    if (!forceRefresh && cachedLastRefresh && (Date.now() - cachedLastRefresh.getTime()) < 300000) {
+    const isCacheValid = !forceRefresh && cachedLastRefresh && (Date.now() - cachedLastRefresh.getTime()) < 300000;
+    if (isCacheValid) {
       // Synchronize states to match the cache
       setRecommendations(cachedRecommendations);
       setLastRefresh(cachedLastRefresh);
@@ -154,58 +197,24 @@ export const AiSuggestions = memo(function AiSuggestions({
     setError(null);
 
     try {
-      const { data, response, error: fetchErr } = await safeFetch<{
-        success: boolean;
-        recommendations: AiRecommendation[];
-      }>(`/api/ai/recommendations?limit=6&force=${forceRefresh}`);
-      
-      if (response && response.status === 401) {
-        logger.debug('User unauthorized for AI recommendations');
+      const fetchedRecs = await fetchAndProcessRecommendations(forceRefresh);
+
+      cachedRecommendations = fetchedRecs;
+      cachedLastRefresh = new Date();
+      cachedUserId = userId;
+      setRecommendations(fetchedRecs);
+      setLastRefresh(cachedLastRefresh);
+    } catch (err: any) {
+      if (err.message === 'Unauthorized') {
         cachedRecommendations = [];
         cachedLastRefresh = null;
         setRecommendations([]);
-        setIsLoading(false);
-        return;
-      }
-
-      if (fetchErr || !response || !response.ok) {
-        throw fetchErr || new Error(`HTTP ${response?.status || 'Error'}`);
-      }
-
-      let fetchedRecs = data && data.success && data.recommendations ? data.recommendations : [];
-
-      // BEHAVIORAL LOGIC (Client-side simulation for now)
-      // Check if there's an exam tomorrow (simulation)
-      const hasExamTomorrow = true; // This would typically come from user schedule context
-      if (hasExamTomorrow) {
-        const quickRevisionItem: AiRecommendation = {
-          id: 'behavior-1',
-          itemId: 'quick-revision',
-          itemType: 'content',
-          title: '🔥 مراجعة سريعة للاختبار',
-          description: 'لديك اختبار غداً في الكيمياء! ابدأ المراجعة المركزة الآن.',
-          score: 0.99,
-          algorithm: 'deep_learning',
-          reason: 'بناءً على جدولك الدراسي',
-          metadata: { isPriority: true }
-        };
-        fetchedRecs = [quickRevisionItem, ...fetchedRecs.filter((r: AiRecommendation) => r.id !== 'behavior-1')];
-      }
-
-      if ((data && data.success) || hasExamTomorrow) {
-        cachedRecommendations = fetchedRecs;
-        cachedLastRefresh = new Date();
-        cachedUserId = userId;
-        setRecommendations(fetchedRecs);
-        setLastRefresh(cachedLastRefresh);
       } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      logger.error('Failed to fetch AI recommendations:', error);
-      setError('فشل في تحميل التوصيات الذكية');
-      if (cachedRecommendations.length === 0) {
-        setRecommendations([]);
+        logger.error('Failed to fetch AI recommendations:', err);
+        setError('فشل في تحميل التوصيات الذكية');
+        if (cachedRecommendations.length === 0) {
+          setRecommendations([]);
+        }
       }
     } finally {
       setIsLoading(false);

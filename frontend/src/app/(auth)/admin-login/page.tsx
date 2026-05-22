@@ -168,7 +168,7 @@ function AdminLoginContent() {
           {!requires2FA ? (
             <>
               <div className="space-y-3">
-                <label className="mr-2 text-sm font-bold text-gray-400 uppercase tracking-wider">بريد المسؤول</label>
+                <span className="mr-2 text-sm font-bold text-gray-400 uppercase tracking-wider">بريد المسؤول</span>
                 <div className="group relative">
                   <input
                     {...register('email')}
@@ -186,7 +186,7 @@ function AdminLoginContent() {
 
               <div className="space-y-3">
                 <div className="mr-2 flex items-center justify-between">
-                  <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">كلمة المرور</label>
+                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">كلمة المرور</span>
                 </div>
                 <div className="group relative">
                   <input

@@ -8,18 +8,18 @@ import { Button } from '@/components/ui/button';
 import { PasswordStrengthMeter } from './password-strength-meter';
 
 interface PersonalInfoStepProps {
-  register: UseFormRegister<any>;
-  errors: FieldErrors<any>;
-  showPassword: boolean;
-  setShowPassword: (v: boolean) => void;
-  showConfirmPassword: boolean;
-  setShowConfirmPassword: (v: boolean) => void;
-  selectedCountry: string;
-  handleCountryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  handlePhoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  passwordValue: string;
-  onNext: () => void;
-  onBack: () => void;
+  readonly register: UseFormRegister<any>;
+  readonly errors: FieldErrors<any>;
+  readonly showPassword: boolean;
+  readonly setShowPassword: (v: boolean) => void;
+  readonly showConfirmPassword: boolean;
+  readonly setShowConfirmPassword: (v: boolean) => void;
+  readonly selectedCountry: string;
+  readonly handleCountryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  readonly handlePhoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  readonly passwordValue: string;
+  readonly onNext: () => void;
+  readonly onBack: () => void;
 }
 
 export function PersonalInfoStep({
@@ -71,11 +71,22 @@ export function PersonalInfoStep({
               ))}
             </select>
             <Flag className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-            <label className="absolute right-12 top-1/2 -translate-y-[180%] text-[10px] font-black uppercase text-primary/80 tracking-widest">الدولة</label>
+            <span className="absolute right-12 top-1/2 -translate-y-[180%] text-[10px] font-black uppercase text-primary/80 tracking-widest">الدولة</span>
           </m.div>
         </div>
 
-        <PremiumInput registration={{ ...register('phone'), onChange: handlePhoneChange } as any} label="رقم الهاتف" icon={<Phone size={20} />} error={errors.phone?.message} />
+        <PremiumInput
+          registration={{
+            ...register('phone'),
+            onChange: async (e) => {
+              handlePhoneChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
+              return register('phone').onChange(e);
+            }
+          }}
+          label="رقم الهاتف"
+          icon={<Phone size={20} />}
+          error={errors.phone?.message}
+        />
         <PremiumInput registration={register('dateOfBirth')} type="date" label="تاريخ الميلاد" icon={<Calendar size={20} />} error={errors.dateOfBirth?.message} />
       </div>
 

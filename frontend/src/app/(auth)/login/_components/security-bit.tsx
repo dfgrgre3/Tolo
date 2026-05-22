@@ -2,7 +2,7 @@
 
 import { m } from 'framer-motion';
 
-export function SecurityBit({ delay = 0 }: { delay?: number }) {
+export function SecurityBit({ delay = 0 }: { readonly delay?: number }) {
   return (
     <m.div
       initial={{ opacity: 0, scale: 0 }}

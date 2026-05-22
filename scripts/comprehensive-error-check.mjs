@@ -35,7 +35,7 @@ function runCheck(name, command, cwd = root, warnOnly = false) {
     cwd,
     shell: true,
     encoding: "utf8",
-    env: { ...process.env, GOCACHE: process.env.GOCACHE || "C:\\tmp\\go-build-cache-thanawy" },
+    env: { ...process.env, GOCACHE: process.env.GOCACHE || join(root, ".gocache") },
   });
 
   const output = `${result.stdout || ""}${result.stderr || ""}`.trim();

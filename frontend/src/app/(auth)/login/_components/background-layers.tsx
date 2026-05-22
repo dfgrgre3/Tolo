@@ -3,6 +3,10 @@
 import { m } from 'framer-motion';
 import { SecurityBit } from './security-bit';
 
+const BACKGROUND_ELEMENTS = Array.from({ length: 20 }, (_, i) => ({
+  id: `bg-element-${i}`,
+}));
+
 export function BackgroundLayers() {
   const randomPosition = () => Math.random() * 100;
 
@@ -16,8 +20,8 @@ export function BackgroundLayers() {
       <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
 
       <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div key={i} className="absolute" style={{
+        {BACKGROUND_ELEMENTS.map((element) => (
+          <div key={element.id} className="absolute" style={{
             left: `${randomPosition()}%`,
             top: `${randomPosition()}%`
           }}>

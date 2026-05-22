@@ -4,8 +4,8 @@ import { m } from 'framer-motion';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 
 interface ErrorBannerProps {
-  errorStatus: string;
-  onResendVerification: () => void;
+  readonly errorStatus: string;
+  readonly onResendVerification: () => void;
 }
 
 export function ErrorBanner({ errorStatus, onResendVerification }: ErrorBannerProps) {

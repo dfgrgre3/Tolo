@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Inter, Cairo } from 'next/font/google';
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function AuthLayout({
   children,
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) {
   return (
     <div className={`${inter.className} min-h-screen bg-gray-950 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden`}>

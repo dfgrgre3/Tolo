@@ -5,8 +5,8 @@ import { useEffect } from 'react';
 import { errorService } from '@/lib/logging/error-service';
 
 interface AuthErrorProps {
-  error: Error & { digest?: string };
-  reset: () => void;
+  readonly error: Error & { digest?: string };
+  readonly reset: () => void;
 }
 
 export default function AuthError({ error, reset }: AuthErrorProps) {
@@ -24,7 +24,7 @@ export default function AuthError({ error, reset }: AuthErrorProps) {
       message="حدث خطأ أثناء محاولة الاتصال. يرجى المحاولة مرة أخرى."
       errorId={error.digest}
       onRetry={reset}
-      onGoHome={() => { window.location.href = '/'; }}
+      onGoHome={() => { globalThis.location.href = '/'; }}
       showDetails={process.env.NODE_ENV === 'development'}
       error={error}
     />

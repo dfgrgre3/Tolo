@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
@@ -116,6 +116,142 @@ export default function AnnouncementsPage() {
     { id: "competitions", name: "تحديات الفرسان", icon: Sword },
   ];
 
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />
+          ))}
+        </div>
+      );
+    }
+
+    if (activeTab === "announcements") {
+      return (
+        <m.div 
+          key="announcements"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-10"
+        >
+          {filteredAnnouncements.map((item, idx) => (
+            <m.div
+              key={item.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className={STYLES.glass + " group cursor-default hover:border-primary/40 transition-all flex flex-col"}
+            >
+               <div className="relative aspect-video overflow-hidden">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-transparent to-transparent flex items-center justify-center">
+                       <Megaphone className="w-16 h-16 text-primary/10" />
+                    </div>
+                  )}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                     <Badge className={cn("font-black text-[9px] uppercase tracking-widest px-3 h-6 border-none", item.priority === 'urgent' ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white')}>
+                        {item.priority === 'urgent' ? 'عاجل جداً' : item.priority}
+                     </Badge>
+                  </div>
+               </div>
+
+               <div className="p-8 flex-1 flex flex-col gap-6">
+                  <div className="space-y-3 flex-1">
+                     <h3 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{item.title}</h3>
+                     <p className="text-sm text-gray-500 font-medium line-clamp-3 leading-relaxed">{item.content}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                     <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                           <User className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.authorName}</span>
+                     </div>
+                     <div className="flex items-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{new Date(item.publishedAt).toLocaleDateString('ar-EG')}</span>
+                     </div>
+                  </div>
+
+                  <Link href={`/announcements/${item.id}`}>
+                     <Button variant="ghost" className="w-full h-14 rounded-2xl border border-white/5 group-hover:bg-primary group-hover:text-black font-black uppercase tracking-widest text-[10px] gap-3">
+                        <span>مشاهدة المرسوم</span>
+                        <ChevronRight className="w-4 h-4" />
+                     </Button>
+                  </Link>
+               </div>
+            </m.div>
+          ))}
+        </m.div>
+      );
+    }
+
+    return (
+      <m.div 
+        key="contests"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-10"
+      >
+        {filteredContests.map((item, idx) => (
+          <m.div
+            key={item.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: idx * 0.05 }}
+            className={STYLES.glass + " border-amber-500/10 group cursor-default hover:border-amber-500/40 transition-all flex flex-col"}
+          >
+             <div className="relative aspect-video bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors">
+                <div className="absolute inset-0 flex items-center justify-center">
+                   <Trophy className="w-20 h-20 text-amber-500/20 group-hover:scale-110 group-hover:text-amber-500/40 transition-all" />
+                </div>
+                <div className="absolute bottom-4 right-4">
+                   <Badge className="bg-amber-500 text-black font-black text-[9px] uppercase tracking-widest px-4 h-7 rounded-lg">{item.participantsCount} محارب</Badge>
+                </div>
+             </div>
+
+             <div className="p-8 flex-1 flex flex-col gap-6">
+                <div className="space-y-4 flex-1">
+                   <div className="flex items-center gap-2 text-[9px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1">
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>تحدي ملكي نشط</span>
+                   </div>
+                   <h3 className="text-2xl font-black text-white group-hover:rpg-gold-text transition-all leading-tight">{item.title}</h3>
+                   <p className="text-sm text-gray-500 font-medium line-clamp-2 leading-relaxed">{item.description}</p>
+                   
+                   <div className="space-y-3 pt-2">
+                      {item.prize && (
+                        <div className="flex items-center gap-3 text-xs font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
+                           <Crown className="w-4 h-4" />
+                           <span>الجائزة: {item.prize}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 text-xs font-black text-amber-500/70 uppercase tracking-widest p-3 rounded-xl bg-amber-500/5">
+                         <Calendar className="w-4 h-4" />
+                         <span>ينتهي في: {new Date(item.endDate).toLocaleDateString('ar-EG')}</span>
+                      </div>
+                   </div>
+                </div>
+
+                <Link href={`/contests/${item.id}`}>
+                   <Button className="w-full h-16 rounded-2xl bg-amber-500 text-black font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-amber-500/20 hover:scale-[1.03] transition-all">
+                      <span>خوض التحدي الآن</span>
+                      <Sword className="w-5 h-5" />
+                   </Button>
+                </Link>
+             </div>
+          </m.div>
+        ))}
+      </m.div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background text-gray-100 overflow-hidden pb-40" dir="rtl">
       {/* --- Ambient Background --- */}
@@ -211,7 +347,7 @@ export default function AnnouncementsPage() {
                key={cat.id}
                onClick={() => setActiveCategory(cat.id)}
                className={cn(
-                 "h-12 px-8 flex items-center gap-3 transition-all rounded-2xl font-black text-[11px] uppercase tracking-widest whitespace-nowrap whitespace-nowrap",
+                 "h-12 px-8 flex items-center gap-3 transition-all rounded-2xl font-black text-[11px] uppercase tracking-widest whitespace-nowrap",
                  activeCategory === cat.id ? "bg-white text-black" : "bg-white/5 text-gray-500 border border-white/5 hover:bg-white/10"
                )}
              >
@@ -223,121 +359,12 @@ export default function AnnouncementsPage() {
 
         {/* --- Main Content Grid --- */}
         <AnimatePresence mode="wait">
-           {loading ? (
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {[1, 2, 3].map(i => <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />)}
-             </div>
-           ) : activeTab === "announcements" ? (
-             <m.div 
-               key="announcements"
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: 20 }}
-               className="grid grid-cols-1 md:grid-cols-3 gap-10"
-             >
-                {filteredAnnouncements.map((item, idx) => (
-                  <m.div
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={STYLES.glass + " group cursor-default hover:border-primary/40 transition-all flex flex-col"}
-                  >
-                     <div className="relative aspect-video overflow-hidden">
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-transparent to-transparent flex items-center justify-center">
-                             <Megaphone className="w-16 h-16 text-primary/10" />
-                          </div>
-                        )}
-                        <div className="absolute top-4 right-4 flex gap-2">
-                           <Badge className={cn("font-black text-[9px] uppercase tracking-widest px-3 h-6 border-none", item.priority === 'urgent' ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white')}>
-                              {item.priority === 'urgent' ? 'عاجل جداً' : item.priority}
-                           </Badge>
-                        </div>
-                     </div>
-
-                     <div className="p-8 flex-1 flex flex-col gap-6">
-                        <div className="space-y-3 flex-1">
-                           <h3 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{item.title}</h3>
-                           <p className="text-sm text-gray-500 font-medium line-clamp-3 leading-relaxed">{item.content}</p>
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-white/5 pt-6">
-                           <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                                 <User className="w-4 h-4 text-primary" />
-                              </div>
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.authorName}</span>
-                           </div>
-                           <div className="flex items-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-widest">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{new Date(item.publishedAt).toLocaleDateString('ar-EG')}</span>
-                           </div>
-                        </div>
-
-                        <Link href={`/announcements/${item.id}`}>
-                           <Button variant="ghost" className="w-full h-14 rounded-2xl border border-white/5 group-hover:bg-primary group-hover:text-black font-black uppercase tracking-widest text-[10px] gap-3">
-                              <span>مشاهدة المرسوم</span>
-                              <ChevronRight className="w-4 h-4" />
-                           </Button>
-                        </Link>
-                     </div>
-                  </m.div>
-                ))}
-             </m.div>
-           ) : (
-             <m.div 
-               key="contests"
-               initial={{ opacity: 0, x: 20 }}
-               animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: -20 }}
-               className="grid grid-cols-1 md:grid-cols-3 gap-10"
-             >
-                {filteredContests.map((item, idx) => (
-                  <m.div
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={STYLES.glass + " border-amber-500/10 group cursor-default hover:border-amber-500/40 transition-all flex flex-col"}
-                  >
-                     <div className="relative aspect-video bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <Trophy className="w-20 h-20 text-amber-500/20 group-hover:scale-110 group-hover:text-amber-500/40 transition-all" />
-                        </div>
-                        <div className="absolute bottom-4 right-4">
-                           <Badge className="bg-amber-500 text-black font-black text-[9px] uppercase tracking-widest px-4 h-7 rounded-lg">{item.participantsCount} محارب</Badge>
-                        </div>
-                     </div>
-
-                     <div className="p-8 flex-1 flex flex-col gap-6">
-                        <div className="space-y-4 flex-1">
-                           <div className="flex items-center gap-2 text-[9px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1">
-                              <Zap className="h-3.5 w-3.5" />
-                              <span>تحدي ملكي نشط</span>
-                           </div>
-                           <h3 className="text-2xl font-black text-white group-hover:rpg-gold-text transition-all leading-tight">{item.title}</h3>
-                           <p className="text-sm text-gray-500 font-medium line-clamp-2 leading-relaxed">{item.description}</p>
-                           
-                           <div className="space-y-3 pt-2">
-                              {item.prize && (
-                                <div className="flex items-center gap-3 text-xs font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
-                                   <Crown className="w-4 h-4" />
-                                   <span>الجائزة: {item.prize}</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-3 text-xs font-black text-amber-500/70 uppercase tracking-widest p-3 rounded-xl bg-amber-500/5">
-                                 <Calendar className="w-4 h-4" />
-                                 <span>ينتهي في: {new Date(item.endDate).toLocaleDateString('ar-EG')}</span>
-                              </div>
-                           </div>
-                        </div>
-
-                        <Link href={`/contests/${item.id}`}>
-                           <Button className="w-full h-16 rounded-2xl bg-amber-500 text-black font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-amber-500/20 hover:scale-[1.03] transition-all">
-                              <span>خوض التحدي الآن</span>
+           {renderContent()}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}�ن</span>
                               <Sword className="w-5 h-5" />
                            </Button>
                         </Link>

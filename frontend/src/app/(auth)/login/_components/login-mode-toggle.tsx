@@ -3,8 +3,8 @@
 import { Wand2, Lock } from 'lucide-react';
 
 interface LoginModeToggleProps {
-  loginMode: 'password' | 'magic-link';
-  setLoginMode: (mode: 'password' | 'magic-link') => void;
+  readonly loginMode: 'password' | 'magic-link';
+  readonly setLoginMode: (mode: 'password' | 'magic-link') => void;
 }
 
 export function LoginModeToggle({ loginMode, setLoginMode }: LoginModeToggleProps) {

@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { m } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/services/auth/navigation';
+import { errorService } from '@/lib/logging/error-service';
 import { toast } from 'sonner';
 
 import { BackgroundLayers, LeftPanelInfo, LoadingState, LoginAuthView, LoginFormHeader, LoginFormFooter, LoginMobileHeader } from './_components';
@@ -22,19 +23,19 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const getDeviceInfo = () => {
-  if (typeof window === 'undefined') return { os: 'Unknown', browser: 'Unknown' };
-  const ua = window.navigator.userAgent;
+  if (typeof globalThis.window === 'undefined') return { os: 'Unknown', browser: 'Unknown' };
+  const ua = globalThis.window.navigator.userAgent;
   let os = "نظام غير معروف";
-  if (ua.indexOf("Win") !== -1) os = "Windows";
-  else if (ua.indexOf("Mac") !== -1) os = "macOS";
-  else if (ua.indexOf("Linux") !== -1) os = "Linux";
-  else if (ua.indexOf("Android") !== -1) os = "Android";
-  else if (ua.indexOf("like Mac") !== -1) os = "iOS";
+  if (ua.includes("Win")) os = "Windows";
+  else if (ua.includes("Mac")) os = "macOS";
+  else if (ua.includes("Linux")) os = "Linux";
+  else if (ua.includes("Android")) os = "Android";
+  else if (ua.includes("like Mac")) os = "iOS";
   let browser = "متصفح غير معروف";
-  if (ua.indexOf("Chrome") !== -1) browser = "Chrome";
-  else if (ua.indexOf("Firefox") !== -1) browser = "Firefox";
-  else if (ua.indexOf("Safari") !== -1) browser = "Safari";
-  else if (ua.indexOf("Edge") !== -1) browser = "Edge";
+  if (ua.includes("Chrome")) browser = "Chrome";
+  else if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Safari")) browser = "Safari";
+  else if (ua.includes("Edge")) browser = "Edge";
   return { os, browser };
 };
 
@@ -90,7 +91,11 @@ function LoginForm() {
       } else {
         setErrorStatus(result.error || 'فشل تسجيل الدخول');
       }
-    } catch {
+    } catch (error) {
+      errorService.logError(error, {
+        source: 'LoginPage',
+        severity: 'medium',
+      });
       toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsSubmitting(false);

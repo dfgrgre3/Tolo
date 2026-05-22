@@ -59,30 +59,7 @@ async function buildProxyRequestOptions(request: NextRequest, headers: any): Pro
   return options;
 }
 
-function handleErrorResponse(response: Response, errorText: string) {
-  let errorData;
-  try {
-    errorData = JSON.parse(errorText);
-    // Ensure we always have an error field
-    if (!errorData.error && errorData.message) {
-      errorData.error = errorData.message;
-    }
-    if (!errorData.error && errorData.msg) {
-      errorData.error = errorData.msg;
-    }
-    if (!errorData.error) {
-      errorData.error = `Backend error (HTTP ${response.status})`;
-    }
-  } catch {
-    errorData = { 
-      error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
-      status: response.status,
-      details: errorText.substring(0, 500)
-    };
-  }
-  // Always include status in response
-  errorData.status = response.status;
-
+function copyResponseHeaders(response: Response, defaultCacheControl?: string): Headers {
   const responseHeaders = new Headers();
   const excludeHeaders = [
     'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
@@ -108,8 +85,41 @@ function handleErrorResponse(response: Response, errorText: string) {
   }
 
   if (!responseHeaders.has('content-type')) {
-    responseHeaders.set('content-type', 'application/json');
+    responseHeaders.set('content-type', response.headers.get('content-type') || 'application/json');
   }
+
+  if (defaultCacheControl && !responseHeaders.has('cache-control')) {
+    responseHeaders.set('cache-control', response.headers.get('cache-control') || defaultCacheControl);
+  }
+
+  return responseHeaders;
+}
+
+function handleErrorResponse(response: Response, errorText: string) {
+  let errorData;
+  try {
+    errorData = JSON.parse(errorText);
+    // Ensure we always have an error field
+    if (!errorData.error && errorData.message) {
+      errorData.error = errorData.message;
+    }
+    if (!errorData.error && errorData.msg) {
+      errorData.error = errorData.msg;
+    }
+    if (!errorData.error) {
+      errorData.error = `Backend error (HTTP ${response.status})`;
+    }
+  } catch {
+    errorData = { 
+      error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
+      status: response.status,
+      details: errorText.substring(0, 500)
+    };
+  }
+  // Always include status in response
+  errorData.status = response.status;
+
+  const responseHeaders = copyResponseHeaders(response);
 
   return NextResponse.json(errorData, { 
     status: response.status,
@@ -154,37 +164,7 @@ async function handleProxy(
         return handleErrorResponse(response, errorText);
       }
 
-      // Success! Copy all relevant response headers from upstream backend
-      const responseHeaders = new Headers();
-      const excludeHeaders = [
-        'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
-        'te', 'trailers', 'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'
-      ];
-
-      response.headers.forEach((value, key) => {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey === 'set-cookie') return;
-        if (!excludeHeaders.includes(lowerKey)) {
-          responseHeaders.set(key, value);
-        }
-      });
-
-      if (response.headers.has('set-cookie')) {
-        const setCookieHeaders = typeof (response.headers as any).getSetCookie === 'function'
-          ? (response.headers as any).getSetCookie()
-          : [response.headers.get('set-cookie')].filter(Boolean) as string[];
-
-        setCookieHeaders.forEach((cookieVal: string) => {
-          responseHeaders.append('Set-Cookie', cookieVal);
-        });
-      }
-
-      if (!responseHeaders.has('content-type')) {
-        responseHeaders.set('content-type', response.headers.get('content-type') || 'application/json');
-      }
-      if (!responseHeaders.has('cache-control')) {
-        responseHeaders.set('cache-control', response.headers.get('cache-control') || 'no-store');
-      }
+      const responseHeaders = copyResponseHeaders(response, 'no-store');
 
       return new NextResponse(response.body, {
         status: response.status,

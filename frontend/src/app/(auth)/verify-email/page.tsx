@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { errorService } from '@/lib/logging/error-service';
 
 function VerifyEmailContent() {
   const { verifyEmail } = useAuth();
@@ -38,7 +39,11 @@ function VerifyEmailContent() {
           setStatus('error');
           setMessage(result.error || 'فشل تفعيل الحساب.');
         }
-      } catch (_error) {
+      } catch (error) {
+        errorService.logError(error, {
+          source: 'VerifyEmailPage',
+          severity: 'medium',
+        });
         setStatus('error');
         setMessage('خطأ في الاتصال بالسيرفر.');
       }

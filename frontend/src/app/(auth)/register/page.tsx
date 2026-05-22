@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/services/auth/navigation';
+import { errorService } from '@/lib/logging/error-service';
 import { toast } from 'sonner';
 
 import { BackgroundLayers, LoadingState, RegisterHeader, StepIndicator, RoleStep, PersonalInfoStep, PreferencesStep, RegisterFooter } from './_components';
@@ -35,8 +36,8 @@ const registerSchema = z.object({
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
     .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد')
     .regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد')
-    .regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد')
-    .regex(/[^A-Za-z0-9]/, 'يجب أن تحتوي على رمز خاص واحد'),
+    .regex(/\d/, 'يجب أن تحتوي على رقم واحد')
+    .regex(/[^A-Za-z\d]/, 'يجب أن تحتوي على رمز خاص واحد'),
   confirmPassword: z.string(),
   phone: z.string().refine((val) => {
     if (!val) return true;
@@ -121,7 +122,11 @@ function RegisterForm() {
       } else {
         toast.error(result.error || 'فشل إنشاء الحساب');
       }
-    } catch {
+    } catch (error) {
+      errorService.logError(error, {
+        source: 'RegisterPage',
+        severity: 'medium',
+      });
       toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsLoading(false);

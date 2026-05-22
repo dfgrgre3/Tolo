@@ -100,7 +100,7 @@ function ProgressIndicator() {
         }
         return;
       }
-      void doFetch();
+      doFetch();
     };
 
     if (typeof requestIdleCallback !== "undefined") {
@@ -116,7 +116,7 @@ function ProgressIndicator() {
       return;
     }
 
-    void fetchProgress();
+    fetchProgress();
     const interval = setInterval(fetchProgress, 300000);
 
     return () => clearInterval(interval);

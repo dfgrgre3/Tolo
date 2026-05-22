@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -326,8 +326,8 @@ export default function NewAnnouncementPage() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {tags.map((tag, index) => (
-                  <div key={index} className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm">
+                {tags.map((tag) => (
+                  <div key={tag} className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm">
                     <span>{tag}</span>
                     <button
                       type="button"

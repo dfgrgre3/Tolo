@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { OTPInput } from './otp-input';
 
 interface TwoFAPanelProps {
-  twoFactorCode: string;
-  setTwoFactorCode: (val: string) => void;
-  isSubmitting: boolean;
-  onVerify2FA: (e: React.FormEvent) => void;
-  onBack: () => void;
+  readonly twoFactorCode: string;
+  readonly setTwoFactorCode: (val: string) => void;
+  readonly isSubmitting: boolean;
+  readonly onVerify2FA: (e: React.FormEvent) => void;
+  readonly onBack: () => void;
 }
 
 export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onBack }: TwoFAPanelProps) {

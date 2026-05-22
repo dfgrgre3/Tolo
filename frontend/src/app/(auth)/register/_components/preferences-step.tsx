@@ -15,27 +15,27 @@ const SUBJECTS = ['رياضيات', 'فيزياء', 'كيمياء', 'برمجة'
 export function PreferencesStep({
   register, errors, interestedSubjects, toggleArrayItem, acceptTerms, onBack, isLoading
 }: {
-  register: UseFormRegister<any>;
-  errors: FieldErrors<any>;
-  interestedSubjects: string[];
-  toggleArrayItem: (field: 'interestedSubjects', value: string) => void;
-  acceptTerms: boolean;
-  onBack: () => void;
-  isLoading: boolean;
+  readonly register: UseFormRegister<any>;
+  readonly errors: FieldErrors<any>;
+  readonly interestedSubjects: readonly string[];
+  readonly toggleArrayItem: (field: 'interestedSubjects', value: string) => void;
+  readonly acceptTerms: boolean;
+  readonly onBack: () => void;
+  readonly isLoading: boolean;
 }) {
   return (
     <m.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3">
-          <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">المستوى الدراسي</Label>
-          <select {...register('gradeLevel')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
+          <Label htmlFor="gradeLevel" className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">المستوى الدراسي</Label>
+          <select id="gradeLevel" {...register('gradeLevel')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
             <option value="" className="bg-[#0a0a0a]">اختر المستوى</option>
             {STUDENT_GRADES.map((g) => <option key={g} value={g} className="bg-[#0a0a0a]">{g}</option>)}
           </select>
         </div>
         <div className="space-y-3">
-          <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">الفرع التعليمي</Label>
-          <select {...register('educationType')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
+          <Label htmlFor="educationType" className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2">الفرع التعليمي</Label>
+          <select id="educationType" {...register('educationType')} className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 font-bold text-white outline-none focus:border-primary/50 transition-all cursor-pointer">
             <option value="" className="bg-[#0a0a0a]">اختر الفرع</option>
             {EDUCATION_TYPES.map((e) => <option key={e} value={e} className="bg-[#0a0a0a]">{e}</option>)}
           </select>
@@ -43,7 +43,7 @@ export function PreferencesStep({
       </div>
 
       <div className="space-y-6">
-        <Label className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2 block">المواد المفضلة</Label>
+        <span className="text-[11px] font-black uppercase text-gray-500 tracking-widest px-2 block">المواد المفضلة</span>
         <div className="flex flex-wrap gap-3">
           {SUBJECTS.map((subject) => {
             const selected = interestedSubjects.includes(subject);

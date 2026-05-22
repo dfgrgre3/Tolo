@@ -4,8 +4,8 @@ import { m } from 'framer-motion';
 import { type UseFormRegisterReturn, type UseFormGetValues } from 'react-hook-form';
 
 interface RememberMeCheckboxProps {
-  registration: UseFormRegisterReturn;
-  getValues: UseFormGetValues<any>;
+  readonly registration: UseFormRegisterReturn;
+  readonly getValues: UseFormGetValues<any>;
 }
 
 export function RememberMeCheckbox({ registration, getValues }: RememberMeCheckboxProps) {

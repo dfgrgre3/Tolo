@@ -4,8 +4,18 @@ import { m } from 'framer-motion';
 import { ShieldCheck, Sparkles, Fingerprint, Globe, Zap, History, Cpu } from 'lucide-react';
 
 interface LeftPanelInfoProps {
-  deviceInfo: { os: string; browser: string };
+  readonly deviceInfo: {
+    readonly os: string;
+    readonly browser: string;
+  };
 }
+
+const INFO_ITEMS = [
+  { icon: Fingerprint, label: "بصمة رقمية", sub: "AES-256 GCM", id: "fingerprint" },
+  { icon: Globe, label: "سحابة تولو", sub: "Edge Network", id: "globe" },
+  { icon: Zap, label: "ذكاء اصطناعي", sub: "Adaptive Security", id: "zap" },
+  { icon: History, label: "سجل الأمان", sub: "Live Monitoring", id: "history" }
+] as const;
 
 export function LeftPanelInfo({ deviceInfo }: LeftPanelInfoProps) {
   return (
@@ -49,14 +59,9 @@ export function LeftPanelInfo({ deviceInfo }: LeftPanelInfoProps) {
           </m.div>
 
           <div className="grid grid-cols-2 gap-5">
-            {[
-              { icon: Fingerprint, label: "بصمة رقمية", sub: "AES-256 GCM" },
-              { icon: Globe, label: "سحابة تولو", sub: "Edge Network" },
-              { icon: Zap, label: "ذكاء اصطناعي", sub: "Adaptive Security" },
-              { icon: History, label: "سجل الأمان", sub: "Live Monitoring" }
-            ].map((item, idx) => (
+            {INFO_ITEMS.map((item, idx) => (
               <m.div
-                key={idx}
+                key={item.id}
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.5 + idx * 0.1 }}

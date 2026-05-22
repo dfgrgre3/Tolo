@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils';
 export function RoleStep({
   register, roleValue, onNext
 }: {
-  register: UseFormRegister<any>;
-  roleValue: string;
-  onNext: () => void;
+  readonly register: UseFormRegister<any>;
+  readonly roleValue: string;
+  readonly onNext: () => void;
 }) {
   return (
     <m.div

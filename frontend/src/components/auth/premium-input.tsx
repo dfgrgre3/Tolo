@@ -19,6 +19,82 @@ interface PremiumInputProps {
   dir?: 'rtl' | 'ltr';
 }
 
+function getErrorMessage(error?: { message?: string } | string): string | undefined {
+  if (!error) return undefined;
+  if (typeof error === 'string') return error;
+  return error.message;
+}
+
+function getContainerAnimation(isFocused: boolean, errorMessage: string | undefined) {
+  let borderColor = "rgba(255,255,255,0.08)";
+  let backgroundColor = "rgba(255,255,255,0.04)";
+  let scale = 1;
+
+  if (isFocused) {
+    borderColor = "rgba(255,109,0,0.5)";
+    backgroundColor = "rgba(255,255,255,0.08)";
+    scale = 1.01;
+  } else if (errorMessage) {
+    borderColor = "rgba(239,68,68,0.4)";
+  }
+
+  return { borderColor, backgroundColor, scale };
+}
+
+function getContainerClass(isFocused: boolean, hasError: boolean): string {
+  return cn(
+    "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
+    isFocused && "shadow-[0_0_25px_rgba(255,109,0,0.15)]",
+    hasError && "ring-2 ring-red-500/20"
+  );
+}
+
+function getIconClass(isFocused: boolean, errorMessage: string | undefined): string {
+  return cn(
+    "absolute right-5 top-1/2 -translate-y-1/2 transition-all duration-300 z-10",
+    isFocused ? "text-primary scale-110" : errorMessage ? "text-red-400" : "text-gray-500"
+  );
+}
+
+function renderIcon(Icon: ReactNode | React.ElementType) {
+  if (typeof Icon === 'function') {
+    return React.createElement(Icon as React.ElementType, { size: 22, strokeWidth: 2.5 });
+  }
+  return Icon;
+}
+
+function getLabelAnimation(isActive: boolean, isFocused: boolean, errorMessage: string | undefined) {
+  let color = "rgba(107,114,128,1)";
+  if (isFocused) {
+    color = "rgba(255,109,0,0.9)";
+  } else if (errorMessage) {
+    color = "rgba(239,68,68,1)";
+  }
+
+  if (isActive) {
+    return {
+      y: -18,
+      scale: 0.75,
+      x: 10,
+      color,
+    };
+  }
+
+  return {
+    y: 0,
+    scale: 1,
+    x: 0,
+    color,
+  };
+}
+
+function getLabelClass(isActive: boolean): string {
+  return cn(
+    "absolute right-14 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all z-10",
+    isActive ? "text-[10px]" : "text-sm"
+  );
+}
+
 export function PremiumInput({
   label,
   icon: Icon,
@@ -35,29 +111,24 @@ export function PremiumInput({
   const [hasValue, setHasValue] = useState(false);
 
   const isActive = isFocused || hasValue;
-  const errorMessage = typeof error === 'string' ? error : error?.message;
+  const errorMessage = getErrorMessage(error);
   const PasswordToggleIcon = showPassword ? EyeOff : Eye;
+
+  const containerAnimation = getContainerAnimation(isFocused, errorMessage);
+  const containerClass = getContainerClass(isFocused, !!errorMessage);
+  const iconClass = getIconClass(isFocused, errorMessage);
+  const labelAnimation = getLabelAnimation(isActive, isFocused, errorMessage);
+  const labelClass = getLabelClass(isActive);
 
   return (
     <div className="space-y-2 group/input" dir={dir}>
       <m.div
-        animate={{
-          borderColor: isFocused ? "rgba(255,109,0,0.5)" : errorMessage ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)",
-          backgroundColor: isFocused ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-          scale: isFocused ? 1.01 : 1,
-        }}
+        animate={containerAnimation}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className={cn(
-          "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
-          isFocused && "shadow-[0_0_25px_rgba(255,109,0,0.15)]",
-          errorMessage && "ring-2 ring-red-500/20"
-        )}
+        className={containerClass}
       >
-        <div className={cn(
-          "absolute right-5 top-1/2 -translate-y-1/2 transition-all duration-300 z-10",
-          isFocused ? "text-primary scale-110" : errorMessage ? "text-red-400" : "text-gray-500"
-        )}>
-          {typeof Icon === 'function' ? React.createElement(Icon as React.ElementType, { size: 22, strokeWidth: 2.5 }) : Icon}
+        <div className={iconClass}>
+          {renderIcon(Icon)}
         </div>
 
         <input
@@ -78,16 +149,8 @@ export function PremiumInput({
         />
 
         <m.label
-          animate={{
-            y: isActive ? -18 : 0,
-            scale: isActive ? 0.75 : 1,
-            x: isActive ? 10 : 0,
-            color: isFocused ? "rgba(255,109,0,0.9)" : errorMessage ? "rgba(239,68,68,1)" : "rgba(107,114,128,1)",
-          }}
-          className={cn(
-            "absolute right-14 top-1/2 -translate-y-1/2 font-bold pointer-events-none origin-right transition-all z-10",
-            isActive ? "text-[10px]" : "text-sm"
-          )}
+          animate={labelAnimation}
+          className={labelClass}
         >
           {label}
         </m.label>

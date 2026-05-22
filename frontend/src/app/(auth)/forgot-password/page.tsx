@@ -10,6 +10,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { errorService } from '@/lib/logging/error-service';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('يرجى إدخال بريد إلكتروني صحيح'),
@@ -50,7 +51,11 @@ export default function ForgotPasswordPage() {
           message: result.error || 'شيء ما سار بشكل خاطئ. يرجى المحاولة مرة أخرى.',
         });
       }
-    } catch (_error) {
+    } catch (error) {
+      errorService.logError(error, {
+        source: 'ForgotPasswordPage',
+        severity: 'medium',
+      });
       toast.error('خطأ في الاتصال بالشبكة');
       setStatus({
         type: 'error',

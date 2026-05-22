@@ -10,13 +10,14 @@ import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { errorService } from '@/lib/logging/error-service';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
     .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد')
     .regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد')
-    .regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد')
-    .regex(/[^A-Za-z0-9]/, 'يجب أن تحتوي على رمز خاص واحد'),
+    .regex(/\d/, 'يجب أن تحتوي على رقم واحد')
+    .regex(/[^A-Za-z\d]/, 'يجب أن تحتوي على رمز خاص واحد'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "كلمتا المرور غير متطابقتين",
@@ -70,7 +71,11 @@ function ResetPasswordForm() {
           message: result.error || 'فشل في إعادة تعيين كلمة المرور.',
         });
       }
-    } catch (_error) {
+    } catch (error) {
+      errorService.logError(error, {
+        source: 'ResetPasswordPage',
+        severity: 'medium',
+      });
       toast.error('حدث خطأ في الشبكة');
     }
 
@@ -138,7 +143,7 @@ function ResetPasswordForm() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">الشيفرة الجديدة</label>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">الشيفرة الجديدة</span>
             <div className="relative group">
               <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
               <input
@@ -160,7 +165,7 @@ function ResetPasswordForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">تأكيد الشيفرة</label>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">تأكيد الشيفرة</span>
             <div className="relative group">
               <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
               <input

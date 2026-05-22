@@ -5,8 +5,8 @@ import { Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SubmitButtonProps {
-  isSubmitting: boolean;
-  loginMode: 'password' | 'magic-link';
+  readonly isSubmitting: boolean;
+  readonly loginMode: 'password' | 'magic-link';
 }
 
 export function SubmitButton({ isSubmitting, loginMode }: SubmitButtonProps) {

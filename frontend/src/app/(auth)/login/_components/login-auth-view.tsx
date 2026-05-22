@@ -19,23 +19,26 @@ interface LoginFormValues {
 }
 
 interface LoginAuthViewProps {
-  requires2FA: boolean;
-  errorStatus: string | null;
-  onResendVerification: () => void;
-  handleSubmit: UseFormHandleSubmit<LoginFormValues>;
-  onSubmit: (data: LoginFormValues) => void;
-  register: UseFormRegister<LoginFormValues>;
-  errors: { email?: { message?: string }; password?: { message?: string } };
-  loginMode: 'password' | 'magic-link';
-  showPassword: boolean;
-  setShowPassword: (v: boolean) => void;
-  getValues: UseFormGetValues<LoginFormValues>;
-  setLoginMode: (mode: 'password' | 'magic-link') => void;
-  isSubmitting: boolean;
-  twoFactorCode: string;
-  setTwoFactorCode: (v: string) => void;
-  onVerify2FA: (e: React.FormEvent) => void;
-  setRequires2FA: (v: boolean) => void;
+  readonly requires2FA: boolean;
+  readonly errorStatus: string | null;
+  readonly onResendVerification: () => void;
+  readonly handleSubmit: UseFormHandleSubmit<LoginFormValues>;
+  readonly onSubmit: (data: LoginFormValues) => void;
+  readonly register: UseFormRegister<LoginFormValues>;
+  readonly errors: {
+    readonly email?: { readonly message?: string };
+    readonly password?: { readonly message?: string };
+  };
+  readonly loginMode: 'password' | 'magic-link';
+  readonly showPassword: boolean;
+  readonly setShowPassword: (v: boolean) => void;
+  readonly getValues: UseFormGetValues<LoginFormValues>;
+  readonly setLoginMode: (mode: 'password' | 'magic-link') => void;
+  readonly isSubmitting: boolean;
+  readonly twoFactorCode: string;
+  readonly setTwoFactorCode: (v: string) => void;
+  readonly onVerify2FA: (e: React.FormEvent) => void;
+  readonly setRequires2FA: (v: boolean) => void;
 }
 
 export function LoginAuthView({

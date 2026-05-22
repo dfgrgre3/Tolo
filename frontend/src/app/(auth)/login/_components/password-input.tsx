@@ -6,17 +6,17 @@ import { type UseFormRegisterReturn } from 'react-hook-form';
 import { PremiumInput } from '@/components/auth/premium-input';
 
 interface PasswordInputProps {
-  showPassword: boolean;
-  setShowPassword: (v: boolean) => void;
-  registration: UseFormRegisterReturn;
-  error?: { message?: string };
+  readonly showPassword: boolean;
+  readonly setShowPassword: (v: boolean) => void;
+  readonly registration: UseFormRegisterReturn;
+  readonly error?: { readonly message?: string };
 }
 
 export function PasswordInput({ showPassword, setShowPassword, registration, error }: PasswordInputProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-2">
-        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">كلمة المرور</label>
+        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">كلمة المرور</span>
         <Link
           href="/forgot-password"
           className="text-[11px] font-black text-primary/70 hover:text-primary transition-colors"

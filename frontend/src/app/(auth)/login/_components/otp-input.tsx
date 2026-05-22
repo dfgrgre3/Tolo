@@ -5,9 +5,9 @@ import { m } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface OTPInputProps {
-  value: string;
-  onChange: (val: string) => void;
-  disabled?: boolean;
+  readonly value: string;
+  readonly onChange: (val: string) => void;
+  readonly disabled?: boolean;
 }
 
 export function OTPInput({ value, onChange, disabled }: OTPInputProps) {
@@ -15,7 +15,7 @@ export function OTPInput({ value, onChange, disabled }: OTPInputProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const val = e.target.value;
-    if (isNaN(Number(val))) return;
+    if (Number.isNaN(Number(val))) return;
 
     const newOTP = value.split('');
     newOTP[index] = val.substring(val.length - 1);
@@ -37,7 +37,7 @@ export function OTPInput({ value, onChange, disabled }: OTPInputProps) {
     <div className="flex justify-center gap-3" dir="ltr">
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <m.input
-          key={i}
+          key={`otp-slot-${i}`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05 }}

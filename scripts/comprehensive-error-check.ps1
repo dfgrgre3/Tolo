@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$Root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).ProviderPath
 $DocsDir = Join-Path $Root "docs"
 $ReportPath = Join-Path $DocsDir "audit-report.md"
 $Results = New-Object System.Collections.Generic.List[object]
@@ -16,7 +16,7 @@ $TextExtensions = @(
 
 function Get-RelativePath {
   param([string]$Path)
-  $rootPath = $Root.ProviderPath.TrimEnd("\", "/")
+  $rootPath = $Root.TrimEnd("\", "/")
   $fullPath = [System.IO.Path]::GetFullPath($Path)
   if ($fullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
     return $fullPath.Substring($rootPath.Length).TrimStart("\", "/")
@@ -47,7 +47,7 @@ function Invoke-AuditCommand {
   $displayCommand = ((@($FilePath) + $Arguments) -join " ").Trim()
 
   try {
-    $env:GOCACHE = if ($env:GOCACHE) { $env:GOCACHE } else { "C:\tmp\go-build-cache-thanawy" }
+    $env:GOCACHE = if ($env:GOCACHE) { $env:GOCACHE } else { Join-Path $Root ".gocache" }
     $resolvedCommand = (Get-Command $FilePath -ErrorAction Stop).Source
     $process = Start-Process -FilePath $resolvedCommand `
       -ArgumentList $Arguments `
@@ -82,6 +82,71 @@ function Invoke-AuditCommand {
     })
 }
 
+function Test-ShouldAuditFile {
+  param(
+    [object]$File
+  )
+  $relative = Get-RelativePath $File.FullName
+  $parts = $relative -split "[\\/]"
+  foreach ($part in $parts) {
+    if ($IgnoredDirs -contains $part) {
+      return $false
+    }
+  }
+  if ($File.Length -gt 1MB) {
+    return $false
+  }
+  if ($File.Name -in @("package-lock.json", "pnpm-lock.yaml", "tsconfig.tsbuildinfo")) {
+    return $false
+  }
+  if ($TextExtensions -contains $File.Extension -or $File.Name.StartsWith(".")) {
+    return $true
+  }
+  return $false
+}
+
+function Test-LineForSecret {
+  param(
+    [string]$Line,
+    [array]$Patterns
+  )
+  foreach ($pattern in $Patterns) {
+    if ($Line -match $pattern.Pattern) {
+      return $pattern.Name
+    }
+  }
+  return $null
+}
+
+function Get-FileSecretFindings {
+  param(
+    [object]$File,
+    [array]$Patterns
+  )
+  $findings = New-Object System.Collections.Generic.List[string]
+  $relative = Get-RelativePath $File.FullName
+  try {
+    $lines = Get-Content -LiteralPath $File.FullName -ErrorAction Stop
+  } catch {
+    return ,$findings
+  }
+
+  for ($i = 0; $i -lt $lines.Count; $i++) {
+    $line = [string]$lines[$i]
+    if ($relative -eq ".env.example" -and $line.Contains("your-")) {
+      continue
+    }
+    if ($line.Contains("valid-jwt-token")) {
+      continue
+    }
+    $matchedSecret = Test-LineForSecret -Line $line -Patterns $Patterns
+    if ($null -ne $matchedSecret) {
+      $findings.Add("${relative}:$($i + 1) - $matchedSecret")
+    }
+  }
+  return ,$findings
+}
+
 function Invoke-SecretScan {
   $started = Get-Date
   $findings = New-Object System.Collections.Generic.List[string]
@@ -94,38 +159,12 @@ function Invoke-SecretScan {
   )
 
   $files = Get-ChildItem -Path $Root -Recurse -File -Force |
-    Where-Object {
-      $relative = Get-RelativePath $_.FullName
-      $parts = $relative -split "[\\/]"
-      -not ($parts | Where-Object { $IgnoredDirs -contains $_ }) -and
-      $_.Length -le 1MB -and
-      ($TextExtensions -contains $_.Extension -or $_.Name.StartsWith(".")) -and
-      $_.Name -notin @("package-lock.json", "pnpm-lock.yaml", "tsconfig.tsbuildinfo")
-    }
+    Where-Object { Test-ShouldAuditFile -File $_ }
 
   foreach ($file in $files) {
-    $relative = Get-RelativePath $file.FullName
-    $lines = @()
-    try {
-      $lines = Get-Content -LiteralPath $file.FullName -ErrorAction Stop
-    } catch {
-      continue
-    }
-
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-      $line = [string]$lines[$i]
-      if ($relative -eq ".env.example" -and $line.Contains("your-")) {
-        continue
-      }
-      if ($line.Contains("valid-jwt-token")) {
-        continue
-      }
-      foreach ($pattern in $patterns) {
-        if ($line -match $pattern.Pattern) {
-          $findings.Add("${relative}:$($i + 1) - $($pattern.Name)")
-          break
-        }
-      }
+    $fileFindings = Get-FileSecretFindings -File $file -Patterns $patterns
+    if ($null -ne $fileFindings) {
+      $findings.AddRange($fileFindings)
     }
   }
 
@@ -146,18 +185,25 @@ function Get-StatusLabel {
   return "FAIL"
 }
 
+$backendDir = Join-Path $Root "backend"
+$frontendDir = Join-Path $Root "frontend"
+
 if ($Fix) {
-  Invoke-AuditCommand -Name "ESLint auto-fix" -FilePath "npx.cmd" -Arguments @("eslint", ".", "--fix") -WarnOnly
-  Invoke-AuditCommand -Name "Go formatting" -FilePath "gofmt.exe" -Arguments @("-w", ".") -WorkingDirectory (Join-Path $Root "backend") -WarnOnly
+  Invoke-AuditCommand -Name "ESLint auto-fix" -FilePath "npx.cmd" -Arguments @("eslint", ".", "--fix") -WorkingDirectory $frontendDir -WarnOnly
+  if (Test-Path $backendDir) {
+    Invoke-AuditCommand -Name "Go formatting" -FilePath "gofmt.exe" -Arguments @("-w", ".") -WorkingDirectory $backendDir -WarnOnly
+  }
 }
 
-Invoke-AuditCommand -Name "TypeScript type-check" -FilePath "npx.cmd" -Arguments @("tsc", "--noEmit")
-Invoke-AuditCommand -Name "ESLint" -FilePath "npx.cmd" -Arguments @("eslint", ".") -WarnOnly
-Invoke-AuditCommand -Name "Frontend tests" -FilePath "npm.cmd" -Arguments @("test")
-Invoke-AuditCommand -Name "Next production build" -FilePath "npm.cmd" -Arguments @("run", "build")
-Invoke-AuditCommand -Name "Go tests" -FilePath "go.exe" -Arguments @("test", "./...") -WorkingDirectory (Join-Path $Root "backend")
+Invoke-AuditCommand -Name "TypeScript type-check" -FilePath "npx.cmd" -Arguments @("tsc", "--noEmit") -WorkingDirectory $frontendDir
+Invoke-AuditCommand -Name "ESLint" -FilePath "npx.cmd" -Arguments @("eslint", ".") -WorkingDirectory $frontendDir -WarnOnly
+Invoke-AuditCommand -Name "Frontend tests" -FilePath "npm.cmd" -Arguments @("test") -WorkingDirectory $frontendDir
+Invoke-AuditCommand -Name "Next production build" -FilePath "npm.cmd" -Arguments @("run", "build") -WorkingDirectory $frontendDir
+if (Test-Path $backendDir) {
+  Invoke-AuditCommand -Name "Go tests" -FilePath "go.exe" -Arguments @("test", "./...") -WorkingDirectory $backendDir
+}
 Invoke-SecretScan
-Invoke-AuditCommand -Name "npm dependency audit" -FilePath "npm.cmd" -Arguments @("audit", "--audit-level=moderate", "--omit=dev") -WarnOnly
+Invoke-AuditCommand -Name "npm dependency audit" -FilePath "npm.cmd" -Arguments @("audit", "--audit-level=moderate", "--omit=dev") -WorkingDirectory $frontendDir -WarnOnly
 
 if (-not (Test-Path $DocsDir)) {
   New-Item -ItemType Directory -Path $DocsDir | Out-Null
