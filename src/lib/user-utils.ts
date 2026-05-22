@@ -74,19 +74,21 @@ async function createGuestUser(): Promise<string | null> {
  * Ensure user ID exists, create guest user if needed
  */
 export async function ensureUser(): Promise<string> {
-  const authId = await getAuthenticatedUser();
-  if (authId) return authId;
-
   let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
 
   if (id === 'dev-user-id' || id === 'default-user') {
     clearUserId();
     id = null;
   }
-  
-  if (!id) {
-    id = await createGuestUser();
+
+  if (id) {
+    return id;
   }
+
+  const authId = await getAuthenticatedUser();
+  if (authId) return authId;
+  
+  id = await createGuestUser();
   
   return id || '';
 }

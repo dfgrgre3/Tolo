@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -12,12 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MicahParks/keyfunc/v2"
-	"github.com/gin-gonic/gin"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/services"
+
+	"github.com/MicahParks/keyfunc/v2"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -30,7 +33,31 @@ var (
 	jwksLastLoad time.Time
 	jwksMutex    sync.RWMutex
 	jwksTTL      = 1 * time.Hour // Default TTL, can be overridden by JWKS_CACHE_TTL_HOURS env var
+
+	localRolePermsTTL = 5 * time.Minute
+	rolePermsRedisTTL = 5 * time.Minute
 )
+
+type InMemoryRolePerms struct {
+	Role        string
+	Permissions []string
+	ExpiresAt   time.Time
+}
+
+var (
+	localRolePermsCache sync.Map
+	userContextSF       singleflight.Group
+)
+
+type userAuthContext struct {
+	Role        string
+	Permissions []string
+}
+
+// InvalidateRolePermsCache evicts a user's cached role/permissions
+func InvalidateRolePermsCache(userID string) {
+	localRolePermsCache.Delete(userID)
+}
 
 // Context keys for storing user information in request context
 type ContextKey string
@@ -121,6 +148,9 @@ func Auth() gin.HandlerFunc {
 
 		c.Set("userId", claims.Subject)
 		c.Set("jti", claims.JTI)
+		if claims.ExpiresAt != nil {
+			c.Set("accessTokenExpiresAt", claims.ExpiresAt.Time.UnixMilli())
+		}
 
 		hydrateUserContext(c, claims.Subject, claims.Role)
 		processImpersonation(c, claims.Subject)
@@ -156,8 +186,6 @@ func setContextPermissions(c *gin.Context, permissions models.JSONStringArray) {
 
 // Helper to fetch and set user role/permissions in context from database or fallback
 func hydrateUserContext(c *gin.Context, userID string, fallbackRole string) {
-	var user models.User
-
 	if db.DB == nil {
 		log.Printf("WARN: Database connection is nil in hydrateUserContext for user %s", userID)
 		c.Set("role", strings.ToUpper(fallbackRole))
@@ -165,9 +193,98 @@ func hydrateUserContext(c *gin.Context, userID string, fallbackRole string) {
 		return
 	}
 
-	if err := db.DB.Unscoped().Select("role", "permissions").Where("id = ?", userID).First(&user).Error; err == nil {
-		c.Set("role", string(user.Role))
-		setContextPermissions(c, user.Permissions)
+	// 1. Try local in-memory cache first to bypass Redis cloud network latency
+	if val, ok := localRolePermsCache.Load(userID); ok {
+		cached := val.(InMemoryRolePerms)
+		if time.Now().Before(cached.ExpiresAt) {
+			c.Set("role", cached.Role)
+			c.Set("permissions", cached.Permissions)
+			return
+		}
+		localRolePermsCache.Delete(userID)
+	}
+
+	// 2. Use singleflight to collapse concurrent calls for the same user
+	res, err, _ := userContextSF.Do(userID, func() (interface{}, error) {
+		// Double check local cache inside singleflight
+		if val, ok := localRolePermsCache.Load(userID); ok {
+			cached := val.(InMemoryRolePerms)
+			if time.Now().Before(cached.ExpiresAt) {
+				return userAuthContext{Role: cached.Role, Permissions: cached.Permissions}, nil
+			}
+		}
+
+		cacheKey := fmt.Sprintf("user_role_perms:%s", userID)
+		var roleVal string
+		var permsVal []string
+		redisHit := false
+
+		// Try Redis cache next
+		if db.Redis != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			cachedVal, err := db.Redis.Get(ctx, cacheKey).Result()
+			cancel()
+			if err == nil {
+				parts := strings.SplitN(cachedVal, "|", 2)
+				if len(parts) == 2 {
+					roleVal = parts[0]
+					permsVal = strings.Split(parts[1], ",")
+					if len(permsVal) == 1 && permsVal[0] == "" {
+						permsVal = []string{}
+					}
+					redisHit = true
+				}
+			}
+		}
+
+		if redisHit {
+			// Populate local cache
+			localRolePermsCache.Store(userID, InMemoryRolePerms{
+				Role:        roleVal,
+				Permissions: permsVal,
+				ExpiresAt:   time.Now().Add(localRolePermsTTL),
+			})
+			return userAuthContext{Role: roleVal, Permissions: permsVal}, nil
+		}
+
+		var user models.User
+		// IMPORTANT: Use Select to ONLY fetch needed columns, and direct WHERE clause for index usage
+		if err := db.DB.Unscoped().
+			Select("role", "permissions").
+			Where("id = ?", userID).
+			Take(&user).Error; err == nil {
+			roleVal = string(user.Role)
+			permsVal = []string(user.Permissions)
+			if permsVal == nil {
+				permsVal = []string{}
+			}
+
+			// Cache in Redis asynchronously
+			if db.Redis != nil {
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+					defer cancel()
+					permsStr := strings.Join(permsVal, ",")
+					db.Redis.Set(ctx, cacheKey, roleVal+"|"+permsStr, rolePermsRedisTTL)
+				}()
+			}
+
+			// Populate local cache
+			localRolePermsCache.Store(userID, InMemoryRolePerms{
+				Role:        roleVal,
+				Permissions: permsVal,
+				ExpiresAt:   time.Now().Add(localRolePermsTTL),
+			})
+			return userAuthContext{Role: roleVal, Permissions: permsVal}, nil
+		}
+
+		return userAuthContext{Role: strings.ToUpper(fallbackRole), Permissions: []string{}}, nil
+	})
+
+	if err == nil {
+		authCtx := res.(userAuthContext)
+		c.Set("role", authCtx.Role)
+		c.Set("permissions", authCtx.Permissions)
 	} else {
 		c.Set("role", strings.ToUpper(fallbackRole))
 		c.Set("permissions", []string{})
@@ -192,7 +309,7 @@ func processImpersonation(c *gin.Context, adminID string) {
 	}
 
 	var targetUser models.User
-	if err := db.DB.Unscoped().Select("id", "role", "permissions").First(&targetUser, "id = ?", impersonatedID).Error; err == nil {
+	if err := db.DB.Unscoped().Select("id", "role", "permissions").Take(&targetUser, "id = ?", impersonatedID).Error; err == nil {
 		c.Set("originalAdminId", adminID)
 		c.Set("userId", impersonatedID)
 		c.Set("role", string(targetUser.Role))
@@ -316,6 +433,10 @@ func CORS() gin.HandlerFunc {
 // Helper to check if the request origin is allowed
 func isOriginAllowed(origin string, isDev bool, allowedOrigins []string) bool {
 	if origin == "" {
+		// In development, allow requests with no origin (e.g. from mobile apps, Postman, Electron)
+		if isDev {
+			return true
+		}
 		return false
 	}
 
@@ -340,7 +461,7 @@ func isLocalhostOrLAN(origin string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	host := u.Hostname()
 	if host == "" {
 		host = u.Host
@@ -370,8 +491,13 @@ func isLocalhostOrLAN(origin string) bool {
 
 // Helper to set CORS response headers
 func setCorsHeaders(c *gin.Context, origin string, isAllowed bool) {
-	if origin != "" && isAllowed {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+	if isAllowed {
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			// For requests with no origin (e.g. curl, mobile apps), allow all
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 

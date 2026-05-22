@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -23,6 +28,34 @@ type resourceInput struct {
 	IDs         []string `json:"ids"`
 }
 
+type l1ResourceEntry struct {
+	items     []gin.H
+	expiresAt time.Time
+}
+
+var (
+	l1ResourceCache sync.Map
+	l1ResourceTTL   = 20 * time.Second
+)
+
+func InvalidateResourcesCache() {
+	l1ResourceCache.Range(func(key, value interface{}) bool {
+		l1ResourceCache.Delete(key)
+		return true
+	})
+
+	if db.Redis != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			iter := db.Redis.Scan(ctx, 0, "resources:public:*", 100).Iterator()
+			for iter.Next(ctx) {
+				db.Redis.Del(ctx, iter.Val())
+			}
+		}()
+	}
+}
+
 func listResources(c *gin.Context, admin bool) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
@@ -33,11 +66,60 @@ func listResources(c *gin.Context, admin bool) {
 		limit = 50
 	}
 
-	query := db.DB.Model(&models.Resource{}).Preload("Subject")
-	if subjectID := c.Query("subjectId"); subjectID != "" {
+	subjectID := c.Query("subjectId")
+	resourceType := c.Query("type")
+
+	var cacheKey string
+	if !admin {
+		cacheKey = fmt.Sprintf("resources:public:page:%d:limit:%d:subject:%s:type:%s", page, limit, subjectID, resourceType)
+
+		// 1. Try L1 cache
+		if val, ok := l1ResourceCache.Load(cacheKey); ok {
+			entry := val.(*l1ResourceEntry)
+			if time.Now().Before(entry.expiresAt) {
+				c.JSON(http.StatusOK, entry.items)
+				return
+			}
+			l1ResourceCache.Delete(cacheKey)
+		}
+
+		// 2. Try Redis L2 cache
+		if db.Redis != nil {
+			redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+			cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
+			cancel()
+			if err == nil {
+				var cachedItems []gin.H
+				if json.Unmarshal([]byte(cachedVal), &cachedItems) == nil {
+					// Warm L1 cache
+					l1ResourceCache.Store(cacheKey, &l1ResourceEntry{
+						items:     cachedItems,
+						expiresAt: time.Now().Add(l1ResourceTTL),
+					})
+					c.JSON(http.StatusOK, cachedItems)
+					return
+				}
+			}
+		}
+	}
+
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+
+	var activeDB *gorm.DB
+	if admin {
+		activeDB = db.DB
+	} else {
+		activeDB = readDB
+	}
+
+	query := activeDB.Model(&models.Resource{}).Preload("Subject")
+	if subjectID != "" {
 		query = query.Where("subject_id = ?", subjectID)
 	}
-	if resourceType := c.Query("type"); resourceType != "" && resourceType != "all" {
+	if resourceType != "" && resourceType != "all" {
 		query = query.Where("type = ?", resourceType)
 	}
 	if !admin {
@@ -45,9 +127,11 @@ func listResources(c *gin.Context, admin bool) {
 	}
 
 	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to count resources")
-		return
+	if admin {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			api_response.Error(c, http.StatusInternalServerError, "Failed to count resources")
+			return
+		}
 	}
 
 	var resources []models.Resource
@@ -61,12 +145,11 @@ func listResources(c *gin.Context, admin bool) {
 		items = append(items, formatResourceItem(resource, admin))
 	}
 
-	pagination := gin.H{
-		"page": page, "limit": limit, "total": total,
-		"totalPages": (total + int64(limit) - 1) / int64(limit),
-	}
-
 	if admin {
+		pagination := gin.H{
+			"page": page, "limit": limit, "total": total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success":    true,
 			"resources":  items,
@@ -78,6 +161,25 @@ func listResources(c *gin.Context, admin bool) {
 			},
 		})
 		return
+	}
+
+	// For public request, store in cache if items exist
+	if len(items) > 0 {
+		// Store in L1 cache
+		l1ResourceCache.Store(cacheKey, &l1ResourceEntry{
+			items:     items,
+			expiresAt: time.Now().Add(l1ResourceTTL),
+		})
+		// Write to Redis L2 cache asynchronously
+		if db.Redis != nil {
+			go func(key string, data []gin.H) {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				if cacheBytes, err := json.Marshal(data); err == nil {
+					db.Redis.Set(ctx, key, cacheBytes, 5*time.Minute)
+				}
+			}(cacheKey, items)
+		}
 	}
 
 	c.JSON(http.StatusOK, items)
@@ -156,6 +258,7 @@ func AdminCreateResource(c *gin.Context) {
 		return
 	}
 	LogAudit(c, "CREATE", "resource", resource.ID, resource)
+	InvalidateResourcesCache()
 	api_response.Created(c, resource)
 }
 
@@ -227,6 +330,7 @@ func AdminUpdateResource(c *gin.Context) {
 		return
 	}
 	LogAudit(c, "UPDATE", "resource", input.ID, updates)
+	InvalidateResourcesCache()
 	api_response.Success(c, gin.H{"updated": len(ids)})
 }
 
@@ -249,5 +353,6 @@ func AdminDeleteResource(c *gin.Context) {
 		return
 	}
 	LogAudit(c, "DELETE", "resource", input.ID, gin.H{"ids": ids})
+	InvalidateResourcesCache()
 	api_response.Success(c, gin.H{"deleted": len(ids)})
 }

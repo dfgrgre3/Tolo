@@ -10,13 +10,16 @@ function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void, boolean] {
-  return useSafeLocalStorage<T>(key, initialValue);
+  const [value, setValue] = useSafeLocalStorage<T>(key, { fallback: initialValue });
+  // Adapt the return type: useSafeLocalStorage returns [T | null, setter, remover]
+  // We cast to match the expected [T, setter, boolean] signature
+  return [value ?? initialValue, setValue as (value: T | ((val: T) => T)) => void, true];
 }
 
 /**
  * Alias for the same hook, often used for reading only.
  */
 function useLocalStorageValue<T>(key: string, initialValue: T): T {
-  const [value] = useSafeLocalStorage<T>(key, initialValue);
-  return value;
+  const [value] = useSafeLocalStorage<T>(key, { fallback: initialValue });
+  return value ?? initialValue;
 }

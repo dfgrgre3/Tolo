@@ -72,7 +72,7 @@ export const initialProfile: ProfileData = {
   experienceYears: ''
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export const syncProfileWithUser = (user: any): ProfileData => {
   if (!user) return initialProfile;
   const name = user.name as string | undefined;

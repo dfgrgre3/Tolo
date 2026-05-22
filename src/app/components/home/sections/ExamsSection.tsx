@@ -14,6 +14,14 @@ type ExamsResponse = {
   exams: Exam[];
 };
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && (
+    error.name === 'AbortError' ||
+    error.message.includes('signal is aborted') ||
+    error.message.includes('Request was aborted')
+  );
+}
+
 // --- Skeleton Components ---
 const SubjectCardSkeleton = () =>
 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center animate-pulse h-[180px] w-full" />;
@@ -138,7 +146,8 @@ const ExamsSectionComponent = () => {
   useEffect(() => {
     const fetchExamsData = async () => {
       if (abortControllerRef.current) abortControllerRef.current.abort("Cancelling previous request");
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       setLoading(true);
       setError(null);
@@ -147,12 +156,12 @@ const ExamsSectionComponent = () => {
         // TODO: Replace with actual stricter typed response if available
         const { data: examsData, error: examsError } = await safeFetch<ExamsResponse>(
           "/api/exams",
-          { signal: abortControllerRef.current.signal, cache: 'no-store' },
+          { signal: controller.signal, cache: 'no-store' },
           { exams: [] }
         );
 
         if (examsError) {
-          if (examsError instanceof Error && examsError.name === 'AbortError') return;
+          if (isAbortError(examsError)) return;
           throw new Error(examsError.message || "Failed to fetch exams");
         }
 
@@ -202,11 +211,13 @@ const ExamsSectionComponent = () => {
         );
 
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err) || controller.signal.aborted) return;
         logger.error("Error fetching exams data:", err);
         setError("لم نتمكن من استدعاء المهام من الخادم الرئيسي.");
       } finally {
-        setLoading(false);
+        if (abortControllerRef.current === controller && !controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 

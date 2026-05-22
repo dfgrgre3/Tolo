@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
+import { useWebSocket } from "@/contexts/websocket-context";
 import { m, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { getSafeUserId } from "@/lib/safe-client-utils";
 import {
   Activity,
   Clock,
@@ -21,7 +21,6 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { logger } from '@/lib/logger';
-import { generateId } from "@/lib/utils";
 import { rpgCommonStyles } from "../constants";
 
 // Note: Arabic locale may not be available in all date-fns versions
@@ -38,15 +37,21 @@ interface ActivityItem {
   user?: string;
 }
 
-interface Notification {
+interface ActivityApiItem {
   id: string;
   type: string;
   title: string;
-  message?: string;
   description?: string;
-  createdAt?: string | Date;
-  timestamp?: string | Date;
-  userId?: string;
+  timestamp: string | Date;
+  read?: boolean;
+}
+
+interface ActivitiesApiResponse {
+  success?: boolean;
+  data?: {
+    activities?: ActivityApiItem[];
+  };
+  activities?: ActivityApiItem[];
 }
 
 interface StudySession {
@@ -60,25 +65,19 @@ interface StudySession {
   timestamp?: string | Date;
 }
 
-interface NotificationsApiResponse {
-  data?: {
-    notifications?: Notification[];
-  };
-  notifications?: Notification[];
-}
-
 interface StudySessionsApiResponse {
   data?: StudySession[];
   sessions?: StudySession[];
 }
 
-function extractNotifications(payload: NotificationsApiResponse | Notification[] | null): Notification[] {
+function extractActivities(payload: ActivitiesApiResponse | ActivityApiItem[] | null): ActivityApiItem[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload.notifications)) return payload.notifications;
-  if (Array.isArray(payload.data?.notifications)) return payload.data.notifications;
+  if (Array.isArray((payload as ActivitiesApiResponse).activities)) return (payload as ActivitiesApiResponse).activities!;
+  if (Array.isArray((payload as ActivitiesApiResponse).data?.activities)) return (payload as ActivitiesApiResponse).data!.activities!;
   return [];
 }
+
 
 function extractStudySessions(payload: StudySessionsApiResponse | StudySession[] | null): StudySession[] {
   if (!payload) return [];
@@ -90,79 +89,101 @@ function extractStudySessions(payload: StudySessionsApiResponse | StudySession[]
 
 export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLive,,] = useState(true);
+  const { socket, isConnected } = useWebSocket();
+  const isLive = isConnected;
 
   useEffect(() => {
     const fetchActivities = async () => {
-      const userId = getSafeUserId();
-
       try {
-        const notificationsUrl = userId ?
-        `/api/notifications?userId=${encodeURIComponent(userId)}` :
-        '/api/notifications';
-
-        const { data, error } = await safeFetch<NotificationsApiResponse | Notification[]>(
-          notificationsUrl,
+        // ✅ Use the dedicated activities endpoint.
+        // The backend reads userId from the JWT auth cookie — no query param needed.
+        // This endpoint has: L1 in-process cache → L2 Redis → covering-index DB query.
+        const { data, error } = await safeFetch<ActivitiesApiResponse | ActivityApiItem[]>(
+          '/api/activities/recent?limit=10',
           undefined,
           null
         );
 
-        const notifications = extractNotifications(data);
-        if (!error && notifications.length > 0) {
-          const transformedActivities = notifications.map((notification) => ({
-            id: notification.id || generateId(),
-            type: notification.type as ActivityItem['type'] || "notification",
-            title: notification.title || "تنبيه جديد",
-            description: notification.message || notification.description || "",
-            timestamp: new Date(notification.createdAt || notification.timestamp || Date.now()),
+        const items = extractActivities(data);
+        if (!error && items.length > 0) {
+          const transformed: ActivityItem[] = items.map((item) => ({
+            id: item.id,
+            type: (item.type?.toLowerCase() as ActivityItem['type']) || 'notification',
+            title: item.title || 'تنبيه جديد',
+            description: item.description || '',
+            timestamp: new Date(item.timestamp || Date.now()),
             icon: <Bell className="h-5 w-5" />,
-            color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-            user: notification.userId
+            color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
           }));
-
-          setActivities(transformedActivities);
-        } else {
-          // If there's a network error (like Failed to fetch), don't attempt the second request
-          if (error && (error.message.includes('Failed to fetch') || error.name === 'AbortError')) {
-            if (activities.length === 0) setActivities([]);
-            return;
-          }
-
-          const sessionsUrl = userId ?
-          `/api/study-sessions?userId=${encodeURIComponent(userId)}` :
-          '/api/study-sessions';
-
+          setActivities(transformed);
+        } else if (!error && items.length === 0) {
+          // Fallback: fetch recent study sessions if no notifications
+          const sessionsUrl = '/api/study-sessions?limit=5';
           const { data: sessionsData } = await safeFetch<StudySessionsApiResponse | StudySession[]>(
             sessionsUrl,
             undefined,
             null
           );
-          const sessions = extractStudySessions(sessionsData);
+          const sessions: StudySession[] = Array.isArray(sessionsData)
+            ? sessionsData
+            : (sessionsData as StudySessionsApiResponse)?.sessions ?? (sessionsData as StudySessionsApiResponse)?.data ?? [];
 
           if (sessions.length > 0) {
-            const sessionActivities = sessions.slice(0, 5).map((session) => ({
-              id: `session-${session.id}`,
-              type: "study_session" as const,
-              title: `جلسة مذاكرة: ${session.subject || session.subjectId || 'عام'}`,
-              description: `${session.duration ?? session.durationMin ?? 0} دقيقة من المذاكرة المركزة`,
-              timestamp: new Date(session.createdAt || session.startTime || session.timestamp || Date.now()),
-              icon: <BookOpen className="h-5 w-5" />,
-              color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-            }));
-
-            setActivities(sessionActivities);
+            setActivities(
+              sessions.slice(0, 5).map((s) => ({
+                id: `session-${s.id}`,
+                type: 'study_session' as const,
+                title: `جلسة مذاكرة: ${s.subject || s.subjectId || 'عام'}`,
+                description: `${s.duration ?? s.durationMin ?? 0} دقيقة من المذاكرة المركزة`,
+                timestamp: new Date(s.createdAt || s.startTime || s.timestamp || Date.now()),
+                icon: <BookOpen className="h-5 w-5" />,
+                color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+              }))
+            );
           }
         }
-      } catch (error) {
-        logger.error("Error fetching activities:", error);
-        setActivities([]);
+      } catch (err) {
+        logger.error('Error fetching activities:', err);
       }
     };
 
     fetchActivities();
-    const interval = setInterval(fetchActivities, 30000);
-    return () => clearInterval(interval);
-  }, []);
+
+    const intervalTime = isConnected ? null : 300000;
+    let interval: NodeJS.Timeout | null = null;
+    if (intervalTime) {
+      interval = setInterval(fetchActivities, intervalTime);
+    }
+
+    let handleWsMessage: ((event: MessageEvent) => void) | null = null;
+    if (socket) {
+      handleWsMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (
+            data.type === "notification" ||
+            data.type === "refresh_notifications" ||
+            data.type === "activity_refresh"
+          ) {
+            fetchActivities();
+          }
+        } catch (error) {
+          // ignore
+        }
+      };
+      socket.addEventListener("message", handleWsMessage);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      if (socket && handleWsMessage) {
+        socket.removeEventListener("message", handleWsMessage);
+      }
+    };
+  }, [isConnected, socket]);
+
 
 
   const formatTime = (date: Date) => {

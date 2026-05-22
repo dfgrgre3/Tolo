@@ -97,7 +97,7 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 		messages = []models.AIMessage{}
 	}
 
-	aiMessages := h.buildAIMessages(c, userID, messages)
+	aiMessages := h.buildAIMessages(messages)
 	if req.Image != "" {
 		aiMessages[len(aiMessages)-1]["content"] = userContent
 	}
@@ -119,7 +119,7 @@ func (h *AIHandler) AIChatProxy(c *gin.Context) {
 	}
 
 	if req.Stream {
-		h.handleStreamingChat(c, aiMessages, conversation.ID, cacheKey, model)
+		h.handleStreamingChat(c, aiMessages, conversation.ID, model)
 		return
 	}
 
@@ -380,9 +380,20 @@ func (h *AIHandler) getOrCreateConversation(userID, convID, subjectID, topicID s
 	}
 
 	// Create new conversation
+	var sID *string
+	if subjectID != "" {
+		sID = &subjectID
+	}
+	var tID *string
+	if topicID != "" {
+		tID = &topicID
+	}
+
 	conv := &models.AIConversation{
 		ID:        uuid.New().String(),
 		UserID:    userID,
+		SubjectID: sID,
+		TopicID:   tID,
 		Title:     "New Chat",
 		CreatedAt: time.Now(),
 	}
@@ -392,7 +403,7 @@ func (h *AIHandler) getOrCreateConversation(userID, convID, subjectID, topicID s
 	return conv, nil
 }
 
-func (h *AIHandler) buildAIMessages(c *gin.Context, userID string, history []models.AIMessage) []map[string]interface{} {
+func (h *AIHandler) buildAIMessages(history []models.AIMessage) []map[string]interface{} {
 	messages := []map[string]interface{}{
 		{"role": "system", "content": "You are a helpful educational assistant for the Thanawy platform."},
 	}
@@ -486,7 +497,7 @@ func (h *AIHandler) callAIWithRetryCustom(messages []map[string]interface{}, mod
 	return "", "", lastErr
 }
 
-func (h *AIHandler) handleStreamingChat(c *gin.Context, messages []map[string]interface{}, convID, cacheKey, model string) {
+func (h *AIHandler) handleStreamingChat(c *gin.Context, messages []map[string]interface{}, convID, model string) {
 	// Simple non-streaming fallback for now
 	reply, usedModel, err := h.callAIWithRetryCustom(messages, model)
 	if err != nil {

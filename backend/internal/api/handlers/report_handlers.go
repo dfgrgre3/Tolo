@@ -396,7 +396,7 @@ func filtersToJSON(filters []ReportFilter) []byte {
 	return data
 }
 
-func executeWidgetQuery(widget ReportWidget) ([]map[string]interface{}, map[string]float64) {
+func executeWidgetQuery(_ ReportWidget) ([]map[string]interface{}, map[string]float64) {
 	// Simplified implementation - in production, this would build actual SQL queries
 	// based on the widget configuration
 
@@ -420,12 +420,12 @@ func exportToCSV(c *gin.Context, report models.CustomReport) {
 	c.String(http.StatusOK, "label,value\nItem 1,100\nItem 2,200\n")
 }
 
-func exportToExcel(c *gin.Context, report models.CustomReport) {
+func exportToExcel(c *gin.Context, _ models.CustomReport) {
 	// In production, use a library like excelize to generate Excel files
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Excel export not yet implemented"})
 }
 
-func exportToPDF(c *gin.Context, report models.CustomReport) {
+func exportToPDF(c *gin.Context, _ models.CustomReport) {
 	// In production, use a library like gofpdf or headless Chrome to generate PDFs
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "PDF export not yet implemented"})
 }

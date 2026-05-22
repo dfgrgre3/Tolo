@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Check, CheckCheck, ExternalLink, Clock } from 'lucide-react';
+import { safeFetch } from '@/lib/safe-client-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,34 +25,29 @@ export default function NotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const limit = 10;
 
   // Fetch notifications
   const fetchNotifications = useCallback(async (reset = false) => {
     setIsLoading(true);
     try {
-      const currentOffset = reset ? 0 : offset;
+      const currentOffset = reset ? 0 : offsetRef.current;
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: currentOffset.toString(),
       });
 
-      const response = await fetch(`/api/notifications?${params}`, {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (response.status === 401 || response.status === 403) {
+      const { data, response, error: fetchErr } = await safeFetch<any>(`/api/notifications?${params}`);
+ 
+      if (response && (response.status === 401 || response.status === 403)) {
         setNotifications([]);
         setUnreadCount(0);
         setHasMore(false);
         return;
       }
-
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-
-      const data = await response.json();
+ 
+      if (fetchErr || !response || !response.ok) throw fetchErr || new Error('Failed to fetch notifications');
       const payload = data?.data ?? data;
       const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
       const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
@@ -59,10 +55,10 @@ export default function NotificationsPage() {
 
       if (reset) {
         setNotifications(nextNotifications);
-        setOffset(0);
+        offsetRef.current = 0;
       } else {
         setNotifications((prev) => [...prev, ...nextNotifications]);
-        setOffset(currentOffset + limit);
+        offsetRef.current = currentOffset + limit;
       }
 
       setUnreadCount(nextUnreadCount);
@@ -72,7 +68,7 @@ export default function NotificationsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [offset, limit]);
+  }, [limit]);
 
   // Initial fetch
   useEffect(() => {

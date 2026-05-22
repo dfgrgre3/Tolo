@@ -1,7 +1,6 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect } from "react";
-import { HydrationFix } from "../hydration-fix";
 import { initializeSettings } from "@/lib/settings-initializer";
 
 export default function AppClientRoot({ children }: { children: React.ReactNode }) {
@@ -15,8 +14,8 @@ export default function AppClientRoot({ children }: { children: React.ReactNode 
 
   return (
     <div id="client-layout-root" className="w-full h-full">
-      <HydrationFix />
       {children}
     </div>
   );
 }
+

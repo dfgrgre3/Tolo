@@ -33,7 +33,13 @@ func AdminListNotifications(c *gin.Context) {
 	}
 
 	var unreadCount int64
-	db.DB.Model(&models.Notification{}).Where("is_read = ?", false).Count(&unreadCount)
+	countQuery := db.DB.Model(&models.Notification{}).Where("is_read = ?", false)
+	if userID := c.Query("userId"); userID != "" {
+		countQuery = countQuery.Where(userIDQuery, userID)
+	}
+	if err := countQuery.Count(&unreadCount).Error; err != nil {
+		unreadCount = 0
+	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"notifications": notifications,

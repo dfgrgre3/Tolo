@@ -3,7 +3,9 @@ import apiClient from './api-client';
 import { apiRoutes } from './routes';
 
 export async function fetchUserProgress(userId: string): Promise<UserProgress | null> {
-    return apiClient.get<UserProgress>(`${apiRoutes.gamification.progress}?userId=${userId}`);
+    return apiClient.get<UserProgress>(`${apiRoutes.gamification.progress}?userId=${userId}`, {
+        retries: 0
+    });
 }
 
 export async function fetchAchievements(): Promise<Achievement[]> {
@@ -14,10 +16,12 @@ export async function fetchAchievements(): Promise<Achievement[]> {
 export async function fetchLeaderboard(type: 'global' | 'friends' = 'global', limit: number = 50): Promise<LeaderboardEntry[]> {
     const data = await apiClient.get<{ leaderboard: LeaderboardEntry[] } | LeaderboardEntry[]>(`${apiRoutes.gamification.leaderboard}?type=${type}&limit=${limit}`);
 
-    if (Array.isArray(data)) {
-        return data;
-    }
-    return data.leaderboard || [];
+    const entries = Array.isArray(data) ? data : data.leaderboard || [];
+    return entries.map((entry) => ({
+        ...entry,
+        userId: entry.userId || entry.id || '',
+        username: entry.username || entry.name
+    }));
 }
 
 export async function updateUserProgress(userId: string, action: string, data?: Record<string, any>): Promise<UserProgress> {

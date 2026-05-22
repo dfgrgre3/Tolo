@@ -187,9 +187,10 @@ func GetUserJourneys(c *gin.Context) {
 	}
 
 	if completed != "" {
-		if completed == "true" {
+		switch completed {
+		case "true":
 			query = query.Where("completed = ?", true)
-		} else if completed == "false" {
+		case "false":
 			query = query.Where("completed = ?", false)
 		}
 	}

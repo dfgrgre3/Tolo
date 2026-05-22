@@ -10,8 +10,8 @@ import (
 )
 
 const queryByID = "id = ?"
-const queryByUserIDActive = "\"userId\" = ? AND \"isActive\" = ?"
-const queryByConversationID = "\"conversationId\" = ?"
+const queryByUserIDActive = "user_id = ? AND is_active = ?"
+const queryByConversationID = "conversation_id = ?"
 
 // AIConversationRepo implements AIConversationRepository
 type AIConversationRepo struct {
@@ -35,7 +35,7 @@ func (r *AIConversationRepo) Create(conversation *models.AIConversation) error {
 func (r *AIConversationRepo) FindByID(id string) (*models.AIConversation, error) {
 	var conversation models.AIConversation
 	err := r.db.Preload("Messages", func(db *gorm.DB) *gorm.DB {
-		return db.Order("\"createdAt\" ASC")
+		return db.Order("created_at ASC")
 	}).First(&conversation, queryByID, id).Error
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (r *AIConversationRepo) FindByUserID(userID string, limit, offset int) ([]m
 
 	// Get paginated results
 	err := r.db.Where(queryByUserIDActive, userID, true).
-		Order("\"updatedAt\" DESC").
+		Order("updated_at DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&conversations).Error
@@ -73,7 +73,7 @@ func (r *AIConversationRepo) Update(conversation *models.AIConversation) error {
 
 // Delete soft-deletes a conversation (sets isActive to false)
 func (r *AIConversationRepo) Delete(id string) error {
-	return r.db.Model(&models.AIConversation{}).Where(queryByID, id).Update("\"isActive\"", false).Error
+	return r.db.Model(&models.AIConversation{}).Where(queryByID, id).Update("is_active", false).Error
 }
 
 // AddMessage adds a message to a conversation
@@ -88,7 +88,7 @@ func (r *AIConversationRepo) AddMessage(message *models.AIMessage) error {
 			return err
 		}
 		// Update conversation's updatedAt
-		return tx.Model(&models.AIConversation{}).Where(queryByID, message.ConversationID).Update("\"updatedAt\"", time.Now()).Error
+		return tx.Model(&models.AIConversation{}).Where(queryByID, message.ConversationID).Update("updated_at", time.Now()).Error
 	})
 }
 
@@ -96,7 +96,7 @@ func (r *AIConversationRepo) AddMessage(message *models.AIMessage) error {
 func (r *AIConversationRepo) GetMessages(conversationID string, limit int) ([]models.AIMessage, error) {
 	var messages []models.AIMessage
 
-	query := r.db.Where(queryByConversationID, conversationID).Order("\"createdAt\" ASC")
+	query := r.db.Where(queryByConversationID, conversationID).Order("created_at ASC")
 
 	if limit > 0 {
 		query = query.Limit(limit)
@@ -113,7 +113,7 @@ func (r *AIConversationRepo) GetMessages(conversationID string, limit int) ([]mo
 // DeleteOldConversations deletes conversations older than the specified duration
 func (r *AIConversationRepo) DeleteOldConversations(olderThan time.Duration) error {
 	cutoffTime := time.Now().Add(-olderThan)
-	return r.db.Model(&models.AIConversation{}).Where("\"updatedAt\" < ?", cutoffTime).Update("isActive", false).Error
+	return r.db.Model(&models.AIConversation{}).Where("updated_at < ?", cutoffTime).Update("is_active", false).Error
 }
 
 // GetRecentMessages gets the most recent messages for context (last N messages)
@@ -121,7 +121,7 @@ func (r *AIConversationRepo) GetRecentMessages(conversationID string, count int)
 	var messages []models.AIMessage
 
 	err := r.db.Where(queryByConversationID, conversationID).
-		Order("\"createdAt\" DESC").
+		Order("created_at DESC").
 		Limit(count).
 		Find(&messages).Error
 	if err != nil {

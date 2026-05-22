@@ -4,6 +4,7 @@
  */
 import { performanceMonitor } from '../metrics/performance';
 import { trimTrailingSlashes } from '../utils';
+import { requestCache } from './request-cache';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
@@ -136,12 +137,18 @@ class ApiClient {
         try {
             const url = normalizeEndpoint(endpoint);
             const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
-            const response = await fetch(url, {
+            
+            const method = customOptions.method || 'GET';
+            const fetcher = () => fetch(url, {
                 ...customOptions,
                 headers,
                 credentials: 'include',
                 signal: controller.signal,
             });
+
+            const response = method.toUpperCase() === 'GET'
+                ? await requestCache.getResponse(url, customOptions, fetcher)
+                : await fetcher();
 
             timer.stop();
             clearTimeout(id);
@@ -206,12 +213,19 @@ class ApiClient {
             const url = normalizeEndpoint(endpoint);
             
             const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
-            const response = await fetch(url, {
+            
+            const method = customOptions.method || 'GET';
+            const fetcher = () => fetch(url, {
                 ...customOptions,
                 headers,
                 credentials: 'include', // Ensure cookies are sent (access_token)
                 signal: controller.signal,
             });
+
+            const response = method.toUpperCase() === 'GET'
+                ? await requestCache.getResponse(url, customOptions, fetcher)
+                : await fetcher();
+
             timer.stop();
 
             clearTimeout(id);

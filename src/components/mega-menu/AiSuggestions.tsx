@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logger } from '@/lib/logger';
+import { safeFetch } from "@/lib/safe-client-utils";
 
 interface AiRecommendation {
   id: string;
@@ -59,16 +60,36 @@ const SkeletonCard = ({ index }: { index: number }) => (
   </m.div>
 );
 
+// Module-level cache to persist data across component unmounts (e.g., closing/opening mega menu)
+let cachedRecommendations: AiRecommendation[] = [];
+let cachedLastRefresh: Date | null = null;
+let cachedUserId: string | null = null;
+
 export const AiSuggestions = memo(function AiSuggestions({ 
   userId, 
   isCompact = false, 
   onItemClick, 
   className 
 }: AiSuggestionsProps) {
-  const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [recommendations, setRecommendations] = useState<AiRecommendation[]>(() => {
+    if (cachedUserId === userId) {
+      return cachedRecommendations;
+    }
+    return [];
+  });
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(() => {
+    if (cachedUserId === userId) {
+      return cachedLastRefresh;
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    if (cachedUserId === userId && cachedLastRefresh) {
+      return false;
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get icon based on item type
@@ -109,35 +130,49 @@ export const AiSuggestions = memo(function AiSuggestions({
   const fetchRecommendations = useCallback(async (forceRefresh = false) => {
     if (!userId) return;
 
+    // If userId changed, invalidate cache
+    if (cachedUserId !== userId) {
+      cachedRecommendations = [];
+      cachedLastRefresh = null;
+      cachedUserId = userId;
+    }
+
     // Check if we need to refresh (cache for 5 minutes)
-    if (!forceRefresh && lastRefresh && (Date.now() - lastRefresh.getTime()) < 300000) {
+    if (!forceRefresh && cachedLastRefresh && (Date.now() - cachedLastRefresh.getTime()) < 300000) {
+      // Synchronize states to match the cache
+      setRecommendations(cachedRecommendations);
+      setLastRefresh(cachedLastRefresh);
+      setIsLoading(false);
       return;
     }
 
     if (forceRefresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (cachedRecommendations.length === 0) {
       setIsLoading(true);
     }
     setError(null);
 
     try {
-      const response = await fetch(`/api/ai/recommendations?limit=6&force=${forceRefresh}`);
+      const { data, response, error: fetchErr } = await safeFetch<{
+        success: boolean;
+        recommendations: AiRecommendation[];
+      }>(`/api/ai/recommendations?limit=6&force=${forceRefresh}`);
       
-      if (response.status === 401) {
-        // Session expired or unauthorized - handle gracefully
+      if (response && response.status === 401) {
         logger.debug('User unauthorized for AI recommendations');
+        cachedRecommendations = [];
+        cachedLastRefresh = null;
         setRecommendations([]);
         setIsLoading(false);
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      if (fetchErr || !response || !response.ok) {
+        throw fetchErr || new Error(`HTTP ${response?.status || 'Error'}`);
       }
 
-      const data = await response.json();
-      let fetchedRecs = data.success && data.recommendations ? data.recommendations : [];
+      let fetchedRecs = data && data.success && data.recommendations ? data.recommendations : [];
 
       // BEHAVIORAL LOGIC (Client-side simulation for now)
       // Check if there's an exam tomorrow (simulation)
@@ -154,25 +189,29 @@ export const AiSuggestions = memo(function AiSuggestions({
           reason: 'بناءً على جدولك الدراسي',
           metadata: { isPriority: true }
         };
-        // Inject at the beginning
         fetchedRecs = [quickRevisionItem, ...fetchedRecs.filter((r: AiRecommendation) => r.id !== 'behavior-1')];
       }
 
-      if (data.success || hasExamTomorrow) {
+      if ((data && data.success) || hasExamTomorrow) {
+        cachedRecommendations = fetchedRecs;
+        cachedLastRefresh = new Date();
+        cachedUserId = userId;
         setRecommendations(fetchedRecs);
-        setLastRefresh(new Date());
+        setLastRefresh(cachedLastRefresh);
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error) {
       logger.error('Failed to fetch AI recommendations:', error);
       setError('فشل في تحميل التوصيات الذكية');
-      setRecommendations([]);
+      if (cachedRecommendations.length === 0) {
+        setRecommendations([]);
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [userId, lastRefresh]);
+  }, [userId]);
 
   // Track item click for ML learning
   const trackInteraction = useCallback(async (recommendation: AiRecommendation) => {

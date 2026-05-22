@@ -14,6 +14,7 @@
   Download,
   FileText,
   FolderOpen,
+  Gamepad2,
   GraduationCap,
   Home,
   History as HistoryIcon,
@@ -29,6 +30,7 @@
   TrendingUp,
   Trophy,
   Upload,
+  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -133,10 +135,31 @@ const analyticsMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
+const competitionMegaMenu: MegaMenuCategory[] = [
+  {
+    title: "التحديات والترتيب",
+    items: [
+      { href: "/leaderboard", label: "لوحة الترتيب", icon: Trophy, description: "اعرف ترتيبك بين زملائك" },
+      { href: "/achievements", label: "الإنجازات", icon: Award, description: "كل ما حققته في رحلتك" },
+      { href: "/contests/new", label: "إنشاء تحدي جديد", icon: Gamepad2, description: "ابدأ منافسة جديدة مع زملائك" },
+    ],
+  },
+  {
+    title: "مجتمع المنافسة",
+    items: [
+      { href: "/events", label: "الأحداث والمسابقات", icon: Sparkles, description: "فعاليات ومسابقات متاحة" },
+      { href: "/forum", label: "نقاشات الطلاب", icon: MessageSquare, description: "شارك أفكارك واستفساراتك" },
+      { href: "/chat", label: "الدردشة", icon: Users, description: "تواصل مباشر مع زملائك" },
+    ],
+  },
+];
+
 export const moreMegaMenu: MegaMenuCategory[] = [
   {
     title: "الدراسة والتعليم",
     items: [
+      { href: "/academy", label: "الأكاديمية", icon: GraduationCap, description: "مساحة التعلم الرئيسية" },
+      { href: "/my-courses", label: "كورساتي", icon: BookMarked, description: "الدورات التي تتابعها" },
       { href: "/exams", label: "الامتحانات", icon: ClipboardList, description: "الاختبارات الدورية والشهرية" },
       { href: "/teacher-exams", label: "اختبارات المدرسين", icon: ClipboardList, description: "بنك أسئلة المدرسين" },
       { href: "/progress", label: "التقدم الدراسي", icon: TrendingUp, description: "تابع تحسنك أولًا بأول" },
@@ -152,14 +175,15 @@ export const moreMegaMenu: MegaMenuCategory[] = [
       { href: "/blog", label: "المدونة", icon: FileText, description: "مقالات ونصائح دراسية" },
       { href: "/announcements", label: "الإعلانات", icon: Megaphone, description: "أحدث أخبار المنصة" },
       { href: "/events", label: "المسابقات", icon: Sparkles, description: "سجّل في المسابقات المتاحة" },
+      { href: "/events/new", label: "إضافة فعالية", icon: Upload, description: "أنشئ فعالية أو مسابقة جديدة" },
     ],
   },
   {
     title: "الإنجازات والمنافسة",
     items: [
       { href: "/achievements", label: "الإنجازات", icon: Trophy, description: "كل ما حققته في رحلتك" },
-      { href: "/contests/new", label: "بطولات جديدة", icon: Trophy, description: "نافس واربح جوائز قيمة" },
-      { href: "/leaderboard", label: "لوحة الشرف", icon: Award, description: "ترتيبك بين زملائك" },
+      { href: "/contests/new", label: "بطولات جديدة", icon: Gamepad2, description: "نافس واربح جوائز قيمة" },
+      { href: "/leaderboard", label: "لوحة الترتيب", icon: Award, description: "ترتيبك بين زملائك" },
     ],
   },
   {
@@ -175,7 +199,12 @@ export const moreMegaMenu: MegaMenuCategory[] = [
     title: "الحساب والأمان",
     items: [
       { href: "/subscription", label: "الاشتراكات والفواتير", icon: CreditCard, description: "إدارة اشتراكك وعرض الفواتير" },
+      { href: "/billing", label: "الفواتير", icon: CreditCard, description: "تابع المدفوعات وخطط الاشتراك" },
+      { href: "/billing/referrals", label: "الإحالات", icon: UserPlus, description: "شارك رابطك وتابع الدعوات" },
       { href: "/settings", label: "الإعدادات العامة", icon: Settings, description: "خصص تجربتك في المنصة" },
+      { href: "/settings/privacy", label: "الخصوصية", icon: Shield, description: "تحكم في بياناتك وظهورك" },
+      { href: "/settings/devices", label: "الأجهزة", icon: Activity, description: "إدارة الأجهزة المتصلة بحسابك" },
+      { href: "/settings/notifications", label: "إعدادات الإشعارات", icon: Bell, description: "خصص تنبيهات المنصة" },
       { href: "/notifications", label: "الإشعارات", icon: Bell, description: "تحكم في طريقة تلقيك للإشعارات" },
       { href: "/settings/security", label: "الأمان", icon: Shield, description: "حماية الحساب وكلمة المرور" },
       { href: "/settings/security/logs", label: "سجل الدخول", icon: HistoryIcon, description: "مراجعة نشاط تسجيل الدخول" },
@@ -190,6 +219,7 @@ export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/time", label: "إدارة الوقت", icon: Clock, description: "تنظيم وقتك بذكاء", megaMenu: timeManagementMegaMenu },
   { href: "/library", label: "المكتبة", icon: Library, description: "مصادر تعليمية متنوعة", megaMenu: libraryMegaMenu },
   { href: "/analytics", label: "التحليلات", icon: BarChart3, description: "متابعة دقيقة لمستواك", megaMenu: analyticsMegaMenu },
+  { href: "/leaderboard", label: "التحديات", icon: Gamepad2, description: "لوحة الترتيب والمنافسات", megaMenu: competitionMegaMenu },
   { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI", megaMenu: moreMegaMenu },
   { href: "/more", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
 ];

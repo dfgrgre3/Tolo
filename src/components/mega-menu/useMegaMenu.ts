@@ -3,6 +3,7 @@ import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
 import type { User } from "@/types/user";
 import type { MegaMenuCategory } from "./types";
+import { useNotificationsContext } from "@/providers/notifications-provider";
 
 interface UseMegaMenuProps {
   categories: MegaMenuCategory[];
@@ -14,7 +15,7 @@ interface UseMegaMenuProps {
 export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
+  const { unreadCount: notificationCount } = useNotificationsContext();
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(-1);
   const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -39,26 +40,6 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
       return updated;
     });
   }, []);
-
-  const fetchNotificationCount = useCallback(async () => {
-    if (!user) {
-      setNotificationCount(0);
-      return;
-    }
-    try {
-      const data = await apiClient.get<any>("/notifications/unread-count");
-      if (data?.count !== undefined) {
-        setNotificationCount(data.count);
-      }
-    } catch (error) {
-      logger.debug("Failed to fetch notification count:", error);
-      setNotificationCount(0);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) fetchNotificationCount();
-  }, [fetchNotificationCount, user]);
 
   const filteredCategories = useMemo(() => {
     let result = categories;

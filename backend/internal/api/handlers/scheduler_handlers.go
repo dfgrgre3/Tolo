@@ -19,8 +19,8 @@ type ScheduledItemRequest struct {
 	Title        string                 `json:"title" binding:"required,max=200"`
 	Description  string                 `json:"description" binding:"max=1000"`
 	Content      map[string]interface{} `json:"content" binding:"required"`
-	ScheduledFor time.Time              `json:"scheduledFor" binding:"required,future"`
-	Timezone     string                 `json:"timezone" binding:"omitempty,timezone"`
+	ScheduledFor time.Time              `json:"scheduledFor" binding:"required"`
+	Timezone     string                 `json:"timezone" binding:"omitempty"`
 	Frequency    string                 `json:"frequency" binding:"omitempty,oneof=once daily weekly monthly"`
 	MaxRetries   int                    `json:"maxRetries" binding:"omitempty,min=0,max=5"`
 }
@@ -41,9 +41,6 @@ func CreateScheduledItem(c *gin.Context) {
 		return
 	}
 
-	// Get admin info
-	adminID, _ := c.Get("user_id")
-
 	// Set defaults
 	if req.Timezone == "" {
 		req.Timezone = "UTC"
@@ -54,6 +51,24 @@ func CreateScheduledItem(c *gin.Context) {
 	if req.MaxRetries == 0 {
 		req.MaxRetries = 3
 	}
+
+	// Validate timezone
+	loc, err := time.LoadLocation(req.Timezone)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid timezone: " + req.Timezone})
+		return
+	}
+
+	// Validate scheduledFor is in the future
+	nowInLoc := time.Now().In(loc)
+	scheduledInLoc := req.ScheduledFor.In(loc)
+	if !scheduledInLoc.After(nowInLoc) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "scheduledFor must be in the future"})
+		return
+	}
+
+	// Get admin info
+	adminID, _ := c.Get("user_id")
 
 	// Create scheduled item
 	item := models.ScheduledItem{

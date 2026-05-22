@@ -85,10 +85,10 @@ export function useGamification({
   useEffect(() => {
     if (!userId || !enableRealTime) return;
     
-    // Refresh leaderboard and progress every minute to keep it fresh
+    // Keep this conservative; WebSocket-driven events should handle urgent updates.
     const interval = setInterval(() => {
       loadInitialData();
-    }, 60000);
+    }, 300000);
 
     return () => clearInterval(interval);
   }, [userId, loadInitialData, enableRealTime]);

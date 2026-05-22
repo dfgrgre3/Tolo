@@ -69,9 +69,10 @@ func HealthCheck(c *gin.Context) {
 
 	// Determine HTTP status code
 	statusCode := http.StatusOK
-	if overallStatus == "degraded" {
+	switch overallStatus {
+	case "degraded":
 		statusCode = http.StatusOK // Still OK but degraded
-	} else if overallStatus == "critical" {
+	case "critical":
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -81,9 +82,10 @@ func HealthCheck(c *gin.Context) {
 		Checks:    checks,
 	}
 
-	if overallStatus == "critical" {
+	switch overallStatus {
+	case "critical":
 		response.Message = "System is in critical state. Immediate attention required."
-	} else if overallStatus == "degraded" {
+	case "degraded":
 		response.Message = "System is degraded. Some services may be impaired."
 	}
 
@@ -246,7 +248,7 @@ func checkConnectionPoolHealth() Check {
 }
 
 // checkResponseTimeHealth checks if API response times are acceptable
-func checkResponseTimeHealth(c *gin.Context) Check {
+func checkResponseTimeHealth(_ *gin.Context) Check {
 	// This is a simple check based on current request context
 	// In production, you'd aggregate metrics over time
 	return Check{

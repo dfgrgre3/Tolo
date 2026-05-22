@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
@@ -14,6 +16,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+)
+
+type l1ExamsEntry struct {
+	data      gin.H
+	expiresAt time.Time
+}
+
+var (
+	l1ExamsCache sync.Map
 )
 
 func GetExams(c *gin.Context) {
@@ -34,8 +45,37 @@ func GetExams(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
+	search := c.Query("search")
+	useCache := db.Redis != nil && search == ""
+	cacheKey := fmt.Sprintf("exams:list:page:%d:limit:%d", page, limit)
+	if useCache {
+		// 1. Try L1 cache first
+		if val, ok := l1ExamsCache.Load(cacheKey); ok {
+			entry := val.(*l1ExamsEntry)
+			if time.Now().Before(entry.expiresAt) {
+				api_response.Success(c, entry.data)
+				return
+			}
+			l1ExamsCache.Delete(cacheKey)
+		}
+
+		// 2. Try Redis cache next
+		if cachedVal, err := db.Redis.Get(c.Request.Context(), cacheKey).Result(); err == nil {
+			var cachedResponse gin.H
+			if json.Unmarshal([]byte(cachedVal), &cachedResponse) == nil {
+				// Warm L1
+				l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
+					data:      cachedResponse,
+					expiresAt: time.Now().Add(15 * time.Second),
+				})
+				api_response.Success(c, cachedResponse)
+				return
+			}
+		}
+	}
+
 	query := db.ReadDB().Model(&models.Exam{})
-	if search := c.Query("search"); search != "" {
+	if search != "" {
 		query = query.Where("title ILIKE ?", "%"+search+"%")
 	}
 
@@ -59,14 +99,34 @@ func GetExams(c *gin.Context) {
 	countMap := getExamResultCounts(exams)
 	items := formatExamResponse(exams, countMap)
 
-	api_response.List(c, items, api_response.Pagination{
-		Page:       page,
-		Limit:      limit,
-		Total:      total,
-		TotalPages: calculateTotalPages(total, limit),
-	}, gin.H{
+	responseData := gin.H{
+		"items": items,
+		"pagination": api_response.Pagination{
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: calculateTotalPages(total, limit),
+		},
 		"exams": items,
-	})
+	}
+
+	if useCache {
+		// Store in L1 cache
+		l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
+			data:      responseData,
+			expiresAt: time.Now().Add(15 * time.Second),
+		})
+		// Write to Redis asynchronously
+		go func(key string, data gin.H) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if cacheBytes, err := json.Marshal(data); err == nil {
+				db.Redis.Set(ctx, key, cacheBytes, 5*time.Minute)
+			}
+		}(cacheKey, responseData)
+	}
+
+	api_response.Success(c, responseData)
 }
 
 // getExamResultCounts fetches the number of results for each exam
@@ -188,7 +248,7 @@ func UpdateExam(c *gin.Context) {
 	}
 
 	var exam models.Exam
-	if err := db.ReadDB().First(&exam, idQuery, input.ID).Error; err != nil {
+	if err := db.ReadDB().Take(&exam, idQuery, input.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}
@@ -257,7 +317,7 @@ func SubmitExam(c *gin.Context) {
 	var exam models.Exam
 	if err := db.ReadDB().Preload("Questions", func(d *gorm.DB) *gorm.DB {
 		return d.Select("id", "answer")
-	}).First(&exam, idQuery, examID).Error; err != nil {
+	}).Take(&exam, idQuery, examID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Exam not found"})
 		return
 	}

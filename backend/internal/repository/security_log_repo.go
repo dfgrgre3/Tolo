@@ -37,6 +37,6 @@ func (r *SecurityLogRepository) FindAll(limit int, offset int) ([]models.Securit
 		return nil, 0, err
 	}
 
-	err = r.db.Order("\"createdAt\" desc").Limit(limit).Offset(offset).Find(&logs).Error
+	err = r.db.Order("created_at desc").Limit(limit).Offset(offset).Find(&logs).Error
 	return logs, count, err
 }

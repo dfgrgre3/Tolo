@@ -14,6 +14,7 @@ interface SystemFeatures {
   blog: boolean;
   events: boolean;
   aiAssistant: boolean;
+  emailVerification: boolean;
 }
 
 interface MaintenanceMode {
@@ -45,6 +46,7 @@ const defaultSettings: SystemSettings = {
     blog: true,
     events: true,
     aiAssistant: true,
+    emailVerification: true,
   },
   maintenance: {
     enabled: false,
@@ -105,8 +107,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         error.message?.includes('signal is aborted')
       );
 
+      // Check if this is a backend startup race (503/service unavailable).
+      // The app falls back to defaults so this is informational, not critical.
+      const isServiceUnavailable =
+        error instanceof Error &&
+        (error.message?.toLowerCase().includes('unavailable') ||
+          (error as { status?: number }).status === 503);
+
       if (isAbortError) {
         logger.debug("System settings fetch aborted (component unmount or timeout)");
+      } else if (isServiceUnavailable) {
+        logger.warn("Backend not yet available — using cached/default settings", error);
       } else {
         logger.error("Failed to fetch system settings", error);
       }

@@ -40,6 +40,7 @@ export interface UserProgress {
 }
 
 export interface LeaderboardEntry {
+  id?: string;
   userId: string;
   name: string;
   username?: string;

@@ -11,7 +11,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
 import ErrorBoundary from '@/components/error-boundary';
-import { HydrationFix } from '@/components/hydration-fix';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
@@ -68,27 +67,26 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
         <SettingsProvider>
           <EfficiencyProvider>
             <ClientLayoutProvider>
-              <HydrationFix />
               <QueryClientProvider client={queryClient}>
                 <ReactQueryPersistence />
                 <AuthProvider initialAuthHint={initialAuthHint}>
                   <GlobalSettingsApplier>
-                      <WebSocketProvider>
-                        <NotificationsProvider>
-                          <TooltipProvider>
-                            <LazyMotion features={domAnimation} strict>
-                              <PerformanceProvider>
-                                {children}
-                              </PerformanceProvider>
-                              <FooterLazy />
-                            </LazyMotion>
-                            <Toaster richColors closeButton position="top-center" />
-                          </TooltipProvider>
-                        </NotificationsProvider>
-                      </WebSocketProvider>
-                    </GlobalSettingsApplier>
-                  </AuthProvider>
-                </QueryClientProvider>
+                    <WebSocketProvider>
+                      <NotificationsProvider>
+                        <TooltipProvider>
+                          <LazyMotion features={domAnimation} strict>
+                            <PerformanceProvider key="performance-provider">
+                              {children}
+                            </PerformanceProvider>
+                            <FooterLazy key="footer-lazy" />
+                          </LazyMotion>
+                          <Toaster richColors closeButton position="top-center" />
+                        </TooltipProvider>
+                      </NotificationsProvider>
+                    </WebSocketProvider>
+                  </GlobalSettingsApplier>
+                </AuthProvider>
+              </QueryClientProvider>
             </ClientLayoutProvider>
           </EfficiencyProvider>
         </SettingsProvider>
@@ -98,5 +96,5 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
 }
 
 
-// No re-exports here to avoid circular dependencies. 
+// No re-exports here to avoid circular dependencies.
 // Import contexts directly from '@/contexts/...'

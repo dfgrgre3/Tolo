@@ -54,7 +54,7 @@ func StartWorker() {
 	mux.HandleFunc(TypeBatchProgressFlush, WithTaskIdempotency(batchFlushHandler.ProcessTask))
 
 	cqrsRefreshHandler := &CQRSRefreshHandler{}
-	mux.HandleFunc(TypeRefreshMaterializedViews, WithTaskIdempotency(cqrsRefreshHandler.ProcessTask))
+	mux.HandleFunc(TypeRefreshMaterializedViews, cqrsRefreshHandler.ProcessTask)
 
 	log.Printf("Worker server starting on Redis %s", redisAddr)
 	if err := srv.Run(mux); err != nil {

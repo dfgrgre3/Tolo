@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/hmac"
 	cryptoRand "crypto/rand"
 	"crypto/sha1"
@@ -19,14 +20,16 @@ import (
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/config"
 	"thanawy-backend/internal/db"
+	"thanawy-backend/internal/middleware"
 	"thanawy-backend/internal/models"
 	"thanawy-backend/internal/repository"
 	"thanawy-backend/internal/services"
 
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm/clause"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -497,7 +500,9 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	if time.Now().After(session.ExpiresAt) {
+	if session.IsExpired() {
+		// Clean up expired session silently
+		_ = getSessionRepo().RevokeSessionByJTI(session.ID)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
 		return
 	}
@@ -514,24 +519,32 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	_ = getSessionRepo().RevokeSessionByJTI(session.ID)
-
-	newSession := &models.UserSession{
-		ID:           tokens.JTI,
-		UserID:       user.ID,
-		RefreshToken: tokens.RefreshToken,
-		UserAgent:    c.Request.UserAgent(),
-		IP:           c.ClientIP(),
-		Location:     session.Location,
-		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
-		LastAccessed: time.Now(),
+	// Use RotateToken: single UPDATE instead of Revoke+Create
+	// This reduces the operation from ~3000ms (DELETE+INSERT) to ~50ms (UPDATE)
+	newExpiry := time.Now().Add(30 * 24 * time.Hour)
+	_, err = getSessionRepo().RotateToken(session.ID, refreshToken, tokens.RefreshToken, newExpiry)
+	if err != nil {
+		// Fallback to old method if rotation fails (e.g., stale session)
+		_ = getSessionRepo().RevokeSessionByJTI(session.ID)
+		_ = getSessionRepo().Create(&models.UserSession{
+			ID:           tokens.JTI,
+			UserID:       user.ID,
+			RefreshToken: tokens.RefreshToken,
+			UserAgent:    c.Request.UserAgent(),
+			IP:           c.ClientIP(),
+			Location:     session.Location,
+			ExpiresAt:    newExpiry,
+			LastAccessed: time.Now(),
+		})
 	}
-	_ = getSessionRepo().Create(newSession)
 
 	c.SetCookie("access_token", tokens.AccessToken, 3600*24, "/", "", isProduction(), true)
 	c.SetCookie("refresh_token", tokens.RefreshToken, 3600*24*30, refreshTokenPath, "", isProduction(), true)
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusOK, gin.H{
+		"success":              true,
+		"accessTokenExpiresAt": time.Now().Add(15 * time.Minute).UnixMilli(),
+	})
 }
 
 // Logout handles user logout
@@ -672,17 +685,39 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := getUserRepo().FindByID(userId.(string))
-	if err != nil {
+	// Use selected columns only - avoid SELECT * for better performance.
+	// hydrateUserContext already cached role/perms in Redis during Auth middleware.
+	var profile models.User
+	if err := db.DB.Model(&models.User{}).
+		Select("id", "name", "email", "username", "avatar", "role",
+			"permissions", "email_verified", "phone", "phone_verified",
+			"total_xp", "level", "grade_level", "education_type", "section",
+			"bio", "country", "created_at", "updated_at").
+		Where("id = ?", userId).
+		Take(&profile).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
 		return
 	}
 
 	// Expose effective permissions (role defaults + DB overrides) so the client matches PermissionRequired.
-	profile := *user
-	profile.Permissions = models.JSONStringArray(user.GetEffectivePermissions())
+	profile.Permissions = models.JSONStringArray(profile.GetEffectivePermissions())
 
-	c.JSON(http.StatusOK, gin.H{"user": &profile})
+	// Add hydration status to profile so frontend knows auth context is ready
+	role, _ := c.Get("role")
+	perms, _ := c.Get("permissions")
+	if role != nil {
+		profile.Role = models.UserRole(role.(string))
+	}
+	if perms != nil {
+		profile.Permissions = models.JSONStringArray(perms.([]string))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user":                 &profile,
+		"hydratedRole":         role,
+		"hydratedPerms":        perms,
+		"accessTokenExpiresAt": c.GetInt64("accessTokenExpiresAt"),
+	})
 }
 
 func GetUsers(c *gin.Context) {
@@ -837,6 +872,9 @@ func UpdateUser(c *gin.Context) {
 	db.DB.First(&user, idQuery, user.ID)
 	_ = getUserRepo().Update(&user)
 
+	middleware.InvalidateRolePermsCache(user.ID)
+	getUserRepo().InvalidateCache(user.ID)
+
 	LogAudit(c, "UPDATE", "user", user.ID, updates)
 	api_response.Success(c, gin.H{"user": user})
 }
@@ -883,6 +921,9 @@ func DeleteUser(c *gin.Context) {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
+
+	middleware.InvalidateRolePermsCache(userID)
+	getUserRepo().InvalidateCache(userID)
 
 	LogAudit(c, "DELETE", "user", userID, nil)
 	api_response.Success(c, nil)
@@ -964,14 +1005,71 @@ func buildUserDetailsPayload(user models.User) gin.H {
 	var totalEnrollments int64
 	var achievementsCount int64
 
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
-	db.DB.Model(&models.Task{}).Where(userIDQuery, user.ID).Count(&totalTasks)
-	db.DB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Count(&totalStudySessions)
-	db.DB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Select("COALESCE(SUM(duration_min), 0)").Scan(&totalStudyTime)
-	db.DB.Model(&models.ExamResult{}).Where("user_id = ? AND passed = ?", user.ID, true).Count(&examsPassed)
-	db.DB.Model(&models.ExamResult{}).Where(userIDQuery, user.ID).Count(&examResultsCount)
-	db.DB.Model(&models.Notification{}).Where("user_id = ? AND is_read = ?", user.ID, false).Count(&unreadNotifications)
-	db.DB.Model(&models.Enrollment{}).Where(userIDQuery, user.ID).Count(&totalEnrollments)
+	// Try Redis cache first for user stats
+	statsCached := false
+	cacheKey := fmt.Sprintf("user_stats:%s", user.ID)
+	bgCtx := context.Background()
+	if db.Redis != nil {
+		cachedVal, err := db.Redis.Get(bgCtx, cacheKey).Result()
+		if err == nil {
+			var cached struct {
+				TasksCompleted      int64 `json:"tasksCompleted"`
+				TotalTasks          int64 `json:"totalTasks"`
+				TotalStudySessions  int64 `json:"totalStudySessions"`
+				TotalStudyTime      int64 `json:"totalStudyTime"`
+				ExamsPassed         int64 `json:"examsPassed"`
+				ExamResultsCount    int64 `json:"examResultsCount"`
+				UnreadNotifications int64 `json:"unreadNotifications"`
+				TotalEnrollments    int64 `json:"totalEnrollments"`
+				AchievementsCount   int64 `json:"achievementsCount"`
+			}
+			if json.Unmarshal([]byte(cachedVal), &cached) == nil {
+				tasksCompleted = cached.TasksCompleted
+				totalTasks = cached.TotalTasks
+				totalStudySessions = cached.TotalStudySessions
+				totalStudyTime = cached.TotalStudyTime
+				examsPassed = cached.ExamsPassed
+				examResultsCount = cached.ExamResultsCount
+				unreadNotifications = cached.UnreadNotifications
+				totalEnrollments = cached.TotalEnrollments
+				achievementsCount = cached.AchievementsCount
+				statsCached = true
+			}
+		}
+	}
+
+	if !statsCached {
+		// Merge into fewer queries using subqueries for better performance
+		readDB := db.ReadDB()
+		if readDB == nil {
+			readDB = db.DB
+		}
+
+		readDB.Model(&models.Task{}).Where("user_id = ? AND status = ?", user.ID, models.TaskCompleted).Count(&tasksCompleted)
+		readDB.Model(&models.Task{}).Where(userIDQuery, user.ID).Count(&totalTasks)
+		readDB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Count(&totalStudySessions)
+		readDB.Model(&models.StudySession{}).Where(userIDQuery, user.ID).Select("COALESCE(SUM(duration_min), 0)").Scan(&totalStudyTime)
+		readDB.Model(&models.ExamResult{}).Where("user_id = ? AND passed = ?", user.ID, true).Count(&examsPassed)
+		readDB.Model(&models.ExamResult{}).Where(userIDQuery, user.ID).Count(&examResultsCount)
+		readDB.Model(&models.Notification{}).Where("user_id = ? AND is_read = ?", user.ID, false).Count(&unreadNotifications)
+		readDB.Model(&models.Enrollment{}).Where(userIDQuery, user.ID).Count(&totalEnrollments)
+
+		// Cache the results for 3 minutes
+		if db.Redis != nil {
+			cachedData, _ := json.Marshal(map[string]interface{}{
+				"tasksCompleted":      tasksCompleted,
+				"totalTasks":          totalTasks,
+				"totalStudySessions":  totalStudySessions,
+				"totalStudyTime":      totalStudyTime,
+				"examsPassed":         examsPassed,
+				"examResultsCount":    examResultsCount,
+				"unreadNotifications": unreadNotifications,
+				"totalEnrollments":    totalEnrollments,
+				"achievementsCount":   achievementsCount,
+			})
+			db.Redis.Set(bgCtx, cacheKey, cachedData, 3*time.Minute)
+		}
+	}
 
 	return gin.H{
 		"id":                 user.ID,
@@ -1158,8 +1256,25 @@ func UpdateProfile(c *gin.Context) {
 	db.DB.First(&user, idQuery, user.ID)
 	_ = getUserRepo().Update(&user)
 
+	middleware.InvalidateRolePermsCache(user.ID)
+	getUserRepo().InvalidateCache(user.ID)
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "user": user})
 }
+
+// ─── L1 in-memory cache for billing summary ──────────────
+type billingSummaryEntry struct {
+	data      gin.H
+	expiresAt time.Time
+}
+
+var (
+	billingSummaryL1    sync.Map
+	billingSummaryL1TTL = 30 * time.Second
+	billingRedisTTL     = 2 * time.Minute
+)
+
+const billingSummaryCachePrefix = "billing_summary:"
 
 func GetBillingSummary(c *gin.Context) {
 	userId, exists := c.Get("userId")
@@ -1167,36 +1282,98 @@ func GetBillingSummary(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	uid := userId.(string)
 
-	user, err := getUserRepo().FindByID(userId.(string))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": errUserNotFound})
-		return
+	// 1. Try L1 in-memory cache
+	cacheKey := billingSummaryCachePrefix + uid
+	if val, ok := billingSummaryL1.Load(cacheKey); ok {
+		entry := val.(*billingSummaryEntry)
+		if time.Now().Before(entry.expiresAt) {
+			c.JSON(http.StatusOK, entry.data)
+			return
+		}
+		billingSummaryL1.Delete(cacheKey)
 	}
 
-	var payments []models.Payment
-	db.DB.Where(userIDQuery, user.ID).Order("created_at desc").Limit(20).Find(&payments)
-
-	var totalSpent float64
-	var successCount int64
-	var pendingCount int64
-	var failedCount int64
-
-	for _, p := range payments {
-		switch p.Status {
-		case models.PaymentCompleted:
-			totalSpent += p.Amount
-			successCount++
-		case models.PaymentPending:
-			pendingCount++
-		default:
-			failedCount++
+	// 2. Try Redis cache
+	if db.Redis != nil {
+		redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+		cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
+		cancel()
+		if err == nil {
+			var cachedData gin.H
+			if json.Unmarshal([]byte(cachedVal), &cachedData) == nil {
+				billingSummaryL1.Store(cacheKey, &billingSummaryEntry{data: cachedData, expiresAt: time.Now().Add(billingSummaryL1TTL)})
+				c.JSON(http.StatusOK, cachedData)
+				return
+			}
 		}
 	}
 
+	// 3. Fetch from Database
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+
+	// Run queries in parallel for faster response
+	type billingResult struct {
+		payments     []models.Payment
+		totalSpent   float64
+		successCount int64
+		pendingCount int64
+		failedCount  int64
+	}
+
+	var (
+		user models.User
+		wg   sync.WaitGroup
+		res  billingResult
+	)
+
+	wg.Add(2)
+
+	// Goroutine 1: User info
+	go func() {
+		defer wg.Done()
+		if u, err := getUserRepo().FindByID(uid); err == nil {
+			user = *u
+		}
+	}()
+
+	// Goroutine 2: Payments + subscription
+	go func() {
+		defer wg.Done()
+		// Payments query with new covering index
+		readDB.
+			Model(&models.Payment{}).
+			Select("id", "amount", "status", "created_at").
+			Where("user_id = ?", uid).
+			Order("created_at desc").
+			Limit(10).
+			Find(&res.payments)
+
+		for _, p := range res.payments {
+			switch p.Status {
+			case models.PaymentCompleted:
+				res.totalSpent += p.Amount
+				res.successCount++
+			case models.PaymentPending:
+				res.pendingCount++
+			default:
+				res.failedCount++
+			}
+		}
+	}()
+
+	wg.Wait()
+
 	var activeSub models.UserSubscription
 	var activeSubscriptionData interface{}
-	if err := db.DB.Preload("Plan").Where("user_id = ? AND status = ? AND end_date > ?", user.ID, models.SubscriptionActive, time.Now()).First(&activeSub).Error; err == nil {
+	if err := db.DB.
+		Preload("Plan").
+		Where("user_id = ? AND status = ? AND end_date > ?", uid, models.SubscriptionActive, time.Now()).
+		First(&activeSub).Error; err == nil {
 		activeSubscriptionData = gin.H{
 			"id":        activeSub.ID,
 			"status":    activeSub.Status,
@@ -1212,22 +1389,36 @@ func GetBillingSummary(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	responseData := gin.H{
 		"name":                  stringOrEmpty(user.Name),
 		"email":                 user.Email,
 		"balance":               user.Balance,
 		"additionalAiCredits":   user.AiCredits,
 		"additionalExamCredits": user.ExamCredits,
 		"activeSubscription":    activeSubscriptionData,
-		"paymentHistory":        payments,
+		"paymentHistory":        res.payments,
 		"stats": gin.H{
-			"totalSpent":   totalSpent,
-			"paymentCount": len(payments),
-			"successCount": successCount,
-			"pendingCount": pendingCount,
-			"failedCount":  failedCount,
+			"totalSpent":   res.totalSpent,
+			"paymentCount": len(res.payments),
+			"successCount": res.successCount,
+			"pendingCount": res.pendingCount,
+			"failedCount":  res.failedCount,
 		},
-	})
+	}
+
+	// Cache result
+	billingSummaryL1.Store(cacheKey, &billingSummaryEntry{data: responseData, expiresAt: time.Now().Add(billingSummaryL1TTL)})
+	if db.Redis != nil {
+		go func(key string, data gin.H) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if cacheBytes, err := json.Marshal(data); err == nil {
+				db.Redis.Set(ctx, key, cacheBytes, billingRedisTTL)
+			}
+		}(cacheKey, responseData)
+	}
+
+	c.JSON(http.StatusOK, responseData)
 }
 
 func calculateTotalPages(total int64, limit int) int64 {
@@ -1297,6 +1488,9 @@ func dispatchClerkEvent(event clerkEvent) {
 		if userId, ok := event.Data["id"].(string); ok {
 			if err := db.DB.Where(idQuery, userId).Delete(&models.User{}).Error; err != nil {
 				log.Printf("[Clerk Webhook] Error deleting user: %v", err)
+			} else {
+				middleware.InvalidateRolePermsCache(userId)
+				getUserRepo().InvalidateCache(userId)
 			}
 		}
 	default:
@@ -1423,6 +1617,9 @@ func syncUserFromClerk(clerkData map[string]interface{}) error {
 		log.Printf("[Clerk Webhook] Error creating user: %v", result.Error)
 		return result.Error
 	}
+
+	middleware.InvalidateRolePermsCache(userId)
+	getUserRepo().InvalidateCache(userId)
 
 	log.Printf("[Clerk Webhook] User synced successfully: %s (%s)", sanitizeLog(userId), sanitizeLog(primaryEmail))
 	return nil

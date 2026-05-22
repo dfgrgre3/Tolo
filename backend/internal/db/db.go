@@ -92,8 +92,6 @@ func ConnectWithWriteDSN(dsn, writeDSN string) (*gorm.DB, error) {
 	DB = db
 	log.Printf("Database connection established with Read-Write splitting and Monitoring.")
 
-	setupDatabaseFunctions(db)
-
 	log.Println("Database ready. Schema changes are controlled by explicit migration flags.")
 
 	return db, nil
@@ -153,10 +151,10 @@ type poolSettings struct {
 
 func getPoolSettings() poolSettings {
 	settings := poolSettings{
-		MaxIdleConns: 20,
-		MaxOpenConns: 200,
-		MaxLifetime:  5 * time.Minute,
-		MaxIdleTime:  2 * time.Minute,
+		MaxIdleConns: 10,
+		MaxOpenConns: 25,
+		MaxLifetime:  15 * time.Minute,
+		MaxIdleTime:  5 * time.Minute,
 	}
 
 	if v, val := getEnvInt("DB_MAX_IDLE_CONNS"); v {
@@ -182,21 +180,6 @@ func getEnvInt(key string) (bool, int) {
 		}
 	}
 	return false, 0
-}
-
-func setupDatabaseFunctions(db *gorm.DB) {
-	// Create cuid function if it doesn't exist (compatibility with Prisma migrations)
-	db.Exec(`
-		CREATE OR REPLACE FUNCTION cuid() RETURNS text AS $$
-		BEGIN
-			RETURN (
-				'c' ||
-				to_char(extract(epoch from now())::bigint, 'FM0000000000000000') ||
-				substring(md5(random()::text || clock_timestamp()::text) from 1 for 16)
-			);
-		END;
-		$$ LANGUAGE plpgsql;
-	`)
 }
 
 // Seed populates the database with initial data

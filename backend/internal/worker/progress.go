@@ -13,9 +13,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// writeDB returns the write-routed DB connection for CQRS write path.
-func writeDB() *gorm.DB {
-	return db.WriteDB()
+// writeDB returns the write-routed DB connection for CQRS write path, bound to context.
+func writeDB(ctx context.Context) *gorm.DB {
+	return db.WriteDB().WithContext(ctx)
 }
 
 const (
@@ -101,16 +101,16 @@ func (h *ProgressHandler) ProcessTask(ctx context.Context, t *asynq.Task) error 
 }
 
 func (h *ProgressHandler) handleLessonCompleted(ctx context.Context, p ProgressUpdatePayload) error {
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := writeDB().Exec(`
-		INSERT INTO "TopicProgress" ("id", "userId", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
+	result := writeDB(ctx).Exec(`
+		INSERT INTO "TopicProgress" ("id", "user_id", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, 'COMPLETED', true, $3, 0, $4, $4)
-		ON CONFLICT ("userId", "sub_topic_id")
+		ON CONFLICT ("user_id", "sub_topic_id")
 		DO UPDATE SET
 			"status" = 'COMPLETED',
 			"completed" = true,
@@ -127,16 +127,16 @@ func (h *ProgressHandler) handleLessonCompleted(ctx context.Context, p ProgressU
 }
 
 func (h *ProgressHandler) handleLessonProgress(ctx context.Context, p ProgressUpdatePayload) error {
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := writeDB().Exec(`
-		INSERT INTO "TopicProgress" ("id", "userId", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
+	result := writeDB(ctx).Exec(`
+		INSERT INTO "TopicProgress" ("id", "user_id", "sub_topic_id", "status", "completed", "time_spent_seconds", "last_watched_position", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, 'IN_PROGRESS', false, $3, 0, $4, $4)
-		ON CONFLICT ("userId", "sub_topic_id")
+		ON CONFLICT ("user_id", "sub_topic_id")
 		DO UPDATE SET
 			"status" = CASE WHEN "TopicProgress"."status" = 'COMPLETED' THEN 'COMPLETED' ELSE 'IN_PROGRESS' END,
 			"time_spent_seconds" = "TopicProgress"."time_spent_seconds" + EXCLUDED."time_spent_seconds",
@@ -151,13 +151,13 @@ func (h *ProgressHandler) handleLessonProgress(ctx context.Context, p ProgressUp
 }
 
 func (h *ProgressHandler) handleExamCompleted(ctx context.Context, p ProgressUpdatePayload) error {
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 
-	result := writeDB().Exec(`
+	result := writeDB(ctx).Exec(`
 		INSERT INTO "ExamResult" ("id", "exam_id", "user_id", "score", "passed", "taken_at", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $5, $5)
 	`, p.ExamID, p.UserID, p.ExamScore, p.ExamPassed, now)
@@ -172,13 +172,13 @@ func (h *ProgressHandler) handleExamCompleted(ctx context.Context, p ProgressUpd
 }
 
 func (h *ProgressHandler) handleTaskCompleted(ctx context.Context, p ProgressUpdatePayload) error {
-	if db.DB == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
-	result := writeDB().Exec(`
+	result := writeDB(ctx).Exec(`
 		UPDATE "Task" SET "status" = 'DONE', "updated_at" = NOW()
-		WHERE "id" = $1 AND "userId" = $2
+		WHERE "id" = $1 AND "user_id" = $2
 	`, p.TaskID, p.UserID)
 
 	if result.Error != nil {
@@ -193,15 +193,15 @@ func (h *ProgressHandler) handleTaskCompleted(ctx context.Context, p ProgressUpd
 }
 
 func (h *ProgressHandler) handleStudySession(ctx context.Context, p ProgressUpdatePayload) error {
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	now := time.Now()
 	endTime := now.Add(time.Duration(p.StudySessionMinutes) * time.Minute)
 
-	result := writeDB().Exec(`
-		INSERT INTO "StudySession" ("id", "userId", "duration_min", "start_time", "end_time", "created_at", "updated_at")
+	result := writeDB(ctx).Exec(`
+		INSERT INTO "StudySession" ("id", "user_id", "duration_min", "start_time", "end_time", "created_at", "updated_at")
 		VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $3, $3)
 	`, p.UserID, p.StudySessionMinutes, now, endTime)
 
@@ -223,35 +223,35 @@ func (h *GamificationHandler) ProcessTask(ctx context.Context, t *asynq.Task) er
 	log.Printf("[GamificationWorker] Syncing gamification for user %s: +%d %s XP (%s)",
 		p.UserID, p.XPAmount, p.XPType, p.Source)
 
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
 	var updateColumn string
 	switch p.XPType {
 	case "study":
-		updateColumn = `"studyXP"`
+		updateColumn = "study_xp"
 	case "task":
-		updateColumn = `"taskXP"`
+		updateColumn = "task_xp"
 	case "exam":
-		updateColumn = `"examXP"`
+		updateColumn = "exam_xp"
 	case "challenge":
-		updateColumn = `"challengeXP"`
+		updateColumn = "challenge_xp"
 	case "quest":
-		updateColumn = `"questXP"`
+		updateColumn = "quest_xp"
 	case "season":
-		updateColumn = `"seasonXP"`
+		updateColumn = "season_xp"
 	default:
-		updateColumn = `"totalXP"`
+		updateColumn = "total_xp"
 	}
 
-	result := writeDB().Exec(fmt.Sprintf(`
+	result := writeDB(ctx).Exec(fmt.Sprintf(`
 		UPDATE "User" SET
-			"totalXP" = "totalXP" + $1,
+			total_xp = total_xp + $1,
 			%s = %s + $1,
-			"level" = FLOOR((("totalXP" + $1) / 100)) + 1,
-			"updatedAt" = NOW()
-		WHERE "id" = $2
+			level = FLOOR(((total_xp + $1) / 100)) + 1,
+			updated_at = NOW()
+		WHERE id = $2
 	`, updateColumn, updateColumn), p.XPAmount, p.UserID)
 
 	if result.Error != nil {
@@ -277,25 +277,25 @@ func (h *BatchProgressFlushHandler) ProcessTask(ctx context.Context, t *asynq.Ta
 
 	log.Printf("[BatchFlushWorker] Flushing aggregated progress for user %s", p.UserID)
 
-	if writeDB() == nil {
+	if writeDB(ctx) == nil {
 		return fmt.Errorf("database not connected")
 	}
 
-	result := writeDB().Exec(`
+	result := writeDB(ctx).Exec(`
 		UPDATE "User" SET
-			"totalStudyTime" = "totalStudyTime" + COALESCE((
-				SELECT SUM("time_spent_seconds") / 60
+			total_study_time = total_study_time + COALESCE((
+				SELECT SUM(time_spent_seconds) / 60
 				FROM "TopicProgress"
-				WHERE "userId" = $1 AND "updated_at" > NOW() - INTERVAL '5 minutes'
+				WHERE user_id = $1 AND updated_at > NOW() - INTERVAL '5 minutes'
 			), 0),
-			"tasksCompleted" = (
-				SELECT COUNT(*) FROM "Task" WHERE "userId" = $1 AND "status" = 'DONE'
+			tasks_completed = (
+				SELECT COUNT(*) FROM "Task" WHERE user_id = $1 AND status = 'DONE'
 			),
-			"examsPassed" = (
-				SELECT COUNT(*) FROM "ExamResult" WHERE "user_id" = $1 AND "passed" = true
+			exams_passed = (
+				SELECT COUNT(*) FROM "ExamResult" WHERE user_id = $1 AND passed = true
 			),
-			"updatedAt" = NOW()
-		WHERE "id" = $1
+			updated_at = NOW()
+		WHERE id = $1
 	`, p.UserID)
 
 	if result.Error != nil {

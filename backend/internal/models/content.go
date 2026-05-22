@@ -42,6 +42,7 @@ type ForumTopic struct {
 	AuthorID   string         `gorm:"index;type:uuid;column:author_id" json:"authorId"`
 	Author     *User          `gorm:"foreignKey:AuthorID;constraint:OnDelete:SET NULL" json:"author,omitempty"`
 	CategoryID string         `gorm:"index;type:uuid;column:category_id" json:"categoryId"`
+	Category   *ForumCategory `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	Views      int            `gorm:"default:0;column:views" json:"views"`
 	IsPinned   bool           `gorm:"default:false;column:is_pinned" json:"isPinned"`
 	IsLocked   bool           `gorm:"default:false;column:is_locked" json:"isLocked"`

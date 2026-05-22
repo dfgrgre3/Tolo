@@ -146,7 +146,7 @@ const nextConfig = {
     if (dev) {
       config.watchOptions = {
         ...config.watchOptions,
-        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**', '**/clerk-nextjs/**', '**/backend/**'],
         aggregateTimeout: 300,
         poll: false,
       };
@@ -261,6 +261,14 @@ const nextConfig = {
         ],
       },
     ];
+  },
+
+  // Exclude external Next.js projects nested in the root from being scanned
+  outputFileTracingExcludes: {
+    '*': [
+      './clerk-nextjs/**',
+      './backend/**',
+    ],
   },
 
   // Enable ISR revalidation

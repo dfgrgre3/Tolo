@@ -26,6 +26,7 @@ import { formatDistanceToNow } from "date-fns";
 import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
 import { useAuth } from "@/contexts/auth-context";
+import { useWebSocket } from "@/contexts/websocket-context";
 
 interface ActivityItem {
   id: string;
@@ -45,6 +46,7 @@ export function ActivityWidget() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const { socket, isConnected } = useWebSocket();
   
   const mounted = React.useSyncExternalStore(
     () => () => {},
@@ -89,7 +91,7 @@ export function ActivityWidget() {
   };
 
   useEffect(() => {
-    if (!mounted || !user) return;
+    if (!mounted || !user?.id) return;
 
     const mapActivityItem = (item: any): ActivityItem => ({
       id: item.id,
@@ -120,14 +122,40 @@ export function ActivityWidget() {
     };
 
     fetchActivities();
-    intervalRef.current = setInterval(fetchActivities, 30000); // Update every 30 seconds
+
+    const intervalTime = isConnected ? null : 300000;
+    if (intervalTime) {
+      intervalRef.current = setInterval(fetchActivities, intervalTime);
+    }
+
+    let handleWsMessage: ((event: MessageEvent) => void) | null = null;
+    if (socket) {
+      handleWsMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (
+            data.type === "notification" ||
+            data.type === "refresh_notifications" ||
+            data.type === "activity_refresh"
+          ) {
+            fetchActivities();
+          }
+        } catch (error) {
+          // ignore
+        }
+      };
+      socket.addEventListener("message", handleWsMessage);
+    }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      if (socket && handleWsMessage) {
+        socket.removeEventListener("message", handleWsMessage);
+      }
     };
-  }, [mounted, user]);
+  }, [mounted, user?.id, isConnected, socket]);
 
   const markAsRead = async (id: string) => {
     try {

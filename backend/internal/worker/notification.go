@@ -71,22 +71,22 @@ func (h *NotificationHandler) sendViaChannel(ctx context.Context, channel string
 	}
 }
 
-func (h *NotificationHandler) sendEmail(ctx context.Context, p NotificationPayload) error {
+func (h *NotificationHandler) sendEmail(_ context.Context, p NotificationPayload) error {
 	log.Printf("[Worker] Would send email to %s: %s", p.UserID, p.Title)
 	return nil
 }
 
-func (h *NotificationHandler) sendSMS(ctx context.Context, p NotificationPayload) error {
+func (h *NotificationHandler) sendSMS(_ context.Context, p NotificationPayload) error {
 	log.Printf("[Worker] Would send SMS to %s", p.UserID)
 	return nil
 }
 
-func (h *NotificationHandler) sendPush(ctx context.Context, p NotificationPayload) error {
+func (h *NotificationHandler) sendPush(_ context.Context, p NotificationPayload) error {
 	log.Printf("[Worker] Would send push to %s: %s", p.UserID, p.Title)
 	return nil
 }
 
-func (h *NotificationHandler) sendInApp(ctx context.Context, p NotificationPayload) error {
+func (h *NotificationHandler) sendInApp(_ context.Context, p NotificationPayload) error {
 	// Example of DB interaction in worker
 	log.Printf("[Worker] Storing in-app notification for %s", p.UserID)
 	// db.DB.Create(...)

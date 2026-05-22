@@ -1,9 +1,10 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 // SetupPublicRoutes configures public API endpoints
@@ -63,6 +64,24 @@ func SetupPublicRoutes(router *gin.Engine) {
 
 	// WebSocket
 	router.GET("/api/ws", middleware.Auth(), handlers.WSHandler)
+
+	// Public Forum routes
+	router.GET("/api/forum/categories", handlers.GetForumCategories)
+	router.GET("/api/forum/posts", handlers.GetForumPosts)
+	router.POST("/api/forum/posts", middleware.Auth(), handlers.CreateForumPost)
+	router.GET("/api/forum/posts/:id", handlers.GetForumPost)
+	router.POST("/api/forum/posts/:id/view", handlers.IncrementForumPostView)
+	router.GET("/api/forum/posts/:id/replies", handlers.GetForumPostReplies)
+	router.POST("/api/forum/posts/:id/replies", middleware.Auth(), handlers.CreateForumPostReply)
+
+	// Public community routes
+	router.GET("/api/announcements", handlers.GetPublicAnnouncements)
+	router.POST("/api/announcements", middleware.Auth(), handlers.CreatePublicAnnouncement)
+
+	// Lightweight community chat compatibility routes
+	router.GET("/api/chat/conversations/:userId", middleware.Auth(), handlers.GetChatConversations)
+	router.GET("/api/chat/messages/:userId/:chatUserId", middleware.Auth(), handlers.GetChatMessages)
+	router.POST("/api/chat/messages", middleware.Auth(), handlers.SendChatMessage)
 
 	// Public Library routes
 	router.GET("/api/library/categories", handlers.GetLibraryCategories)

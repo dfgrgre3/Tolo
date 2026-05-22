@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbopack",
     "dev:no-turbo": "next dev",
     "clear-cache": "powershell -ExecutionPolicy Bypass -File ./scripts/clear-cache.ps1",
     "build": "next build",
@@ -61,7 +61,7 @@
     "jose": "^6.0.8",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
-    "next": "^16.2.4",
+    "next": "16.2.6",
     "next-themes": "^0.4.6",
     "qrcode": "^1.5.4",
     "react": "^19.2.5",

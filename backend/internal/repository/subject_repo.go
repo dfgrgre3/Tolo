@@ -30,12 +30,12 @@ const (
 // allowedSubjectFilters is a whitelist of safe column names for dynamic filtering.
 // This prevents SQL injection through user-controlled filter keys.
 var allowedSubjectFilters = map[string]string{
-	"isActive":    `"isActive"`,
-	"isPublished": `"isPublished"`,
+	"isActive":    "is_active",
+	"isPublished": "is_published",
 	"level":       "level",
-	"categoryId":  `"categoryId"`,
+	"categoryId":  "category_id",
 	"language":    "language",
-	"isFeatured":  `"isFeatured"`,
+	"isFeatured":  "is_featured",
 }
 
 func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
@@ -46,7 +46,9 @@ func (r *SubjectRepository) FindByID(id string) (*models.Subject, error) {
 
 		// Try cache first
 		if db.Redis != nil {
-			cachedVal, err := db.Redis.Get(context.Background(), cacheKey).Result()
+			redisCtx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
+			cancel()
 			if err == nil {
 				if json.Unmarshal([]byte(cachedVal), &subject) == nil {
 					return &subject, nil
@@ -117,8 +119,11 @@ func (r *SubjectRepository) cacheSubject(subject *models.Subject) {
 		return
 	}
 	data, _ := json.Marshal(subject)
-	ctx := context.Background()
-	db.Redis.Set(ctx, fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, subject.ID), data, SubjectCacheTTL)
+	go func(id string, data []byte) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		db.Redis.Set(ctx, fmt.Sprintf(subjectCacheKeyFormat, SubjectCachePrefix, id), data, SubjectCacheTTL)
+	}(subject.ID, data)
 }
 
 // InvalidateSubjectCache clears the cached subject data when its relations (Topics, SubTopics) are updated

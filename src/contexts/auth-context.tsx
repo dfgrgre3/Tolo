@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
+import { requestCache } from '@/lib/api/request-cache';
 import { apiRoutes } from '@/lib/api/routes';
 import { authApiService } from '@/services/auth/auth-api-service';
 
@@ -21,6 +22,13 @@ const fetchWithTimeout = async (url: string, options: RequestInit, ms: number = 
   } finally {
     clearTimeout(timeoutId);
   }
+};
+
+const fetchCachedAuthMe = () => {
+  const options: RequestInit = { credentials: 'include' };
+  return requestCache.getResponse('/api/auth/me', options, () =>
+    fetchWithTimeout('/api/auth/me', options, 10000)
+  );
 };
 
 /**
@@ -89,6 +97,8 @@ export function AuthProvider({
   const isRefreshing = useRef(false);
   const refreshPromise = useRef<Promise<boolean> | null>(null);
   const _userFetchPromise = useRef<Promise<boolean> | null>(null);
+  const accessTokenExpiresAt = useRef<number | null>(null);
+  const proactiveRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ensure isLoading reflects initialAuthHint on server-side hint
   useEffect(() => {
@@ -102,6 +112,30 @@ export function AuthProvider({
       setTimeout(resolve, ms);
     });
   }, []);
+
+  const clearProactiveRefresh = useCallback(() => {
+    if (proactiveRefreshTimer.current) {
+      clearTimeout(proactiveRefreshTimer.current);
+      proactiveRefreshTimer.current = null;
+    }
+  }, []);
+
+  const scheduleProactiveRefresh = useCallback((expiresAt?: number | null) => {
+    clearProactiveRefresh();
+    if (!expiresAt || !Number.isFinite(expiresAt)) return;
+
+    accessTokenExpiresAt.current = expiresAt;
+    const refreshInMs = Math.max(expiresAt - Date.now() - 30000, 0);
+    proactiveRefreshTimer.current = setTimeout(() => {
+      void (async () => {
+        if (!isRefreshing.current) {
+          await refreshTokenRef.current?.();
+        }
+      })();
+    }, refreshInMs);
+  }, [clearProactiveRefresh]);
+
+  const refreshTokenRef = useRef<(() => Promise<boolean>) | null>(null);
 
   /**
    * Attempt to refresh the access token.
@@ -122,7 +156,11 @@ export function AuthProvider({
           credentials: 'include'
         }, 10000);
 
-        return response.ok;
+        if (!response.ok) return false;
+
+        const data = await response.json().catch(() => null) as { accessTokenExpiresAt?: number } | null;
+        scheduleProactiveRefresh(data?.accessTokenExpiresAt);
+        return true;
       } catch (error) {
         if (isTimeoutError(error)) {
           logger.warn('refreshToken timed out after 10s');
@@ -137,7 +175,11 @@ export function AuthProvider({
     })();
 
     return refreshPromise.current;
-  }, []);
+  }, [scheduleProactiveRefresh]);
+
+  useEffect(() => {
+    refreshTokenRef.current = refreshToken;
+  }, [refreshToken]);
 
   /**
    * Fetch wrapper that automatically handles 401 responses.
@@ -145,50 +187,60 @@ export function AuthProvider({
    * This is used for API calls OTHER than /api/auth/me (which handles refresh internally).
    */
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include'
-    });
-
-    if (response.status === 401) {
-      // Try to refresh via the dedicated endpoint
-      const refreshed = await refreshToken();
-
-      if (refreshed) {
-        // Retry the original request with new token
-        return fetch(url, {
-          ...options,
-          credentials: 'include'
-        });
+    const executeFetch = async () => {
+      if (accessTokenExpiresAt.current && accessTokenExpiresAt.current - Date.now() <= 30000) {
+        await refreshToken();
       }
 
-      // Refresh failed - user needs to login again
-      setUser(null);
-      clearUserId();
-      if (typeof window !== 'undefined') {
-        const fullPath = `${window.location.pathname}${window.location.search}`;
-        const redirectPath = sanitizeRedirectPath(fullPath, '/');
-        const loginUrl = redirectPath === '/login' ?
-          '/login' :
-          `/login?redirect=${encodeURIComponent(redirectPath)}`;
-        router.replace(loginUrl);
-      } else {
-        router.replace('/login');
+      const response = await fetch(url, {
+        ...options,
+        credentials: 'include'
+      });
+
+      if (response.status === 401) {
+        // Try to refresh via the dedicated endpoint
+        const refreshed = await refreshToken();
+
+        if (refreshed) {
+          // Retry the original request with new token
+          return fetch(url, {
+            ...options,
+            credentials: 'include'
+          });
+        }
+
+        // Refresh failed - user needs to login again
+        setUser(null);
+        clearUserId();
+        if (typeof window !== 'undefined') {
+          const fullPath = `${window.location.pathname}${window.location.search}`;
+          const redirectPath = sanitizeRedirectPath(fullPath, '/');
+          const loginUrl = redirectPath === '/login' ?
+            '/login' :
+            `/login?redirect=${encodeURIComponent(redirectPath)}`;
+          router.replace(loginUrl);
+        } else {
+          router.replace('/login');
+        }
       }
+
+      return response;
+    };
+
+    const method = options.method || 'GET';
+    if (method.toUpperCase() === 'GET') {
+      return requestCache.getResponse(url, options, executeFetch);
     }
-
-    return response;
+    return executeFetch();
   }, [refreshToken, router, setUser]);
 
   const attemptUserFetch = useCallback(async () => {
-    const response = await fetchWithTimeout('/api/auth/me', {
-      credentials: 'include',
-      cache: 'no-store'
-    });
+    const response = await fetchCachedAuthMe();
     
     if (response.ok) {
       const data = await response.json();
       setUser(data.user);
+      scheduleProactiveRefresh(data.accessTokenExpiresAt);
       return true;
     }
     return false;
@@ -233,10 +285,7 @@ export function AuthProvider({
           }
         }
 
-        const response = await fetchWithTimeout('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store'
-        });
+        const response = await fetchCachedAuthMe();
 
         if (response.status === 401) {
           const success = await handle401Retry();
@@ -244,12 +293,14 @@ export function AuthProvider({
         } else if (response.ok) {
           const data = await response.json();
           setUser(data.user);
+          scheduleProactiveRefresh(data.accessTokenExpiresAt);
           return true;
         }
 
         if (clearOnFailure) {
           setUser(null);
           clearUserId();
+          clearProactiveRefresh();
         }
         return false;
       } catch (error) {
@@ -262,6 +313,7 @@ export function AuthProvider({
         if (clearOnFailure) {
           setUser(null);
           clearUserId();
+          clearProactiveRefresh();
         }
         return false;
       } finally {
@@ -293,6 +345,8 @@ export function AuthProvider({
       if (!response.ok) {
         return { success: false, error: data.error || 'Login failed' };
       }
+
+      requestCache.clear();
 
       // If 2FA is required, return early with relevant data
       if (data.requires2FA) {
@@ -364,6 +418,8 @@ export function AuthProvider({
         return { success: false, error: data.error || '2FA verification failed' };
       }
 
+      requestCache.clear();
+
       if (data.user) {
         setUser({
           id: data.user.id,
@@ -427,6 +483,8 @@ export function AuthProvider({
           error: data.error || data.details?.[0] || 'Registration failed'
         };
       }
+
+      requestCache.clear();
 
       // Prefer server-driven auto-login from /api/auth/register when available.
       if (data?.autoLoggedIn === true) {
@@ -498,9 +556,11 @@ export function AuthProvider({
     }
     setUser(null);
     clearUserId();
+    requestCache.clear();
+    clearProactiveRefresh();
     router.replace('/login');
     router.refresh();
-  }, [router, setUser]);
+  }, [clearProactiveRefresh, router, setUser]);
 
   // Check auth state on mount
   useEffect(() => {
@@ -534,8 +594,9 @@ export function AuthProvider({
     return () => {
       mounted = false;
       clearTimeout(safetyTimer);
+      clearProactiveRefresh();
     };
-  }, [refreshUser, setIsLoading]);
+  }, [clearProactiveRefresh, refreshUser, setIsLoading]);
 
   const sanitizeRedirectPath = (path: string, fallback: string = '/'): string => {
     if (!path || path.includes('//') || !path.startsWith('/')) return fallback;

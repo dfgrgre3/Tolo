@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ensureUser } from '@/lib/user-utils';
 import { Achievement, UserProgress, AchievementFilters, AchievementRarity } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';
@@ -7,10 +7,8 @@ import apiClient from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
 
 interface AchievementsApiResponse {
-	data: {
-		achievements?: unknown[];
-		userProgress?: UserProgress | null;
-	};
+	achievements?: unknown[];
+	userProgress?: UserProgress | null;
 	error?: string;
 }
 
@@ -70,23 +68,27 @@ export function useAchievements(): UseAchievementsReturn {
 			// Use apiClient which handles authentication properly
 			const data = await apiClient.get<AchievementsApiResponse>(endpoint);
 
-			// Validate response structure
-			if (!data || !data.data || !Array.isArray(data.data.achievements)) {
+			// Validate response structure and extract achievements safely
+			const achievementsArray = data?.achievements;
+			if (!data || (achievementsArray !== undefined && !Array.isArray(achievementsArray))) {
+				logger.error('Invalid achievements response structure from server:', data);
 				throw new Error('استجابة غير صحيحة من الخادم');
 			}
 
-			const fetchedAchievements: Achievement[] = data.data.achievements.map(
-				(ach: unknown) => {
-					const achievement = ach as Partial<Achievement> & { xpReward?: number };
-					return {
-						...achievement,
-						rarity: (achievement.rarity || getRarityByXP(achievement.xpReward || 0)) as AchievementRarity,
-					} as Achievement;
-				}
-			);
+			const fetchedAchievements: Achievement[] = Array.isArray(achievementsArray)
+				? achievementsArray.map(
+					(ach: unknown) => {
+						const achievement = ach as Partial<Achievement> & { xpReward?: number };
+						return {
+							...achievement,
+							rarity: (achievement.rarity || getRarityByXP(achievement.xpReward || 0)) as AchievementRarity,
+						} as Achievement;
+					}
+				)
+				: [];
 
 			setAchievements(fetchedAchievements);
-			setUserProgress(data.data.userProgress || null);
+			setUserProgress(data.userProgress || null);
 			setError(null);
 		} catch (err: unknown) {
 			logger.error('Error fetching achievements:', err);

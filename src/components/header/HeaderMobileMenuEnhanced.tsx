@@ -261,7 +261,11 @@ export function HeaderMobileMenuEnhanced({
                 {searchQuery.trim() ? (
                   <m.div variants={staggerItem} className="space-y-1.5">
                     {searchResults.length > 0 ? (
-                      searchResults.map((result) => renderNavLink(result, closeMobileMenu))
+                      searchResults.map((result) => (
+                        <React.Fragment key={result.href}>
+                          {renderNavLink(result, closeMobileMenu)}
+                        </React.Fragment>
+                      ))
                     ) : (
                       <div className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">لا توجد نتائج مطابقة</div>
                     )}

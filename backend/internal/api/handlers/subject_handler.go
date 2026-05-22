@@ -43,12 +43,8 @@ func getSubjectRepo() *repository.SubjectRepository {
 	return subjectRepo
 }
 
-// Public handlers
-func GetSubjects(c *gin.Context) {
-	var subjects []models.Subject
-	query := db.DB.Model(&models.Subject{})
-
-	// Filtering
+// buildSubjectFilters applies common filter conditions to a query and returns it.
+func buildSubjectFilters(query *gorm.DB, c *gin.Context) *gorm.DB {
 	if catID := c.Query("categoryId"); catID != "" {
 		query = query.Where("category_id = ?", catID)
 	}
@@ -57,6 +53,27 @@ func GetSubjects(c *gin.Context) {
 	if search != "" {
 		query = query.Where("name ILIKE ? OR name_ar ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
+
+	if level := c.Query("level"); level != "" {
+		query = query.Where("level = ?", level)
+	}
+	if isPublished := c.Query("isPublished"); isPublished != "" {
+		query = query.Where("is_published = ?", isPublished == "true")
+	}
+	if isActive := c.Query("isActive"); isActive != "" {
+		query = query.Where(isActiveQuery, isActive == "true")
+	}
+	return query
+}
+
+// Public handlers
+func GetSubjects(c *gin.Context) {
+	var subjects []models.Subject
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+	query := readDB.Model(&models.Subject{})
 
 	// Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -77,18 +94,14 @@ func GetSubjects(c *gin.Context) {
 		page = (offset / limit) + 1
 	}
 
-	if level := c.Query("level"); level != "" {
-		query = query.Where("level = ?", level)
-	}
-	if isPublished := c.Query("isPublished"); isPublished != "" {
-		query = query.Where("is_published = ?", isPublished == "true")
-	}
-	if isActive := c.Query("isActive"); isActive != "" {
-		query = query.Where(isActiveQuery, isActive == "true")
-	}
+	// Apply filters once and reuse
+	query = buildSubjectFilters(query, c)
 
+	// Count with same filters
 	var total int64
-	query.Count(&total)
+	countQuery := readDB.Model(&models.Subject{})
+	countQuery = buildSubjectFilters(countQuery, c)
+	countQuery.Count(&total)
 
 	if err := query.Order("created_at desc").Offset(offset).Limit(limit).Find(&subjects).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch subjects")
@@ -96,6 +109,7 @@ func GetSubjects(c *gin.Context) {
 	}
 
 	// Keep list pages light: do not preload full curriculum; only fetch topic counts.
+	// Use same readDB for topic counts
 	subjectIDs := make([]string, len(subjects))
 	for i, s := range subjects {
 		subjectIDs[i] = s.ID
@@ -107,7 +121,7 @@ func GetSubjects(c *gin.Context) {
 	}
 	var topicCounts []countResult
 	if len(subjectIDs) > 0 {
-		db.DB.Model(&models.Topic{}).
+		readDB.Model(&models.Topic{}).
 			Select("subject_id, count(*) as count").
 			Where("subject_id IN ?", subjectIDs).
 			Group("subject_id").
@@ -964,7 +978,7 @@ func GetUserSubjects(c *gin.Context) {
 		Subject string `json:"subject"`
 	}
 
-	var response []subjectResponse
+	response := []subjectResponse{}
 	for _, e := range enrollments {
 		if e.Subject.ID != "" {
 			response = append(response, subjectResponse{
@@ -975,6 +989,74 @@ func GetUserSubjects(c *gin.Context) {
 	}
 
 	api_response.Success(c, response)
+}
+
+func GetMyCourses(c *gin.Context) {
+	userId, ok := getAuthenticatedUserID(c)
+	if !ok {
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+
+	var enrollments []models.Enrollment
+	if err := readDB.
+		Preload("Subject").
+		Where("user_id = ?", userId).
+		Order("updated_at DESC").
+		Limit(limit).
+		Find(&enrollments).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch courses")
+		return
+	}
+
+	courses := make([]gin.H, 0, len(enrollments))
+	for _, enrollment := range enrollments {
+		subject := enrollment.Subject
+		if subject.ID == "" {
+			continue
+		}
+
+		title := subject.Name
+		if subject.NameAr != nil && *subject.NameAr != "" {
+			title = *subject.NameAr
+		}
+
+		courses = append(courses, gin.H{
+			"id":             subject.ID,
+			"enrollmentId":   enrollment.ID,
+			"title":          title,
+			"name":           subject.Name,
+			"nameAr":         subject.NameAr,
+			"description":    subject.Description,
+			"thumbnailUrl":   subject.ThumbnailUrl,
+			"progress":       enrollment.Progress,
+			"enrolled":       true,
+			"lastAccessedAt": enrollment.UpdatedAt,
+			"enrolledAt":     enrollment.EnrolledAt,
+			"subject":        subject.Code,
+			"rating":         subject.Rating,
+			"level":          subject.Level,
+		})
+	}
+
+	api_response.Success(c, gin.H{
+		"courses": courses,
+		"data": gin.H{
+			"courses": courses,
+		},
+	})
 }
 
 func UpdateCourseCurriculum(c *gin.Context) {

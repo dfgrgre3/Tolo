@@ -16,12 +16,12 @@ func GetCategories(c *gin.Context) {
 	categoryType := c.Query("type")
 	var categories []models.Category
 
-	query := db.DB
+	query := db.DB.Select("id", "name", "slug", "icon", "description", "type", "created_at")
 	if categoryType != "" {
 		query = query.Where("type = ?", categoryType)
 	}
 
-	if err := query.Find(&categories).Error; err != nil {
+	if err := query.Order("created_at desc").Find(&categories).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to fetch categories")
 		return
 	}
@@ -33,12 +33,12 @@ func GetCategoriesForAdmin(c *gin.Context) {
 	categoryType := c.Query("type")
 	var categories []models.Category
 
-	query := db.DB
+	query := db.DB.Select("id", "name", "slug", "icon", "description", "type", "created_at")
 	if categoryType != "" {
 		query = query.Where("type = ?", categoryType)
 	}
 
-	if err := query.Find(&categories).Error; err != nil {
+	if err := query.Order("created_at desc").Find(&categories).Error; err != nil {
 		apiresponse.Error(c, http.StatusInternalServerError, "Failed to fetch categories")
 		return
 	}

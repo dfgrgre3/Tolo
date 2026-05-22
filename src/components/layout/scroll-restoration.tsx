@@ -49,13 +49,12 @@ const ScrollRestoration = () => {
 
 		const restoreScrollPosition = () => {
 			try {
-				const storedValue = safeGetItem(storageKey, { storageType: 'session', fallback: null });
+				const storedValue = safeGetItem(storageKey, { storageType: 'session', fallback: null }) as ScrollPosition | null;
 				if (!storedValue) {
 					return;
 				}
 
-				const position = typeof storedValue === 'string' ? JSON.parse(storedValue) : storedValue;
-				const { x, y } = position as ScrollPosition;
+				const { x, y } = storedValue;
 				// Use double rAF to ensure the DOM is ready before scrolling
 				executeScroll(x, y);
 			} catch {
@@ -72,45 +71,42 @@ const ScrollRestoration = () => {
 		}
 
 		const storeScrollPosition = () => {
-			const value: ScrollPosition = safeWindow((w) => ({
-				x: w.scrollX,
-				y: w.scrollY
-			}), { x: 0, y: 0 });
+			const scrollX = typeof window !== 'undefined' ? window.scrollX : 0;
+			const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+			const value: ScrollPosition = { x: scrollX, y: scrollY };
 			// Use safe wrapper that handles errors automatically
 			safeSetItem(storageKey, value, { storageType: 'session' });
 		};
 
 		// Keep browser from overriding our manual logic
-		const originalScrollRestoration = safeWindow((w) => w.history.scrollRestoration, 'auto');
-		safeWindow((w) => {
-			w.history.scrollRestoration = "manual";
-		}, undefined);
+		const originalScrollRestoration = typeof window !== 'undefined' ? window.history.scrollRestoration : 'auto';
+		if (typeof window !== 'undefined') {
+			window.history.scrollRestoration = "manual";
+		}
 
-		const handleVisibilityChange = () => {
-			if (safeDocument((d) => d.visibilityState, 'visible') === "hidden") {
-				storeScrollPosition();
+		if (typeof document !== 'undefined') {
+			const handleVisibilityChange = () => {
+				if (document.visibilityState === "hidden") {
+					storeScrollPosition();
+				}
+			};
+
+			if (typeof window !== 'undefined') {
+				window.addEventListener("beforeunload", storeScrollPosition);
 			}
-		};
+			document.addEventListener("visibilitychange", handleVisibilityChange);
 
-		safeWindow((w) => {
-			w.addEventListener("beforeunload", storeScrollPosition);
-		}, undefined);
-		safeDocument((d) => {
-			d.addEventListener("visibilitychange", handleVisibilityChange);
-		}, undefined);
-
-		return () => {
-			storeScrollPosition();
-			safeWindow((w) => {
-				w.removeEventListener("beforeunload", storeScrollPosition);
-			}, undefined);
-			safeDocument((d) => {
-				d.removeEventListener("visibilitychange", handleVisibilityChange);
-			}, undefined);
-			safeWindow((w) => {
-				w.history.scrollRestoration = originalScrollRestoration;
-			}, undefined);
-		};
+			return () => {
+				storeScrollPosition();
+				if (typeof window !== 'undefined') {
+					window.removeEventListener("beforeunload", storeScrollPosition);
+				}
+				document.removeEventListener("visibilitychange", handleVisibilityChange);
+				if (typeof window !== 'undefined') {
+					window.history.scrollRestoration = originalScrollRestoration as ScrollRestoration;
+				}
+			};
+		}
 	}, [storageKey]);
 
 	return null;

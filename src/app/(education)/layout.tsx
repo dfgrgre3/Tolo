@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function EducationGroupLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return children;
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
@@ -15,6 +17,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+type userSettingsL1Entry struct {
+	settings  models.UserSettings
+	expiresAt time.Time
+}
+
+var (
+	userSettingsL1    sync.Map
+	userSettingsL1TTL = 5 * time.Minute
+)
+
 // GetSettings retrieves user settings/preferences
 func GetSettings(c *gin.Context) {
 	userID, exists := c.Get("userId")
@@ -22,6 +34,7 @@ func GetSettings(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	uid := userID.(string)
 
 	var settings models.UserSettings
 
@@ -33,15 +46,28 @@ func GetSettings(c *gin.Context) {
 		return
 	}
 
+	if raw, ok := userSettingsL1.Load(uid); ok {
+		entry := raw.(*userSettingsL1Entry)
+		if time.Now().Before(entry.expiresAt) {
+			api_response.Success(c, gin.H{"settings": entry.settings})
+			return
+		}
+		userSettingsL1.Delete(uid)
+	}
+
 	// Use struct-based query to let GORM handle naming strategy correctly
-	result := db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+	result := readDB.Where(&models.UserSettings{UserID: uid}).First(&settings)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			log.Printf("INFO: Creating default settings for user %v", userID)
 			// Create default settings for user
 			settings = models.UserSettings{
-				UserID:               userID.(string),
+				UserID:               uid,
 				Theme:                "light",
 				FontSize:             "medium",
 				ReducedMotion:        false,
@@ -90,7 +116,7 @@ func GetSettings(c *gin.Context) {
 
 			// Re-fetch to ensure we have the settings if DoNothing was triggered
 			if settings.ID == "" {
-				db.DB.Where(&models.UserSettings{UserID: userID.(string)}).First(&settings)
+				db.DB.Where(&models.UserSettings{UserID: uid}).First(&settings)
 			}
 		} else {
 			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
@@ -102,6 +128,7 @@ func GetSettings(c *gin.Context) {
 		}
 	}
 
+	userSettingsL1.Store(uid, &userSettingsL1Entry{settings: settings, expiresAt: time.Now().Add(userSettingsL1TTL)})
 	api_response.Success(c, gin.H{"settings": settings})
 }
 
@@ -150,6 +177,7 @@ func UpdateSettings(c *gin.Context) {
 	}
 
 	log.Printf("INFO: UpdateSettings - Successfully updated settings for user %v", userID)
+	userSettingsL1.Store(userID.(string), &userSettingsL1Entry{settings: settings, expiresAt: time.Now().Add(userSettingsL1TTL)})
 	api_response.Success(c, gin.H{"settings": settings})
 }
 

@@ -1,9 +1,10 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
 	"thanawy-backend/internal/api/handlers"
 	"thanawy-backend/internal/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -54,6 +55,9 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.GET("/users/billing-summary", handlers.GetBillingSummary)
 		protected.GET("/users/profile", handlers.GetUserProfile)
 		protected.PATCH("/users/profile", handlers.UpdateProfile)
+		protected.GET("/users/progress/courses", handlers.GetUserCoursesProgress)
+		protected.GET("/users/progress/time", handlers.GetUserTimeProgress)
+		protected.GET("/users/progress/achievements", handlers.GetUserAchievementsProgress)
 
 		// Activities
 		protected.GET("/activities/recent", handlers.GetRecentActivities)
@@ -74,8 +78,9 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/subscriptions/renew", handlers.RenewSubscription)
 		protected.POST("/coupons/validate", handlers.ValidateCoupon)
 
-		// User Subjects
+		// User Subjects & Courses
 		protected.GET("/subjects", handlers.GetUserSubjects)
+		protected.GET("/my-courses", handlers.GetMyCourses)
 
 		// Search
 		protected.GET("/search", handlers.GlobalSearch)
@@ -113,8 +118,11 @@ func SetupProtectedRoutes(router *gin.Engine) {
 		protected.POST("/exams/:id/submit", handlers.SubmitExam)
 
 		// Gamification routes
+		protected.GET("/gamification/progress", handlers.GetUserProgress)
 		protected.GET("/gamification/leaderboard", handlers.GetLeaderboard)
 		protected.GET("/gamification/achievements", handlers.GetUserAchievements)
+		protected.POST("/gamification/goals", handlers.CreateCustomGoal)
+		protected.PATCH("/gamification/goals/:id", handlers.UpdateCustomGoal)
 
 		// Event Ingestion (lightweight, fire-and-forget to Redis Stream)
 		protected.POST("/events/ingest", handlers.IngestEvent)

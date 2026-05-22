@@ -198,22 +198,27 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     };
   }, [socket, isConnected, fetchNotifications]);
 
+  const isConnectedRef = useRef(isConnected);
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications(true);
     }
 
-    // Poll for notifications every 60 seconds as a fallback for WebSocket
+    // Poll conservatively as a fallback for WebSocket.
     const pollInterval = setInterval(() => {
-      if (isAuthenticated && !isConnected) {
+      if (isAuthenticated && !isConnectedRef.current) {
         fetchNotifications(true);
       }
-    }, 60000);
+    }, 300000);
 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [fetchNotifications, isConnected, isAuthenticated]);
+  }, [fetchNotifications, isAuthenticated]);
 
   const value = useMemo(() => ({
     notifications,

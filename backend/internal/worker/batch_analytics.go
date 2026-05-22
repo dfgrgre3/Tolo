@@ -69,14 +69,14 @@ func processBatch() error {
 
 	// 1. Try to read pending messages first (using ID "0")
 	var messages []redis.XMessage
-	entries, err := db.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
+	entries, err := readAnalyticsGroupWithRetry(ctx, &redis.XReadGroupArgs{
 		Group:    analyticsConsumerGroup,
 		Consumer: analyticsConsumerID,
 		Streams:  []string{analyticsStream, "0"},
 		Count:    int64(analyticsBatchSize),
 		Block:    0,
 		NoAck:    false,
-	}).Result()
+	})
 
 	if err == nil && len(entries) > 0 && len(entries[0].Messages) > 0 {
 		messages = entries[0].Messages
@@ -87,14 +87,14 @@ func processBatch() error {
 
 	// 2. If no pending messages, read new messages using ">"
 	if len(messages) == 0 {
-		entries, err = db.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
+		entries, err = readAnalyticsGroupWithRetry(ctx, &redis.XReadGroupArgs{
 			Group:    analyticsConsumerGroup,
 			Consumer: analyticsConsumerID,
 			Streams:  []string{analyticsStream, ">"},
 			Count:    int64(analyticsBatchSize),
 			Block:    analyticsBlockTime,
 			NoAck:    false,
-		}).Result()
+		})
 		if err != nil {
 			if err == redis.Nil {
 				return nil
@@ -160,6 +160,22 @@ func processBatch() error {
 	return nil
 }
 
+func readAnalyticsGroupWithRetry(ctx context.Context, args *redis.XReadGroupArgs) ([]redis.XStream, error) {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		entries, err := db.Redis.XReadGroup(ctx, args).Result()
+		if err == nil || err == redis.Nil {
+			return entries, err
+		}
+
+		lastErr = err
+		backoff := time.Duration(200*(attempt+1)) * time.Millisecond
+		log.Printf("[AnalyticsWorker] Redis read attempt %d failed: %v; retrying in %s", attempt+1, err, backoff)
+		time.Sleep(backoff)
+	}
+	return nil, lastErr
+}
+
 func batchInsert(ctx context.Context, records []map[string]interface{}) error {
 	if db.WriteDB() == nil {
 		return nil
@@ -173,7 +189,7 @@ func batchInsert(ctx context.Context, records []map[string]interface{}) error {
 		}
 		batch := records[i:end]
 
-		tx := db.WriteDB().Session(&gorm.Session{PrepareStmt: false}).Begin()
+		tx := db.WriteDB().WithContext(ctx).Session(&gorm.Session{PrepareStmt: false}).Begin()
 		stmt := `INSERT INTO "AnalyticsEvent" ("event_id", "event_type", "user_id", "payload", "source", "received_at", "created_at")
 				 VALUES (?, ?, ?::text, ?::jsonb, ?, ?, ?)
 				 ON CONFLICT ("event_id") DO NOTHING`

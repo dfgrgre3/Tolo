@@ -1,15 +1,45 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	api_response "thanawy-backend/internal/api/response"
 	"thanawy-backend/internal/db"
 	"thanawy-backend/internal/models"
 	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// ─── in-process L1 cache for recent-activities ────────────────────────────────
+// Keeps a small in-memory snapshot so that short-burst repeated requests
+// (e.g. React StrictMode double-render, rapid page navigations) never hit
+// the remote Redis or the database at all.
+type l1Entry struct {
+	data      []byte
+	expiresAt time.Time
+}
+
+var (
+	activitiesL1    sync.Map           // key: string → *l1Entry
+	activitiesL1TTL = 20 * time.Second // same tenant sees fresh data within 20 s
+)
+
+// ─── in-process L1 cache for unread notifications count ──────────
+type unreadCountL1Entry struct {
+	count     int64
+	expiresAt time.Time
+}
+
+var (
+	unreadCountL1    sync.Map
+	unreadCountL1TTL = 20 * time.Second
 )
 
 func GetUnreadNotificationsCount(c *gin.Context) {
@@ -19,11 +49,52 @@ func GetUnreadNotificationsCount(c *gin.Context) {
 		return
 	}
 
+	// L1 in-process cache (zero network hop)
+	l1Key := fmt.Sprintf("unc:%s", userId)
+	if raw, ok := unreadCountL1.Load(l1Key); ok {
+		entry := raw.(*unreadCountL1Entry)
+		if time.Now().Before(entry.expiresAt) {
+			api_response.Success(c, gin.H{"count": entry.count})
+			return
+		}
+	}
+
+	// L2 Redis cache
+	if db.Redis != nil {
+		cacheKey := fmt.Sprintf("unread_notif_count:%s", userId)
+		redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+		cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Int()
+		cancel()
+		if err == nil {
+			count := int64(cachedVal)
+			// Warm L1
+			unreadCountL1.Store(l1Key, &unreadCountL1Entry{count: count, expiresAt: time.Now().Add(unreadCountL1TTL)})
+			api_response.Success(c, gin.H{"count": count})
+			return
+		}
+	}
+
 	var count int64
-	if err := db.DB.Model(&models.Notification{}).Where("user_id = ? AND \"is_read\" = ?", userId, false).Count(&count).Error; err != nil {
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+	if err := readDB.Model(&models.Notification{}).
+		Where("user_id = ? AND is_read = ?", userId, false).
+		Count(&count).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to count notifications")
 		return
 	}
+
+	// Populate both caches
+	if db.Redis != nil {
+		go func(userId string, count int64) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			db.Redis.Set(ctx, fmt.Sprintf("unread_notif_count:%s", userId), count, time.Minute)
+		}(userId.(string), count)
+	}
+	unreadCountL1.Store(l1Key, &unreadCountL1Entry{count: count, expiresAt: time.Now().Add(unreadCountL1TTL)})
 
 	api_response.Success(c, gin.H{"count": count})
 }
@@ -35,12 +106,96 @@ func GetRecentActivities(c *gin.Context) {
 		return
 	}
 
+	// ── pagination params ────────────────────────────────────────────────────
+	limit := 10
+	offset := 0
+	if v, err := strconv.Atoi(c.DefaultQuery("limit", "10")); err == nil && v > 0 {
+		if v > 20 {
+			v = 20 // hard cap – prevents heavy scans
+		}
+		limit = v
+	}
+	if v, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && v >= 0 {
+		offset = v
+	}
+
 	var notifications []models.Notification
-	if err := db.DB.Where("user_id = ?", userId).Order("created_at desc").Limit(10).Find(&notifications).Error; err != nil {
+
+	// ── L1 in-process cache (first page only) ────────────────────────────────
+	// Skipping L1 for paginated requests keeps subsequent pages fresh.
+	useL1 := offset == 0 && limit <= 10
+	l1Key := fmt.Sprintf("ra:%s:%d", userId, limit)
+	if useL1 {
+		if raw, ok := activitiesL1.Load(l1Key); ok {
+			entry := raw.(*l1Entry)
+			if time.Now().Before(entry.expiresAt) {
+				if json.Unmarshal(entry.data, &notifications) == nil {
+					api_response.Success(c, gin.H{"activities": buildActivitiesResponse(notifications)})
+					return
+				}
+			}
+		}
+	}
+
+	// ── L2 Redis cache (first page only) ────────────────────────────────────
+	redisKey := fmt.Sprintf("recent_activities:%s:%d", userId, limit)
+	if db.Redis != nil && offset == 0 {
+		redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+		cachedVal, err := db.Redis.Get(redisCtx, redisKey).Result()
+		cancel()
+		if err == nil {
+			if json.Unmarshal([]byte(cachedVal), &notifications) == nil {
+				// Warm L1 from Redis hit so next request is pure in-memory
+				if useL1 {
+					activitiesL1.Store(l1Key, &l1Entry{data: []byte(cachedVal), expiresAt: time.Now().Add(activitiesL1TTL)})
+				}
+				api_response.Success(c, gin.H{"activities": buildActivitiesResponse(notifications)})
+				return
+			}
+		}
+	}
+
+	// ── Database query (covering index: user_id, created_at DESC INCLUDE ...) ─
+	// idx_notifications_user_created_covering satisfies this query with an
+	// Index Only Scan – no heap fetch required.
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+	if err := readDB.
+		Select("id", "title", "message", "type", "is_read", "created_at").
+		Where("user_id = ?", userId).
+		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Find(&notifications).Error; err != nil {
 		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch activities")
 		return
 	}
 
+	// ── Populate caches for first-page results ───────────────────────────────
+	if offset == 0 && len(notifications) > 0 {
+		if cachedData, err := json.Marshal(notifications); err == nil {
+			// L2: Redis with 60-second TTL
+			if db.Redis != nil {
+				go func(redisKey string, cachedData []byte) {
+					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+					defer cancel()
+					db.Redis.Set(ctx, redisKey, cachedData, 60*time.Second)
+				}(redisKey, cachedData)
+			}
+			// L1: in-process
+			if useL1 {
+				activitiesL1.Store(l1Key, &l1Entry{data: cachedData, expiresAt: time.Now().Add(activitiesL1TTL)})
+			}
+		}
+	}
+
+	api_response.Success(c, gin.H{"activities": buildActivitiesResponse(notifications)})
+}
+
+// buildActivitiesResponse converts notifications to activity format
+func buildActivitiesResponse(notifications []models.Notification) []gin.H {
 	activities := make([]gin.H, 0, len(notifications))
 	for _, n := range notifications {
 		activities = append(activities, gin.H{
@@ -52,8 +207,7 @@ func GetRecentActivities(c *gin.Context) {
 			"read":        n.IsRead,
 		})
 	}
-
-	api_response.Success(c, gin.H{"activities": activities})
+	return activities
 }
 
 func GetWalletBalance(c *gin.Context) {
