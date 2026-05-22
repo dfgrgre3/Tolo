@@ -29,107 +29,153 @@ var (
 
 // GetSettings retrieves user settings/preferences
 func GetSettings(c *gin.Context) {
-	userID, exists := c.Get("userId")
-	if !exists || userID == nil {
+	uid, err := extractUserID(c)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	uid := userID.(string)
-
-	var settings models.UserSettings
 
 	if db.DB == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Database connection is not initialized",
-		})
+		respondSettingsDBError(c)
 		return
 	}
 
-	if raw, ok := userSettingsL1.Load(uid); ok {
-		entry := raw.(*userSettingsL1Entry)
-		if time.Now().Before(entry.expiresAt) {
-			api_response.Success(c, gin.H{"settings": entry.settings})
-			return
-		}
-		userSettingsL1.Delete(uid)
+	if trySettingsL1Cache(c, uid) {
+		return
 	}
 
-	// Use struct-based query to let GORM handle naming strategy correctly
-	readDB := db.ReadDB()
-	if readDB == nil {
-		readDB = db.DB
-	}
-	result := readDB.Where(&models.UserSettings{UserID: uid}).First(&settings)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			log.Printf("INFO: Creating default settings for user %v", userID)
-			// Create default settings for user
-			settings = models.UserSettings{
-				UserID:               uid,
-				Theme:                "light",
-				FontSize:             "medium",
-				ReducedMotion:        false,
-				HighContrast:         false,
-				CompactMode:          false,
-				EfficiencyMode:       false,
-				Language:             "ar",
-				NumberFormat:         "english",
-				NotificationsEnabled: true,
-				StudyReminders:       true,
-				EmailNotifications:   true,
-				PushNotifications:    true,
-				TaskReminders:        true,
-				TaskReminderTime:     "30",
-				DailyGoalReminders:   true,
-				ExamReminders:        true,
-				ExamReminderDays:     3,
-				DeadlineReminders:    true,
-				ProgressReports:      true,
-				WeeklyReport:         true,
-				AchievementAlerts:    true,
-				CommentNotifications: true,
-				MentionNotifications: true,
-				PushEnabled:          true,
-				EmailEnabled:         true,
-				SmsEnabled:           false,
-				QuietHoursEnabled:    false,
-				QuietHoursStart:      "22:00",
-				QuietHoursEnd:        "07:00",
-				SoundEnabled:         true,
-				VibrationEnabled:     true,
-				ProfileVisibility:    "public",
-				ShowOnlineStatus:     true,
-				ShowProgress:         true,
-			}
-
-			// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
-			if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
-				log.Printf("ERROR: Failed to create settings for user %v: %v", userID, err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error":   "Failed to create settings",
-					"details": err.Error(),
-				})
-				return
-			}
-
-			// Re-fetch to ensure we have the settings if DoNothing was triggered
-			if settings.ID == "" {
-				db.DB.Where(&models.UserSettings{UserID: uid}).First(&settings)
-			}
-		} else {
-			log.Printf("ERROR: Failed to fetch settings for user %v: %v", userID, result.Error)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to fetch settings",
-				"details": result.Error.Error(),
-			})
-			return
-		}
+	settings, ok := fetchOrCreateSettingsForGet(c, uid)
+	if !ok {
+		return
 	}
 
 	userSettingsL1.Store(uid, &userSettingsL1Entry{settings: settings, expiresAt: time.Now().Add(userSettingsL1TTL)})
 	api_response.Success(c, gin.H{"settings": settings})
+}
+
+func extractUserID(c *gin.Context) (string, error) {
+	userID, exists := c.Get("userId")
+	if !exists || userID == nil {
+		return "", fmt.Errorf("unauthorized")
+	}
+	return userID.(string), nil
+}
+
+func respondSettingsDBError(c *gin.Context) {
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"success": false,
+		"error":   "Database connection is not initialized",
+	})
+}
+
+func trySettingsL1Cache(c *gin.Context, uid string) bool {
+	if raw, ok := userSettingsL1.Load(uid); ok {
+		entry := raw.(*userSettingsL1Entry)
+		if time.Now().Before(entry.expiresAt) {
+			api_response.Success(c, gin.H{"settings": entry.settings})
+			return true
+		}
+		userSettingsL1.Delete(uid)
+	}
+	return false
+}
+
+func fetchOrCreateSettingsForGet(c *gin.Context, uid string) (models.UserSettings, bool) {
+	readDB := db.ReadDB()
+	if readDB == nil {
+		readDB = db.DB
+	}
+
+	var settings models.UserSettings
+	result := readDB.Where(&models.UserSettings{UserID: uid}).First(&settings)
+
+	if result.Error != nil {
+		if handleSettingsFetchError(c, uid, result) {
+			return settings, false
+		}
+	}
+	return settings, true
+}
+
+// handleSettingsFetchError processes the error from fetching settings.
+// Returns true if the caller should return (error already written to response).
+func handleSettingsFetchError(c *gin.Context, uid string, result *gorm.DB) bool {
+	if result.Error != gorm.ErrRecordNotFound {
+		log.Printf("ERROR: Failed to fetch settings for user %v: %v", uid, result.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to fetch settings",
+			"details": result.Error.Error(),
+		})
+		return true
+	}
+
+	settings, err := createDefaultUserSettings(c, uid)
+	if err != nil {
+		return true
+	}
+
+	userSettingsL1.Store(uid, &userSettingsL1Entry{settings: settings, expiresAt: time.Now().Add(userSettingsL1TTL)})
+	api_response.Success(c, gin.H{"settings": settings})
+	return true
+}
+
+func createDefaultUserSettings(c *gin.Context, uid string) (models.UserSettings, error) {
+	log.Printf("INFO: Creating default settings for user %v", uid)
+	// Create default settings for user
+	settings := models.UserSettings{
+		UserID:               uid,
+		Theme:                "light",
+		FontSize:             "medium",
+		ReducedMotion:        false,
+		HighContrast:         false,
+		CompactMode:          false,
+		EfficiencyMode:       false,
+		Language:             "ar",
+		NumberFormat:         "english",
+		NotificationsEnabled: true,
+		StudyReminders:       true,
+		EmailNotifications:   true,
+		PushNotifications:    true,
+		TaskReminders:        true,
+		TaskReminderTime:     "30",
+		DailyGoalReminders:   true,
+		ExamReminders:        true,
+		ExamReminderDays:     3,
+		DeadlineReminders:    true,
+		ProgressReports:      true,
+		WeeklyReport:         true,
+		AchievementAlerts:    true,
+		CommentNotifications: true,
+		MentionNotifications: true,
+		PushEnabled:          true,
+		EmailEnabled:         true,
+		SmsEnabled:           false,
+		QuietHoursEnabled:    false,
+		QuietHoursStart:      "22:00",
+		QuietHoursEnd:        "07:00",
+		SoundEnabled:         true,
+		VibrationEnabled:     true,
+		ProfileVisibility:    "public",
+		ShowOnlineStatus:     true,
+		ShowProgress:         true,
+	}
+
+	// Use OnConflict DO NOTHING to prevent duplicates if concurrent requests try to create settings
+	if err := db.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&settings).Error; err != nil {
+		log.Printf("ERROR: Failed to create settings for user %v: %v", uid, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to create settings",
+			"details": err.Error(),
+		})
+		return settings, err
+	}
+
+	// Re-fetch to ensure we have the settings if DoNothing was triggered
+	if settings.ID == "" {
+		db.DB.Where(&models.UserSettings{UserID: uid}).First(&settings)
+	}
+
+	return settings, nil
 }
 
 // UpdateSettings updates user settings/preferences
@@ -367,27 +413,11 @@ func applyQuietHoursAndSoundSettings(settings *models.UserSettings, patch map[st
 // GetSystemSettings retrieves public system settings (feature toggles, etc)
 func GetSystemSettings(c *gin.Context) {
 	// Initialize defaults outside the closure so they are accessible to recover()
-	defaultSettings := map[string]interface{}{
-		"siteName":        "Thanawy",
-		"siteDescription": "منصة تعليمية لإدارة التعلم والمحتوى.",
-		"features": map[string]interface{}{
-			"registration": true,
-			"engagement":   true,
-			"forum":        true,
-			"blog":         true,
-			"events":       true,
-			"aiAssistant":  true,
-		},
-		"maintenance": map[string]interface{}{
-			"enabled": false,
-			"message": "",
-		},
-	}
+	defaultSettings := buildDefaultSystemSettings()
 
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("CRITICAL: Panic in GetSystemSettings: %v", r)
-			// Return a clean success response with defaults even after a panic
 			c.JSON(http.StatusOK, gin.H{
 				"success": true,
 				"data": gin.H{
@@ -405,44 +435,63 @@ func GetSystemSettings(c *gin.Context) {
 		return
 	}
 
-	var dbSetting models.SystemSetting
-	var settings map[string]interface{}
+	settings := fetchSystemSettings(db.DB, defaultSettings)
 
-	// Attempt to fetch from DB
-	err := db.DB.Where("key = ?", "admin_settings").First(&dbSetting).Error
-	if err == nil {
-		if err := json.Unmarshal([]byte(dbSetting.Value), &settings); err != nil || settings == nil {
-			log.Printf("WARN: Failed to unmarshal admin_settings from DB: %v. Using defaults.", err)
-			settings = defaultSettings
-		}
-	} else {
-		// Record not found is expected if not seeded yet
+	publicSettings := extractPublicSettings(settings, defaultSettings)
+	api_response.Success(c, gin.H{"settings": publicSettings})
+}
+
+func buildDefaultSystemSettings() map[string]interface{} {
+	return map[string]interface{}{
+		"siteName":        "Thanawy",
+		"siteDescription": "منصة تعليمية لإدارة التعلم والمحتوى.",
+		"features": map[string]interface{}{
+			"registration": true,
+			"engagement":   true,
+			"forum":        true,
+			"blog":         true,
+			"events":       true,
+			"aiAssistant":  true,
+		},
+		"maintenance": map[string]interface{}{
+			"enabled": false,
+			"message": "",
+		},
+	}
+}
+
+func fetchSystemSettings(database *gorm.DB, defaultSettings map[string]interface{}) map[string]interface{} {
+	var dbSetting models.SystemSetting
+
+	err := database.Where("key = ?", "admin_settings").First(&dbSetting).Error
+	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			log.Printf("ERROR: Failed to fetch admin_settings from DB: %v. Using defaults.", err)
 		}
-		settings = defaultSettings
+		return defaultSettings
+	}
+
+	var settings map[string]interface{}
+	if err := json.Unmarshal([]byte(dbSetting.Value), &settings); err != nil || settings == nil {
+		log.Printf("WARN: Failed to unmarshal admin_settings from DB: %v. Using defaults.", err)
+		return defaultSettings
 	}
 
 	// Double safety check
 	if settings == nil {
-		settings = defaultSettings
+		return defaultSettings
 	}
 
-	// Safely extract and filter public settings
-	// Use type-safe fallbacks to avoid panics during type assertion
-	siteNameFallback, _ := defaultSettings["siteName"].(string)
-	siteDescriptionFallback, _ := defaultSettings["siteDescription"].(string)
-	featuresFallback, _ := defaultSettings["features"].(map[string]interface{})
-	maintenanceFallback, _ := defaultSettings["maintenance"].(map[string]interface{})
+	return settings
+}
 
-	publicSettings := gin.H{
-		"siteName":        extractString(settings, "siteName", siteNameFallback),
-		"siteDescription": extractString(settings, "siteDescription", siteDescriptionFallback),
-		"features":        extractMap(settings, "features", featuresFallback),
-		"maintenance":     extractMap(settings, "maintenance", maintenanceFallback),
+func extractPublicSettings(settings, defaultSettings map[string]interface{}) gin.H {
+	return gin.H{
+		"siteName":        extractString(settings, "siteName", extractString(defaultSettings, "siteName", "Thanawy")),
+		"siteDescription": extractString(settings, "siteDescription", extractString(defaultSettings, "siteDescription", "")),
+		"features":        extractMap(settings, "features", extractMap(defaultSettings, "features", map[string]interface{}{})),
+		"maintenance":     extractMap(settings, "maintenance", extractMap(defaultSettings, "maintenance", map[string]interface{}{})),
 	}
-
-	api_response.Success(c, gin.H{"settings": publicSettings})
 }
 
 // Helper to safely extract string from map

@@ -63,6 +63,19 @@ const SeekIndicator = ({ value }: { value: number }) => {
   );
 };
 
+const renderGestureIcon = (
+  mode: NonNullable<GestureOverlayProps["mode"]>,
+  value: number | string,
+  className: string
+) => {
+  if (mode === "speed") return <Zap className={className} />;
+  if (mode === "seek") {
+    return Number(value) > 0 ? <FastForward className={className} /> : <Rewind className={className} />;
+  }
+  if (mode === "brightness") return <SunMedium className={className} />;
+  return <Volume2 className={className} />;
+};
+
 export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProps) => {
   if (!mode || !visible) return null;
 
@@ -76,14 +89,6 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
     return `${percentage}%`;
   };
 
-  const getIcon = () => {
-    if (mode === "speed") return Zap;
-    if (mode === "seek") return Number(value) > 0 ? FastForward : Rewind;
-    if (mode === "brightness") return SunMedium;
-    return Volume2;
-  };
-
-  const Icon = getIcon();
   const isSeek = mode === "seek";
   const isCircular = mode === "volume" || mode === "brightness";
 
@@ -124,7 +129,7 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 className="rounded-2xl bg-orange-500 p-4 text-white shadow-lg shadow-orange-500/30"
               >
-                <Icon className="h-8 w-8" />
+                {renderGestureIcon(mode, value, "h-8 w-8")}
               </m.div>
             </div>
           )}
@@ -133,7 +138,7 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
 
           {isCircular && (
             <div className={cn("rounded-2xl p-2", colors.bg)}>
-              <Icon className={cn("h-5 w-5", colors.text)} />
+              {renderGestureIcon(mode, value, cn("h-5 w-5", colors.text))}
             </div>
           )}
 

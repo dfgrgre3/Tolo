@@ -25,7 +25,10 @@ import (
 	"thanawy-backend/internal/models"
 )
 
-const errInvalidVerificationCode = "Invalid verification code"
+const (
+	errInvalidVerificationCode = "Invalid verification code"
+	err2FANotEnabled           = "2FA not enabled"
+)
 
 // ========== 2FA Handlers ==========
 
@@ -250,7 +253,7 @@ func DisableTwoFactor(c *gin.Context) {
 
 	var settings models.TwoFactorSettings
 	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err2FANotEnabled})
 		return
 	}
 
@@ -294,7 +297,7 @@ func RegenerateBackupCodes(c *gin.Context) {
 
 	var settings models.TwoFactorSettings
 	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err2FANotEnabled})
 		return
 	}
 
@@ -993,7 +996,7 @@ func DisableUser2FA(c *gin.Context) {
 
 	var settings models.TwoFactorSettings
 	if err := db.DB.First(&settings, userIDQuery, userID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA not enabled"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err2FANotEnabled})
 		return
 	}
 

@@ -14,7 +14,8 @@
     "type-check": "npx tsc --noEmit",
     "perf": "node scripts/check-server.js && npx lighthouse http://localhost:3000 --chrome-flags='--headless --disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --ignore-certificate-errors --allow-insecure-localhost' --output=json --output-path=./lighthouse-results.json --only-categories=performance",
     "check:env": "tsx scripts/check-environment.ts",
-    "check:errors": "tsx scripts/comprehensive-error-check.ts",
+    "check:errors": "powershell -ExecutionPolicy Bypass -File ./scripts/comprehensive-error-check.ps1",
+    "check:errors:fix": "powershell -ExecutionPolicy Bypass -File ./scripts/comprehensive-error-check.ps1 -Fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
@@ -32,7 +33,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@elastic/elasticsearch": "^8.17.0",
     "@hookform/resolvers": "^5.2.2",
-    "@next/bundle-analyzer": "^16.2.1",
+    "@next/bundle-analyzer": "^16.2.6",
     "@opentelemetry/api": "^1.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.1",
@@ -49,6 +50,7 @@
     "@tanstack/react-query-persist-client": "^5.100.9",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.24",
+    "@vercel/speed-insights": "^2.0.0",
     "bullmq": "^5.76.2",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
@@ -102,7 +104,7 @@
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^26.1.0",
     "knip": "^6.7.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.15",
     "tailwindcss": "^4.1.18",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
@@ -116,6 +118,9 @@
     "glob": "^10.4.5",
     "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.1.3",
     "@humanwhocodes/config-array": "npm:@eslint/config-array@^0.16.0",
-    "@simplewebauthn/typescript-types": "npm:@simplewebauthn/types@^12.0.0"
+    "@simplewebauthn/typescript-types": "npm:@simplewebauthn/types@^12.0.0",
+    "cookie": "^0.7.2",
+    "js-cookie": "^3.0.7",
+    "postcss": "$postcss"
   }
 }

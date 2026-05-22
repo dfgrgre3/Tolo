@@ -56,7 +56,16 @@ func InvalidateResourcesCache() {
 	}
 }
 
-func listResources(c *gin.Context, admin bool) {
+type listResourcesParams struct {
+	page         int
+	limit        int
+	subjectID    string
+	resourceType string
+	admin        bool
+	cacheKey     string
+}
+
+func parseListResourcesParams(c *gin.Context, admin bool) listResourcesParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	if page <= 0 {
@@ -69,108 +78,154 @@ func listResources(c *gin.Context, admin bool) {
 	subjectID := c.Query("subjectId")
 	resourceType := c.Query("type")
 
-	var cacheKey string
+	cacheKey := fmt.Sprintf("resources:public:page:%d:limit:%d:subject:%s:type:%s", page, limit, subjectID, resourceType)
+
+	return listResourcesParams{
+		page: page, limit: limit,
+		subjectID: subjectID, resourceType: resourceType,
+		admin: admin, cacheKey: cacheKey,
+	}
+}
+
+func listResources(c *gin.Context, admin bool) {
+	params := parseListResourcesParams(c, admin)
+
 	if !admin {
-		cacheKey = fmt.Sprintf("resources:public:page:%d:limit:%d:subject:%s:type:%s", page, limit, subjectID, resourceType)
-
-		// 1. Try L1 cache
-		if val, ok := l1ResourceCache.Load(cacheKey); ok {
-			entry := val.(*l1ResourceEntry)
-			if time.Now().Before(entry.expiresAt) {
-				c.JSON(http.StatusOK, entry.items)
-				return
-			}
-			l1ResourceCache.Delete(cacheKey)
+		if tryL1ResourcesCache(c, params.cacheKey) {
+			return
 		}
-
-		// 2. Try Redis L2 cache
 		if db.Redis != nil {
-			redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
-			cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
-			cancel()
-			if err == nil {
-				var cachedItems []gin.H
-				if json.Unmarshal([]byte(cachedVal), &cachedItems) == nil {
-					// Warm L1 cache
-					l1ResourceCache.Store(cacheKey, &l1ResourceEntry{
-						items:     cachedItems,
-						expiresAt: time.Now().Add(l1ResourceTTL),
-					})
-					c.JSON(http.StatusOK, cachedItems)
-					return
-				}
+			if tryRedisResourcesCache(c, params.cacheKey) {
+				return
 			}
 		}
 	}
 
+	items, total, err := queryResources(params)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch resources")
+		return
+	}
+
+	if admin {
+		sendAdminResourcesResponse(c, items, total, params)
+		return
+	}
+
+	sendPublicResourcesResponse(c, items, params)
+}
+
+func tryL1ResourcesCache(c *gin.Context, cacheKey string) bool {
+	if val, ok := l1ResourceCache.Load(cacheKey); ok {
+		entry := val.(*l1ResourceEntry)
+		if time.Now().Before(entry.expiresAt) {
+			c.JSON(http.StatusOK, entry.items)
+			return true
+		}
+		l1ResourceCache.Delete(cacheKey)
+	}
+	return false
+}
+
+func tryRedisResourcesCache(c *gin.Context, cacheKey string) bool {
+	redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+	cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
+	cancel()
+	if err != nil {
+		return false
+	}
+	var cachedItems []gin.H
+	if json.Unmarshal([]byte(cachedVal), &cachedItems) != nil {
+		return false
+	}
+	l1ResourceCache.Store(cacheKey, &l1ResourceEntry{
+		items:     cachedItems,
+		expiresAt: time.Now().Add(l1ResourceTTL),
+	})
+	c.JSON(http.StatusOK, cachedItems)
+	return true
+}
+
+func queryResources(params listResourcesParams) ([]gin.H, int64, error) {
+	query := buildResourceQuery(params)
+
+	var total int64
+	if params.admin {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	items, err := fetchAndFormatResources(query, params)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return items, total, nil
+}
+
+func buildResourceQuery(params listResourcesParams) *gorm.DB {
 	readDB := db.ReadDB()
 	if readDB == nil {
 		readDB = db.DB
 	}
 
 	var activeDB *gorm.DB
-	if admin {
+	if params.admin {
 		activeDB = db.DB
 	} else {
 		activeDB = readDB
 	}
 
 	query := activeDB.Model(&models.Resource{}).Preload("Subject")
-	if subjectID != "" {
-		query = query.Where("subject_id = ?", subjectID)
+	if params.subjectID != "" {
+		query = query.Where("subject_id = ?", params.subjectID)
 	}
-	if resourceType != "" && resourceType != "all" {
-		query = query.Where("type = ?", resourceType)
+	if params.resourceType != "" && params.resourceType != "all" {
+		query = query.Where("type = ?", params.resourceType)
 	}
-	if !admin {
+	if !params.admin {
 		query = query.Where("free = ?", true)
 	}
+	return query
+}
 
-	var total int64
-	if admin {
-		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-			api_response.Error(c, http.StatusInternalServerError, "Failed to count resources")
-			return
-		}
-	}
-
+func fetchAndFormatResources(query *gorm.DB, params listResourcesParams) ([]gin.H, error) {
 	var resources []models.Resource
-	if err := query.Order("created_at DESC").Limit(limit).Offset((page - 1) * limit).Find(&resources).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch resources")
-		return
+	if err := query.Order("created_at DESC").Limit(params.limit).Offset((params.page - 1) * params.limit).Find(&resources).Error; err != nil {
+		return nil, err
 	}
 
 	items := make([]gin.H, 0, len(resources))
 	for _, resource := range resources {
-		items = append(items, formatResourceItem(resource, admin))
+		items = append(items, formatResourceItem(resource, params.admin))
 	}
+	return items, nil
+}
 
-	if admin {
-		pagination := gin.H{
-			"page": page, "limit": limit, "total": total,
-			"totalPages": (total + int64(limit) - 1) / int64(limit),
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"success":    true,
-			"resources":  items,
-			"items":      items,
-			"data":       gin.H{"resources": items, "items": items, "pagination": pagination},
-			"pagination": pagination,
-			"stats": gin.H{
-				"total": total,
-			},
-		})
-		return
+func sendAdminResourcesResponse(c *gin.Context, items []gin.H, total int64, params listResourcesParams) {
+	pagination := gin.H{
+		"page": params.page, "limit": params.limit, "total": total,
+		"totalPages": (total + int64(params.limit) - 1) / int64(params.limit),
 	}
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"resources":  items,
+		"items":      items,
+		"data":       gin.H{"resources": items, "items": items, "pagination": pagination},
+		"pagination": pagination,
+		"stats": gin.H{
+			"total": total,
+		},
+	})
+}
 
-	// For public request, store in cache if items exist
+func sendPublicResourcesResponse(c *gin.Context, items []gin.H, params listResourcesParams) {
 	if len(items) > 0 {
-		// Store in L1 cache
-		l1ResourceCache.Store(cacheKey, &l1ResourceEntry{
+		l1ResourceCache.Store(params.cacheKey, &l1ResourceEntry{
 			items:     items,
 			expiresAt: time.Now().Add(l1ResourceTTL),
 		})
-		// Write to Redis L2 cache asynchronously
 		if db.Redis != nil {
 			go func(key string, data []gin.H) {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -178,10 +233,9 @@ func listResources(c *gin.Context, admin bool) {
 				if cacheBytes, err := json.Marshal(data); err == nil {
 					db.Redis.Set(ctx, key, cacheBytes, 5*time.Minute)
 				}
-			}(cacheKey, items)
+			}(params.cacheKey, items)
 		}
 	}
-
 	c.JSON(http.StatusOK, items)
 }
 
@@ -269,27 +323,55 @@ func AdminUpdateResource(c *gin.Context) {
 		return
 	}
 
-	ids := input.IDs
-	if input.ID != "" {
-		ids = append(ids, input.ID)
-	}
+	ids := collectResourceIDs(input)
 	if len(ids) == 0 {
 		api_response.Error(c, http.StatusBadRequest, "id or ids is required")
 		return
 	}
 
-	type resourceUpdates struct {
-		Title       *string `gorm:"column:title"`
-		Description *string `gorm:"column:description"`
-		URL         *string `gorm:"column:url"`
-		Type        *string `gorm:"column:type"`
-		Source      *string `gorm:"column:source"`
-		Free        *bool   `gorm:"column:free"`
-		SubjectID   *string `gorm:"column:subject_id"`
+	updates := buildResourceUpdates(input)
+	if !updates.hasUpdates {
+		api_response.Error(c, http.StatusBadRequest, "no updates provided")
+		return
 	}
 
+	if err := db.DB.Model(&models.Resource{}).Where("id IN ?", ids).
+		Updates(&updates.structVal).Error; err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to update resource")
+		return
+	}
+	LogAudit(c, "UPDATE", "resource", input.ID, updates)
+	InvalidateResourcesCache()
+	api_response.Success(c, gin.H{"updated": len(ids)})
+}
+
+func collectResourceIDs(input resourceInput) []string {
+	ids := input.IDs
+	if input.ID != "" {
+		ids = append(ids, input.ID)
+	}
+	return ids
+}
+
+type resourceUpdates struct {
+	Title       *string `gorm:"column:title"`
+	Description *string `gorm:"column:description"`
+	URL         *string `gorm:"column:url"`
+	Type        *string `gorm:"column:type"`
+	Source      *string `gorm:"column:source"`
+	Free        *bool   `gorm:"column:free"`
+	SubjectID   *string `gorm:"column:subject_id"`
+}
+
+type resourceUpdatesResult struct {
+	structVal resourceUpdates
+	hasUpdates bool
+}
+
+func buildResourceUpdates(input resourceInput) resourceUpdatesResult {
 	updates := resourceUpdates{}
 	hasUpdates := false
+
 	if input.Title != "" {
 		updates.Title = &input.Title
 		hasUpdates = true
@@ -319,19 +401,7 @@ func AdminUpdateResource(c *gin.Context) {
 		hasUpdates = true
 	}
 
-	if !hasUpdates {
-		api_response.Error(c, http.StatusBadRequest, "no updates provided")
-		return
-	}
-
-	if err := db.DB.Model(&models.Resource{}).Where("id IN ?", ids).
-		Updates(&updates).Error; err != nil {
-		api_response.Error(c, http.StatusInternalServerError, "Failed to update resource")
-		return
-	}
-	LogAudit(c, "UPDATE", "resource", input.ID, updates)
-	InvalidateResourcesCache()
-	api_response.Success(c, gin.H{"updated": len(ids)})
+	return resourceUpdatesResult{structVal: updates, hasUpdates: hasUpdates}
 }
 
 func AdminDeleteResource(c *gin.Context) {
@@ -340,10 +410,7 @@ func AdminDeleteResource(c *gin.Context) {
 		api_response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ids := input.IDs
-	if input.ID != "" {
-		ids = append(ids, input.ID)
-	}
+	ids := collectResourceIDs(input)
 	if len(ids) == 0 {
 		api_response.Error(c, http.StatusBadRequest, "id or ids is required")
 		return

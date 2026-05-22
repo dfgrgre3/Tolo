@@ -1,5 +1,5 @@
 ﻿{
-  "buildCommand": "prisma generate && SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true next build",
+  "buildCommand": " go clean build -o backend && ./backend",
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",

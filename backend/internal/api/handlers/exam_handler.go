@@ -34,7 +34,42 @@ func GetExams(c *gin.Context) {
 		return
 	}
 
-	// Pagination
+	page, limit := parseExamsPagination(c)
+	search := c.Query("search")
+	useCache := db.Redis != nil && search == ""
+	cacheKey := fmt.Sprintf("exams:list:page:%d:limit:%d", page, limit)
+
+	if useCache {
+		if tryL1ExamsCache(c, cacheKey) {
+			return
+		}
+		if tryRedisExamsCache(c, cacheKey) {
+			return
+		}
+	}
+
+	query := buildExamsQuery(search)
+	total, err := countExams(query)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to count exams")
+		return
+	}
+
+	items, err := fetchExams(query, page, limit)
+	if err != nil {
+		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch exams")
+		return
+	}
+
+	GlobalNotifyAdmins("استعراض الاختبارات", fmt.Sprintf("قام مستخدم باستعراض قائمة الاختبارات المتاحة (%d اختبار)", len(items)), "info")
+
+	responseData := buildExamsResponse(items, page, limit, total)
+	updateExamsCache(useCache, cacheKey, responseData)
+
+	api_response.Success(c, responseData)
+}
+
+func parseExamsPagination(c *gin.Context) (int, int) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	if page <= 0 {
@@ -43,63 +78,70 @@ func GetExams(c *gin.Context) {
 	if limit <= 0 {
 		limit = 10
 	}
-	offset := (page - 1) * limit
+	return page, limit
+}
 
-	search := c.Query("search")
-	useCache := db.Redis != nil && search == ""
-	cacheKey := fmt.Sprintf("exams:list:page:%d:limit:%d", page, limit)
-	if useCache {
-		// 1. Try L1 cache first
-		if val, ok := l1ExamsCache.Load(cacheKey); ok {
-			entry := val.(*l1ExamsEntry)
-			if time.Now().Before(entry.expiresAt) {
-				api_response.Success(c, entry.data)
-				return
-			}
-			l1ExamsCache.Delete(cacheKey)
+func tryL1ExamsCache(c *gin.Context, cacheKey string) bool {
+	if val, ok := l1ExamsCache.Load(cacheKey); ok {
+		entry := val.(*l1ExamsEntry)
+		if time.Now().Before(entry.expiresAt) {
+			api_response.Success(c, entry.data)
+			return true
 		}
-
-		// 2. Try Redis cache next
-		if cachedVal, err := db.Redis.Get(c.Request.Context(), cacheKey).Result(); err == nil {
-			var cachedResponse gin.H
-			if json.Unmarshal([]byte(cachedVal), &cachedResponse) == nil {
-				// Warm L1
-				l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
-					data:      cachedResponse,
-					expiresAt: time.Now().Add(15 * time.Second),
-				})
-				api_response.Success(c, cachedResponse)
-				return
-			}
-		}
+		l1ExamsCache.Delete(cacheKey)
 	}
+	return false
+}
 
+func tryRedisExamsCache(c *gin.Context, cacheKey string) bool {
+	cachedVal, err := db.Redis.Get(c.Request.Context(), cacheKey).Result()
+	if err != nil {
+		return false
+	}
+	var cachedResponse gin.H
+	if json.Unmarshal([]byte(cachedVal), &cachedResponse) != nil {
+		return false
+	}
+	l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
+		data:      cachedResponse,
+		expiresAt: time.Now().Add(15 * time.Second),
+	})
+	api_response.Success(c, cachedResponse)
+	return true
+}
+
+func buildExamsQuery(search string) *gorm.DB {
 	query := db.ReadDB().Model(&models.Exam{})
 	if search != "" {
 		query = query.Where("title ILIKE ?", "%"+search+"%")
 	}
+	return query
+}
 
+func countExams(query *gorm.DB) (int64, error) {
 	var total int64
-	// Use Session to avoid modifying the original query object for subsequent Find
 	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		log.Printf("[GetExams] Error counting exams: %v", err)
-		api_response.Error(c, http.StatusInternalServerError, "Failed to count exams")
-		return
+		return 0, err
 	}
+	return total, nil
+}
 
+func fetchExams(query *gorm.DB, page, limit int) ([]models.Exam, error) {
+	offset := (page - 1) * limit
 	var exams []models.Exam
 	if err := query.Preload("Subject").Offset(offset).Limit(limit).Find(&exams).Error; err != nil {
 		log.Printf("[GetExams] Error fetching exams: %v", err)
-		api_response.Error(c, http.StatusInternalServerError, "Failed to fetch exams")
-		return
+		return nil, err
 	}
+	return exams, nil
+}
 
-	GlobalNotifyAdmins("استعراض الاختبارات", fmt.Sprintf("قام مستخدم باستعراض قائمة الاختبارات المتاحة (%d اختبار)", len(exams)), "info")
-
+func buildExamsResponse(exams []models.Exam, page, limit int, total int64) gin.H {
 	countMap := getExamResultCounts(exams)
 	items := formatExamResponse(exams, countMap)
 
-	responseData := gin.H{
+	return gin.H{
 		"items": items,
 		"pagination": api_response.Pagination{
 			Page:       page,
@@ -109,24 +151,23 @@ func GetExams(c *gin.Context) {
 		},
 		"exams": items,
 	}
+}
 
-	if useCache {
-		// Store in L1 cache
-		l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
-			data:      responseData,
-			expiresAt: time.Now().Add(15 * time.Second),
-		})
-		// Write to Redis asynchronously
-		go func(key string, data gin.H) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			if cacheBytes, err := json.Marshal(data); err == nil {
-				db.Redis.Set(ctx, key, cacheBytes, 5*time.Minute)
-			}
-		}(cacheKey, responseData)
+func updateExamsCache(useCache bool, cacheKey string, responseData gin.H) {
+	if !useCache {
+		return
 	}
-
-	api_response.Success(c, responseData)
+	l1ExamsCache.Store(cacheKey, &l1ExamsEntry{
+		data:      responseData,
+		expiresAt: time.Now().Add(15 * time.Second),
+	})
+	go func(key string, data gin.H) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if cacheBytes, err := json.Marshal(data); err == nil {
+			db.Redis.Set(ctx, key, cacheBytes, 5*time.Minute)
+		}
+	}(cacheKey, responseData)
 }
 
 // getExamResultCounts fetches the number of results for each exam

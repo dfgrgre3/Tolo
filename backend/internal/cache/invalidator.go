@@ -22,6 +22,11 @@ const (
 	CacheTTLList        = 5 * time.Minute
 )
 
+// Cache key format patterns
+const (
+	entityIDKeyFmt = "%sid:%s"
+)
+
 type CacheInvalidator struct {
 	ctx context.Context
 }
@@ -34,7 +39,7 @@ func (ci *CacheInvalidator) InvalidateSubject(id string) {
 	if db.Redis == nil {
 		return
 	}
-	key := fmt.Sprintf("%sid:%s", CachePrefixSubject, id)
+	key := fmt.Sprintf(entityIDKeyFmt, CachePrefixSubject, id)
 	ci.del(key)
 	ci.invalidatePattern(CachePrefixSubject + CachePrefixList + "*")
 	log.Printf("[Cache] Invalidated subject cache: %s", id)
@@ -44,7 +49,7 @@ func (ci *CacheInvalidator) InvalidateUser(id string) {
 	if db.Redis == nil {
 		return
 	}
-	ci.del(fmt.Sprintf("%sid:%s", CachePrefixUser, id))
+	ci.del(fmt.Sprintf(entityIDKeyFmt, CachePrefixUser, id))
 	ci.del(fmt.Sprintf("%semail:*", CachePrefixUser))
 	log.Printf("[Cache] Invalidated user cache: %s", id)
 }
@@ -53,7 +58,7 @@ func (ci *CacheInvalidator) InvalidateCategory(id string) {
 	if db.Redis == nil {
 		return
 	}
-	key := fmt.Sprintf("%sid:%s", CachePrefixCategory, id)
+	key := fmt.Sprintf(entityIDKeyFmt, CachePrefixCategory, id)
 	ci.del(key)
 	ci.invalidatePattern(CachePrefixCategory + CachePrefixList + "*")
 	log.Printf("[Cache] Invalidated category cache: %s", id)
@@ -63,7 +68,7 @@ func (ci *CacheInvalidator) InvalidateExam(id string) {
 	if db.Redis == nil {
 		return
 	}
-	key := fmt.Sprintf("%sid:%s", CachePrefixExam, id)
+	key := fmt.Sprintf(entityIDKeyFmt, CachePrefixExam, id)
 	ci.del(key)
 	ci.invalidatePattern(CachePrefixExam + CachePrefixList + "*")
 	log.Printf("[Cache] Invalidated exam cache: %s", id)

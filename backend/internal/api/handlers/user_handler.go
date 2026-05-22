@@ -1284,18 +1284,31 @@ func GetBillingSummary(c *gin.Context) {
 	}
 	uid := userId.(string)
 
-	// 1. Try L1 in-memory cache
 	cacheKey := billingSummaryCachePrefix + uid
+
+	if checkBillingCaches(c, cacheKey) {
+		return
+	}
+
+	responseData := fetchBillingData(c, uid, cacheKey)
+	if responseData == nil {
+		return
+	}
+
+	storeBillingCache(cacheKey, responseData)
+	c.JSON(http.StatusOK, responseData)
+}
+
+func checkBillingCaches(c *gin.Context, cacheKey string) bool {
 	if val, ok := billingSummaryL1.Load(cacheKey); ok {
 		entry := val.(*billingSummaryEntry)
 		if time.Now().Before(entry.expiresAt) {
 			c.JSON(http.StatusOK, entry.data)
-			return
+			return true
 		}
 		billingSummaryL1.Delete(cacheKey)
 	}
 
-	// 2. Try Redis cache
 	if db.Redis != nil {
 		redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
 		cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
@@ -1305,18 +1318,19 @@ func GetBillingSummary(c *gin.Context) {
 			if json.Unmarshal([]byte(cachedVal), &cachedData) == nil {
 				billingSummaryL1.Store(cacheKey, &billingSummaryEntry{data: cachedData, expiresAt: time.Now().Add(billingSummaryL1TTL)})
 				c.JSON(http.StatusOK, cachedData)
-				return
+				return true
 			}
 		}
 	}
+	return false
+}
 
-	// 3. Fetch from Database
+func fetchBillingData(c *gin.Context, uid, cacheKey string) gin.H {
 	readDB := db.ReadDB()
 	if readDB == nil {
 		readDB = db.DB
 	}
 
-	// Run queries in parallel for faster response
 	type billingResult struct {
 		payments     []models.Payment
 		totalSpent   float64
@@ -1333,7 +1347,6 @@ func GetBillingSummary(c *gin.Context) {
 
 	wg.Add(2)
 
-	// Goroutine 1: User info
 	go func() {
 		defer wg.Done()
 		if u, err := getUserRepo().FindByID(uid); err == nil {
@@ -1341,10 +1354,8 @@ func GetBillingSummary(c *gin.Context) {
 		}
 	}()
 
-	// Goroutine 2: Payments + subscription
 	go func() {
 		defer wg.Done()
-		// Payments query with new covering index
 		readDB.
 			Model(&models.Payment{}).
 			Select("id", "amount", "status", "created_at").
@@ -1368,28 +1379,9 @@ func GetBillingSummary(c *gin.Context) {
 
 	wg.Wait()
 
-	var activeSub models.UserSubscription
-	var activeSubscriptionData interface{}
-	if err := db.DB.
-		Preload("Plan").
-		Where("user_id = ? AND status = ? AND end_date > ?", uid, models.SubscriptionActive, time.Now()).
-		First(&activeSub).Error; err == nil {
-		activeSubscriptionData = gin.H{
-			"id":        activeSub.ID,
-			"status":    activeSub.Status,
-			"startDate": activeSub.StartDate,
-			"endDate":   activeSub.EndDate,
-			"plan": gin.H{
-				"id":     activeSub.Plan.ID,
-				"name":   activeSub.Plan.Name,
-				"nameAr": activeSub.Plan.NameAr,
-				"price":  activeSub.Plan.Price,
-			},
-			"payments": []gin.H{},
-		}
-	}
+	activeSubscriptionData := fetchActiveSubscription(uid)
 
-	responseData := gin.H{
+	return gin.H{
 		"name":                  stringOrEmpty(user.Name),
 		"email":                 user.Email,
 		"balance":               user.Balance,
@@ -1405,8 +1397,32 @@ func GetBillingSummary(c *gin.Context) {
 			"failedCount":  res.failedCount,
 		},
 	}
+}
 
-	// Cache result
+func fetchActiveSubscription(uid string) interface{} {
+	var activeSub models.UserSubscription
+	if err := db.DB.
+		Preload("Plan").
+		Where("user_id = ? AND status = ? AND end_date > ?", uid, models.SubscriptionActive, time.Now()).
+		First(&activeSub).Error; err != nil {
+		return nil
+	}
+	return gin.H{
+		"id":        activeSub.ID,
+		"status":    activeSub.Status,
+		"startDate": activeSub.StartDate,
+		"endDate":   activeSub.EndDate,
+		"plan": gin.H{
+			"id":     activeSub.Plan.ID,
+			"name":   activeSub.Plan.Name,
+			"nameAr": activeSub.Plan.NameAr,
+			"price":  activeSub.Plan.Price,
+		},
+		"payments": []gin.H{},
+	}
+}
+
+func storeBillingCache(cacheKey string, responseData gin.H) {
 	billingSummaryL1.Store(cacheKey, &billingSummaryEntry{data: responseData, expiresAt: time.Now().Add(billingSummaryL1TTL)})
 	if db.Redis != nil {
 		go func(key string, data gin.H) {
@@ -1417,8 +1433,6 @@ func GetBillingSummary(c *gin.Context) {
 			}
 		}(cacheKey, responseData)
 	}
-
-	c.JSON(http.StatusOK, responseData)
 }
 
 func calculateTotalPages(total int64, limit int) int64 {

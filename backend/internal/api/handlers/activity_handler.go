@@ -145,6 +145,29 @@ func GetStudySessions(c *gin.Context) {
 	}
 	userId := userIdValue.(string)
 
+	limit := parseStudySessionsLimit(c)
+	cacheKey := fmt.Sprintf("study_sessions:%s:%d", userId, limit)
+
+	if ok := tryL1StudySessionsCache(c, cacheKey); ok {
+		return
+	}
+
+	if db.Redis != nil {
+		if ok := tryRedisStudySessionsCache(c, cacheKey); ok {
+			return
+		}
+	}
+
+	sessions := fetchStudySessions(c, userId, limit)
+	if sessions == nil {
+		return
+	}
+
+	warmStudySessionsCache(cacheKey, sessions)
+	c.JSON(http.StatusOK, sessions)
+}
+
+func parseStudySessionsLimit(c *gin.Context) int {
 	limit := 100
 	if v, err := strconv.Atoi(c.DefaultQuery("limit", "100")); err == nil && v > 0 {
 		if v > 100 {
@@ -152,34 +175,40 @@ func GetStudySessions(c *gin.Context) {
 		}
 		limit = v
 	}
+	return limit
+}
 
-	cacheKey := fmt.Sprintf("study_sessions:%s:%d", userId, limit)
+func tryL1StudySessionsCache(c *gin.Context, cacheKey string) bool {
 	if val, ok := studySessionsL1.Load(cacheKey); ok {
 		entry := val.(*l1StudySessionsEntry)
 		if time.Now().Before(entry.expiresAt) {
 			c.JSON(http.StatusOK, entry.sessions)
-			return
+			return true
 		}
 		studySessionsL1.Delete(cacheKey)
 	}
+	return false
+}
 
-	if db.Redis != nil {
-		redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
-		cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
-		cancel()
-		if err == nil {
-			var cachedSessions []models.StudySession
-			if json.Unmarshal([]byte(cachedVal), &cachedSessions) == nil {
-				studySessionsL1.Store(cacheKey, &l1StudySessionsEntry{
-					sessions:  cachedSessions,
-					expiresAt: time.Now().Add(studySessionsL1TTL),
-				})
-				c.JSON(http.StatusOK, cachedSessions)
-				return
-			}
+func tryRedisStudySessionsCache(c *gin.Context, cacheKey string) bool {
+	redisCtx, cancel := context.WithTimeout(c.Request.Context(), 200*time.Millisecond)
+	cachedVal, err := db.Redis.Get(redisCtx, cacheKey).Result()
+	cancel()
+	if err == nil {
+		var cachedSessions []models.StudySession
+		if json.Unmarshal([]byte(cachedVal), &cachedSessions) == nil {
+			studySessionsL1.Store(cacheKey, &l1StudySessionsEntry{
+				sessions:  cachedSessions,
+				expiresAt: time.Now().Add(studySessionsL1TTL),
+			})
+			c.JSON(http.StatusOK, cachedSessions)
+			return true
 		}
 	}
+	return false
+}
 
+func fetchStudySessions(c *gin.Context, userId string, limit int) []models.StudySession {
 	readDB := db.ReadDB()
 	if readDB == nil {
 		readDB = db.DB
@@ -193,8 +222,12 @@ func GetStudySessions(c *gin.Context) {
 		Limit(limit).
 		Find(&sessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch study sessions"})
-		return
+		return nil
 	}
+	return sessions
+}
+
+func warmStudySessionsCache(cacheKey string, sessions []models.StudySession) {
 	studySessionsL1.Store(cacheKey, &l1StudySessionsEntry{
 		sessions:  sessions,
 		expiresAt: time.Now().Add(studySessionsL1TTL),
@@ -208,7 +241,6 @@ func GetStudySessions(c *gin.Context) {
 			}
 		}(cacheKey, sessions)
 	}
-	c.JSON(http.StatusOK, sessions)
 }
 
 func CreateStudySession(c *gin.Context) {

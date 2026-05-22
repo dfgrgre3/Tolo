@@ -3,7 +3,7 @@
 import { BookOpen, Layers3, Star, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type CatalogStats = {
+type CatalogStatsData = {
   totalCourses: number;
   totalStudents: number;
   totalLessons: number;
@@ -11,7 +11,7 @@ type CatalogStats = {
   avgRating: number;
 };
 
-export function CatalogStats({ stats }: { stats: CatalogStats }) {
+export function CatalogStats({ stats }: { stats: CatalogStatsData }) {
   const statItems = [
     {
       label: "إجمالي الدورات",

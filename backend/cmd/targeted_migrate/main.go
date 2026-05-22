@@ -29,6 +29,22 @@ type migrationRecord struct {
 func (migrationRecord) TableName() string { return "schema_migrations" }
 
 func main() {
+	db := initDB()
+	ensureMigrationsTable(db)
+	names := readMigrationFiles()
+	knownApplied := knownAppliedMigrations()
+	results := processAllMigrations(db, names, knownApplied)
+
+	log.Printf("\nDone. Applied: %d, Registered: %d, Skipped: %d", results.applied, results.registered, results.skipped)
+}
+
+type migrationResults struct {
+	applied    int
+	registered int
+	skipped    int
+}
+
+func initDB() *gorm.DB {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment")
 	}
@@ -44,11 +60,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
+	return db
+}
 
-	// Ensure schema_migrations table exists
+func ensureMigrationsTable(db *gorm.DB) {
 	db.Exec(`CREATE TABLE IF NOT EXISTS "schema_migrations" (id text PRIMARY KEY, checksum text NOT NULL, "appliedAt" timestamptz NOT NULL DEFAULT now())`)
+}
 
-	// Read migrations dir
+func readMigrationFiles() []string {
 	entries, err := os.ReadDir("internal/db/migrations")
 	if err != nil {
 		log.Fatalf("Read migrations: %v", err)
@@ -61,12 +80,49 @@ func main() {
 		}
 	}
 	sort.Strings(names)
+	return names
+}
 
-	// Migrations we know are already applied in the DB (they ran before tracking).
-	// We skip running them but register them in schema_migrations.
-	// 0027 is superseded by 0033 (had wrong column names); skip and register it as applied.
-	// 0028-0031 conflict with Prisma-created schema; mark as applied without re-running.
-	knownApplied := map[string]bool{
+func processAllMigrations(db *gorm.DB, names []string, knownApplied map[string]bool) migrationResults {
+	results := migrationResults{}
+
+	for _, name := range names {
+		id := strings.TrimSuffix(name, ".sql")
+		checksum := computeChecksum(name)
+
+		result := processMigration(db, name, id, checksum, knownApplied)
+		switch result {
+		case migrationSkipped:
+			results.skipped++
+		case migrationRegistered:
+			results.registered++
+		case migrationApplied:
+			results.applied++
+		}
+	}
+	return results
+}
+
+func computeChecksum(name string) string {
+	contents, err := os.ReadFile("internal/db/migrations/" + name)
+	if err != nil {
+		log.Fatalf("Read %s: %v", name, err)
+	}
+
+	sum := sha256.Sum256(contents)
+	return hex.EncodeToString(sum[:])
+}
+
+type migrationResult int
+
+const (
+	migrationSkipped   migrationResult = iota
+	migrationRegistered
+	migrationApplied
+)
+
+func knownAppliedMigrations() map[string]bool {
+	return map[string]bool{
 		"0000_baseline_schema":                   true,
 		"0001_add_user_session":                  true,
 		"0021_add_missing_tables":                true,
@@ -82,171 +138,289 @@ func main() {
 		"0031_enforce_critical_constraints":      true,
 		"0033_fix_materialized_views":            true,
 	}
+}
 
-	applied := 0
-	registered := 0
-	skipped := 0
-
-	for _, name := range names {
-		id := strings.TrimSuffix(name, ".sql")
-		contents, err := os.ReadFile("internal/db/migrations/" + name)
-		if err != nil {
-			log.Fatalf("Read %s: %v", name, err)
-		}
-
-		sum := sha256.Sum256(contents)
-		checksum := hex.EncodeToString(sum[:])
-
-		// Check if already in schema_migrations
-		var existing migrationRecord
-		dbErr := db.First(&existing, "id = ?", id).Error
-		if dbErr == nil {
-			// Already tracked — skip
-			skipped++
-			log.Printf("  ↷ Already tracked: %s", id)
-			continue
-		}
-
-		if dbErr != gorm.ErrRecordNotFound {
-			log.Fatalf("Check %s: %v", id, dbErr)
-		}
-
-		// If known applied, just register it
-		if knownApplied[id] {
-			if err := db.Create(&migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}).Error; err != nil {
-				log.Fatalf("Register %s: %v", id, err)
-			}
-			registered++
-			log.Printf("  ✎ Registered (already applied): %s", id)
-			continue
-		}
-
-		// Actually apply the migration
-		log.Printf("Applying migration: %s", name)
-		txErr := db.Transaction(func(tx *gorm.DB) error {
-			stmts := splitSQL(string(contents))
-			for i, stmt := range stmts {
-				stmt = strings.TrimSpace(stmt)
-				if stmt == "" || strings.HasPrefix(stmt, "--") {
-					continue
-				}
-				if err := tx.Exec(stmt).Error; err != nil {
-					return fmt.Errorf("statement %d: %w\nSQL: %.300s", i+1, err, stmt)
-				}
-			}
-			return tx.Create(&migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}).Error
-		})
-		if txErr != nil {
-			log.Fatalf("FAILED migration %s: %v", name, txErr)
-		}
-		applied++
-		log.Printf("  ✓ Applied: %s", name)
+func processMigration(db *gorm.DB, name, id, checksum string, knownApplied map[string]bool) migrationResult {
+	if isAlreadyTracked(db, id) {
+		return migrationSkipped
 	}
 
-	log.Printf("\nDone. Applied: %d, Registered: %d, Skipped: %d", applied, registered, skipped)
+	if knownApplied[id] {
+		registerMigration(db, id, checksum)
+		return migrationRegistered
+	}
+
+	applyMigration(db, name, id, checksum)
+	return migrationApplied
+}
+
+func isAlreadyTracked(db *gorm.DB, id string) bool {
+	var existing migrationRecord
+	dbErr := db.First(&existing, "id = ?", id).Error
+	if dbErr == nil {
+		log.Printf("  ↷ Already tracked: %s", id)
+		return true
+	}
+	if dbErr != gorm.ErrRecordNotFound {
+		log.Fatalf("Check %s: %v", id, dbErr)
+	}
+	return false
+}
+
+func registerMigration(db *gorm.DB, id, checksum string) {
+	if err := db.Create(&migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}).Error; err != nil {
+		log.Fatalf("Register %s: %v", id, err)
+	}
+	log.Printf("  ✎ Registered (already applied): %s", id)
+}
+
+func applyMigration(db *gorm.DB, name, id, checksum string) {
+	log.Printf("Applying migration: %s", name)
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		stmts := splitSQL(readMigrationContent(name))
+		for i, stmt := range stmts {
+			stmt = strings.TrimSpace(stmt)
+			if stmt == "" || strings.HasPrefix(stmt, "--") {
+				continue
+			}
+			if err := tx.Exec(stmt).Error; err != nil {
+				return fmt.Errorf("statement %d: %w\nSQL: %.300s", i+1, err, stmt)
+			}
+		}
+		return tx.Create(&migrationRecord{ID: id, Checksum: checksum, AppliedAt: time.Now().UTC()}).Error
+	})
+	if txErr != nil {
+		log.Fatalf("FAILED migration %s: %v", name, txErr)
+	}
+	log.Printf("  ✓ Applied: %s", name)
+}
+
+func readMigrationContent(name string) string {
+	contents, err := os.ReadFile("internal/db/migrations/" + name)
+	if err != nil {
+		log.Fatalf("Read %s: %v", name, err)
+	}
+	return string(contents)
+}
+
+type sqlParser struct {
+	content        []rune
+	pos            int
+	inSingle       bool
+	inDouble       bool
+	inDollar       bool
+	dollarTag      string
+	inLineComment  bool
+	inBlockComment bool
+}
+
+func newSQLParser(content string) *sqlParser {
+	return &sqlParser{content: []rune(content)}
+}
+
+func (p *sqlParser) done() bool {
+	return p.pos >= len(p.content)
+}
+
+func (p *sqlParser) peek() rune {
+	return p.content[p.pos]
+}
+
+func (p *sqlParser) peekAt(offset int) (rune, bool) {
+	idx := p.pos + offset
+	if idx < len(p.content) {
+		return p.content[idx], true
+	}
+	return 0, false
+}
+
+func (p *sqlParser) skip(n int) {
+	p.pos += n
+}
+
+func (p *sqlParser) advance() rune {
+	ch := p.content[p.pos]
+	p.pos++
+	return ch
+}
+
+func (p *sqlParser) handleLineComment() bool {
+	next, ok := p.peekAt(1)
+	if !ok {
+		return false
+	}
+	if !p.inSingle && !p.inDouble && !p.inDollar && p.peek() == '-' && next == '-' {
+		p.inLineComment = true
+		p.skip(2)
+		return true
+	}
+	return false
+}
+
+func (p *sqlParser) handleBlockComment() bool {
+	next, ok := p.peekAt(1)
+	if !ok {
+		return false
+	}
+	if !p.inSingle && !p.inDouble && !p.inDollar && p.peek() == '/' && next == '*' {
+		p.inBlockComment = true
+		p.skip(2)
+		return true
+	}
+	return false
+}
+
+func (p *sqlParser) handleDollarQuote() bool {
+	if p.inSingle || p.inDouble || p.inDollar {
+		return false
+	}
+	if p.peek() != '$' {
+		return false
+	}
+	j := p.pos + 1
+	for j < len(p.content) && (p.content[j] == '_' ||
+		(p.content[j] >= 'a' && p.content[j] <= 'z') ||
+		(p.content[j] >= 'A' && p.content[j] <= 'Z') ||
+		(p.content[j] >= '0' && p.content[j] <= '9')) {
+		j++
+	}
+	if j >= len(p.content) || p.content[j] != '$' {
+		return false
+	}
+	p.dollarTag = string(p.content[p.pos : j+1])
+	p.inDollar = true
+	return true
+}
+
+func (p *sqlParser) handleSemicolon() (string, bool) {
+	if p.inSingle || p.inDouble || p.inDollar || p.peek() != ';' {
+		return "", false
+	}
+	return ";", true
+}
+
+func (p *sqlParser) handleSingleQuote(buf *strings.Builder) string {
+	if p.inDouble || p.inDollar {
+		return ""
+	}
+	if p.peek() != '\'' {
+		return ""
+	}
+	if p.inSingle {
+		next, ok := p.peekAt(1)
+		if ok && next == '\'' {
+			buf.WriteRune(p.content[p.pos])
+			buf.WriteRune(p.content[p.pos+1])
+			p.skip(2)
+			return "escaped"
+		}
+	}
+	return ""
 }
 
 func splitSQL(content string) []string {
 	var stmts []string
 	var cur strings.Builder
-	runes := []rune(content)
-	n := len(runes)
-	i := 0
-	inSingle := false
-	inDouble := false
-	inDollar := false
-	dollarTag := ""
-	inLineComment := false
-	inBlockComment := false
+	p := newSQLParser(content)
 
-	for i < n {
-		ch := runes[i]
+	for !p.done() {
+		ch := p.peek()
 
-		if inLineComment {
-			if ch == '\n' {
-				inLineComment = false
-			}
-			i++
-			continue
-		}
-		if inBlockComment {
-			if i+1 < n && ch == '*' && runes[i+1] == '/' {
-				inBlockComment = false
-				i += 2
-			} else {
-				i++
-			}
+		if processCommentState(p, ch) {
 			continue
 		}
 
-		if !inSingle && !inDouble && !inDollar {
-			if i+1 < n && ch == '-' && runes[i+1] == '-' {
-				inLineComment = true
-				i += 2
+		if !p.inSingle && !p.inDouble && !p.inDollar {
+			if p.handleLineComment() {
 				continue
 			}
-			if i+1 < n && ch == '/' && runes[i+1] == '*' {
-				inBlockComment = true
-				i += 2
+			if p.handleBlockComment() {
 				continue
 			}
-			if ch == '$' {
-				j := i + 1
-				for j < n && (runes[j] == '_' || (runes[j] >= 'a' && runes[j] <= 'z') || (runes[j] >= 'A' && runes[j] <= 'Z') || (runes[j] >= '0' && runes[j] <= '9')) {
-					j++
-				}
-				if j < n && runes[j] == '$' {
-					dollarTag = string(runes[i : j+1])
-					inDollar = true
-					cur.WriteString(dollarTag)
-					i = j + 1
-					continue
-				}
+			if p.handleDollarQuote() {
+				cur.WriteString(p.dollarTag)
+				p.skip(len([]rune(p.dollarTag)))
+				continue
 			}
 			if ch == ';' {
 				cur.WriteRune(ch)
-				stmt := strings.TrimSpace(cur.String())
-				if stmt != "" {
+				if stmt := strings.TrimSpace(cur.String()); stmt != "" {
 					stmts = append(stmts, stmt)
 				}
 				cur.Reset()
-				i++
+				p.skip(1)
 				continue
 			}
 		}
 
-		if ch == '\'' && !inDouble && !inDollar {
-			if inSingle && i+1 < n && runes[i+1] == '\'' {
-				cur.WriteRune(ch)
-				cur.WriteRune(ch)
-				i += 2
-				continue
-			}
-			inSingle = !inSingle
-			cur.WriteRune(ch)
-			i++
+		if processQuoteStates(p, &cur, ch) {
 			continue
 		}
-		if ch == '"' && !inSingle && !inDollar {
-			inDouble = !inDouble
-			cur.WriteRune(ch)
-			i++
-			continue
-		}
-		if inDollar && strings.HasPrefix(string(runes[i:]), dollarTag) {
-			cur.WriteString(dollarTag)
-			i += len([]rune(dollarTag))
-			inDollar = false
-			dollarTag = ""
+
+		if p.inDollar && strings.HasPrefix(string(p.content[p.pos:]), p.dollarTag) {
+			cur.WriteString(p.dollarTag)
+			p.skip(len([]rune(p.dollarTag)))
+			p.inDollar = false
+			p.dollarTag = ""
 			continue
 		}
 
 		cur.WriteRune(ch)
-		i++
+		p.skip(1)
 	}
 
 	if stmt := strings.TrimSpace(cur.String()); stmt != "" {
 		stmts = append(stmts, stmt)
 	}
 	return stmts
+}
+
+// processCommentState handles inline and block comment advancement.
+// Returns true if the caller should continue the loop.
+func processCommentState(p *sqlParser, ch rune) bool {
+	if p.inLineComment {
+		if ch == '\n' {
+			p.inLineComment = false
+		}
+		p.skip(1)
+		return true
+	}
+
+	if p.inBlockComment {
+		next, ok := p.peekAt(1)
+		if ok && ch == '*' && next == '/' {
+			p.inBlockComment = false
+			p.skip(2)
+		} else {
+			p.skip(1)
+		}
+		return true
+	}
+	return false
+}
+
+// processQuoteStates handles single and double quote advancement.
+// Returns true if the caller should continue the loop.
+func processQuoteStates(p *sqlParser, cur *strings.Builder, ch rune) bool {
+	if ch == '\'' && !p.inDouble && !p.inDollar {
+		next, ok := p.peekAt(1)
+		if p.inSingle && ok && next == '\'' {
+			cur.WriteRune(ch)
+			cur.WriteRune(ch)
+			p.skip(2)
+			return true
+		}
+		p.inSingle = !p.inSingle
+		cur.WriteRune(ch)
+		p.skip(1)
+		return true
+	}
+
+	if ch == '"' && !p.inSingle && !p.inDollar {
+		p.inDouble = !p.inDouble
+		cur.WriteRune(ch)
+		p.skip(1)
+		return true
+	}
+	return false
 }

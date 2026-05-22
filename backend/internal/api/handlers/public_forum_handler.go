@@ -40,7 +40,7 @@ func GetForumPosts(c *gin.Context) {
 func GetForumPost(c *gin.Context) {
 	id := c.Param("id")
 	var topic models.ForumTopic
-	if err := db.DB.Preload("Author").Preload("Category").First(&topic, "id = ?", id).Error; err != nil {
+	if err := db.DB.Preload("Author").Preload("Category").First(&topic, idQuery, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Forum post not found"})
 		return
 	}
@@ -77,12 +77,12 @@ func CreateForumPost(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create forum post"})
 		return
 	}
-	db.DB.Preload("Author").Preload("Category").First(&topic, "id = ?", topic.ID)
+	db.DB.Preload("Author").Preload("Category").First(&topic, idQuery, topic.ID)
 	c.JSON(http.StatusCreated, buildForumPostResponse(topic))
 }
 
 func IncrementForumPostView(c *gin.Context) {
-	if err := db.DB.Model(&models.ForumTopic{}).Where("id = ?", c.Param("id")).
+	if err := db.DB.Model(&models.ForumTopic{}).Where(idQuery, c.Param("id")).
 		UpdateColumn("views", db.DB.Raw("views + 1")).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update forum post view"})
 		return
