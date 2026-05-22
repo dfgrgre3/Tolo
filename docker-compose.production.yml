@@ -60,39 +60,6 @@ services:
           cpus: "0.25"
           memory: "256M"
 
-  backend:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_BACKEND:-thanawy/thanawy-backend}:${IMAGE_TAG:-latest}
-    restart: unless-stopped
-    stop_grace_period: 60s
-    networks:
-      - thanawy-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://thanawy:${DB_PASSWORD}@postgres:5432/thanawy_db?pgbouncer=true
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET}
-      NODE_ENV: production
-      GIN_MODE: release
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
-      interval: 30s
-      timeout: 5s
-      start_period: 60s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: "1G"
-        reservations:
-          cpus: "0.5"
-          memory: "256M"
-
   frontend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_FRONTEND:-thanawy/thanawy-app}:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -101,12 +68,9 @@ services:
       - thanawy-net
     ports:
       - "3000:3000"
-    depends_on:
-      backend:
-        condition: service_healthy
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://backend:8082/api
+      NEXT_PUBLIC_API_URL: https://api.your-app.com/api
       NEXT_TELEMETRY_DISABLED: "1"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/healthz"]

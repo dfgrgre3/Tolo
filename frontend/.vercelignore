@@ -1,0 +1,46 @@
+# Dependencies and build output
+node_modules
+.next
+out
+dist
+build
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Logs and caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.turbo
+.cache
+coverage
+
+# Local/editor metadata
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git and agent/tooling state
+.git
+.agent
+.claude
+.kilo
+
+# Nested/non-Vercel services
+backend
+clerk-nextjs
+
+# Docker/local deployment files
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+
+# Generated reports and large local artifacts
+lighthouse-results.json
+tsconfig.tsbuildinfo

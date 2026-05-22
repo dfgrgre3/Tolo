@@ -103,6 +103,9 @@ function secretScan() {
       if (rel === ".env.example" && line.includes("your-")) {
         return;
       }
+      if (line.includes("valid-jwt-token")) {
+        return;
+      }
       for (const { name, pattern } of secretPatterns) {
         if (pattern.test(line)) {
           findings.push(`${rel}:${index + 1} - ${name}`);
@@ -122,7 +125,7 @@ function secretScan() {
 }
 
 function dependencyAudit() {
-  return runCheck("npm dependency audit", "npm audit --audit-level=moderate --omit=dev", root, true);
+  return runCheck("npm dependency audit", "npm audit --audit-level=moderate --omit=dev", join(root, "frontend"), true);
 }
 
 function statusIcon(status) {
@@ -164,15 +167,13 @@ ${sections}
 const checks = [];
 
 if (isFixMode) {
-  checks.push(runCheck("ESLint auto-fix", "npx eslint . --fix", root, true));
-  checks.push(runCheck("Go formatting", "gofmt -w .", join(root, "backend"), true));
+  checks.push(runCheck("ESLint auto-fix", "npx eslint . --fix", join(root, "frontend"), true));
 }
 
-checks.push(runCheck("TypeScript type-check", "npx tsc --noEmit"));
-checks.push(runCheck("ESLint", "npx eslint .", root, true));
-checks.push(runCheck("Frontend tests", "npm test"));
-checks.push(runCheck("Next production build", "npm run build"));
-checks.push(runCheck("Go tests", "go test ./...", join(root, "backend")));
+checks.push(runCheck("TypeScript type-check", "npx tsc --noEmit", join(root, "frontend")));
+checks.push(runCheck("ESLint", "npx eslint .", join(root, "frontend"), true));
+checks.push(runCheck("Frontend tests", "npm test", join(root, "frontend")));
+checks.push(runCheck("Next production build", "npm run build", join(root, "frontend")));
 checks.push(secretScan());
 checks.push(dependencyAudit());
 

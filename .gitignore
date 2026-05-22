@@ -2,6 +2,7 @@
 
 # Dependencies
 /node_modules
+/frontend/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,19 +13,16 @@
 
 # Build and Production
 /.next/
+/frontend/.next/
 /out/
+/frontend/out/
 /build
 /dist
 /.vercel
+/frontend/.vercel
 *.tsbuildinfo
 next-env.d.ts
 
-# Go backend local artifacts
-/backend/.gocache/
-/backend/api.exe
-/backend/*.exe
-/backend/main
-*.go.[0-9]*
 
 # Environment and Secrets
 .env
@@ -121,3 +119,4 @@ docker-compose.override.yml
 .netlify
 node_modules/ 
 **/node_modules/ 
+.env*
