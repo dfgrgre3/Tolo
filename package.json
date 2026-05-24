@@ -9,5 +9,8 @@
     "test:frontend": "npm run test --prefix frontend",
     "audit": "node scripts/comprehensive-error-check.mjs",
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^7.4.1"
   }
 }
