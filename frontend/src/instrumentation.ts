@@ -10,7 +10,7 @@ export async function register() {
     const { logger } = await import('./lib/logger');
     
     try {
-      ensureValidEnvironment();
+      ensureValidEnvironment({ fatal: false });
 
       const registerCleanup = (name: string, fn: any, priority: number = 0) => {
         logger.info(`[Instrumentation] Dummy cleanup registered for: ${name}`);

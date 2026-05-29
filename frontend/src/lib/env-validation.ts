@@ -212,7 +212,12 @@ function getJWTSecret(): string {
  * Validate and throw if environment is invalid
  * Call this at application startup
  */
-export function ensureValidEnvironment(): void {
+interface EnsureEnvironmentOptions {
+  fatal?: boolean;
+}
+
+export function ensureValidEnvironment(options: EnsureEnvironmentOptions = {}): void {
+  const fatal = options.fatal ?? process.env.NODE_ENV === 'production';
   const result = validateEnvironment();
 
   // Log warnings
@@ -230,7 +235,7 @@ export function ensureValidEnvironment(): void {
       logger.error(`Environment error: ${error}`);
     });
 
-    if (process.env.NODE_ENV === 'production') {
+    if (fatal) {
       throw new Error(
         'Environment validation failed. Please fix the errors above before starting the application.'
       );
