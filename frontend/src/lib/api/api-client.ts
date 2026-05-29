@@ -30,6 +30,8 @@ const AUTH_REFRESH_ENDPOINT = '/api/auth/refresh';
 const API_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
+const RETRYABLE_METHODS = ['GET', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'];
 
 class ApiError extends Error {
     public status: number;
@@ -59,6 +61,11 @@ function normalizeEndpoint(endpoint: string): string {
 
     const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     if (normalized.startsWith('/api/')) {
+        if (typeof window === 'undefined') {
+            return BASE_API_URL.endsWith('/api')
+                ? `${BASE_API_URL}${normalized.substring(4)}`
+                : `${BASE_API_URL}${normalized}`;
+        }
         return normalized;
     }
     if (BASE_API_URL.endsWith('/api')) {
@@ -120,7 +127,13 @@ class ApiClient {
         }).catch(() => {});
     }
 
-    private isRetryableError(error: unknown, retryCount: number, retries: number): boolean {
+    private canRetryMethod(method: string): boolean {
+        return RETRYABLE_METHODS.includes(method.toUpperCase());
+    }
+
+    private isRetryableError(error: unknown, retryCount: number, retries: number, method: string): boolean {
+        if (!this.canRetryMethod(method)) return false;
+
         const errName = (error as { name?: string })?.name;
         const errMsg = (error as { message?: string })?.message;
         return !!((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries);
@@ -161,7 +174,7 @@ class ApiClient {
                 this.resetAuthStore();
             }
 
-            const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
+            const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(response.status) && retryCount < retries;
             if (shouldRetry) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.fetch(endpoint, options, retryCount + 1);
@@ -171,7 +184,7 @@ class ApiClient {
         } catch (error: unknown) {
             clearTimeout(id);
 
-            if (this.isRetryableError(error, retryCount, retries)) {
+            if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.fetch(endpoint, options, retryCount + 1);
             }
@@ -181,7 +194,7 @@ class ApiClient {
         }
     }
 
-    private async handleApiErrorResponse(response: Response, retryCount: number, retries: number): Promise<boolean> {
+    private async handleApiErrorResponse(response: Response, retryCount: number, retries: number, method: string): Promise<boolean> {
         let errorMessage = `Server error: ${response.statusText}`;
         let errorCode = 'HTTP_ERROR';
         let errorData: any = null;
@@ -195,7 +208,7 @@ class ApiClient {
             if (responseText) errorMessage = responseText;
         }
 
-        const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
+        const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(response.status) && retryCount < retries;
         if (shouldRetry) return true;
 
         throw new ApiError(errorMessage, response.status, errorCode, errorData);
@@ -242,7 +255,7 @@ class ApiClient {
             }
 
             if (!response.ok) {
-                const shouldRetry = await this.handleApiErrorResponse(response, retryCount, retries);
+                const shouldRetry = await this.handleApiErrorResponse(response, retryCount, retries, method);
                 if (shouldRetry) {
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                     return this.request<T>(endpoint, options, retryCount + 1);
@@ -262,7 +275,7 @@ class ApiClient {
 
             if (error instanceof ApiError) throw error;
 
-            if (this.isRetryableError(error, retryCount, retries)) {
+            if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.request<T>(endpoint, options, retryCount + 1);
             }
@@ -287,7 +300,7 @@ class ApiClient {
                     }
                 }
 
-                const response = await fetch(AUTH_REFRESH_ENDPOINT, {
+                const response = await fetch(normalizeEndpoint(AUTH_REFRESH_ENDPOINT), {
                     method: 'POST',
                     headers,
                     credentials: 'include',

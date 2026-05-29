@@ -1,6 +1,35 @@
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// ==================== Configuration ====================
+// ==================== Clerk Auth Configuration ====================
+
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/admin(.*)',
+  '/profile(.*)',
+  '/my-courses(.*)',
+  '/billing(.*)',
+]);
+
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/login(.*)',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/register(.*)',
+  '/forgot-password(.*)',
+  '/reset-password(.*)',
+  '/verify-email(.*)',
+  '/courses(.*)',
+  '/api(.*)',
+  '/_next(.*)',
+  '/static(.*)',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+]);
+
+// ==================== Proxy Configuration ====================
 
 const BACKEND_URL = (() => {
   const url = (
@@ -329,22 +358,31 @@ async function checkBackendHealth(): Promise<boolean> {
   }
 }
 
-// ==================== Proxy ====================
+// ==================== Main Proxy + Clerk Auth Handler ====================
 
-export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+/**
+ * Middleware that combines Clerk authentication with API proxying.
+ * Next.js 16+ expects this as the default export from the proxy file.
+ */
+export default clerkMiddleware(async (auth, req) => {
+  const { pathname } = req.nextUrl;
 
-  // Skip proxy for static assets and internal paths
+  // 1. Protect routes that require authentication
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+
+  // 2. Skip proxy for static assets and internal paths
   if (shouldSkipProxy(pathname)) {
     return NextResponse.next();
   }
 
-  // Handle API routes
+  // 3. Handle API routes via proxy
   if (pathname.startsWith('/api/')) {
-    return handleApiProxy(request);
+    return handleApiProxy(req);
   }
 
-  // Handle health check
+  // 4. Handle health check
   if (pathname === '/health' || pathname === '/healthz') {
     const isHealthy = await checkBackendHealth();
     return NextResponse.json(
@@ -353,9 +391,9 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  // Default: proceed with Next.js routing
+  // 5. Default: proceed with Next.js routing
   return NextResponse.next();
-}
+});
 
 // ==================== Configuration ====================
 

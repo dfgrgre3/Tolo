@@ -400,7 +400,7 @@ async function refreshAuthSession(): Promise<boolean> {
   refreshInProgress = (async () => {
     try {
       lastRefreshAttempt = Date.now();
-      const response = await fetch(AUTH_REFRESH_ENDPOINT, {
+      const response = await fetch(buildFinalUrl(AUTH_REFRESH_ENDPOINT), {
         method: 'POST',
         credentials: 'include',
         headers: {

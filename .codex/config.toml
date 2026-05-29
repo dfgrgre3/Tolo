@@ -1,0 +1,10 @@
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+ANTHROPIC_BASE_URL = "https://agentrouter.org/"
+ANTHROPIC_API_KEY = "sk-MrYUMxBL1IOKAdKTaUCinaWhEtC8Kkjp0ZA1XM17ODcd61V1"
+ANTHROPIC_MODEL = "deepseek-v4-pro"
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=vowortqooklkavlaqigr"

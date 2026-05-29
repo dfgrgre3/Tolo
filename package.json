@@ -11,6 +11,9 @@
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.4.1"
+    "@clerk/nextjs": "^7.4.1",
+    "next": "^15.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

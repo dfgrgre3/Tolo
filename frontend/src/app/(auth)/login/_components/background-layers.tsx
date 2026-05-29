@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { m } from 'framer-motion';
 import { SecurityBit } from './security-bit';
 
@@ -7,8 +8,28 @@ const BACKGROUND_ELEMENTS = Array.from({ length: 20 }, (_, i) => ({
   id: `bg-element-${i}`,
 }));
 
+type BackgroundElementLayout = {
+  id: string;
+  left: number;
+  top: number;
+  delay: number;
+  xOffset: number;
+};
+
 export function BackgroundLayers() {
-  const randomPosition = () => Math.random() * 100;
+  const [elements, setElements] = useState<BackgroundElementLayout[]>([]);
+
+  useEffect(() => {
+    setElements(
+      BACKGROUND_ELEMENTS.map((element) => ({
+        id: element.id,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 5,
+        xOffset: Math.random() * 40 - 20,
+      }))
+    );
+  }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -20,12 +41,12 @@ export function BackgroundLayers() {
       <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
 
       <div className="absolute inset-0 overflow-hidden">
-        {BACKGROUND_ELEMENTS.map((element) => (
+        {elements.map((element) => (
           <div key={element.id} className="absolute" style={{
-            left: `${randomPosition()}%`,
-            top: `${randomPosition()}%`
+            left: `${element.left}%`,
+            top: `${element.top}%`
           }}>
-            <SecurityBit delay={Math.random() * 5} />
+            <SecurityBit delay={element.delay} xOffset={element.xOffset} />
           </div>
         ))}
       </div>

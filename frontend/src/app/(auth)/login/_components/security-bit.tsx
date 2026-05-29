@@ -2,7 +2,7 @@
 
 import { m } from 'framer-motion';
 
-export function SecurityBit({ delay = 0 }: { readonly delay?: number }) {
+export function SecurityBit({ delay = 0, xOffset = 0 }: { readonly delay?: number; readonly xOffset?: number }) {
   return (
     <m.div
       initial={{ opacity: 0, scale: 0 }}
@@ -10,7 +10,7 @@ export function SecurityBit({ delay = 0 }: { readonly delay?: number }) {
         opacity: [0, 0.2, 0],
         scale: [0.5, 1.2, 0.5],
         y: [-20, -100],
-        x: [0, Math.random() * 40 - 20]
+        x: [0, xOffset]
       }}
       transition={{
         duration: 4,
