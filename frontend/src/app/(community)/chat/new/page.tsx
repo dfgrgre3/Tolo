@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -22,7 +22,6 @@ export default function NewChatPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +40,6 @@ export default function NewChatPage() {
           // Filter out the current user
           const otherUsers = data.filter((user: User) => user.id !== userId);
           setUsers(otherUsers);
-          setFilteredUsers(otherUsers);
         }
       } catch (error) {
         logger.error("Error fetching users:", error);
@@ -53,21 +51,15 @@ export default function NewChatPage() {
     fetchUsers();
   }, [userId]);
 
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredUsers(users);
-      return;
-    }
-
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users;
     const term = searchTerm.toLowerCase();
-    const filtered = users.filter(user => 
+    return users.filter(user =>
       user.name.toLowerCase().includes(term) || 
       user.email.toLowerCase().includes(term) ||
       (user.grade && user.grade.toLowerCase().includes(term)) ||
       (user.school && user.school.toLowerCase().includes(term))
     );
-
-    setFilteredUsers(filtered);
   }, [searchTerm, users]);
 
   const handleStartChat = (chatUserId: string) => {

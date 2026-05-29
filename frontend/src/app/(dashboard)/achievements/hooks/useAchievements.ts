@@ -101,7 +101,9 @@ export function useAchievements(): UseAchievementsReturn {
 	}, [filters.category, filters.difficulty]); // Only refetch when API-affecting filters change
 
 	useEffect(() => {
-		fetchAchievements();
+		queueMicrotask(() => {
+			void fetchAchievements();
+		});
 	}, [fetchAchievements]);
 
 	// Calculate filtered achievements and stats

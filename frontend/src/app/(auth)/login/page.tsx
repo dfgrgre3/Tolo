@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense, useSyncExternalStore } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,10 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+const emptyDeviceInfo = { os: '', browser: '' };
+const subscribeToDeviceInfo = () => () => {};
+const getServerDeviceInfo = () => emptyDeviceInfo;
 
 const getDeviceInfo = () => {
   if (typeof globalThis.window === 'undefined') return { os: 'Unknown', browser: 'Unknown' };
@@ -51,9 +55,7 @@ function LoginForm() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [userId2FA, setUserId2FA] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [deviceInfo, setDeviceInfo] = useState({ os: '', browser: '' });
-
-  useEffect(() => { setDeviceInfo(getDeviceInfo()); }, []);
+  const deviceInfo = useSyncExternalStore(subscribeToDeviceInfo, getDeviceInfo, getServerDeviceInfo);
 
   const redirectUrl = useMemo(
     () => sanitizeRedirectPath(searchParams.get('redirect'), DEFAULT_AUTHENTICATED_ROUTE),

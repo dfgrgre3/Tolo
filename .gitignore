@@ -111,6 +111,10 @@ lighthouse-results.json
 # clerk configuration (can include secrets)
 /.clerk/
 
+# Local tool settings (can include secrets)
+/.claude/settings.local.json
+/frontend/.env.local
+
 # Docker
 docker-compose.yml
 docker-compose.override.yml
