@@ -2,7 +2,56 @@
   "framework": "nextjs",
   "installCommand": "npm install --prefix frontend --include=dev --legacy-peer-deps",
   "buildCommand": "npm run build --prefix frontend",
+  "outputDirectory": "frontend/.next",
   "regions": [
     "fra1"
+  ],
+  "functions": {
+    "frontend/src/app/api/**/*.ts": {
+      "maxDuration": 60
+    },
+    "frontend/src/app/api/courses/[id]/checkout/route.ts": {
+      "maxDuration": 120
+    },
+    "frontend/src/app/api/payments/**/*.ts": {
+      "maxDuration": 120
+    }
+  },
+  "headers": [
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        }
+      ]
+    }
   ]
 }
