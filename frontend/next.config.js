@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
@@ -8,7 +10,7 @@ const nextConfig = {
   // Enable React strict mode for better performance
   reactStrictMode: true,
   turbopack: {
-    root: __dirname,
+    root: path.join(__dirname, '..'),
   },
 
   compiler: {
