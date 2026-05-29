@@ -76,7 +76,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                         <TooltipProvider>
                           <LazyMotion features={domAnimation} strict>
                             <PerformanceProvider key="performance-provider">
-                              {children}
+                              {React.Children.toArray(children)}
                             </PerformanceProvider>
                             <FooterLazy key="footer-lazy" />
                           </LazyMotion>

@@ -25,9 +25,11 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const emptyDeviceInfo = { os: '', browser: '' };
 const subscribeToDeviceInfo = () => () => {};
 const getServerDeviceInfo = () => emptyDeviceInfo;
+let cachedDeviceInfo: typeof emptyDeviceInfo | null = null;
 
 const getDeviceInfo = () => {
-  if (typeof globalThis.window === 'undefined') return { os: 'Unknown', browser: 'Unknown' };
+  if (cachedDeviceInfo) return cachedDeviceInfo;
+  if (typeof globalThis.window === 'undefined') return emptyDeviceInfo;
   const ua = globalThis.window.navigator.userAgent;
   let os = "نظام غير معروف";
   if (ua.includes("Win")) os = "Windows";
@@ -40,7 +42,8 @@ const getDeviceInfo = () => {
   else if (ua.includes("Firefox")) browser = "Firefox";
   else if (ua.includes("Safari")) browser = "Safari";
   else if (ua.includes("Edge")) browser = "Edge";
-  return { os, browser };
+  cachedDeviceInfo = { os, browser };
+  return cachedDeviceInfo;
 };
 
 function LoginForm() {

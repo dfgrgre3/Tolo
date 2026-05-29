@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/contexts/auth-context';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -35,7 +36,7 @@ const getCsrfToken = () => {
     if (entry) {
       try {
         return decodeURIComponent(entry.split('=')[1]!);
-      } catch (e) {
+      } catch (_e) {
         return entry.split('=')[1];
       }
     }
@@ -49,7 +50,7 @@ const ensureCsrfToken = async () => {
     try {
       await fetch('/api/ai/chat?action=conversations', { method: 'GET', credentials: 'include' });
       token = getCsrfToken();
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   }
@@ -69,6 +70,7 @@ export default function AIAssistant({
   title = "المساعد الذكي",
   className = ""
 }: AIAssistantProps) {
+  const { fetchWithAuth } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -97,15 +99,10 @@ export default function AIAssistant({
   }, [messages]);
 
   useEffect(() => {
-    if (showSidebar && conversations.length === 0) {
-      loadConversations();
-    }
-  }, [showSidebar]);
-
-  useEffect(() => {
+    const eventSource = eventSourceRef.current;
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      if (eventSource) {
+        eventSource.close();
       }
     };
   }, []);
@@ -117,12 +114,11 @@ export default function AIAssistant({
     }
   }, [input]);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const response = await fetch('/api/ai/chat?action=conversations', {
-        method: 'GET',
-        credentials: 'include'
+      const response = await fetchWithAuth('/api/ai/chat?action=conversations', {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -134,13 +130,18 @@ export default function AIAssistant({
     } finally {
       setIsLoadingConversations(false);
     }
-  };
+  }, [fetchWithAuth]);
+
+  useEffect(() => {
+    if (showSidebar && conversations.length === 0) {
+      loadConversations();
+    }
+  }, [conversations.length, loadConversations, showSidebar]);
 
   const loadConversation = async (convId: string) => {
     try {
-      const response = await fetch(`/api/ai/chat?action=conversation&id=${convId}`, {
-        method: 'GET',
-        credentials: 'include'
+      const response = await fetchWithAuth(`/api/ai/chat?action=conversation&id=${convId}`, {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -167,12 +168,11 @@ export default function AIAssistant({
 
     try {
       const csrfToken = await ensureCsrfToken();
-      const response = await fetch(`/api/ai/chat?id=${convId}`, {
+      const response = await fetchWithAuth(`/api/ai/chat?id=${convId}`, {
         method: 'DELETE',
         headers: {
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
-        },
-        credentials: 'include'
+        }
       });
 
       if (response.ok) {
@@ -217,7 +217,7 @@ export default function AIAssistant({
       }
       if (parsed.conversationId) setConversationId(parsed.conversationId);
       if (parsed.done) setIsStreaming(false);
-    } catch (e) {
+    } catch (_e) {
       // Ignore partial JSON errors
     }
   };
@@ -257,13 +257,12 @@ export default function AIAssistant({
 
     try {
       const csrfToken = await ensureCsrfToken();
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetchWithAuth('/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
         },
-        credentials: 'include',
         body: JSON.stringify({
           message: userMessage.content,
           conversationId,

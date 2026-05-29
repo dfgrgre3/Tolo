@@ -260,8 +260,8 @@ export default function ProgressPage() {
                              <Target className="w-6 h-6" />
                           </div>
                        </div>
-                       <div className="h-[400px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
+                       <div className="h-[400px] min-h-[400px] w-full min-w-0">
+                          <ResponsiveContainer width="100%" height={400} minWidth={280} minHeight={320}>
                              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={subjectSkills}>
                                 <PolarGrid stroke="rgba(255,255,255,0.05)" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(156,163,175,0.8)', fontSize: 14 }} />
@@ -348,8 +348,8 @@ export default function ProgressPage() {
                              </div>
                           </div>
                        </div>
-                       <div className="h-[350px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
+                       <div className="h-[350px] min-h-[350px] w-full min-w-0">
+                          <ResponsiveContainer width="100%" height={350} minWidth={280} minHeight={280}>
                              <AreaChart data={studyStats}>
                                 <defs>
                                    <linearGradient id="colorMin" x1="0" y1="0" x2="0" y2="1">
@@ -382,8 +382,8 @@ export default function ProgressPage() {
                           </div>
                           <Sparkles className="text-amber-400 w-6 h-6" />
                        </div>
-                       <div className="h-[350px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
+                       <div className="h-[350px] min-h-[350px] w-full min-w-0">
+                          <ResponsiveContainer width="100%" height={350} minWidth={280} minHeight={280}>
                              <LineChart data={progressPath}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'gray', fontSize: 12 }} />

@@ -12,10 +12,8 @@ const SW_CACHE_PREFIX = "tolo-search";
 
 async function cleanupServiceWorkerArtifacts(): Promise<void> {
 	try {
-		const registration = await navigator.serviceWorker.getRegistration(SW_SCOPE);
-		if (registration) {
-			await registration.unregister();
-		}
+		const registrations = await navigator.serviceWorker.getRegistrations();
+		await Promise.all(registrations.map((registration) => registration.unregister()));
 	} catch (error) {
 		logger.debug("Service Worker cleanup (unregister) skipped:", error);
 	}
@@ -28,7 +26,7 @@ async function cleanupServiceWorkerArtifacts(): Promise<void> {
 		const cacheNames = await caches.keys();
 		await Promise.all(
 			cacheNames
-				.filter((name) => name.startsWith(SW_CACHE_PREFIX))
+				.filter((name) => name.startsWith(SW_CACHE_PREFIX) || name.includes("next") || name.includes("webpack") || name.includes("turbopack"))
 				.map((name) => caches.delete(name))
 		);
 	} catch (error) {

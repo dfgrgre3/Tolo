@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import React from 'react';
 
 export const metadata: Metadata = {
   title: 'لوحة التحكم | Tolo',
@@ -11,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardGroupLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <>{React.Children.toArray(children)}</>;
 }

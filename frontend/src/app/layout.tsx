@@ -4,7 +4,7 @@ import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
 import Header from '@/components/header/Header';
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -138,7 +138,7 @@ export default async function RootLayout({
               <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
                 <Header />
               </Suspense>
-              {children}
+              {React.Children.toArray(children)}
             </GlobalProviders>
           </ThemeProvider>
         </body>

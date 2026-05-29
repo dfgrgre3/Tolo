@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Brain,
   Bot,
@@ -12,7 +13,8 @@ import {
   Sparkles,
   Shield,
   Compass,
-  Scroll } from
+  Scroll,
+  Loader2 } from
 'lucide-react';
 
 import { m, AnimatePresence } from "framer-motion";
@@ -26,6 +28,7 @@ import LessonSummarizer from './features/LessonSummarizer';
 import EssayGrader from './features/EssayGrader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/auth-context';
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -35,7 +38,27 @@ const STYLES = {
 };
 
 export default function AILearningPage() {
+  const { user, isLoading } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('assistant');
+
+  useEffect(() => {
+    if (isLoading || user) return;
+    const redirectTarget = pathname || '/ai';
+    router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+  }, [isLoading, pathname, router, user]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center" dir="rtl">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-bold text-gray-400">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
 
   const subjects = [
   'الرياضيات', 'العلوم', 'اللغة العربية', 'اللغة الإنجليزية', 'الدراسات الاجتماعية',
