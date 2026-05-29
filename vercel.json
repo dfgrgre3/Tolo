@@ -4,16 +4,5 @@
   "buildCommand": "npm run build --prefix frontend",
   "regions": [
     "fra1"
-  ],
-  "functions": {
-    "frontend/src/app/api/**/*.ts": {
-      "maxDuration": 60
-    },
-    "frontend/src/app/api/courses/[id]/checkout/route.ts": {
-      "maxDuration": 120
-    },
-    "frontend/src/app/api/payments/**/*.ts": {
-      "maxDuration": 120
-    }
-  }
+  ]
 }
