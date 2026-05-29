@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
+const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+type StreamingRequestInit = RequestInit & { duplex?: 'half' };
 
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -25,35 +27,15 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   return headers;
 }
 
-function getOrigins(primaryOrigin: string): string[] {
-  const origins = [primaryOrigin];
-  if (primaryOrigin.includes(':8082')) {
-    origins.push(primaryOrigin.replace(':8082', ':8080'));
-  } else if (primaryOrigin.includes(':8080')) {
-    origins.push(primaryOrigin.replace(':8080', ':8082'));
-  }
-  return origins;
-}
-
-async function buildProxyRequestOptions(request: NextRequest, headers: any): Promise<RequestInit> {
-  const options: RequestInit = {
+function buildProxyRequestOptions(request: NextRequest, headers: Record<string, string>): StreamingRequestInit {
+  const options: StreamingRequestInit = {
     method: request.method,
     headers: { ...headers },
-    // @ts-ignore
     duplex: 'half',
   };
 
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-    if (request.body) {
-      try {
-        const buffer = await request.arrayBuffer();
-        if (buffer.byteLength > 0) {
-          options.body = buffer;
-        }
-      } catch (e) {
-        console.warn('[API Proxy] Failed to read request body:', e);
-      }
-    }
+  if (METHODS_WITH_BODY.has(request.method) && request.body) {
+    options.body = request.body;
   }
 
   return options;
@@ -135,52 +117,37 @@ async function handleProxy(
   const path = params.path.join('/');
   const { search } = new URL(request.url);
   const headers = upstreamHeaders(request);
-  
-  const primaryOrigin = BACKEND_URL;
-  const origins = getOrigins(primaryOrigin);
-  const options = await buildProxyRequestOptions(request, headers);
+  const options = buildProxyRequestOptions(request, headers);
 
-  let lastError: any = null;
+  try {
+    const targetUrl = `${BACKEND_URL}/api/${path}${search}`;
+    console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
 
-  for (const origin of origins) {
-    try {
-      const targetUrl = `${origin}/api/${path}${search}`;
-      console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
+    const response = await fetch(targetUrl, {
+      ...options,
+      signal: AbortSignal.timeout(15000), // 15s timeout
+    });
 
-      const response = await fetch(targetUrl, {
-        ...options,
-        signal: AbortSignal.timeout(15000), // 15s timeout
-      });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[API Proxy] Backend (${response.status}) for ${path}:`, errorText.substring(0, 200));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[API Proxy] Backend (${response.status}) for ${path}:`, errorText.substring(0, 200));
-        
-        // If we get a 404 from one origin, maybe the other one has it? (Only if multiple origins)
-        if (response.status === 404 && origins.length > 1 && origin === origins[0]) {
-          continue; 
-        }
-
-        return handleErrorResponse(response, errorText);
-      }
-
-      const responseHeaders = copyResponseHeaders(response, 'no-store');
-
-      return new NextResponse(response.body, {
-        status: response.status,
-        headers: responseHeaders,
-      });
-    } catch (error: any) {
-      console.warn(`[API Proxy] Attempt failed for ${origin}:`, error.message);
-      lastError = error;
-      continue;
+      return handleErrorResponse(response, errorText);
     }
-  }
 
-  return NextResponse.json(
-    { error: 'Failed to connect to backend service', details: lastError?.message },
-    { status: 502 }
-  );
+    const responseHeaders = copyResponseHeaders(response, 'no-store');
+
+    return new NextResponse(response.body, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (error: any) {
+    console.warn(`[API Proxy] Attempt failed for ${BACKEND_URL}:`, error.message);
+    return NextResponse.json(
+      { error: 'Failed to connect to backend service', details: error?.message },
+      { status: 502 }
+    );
+  }
 }
 
 export const GET = handleProxy;

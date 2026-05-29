@@ -154,10 +154,18 @@ async function safeJsonParse<T>(
 
 function buildFinalUrl(url: string): string {
   const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = trimTrailingSlashes(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
-  return url.startsWith('/api/')
-    ? (isBrowserEnv ? url : `${BASE_API_URL}${url.substring(4)}`)
-    : url;
+  const BASE_API_URL = trimTrailingSlashes(process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
+  if (!url.startsWith('/api/')) {
+    return url;
+  }
+
+  if (isBrowserEnv) {
+    return url;
+  }
+
+  return BASE_API_URL.endsWith('/api')
+    ? `${BASE_API_URL}${url.substring(4)}`
+    : `${BASE_API_URL}${url}`;
 }
 
 /**

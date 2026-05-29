@@ -7,7 +7,9 @@ const nextConfig = {
   output: 'standalone',
   // Enable React strict mode for better performance
   reactStrictMode: true,
-  turbopack: {},
+  turbopack: {
+    root: __dirname,
+  },
 
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {

@@ -52,6 +52,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
 const BASE_API_URL = trimTrailingSlashes(typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL));
+const SERVER_API_URL = trimTrailingSlashes(process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL);
 
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';
@@ -72,6 +73,29 @@ function normalizeEndpoint(endpoint: string): string {
         return `${BASE_API_URL}${normalized}`;
     }
     return `${BASE_API_URL}/api${normalized}`;
+}
+
+function normalizeServerEndpoint(endpoint: string): string {
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+        return endpoint;
+    }
+
+    const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    if (normalized.startsWith('/api/')) {
+        return SERVER_API_URL.endsWith('/api')
+            ? `${SERVER_API_URL}${normalized.substring(4)}`
+            : `${SERVER_API_URL}${normalized}`;
+    }
+
+    return SERVER_API_URL.endsWith('/api')
+        ? `${SERVER_API_URL}${normalized}`
+        : `${SERVER_API_URL}/api${normalized}`;
+}
+
+function normalizeRefreshEndpoint(): string {
+    return typeof window !== 'undefined'
+        ? AUTH_REFRESH_ENDPOINT
+        : normalizeServerEndpoint(AUTH_REFRESH_ENDPOINT);
 }
 
 function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
@@ -300,7 +324,7 @@ class ApiClient {
                     }
                 }
 
-                const response = await fetch(normalizeEndpoint(AUTH_REFRESH_ENDPOINT), {
+                const response = await fetch(normalizeRefreshEndpoint(), {
                     method: 'POST',
                     headers,
                     credentials: 'include',

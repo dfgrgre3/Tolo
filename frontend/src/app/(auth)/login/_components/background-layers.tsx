@@ -1,36 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { m } from 'framer-motion';
 import { SecurityBit } from './security-bit';
 
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
 const BACKGROUND_ELEMENTS = Array.from({ length: 20 }, (_, i) => ({
   id: `bg-element-${i}`,
+  left: seededRandom(i + 1) * 100,
+  top: seededRandom(i + 21) * 100,
+  delay: seededRandom(i + 41) * 5,
+  xOffset: seededRandom(i + 61) * 40 - 20,
 }));
 
-type BackgroundElementLayout = {
-  id: string;
-  left: number;
-  top: number;
-  delay: number;
-  xOffset: number;
-};
-
 export function BackgroundLayers() {
-  const [elements, setElements] = useState<BackgroundElementLayout[]>([]);
-
-  useEffect(() => {
-    setElements(
-      BACKGROUND_ELEMENTS.map((element) => ({
-        id: element.id,
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        delay: Math.random() * 5,
-        xOffset: Math.random() * 40 - 20,
-      }))
-    );
-  }, []);
-
   return (
     <div className="absolute inset-0 pointer-events-none">
       <m.div
@@ -41,7 +27,7 @@ export function BackgroundLayers() {
       <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(37,99,235,0.08),transparent_45%)]" />
 
       <div className="absolute inset-0 overflow-hidden">
-        {elements.map((element) => (
+        {BACKGROUND_ELEMENTS.map((element) => (
           <div key={element.id} className="absolute" style={{
             left: `${element.left}%`,
             top: `${element.top}%`
