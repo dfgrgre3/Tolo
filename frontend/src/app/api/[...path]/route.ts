@@ -137,7 +137,11 @@ async function handleProxy(
 
     const responseHeaders = copyResponseHeaders(response, 'no-store');
 
-    return new NextResponse(response.body, {
+    // Read the body fully as an ArrayBuffer to decompress it at the proxy level
+    // and avoid ERR_CONTENT_DECODING_FAILED issues in the browser.
+    const buffer = await response.arrayBuffer();
+
+    return new NextResponse(buffer, {
       status: response.status,
       headers: responseHeaders,
     });
