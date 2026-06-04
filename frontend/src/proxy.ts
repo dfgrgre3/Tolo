@@ -121,6 +121,11 @@ function shouldSkipProxy(pathname: string): boolean {
     return false;
   }
 
+  // Skip local API endpoints so they are handled by Next.js local route handlers
+  if (pathname === '/api/analytics/web-vitals' || pathname === '/api/cache/revalidate') {
+    return true;
+  }
+
   // Skip internal paths
   if (SKIP_PATHS.some(p => pathname.startsWith(p))) {
     return true;

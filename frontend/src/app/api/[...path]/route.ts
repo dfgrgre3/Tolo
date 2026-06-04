@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { POST as webVitalsPost } from '../analytics/web-vitals/route';
+import { POST as revalidatePost } from '../cache/revalidate/route';
 
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 type StreamingRequestInit = RequestInit & { duplex?: 'half' };
@@ -179,6 +181,21 @@ async function handleProxy(
 ) {
   const params = await props.params;
   const path = params.path.join('/');
+
+  if (path === 'analytics/web-vitals') {
+    if (request.method === 'POST') {
+      return webVitalsPost(request);
+    }
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
+  if (path === 'cache/revalidate') {
+    if (request.method === 'POST') {
+      return revalidatePost(request);
+    }
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   const { search } = new URL(request.url);
   const headers = upstreamHeaders(request);
   const options = buildProxyRequestOptions(request, headers);
