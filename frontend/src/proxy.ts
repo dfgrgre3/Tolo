@@ -390,8 +390,18 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // 3. Handle API and Admin routes via proxy
-  if (pathname.startsWith('/api/') || pathname.startsWith('/admin/') || pathname === '/admin') {
+  // 3. API routes: let Next.js route handlers handle them.
+  // The catch-all src/app/api/[...path]/route.ts proxies to the backend at
+  // request time (using resolveBackendUrl()) so it reliably picks up
+  // INTERNAL_API_URL / NEXT_PUBLIC_API_URL from the Vercel serverless env.
+  // Middleware runs on Edge and resolves env vars at module init, so using
+  // BACKEND_URL here caused 503s when the variable wasn't available at cold start.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // Admin routes via proxy
+  if (pathname.startsWith('/admin/') || pathname === '/admin') {
     return handleApiProxy(req);
   }
 
