@@ -2,8 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { POST as webVitalsPost } from '../analytics/web-vitals/route';
 import { POST as revalidatePost } from '../cache/revalidate/route';
 
+// =============================================================================
+// Configuration
+// =============================================================================
+
+// Explicit Node.js runtime. Next.js App Router sometimes picks the Edge
+// runtime for catch-all routes which has different fetch behaviour
+// (no streaming bodies, smaller body limit, no global fetch extensions).
+// We need a stable, streaming-friendly fetch for proxying POST/PUT/PATCH/DELETE
+// to the Go backend, so force Node.js.
+export const runtime = 'nodejs';
+
+// `force-dynamic` ensures the route is never statically optimised/cached.
+// Every /api/* request must hit the backend live.
+export const dynamic = 'force-dynamic';
+
+// Default Vercel Function maxDuration is 10s on Hobby, 60s on Pro, 900s on
+// Enterprise. Bumping to 30s gives us enough headroom for:
+//   cold start (1-3s) + Clerk middleware (0.5s) + Go backend (1-5s)
+//   + the extra round-trip to vercel.app (1-3s when same region).
+// 30s is well within the Pro plan limit.
+export const maxDuration = 30;
+
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-type StreamingRequestInit = RequestInit & { duplex?: 'half' };
+
+// Per-attempt timeout. We retry once, so total worst-case is ~40s but
+// still under maxDuration above.
+const FETCH_TIMEOUT_MS = 20000;
+const MAX_ATTEMPTS = 2;
+
+// =============================================================================
+// Backend URL resolution (request-time, NOT module-load time)
+// =============================================================================
 
 /**
  * Resolve the backend base URL at request-time (NOT at module-load time).
@@ -60,22 +90,26 @@ function getBackendUrl(): string {
   return url;
 }
 
+// =============================================================================
+// Header helpers
+// =============================================================================
+
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
-  
+
   const auth = request.headers.get('authorization');
   if (auth) headers['Authorization'] = auth;
-  
+
   const cookie = request.headers.get('cookie');
   if (cookie) headers['Cookie'] = cookie;
 
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
   if (ip) headers['x-forwarded-for'] = ip;
-  
+
   // Forward CSRF token
   const csrf = request.headers.get('x-csrf-token');
   if (csrf) headers['X-CSRF-Token'] = csrf;
-  
+
   // Forward content type
   const ct = request.headers.get('content-type');
   if (ct) headers['Content-Type'] = ct;
@@ -85,23 +119,83 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   // so if the backend sends gzip the Content-Length will be wrong and the
   // browser will throw ERR_CONTENT_DECODING_FAILED.
   headers['Accept-Encoding'] = 'identity';
-  
+
   return headers;
 }
 
-function buildProxyRequestOptions(request: NextRequest, headers: Record<string, string>): StreamingRequestInit {
-  const options: StreamingRequestInit = {
-    method: request.method,
-    headers: { ...headers },
-    duplex: 'half',
-  };
+// =============================================================================
+// Body handling
+// =============================================================================
 
-  if (METHODS_WITH_BODY.has(request.method) && request.body) {
-    options.body = request.body;
+/**
+ * Read the request body as a Uint8Array so we can safely forward it to the
+ * upstream backend. We avoid using `request.body` (a ReadableStream) directly
+ * because some Vercel Node runtime versions + duplex: 'half' combos
+ * intermittently drop the body and produce 502s on POST requests.
+ *
+ * We return Uint8Array (not Buffer) because Uint8Array is a valid BodyInit
+ * per the DOM lib types, while Buffer requires a cast. Node's fetch accepts
+ * both at runtime.
+ */
+async function readBodyBuffer(request: NextRequest): Promise<Uint8Array | undefined> {
+  if (!METHODS_WITH_BODY.has(request.method)) return undefined;
+  try {
+    const ab = await request.arrayBuffer();
+    if (!ab || ab.byteLength === 0) return undefined;
+    return new Uint8Array(ab);
+  } catch (e: any) {
+    console.warn('[API Proxy] Failed to read request body:', e?.message || e);
+    return undefined;
   }
-
-  return options;
 }
+
+// =============================================================================
+// Fetch with timeout + retry
+// =============================================================================
+
+/**
+ * fetch() with a hard per-attempt timeout and a single retry.
+ *
+ * The retry handles Vercel-to-Vercel egress flakiness: a single cold call
+ * sometimes times out before the Go backend wakes up. A second attempt
+ * typically succeeds immediately because both ends are warm.
+ */
+async function fetchWithTimeoutAndRetry(
+  url: string,
+  init: RequestInit
+): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      });
+      return response;
+    } catch (err: any) {
+      lastError = err;
+      const msg = err?.message || String(err);
+      const isAbort = err?.name === 'AbortError' || msg.includes('aborted');
+      console.warn(
+        `[API Proxy] Attempt ${attempt}/${MAX_ATTEMPTS} failed for ${url}: ` +
+        `${isAbort ? `timeout after ${FETCH_TIMEOUT_MS}ms` : msg}`
+      );
+      if (attempt < MAX_ATTEMPTS) {
+        // small backoff before retry
+        await new Promise((r) => setTimeout(r, 200 * attempt));
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  throw lastError;
+}
+
+// =============================================================================
+// Response header helpers
+// =============================================================================
 
 function copyResponseHeaders(response: Response, defaultCacheControl?: string): Headers {
   const responseHeaders = new Headers();
@@ -158,7 +252,7 @@ function handleErrorResponse(response: Response, errorText: string) {
       errorData.error = `Backend error (HTTP ${response.status})`;
     }
   } catch {
-    errorData = { 
+    errorData = {
       error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
       status: response.status,
       details: errorText.substring(0, 500)
@@ -169,11 +263,15 @@ function handleErrorResponse(response: Response, errorText: string) {
 
   const responseHeaders = copyResponseHeaders(response);
 
-  return NextResponse.json(errorData, { 
+  return NextResponse.json(errorData, {
     status: response.status,
     headers: responseHeaders
   });
 }
+
+// =============================================================================
+// Main handler
+// =============================================================================
 
 async function handleProxy(
   request: NextRequest,
@@ -182,6 +280,8 @@ async function handleProxy(
   const params = await props.params;
   const path = params.path.join('/');
 
+  // Bypass: local analytics & revalidation routes are handled by their own
+  // route handlers and must not be proxied upstream.
   if (path === 'analytics/web-vitals') {
     if (request.method === 'POST') {
       return webVitalsPost(request);
@@ -197,9 +297,6 @@ async function handleProxy(
   }
 
   const { search } = new URL(request.url);
-  const headers = upstreamHeaders(request);
-  const options = buildProxyRequestOptions(request, headers);
-
   const backendUrl = getBackendUrl();
 
   // Fail fast with a clear 503 if no backend is configured.
@@ -221,13 +318,18 @@ async function handleProxy(
     );
   }
 
-  try {
-    const targetUrl = `${backendUrl}/api/${path}${search}`;
-    console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
+  const targetUrl = `${backendUrl}/api/${path}${search}`;
+  console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
 
-    const response = await fetch(targetUrl, {
-      ...options,
-      signal: AbortSignal.timeout(15000), // 15s timeout
+  // Read the body fully as a Uint8Array (the most stable way to forward a
+  // body to an upstream serverless function in Vercel's Node runtime).
+  const body = (await readBodyBuffer(request)) as BodyInit | undefined;
+
+  try {
+    const response = await fetchWithTimeoutAndRetry(targetUrl, {
+      method: request.method,
+      headers: upstreamHeaders(request),
+      body,
     });
 
     if (!response.ok) {
@@ -248,12 +350,26 @@ async function handleProxy(
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.warn(`[API Proxy] Attempt failed for ${backendUrl}:`, error.message);
+    const errName = error?.name || '';
+    const errMsg = error?.message || String(error);
+    const isTimeout = errName === 'AbortError' || errMsg.toLowerCase().includes('aborted');
+    console.error(
+      `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path} ` +
+      `after ${MAX_ATTEMPTS} attempts. target=${targetUrl} error=${errMsg}`
+    );
     return NextResponse.json(
       {
-        error: 'Failed to connect to backend service',
-        details: error?.message,
-        target: backendUrl,
+        error: isTimeout
+          ? 'Backend request timed out'
+          : 'Failed to connect to backend service',
+        details: errMsg,
+        target: targetUrl,
+        attempts: MAX_ATTEMPTS,
+        timeoutMs: FETCH_TIMEOUT_MS,
+        hint: isTimeout
+          ? 'The Vercel Function may be hitting its maxDuration limit (10s on Hobby, 30s on Pro). ' +
+            'Also possible: cold start on the Go backend or Vercel-to-Vercel egress flakiness.'
+          : 'Check that INTERNAL_API_URL points to a reachable backend and that the deployment is not protected.',
       },
       { status: 502 }
     );
