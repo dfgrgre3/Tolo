@@ -5,6 +5,10 @@ import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
 import Header from '@/components/header/Header';
 import React, { Suspense } from 'react';
+import { cookies } from 'next/headers';
+import { ThemeProvider } from '@/providers/theme-provider';
+import { ClerkProvider } from '@clerk/nextjs';
+import { arSA } from '@clerk/localizations';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -19,6 +23,10 @@ const alexandria = Alexandria({
 export const metadata: Metadata = {
   title: { default: 'Tolo - منصة تعليمية تفاعلية', template: '%s | Tolo' },
   description: 'منصة تعليمية تفاعلية للثانوية العامة - كورسات، امتحانات، ومدرسين',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     title: 'Tolo - منصة تعليمية تفاعلية',
     description: 'منصة تعليمية تفاعلية للثانوية العامة',
@@ -38,11 +46,6 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
 };
-
-import { cookies } from 'next/headers';
-import { ThemeProvider } from '@/providers/theme-provider';
-import { ClerkProvider } from '@clerk/nextjs';
-import { arSA } from '@clerk/localizations';
 
 export default async function RootLayout({
   children,

@@ -1,8 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 type StreamingRequestInit = RequestInit & { duplex?: 'half' };
+
+/**
+ * Resolve the backend base URL at request-time (NOT at module-load time).
+ *
+ * Vercel deployments must have one of these set in Project Settings → Environment Variables:
+ *   - INTERNAL_API_URL   = https://your-backend.vercel.app          (preferred, server-to-server)
+ *   - NEXT_PUBLIC_API_URL = https://your-backend.vercel.app/api     (exposed to the client)
+ *
+ * If neither is set the proxy falls back to 127.0.0.1:8082 which does NOT
+ * exist on Vercel's serverless runtime → 502 "Failed to connect to backend".
+ *
+ * We log the resolved value on first use so it shows up in `vercel logs`.
+ */
+function resolveBackendUrl(): string {
+  const raw =
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    '';
+
+  // Strip a trailing /api and trailing slashes so we can re-append /api/<path>.
+  const cleaned = raw.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+
+  if (!cleaned) {
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    const fallback = isProd ? '' : 'http://127.0.0.1:8082';
+
+    if (isProd) {
+      // Loud, structured error so the issue shows up immediately in Vercel logs.
+      console.error(
+        '[API Proxy] FATAL: No backend URL configured in production. ' +
+        'Set INTERNAL_API_URL or NEXT_PUBLIC_API_URL in Vercel Environment Variables. ' +
+        'Every /api/* request will return 502 until this is fixed.'
+      );
+    } else {
+      console.warn(
+        '[API Proxy] No INTERNAL_API_URL / NEXT_PUBLIC_API_URL set; ' +
+        'using development fallback http://127.0.0.1:8082'
+      );
+    }
+
+    return fallback;
+  }
+
+  return cleaned;
+}
+
+let loggedBackendUrl: string | null = null;
+function getBackendUrl(): string {
+  const url = resolveBackendUrl();
+  if (loggedBackendUrl !== url) {
+    console.log(`[API Proxy] Resolved BACKEND_URL = ${url || '(empty - will 502)'}`);
+    loggedBackendUrl = url;
+  }
+  return url;
+}
 
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -23,6 +77,12 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   // Forward content type
   const ct = request.headers.get('content-type');
   if (ct) headers['Content-Type'] = ct;
+
+  // Tell the backend NOT to compress its response.
+  // The proxy reads the body as an ArrayBuffer (Node fetch auto-decompresses),
+  // so if the backend sends gzip the Content-Length will be wrong and the
+  // browser will throw ERR_CONTENT_DECODING_FAILED.
+  headers['Accept-Encoding'] = 'identity';
   
   return headers;
 }
@@ -45,7 +105,11 @@ function copyResponseHeaders(response: Response, defaultCacheControl?: string): 
   const responseHeaders = new Headers();
   const excludeHeaders = [
     'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
-    'te', 'trailers', 'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'
+    'te', 'trailers', 'transfer-encoding', 'upgrade',
+    // Always strip content-encoding and content-length: the proxy decompresses
+    // the body (Node.js fetch does this automatically) so these headers no
+    // longer match the forwarded body, which causes ERR_CONTENT_DECODING_FAILED.
+    'content-encoding', 'content-length',
   ];
 
   response.headers.forEach((value, key) => {
@@ -119,8 +183,29 @@ async function handleProxy(
   const headers = upstreamHeaders(request);
   const options = buildProxyRequestOptions(request, headers);
 
+  const backendUrl = getBackendUrl();
+
+  // Fail fast with a clear 503 if no backend is configured.
+  // This makes the root cause obvious in browser DevTools (and avoids
+  // a confusing generic 502 from fetch's network error).
+  if (!backendUrl) {
+    console.error(
+      `[API Proxy] Refusing ${request.method} /api/${path} - no backend URL configured. ` +
+      `Set INTERNAL_API_URL or NEXT_PUBLIC_API_URL in Vercel Environment Variables.`
+    );
+    return NextResponse.json(
+      {
+        error: 'Backend service unavailable',
+        details:
+          'The frontend is missing INTERNAL_API_URL / NEXT_PUBLIC_API_URL. ' +
+          'Configure it in Vercel → Project Settings → Environment Variables.',
+      },
+      { status: 503 }
+    );
+  }
+
   try {
-    const targetUrl = `${BACKEND_URL}/api/${path}${search}`;
+    const targetUrl = `${backendUrl}/api/${path}${search}`;
     console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
 
     const response = await fetch(targetUrl, {
@@ -146,9 +231,13 @@ async function handleProxy(
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.warn(`[API Proxy] Attempt failed for ${BACKEND_URL}:`, error.message);
+    console.warn(`[API Proxy] Attempt failed for ${backendUrl}:`, error.message);
     return NextResponse.json(
-      { error: 'Failed to connect to backend service', details: error?.message },
+      {
+        error: 'Failed to connect to backend service',
+        details: error?.message,
+        target: backendUrl,
+      },
       { status: 502 }
     );
   }

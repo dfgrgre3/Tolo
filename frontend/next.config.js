@@ -6,8 +6,10 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig = {
-  output: 'standalone',
-  // Enable React strict mode for better performance
+  // NOTE: Do NOT use output: 'standalone' on Vercel — it is only for
+  // Docker/self-hosted Node deployments. Using it on Vercel causes static
+  // pages (/about, /contact, /pathways, /privacy) to return 404.
+  // reactStrictMode for better devex
   reactStrictMode: true,
   turbopack: {
     root: path.join(__dirname, '..'),
@@ -97,11 +99,11 @@ const nextConfig = {
   compress: true,
 
   async rewrites() {
+    // NOTE: /api/* requests are handled by the Next.js catch-all route at
+    // src/app/api/[...path]/route.ts which proxies to the backend.
+    // We do NOT add a rewrite for /api/* here because it would take priority
+    // over local API handlers like /api/analytics/web-vitals and /api/cache/*.
     return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api'}/:path*`,
-      },
       {
         source: '/uploads/:path*',
         destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api').replace(/\/api\/?$/, '')}/uploads/:path*`,
