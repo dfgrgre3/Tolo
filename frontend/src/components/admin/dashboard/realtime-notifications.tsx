@@ -117,7 +117,7 @@ const typeConfig: Record<RealtimeNotification["type"], { icon: typeof Bell; colo
     label: "معلومات",
   },
   success: {
-    icon: CheckCheck,
+    icon: Check,
     color: "text-green-500",
     bg: "bg-green-500/10",
     label: "نجاح",

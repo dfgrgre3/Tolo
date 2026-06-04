@@ -34,7 +34,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
@@ -66,9 +66,9 @@ export function UserMenu() {
     }
   }, [logout, isLoggingOut]);
 
-  const toggleTheme = useCallback(async () => {
+  const toggleTheme = useCallback(async (e?: React.MouseEvent) => {
     const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
+    toggleThemeWithTransition(nextTheme, setTheme, e);
 
     if (user?.id) {
       try {
@@ -215,7 +215,7 @@ export function UserMenu() {
         <DropdownMenuGroup>
           <DropdownMenuItem
             className="cursor-pointer gap-2.5 py-2.5 touch-manipulation"
-            onClick={toggleTheme}>
+            onClick={(e) => toggleTheme(e)}>
             
             {theme === "dark" ?
             <Sun className="h-4 w-4 text-primary" /> :

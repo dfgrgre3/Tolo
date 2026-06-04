@@ -168,7 +168,8 @@ export function useGlobalSettings() {
   // عند التحميل الأول: تطبيق الإعدادات المحلية فوراً
   useEffect(() => {
     applyFromLocalStorage();
-  }, [applyFromLocalStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // عند تسجيل الدخول: تحميل الإعدادات من الـ server
   useEffect(() => {

@@ -260,3 +260,58 @@ export function trimTrailingSlashes(str: string): string {
   }
   return cleaned;
 }
+
+/**
+ * Executes a theme change with a premium View Transition ripple effect
+ */
+export function toggleThemeWithTransition(
+  theme: string,
+  setTheme: (theme: string) => void,
+  event?: React.MouseEvent | MouseEvent | any
+) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('theme', theme);
+  }
+
+  // If the browser doesn't support View Transitions or the user prefers reduced motion, switch immediately
+  if (
+    typeof window === 'undefined' ||
+    !(document as any).startViewTransition ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    setTheme(theme);
+    return;
+  }
+
+  // Find click coordinates or default to center of the viewport
+  const x = event ? event.clientX : window.innerWidth / 2;
+  const y = event ? event.clientY : window.innerHeight / 2;
+  
+  // Calculate distance to the furthest corner
+  const endRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y)
+  );
+
+  const transition = (document as any).startViewTransition(() => {
+    setTheme(theme);
+  });
+
+  transition.ready.then(() => {
+    const clipPath = [
+      `circle(0px at ${x}px ${y}px)`,
+      `circle(${endRadius}px at ${x}px ${y}px)`,
+    ];
+    
+    document.documentElement.animate(
+      {
+        clipPath: clipPath,
+      },
+      {
+        duration: 400,
+        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      }
+    );
+  });
+}

@@ -29,22 +29,43 @@ export function EfficiencyProvider({ children }: { children: React.ReactNode }) 
 
       // 2. Check hardware-based automatic detection
       let shouldEnable = false;
-      
-      const nav = navigator as Navigator & { deviceMemory?: number };
+
+      const nav = navigator as Navigator & {
+        deviceMemory?: number;
+        connection?: { effectiveType?: string; saveData?: boolean };
+        mozConnection?: { effectiveType?: string; saveData?: boolean };
+        webkitConnection?: { effectiveType?: string; saveData?: boolean };
+      };
+
+      // Low device memory (less than 4GB)
       if (nav.deviceMemory !== undefined && nav.deviceMemory < 4) {
         shouldEnable = true;
       }
-      
+
       // Low CPU cores (less than 4)
       if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
         shouldEnable = true;
       }
 
-      // Mobile devices are often weaker, but we don't want to force it on high-end phones
-      // though user said "weak devices", so we err on the side of caution.
+      // Slow network connection (2g / slow-2g)
+      const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
+      if (connection) {
+        if (connection.saveData) {
+          // User explicitly requested data saving
+          shouldEnable = true;
+        }
+        const slowConnections = ['slow-2g', '2g'];
+        if (connection.effectiveType && slowConnections.includes(connection.effectiveType)) {
+          shouldEnable = true;
+        }
+      }
+
+      // Mobile devices with weak hardware
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      // Save detection state
+      if (isMobile && navigator.hardwareConcurrency && navigator.hardwareConcurrency < 6) {
+        shouldEnable = true;
+      }
+
       if (shouldEnable) {
         setIsEfficiencyMode(true);
         setIsAutoDetected(true);

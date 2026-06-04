@@ -20,6 +20,7 @@ import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./UserMenu";
+import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
 
 const CommandPalette = dynamic(
   () => import("./CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
@@ -75,6 +76,7 @@ const HEADER_PREFERENCES = {
 export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isEfficiencyMode = useEfficiencyMode();
   const isMounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const shouldReduceMotion = useSyncExternalStore(
     (callback) => {
@@ -146,7 +148,7 @@ export default function Header() {
 
   return (
     <>
-      {HEADER_PREFERENCES.showProgress && <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />}
+      {HEADER_PREFERENCES.showProgress && !isEfficiencyMode && <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />}
 
       <header ref={headerRef} className={computedHeaderClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
         <div className="container mx-auto px-2 sm:px-4">
@@ -162,7 +164,7 @@ export default function Header() {
             />
 
             <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
-              {HEADER_PREFERENCES.showProgress && isShrunk && (
+              {HEADER_PREFERENCES.showProgress && isShrunk && !isEfficiencyMode && (
                 <AnimatePresence>
                   <m.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="hidden md:flex">
                     <ProgressIndicator />
@@ -170,7 +172,7 @@ export default function Header() {
                 </AnimatePresence>
               )}
 
-              {HEADER_PREFERENCES.showSuggestions && (
+              {HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode && (
                 <div className="hidden lg:block">
                   <SmartNavigationSuggestions />
                 </div>
@@ -178,19 +180,23 @@ export default function Header() {
 
               <MemoizedHeaderSearch />
 
-              <div className="hidden md:block">
-                <QuickActions />
-              </div>
+              {!isEfficiencyMode && (
+                <div className="hidden md:block">
+                  <QuickActions />
+                </div>
+              )}
 
-              {HEADER_PREFERENCES.showActivity && (
+              {HEADER_PREFERENCES.showActivity && !isEfficiencyMode && (
                 <div className="hidden lg:block">
                   <ActivityWidget />
                 </div>
               )}
 
-              <div className="hidden md:block">
-                <ContextualHelp />
-              </div>
+              {!isEfficiencyMode && (
+                <div className="hidden md:block">
+                  <ContextualHelp />
+                </div>
+              )}
 
               {mounted && (
                 <div className="hidden md:flex">
@@ -238,11 +244,11 @@ export default function Header() {
               >
                 <AnimatePresence>
                   {isMobileMenuOpen ? (
-                    <m.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                    <m.div key="close" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
                       <X className="h-5 w-5" aria-hidden="true" />
                     </m.div>
                   ) : (
-                    <m.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                    <m.div key="menu" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
                       <Menu className="h-5 w-5" aria-hidden="true" />
                     </m.div>
                   )}

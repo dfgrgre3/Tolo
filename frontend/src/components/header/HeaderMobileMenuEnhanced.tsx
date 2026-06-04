@@ -9,10 +9,10 @@ import { ChevronDown, Search, X, Moon, Sun, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
+import { mainNavItemsWithMegaMenu } from "@/components/mega-menu/navData";
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras, type MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink, HeaderMenuTrigger } from "@/components/navigation";
-import { cn } from "@/lib/utils";
+import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut } from "lucide-react";
@@ -86,9 +86,9 @@ export function HeaderMobileMenuEnhanced({
     });
   }, []);
 
-  const toggleTheme = useCallback(async () => {
+  const toggleTheme = useCallback(async (e?: React.MouseEvent) => {
     const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
+    toggleThemeWithTransition(nextTheme, setTheme, e);
 
     if (user?.id) {
       try {
@@ -131,7 +131,7 @@ export function HeaderMobileMenuEnhanced({
     const query = searchQuery.trim().toLowerCase();
     if (!query) return [];
 
-    return buildMobileSearchResultsWithExtras(allNavItems, [{ label: "المزيد", categories: moreMegaMenu }])
+    return buildMobileSearchResultsWithExtras(allNavItems)
       .filter((entry) => {
         return (
           entry.label.toLowerCase().includes(query) ||
@@ -358,56 +358,13 @@ export function HeaderMobileMenuEnhanced({
                         </m.div>
                       );
                     })}
-
-                    <m.div variants={staggerItem}>
-                      <div className="space-y-1">
-                        <HeaderMenuTrigger
-                          label="المزيد"
-                          isOpen={expandedMenus.has("more")}
-                          onClick={() => toggleMegaMenu("more")}
-                          className={cn(
-                            "w-full justify-between gap-2.5 p-3 rounded-xl touch-manipulation",
-                            expandedMenus.has("more") ? "bg-muted/80 text-foreground font-semibold" : "hover:bg-muted font-medium text-foreground/80"
-                          )}
-                        />
-
-                        <AnimatePresence>
-                          {expandedMenus.has("more") && (
-                            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }} className="overflow-hidden">
-                              <div className="ms-3 ps-3 border-s-2 border-border/50 space-y-1 py-1 my-1">
-                                {moreMegaMenu.map((category, catIndex) => (
-                                  <div key={catIndex} className="space-y-1">
-                                    {catIndex > 0 && <div className="h-px bg-border/40 my-2 w-3/4 mx-auto" />}
-                                    {category.items.map((subItem) => {
-                                      const subActive = mounted && isActiveRoute(subItem.href);
-                                      return (
-                                        <HeaderNavLink
-                                          key={subItem.href}
-                                          href={subItem.href}
-                                          label={subItem.label}
-                                          icon={subItem.icon}
-                                          badge={subItem.badge}
-                                          active={subActive}
-                                          variant="search"
-                                          onClick={closeMobileMenu}
-                                        />
-                                      );
-                                    })}
-                                  </div>
-                                ))}
-                              </div>
-                            </m.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </m.div>
                   </>
                 )}
               </m.div>
             </div>
 
             <div className="p-4 border-t border-border/40 space-y-3 bg-muted/20 backdrop-blur-sm mt-auto">
-              <Button variant="outline" onClick={toggleTheme} className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm">
+              <Button variant="outline" onClick={(e) => toggleTheme(e)} className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm">
                 <span className="text-sm font-medium">المظهر</span>
                 {theme === "dark" ? (
                   <div className="flex items-center gap-1.5 text-primary">

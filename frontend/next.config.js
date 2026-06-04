@@ -16,8 +16,9 @@ const nextConfig = {
   },
 
   compiler: {
+    // In production: strip ALL console.* except error and warn
     removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn', 'info', 'debug'],
+      exclude: ['error', 'warn'],
     } : false,
   },
 
@@ -55,6 +56,10 @@ const nextConfig = {
       'axios',
       'lucide-react',
       'framer-motion',
+      '@vercel/analytics',
+      '@vercel/speed-insights',
+      'chart.js',
+      'react-chartjs-2',
     ],
     proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
@@ -159,9 +164,10 @@ const nextConfig = {
     }
 
     config.performance = {
-      hints: false,
-      maxEntrypointSize: 300000,
-      maxAssetSize: 300000,
+      hints: 'warning',
+      // Tighter limits encourage smaller bundles — better for mobile/slow devices
+      maxEntrypointSize: 200000,
+      maxAssetSize: 200000,
     };
 
     if (!dev) {
@@ -219,18 +225,18 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://*.accounts.dev https://clerk.com https://*.clerk.com",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' https: data: blob: https://img.clerk.com https://clerk.com https://*.clerk.com",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "connect-src 'self' https://*.tolo.app https://*.vercel.app wss: ws: http://127.0.0.1:* https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com",
-              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.clerk.accounts.dev https://clerk.com",
+              "connect-src 'self' https://*.tolo.app https://*.vercel.app wss: ws: http://127.0.0.1:* https://*.accounts.dev https://clerk.com https://*.clerk.com",
+              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.accounts.dev https://clerk.com",
               "frame-ancestors 'none'",
               "media-src 'self' https: blob:",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self' https://*.clerk.accounts.dev",
+              "form-action 'self' https://*.accounts.dev",
               "upgrade-insecure-requests",
             ].join('; '),
           },

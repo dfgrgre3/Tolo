@@ -116,9 +116,9 @@ const logger = new ProxyLogger();
  * Check if path should be skipped from proxying
  */
 function shouldSkipProxy(pathname: string): boolean {
-  // Never skip proxy for admin routes (including their assets)
+  // Skip proxy for admin routes so Next.js renders the local pages
   if (pathname.startsWith('/admin/') || pathname === '/admin') {
-    return false;
+    return true;
   }
 
   // Skip local API endpoints so they are handled by Next.js local route handlers
@@ -400,10 +400,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // Admin routes via proxy
-  if (pathname.startsWith('/admin/') || pathname === '/admin') {
-    return handleApiProxy(req);
-  }
+
 
   // 4. Handle health check
   if (pathname === '/health' || pathname === '/healthz') {

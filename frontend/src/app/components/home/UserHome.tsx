@@ -8,6 +8,7 @@ import { PerformanceMetric } from './types';
 import { rpgCommonStyles } from './constants';
 import dynamic from 'next/dynamic';
 import { Sparkles, Crown } from 'lucide-react';
+import { useEfficiencyMode } from '@/hooks/use-efficiency-mode';
 
 // --- Preload skeleton for dynamic imports ---
 
@@ -92,6 +93,7 @@ const itemVariants: any = {
 
 export function UserHome({ user, summary, performanceMetrics, metricsLoading }: UserHomeProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const isEfficiencyMode = useEfficiencyMode();
 
   useEffect(() => {
     setIsMounted(true);
@@ -120,21 +122,25 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
         {/* Subtle Grid Mesh */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]" />
 
-        {/* Animated Floating Orbs using framer-motion */}
-        <m.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0], y: [0, 30, 0] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen" />
-        
-        <m.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -40, 0], y: [0, -50, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen" />
-        
-        <m.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3], x: [0, 30, 0], y: [0, -30, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen" />
+        {/* Animated Floating Orbs — disabled in efficiency mode for weak devices */}
+        {!isEfficiencyMode && (
+          <>
+            <m.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0], y: [0, 30, 0] }}
+              transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen" />
+
+            <m.div
+              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -40, 0], y: [0, -50, 0] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen" />
+
+            <m.div
+              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3], x: [0, 30, 0], y: [0, -30, 0] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+              className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen" />
+          </>
+        )}
         
       </div>
 

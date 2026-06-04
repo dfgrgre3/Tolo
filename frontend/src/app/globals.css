@@ -198,6 +198,31 @@
   }
 }
 
+/* Save data / metered connection — strip heavy visuals automatically */
+@media (prefers-reduced-data: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .mesh-gradient,
+  .ambient-bg {
+    background-image: none !important;
+    background-color: hsl(var(--background)) !important;
+  }
+
+  .rpg-glass,
+  .rpg-glass-light,
+  .rpg-glass-premium {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+
 
 /* Remove all keyframe animations */
 @keyframes blob {
@@ -394,4 +419,27 @@
   left: auto;
   right: 50%;
   transform: translate(50%, -50%);
+}
+
+/* Custom View Transitions for Theme Toggle */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 1;
 }

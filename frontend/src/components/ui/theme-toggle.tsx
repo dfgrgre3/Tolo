@@ -8,18 +8,19 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client"
 import { logger } from "@/lib/logger"
+import { toggleThemeWithTransition } from "@/lib/utils"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
   const { setTheme, theme } = useTheme()
   const { user } = useAuth()
  
-  const handleToggle = async () => {
+  const handleToggle = async (e?: React.MouseEvent) => {
     const nextTheme = theme === "light" ? "dark" : "light"
     
     if (onToggle) {
       onToggle()
     } else {
-      setTheme(nextTheme)
+      toggleThemeWithTransition(nextTheme, setTheme, e)
       
       if (user?.id) {
         try {
@@ -39,7 +40,7 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
     <Button
       variant="ghost"
       size="icon"
-      onClick={handleToggle}
+      onClick={(e) => handleToggle(e)}
     >
       <Sun className={`h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "-rotate-90 scale-0" : "rotate-0 scale-100"}`} />
       <Moon className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />

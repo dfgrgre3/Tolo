@@ -22,6 +22,7 @@ import {
   HIGHLIGHT_CARDS,
   FEATURES_LIST
 } from "./constants";
+import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl ring-1 ring-white/5",
@@ -47,12 +48,17 @@ function useReducedMotion() {
 }
 
 export default function LandingPage() {
-  const shouldReduceMotion = useReducedMotion();
+  const isEfficiencyMode = useEfficiencyMode();
+  const shouldReduceMotion = useReducedMotion() || isEfficiencyMode;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const activeFadeUp = shouldReduceMotion ? {} : scrollVariants.fadeUp;
+  const activeScaleUp = shouldReduceMotion ? {} : scrollVariants.scaleUp;
+
 
   return (
     <LazyMotion features={domAnimation} strict>
@@ -139,9 +145,9 @@ export default function LandingPage() {
             {HIGHLIGHT_CARDS.map((card, i) =>
           <m.div
             key={i}
-            {...scrollVariants.fadeUp}
+            {...activeFadeUp}
             viewport={{ once: true, margin: "-100px" }}
-            transition={{ delay: i * 0.1 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { delay: i * 0.1 }}
             className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-10 group hover:border-primary/50 transition-all cursor-default">
             
                  <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-10 transition-transform group-hover:scale-110 group-hover:rotate-6">
@@ -248,9 +254,9 @@ export default function LandingPage() {
                {FEATURES_LIST.map((feat, i) =>
             <m.div
               key={i}
-              {...scrollVariants.scaleUp}
+              {...activeScaleUp}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: feat.delay || 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : { delay: feat.delay || 0 }}
               className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-8 text-center group flex flex-col items-center gap-6 hover:bg-card/60 transition-all">
               
                     <div className={`p-5 rounded-2xl bg-white/5 border border-white/5 ${feat.color} group-hover:scale-110 transition-transform`}>
@@ -267,7 +273,7 @@ export default function LandingPage() {
 
          {/* Final Call to Action - The Coliseum */}
          <m.div
-          {...scrollVariants.fadeUp}
+          {...activeFadeUp}
           viewport={{ once: true }}
           className="relative p-20 rounded-[4rem] bg-gradient-to-br from-primary/10 via-purple-600/5 to-transparent border border-white/10 overflow-hidden text-center group">
           

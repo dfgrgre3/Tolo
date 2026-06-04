@@ -1,4 +1,4 @@
-﻿import {
+import {
   Activity,
   Award,
   BarChart3,
@@ -47,167 +47,111 @@ export interface NavItemWithMegaMenu {
 
 const coursesMegaMenu: MegaMenuCategory[] = [
   {
-    title: "التصنيفات",
+    title: "الدراسة والتعليم",
     items: [
-      { href: "/courses", label: "جميع الدورات", icon: BookOpen, description: "استعرض كل الدورات المتاحة" },
-      { href: "/progress", label: "تقدمي الدراسي", icon: CheckCircle, description: "تابع مستوى تقدمك في الدورات" },
-      { href: "/resources", label: "المصادر التعليمية", icon: Star, description: "اعثر على المواد الدراسية" },
+      { href: "/courses", label: "جميع الدورات", icon: BookOpen, description: "استعرض كل الدورات التعليمية المتاحة" },
+      { href: "/my-courses", label: "دوراتي", icon: BookMarked, description: "الدورات والمسارات التي تتابعها حالياً" },
+      { href: "/teachers", label: "المدرسون", icon: GraduationCap, description: "تواصل مع نخبة من أفضل المدرسين" },
     ],
   },
   {
-    title: "المكتبة",
+    title: "التقييمات والامتحانات",
     items: [
-      { href: "/library", label: "المواد التعليمية", icon: FileText, description: "الملفات والمراجع الدراسية" },
-      { href: "/resources", label: "التحميلات", icon: Download, description: "حمّل الملفات التعليمية بأمان" },
+      { href: "/exams", label: "الامتحانات والتقييم", icon: ClipboardList, description: "الاختبارات الدورية وقياس المستوى المباشر" },
+      { href: "/teacher-exams", label: "اختبارات المدرسين", icon: FileText, description: "بنك أسئلة واختبارات خاصة بمدرسي المنصة" },
     ],
   },
   {
-    title: "النتائج",
+    title: "النتائج والتقدير",
     items: [
-      { href: "/progress", label: "تحليل الأداء", icon: TrendingUp, description: "تقارير مختصرة عن أدائك" },
-      { href: "/achievements", label: "الإنجازات", icon: Award, description: "الجوائز والأوسمة التي حصلت عليها" },
+      { href: "/progress", label: "مستوى التقدم", icon: TrendingUp, description: "متابعة نسبة إنجازك للمناهج التعليمية" },
+      { href: "/achievements", label: "الإنجازات والأوسمة", icon: Award, description: "الأوسمة والنقاط التي حصدتها خلال تعلمك" },
+      { href: "/certificates", label: "الشهادات", icon: Trophy, description: "عرض وتحميل شهادات إتمام الدورات" },
     ],
   },
 ];
 
 const scheduleMegaMenu: MegaMenuCategory[] = [
   {
-    title: "المواعيد",
-    items: [{ href: "/schedule", label: "جدول المحاضرات", icon: Calendar, description: "مواعيد المحاضرات والدروس" }],
-  },
-  {
-    title: "الفعاليات",
+    title: "تنظيم الوقت",
     items: [
-      { href: "/events", label: "الأحداث", icon: Sparkles, description: "فعاليات وأحداث قادمة" },
-      { href: "/exams", label: "الامتحانات", icon: ClipboardList, description: "جدول الاختبارات والنتائج" },
-      { href: "/notifications", label: "التنبيهات", icon: Bell, description: "ابقِ على اطلاع بكل جديد" },
-    ],
-  },
-];
-
-const timeManagementMegaMenu: MegaMenuCategory[] = [
-  {
-    title: "التوقيت",
-    items: [
-      { href: "/time", label: "تنظيم الوقت", icon: Clock, description: "أدوات لإدارة وقتك بفاعلية" },
-      { href: "/time", label: "سجل النشاط", icon: Activity, description: "متابعة نشاطك اليومي" },
+      { href: "/schedule", label: "جدول المحاضرات", icon: Calendar, description: "جدول الحصص المباشرة والدروس الأسبوعية" },
+      { href: "/time", label: "إدارة الوقت", icon: Clock, description: "أدوات لتنظيم ساعات الاستذكار والتركيز" },
     ],
   },
   {
-    title: "المهام",
+    title: "التخطيط والأهداف",
     items: [
-      { href: "/tasks", label: "قائمة المهام", icon: BookMarked, description: "المهام والواجبات اليومية" },
-      { href: "/notifications", label: "الإشعارات الهامة", icon: Bell, description: "تنبيهات المواعيد والمهام" },
-      { href: "/time", label: "المؤقت الدراسي", icon: Clock, description: "أداة تركيز ومتابعة ذكية" },
+      { href: "/tasks", label: "قائمة المهام", icon: BookMarked, description: "متابعة الواجبات والمهام الدراسية اليومية" },
+      { href: "/goals", label: "تحديد الأهداف", icon: Target, description: "وضع أهداف دراسية أسبوعية وشهرية ومتابعتها" },
     ],
   },
 ];
 
 const libraryMegaMenu: MegaMenuCategory[] = [
   {
-    title: "المصادر",
+    title: "المحتوى التعليمي",
     items: [
-      { href: "/library", label: "بنك الأسئلة", icon: FileText, description: "أسئلة وتدريبات شاملة" },
-      { href: "/resources", label: "مركز التحميل", icon: Download, description: "ملخصات ومذكرات" },
+      { href: "/library", label: "المكتبة الرقمية", icon: Library, description: "مستودع الكتب والملخصات والملفات التعليمية" },
+      { href: "/resources", label: "الموارد والتحميلات", icon: FolderOpen, description: "مركز تحميل المستندات والمذكرات الدراسية" },
     ],
   },
   {
-    title: "المساهمة",
-    items: [{ href: "/resources", label: "رفع ملف", icon: Upload, description: "شارك ملفاتك مع الآخرين" }],
+    title: "المحتوى التثقيفي",
+    items: [
+      { href: "/tips", label: "نصائح يومية", icon: Lightbulb, description: "نصائح وتوجيهات عملية للتفوق الدراسي" },
+    ],
   },
 ];
 
 const analyticsMegaMenu: MegaMenuCategory[] = [
   {
-    title: "تحليلات عامة",
+    title: "لوحة التحكم والأداء",
     items: [
-      { href: "/analytics", label: "لوحة البيانات", icon: BarChart3, description: "نظرة شاملة على تقدمك" },
-      { href: "/progress", label: "الرسم البياني للتطور", icon: TrendingUp, description: "تمثيل بصري لمسارك الدراسي" },
-      { href: "/analytics", label: "معدل الحضور", icon: Activity, description: "إحصاءات التواجد والنشاط" },
-    ],
-  },
-  {
-    title: "التقارير",
-    items: [
-      { href: "/analytics", label: "نتائج الاختبارات", icon: FileText, description: "تحليل مفصل لدرجاتك" },
-      { href: "/analytics", label: "تصدير التقارير", icon: Download, description: "صدّر بياناتك بصيغة PDF" },
+      { href: "/analytics", label: "لوحة تحليلات الأداء", icon: BarChart3, description: "تحليلات مفصلة لمستوى دراستك ونقاط قوتك" },
+      { href: "/academy", label: "الأكاديمية", icon: GraduationCap, description: "نظرة عامة على الأداء الأكاديمي العام" },
     ],
   },
 ];
 
 const competitionMegaMenu: MegaMenuCategory[] = [
   {
-    title: "التحديات والترتيب",
+    title: "التنافس والترتيب",
     items: [
-      { href: "/leaderboard", label: "لوحة الترتيب", icon: Trophy, description: "اعرف ترتيبك بين زملائك" },
-      { href: "/achievements", label: "الإنجازات", icon: Award, description: "كل ما حققته في رحلتك" },
-      { href: "/contests/new", label: "إنشاء تحدي جديد", icon: Gamepad2, description: "ابدأ منافسة جديدة مع زملائك" },
+      { href: "/leaderboard", label: "لوحة الصدارة", icon: Trophy, description: "ترتيب الطلاب الأوائل والمنافسين على المنصة" },
+      { href: "/contests/new", label: "تحدي جديد", icon: Gamepad2, description: "إنشاء مسابقة وتحدي دراسي جديد مع زملائك" },
+      { href: "/events", label: "الأحداث والفعاليات", icon: Sparkles, description: "المشاركة في المسابقات والفعاليات الرسمية" },
     ],
   },
   {
-    title: "مجتمع المنافسة",
+    title: "التواصل والمشاركة",
     items: [
-      { href: "/events", label: "الأحداث والمسابقات", icon: Sparkles, description: "فعاليات ومسابقات متاحة" },
-      { href: "/forum", label: "نقاشات الطلاب", icon: MessageSquare, description: "شارك أفكارك واستفساراتك" },
-      { href: "/chat", label: "الدردشة", icon: Users, description: "تواصل مباشر مع زملائك" },
+      { href: "/chat", label: "الدردشة الجماعية", icon: Users, description: "غرف دردشة حية لمناقشة الدروس مع زملائك" },
+      { href: "/forum", label: "منتدى النقاش", icon: MessageSquare, description: "طرح الأسئلة ومشاركة الإجابات مع مجتمع الطلاب" },
+      { href: "/blog", label: "المدونة التعليمية", icon: FileText, description: "مقالات ومشاركات تثقيفية من المعلمين والطلاب" },
+      { href: "/announcements", label: "إعلانات المنصة", icon: Megaphone, description: "آخر الأخبار والتحديثات الرسمية الهامة" },
     ],
   },
 ];
 
 export const moreMegaMenu: MegaMenuCategory[] = [
   {
-    title: "الدراسة والتعليم",
+    title: "الحساب والاشتراك",
     items: [
-      { href: "/academy", label: "الأكاديمية", icon: GraduationCap, description: "مساحة التعلم الرئيسية" },
-      { href: "/my-courses", label: "كورساتي", icon: BookMarked, description: "الدورات التي تتابعها" },
-      { href: "/exams", label: "الامتحانات", icon: ClipboardList, description: "الاختبارات الدورية والشهرية" },
-      { href: "/teacher-exams", label: "اختبارات المدرسين", icon: ClipboardList, description: "بنك أسئلة المدرسين" },
-      { href: "/progress", label: "التقدم الدراسي", icon: TrendingUp, description: "تابع تحسنك أولًا بأول" },
-      { href: "/teachers", label: "المدرسون", icon: GraduationCap, description: "تواصل مع أفضل المدرسين" },
-      { href: "/resources", label: "الموارد", icon: FolderOpen, description: "موارد تعليمية إضافية" },
+      { href: "/subscription", label: "الاشتراكات المتاحة", icon: CreditCard, description: "استعرض باقات الاشتراك وقم بالترقية" },
+      { href: "/billing", label: "إدارة الفواتير", icon: CreditCard, description: "المدفوعات، الفواتير، وطرق الدفع المحفوظة" },
+      { href: "/billing/referrals", label: "برنامج الإحالة", icon: UserPlus, description: "دعوة أصدقائك والحصول على مكافآت ونقاط مجانية" },
     ],
   },
   {
-    title: "التفاعل والمناقشة",
+    title: "الإعدادات والأمان",
     items: [
-      { href: "/forum", label: "المنتدى", icon: MessageSquare, description: "ناقش الدروس مع زملائك" },
-      { href: "/chat", label: "الدردشة", icon: Users, description: "تواصل مباشر مع الطلاب" },
-      { href: "/blog", label: "المدونة", icon: FileText, description: "مقالات ونصائح دراسية" },
-      { href: "/announcements", label: "الإعلانات", icon: Megaphone, description: "أحدث أخبار المنصة" },
-      { href: "/events", label: "المسابقات", icon: Sparkles, description: "سجّل في المسابقات المتاحة" },
-      { href: "/events/new", label: "إضافة فعالية", icon: Upload, description: "أنشئ فعالية أو مسابقة جديدة" },
-    ],
-  },
-  {
-    title: "الإنجازات والمنافسة",
-    items: [
-      { href: "/achievements", label: "الإنجازات", icon: Trophy, description: "كل ما حققته في رحلتك" },
-      { href: "/contests/new", label: "بطولات جديدة", icon: Gamepad2, description: "نافس واربح جوائز قيمة" },
-      { href: "/leaderboard", label: "لوحة الترتيب", icon: Award, description: "ترتيبك بين زملائك" },
-    ],
-  },
-  {
-    title: "الذكاء الاصطناعي",
-    items: [
-      { href: "/ai", label: "المساعد الذكي", icon: Brain, description: "دعم دراسي مدعوم بالذكاء الاصطناعي", badge: "AI" },
-      { href: "/goals", label: "تحديد الأهداف", icon: Target, description: "خطط لمستقبلك بذكاء" },
-      { href: "/tasks", label: "إدارة المهام الذكية", icon: BookMarked, description: "ترتيب المهام حسب الأولوية" },
-      { href: "/tips", label: "نصائح يومية", icon: Lightbulb, description: "جرعة تحفيزية ومعلومات مفيدة" },
-    ],
-  },
-  {
-    title: "الحساب والأمان",
-    items: [
-      { href: "/subscription", label: "الاشتراكات والفواتير", icon: CreditCard, description: "إدارة اشتراكك وعرض الفواتير" },
-      { href: "/billing", label: "الفواتير", icon: CreditCard, description: "تابع المدفوعات وخطط الاشتراك" },
-      { href: "/billing/referrals", label: "الإحالات", icon: UserPlus, description: "شارك رابطك وتابع الدعوات" },
-      { href: "/settings", label: "الإعدادات العامة", icon: Settings, description: "خصص تجربتك في المنصة" },
-      { href: "/settings/privacy", label: "الخصوصية", icon: Shield, description: "تحكم في بياناتك وظهورك" },
-      { href: "/settings/devices", label: "الأجهزة", icon: Activity, description: "إدارة الأجهزة المتصلة بحسابك" },
-      { href: "/settings/notifications", label: "إعدادات الإشعارات", icon: Bell, description: "خصص تنبيهات المنصة" },
-      { href: "/notifications", label: "الإشعارات", icon: Bell, description: "تحكم في طريقة تلقيك للإشعارات" },
-      { href: "/settings/security", label: "الأمان", icon: Shield, description: "حماية الحساب وكلمة المرور" },
-      { href: "/settings/security/logs", label: "سجل الدخول", icon: HistoryIcon, description: "مراجعة نشاط تسجيل الدخول" },
+      { href: "/settings", label: "الإعدادات العامة", icon: Settings, description: "تخصيص الملف الشخصي والمظهر والتفضيلات" },
+      { href: "/settings/privacy", label: "الخصوصية والظهور", icon: Shield, description: "التحكم في بياناتك وظهورك لزملائك" },
+      { href: "/settings/security", label: "الأمان والوصول", icon: Shield, description: "تغيير كلمة المرور وتفعيل حماية الحساب" },
+      { href: "/settings/security/logs", label: "سجل النشاط", icon: HistoryIcon, description: "عرض تفاصيل وسجلات الدخول لحسابك" },
+      { href: "/settings/devices", label: "الأجهزة المتصلة", icon: Activity, description: "إدارة الأجهزة النشطة التي تستخدم حسابك" },
+      { href: "/settings/notifications", label: "تفضيلات الإشعارات", icon: Bell, description: "تحديد كيفية ووقت تلقي التنبيهات" },
     ],
   },
 ];
@@ -216,10 +160,9 @@ export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/", label: "الرئيسية", icon: Home, description: "العودة إلى الصفحة الرئيسية" },
   { href: "/courses", label: "الدورات", icon: BookOpen, description: "استكشف الدورات التعليمية", badge: "جديد", megaMenu: coursesMegaMenu },
   { href: "/schedule", label: "الجدول", icon: Calendar, description: "متابعة المواعيد والمهام", megaMenu: scheduleMegaMenu },
-  { href: "/time", label: "إدارة الوقت", icon: Clock, description: "تنظيم وقتك بذكاء", megaMenu: timeManagementMegaMenu },
   { href: "/library", label: "المكتبة", icon: Library, description: "مصادر تعليمية متنوعة", megaMenu: libraryMegaMenu },
   { href: "/analytics", label: "التحليلات", icon: BarChart3, description: "متابعة دقيقة لمستواك", megaMenu: analyticsMegaMenu },
   { href: "/leaderboard", label: "التحديات", icon: Gamepad2, description: "لوحة الترتيب والمنافسات", megaMenu: competitionMegaMenu },
-  { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI", megaMenu: moreMegaMenu },
-  { href: "/more", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
+  { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI" },
+  { href: "/settings", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
 ];

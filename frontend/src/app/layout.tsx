@@ -9,6 +9,8 @@ import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { ClerkProvider } from '@clerk/nextjs';
 import { arSA } from '@clerk/localizations';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -145,6 +147,8 @@ export default async function RootLayout({
               {React.Children.toArray(children)}
             </GlobalProviders>
           </ThemeProvider>
+          <Analytics />
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>

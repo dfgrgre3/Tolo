@@ -11,6 +11,7 @@ import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { m, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
+import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
 
 // Dynamic imports to reduce initial bundle size
 const LandingPage = dynamic(() => import("@/app/components/home/LandingPage"), {
@@ -39,6 +40,7 @@ interface HomeClientProps {
 export function HomeClient({ summary }: HomeClientProps) {
   const { user: authUser, isLoading, isAuthenticated } = useAuth();
   const _router = useRouter();
+  const isEfficiencyMode = useEfficiencyMode();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
@@ -48,7 +50,7 @@ export function HomeClient({ summary }: HomeClientProps) {
       return;
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || isEfficiencyMode) {
       setPerformanceMetrics([]);
       setMetricsLoading(false);
       return;
@@ -108,7 +110,7 @@ export function HomeClient({ summary }: HomeClientProps) {
         window.cancelIdleCallback?.(deferTime as number);
       }
     };
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, isEfficiencyMode]);
 
   if (isLoading) {
     return <HomeLoader />;
