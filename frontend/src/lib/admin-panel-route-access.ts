@@ -52,3 +52,60 @@ export function getRequiredPermissionForAdminPath(pathname: string): Permission 
   }
   return PERMISSIONS.ADMIN_BYPASS;
 }
+
+const ADMIN_API_RULES: {
+  pattern: RegExp;
+  view: Permission;
+  manage?: Permission;
+}[] = [
+  { pattern: /^\/api\/admin\/users\/bulk-send-message/, view: PERMISSIONS.USERS_MANAGE },
+  { pattern: /^\/api\/admin\/users/, view: PERMISSIONS.USERS_VIEW, manage: PERMISSIONS.USERS_MANAGE },
+  { pattern: /^\/api\/admin\/teachers/, view: PERMISSIONS.TEACHERS_VIEW, manage: PERMISSIONS.TEACHERS_MANAGE },
+  { pattern: /^\/api\/admin\/live/, view: PERMISSIONS.LIVE_MONITOR_VIEW },
+  { pattern: /^\/api\/admin\/analytics/, view: PERMISSIONS.ANALYTICS_VIEW },
+  { pattern: /^\/api\/admin\/reports/, view: PERMISSIONS.REPORTS_VIEW },
+  { pattern: /^\/api\/admin\/course-categories/, view: PERMISSIONS.SUBJECTS_VIEW, manage: PERMISSIONS.SUBJECTS_MANAGE },
+  { pattern: /^\/api\/admin\/courses/, view: PERMISSIONS.SUBJECTS_VIEW, manage: PERMISSIONS.SUBJECTS_MANAGE },
+  { pattern: /^\/api\/admin\/subjects/, view: PERMISSIONS.SUBJECTS_VIEW, manage: PERMISSIONS.SUBJECTS_MANAGE },
+  { pattern: /^\/api\/admin\/books/, view: PERMISSIONS.BOOKS_VIEW, manage: PERMISSIONS.BOOKS_MANAGE },
+  { pattern: /^\/api\/admin\/exams/, view: PERMISSIONS.EXAMS_VIEW, manage: PERMISSIONS.EXAMS_MANAGE },
+  { pattern: /^\/api\/admin\/resources/, view: PERMISSIONS.RESOURCES_VIEW, manage: PERMISSIONS.RESOURCES_MANAGE },
+  { pattern: /^\/api\/admin\/ai/, view: PERMISSIONS.AI_MANAGE },
+  { pattern: /^\/api\/admin\/challenges/, view: PERMISSIONS.CHALLENGES_VIEW, manage: PERMISSIONS.CHALLENGES_MANAGE },
+  { pattern: /^\/api\/admin\/achievements/, view: PERMISSIONS.ACHIEVEMENTS_VIEW, manage: PERMISSIONS.ACHIEVEMENTS_MANAGE },
+  { pattern: /^\/api\/admin\/rewards/, view: PERMISSIONS.REWARDS_VIEW, manage: PERMISSIONS.REWARDS_MANAGE },
+  { pattern: /^\/api\/admin\/seasons/, view: PERMISSIONS.SEASONS_VIEW, manage: PERMISSIONS.SEASONS_MANAGE },
+  { pattern: /^\/api\/admin\/marketing/, view: PERMISSIONS.MARKETING_VIEW, manage: PERMISSIONS.MARKETING_MANAGE },
+  { pattern: /^\/api\/admin\/ab-testing/, view: PERMISSIONS.AB_TESTING_VIEW },
+  { pattern: /^\/api\/admin\/coupons/, view: PERMISSIONS.MARKETING_VIEW, manage: PERMISSIONS.MARKETING_MANAGE },
+  { pattern: /^\/api\/admin\/notifications/, view: PERMISSIONS.ANNOUNCEMENTS_MANAGE },
+  { pattern: /^\/api\/admin\/announcements/, view: PERMISSIONS.ANNOUNCEMENTS_VIEW, manage: PERMISSIONS.ANNOUNCEMENTS_MANAGE },
+  { pattern: /^\/api\/admin\/forum/, view: PERMISSIONS.FORUM_VIEW, manage: PERMISSIONS.FORUM_MANAGE },
+  { pattern: /^\/api\/admin\/blog/, view: PERMISSIONS.BLOG_VIEW, manage: PERMISSIONS.BLOG_MANAGE },
+  { pattern: /^\/api\/admin\/events/, view: PERMISSIONS.EVENTS_VIEW, manage: PERMISSIONS.EVENTS_MANAGE },
+  { pattern: /^\/api\/admin\/contests/, view: PERMISSIONS.CONTESTS_VIEW, manage: PERMISSIONS.CONTESTS_MANAGE },
+  { pattern: /^\/api\/admin\/(?:infrastructure|backups|settings|security)/, view: PERMISSIONS.SETTINGS_VIEW },
+  { pattern: /^\/api\/admin\/tickets/, view: PERMISSIONS.USERS_MANAGE },
+  { pattern: /^\/api\/admin\/audit-logs/, view: PERMISSIONS.AUDIT_LOGS_VIEW },
+  { pattern: /^\/api\/admin\/automations/, view: PERMISSIONS.ADMIN_BYPASS },
+  { pattern: /^\/api\/admin\/dashboard/, view: PERMISSIONS.DASHBOARD_VIEW },
+];
+
+function isWriteMethod(method: string): boolean {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
+}
+
+export function getRequiredPermissionForAdminApiRequest(
+  pathname: string,
+  method: string,
+): Permission | null {
+  if (!pathname.startsWith("/api/admin")) return null;
+
+  for (const rule of ADMIN_API_RULES) {
+    if (rule.pattern.test(pathname)) {
+      return isWriteMethod(method) ? rule.manage || rule.view : rule.view;
+    }
+  }
+
+  return PERMISSIONS.ADMIN_BYPASS;
+}

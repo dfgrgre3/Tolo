@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
@@ -175,7 +175,10 @@ export function MegaMenuHeader({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSearchQuery(search)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearchQuery(search);
+                  }}
                   className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-border/50"
                 >
                   <Hash className="h-3 w-3" />

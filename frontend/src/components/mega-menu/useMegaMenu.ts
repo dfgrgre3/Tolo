@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
 import type { User } from "@/types/user";
@@ -13,6 +14,7 @@ interface UseMegaMenuProps {
 }
 
 export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { unreadCount: notificationCount } = useNotificationsContext();
@@ -133,10 +135,11 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
       const currentItem = currentCategory?.items[focusedItemIndex];
       if (currentItem) {
         saveRecentSearch(searchQuery);
-        window.location.href = currentItem.href;
+        onClose();
+        router.push(currentItem.href);
       }
     }
-  }, [focusedCategoryIndex, focusedItemIndex, filteredCategories, searchQuery, saveRecentSearch]);
+  }, [focusedCategoryIndex, focusedItemIndex, filteredCategories, searchQuery, saveRecentSearch, onClose, router]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {

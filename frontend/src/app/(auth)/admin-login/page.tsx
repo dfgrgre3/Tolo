@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,8 +15,8 @@ import {
 } from '@/services/auth/navigation';
 
 const loginSchema = z.object({
-  email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),
-  password: z.string().min(1, 'كلمة المرور مطلوبة'),
+  email: z.string().trim().email('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط¨ط±ظٹط¯ ط¥ظ„ظƒطھط±ظˆظ†ظٹ طµط­ظٹط­'),
+  password: z.string().min(1, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط·ظ„ظˆط¨ط©'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
 function AdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
+  const { adminLogin, isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -71,7 +71,7 @@ function AdminLoginContent() {
     setErrorStatus(null);
 
     try {
-      const result = await login(
+      const result = await adminLogin(
         data.email.trim().toLowerCase(),
         data.password,
         true // Admin sessions should probably be remembered or have specific policy
@@ -86,7 +86,7 @@ function AdminLoginContent() {
         // Success handled by useEffect
         return;
       }
-      setErrorStatus(result.error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+      setErrorStatus(result.error || 'ظپط´ظ„ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +104,7 @@ function AdminLoginContent() {
         // Success handled by useEffect
         return;
       }
-      setErrorStatus(result.error || 'رمز التحقق غير صحيح');
+      setErrorStatus(result.error || 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­');
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +119,7 @@ function AdminLoginContent() {
             <ShieldAlert className="h-8 w-8 text-red-500 animate-pulse" />
           </div>
         </div>
-        <p className="animate-pulse text-sm font-medium text-red-400">جاري التحقق من الصلاحيات الأمنية...</p>
+        <p className="animate-pulse text-sm font-medium text-red-400">ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„طµظ„ط§ط­ظٹط§طھ ط§ظ„ط£ظ…ظ†ظٹط©...</p>
       </div>
     );
   }
@@ -143,10 +143,10 @@ function AdminLoginContent() {
         <div className="mb-10 text-right relative z-10">
           <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 mb-4 border border-red-500/20">
             <ShieldCheck className="h-4 w-4 text-red-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">منطقة إدارية مقيدة</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">ظ…ظ†ط·ظ‚ط© ط¥ط¯ط§ط±ظٹط© ظ…ظ‚ظٹط¯ط©</span>
           </div>
-          <h2 className="text-4xl font-black tracking-tight text-white mb-3">دخول المدير</h2>
-          <p className="text-gray-400 text-lg leading-relaxed">يرجى إدخال بيانات الاعتماد الخاصة بالنظام للوصول إلى لوحة التحكم</p>
+          <h2 className="text-4xl font-black tracking-tight text-white mb-3">ط¯ط®ظˆظ„ ط§ظ„ظ…ط¯ظٹط±</h2>
+          <p className="text-gray-400 text-lg leading-relaxed">ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط§ظ„ط®ط§طµط© ط¨ط§ظ„ظ†ط¸ط§ظ… ظ„ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -168,7 +168,7 @@ function AdminLoginContent() {
           {!requires2FA ? (
             <>
               <div className="space-y-3">
-                <span className="mr-2 text-sm font-bold text-gray-400 uppercase tracking-wider">بريد المسؤول</span>
+                <span className="mr-2 text-sm font-bold text-gray-400 uppercase tracking-wider">ط¨ط±ظٹط¯ ط§ظ„ظ…ط³ط¤ظˆظ„</span>
                 <div className="group relative">
                   <input
                     {...register('email')}
@@ -186,14 +186,14 @@ function AdminLoginContent() {
 
               <div className="space-y-3">
                 <div className="mr-2 flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">كلمة المرور</span>
+                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</span>
                 </div>
                 <div className="group relative">
                   <input
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-4 pr-12 pl-14 text-white outline-none transition-all placeholder:text-gray-600 focus:border-red-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-red-500/10 disabled:opacity-50"
-                    placeholder="⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢"
+                    placeholder="â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢"
                     dir="rtl"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 transition-colors group-focus-within:text-red-500">
@@ -221,7 +221,7 @@ function AdminLoginContent() {
                     <Loader2 className="mx-auto h-7 w-7 animate-spin" />
                     ) : (
                     <div className="flex items-center justify-center gap-3">
-                        <span className="text-lg">تأكيد الهوية والدخول</span>
+                        <span className="text-lg">طھط£ظƒظٹط¯ ط§ظ„ظ‡ظˆظٹط© ظˆط§ظ„ط¯ط®ظˆظ„</span>
                         <ChevronRight className="h-6 w-6 rotate-180 transition-transform group-hover:-translate-x-1" />
                     </div>
                     )}
@@ -231,7 +231,7 @@ function AdminLoginContent() {
               <div className="mt-8 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
                  <Link href="/login" className="text-sm font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-2 group">
                     <ArrowRight className="h-4 w-4 rotate-180 group-hover:translate-x-1 transition-transform" />
-                    العودة لصفحة الطلاب
+                    ط§ظ„ط¹ظˆط¯ط© ظ„طµظپط­ط© ط§ظ„ط·ظ„ط§ط¨
                  </Link>
                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">Security Level: Enterprise</span>
               </div>
@@ -247,8 +247,8 @@ function AdminLoginContent() {
                 <div className="inline-flex items-center justify-center p-5 rounded-3xl bg-red-500/10 mb-6 border border-red-500/20">
                   <ShieldAlert className="h-10 w-10 text-red-500" />
                 </div>
-                <h3 className="text-2xl font-black text-white mb-2">تأكيد أمني إضافي</h3>
-                <p className="text-gray-400 font-medium">أدخل رمز الأمان من تطبيق المصادقة (2FA)</p>
+                <h3 className="text-2xl font-black text-white mb-2">طھط£ظƒظٹط¯ ط£ظ…ظ†ظٹ ط¥ط¶ط§ظپظٹ</h3>
+                <p className="text-gray-400 font-medium">ط£ط¯ط®ظ„ ط±ظ…ط² ط§ظ„ط£ظ…ط§ظ† ظ…ظ† طھط·ط¨ظٹظ‚ ط§ظ„ظ…طµط§ط¯ظ‚ط© (2FA)</p>
               </div>
 
               <div className="space-y-4">
@@ -272,7 +272,7 @@ function AdminLoginContent() {
                   <Loader2 className="mx-auto h-7 w-7 animate-spin" />
                 ) : (
                   <div className="flex items-center justify-center gap-3">
-                    <span className="text-lg">تحقق وفتح الصلاحيات</span>
+                    <span className="text-lg">طھط­ظ‚ظ‚ ظˆظپطھط­ ط§ظ„طµظ„ط§ط­ظٹط§طھ</span>
                     <ShieldCheck className="h-6 w-6" />
                   </div>
                 )}
@@ -283,7 +283,7 @@ function AdminLoginContent() {
                 onClick={() => setRequires2FA(false)}
                 className="w-full text-sm font-bold text-gray-500 hover:text-white transition-colors"
               >
-                إلغاء والمحاولة مرة أخرى
+                ط¥ظ„ط؛ط§ط، ظˆط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰
               </button>
             </m.form>
           )}

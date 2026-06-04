@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { requestCache } from '@/lib/api/request-cache';
 import { apiRoutes } from '@/lib/api/routes';
 import { authApiService } from '@/services/auth/auth-api-service';
+import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
 
 const isTimeoutError = (error: unknown) => {
   return error === 'timeout' ||
@@ -41,6 +42,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
+  adminLogin: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   register: (
   data: {
     email: string;
@@ -323,6 +325,58 @@ export function AuthProvider({
 
     return _userFetchPromise.current;
   }, [handle401Retry, setUser]);
+
+  const ensureStaffRole = useCallback(async (errorLabel: string) => {
+    if (!isStaffAdminPanelRole(useAuthStore.getState().user?.role)) {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
+      setUser(null);
+      clearUserId();
+      return { success: false as const, error: errorLabel };
+    }
+    return { success: true as const };
+  }, [setUser]);
+
+  const adminLogin = useCallback(async (
+    email: string,
+    password: string,
+    rememberMe: boolean = false
+  ): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
+    try {
+      const response = await fetch(apiRoutes.auth.adminLogin, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, rememberMe }),
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 403) {
+          return { success: false, error: data.error || 'You do not have permission to access the admin panel.' };
+        }
+        return { success: false, error: data.error || 'Admin login failed' };
+      }
+      if (data.requires2FA) {
+        return { success: true, requires2FA: true, userId: data.user?.id };
+      }
+      requestCache.clear();
+      await delay(50);
+      let hydrated = await refreshUser({ clearOnFailure: false });
+      if (!hydrated) { await delay(150); hydrated = await refreshUser({ clearOnFailure: false }); }
+      if (!hydrated) { await delay(300); hydrated = await refreshUser({ clearOnFailure: false }); }
+      if (!hydrated) {
+        setUser(null);
+        clearUserId();
+        return { success: false, error: 'Unable to restore your session. Please try again.' };
+      }
+      const roleCheck = await ensureStaffRole('You do not have permission to access the admin panel.');
+      if (!roleCheck.success) {
+        return { success: false, error: roleCheck.error };
+      }
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  }, [delay, ensureStaffRole, refreshUser, setUser]);
 
   /**
    * Login function - authenticates with the API and updates state.
@@ -608,6 +662,7 @@ export function AuthProvider({
     isLoading,
     isAuthenticated: !!user,
     login,
+    adminLogin,
     register,
     logout,
     verify2FA,

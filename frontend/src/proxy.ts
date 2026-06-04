@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // ==================== Clerk Auth Configuration ====================
 
+// /admin routes are protected by the (admin) layout's AdminGuard (JWT auth)
+// using the project's auth-context. They must NOT be protected by Clerk,
+// otherwise users would be forced to authenticate twice.
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
-  '/admin(.*)',
   '/profile(.*)',
   '/my-courses(.*)',
   '/billing(.*)',
@@ -14,6 +16,7 @@ const isProtectedRoute = createRouteMatcher([
 const isPublicRoute = createRouteMatcher([
   '/',
   '/login(.*)',
+  '/admin-login(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/register(.*)',
@@ -113,6 +116,11 @@ const logger = new ProxyLogger();
  * Check if path should be skipped from proxying
  */
 function shouldSkipProxy(pathname: string): boolean {
+  // Never skip proxy for admin routes (including their assets)
+  if (pathname.startsWith('/admin/') || pathname === '/admin') {
+    return false;
+  }
+
   // Skip internal paths
   if (SKIP_PATHS.some(p => pathname.startsWith(p))) {
     return true;
@@ -377,8 +385,8 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // 3. Handle API routes via proxy
-  if (pathname.startsWith('/api/')) {
+  // 3. Handle API and Admin routes via proxy
+  if (pathname.startsWith('/api/') || pathname.startsWith('/admin/') || pathname === '/admin') {
     return handleApiProxy(req);
   }
 

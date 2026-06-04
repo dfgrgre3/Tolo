@@ -17,13 +17,13 @@ type HeaderNavLinkVariant = "desktop" | "mobile" | "search" | "mega";
 
 interface HeaderNavLinkProps {
   href: string;
-  label: string;
+  label: React.ReactNode;
   icon: LucideIcon;
   active?: boolean;
   badge?: string;
   variant?: HeaderNavLinkVariant;
   onClick?: () => void;
-  description?: string;
+  description?: React.ReactNode;
   isCompact?: boolean;
   external?: boolean;
 }

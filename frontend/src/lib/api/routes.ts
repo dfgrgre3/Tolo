@@ -5,6 +5,7 @@ export const apiRoutes = {
   },
   auth: {
     login: "/api/auth/login",
+    adminLogin: "/api/auth/admin-login",
     register: "/api/auth/register",
     logout: "/api/auth/logout",
     me: "/api/auth/me",
@@ -31,6 +32,7 @@ export const apiRoutes = {
     metricsHistory: "/api/admin/metrics/history",
     infrastructureStats: "/api/admin/infrastructure/stats",
     announcements: "/api/admin/announcements",
+    notificationBroadcast: "/api/admin/notifications/broadcast",
     reportsOverview: "/api/admin/reports/overview",
     reportsUsers: "/api/admin/reports/users",
     reportsBooks: "/api/admin/reports/books",

@@ -1,7 +1,6 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useEffect, useRef, memo } from "react";
-import { m } from "framer-motion";
 import { NavItem } from "./types";
 import { HeaderNavLink } from "@/components/navigation";
 
@@ -15,11 +14,32 @@ interface MegaMenuItemProps {
   isFocused?: boolean;
 }
 
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const regex = new RegExp(`(${escapedQuery})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) => 
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary rounded-sm px-0.5 font-bold transition-all duration-300">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 function highlightMatch(item: NavItem, query: string) {
   if (!query.trim()) return { label: item.label, description: item.description };
-  const lower = query.toLowerCase();
-  const matches = item.label.toLowerCase().includes(lower) || item.description?.toLowerCase().includes(lower) || item.href.toLowerCase().includes(lower);
-  return { label: item.label, description: item.description, matches };
+  return {
+    label: highlightText(item.label, query),
+    description: item.description ? highlightText(item.description, query) : undefined,
+  };
 }
 
 export const MegaMenuItem = memo(function MegaMenuItem({
@@ -43,15 +63,12 @@ export const MegaMenuItem = memo(function MegaMenuItem({
   const { label, description } = useMemo(() => highlightMatch(item, searchQuery), [item, searchQuery]);
 
   return (
-    <m.div
-      initial={{ opacity: 0, x: -8, scale: 0.96 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{ delay, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ scale: 1.02, x: 2 }}
-      whileTap={{ scale: 0.98 }}
-      role="listitem"
-    >
-      <div ref={itemRef} tabIndex={-1}>
+    <div role="listitem">
+      <div 
+        ref={itemRef} 
+        tabIndex={-1}
+        className="outline-none focus:ring-2 focus:ring-primary/60 focus:bg-primary/5 rounded-xl block shadow-sm"
+      >
         <HeaderNavLink
           href={item.href}
           label={label}
@@ -65,8 +82,9 @@ export const MegaMenuItem = memo(function MegaMenuItem({
           external={item.href?.startsWith("http") || item.href?.startsWith("//")}
         />
       </div>
-    </m.div>
+    </div>
   );
+
 });
 
 MegaMenuItem.displayName = "MegaMenuItem";

@@ -1,7 +1,6 @@
-﻿"use client";
+"use client";
 
 import React, { forwardRef, memo } from "react";
-import { m } from "framer-motion";
 import { Sparkles, Zap, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MegaMenuCategory as MegaMenuCategoryType } from "./types";
@@ -27,50 +26,40 @@ export const MegaMenuCategory = memo(
     const itemCount = category.items.length;
 
     return (
-      <m.div
+      <div
         ref={ref}
-        initial={{ opacity: 0, y: 10, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: categoryIndex * 0.03, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={{ scale: 1.01 }}
-        className={cn(categoryStyles.card({ active: category.isPriority, compact: isCompact }))}
+        className={cn(categoryStyles.card({ active: category.isPriority, compact: isCompact }), "relative overflow-hidden group/category")}
         role="group"
         aria-labelledby={`category-title-${categoryIndex}`}
       >
-        <m.div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 group-hover/category:opacity-100 transition-opacity duration-500 blur-xl" initial={false} />
-
         <div className={cn(categoryStyles.header({ compact: isCompact }))}>
-          <m.div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary via-primary/80 to-primary/60 rounded-full" initial={{ width: 0 }} whileHover={{ width: "100%" }} transition={{ duration: 0.4, ease: "easeOut" }} />
-          <m.div
-            whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
-            whileTap={{ scale: 0.95 }}
-            className={cn(categoryStyles.iconWrap({ compact: isCompact }))}
+          <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-primary via-primary/80 to-primary/60 rounded-full group-hover/category:w-full transition-all duration-200" />
+          <div
+            className={cn(categoryStyles.iconWrap({ compact: isCompact }), "transition-colors duration-200")}
           >
             {hasActiveSearch ? <Zap className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} /> : <Sparkles className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} />}
-          </m.div>
+          </div>
 
           <div className="flex-1 flex items-center justify-between">
             <div className="flex flex-col">
-              <h3 id={`category-title-${categoryIndex}`} className={cn(categoryStyles.title({ compact: isCompact }))}>
+              <h3 id={`category-title-${categoryIndex}`} className={cn(categoryStyles.title({ compact: isCompact }), "transition-colors duration-200")}>
                 {category.title}
               </h3>
-              {category.priorityLabel && !isCompact && <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">{category.priorityLabel}</span>}
+              {category.priorityLabel && !isCompact && <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{category.priorityLabel}</span>}
             </div>
 
-            <m.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <span
               className={cn(
                 categoryStyles.count({ state: category.isPriority ? "priority" : hasActiveSearch ? "search" : "neutral" })
               )}
             >
               {itemCount}
-            </m.span>
+            </span>
           </div>
 
-          <m.div className="text-muted-foreground/50 group-hover/category:text-primary/50 transition-colors" whileHover={{ x: -3 }}>
+          <div className="text-muted-foreground/50 group-hover/category:text-primary/50 transition-colors duration-200">
             <ChevronLeft className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
-          </m.div>
+          </div>
         </div>
 
         <div className={cn("space-y-2 relative z-10", isCompact && "space-y-1.5")} role="list">
@@ -80,7 +69,7 @@ export const MegaMenuCategory = memo(
               item={item}
               isActive={activeRoute ? activeRoute(item.href) : false}
               onClick={onItemClick}
-              delay={categoryIndex * 0.03 + itemIndex * 0.02}
+              delay={0}
               isCompact={isCompact}
               searchQuery={searchQuery}
               isFocused={focusedItemIndex === itemIndex}
@@ -89,16 +78,17 @@ export const MegaMenuCategory = memo(
         </div>
 
         {itemCount > 4 && !isCompact && (
-          <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="pt-2 relative z-10">
-            <button onClick={onItemClick} className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-1 transition-colors">
+          <div className="pt-2 relative z-10">
+            <button onClick={onItemClick} className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-1 transition-colors duration-200">
               <span>عرض الكل</span>
               <ChevronLeft className="h-3 w-3" />
             </button>
-          </m.div>
+          </div>
         )}
-      </m.div>
+      </div>
     );
   })
 );
 
 MegaMenuCategory.displayName = "MegaMenuCategory";
+

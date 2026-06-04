@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * 🎨 Settings Layout - تخطيط صفحات الإعدادات (محدّث بالكامل)
@@ -129,7 +129,7 @@ function SidebarContent({
   
   const userInitial = user.name
     ? user.name.charAt(0).toUpperCase()
-    : user.email.charAt(0).toUpperCase();
+    : user.email?.charAt(0)?.toUpperCase() || 'U';
 
   const profileCompletion = [
     user.name,
@@ -502,7 +502,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   // User avatar / initials
   const userInitial = user.name
     ? user.name.charAt(0).toUpperCase()
-    : user.email.charAt(0).toUpperCase();
+    : user.email?.charAt(0)?.toUpperCase() || 'U';
 
   const profileCompletion = [
     user.name,

@@ -180,7 +180,7 @@ export function HeaderMobileMenuEnhanced({
           <m.div
             ref={mobileMenuRef}
             {...menuVariants}
-            className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-background/95 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl border-l border-border/40"
+            className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl border-l border-primary/20 shadow-primary/5"
           >
             <div className="flex items-center justify-between p-4 pb-2 border-b border-border/20">
               <div className="flex items-center gap-2.5">
@@ -210,7 +210,11 @@ export function HeaderMobileMenuEnhanced({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => setIsSearchFocused(false)}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setIsSearchFocused(false);
+                      }, 150);
+                    }}
                     className={cn(
                       "w-full ps-10 pe-3 h-11 rounded-2xl bg-muted/50 border-transparent focus:bg-background transition-all duration-300 shadow-sm text-start text-base",
                       isSearchFocused && "ring-2 ring-primary/20 border-primary/20 shadow-lg shadow-primary/5"

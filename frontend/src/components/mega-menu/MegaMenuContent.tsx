@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef } from "react";
 import { AnimatePresence, MotionConfig, m } from "framer-motion";
@@ -14,6 +14,7 @@ import { MegaMenuBackdrop } from "./MegaMenuBackdrop";
 import { MegaMenuContainer } from "./MegaMenuContainer";
 import { MegaMenuEmptyState } from "./MegaMenuEmptyState";
 import { MegaMenuGrid } from "./MegaMenuGrid";
+import { FeaturedPromo } from "./FeaturedPromo";
 
 const AiSuggestions = dynamic(
 	() => import("./AiSuggestions").catch((err) => {
@@ -112,27 +113,32 @@ export function MegaMenuContent({ categories, isOpen, onClose, activeRoute, user
 							{hasNoResults ? (
 								<MegaMenuEmptyState searchQuery={searchQuery} onClose={onClose} />
 							) : (
-								<div className="flex flex-col">
-									{!searchQuery && user && (
-										<div className={cn("px-4 md:px-6", isCompact ? 'pt-4 md:pt-5' : 'pt-6 md:pt-8')}>
-											<AiSuggestions
-												userId={user.id || (user as any).userId || ""}
-												isCompact={isCompact}
-												onItemClick={onClose}
-											/>
+								<div className={cn("flex flex-col", !searchQuery && "lg:flex-row gap-6 p-1 sm:p-2 md:p-3")}>
+									<div className="flex-1">
+										<MegaMenuGrid
+											categories={filteredCategories}
+											gridCols={gridCols}
+											isCompact={isCompact}
+											searchQuery={searchQuery}
+											focusedCategoryIndex={focusedCategoryIndex}
+											focusedItemIndex={focusedItemIndex}
+											onClose={onClose}
+											activeRoute={activeRoute}
+											setCategoryRef={(index, el) => { categoryRefs.current[index] = el; }}
+										/>
+									</div>
+									{!searchQuery && (
+										<div className="w-full lg:w-80 shrink-0 px-4 md:px-6 pb-6 lg:pb-0 lg:pt-6 lg:pe-6 flex flex-col gap-6">
+											<FeaturedPromo user={user} onClose={onClose} />
+											{user && (
+												<AiSuggestions
+													userId={user.id || (user as any).userId || ""}
+													isCompact={true}
+													onItemClick={onClose}
+												/>
+											)}
 										</div>
 									)}
-									<MegaMenuGrid
-										categories={filteredCategories}
-										gridCols={gridCols}
-										isCompact={isCompact}
-										searchQuery={searchQuery}
-										focusedCategoryIndex={focusedCategoryIndex}
-										focusedItemIndex={focusedItemIndex}
-										onClose={onClose}
-										activeRoute={activeRoute}
-										setCategoryRef={(index, el) => { categoryRefs.current[index] = el; }}
-									/>
 								</div>
 							)}
 						</AnimatePresence>
