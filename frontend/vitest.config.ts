@@ -9,8 +9,9 @@ export default defineConfig({
     exclude: [
       "node_modules/**",
       "src/__tests__/e2e/**",
-      "src/__tests__/integration/**",
-      // تعتمد على لغة الجهاز / تباينات تنسيق — تُحدَّث لاحقاً أو تُشغَّل مع locale ثابت
+      // Integration tests are now self-contained Vitest-native mocks and CAN run.
+      // Excluded previously because they depended on jest-websocket-mock (Jest-only).
+      // تعتمد على لغة الجهاز / تباينات تنسيق — تُحدَّث لاحقاً أو تُشغَّل مع locale ثابت
       "src/__tests__/utils/format-utils.test.ts",
       "src/__tests__/hooks/**",
     ],

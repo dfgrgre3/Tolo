@@ -200,15 +200,10 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   handleReportError = () => {
-    const errorDetails = {
-      message: this.state.error?.message,
-      stack: this.state.error?.stack,
-      componentStack: this.state.errorInfo?.componentStack,
-      errorId: this.state.errorId
-    };
-
+    // SECURITY: Never include stack traces or component stacks in user-facing reports.
+    // Full traces are recorded server-side via the error logging service.
     const subject = `Error Report: ${this.state.errorId}`;
-    const body = `Error ID: ${this.state.errorId}\n\nError Message: ${errorDetails.message}\n\nStack Trace:\n${errorDetails.stack}\n\nComponent Stack:\n${errorDetails.componentStack}`;
+    const body = `Error ID: ${this.state.errorId}\n\nPlease describe what you were doing when this error occurred.`;
     window.open(`mailto:support@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
@@ -314,18 +309,24 @@ class ErrorBoundary extends Component<Props, State> {
                 }
               </div>
 
-              <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700">
-                  تفاصيل الخطأ (للمطورين)
-                </summary>
-                <div className="mt-2 p-3 bg-gray-100 rounded-md text-xs text-gray-800 overflow-auto max-h-40">
-                  <p className="font-semibold">{error?.toString()}</p>
-                  <pre className="whitespace-pre-wrap mt-2">{error?.stack}</pre>
-                  {this.state.errorInfo &&
-                  <pre className="whitespace-pre-wrap mt-2">{this.state.errorInfo.componentStack}</pre>
-                  }
-                </div>
-              </details>
+              {/* SECURITY: Stack traces and component stacks are only rendered in
+                  development mode. In production, only the opaque errorId is shown
+                  so that internal file paths and infrastructure details are never
+                  exposed to end-users or captured in browser recordings. */}
+              {process.env.NODE_ENV === 'development' && (
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-medium text-gray-700">
+                    تفاصيل الخطأ (للمطورين فقط — Dev Mode)
+                  </summary>
+                  <div className="mt-2 p-3 bg-gray-100 rounded-md text-xs text-gray-800 overflow-auto max-h-40">
+                    <p className="font-semibold">{error?.toString()}</p>
+                    <pre className="whitespace-pre-wrap mt-2">{error?.stack}</pre>
+                    {this.state.errorInfo && (
+                      <pre className="whitespace-pre-wrap mt-2">{this.state.errorInfo.componentStack}</pre>
+                    )}
+                  </div>
+                </details>
+              )}
             </div>
           </div>
         </div>

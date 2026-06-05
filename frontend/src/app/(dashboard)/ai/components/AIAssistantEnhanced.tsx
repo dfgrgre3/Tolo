@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Zap, Mic, MicOff, Heart } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
@@ -85,6 +85,28 @@ export default function AIAssistantEnhanced({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Token stream buffer ───────────────────────────────────────────────────
+  // RULES OF HOOKS: must be called at the component top level, never inside
+  // callbacks or async functions. The onBatch callback is stable (useCallback)
+  // so the buffer is not recreated on every render.
+  const onBatch = useCallback((tokens: string[]) => {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === 'assistant') {
+        const updated = { ...last, content: last.content + tokens.join('') };
+        return [...prev.slice(0, -1), updated];
+      }
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: tokens.join(''),
+        timestamp: new Date()
+      };
+      return [...prev, assistantMessage];
+    });
+  }, []);
+
+  const { addItem, flush } = useTokenStreamBuffer<string>(onBatch, 150);
+
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
@@ -115,8 +137,6 @@ export default function AIAssistantEnhanced({
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
-        // Cleanup any pending token buffers if component unmounts
-        // (Hook will clear its own timer on unmount)
       }
     };
   }, []);
@@ -177,22 +197,6 @@ export default function AIAssistantEnhanced({
     setIsLoading(true);
 
     const abortController = new AbortController();
-    const addToken = useTokenStreamBuffer<string>((tokens: string[]) => {
-      // Append batch of tokens to a single assistant message
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && last.role === 'assistant') {
-          const updated = { ...last, content: last.content + tokens.join('') };
-          return [...prev.slice(0, -1), updated];
-        }
-        const assistantMessage: Message = {
-          role: 'assistant',
-          content: tokens.join(''),
-          timestamp: new Date()
-        };
-        return [...prev, assistantMessage];
-      });
-    }, 150);
 
     try {
       const response = await fetch('/api/ai/chat', {
@@ -214,20 +218,20 @@ export default function AIAssistantEnhanced({
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       if (reader) {
-        // Read streaming tokens
+        // Read streaming tokens and feed them to the buffer
         let done = false;
         while (!done) {
           const { value, done: doneReading } = await reader.read();
           done = doneReading;
           if (value) {
             const chunk = decoder.decode(value, { stream: true });
-            // Assume each token is separated by a newline
             const tokens = chunk.split(/\n/).filter(Boolean);
-            tokens.forEach((t) => addToken(t));
+            tokens.forEach((t) => addItem(t));
           }
         }
-        // Ensure any remaining buffered tokens are flushed
-        // (addToken will flush on interval, but we can force flush by calling with empty array after abort)
+        // Stream ended — flush any remaining buffered tokens immediately
+        // so the last partial batch is not held until the next timeout fires.
+        flush();
       } else {
         // Fallback for non-streaming response
         const data = await response.json();
@@ -258,6 +262,7 @@ export default function AIAssistantEnhanced({
       abortController.abort();
     }
   };
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('ar-EG', {
