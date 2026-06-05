@@ -14,7 +14,9 @@ import ErrorBoundary from '@/components/error-boundary';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
+import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
+import { EfficiencyProvider } from '@/hooks/use-efficiency';
 
 const FooterLazy = dynamic(() => import('@/components/Footer'), {
   ssr: false,
@@ -46,11 +48,9 @@ type GlobalProvidersProps = {
   initialAuthHint?: boolean;
 };
 
-import { EfficiencyProvider } from '@/hooks/use-efficiency';
-
 /**
  * GlobalProviders - Root provider composition.
- * 
+ *
  * Provider order matters:
  * 1. ClientLayoutProvider - Base client-side setup
  * 2. ThemeProvider - Theme management (must be early for FOUC prevention)
@@ -75,6 +75,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                       <NotificationsProvider>
                         <TooltipProvider>
                           <LazyMotion features={domAnimation} strict>
+                            <TimerBootstrap />
                             <PerformanceProvider key="performance-provider">
                               {React.Children.toArray(children)}
                             </PerformanceProvider>

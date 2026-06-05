@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
 
 import { logger } from '@/lib/logger';
+import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 
 const LazyWeeklySchedule = dynamic(() => import("@/app/(dashboard)/time/components/WeeklySchedule"));
 const LazyTaskManagement = dynamic(() => import("@/app/(dashboard)/time/components/TaskManagement"));
@@ -53,7 +54,7 @@ const QuickActionButton = dynamic(() => import('./components/QuickActionButton')
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const { isRunning: isTimerRunning, startTimer, pauseTimer } = useTimeTrackerStore();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   // Search and filter states
@@ -211,14 +212,15 @@ export default function TimeManagementPage() {
     onNotification: handleNotification
   });
 
-  // Handle timer start/stop
+  // Handle timer start/stop using global store
   const handleTimerToggle = useCallback((_taskId?: string) => {
-    setIsTimerRunning(prev => !prev);
-    // Switch to tracker tab when timer starts
-    if (!isTimerRunning) {
+    if (isTimerRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
       setActiveTab("tracker");
     }
-  }, [isTimerRunning]);
+  }, [isTimerRunning, startTimer, pauseTimer]);
 
   // Map our Task type to TimeTracker's expected Task type
   const mapTasksForTimeTracker = useMemo((): TimeTrackerTask[] => {

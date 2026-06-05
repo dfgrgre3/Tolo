@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   Bell,
@@ -42,6 +43,7 @@ interface ActivityItem {
 }
 
 export function ActivityWidget() {
+  const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -104,7 +106,7 @@ export function ActivityWidget() {
       color: getColor(item.type),
       action: () => {
         if (item.url) {
-          window.location.href = item.url;
+          router.push(item.url);
         }
       }
     });
@@ -155,7 +157,7 @@ export function ActivityWidget() {
         socket.removeEventListener("message", handleWsMessage);
       }
     };
-  }, [mounted, user?.id, isConnected, socket]);
+  }, [mounted, user?.id, isConnected, socket, router]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -307,7 +309,7 @@ export function ActivityWidget() {
               className="w-full justify-center text-xs"
               onClick={() => {
                 setIsOpen(false);
-                window.location.href = "/activities";
+                router.push("/activities");
               }}>
               
 								عرض الكل
@@ -318,5 +320,4 @@ export function ActivityWidget() {
         }
 			</DropdownMenuContent>
 		</DropdownMenu>);
-
 }

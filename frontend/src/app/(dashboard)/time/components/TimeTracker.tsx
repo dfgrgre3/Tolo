@@ -1,278 +1,487 @@
-﻿'use client';
+'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { m, AnimatePresence } from "framer-motion";
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Clock, 
-  Target, 
-  TrendingUp, 
+import React, { useCallback } from 'react';
+import { m, AnimatePresence } from 'framer-motion';
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  SkipForward,
+  Target,
+  TrendingUp,
   Timer,
   Coffee,
-  Moon
+  Moon,
+  Clock,
+  Zap,
+  BookOpen,
 } from 'lucide-react';
-import { calculateFocusScore } from '../utils/timeUtils';
-import type { StudySession, TimeTrackerTask } from '../types';
-import { usePomodoroTimer } from '../hooks/usePomodoroTimer';
-import { SessionsList } from './SessionsList';
-import { TimerSettingsCard } from './TimerSettingsCard';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTimeTrackerStore, type PomodoroState } from '@/hooks/use-time-tracker-store';
+import type { TimeTrackerTask } from '../types';
 
 interface TimeTrackerProps {
   userId: string;
   tasks: TimeTrackerTask[];
   subjects: string[];
-  onStudySessionCreate: (session: StudySession) => void;
+  onStudySessionCreate?: (session: any) => void;
 }
 
-const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrackerProps) => {
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
 
+const stateThemes: Record<PomodoroState, {
+  label: string;
+  labelShort: string;
+  icon: React.ReactNode;
+  color: string;
+  glow: string;
+  stroke: string;
+  bgGlow: string;
+  playBg: string;
+  stopBg: string;
+  border: string;
+}> = {
+  work: {
+    label: 'وقت الدراسة والتركيز',
+    labelShort: 'دراسة',
+    icon: <Target className="h-5 w-5" />,
+    color: 'text-rose-400',
+    glow: 'drop-shadow-[0_0_24px_rgba(244,63,94,0.7)]',
+    stroke: 'stroke-rose-500',
+    bgGlow: 'from-rose-600/25 via-rose-500/10 to-transparent',
+    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
+    border: 'border-rose-500/20',
+  },
+  shortBreak: {
+    label: 'استراحة قصيرة - خذ نفسك',
+    labelShort: 'استراحة',
+    icon: <Coffee className="h-5 w-5" />,
+    color: 'text-teal-400',
+    glow: 'drop-shadow-[0_0_24px_rgba(20,184,166,0.7)]',
+    stroke: 'stroke-teal-500',
+    bgGlow: 'from-teal-600/25 via-teal-500/10 to-transparent',
+    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
+    border: 'border-teal-500/20',
+  },
+  longBreak: {
+    label: 'استراحة طويلة - استرح جيداً',
+    labelShort: 'استراحة طويلة',
+    icon: <Moon className="h-5 w-5" />,
+    color: 'text-violet-400',
+    glow: 'drop-shadow-[0_0_24px_rgba(139,92,246,0.7)]',
+    stroke: 'stroke-violet-500',
+    bgGlow: 'from-violet-600/25 via-violet-500/10 to-transparent',
+    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
+    border: 'border-violet-500/20',
+  },
+};
+
+export default function TimeTracker({ userId, tasks, onStudySessionCreate }: TimeTrackerProps) {
   const {
     isRunning,
     timeLeft,
     currentPomodoroState,
     pomodoroCount,
+    activeTaskId,
+    activeTaskTitle,
+    activeCourseTitle,
     sessions,
     settings,
-    WORK_DURATION,
-    SHORT_BREAK,
-    LONG_BREAK,
-    GOAL_TARGET,
-    toggleTimer,
+    startTimer,
+    pauseTimer,
     resetTimer,
-    skipCurrentPhase
-  } = usePomodoroTimer(userId, (session) => {
-    onStudySessionCreate(session);
-    toast.success(`تم إكمال جلسة دراسة ${session.durationMin} دقيقة`);
-  }, activeTaskId);
+    skipPhase,
+    selectTask,
+    completeSession,
+    completeSessionEarly,
+  } = useTimeTrackerStore();
 
-  const selectTask = (taskId: string) => {
-    if (!isRunning) {
-      setActiveTaskId(taskId);
+  const theme = stateThemes[currentPomodoroState];
+
+  const totalDuration =
+    currentPomodoroState === 'work'
+      ? settings.pomodoroWorkMinutes * 60
+      : currentPomodoroState === 'shortBreak'
+      ? settings.pomodoroBreakMinutes * 60
+      : settings.longBreakMinutes * 60;
+
+  const progress = Math.max(0, Math.min(100, 100 - (timeLeft / totalDuration) * 100));
+  const R = 120;
+  const circ = 2 * Math.PI * R;
+  const offset = circ - (progress / 100) * circ;
+
+  const handleToggle = useCallback(() => {
+    if (isRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
+    }
+  }, [isRunning, pauseTimer, startTimer]);
+
+  const handleTaskSelect = (task: TimeTrackerTask) => {
+    if (!isRunning || activeTaskId === task.id) {
+      selectTask(task.id, task.title);
+      if (!isRunning) {
+        toast.info(`تم اختيار المهمة: ${task.title}`);
+      }
     }
   };
 
-  const formatTimeDisplay = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimerLabel = () => {
-    switch (currentPomodoroState) {
-      case 'work': return 'وقت الدراسة';
-      case 'shortBreak': return 'استراحة قصيرة';
-      case 'longBreak': return 'استراحة طويلة';
-      default: return 'الوضع الحالي';
+  // Synchronize new sessions from Zustand store to page state
+  const prevSessionsLength = React.useRef(sessions.length);
+  React.useEffect(() => {
+    if (sessions.length > prevSessionsLength.current) {
+      const newSession = sessions[0];
+      if (onStudySessionCreate && newSession) {
+        onStudySessionCreate({
+          id: newSession.id,
+          userId: userId,
+          durationMin: newSession.durationMin,
+          focusScore: 100,
+          startTime: newSession.startTime,
+          endTime: newSession.endTime,
+          subjectId: newSession.courseId,
+          createdAt: newSession.endTime,
+          taskId: newSession.taskId,
+        });
+      }
     }
-  };
+    prevSessionsLength.current = sessions.length;
+  }, [sessions, onStudySessionCreate, userId]);
 
-  const getTimerIcon = () => {
-    switch (currentPomodoroState) {
-      case 'work': return <Target className="h-4 w-4" />;
-      case 'shortBreak': return <Coffee className="h-4 w-4" />;
-      case 'longBreak': return <Moon className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const currentPhaseDuration = 
-    currentPomodoroState === 'work' ? WORK_DURATION : 
-    currentPomodoroState === 'shortBreak' ? SHORT_BREAK : LONG_BREAK;
-
-  const currentProgress = 100 - (timeLeft / currentPhaseDuration * 100);
-
-  const strokeDasharray = 2 * Math.PI * 120; // radius is 120
-  const strokeDashoffset = strokeDasharray - (currentProgress / 100) * strokeDasharray;
-
-  // Visual themes for states
-  const stateThemes = {
-    work: { color: "text-rose-500", shadow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]", bg: "bg-rose-500", border: "border-rose-500/30" },
-    shortBreak: { color: "text-teal-500", shadow: "drop-shadow-[0_0_20px_rgba(20,184,166,0.6)]", bg: "bg-teal-500", border: "border-teal-500/30" },
-    longBreak: { color: "text-violet-500", shadow: "drop-shadow-[0_0_20px_rgba(139,92,246,0.6)]", bg: "bg-violet-500", border: "border-violet-500/30" }
-  };
-
-  const currentTheme = stateThemes[currentPomodoroState] || { color: "text-primary", shadow: "drop-shadow-md", bg: "bg-primary", border: "border-primary/30" };
+  // Recent sessions
+  const recentSessions = sessions.slice(0, 6);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
-        <Card className={`relative overflow-hidden bg-background/60 backdrop-blur-xl border ${currentTheme.border} shadow-2xl transition-colors duration-700`}>
-          {/* Subtle background glow based on state */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 ${currentTheme.bg} rounded-full blur-[150px] opacity-10 pointer-events-none transition-all duration-1000`} />
-          
-          <CardHeader className="text-center pb-2 relative z-10">
-            <m.div 
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 rtl" dir="rtl">
+      {/* ── Main Timer Card ── */}
+      <div className="xl:col-span-2">
+        <div className={cn(
+          'relative overflow-hidden rounded-3xl border bg-[#0a1628]/80 backdrop-blur-2xl',
+          'shadow-[0_20px_80px_rgba(0,0,0,0.4)]',
+          theme.border,
+          'transition-colors duration-700'
+        )}>
+          {/* Background glow orb */}
+          <div className={cn(
+            'absolute inset-0 bg-radial-gradient pointer-events-none',
+            `bg-[radial-gradient(ellipse_at_50%_30%,_var(--tw-gradient-stops))]`,
+            theme.bgGlow
+          )} />
+
+          {/* Animated grid */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)', backgroundSize: '30px 30px' }}
+          />
+
+          <div className="relative z-10 p-6 md:p-8 flex flex-col items-center">
+            {/* Title row */}
+            <m.div
               key={currentPomodoroState}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={`flex items-center justify-center gap-2 mb-2 ${currentTheme.color}`}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn('flex items-center gap-2.5 mb-1', theme.color)}
             >
-              {getTimerIcon()}
-              <CardTitle className="text-2xl font-bold">متتبع الوقت</CardTitle>
+              {theme.icon}
+              <h2 className="text-xl font-bold text-white">متتبع الوقت</h2>
             </m.div>
-            <CardDescription className="text-base font-medium">
-              {getTimerLabel()}
-              {activeTaskId && (
-                <span className="block mt-1 text-foreground/80">
-                  المهمة: {tasks.find(t => t.id === activeTaskId)?.title || 'غير محددة'}
-                </span>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center py-8 relative z-10">
-            
-            {/* Glowing Circular Timer */}
-            <div className="relative flex items-center justify-center mb-10 mt-4 group">
-              <svg width="280" height="280" className="-rotate-90 transform">
-                {/* Background Track */}
-                <circle 
-                  cx="140" cy="140" r="120" 
-                  fill="none" stroke="currentColor" 
-                  strokeWidth="8" 
-                  className="text-muted/30"
-                />
-                {/* Progress Ring */}
-                <m.circle 
-                  cx="140" cy="140" r="120" 
-                  fill="none" stroke="currentColor" 
-                  strokeWidth="12" 
+            <p className={cn('text-sm font-medium mb-6', theme.color)}>{theme.label}</p>
+
+            {/* Context badge */}
+            {(activeCourseTitle || activeTaskTitle) && (
+              <m.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs"
+              >
+                {activeCourseTitle
+                  ? <><BookOpen className="h-3 w-3 text-blue-400 shrink-0" /><span>{activeCourseTitle}</span></>
+                  : <><Zap className="h-3 w-3 text-amber-400 shrink-0" /><span>{activeTaskTitle}</span></>
+                }
+              </m.div>
+            )}
+
+            {/* Circular Timer */}
+            <m.div
+              animate={isRunning ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+              transition={isRunning ? { repeat: Infinity, duration: 3, ease: 'easeInOut' } : { duration: 0.3 }}
+              className="relative flex items-center justify-center mb-10 cursor-pointer group"
+              onClick={handleToggle}
+            >
+              {/* Outer glow ring */}
+              <div className={cn(
+                'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500',
+                currentPomodoroState === 'work' ? 'bg-rose-500' :
+                currentPomodoroState === 'shortBreak' ? 'bg-teal-500' : 'bg-violet-500'
+              )} />
+
+              <svg width="280" height="280" className="-rotate-90">
+                {/* Track */}
+                <circle cx="140" cy="140" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                {/* Progress ring */}
+                <m.circle
+                  cx="140" cy="140" r={R}
+                  fill="none"
+                  strokeWidth="12"
                   strokeLinecap="round"
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
-                  className={`${currentTheme.color} ${currentTheme.shadow} transition-all duration-1000 ease-linear`}
+                  strokeDasharray={circ}
+                  strokeDashoffset={offset}
+                  className={cn(theme.stroke, theme.glow)}
+                  transition={{ duration: 1, ease: 'linear' }}
                 />
               </svg>
-              {/* Inner Time Display */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${currentTheme.color} ${currentTheme.shadow}`}>
-                  {formatTimeDisplay(timeLeft)}
+
+              {/* Inner content */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+                <span className={cn('text-6xl font-mono font-black tabular-nums tracking-tighter', theme.color, theme.glow)}>
+                  {formatTime(timeLeft)}
                 </span>
-                <span className="text-sm font-medium text-muted-foreground mt-2">
-                  {Math.round(currentProgress)}%
+                <span className="text-sm font-medium text-white/40 mt-2">
+                  {Math.round(progress)}% مكتمل
+                </span>
+                <span className="text-xs text-white/25 mt-1">
+                  {isRunning ? 'اضغط للإيقاف' : 'اضغط للبدء'}
                 </span>
               </div>
-            </div>
-            
-            <div className="flex items-center justify-center gap-4 sm:gap-6 w-full max-w-md">
-              <Button onClick={resetTimer} variant="outline" size="icon" className="h-14 w-14 rounded-full bg-background/50 backdrop-blur hover:scale-110 active:scale-95 transition-all">
-                <RotateCcw className="h-6 w-6" />
+            </m.div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-4 w-full max-w-sm mb-8">
+              <Button
+                onClick={resetTimer}
+                variant="ghost"
+                size="icon"
+                className="h-13 w-13 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 hover:scale-110 active:scale-95 transition-all"
+              >
+                <RotateCcw className="h-5 w-5" />
               </Button>
-              
-              <Button 
-                onClick={toggleTimer}
-                size="lg"
-                className={`flex-1 h-16 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-95 hover:scale-105 hover:shadow-xl ${
-                  isRunning 
-                    ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 shadow-red-500/20 border border-red-500/30' 
-                    : `bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-green-500/20 border border-green-500/30`
-                }`}
+
+              <Button
+                onClick={handleToggle}
+                className={cn(
+                  'flex-1 h-14 rounded-2xl text-base font-bold transition-all shadow-lg',
+                  'hover:scale-105 active:scale-95',
+                  isRunning ? theme.stopBg : theme.playBg
+                )}
               >
                 <AnimatePresence mode="popLayout">
                   <m.div
                     key={isRunning ? 'pause' : 'play'}
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={{ y: 12, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    className="flex items-center justify-center gap-2"
+                    exit={{ y: -12, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex items-center gap-2"
                   >
-                    {isRunning ? (
-                      <>
-                        <Pause className="h-6 w-6 fill-current" />
-                        إيقاف مؤقت
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-6 w-6 fill-current" />
-                        بدء الجلسة
-                      </>
-                    )}
+                    {isRunning
+                      ? <><Pause className="h-5 w-5 fill-current" />إيقاف مؤقت</>
+                      : <><Play className="h-5 w-5 fill-current" />بدء الجلسة</>
+                    }
                   </m.div>
                 </AnimatePresence>
               </Button>
-              
-              <Button onClick={skipCurrentPhase} variant="outline" size="icon" className="h-14 w-14 rounded-full bg-background/50 backdrop-blur hover:scale-110 active:scale-95 transition-all">
-                <Timer className="h-6 w-6" />
+
+              <Button
+                onClick={skipPhase}
+                variant="ghost"
+                size="icon"
+                className="h-13 w-13 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 hover:scale-110 active:scale-95 transition-all"
+              >
+                <SkipForward className="h-5 w-5" />
               </Button>
             </div>
-            
-            <div className="mt-6 w-full max-w-md">
-              <h3 className="font-medium mb-3">المهام النشطة:</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {tasks.slice(0, 4).map(task => (
+
+            {/* Early completion button */}
+            <AnimatePresence>
+              {isRunning && currentPomodoroState === 'work' && (
+                <m.div
+                  initial={{ opacity: 0, height: 0, y: -10 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -10 }}
+                  className="mb-6 w-full max-w-sm overflow-hidden"
+                >
                   <Button
-                    key={task.id}
-                    variant={activeTaskId === task.id ? "default" : "outline"}
-                    className={`truncate ${
-                      activeTaskId === task.id 
-                        ? "ring-2 ring-primary ring-offset-2" 
-                        : ""
-                    }`}
-                    onClick={() => selectTask(task.id)}
-                    disabled={isRunning && activeTaskId !== task.id}
+                    onClick={completeSessionEarly}
+                    className="w-full h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/30 hover:bg-teal-500/20 font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/20"
                   >
-                    {task.title}
+                    <Target className="h-4 w-4" />
+                    إنهاء الجلسة وحفظ الدقائق المنقضية
                   </Button>
-                ))}
-              </div>
+                </m.div>
+              )}
+            </AnimatePresence>
+
+            {/* Pomodoro progress dots */}
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-xs text-white/30 ml-2">التقدم اليوم:</span>
+              {Array.from({ length: settings.goalTarget }).map((_, i) => {
+                const done = i < (pomodoroCount % settings.goalTarget);
+                return (
+                  <m.div
+                    key={i}
+                    animate={{ scale: done ? [1, 1.3, 1] : 1 }}
+                    className={cn(
+                      'h-2.5 w-2.5 rounded-full transition-all duration-500',
+                      done
+                        ? currentPomodoroState === 'work' ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]'
+                          : currentPomodoroState === 'shortBreak' ? 'bg-teal-500'
+                          : 'bg-violet-500'
+                        : 'bg-white/10'
+                    )}
+                  />
+                );
+              })}
+              <span className="text-xs text-white/30 mr-2">{pomodoroCount} جلسة</span>
             </div>
-          </CardContent>
-        </Card>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">الدروس المكتملة</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pomodoroCount}</div>
-              <p className="text-xs text-muted-foreground">من {GOAL_TARGET} لتحقيق الاستراحة الطويلة</p>
-              <Progress value={(pomodoroCount / GOAL_TARGET) * 100} className="mt-2" />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">نسبة التركيز</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{calculateFocusScore(pomodoroCount, settings.pomodoroWorkMinutes)}</div>
-              <p className="text-xs text-muted-foreground">نقطة تركيز</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">الوضع الحالي</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold capitalize">
-                {currentPomodoroState === 'work' ? 'دراسة' : 
-                 currentPomodoroState === 'shortBreak' ? 'استراحة' : 'استراحة طويلة'}
+
+            {/* Task Selector */}
+            {tasks.length > 0 && (
+              <div className="w-full max-w-md">
+                <p className="text-xs text-white/40 mb-2 text-center">اختر مهمة لتتبع وقتها</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {tasks.slice(0, 6).map(task => (
+                    <Button
+                      key={task.id}
+                      variant="ghost"
+                      onClick={() => handleTaskSelect(task)}
+                      disabled={isRunning && activeTaskId !== task.id}
+                      className={cn(
+                        'truncate text-xs h-9 rounded-xl transition-all',
+                        'border',
+                        activeTaskId === task.id
+                          ? cn('border-opacity-60', theme.border, theme.color, 'bg-white/8')
+                          : 'border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5'
+                      )}
+                    >
+                      {task.title}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {currentPomodoroState === 'work' ? 'ركز على المهمة' : 'خذ نفسك'} 
-              </p>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+        </div>
+
+        {/* ── Stats Row ── */}
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          {[
+            {
+              icon: <TrendingUp className="h-4 w-4" />,
+              label: 'جلسات مكتملة',
+              value: `${pomodoroCount}`,
+              sub: `الهدف ${settings.goalTarget}`,
+              progress: (pomodoroCount / settings.goalTarget) * 100
+            },
+            {
+              icon: <Target className="h-4 w-4" />,
+              label: 'نقاط التركيز',
+              value: `${Math.min(100, Math.round(pomodoroCount * (settings.pomodoroWorkMinutes / 25) * 20))}`,
+              sub: 'نقطة',
+            },
+            {
+              icon: <Clock className="h-4 w-4" />,
+              label: 'الوضع الحالي',
+              value: theme.labelShort,
+              sub: currentPomodoroState === 'work' ? 'ركز على المهمة' : 'استرح',
+            }
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="rounded-2xl bg-[#0a1628]/60 border border-white/8 backdrop-blur p-4 hover:border-white/15 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/40">{stat.label}</span>
+                <span className={cn('opacity-60', theme.color)}>{stat.icon}</span>
+              </div>
+              <div className={cn('text-2xl font-bold', theme.color)}>{stat.value}</div>
+              <p className="text-[11px] text-white/30 mt-0.5">{stat.sub}</p>
+              {stat.progress !== undefined && (
+                <Progress value={Math.min(100, stat.progress)} className="mt-2 h-1.5 bg-white/10" />
+              )}
+            </div>
+          ))}
         </div>
       </div>
-      
-      <div>
-        <SessionsList sessions={sessions} tasks={tasks} />
-        <TimerSettingsCard settings={settings} />
+
+      {/* ── Right Column: Sessions History ── */}
+      <div className="flex flex-col gap-4">
+        <div className="rounded-3xl bg-[#0a1628]/60 border border-white/8 backdrop-blur-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Timer className={cn('h-4 w-4', theme.color)} />
+            <h3 className="text-sm font-bold text-white">جلسات اليوم</h3>
+          </div>
+
+          {recentSessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Timer className="h-10 w-10 text-white/15 mb-3" />
+              <p className="text-sm text-white/40">لا توجد جلسات بعد</p>
+              <p className="text-xs text-white/25 mt-1">ابدأ المؤقت لتسجيل جلسة</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <AnimatePresence>
+                {recentSessions.map((session, i) => (
+                  <m.div
+                    key={session.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/4 hover:bg-white/7 transition-colors"
+                  >
+                    <div className={cn(
+                      'h-8 w-8 rounded-xl flex items-center justify-center shrink-0',
+                      session.type === 'work' ? 'bg-rose-500/20 text-rose-400'
+                        : session.type === 'shortBreak' ? 'bg-teal-500/20 text-teal-400'
+                        : 'bg-violet-500/20 text-violet-400'
+                    )}>
+                      <Timer className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white/80 truncate">
+                        {session.courseTitle || session.taskTitle || 'جلسة دراسة'}
+                      </p>
+                      <p className="text-xs text-white/30">
+                        {session.durationMin} دقيقة • {new Date(session.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </m.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+
+        {/* Settings summary card */}
+        <div className="rounded-3xl bg-[#0a1628]/60 border border-white/8 backdrop-blur-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Timer className="h-4 w-4 text-white/40" />
+            <h3 className="text-sm font-bold text-white">إعدادات المؤقت</h3>
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: 'وقت الدراسة', value: `${settings.pomodoroWorkMinutes} دقيقة`, color: 'text-rose-400' },
+              { label: 'استراحة قصيرة', value: `${settings.pomodoroBreakMinutes} دقيقة`, color: 'text-teal-400' },
+              { label: 'استراحة طويلة', value: `${settings.longBreakMinutes} دقيقة`, color: 'text-violet-400' },
+              { label: 'هدف الجلسات', value: `${settings.goalTarget} جلسات`, color: 'text-amber-400' },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between">
+                <span className="text-xs text-white/40">{item.label}</span>
+                <span className={cn('text-xs font-bold', item.color)}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default TimeTracker;
+}

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X, LogIn, UserPlus } from "lucide-react";
+import { TimeTrackerHeaderWidget } from "./TimeTrackerHeaderWidget";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -197,6 +198,9 @@ export default function Header() {
                   <ContextualHelp />
                 </div>
               )}
+
+              {/* Global Timer Widget */}
+              <TimeTrackerHeaderWidget />
 
               {mounted && (
                 <div className="hidden md:flex">

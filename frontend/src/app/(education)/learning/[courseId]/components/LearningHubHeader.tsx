@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Course } from "../types";
+import { CourseTimerWidget } from "./CourseTimerWidget";
 
 interface LearningHubHeaderProps {
   course: Course;
@@ -58,7 +59,12 @@ export function LearningHubHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Course timer widget — binds course to global Pomodoro */}
+          <div className="hidden sm:flex">
+            <CourseTimerWidget courseId={courseId} courseTitle={course.title} />
+          </div>
+
           <Button
             variant={autoPlayNext ? "default" : "outline"}
             className={cn(

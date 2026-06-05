@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Clock, Info, CheckCircle, AlertCircle, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ interface NotificationItemProps {
 }
 
 export function NotificationItem({ notification, markAsRead }: NotificationItemProps) {
+	const router = useRouter();
 	const type = (notification.type || "info").toLowerCase() as keyof typeof notificationIcons;
 	const Icon = notificationIcons[type] || Info;
 	const colorClass = notificationColors[type] || notificationColors.info;
@@ -77,7 +79,7 @@ export function NotificationItem({ notification, markAsRead }: NotificationItemP
 									className="h-7 text-xs"
 									onClick={() => {
 										if (action.url) {
-											window.location.href = action.url;
+											router.push(action.url);
 										}
 									}}
 								>

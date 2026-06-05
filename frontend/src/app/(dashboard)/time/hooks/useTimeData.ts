@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { safeFetch } from "@/lib/safe-client-utils";
 import { errorService as errorManager } from '@/lib/logging/error-service';
 import { useAuth } from "@/contexts/auth-context";
+import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
 
 import { logger } from '@/lib/logger';
@@ -30,20 +31,25 @@ export function useTimeData(): UseTimeDataReturn {
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const globalStoreSetUserId = useTimeTrackerStore((state) => state.setUserId);
 
   // Sync userId with AuthContext and fallback to guest ID
   useEffect(() => {
     if (user?.id) {
       setUserId(user.id);
+      globalStoreSetUserId(user.id);
     } else if (!isAuthLoading) {
       // Fallback to guest ID if not logged in
       import("@/lib/user-utils").then(({ ensureUser }) => {
         ensureUser().then(id => {
-          if (id) setUserId(id);
+          if (id) {
+            setUserId(id);
+            globalStoreSetUserId(id);
+          }
         });
       });
     }
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, globalStoreSetUserId]);
 
   /**
    * Helper to process individual API call results

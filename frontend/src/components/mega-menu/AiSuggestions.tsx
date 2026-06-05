@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   TrendingUp,
@@ -113,6 +114,7 @@ export const AiSuggestions = memo(function AiSuggestions({
   onItemClick, 
   className 
 }: AiSuggestionsProps) {
+  const router = useRouter();
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>(() => {
     if (cachedUserId === userId) {
       return cachedRecommendations;
@@ -273,8 +275,8 @@ export const AiSuggestions = memo(function AiSuggestions({
     }
 
     // Navigate to the item
-    window.location.href = href;
-  }, [trackInteraction, onItemClick]);
+    router.push(href);
+  }, [trackInteraction, onItemClick, router]);
 
   // Generate href based on item type
   const getItemHref = useCallback((recommendation: AiRecommendation) => {
