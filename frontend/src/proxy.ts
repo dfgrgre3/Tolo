@@ -47,6 +47,19 @@ const BACKEND_URL = (() => {
   return url;
 })();
 
+const ADMIN_URL = (() => {
+  const url = (
+    process.env.ADMIN_URL ||
+    process.env.NEXT_PUBLIC_ADMIN_URL ||
+    'http://localhost:3001'
+  );
+
+  if (!url.startsWith('http')) {
+    return `http://${url}`;
+  }
+  return url;
+})();
+
 const PROXY_TIMEOUT = parseInt(process.env.PROXY_TIMEOUT || '30000', 10); // 30 seconds
 const ENABLE_LOGGING = process.env.PROXY_LOGGING === 'true';
 
@@ -380,12 +393,17 @@ async function checkBackendHealth(): Promise<boolean> {
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
-  // 1. Protect routes that require authentication
+  // 1. Proxy admin requests to the admin panel
+  if (pathname.startsWith('/admin/') || pathname === '/admin') {
+    return NextResponse.rewrite(new URL(pathname + req.nextUrl.search, ADMIN_URL));
+  }
+
+  // 2. Protect routes that require authentication
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
 
-  // 2. Skip proxy for static assets and internal paths
+  // 3. Skip proxy for static assets and internal paths
   if (shouldSkipProxy(pathname)) {
     return NextResponse.next();
   }
