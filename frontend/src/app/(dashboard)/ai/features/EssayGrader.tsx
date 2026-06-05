@@ -1,5 +1,5 @@
 
-// Re-build trigger: 2026-05-02
+// Re-build trigger: 2026-06-06 — Async job queue pattern
 
 import React, { useState } from 'react';
 import { m } from 'framer-motion';
@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { safeFetch } from '@/lib/safe-client-utils';
+import { pollAIJobResult } from '@/../../lib/pollJobResult';
 import ReactMarkdown from 'react-markdown';
 
 export default function EssayGrader() {
@@ -19,17 +20,38 @@ export default function EssayGrader() {
   const [language, setLanguage] = useState('Arabic');
   const [isLoading, setIsLoading] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const gradeEssay = async () => {
     setIsLoading(true);
+    setError(null);
+    setEvaluation(null);
     try {
-      const { data } = await safeFetch<{ evaluation: string }>('/api/ai/grade-essay', {
-        method: 'POST',
-        body: JSON.stringify({ content, topic, language }),
-      });
-      if (data) setEvaluation(data.evaluation);
-    } catch (e) {
-      console.error(e);
+      // Step 1 — enqueue the job (returns 202 + jobId in < 50 ms)
+      const { data, error: fetchErr } = await safeFetch<{ jobId: string; status: string }>(
+        '/api/ai/grade-essay',
+        {
+          method: 'POST',
+          body: JSON.stringify({ content, topic, language }),
+        },
+      );
+
+      if (fetchErr || !data?.jobId) {
+        setError('فشل في إرسال الطلب. حاول مرة أخرى.');
+        return;
+      }
+
+      // Step 2 — poll every 1.5 s until completed/failed
+      const result = await pollAIJobResult<{ evaluation: string; result: string }>(
+        data.jobId,
+        '/api/ai/grade-essay/status',
+        1500,
+      );
+
+      setEvaluation(result.evaluation ?? result.result ?? '');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +113,7 @@ export default function EssayGrader() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                  جاري التقييم...
+                  جاري التقييم... (قد يستغرق بضع ثوانٍ)
                 </>
               ) : (
                 <>
@@ -101,6 +123,17 @@ export default function EssayGrader() {
               )}
             </Button>
           </div>
+
+          {error && (
+            <m.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
+            >
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-sm font-medium">{error}</p>
+            </m.div>
+          )}
         </div>
       </Card>
 

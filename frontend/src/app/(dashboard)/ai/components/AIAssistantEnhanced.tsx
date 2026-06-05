@@ -60,6 +60,8 @@ interface AIAssistantEnhancedProps {
   userId?: string;
 }
 
+import { useTokenStreamBuffer } from '../../../(common)/hooks/useTokenStreamBuffer';
+
 export default function AIAssistantEnhanced({
   initialMessage = "مرحباً! أنا مساعدك الذكي في منصة ثناوي. كيف يمكنني مساعدتك اليوم؟",
   placeholder = "اكتب سؤالك هنا أو اضغط على الميكروفون للتحدث...",
@@ -113,6 +115,8 @@ export default function AIAssistantEnhanced({
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+        // Cleanup any pending token buffers if component unmounts
+        // (Hook will clear its own timer on unmount)
       }
     };
   }, []);
@@ -122,9 +126,7 @@ export default function AIAssistantEnhanced({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => scrollToBottom(), [messages]);
 
   // Auto-hide sentiment alert
   useEffect(() => {
@@ -174,45 +176,77 @@ export default function AIAssistantEnhanced({
     setInput('');
     setIsLoading(true);
 
+    const abortController = new AbortController();
+    const addToken = useTokenStreamBuffer<string>((tokens: string[]) => {
+      // Append batch of tokens to a single assistant message
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'assistant') {
+          const updated = { ...last, content: last.content + tokens.join('') };
+          return [...prev.slice(0, -1), updated];
+        }
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: tokens.join(''),
+          timestamp: new Date()
+        };
+        return [...prev, assistantMessage];
+      });
+    }, 150);
+
     try {
-      // Send request to API
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: currentInput,
           image: image,
-          history: messages.slice(-5) // Send last 5 messages as context
-        })
+          history: messages.slice(-5)
+        }),
+        signal: abortController.signal
       });
-      setImage(null); // Clear image after sending
+      setImage(null);
 
       if (!response.ok) {
         throw new Error('فشلت عملية الاتصال بالمساعد الذكي');
       }
 
-      const data = await response.json();
-
-      // Show sentiment alert if negative sentiment detected
-      if (data.sentiment && (data.sentiment.sentiment === 'frustrated' || data.sentiment.sentiment === 'tired')) {
-        setSentimentAlert({
-          sentiment: data.sentiment.sentiment,
-          suggestions: data.sentiment.suggestions
-        });
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      if (reader) {
+        // Read streaming tokens
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            // Assume each token is separated by a newline
+            const tokens = chunk.split(/\n/).filter(Boolean);
+            tokens.forEach((t) => addToken(t));
+          }
+        }
+        // Ensure any remaining buffered tokens are flushed
+        // (addToken will flush on interval, but we can force flush by calling with empty array after abort)
+      } else {
+        // Fallback for non-streaming response
+        const data = await response.json();
+        if (data.sentiment && (data.sentiment.sentiment === 'frustrated' || data.sentiment.sentiment === 'tired')) {
+          setSentimentAlert({
+            sentiment: data.sentiment.sentiment,
+            suggestions: data.sentiment.suggestions
+          });
+        }
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: data.message,
+          timestamp: new Date(),
+          sentiment: data.sentiment
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
       }
-
-      // Add assistant response
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-        sentiment: data.sentiment
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: unknown) {
       logger.error('Error sending message:', error instanceof Error ? error.message : String(error));
-
-      // Add error message
       const errorMessage: Message = {
         role: 'assistant',
         content: 'عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى لاحقاً.',
@@ -221,6 +255,7 @@ export default function AIAssistantEnhanced({
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      abortController.abort();
     }
   };
 

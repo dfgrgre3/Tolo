@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { m } from 'framer-motion';
 import { FileText, Brain, Loader2, CheckCircle, Zap, AlertCircle, Save, X, RefreshCw, BookOpen, Calendar } from 'lucide-react';
 
@@ -27,6 +27,35 @@ interface ExamGeneratorProps {
   className?: string;
 }
 
+/**
+ * Response from POST /api/ai/exam (the new async endpoint).
+ * 202 Accepted with a jobId means the work is running in the background.
+ */
+interface ExamEnqueueResponse {
+  jobId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+}
+
+/**
+ * Response from GET /api/ai/exam/status/:jobId.
+ * - status "processing" → keep polling
+ * - status "completed"  → questions[] is populated, stop polling
+ * - status "failed"     → show error, stop polling
+ * - status "not_found"  → job expired or never existed, stop polling
+ */
+interface ExamStatusResponse {
+  status: 'processing' | 'completed' | 'failed' | 'not_found';
+  jobId?: string;
+  questions?: Question[];
+  examId?: string;
+  error?: string;
+}
+
+// Polling configuration
+const POLL_INTERVAL_MS = 1500;     // 1.5s between polls
+const POLL_TIMEOUT_MS = 120_000;   // give up after 2 minutes
+const POLL_BACKOFF_MAX_MS = 5_000; // cap exponential backoff at 5s
+
 export default function ExamGenerator({
   subjects,
   years,
@@ -39,11 +68,25 @@ export default function ExamGenerator({
   const [questionCount, setQuestionCount] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [examData, setExamData] = useState<{examId?: string;questions?: Question[];} | null>(null);
+  const [examData, setExamData] = useState<{ examId?: string; questions?: Question[] } | null>(null);
   const [error, setError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Tracks the current polling generation. Used to cancel the loop on unmount
+  // or when the user clicks "create new exam" mid-generation.
+  const abortRef = useRef<AbortController | null>(null);
+  // Lets the UI show a friendly "still working" message while we poll.
+  const [pollSeconds, setPollSeconds] = useState(0);
+
+  // Cancel any in-flight poll when the component unmounts.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
 
   const validateForm = () => {
     if (!selectedSubject || !selectedYear || !lesson) {
@@ -69,39 +112,115 @@ export default function ExamGenerator({
     return true;
   };
 
-  function handleExamApiError(responseError: any, e: React.FormEvent) {
+  /**
+   * Polls the status endpoint until the job completes, fails, or times out.
+   * Uses exponential backoff on transient network errors so we don't hammer
+   * the API when something is briefly unavailable.
+   */
+  const pollExamStatus = useCallback(
+    async (jobId: string, signal: AbortSignal): Promise<Question[] | null> => {
+      const start = Date.now();
+      let consecutiveErrors = 0;
+
+      while (Date.now() - start < POLL_TIMEOUT_MS) {
+        if (signal.aborted) return null;
+
+        // Tick the visible counter every second so the user knows we are alive.
+        const tick = window.setTimeout(() => {
+          if (!signal.aborted) {
+            setPollSeconds(Math.floor((Date.now() - start) / 1000));
+          }
+        }, 1000);
+
+        try {
+          const { data, error: responseError, response } = await safeFetch<ExamStatusResponse>(
+            `/api/ai/exam/status/${encodeURIComponent(jobId)}`,
+            { method: 'GET', signal },
+            null
+          );
+
+          window.clearTimeout(tick);
+
+          if (responseError) {
+            // 404 means the job expired or never existed — stop polling.
+            if (response?.status === 404) {
+              throw new Error('انتهت صلاحية عملية التوليد. يرجى المحاولة مرة أخرى.');
+            }
+            // Other transient errors: backoff and retry.
+            consecutiveErrors++;
+            if (consecutiveErrors > 6) {
+              throw new Error('فشل الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
+            }
+            const delay = Math.min(1000 * consecutiveErrors, POLL_BACKOFF_MAX_MS);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+
+          // Reset error counter on a successful HTTP response.
+          consecutiveErrors = 0;
+
+          if (!data) {
+            // safeFetch returned neither data nor error — extremely unusual.
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+            continue;
+          }
+
+          switch (data.status) {
+            case 'completed':
+              return data.questions ?? [];
+            case 'failed':
+              throw new Error(data.error || 'فشل توليد الامتحان');
+            case 'not_found':
+              throw new Error('انتهت صلاحية عملية التوليد. يرجى المحاولة مرة أخرى.');
+            case 'processing':
+            default:
+              // keep polling
+              break;
+          }
+        } catch (err) {
+          window.clearTimeout(tick);
+          if ((err as Error).name === 'AbortError' || signal.aborted) return null;
+          throw err;
+        }
+
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+
+      throw new Error('استغرق توليد الامتحان وقتاً طويلاً. يرجى المحاولة مرة أخرى.');
+    },
+    []
+  );
+
+  const handleExamApiError = (responseError: any) => {
     const errorMessage = responseError.message || 'فشلت عملية إنشاء الامتحان';
     setError(errorMessage);
     logger.error('Error generating exam:', responseError);
-
-    const isRetryable = errorMessage.includes('network') || errorMessage.includes('timeout');
-    if (isRetryable && retryCount < 2) {
-      setTimeout(() => {
-        setRetryCount((prev) => prev + 1);
-        handleSubmit(e);
-      }, 2000);
-    }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSaveError('');
     setSaveSuccess(false);
+    setPollSeconds(0);
 
     if (!validateForm()) return;
+
+    // Cancel any previous in-flight polling loop before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsGenerating(true);
     setExamData(null);
 
     try {
-      const { data, error: responseError } = await safeFetch<{examId?: string;questions?: Question[];}>(
+      // Step 1: enqueue the job. Backend should respond in <100ms with 202.
+      const { data: enq, error: enqError } = await safeFetch<ExamEnqueueResponse>(
         '/api/ai/exam',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subject: selectedSubject,
             year: selectedYear,
@@ -109,30 +228,64 @@ export default function ExamGenerator({
             difficulty: difficulty && difficulty !== 'none' ? difficulty : undefined,
             questionCount: Math.min(Math.max(1, questionCount), 50),
             provider: 'gemini'
-          })
+          }),
+          signal: controller.signal
         },
         null
       );
 
-      if (responseError) {
-        handleExamApiError(responseError, e);
+      if (enqError) {
+        handleExamApiError(enqError);
         return;
       }
 
-      if (!data || !data.questions || data.questions.length === 0) {
-        setError(!data ? 'لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.' : 'لم يتم إنشاء أي أسئلة. يرجى المحاولة مرة أخرى.');
+      if (!enq) {
+        setError('لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
         return;
       }
 
-      setExamData(data);
-      setRetryCount(0);
+      // Step 2: the backend accepted the job and gave us a jobId, OR the
+      // backend ran synchronously (no jobId, but the response already
+      // contains questions). We try to handle both shapes for backward
+      // compatibility with the legacy sync path that returns immediately
+      // when Redis is unavailable.
+      const legacyQuestions = (enq as unknown as { questions?: Question[] }).questions;
+      if (enq.jobId) {
+        const questions = await pollExamStatus(enq.jobId, controller.signal);
+        if (controller.signal.aborted) return; // user navigated away or reset
+        if (!questions || questions.length === 0) {
+          setError('لم يتم إنشاء أي أسئلة. يرجى المحاولة مرة أخرى.');
+          return;
+        }
+        setExamData({ questions });
+        setRetryCount(0);
+      } else if (legacyQuestions && legacyQuestions.length > 0) {
+        // Legacy synchronous path: the server already returned the questions
+        // in the enqueue response (this happens when Redis is not configured).
+        setExamData({ questions: legacyQuestions });
+      } else {
+        setError('لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
+      }
     } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') {
+        // User cancelled or unmounted — don't show an error.
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : String(err);
       logger.error('Error generating exam:', errorMessage);
       setError(errorMessage);
     } finally {
-      setIsGenerating(false);
+      if (!controller.signal.aborted) {
+        setIsGenerating(false);
+        setPollSeconds(0);
+      }
     }
+  };
+
+  const handleRetryEnqueue = () => {
+    setRetryCount(0);
+    // Re-submit using a synthetic event so we don't have to duplicate logic.
+    handleSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
   const handleSaveExam = useCallback(async () => {
@@ -153,13 +306,11 @@ export default function ExamGenerator({
     try {
       const examTitle = `امتحان ${selectedSubject} - ${lesson} (${selectedYear})`;
 
-      const { data: examResult, error: examError } = await safeFetch<{success: boolean;exam: {id: string;};}>(
+      const { data: examResult, error: examError } = await safeFetch<{ success: boolean; exam: { id: string } }>(
         '/api/exams',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subject: selectedSubject,
             title: examTitle,
@@ -313,14 +464,11 @@ export default function ExamGenerator({
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <AlertDescription>{error}</AlertDescription>
-                  {(error.includes('network') || error.includes('timeout')) && (
+                  {(error.includes('network') || error.includes('timeout') || error.includes('انتهت صلاحية') || error.includes('استغرق')) && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setRetryCount(0);
-                        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-                      }}
+                      onClick={handleRetryEnqueue}
                       className="mt-2 border-red-500/30 text-red-400 hover:bg-red-500/20"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
@@ -329,6 +477,12 @@ export default function ExamGenerator({
                   )}
                 </div>
               </Alert>
+            )}
+
+            {isGenerating && (
+              <div className="text-xs text-blue-300/80 text-center" aria-live="polite">
+                جاري إنشاء الامتحان في الخلفية{pollSeconds > 0 ? ` (${pollSeconds} ثانية)` : '...'} — يمكنك متابعة استخدام الموقع.
+              </div>
             )}
 
             <Button
@@ -448,6 +602,9 @@ export default function ExamGenerator({
             <div className="flex gap-3">
               <Button
                 onClick={() => {
+                  // Cancel any in-flight polling and reset to the form.
+                  abortRef.current?.abort();
+                  abortRef.current = null;
                   setExamData(null);
                   setError('');
                   setSaveError('');

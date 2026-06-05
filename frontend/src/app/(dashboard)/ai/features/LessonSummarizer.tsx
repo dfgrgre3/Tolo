@@ -1,31 +1,55 @@
 'use client';
 
+// Re-build trigger: 2026-06-06 — Async job queue pattern
+
 import React, { useState } from 'react';
 import { m } from 'framer-motion';
-import { FileText, Map, Sparkles, Copy, Loader2, ListChecks, Brain } from 'lucide-react';
+import { FileText, Map, Sparkles, Copy, Loader2, ListChecks, Brain, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { safeFetch } from '@/lib/safe-client-utils';
+import { pollAIJobResult } from '@/../../lib/pollJobResult';
 import ReactMarkdown from 'react-markdown';
 
 export default function LessonSummarizer() {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const generateSummary = async () => {
     setIsLoading(true);
+    setError(null);
+    setSummary(null);
     try {
-      const { data } = await safeFetch<{ summary: string }>('/api/ai/summarize', {
-        method: 'POST',
-        body: JSON.stringify({ content }),
-      });
-      if (data) setSummary(data.summary);
-    } catch (e) {
-      console.error(e);
+      // Step 1 — enqueue the job (returns 202 + jobId in < 50 ms)
+      const { data, error: fetchErr } = await safeFetch<{ jobId: string; status: string }>(
+        '/api/ai/summarize',
+        {
+          method: 'POST',
+          body: JSON.stringify({ content }),
+        },
+      );
+
+      if (fetchErr || !data?.jobId) {
+        setError('فشل في إرسال الطلب. حاول مرة أخرى.');
+        return;
+      }
+
+      // Step 2 — poll every 1.5 s until completed/failed
+      const result = await pollAIJobResult<{ summary: string; result: string }>(
+        data.jobId,
+        '/api/ai/summarize/status',
+        1500,
+      );
+
+      setSummary(result.summary ?? result.result ?? '');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +86,7 @@ export default function LessonSummarizer() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                  جاري التلخيص...
+                  جاري التلخيص... (قد يستغرق بضع ثوانٍ)
                 </>
               ) : (
                 <>
@@ -72,6 +96,17 @@ export default function LessonSummarizer() {
               )}
             </Button>
           </div>
+
+          {error && (
+            <m.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
+            >
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-sm font-medium">{error}</p>
+            </m.div>
+          )}
         </div>
       </Card>
 
