@@ -47,9 +47,7 @@ ENV NODE_OPTIONS="--max-old-space-size=1536"
 # Graceful shutdown timeout
 ENV GRACEFUL_SHUTDOWN_TIMEOUT 60000
 # Uncomment the following line in case you want to disable telemetry during runtime.
-RUN apk add --no-cache wget dumb-init && \
-    addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN apk add --no-cache wget dumb-init
 
 
 # Copy the standalone output
@@ -60,7 +58,7 @@ COPY --from=builder --chmod=555 /app/public ./public
 COPY --from=builder --chmod=555 /app/.next/standalone ./
 COPY --from=builder --chmod=555 /app/.next/static ./.next/static
 
-USER nextjs
+USER node
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

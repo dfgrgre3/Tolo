@@ -10,7 +10,6 @@ networks:
 volumes:
   postgres-data:
   redis-data:
-  uploads-data:
 
 services:
   postgres:
@@ -71,6 +70,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://api.your-app.com/api
+      INTERNAL_API_URL: http://backend:8082
       NEXT_TELEMETRY_DISABLED: "1"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/healthz"]
@@ -86,3 +86,27 @@ services:
         reservations:
           cpus: "0.5"
           memory: "512M"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - thanawy-net
+    ports:
+      - "8082:8082"
+    environment:
+      NODE_ENV: production
+      PORT: 8082
+      GIN_MODE: release
+    env_file:
+      - ../backend/.env
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "1G"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"

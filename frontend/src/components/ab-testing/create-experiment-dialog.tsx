@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { AdminButton } from "@/components/admin/ui/admin-button";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,20 +145,20 @@ export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({
         </div>
         
         <DialogFooter>
-          <AdminButton
+          <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
             className="gap-2">
             
             <X className="w-4 h-4" /> إلغاء
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             className="gap-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700"
             onClick={handleCreate}
             disabled={isCreating}>
             
             <Plus className="w-4 h-4" /> {isCreating ? "جاري الإنشاء..." : "إنشاء التجربة"}
-          </AdminButton>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>);

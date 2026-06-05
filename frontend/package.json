@@ -124,6 +124,10 @@
     "@simplewebauthn/typescript-types": "npm:@simplewebauthn/types@^12.0.0",
     "cookie": "^0.7.2",
     "js-cookie": "^3.0.7",
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "@connectrpc/protoc-gen-connect-es": {
+      "@bufbuild/protoc-gen-es": "$@bufbuild/protoc-gen-es",
+      "@connectrpc/connect": "$@connectrpc/connect"
+    }
   }
 }

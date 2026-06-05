@@ -1,7 +1,7 @@
-﻿import * as React from "react";
-import { AdminCard } from "@/components/admin/ui/admin-card";
-import { AdminButton } from "@/components/admin/ui/admin-button";
-import { StatusBadge } from "@/components/admin/ui/admin-badge";
+import * as React from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Pause, Play, Search } from "lucide-react";
 import { m } from "framer-motion";
 import { Experiment } from "@/types/ab-testing";
@@ -25,12 +25,14 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
     >
-      <AdminCard variant="glass" className={`p-0 overflow-hidden border-2 ${experiment.status === 'active' ? 'border-primary shadow-[0_4px_30px_rgba(var(--primary),0.1)]' : 'border-border/50 opacity-80'}`}>
+      <Card className={`p-0 overflow-hidden border-2 bg-card/50 backdrop-blur-sm ${experiment.status === 'active' ? 'border-primary shadow-[0_4px_30px_rgba(var(--primary),0.1)]' : 'border-border/50 opacity-80'}`}>
         {/* Header */}
         <div className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 ${experiment.status === 'active' ? 'bg-primary/5' : 'bg-muted/30'}`}>
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-2">
-              <StatusBadge status={experiment.status === 'active' ? 'active' : 'inactive'} />
+              <Badge variant={experiment.status === 'active' ? 'default' : 'secondary'}>
+                {experiment.status === 'active' ? 'نشط' : experiment.status === 'paused' ? 'موقوف مؤقتاً' : 'مكتمل'}
+              </Badge>
               <span className="text-xs text-muted-foreground font-bold tracking-widest uppercase">
                _started in {experiment.startDate}
               </span>
@@ -51,64 +53,62 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
           <div className="flex flex-wrap gap-2">
             {experiment.status === 'active' ? (
               <>
-                <AdminButton 
+                <Button 
                   variant="outline" 
                   size="sm" 
-                  icon={Pause} 
-                  className="font-bold border-amber-500/50 hover:bg-amber-500/10 text-amber-500"
+                  className="font-bold border-amber-500/50 hover:bg-amber-500/10 text-amber-500 gap-2"
                   onClick={() => onToggleStatus(experiment.id, 'paused')}
                 >
-                  إيقاف مؤقت
-                </AdminButton>
-                <AdminButton 
+                  <Pause className="w-4 h-4" /> إيقاف مؤقت
+                </Button>
+                <Button 
                   variant="default" 
                   size="sm" 
                   className="font-bold bg-foreground text-background"
                   onClick={() => onDeclareWinner(experiment.id, 'A')}
                 >
                   إعلان الفائز (A)
-                </AdminButton>
-                <AdminButton 
+                </Button>
+                <Button 
                   variant="default" 
                   size="sm" 
                   className="font-bold bg-foreground text-background"
                   onClick={() => onDeclareWinner(experiment.id, 'B')}
                 >
                   إعلان الفائز (B)
-                </AdminButton>
+                </Button>
               </>
             ) : experiment.status === 'paused' ? (
               <>
-                <AdminButton 
+                <Button 
                   variant="outline" 
                   size="sm" 
-                  icon={Play} 
-                  className="font-bold border-green-500/50 hover:bg-green-500/10 text-green-500"
+                  className="font-bold border-green-500/50 hover:bg-green-500/10 text-green-500 gap-2"
                   onClick={() => onToggleStatus(experiment.id, 'active')}
                 >
-                  استئناف
-                </AdminButton>
-                <AdminButton 
+                  <Play className="w-4 h-4" /> استئناف
+                </Button>
+                <Button 
                   variant="default" 
                   size="sm" 
                   className="font-bold bg-foreground text-background"
                   onClick={() => onDeclareWinner(experiment.id, 'A')}
                 >
                   إعلان الفائز (A)
-                </AdminButton>
-                <AdminButton 
+                </Button>
+                <Button 
                   variant="default" 
                   size="sm" 
                   className="font-bold bg-foreground text-background"
                   onClick={() => onDeclareWinner(experiment.id, 'B')}
                 >
                   إعلان الفائز (B)
-                </AdminButton>
+                </Button>
               </>
             ) : (
-              <AdminButton variant="outline" size="sm" icon={Search} className="font-bold">
-                تقرير تفصيلي
-              </AdminButton>
+              <Button variant="outline" size="sm" className="font-bold gap-2">
+                <Search className="w-4 h-4" /> تقرير تفصيلي
+              </Button>
             )}
           </div>
         </div>
@@ -198,7 +198,7 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
             </div>
           </div>
         </div>
-      </AdminCard>
+      </Card>
     </m.div>
   );
 };

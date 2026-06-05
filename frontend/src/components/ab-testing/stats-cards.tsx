@@ -1,4 +1,4 @@
-﻿import { AdminCard } from "@/components/admin/ui/admin-card";
+import { Card } from "@/components/ui/card";
 import { TrendingUp, Activity, BarChart3 } from "lucide-react";
 import { Experiment } from "@/types/ab-testing";
 
@@ -15,7 +15,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
 
   return (
     <div className="grid gap-6 md:grid-cols-4">
-      <AdminCard variant="glass" className="p-6 border-emerald-500/20 shadow-sm flex items-center justify-between">
+      <Card className="p-6 border-emerald-500/20 shadow-sm flex items-center justify-between bg-card/50 backdrop-blur-sm">
         <div>
           <p className="text-sm font-bold text-muted-foreground mb-1">المحاربون المجربون (Traffic)</p>
           <h3 className="text-4xl font-black text-emerald-500">{totalParticipants}</h3>
@@ -23,8 +23,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
           <UsersIcon className="w-7 h-7" />
         </div>
-      </AdminCard>
-      <AdminCard variant="glass" className="p-6 border-teal-500/20 shadow-sm flex items-center justify-between">
+      </Card>
+      <Card className="p-6 border-teal-500/20 shadow-sm flex items-center justify-between bg-card/50 backdrop-blur-sm">
         <div>
           <p className="text-sm font-bold text-muted-foreground mb-1">النمو المُضاف من التجارب</p>
           <h3 className="text-4xl font-black text-teal-500">+28%</h3>
@@ -32,8 +32,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         <div className="w-14 h-14 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-500">
           <TrendingUp className="w-7 h-7" />
         </div>
-      </AdminCard>
-      <AdminCard variant="glass" className="p-6 border-blue-500/20 shadow-sm flex items-center justify-between">
+      </Card>
+      <Card className="p-6 border-blue-500/20 shadow-sm flex items-center justify-between bg-card/50 backdrop-blur-sm">
         <div>
           <p className="text-sm font-bold text-muted-foreground mb-1">تجارب نشطة الآن</p>
           <h3 className="text-4xl font-black text-blue-500">{activeExperiments}</h3>
@@ -41,8 +41,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
           <Activity className="w-7 h-7" />
         </div>
-      </AdminCard>
-      <AdminCard variant="glass" className="p-6 border-purple-500/20 shadow-sm flex items-center justify-between">
+      </Card>
+      <Card className="p-6 border-purple-500/20 shadow-sm flex items-center justify-between bg-card/50 backdrop-blur-sm">
         <div>
           <p className="text-sm font-bold text-muted-foreground mb-1">إجمالي التجارب</p>
           <h3 className="text-4xl font-black text-purple-500">{safeExperiments.length}</h3>
@@ -50,7 +50,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500">
           <BarChart3 className="w-7 h-7" />
         </div>
-      </AdminCard>
+      </Card>
     </div>
   );
 };
