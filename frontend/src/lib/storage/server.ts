@@ -47,7 +47,6 @@ export async function uploadFileServer(options: UploadOptions): Promise<UploadRe
     type: file.type,
     lastModified: file.lastModified,
     uploadedAt: new Date().toISOString(),
-    etag: data.etag || undefined,
   };
 
   return {
@@ -62,15 +61,10 @@ export async function getSignedUrlServer(options: SignedUrlOptions): Promise<str
   const supabase = await getSupabaseServerClient();
   const { bucket, path, expiresIn = 3600, download = false, transform } = options;
 
-  let query = supabase.storage.from(bucket).createSignedUrl(path, expiresIn, {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn, {
     download: download ? "attachment" : undefined,
+    ...(transform ? { transform: transform as Record<string, unknown> } : {}),
   });
-
-  if (transform) {
-    query = query.transform(transform as Record<string, unknown>);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to create signed URL: ${error.message}`);
@@ -99,7 +93,15 @@ export async function listFilesServer(options: ListFilesOptions): Promise<FileLi
     throw new Error(`Failed to list files: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []).map((f) => ({
+    name: f.name,
+    id: f.id || "",
+    updated_at: f.updated_at || "",
+    created_at: f.created_at || "",
+    last_accessed_at: f.last_accessed_at || "",
+    metadata: (f.metadata || {}) as Record<string, unknown>,
+    size: (f.metadata && typeof f.metadata === 'object' && 'size' in f.metadata) ? Number((f.metadata as any).size) : 0,
+  }));
 }
 
 export async function deleteFilesServer(options: DeleteOptions): Promise<void> {
@@ -191,13 +193,21 @@ export async function updateBucketServer(
 ): Promise<BucketInfo> {
   const supabase = await getSupabaseServerClient();
 
-  const { data, error } = await supabase.storage.updateBucket(name, options);
+  const updatePayload: any = {};
+  if (options.public !== undefined) updatePayload.public = options.public;
+  if (options.fileSizeLimit !== undefined) updatePayload.fileSizeLimit = options.fileSizeLimit;
+  if (options.allowedMimeTypes !== undefined) updatePayload.allowedMimeTypes = options.allowedMimeTypes;
+  const { data, error } = await supabase.storage.updateBucket(name, updatePayload);
 
   if (error) {
     throw new Error(`Failed to update bucket: ${error.message}`);
   }
 
-  return data as BucketInfo;
+  if (!data) {
+    throw new Error("Failed to update bucket: No data returned");
+  }
+
+  return data as unknown as BucketInfo;
 }
 
 export async function deleteBucketServer(name: string): Promise<void> {
@@ -231,38 +241,3 @@ export function getImageTransformUrlServer(
   }).data.publicUrl;
 }
 
-export function generateUserPath(userId: string, fileName: string, folder?: string): string {
-  const timestamp = Date.now();
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const basePath = folder ? `${folder}/${userId}` : userId;
-  return `${basePath}/${timestamp}-${sanitizedName}`;
-}
-
-export function generatePublicPath(fileName: string, folder?: string): string {
-  const timestamp = Date.now();
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const basePath = folder || "public";
-  return `${basePath}/${timestamp}-${sanitizedName}`;
-}
-
-export function validateFileType(file: File, allowedTypes: string[]): boolean {
-  if (allowedTypes.length === 0) return true;
-  return allowedTypes.some((type) => {
-    if (type.endsWith("/*")) {
-      return file.type.startsWith(type.slice(0, -1));
-    }
-    return file.type === type;
-  });
-}
-
-export function validateFileSize(file: File, maxSizeBytes: number): boolean {
-  return file.size <= maxSizeBytes;
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}

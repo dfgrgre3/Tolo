@@ -12,6 +12,19 @@ import type {
   ImageTransformOptions,
 } from "./types";
 
+export type {
+  UploadOptions,
+  UploadResult,
+  FileMetadata,
+  SignedUrlOptions,
+  ListFilesOptions,
+  FileListItem,
+  DeleteOptions,
+  CreateBucketOptions,
+  BucketInfo,
+  ImageTransformOptions,
+};
+
 const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -46,7 +59,6 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
     type: file.type,
     lastModified: file.lastModified,
     uploadedAt: new Date().toISOString(),
-    etag: data.etag || undefined,
   };
 
   if (onProgress) {
@@ -62,100 +74,33 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
 }
 
 export async function uploadLargeFile(options: UploadOptions): Promise<UploadResult> {
-  const supabase = getSupabaseClient();
-  const { bucket, path, file, upsert = false, contentType, cacheControl = "3600", onProgress } = options;
+  const { file, onProgress } = options;
 
   if (file.size <= MAX_FILE_SIZE) {
     return uploadFile(options);
   }
 
-  const chunkSize = DEFAULT_CHUNK_SIZE;
-  const totalChunks = Math.ceil(file.size / chunkSize);
-  let uploadedChunks = 0;
-
-  const uploadId = crypto.randomUUID();
-  const tempPath = `${path}.upload-${uploadId}`;
-
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * chunkSize;
-    const end = Math.min(start + chunkSize, file.size);
-    const chunk = file.slice(start, end);
-
-    const chunkPath = `${tempPath}/chunk-${i}`;
-
-    const { error } = await supabase.storage.from(bucket).upload(chunkPath, chunk, {
-      upsert: true,
-      contentType: contentType || file.type,
-      cacheControl,
-    });
-
-    if (error) {
-      await cleanupChunks(bucket, tempPath, totalChunks);
-      throw new Error(`Chunk upload failed: ${error.message}`);
-    }
-
-    uploadedChunks++;
-    if (onProgress) {
-      onProgress(Math.round((uploadedChunks / totalChunks) * 90));
-    }
+  if (onProgress) {
+    onProgress(0);
   }
 
-  const { data: manifestData, error: manifestError } = await supabase.storage
-    .from(bucket)
-    .createManifest(tempPath, {
-      destination: path,
-      upsert,
-    });
-
-  if (manifestError) {
-    await cleanupChunks(bucket, tempPath, totalChunks);
-    throw new Error(`Failed to assemble file: ${manifestError.message}`);
-  }
-
-  await cleanupChunks(bucket, tempPath, totalChunks);
+  const result = await uploadFile(options);
 
   if (onProgress) {
     onProgress(100);
   }
 
-  const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(path);
-
-  const metadata: FileMetadata = {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    lastModified: file.lastModified,
-    uploadedAt: new Date().toISOString(),
-    etag: manifestData?.etag,
-  };
-
-  return {
-    path: manifestData?.path || path,
-    fullPath: manifestData?.fullPath || path,
-    publicUrl: publicUrlData.publicUrl,
-    metadata,
-  };
-}
-
-async function cleanupChunks(bucket: string, tempPath: string, totalChunks: number) {
-  const supabase = getSupabaseClient();
-  const paths = Array.from({ length: totalChunks }, (_, i) => `${tempPath}/chunk-${i}`);
-  await supabase.storage.from(bucket).remove(paths);
+  return result;
 }
 
 export async function getSignedUrl(options: SignedUrlOptions): Promise<string> {
   const supabase = getSupabaseClient();
   const { bucket, path, expiresIn = 3600, download = false, transform } = options;
 
-  let query = supabase.storage.from(bucket).createSignedUrl(path, expiresIn, {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn, {
     download: download ? "attachment" : undefined,
+    ...(transform ? { transform: transform as Record<string, unknown> } : {}),
   });
-
-  if (transform) {
-    query = query.transform(transform as Record<string, unknown>);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to create signed URL: ${error.message}`);
@@ -184,7 +129,15 @@ export async function listFiles(options: ListFilesOptions): Promise<FileListItem
     throw new Error(`Failed to list files: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []).map((f) => ({
+    name: f.name,
+    id: f.id || "",
+    updated_at: f.updated_at || "",
+    created_at: f.created_at || "",
+    last_accessed_at: f.last_accessed_at || "",
+    metadata: (f.metadata || {}) as Record<string, unknown>,
+    size: (f.metadata && typeof f.metadata === 'object' && 'size' in f.metadata) ? Number((f.metadata as any).size) : 0,
+  }));
 }
 
 export async function deleteFiles(options: DeleteOptions): Promise<void> {
@@ -276,13 +229,21 @@ export async function updateBucket(
 ): Promise<BucketInfo> {
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase.storage.updateBucket(name, options);
+  const updatePayload: any = {};
+  if (options.public !== undefined) updatePayload.public = options.public;
+  if (options.fileSizeLimit !== undefined) updatePayload.fileSizeLimit = options.fileSizeLimit;
+  if (options.allowedMimeTypes !== undefined) updatePayload.allowedMimeTypes = options.allowedMimeTypes;
+  const { data, error } = await supabase.storage.updateBucket(name, updatePayload);
 
   if (error) {
     throw new Error(`Failed to update bucket: ${error.message}`);
   }
 
-  return data as BucketInfo;
+  if (!data) {
+    throw new Error("Failed to update bucket: No data returned");
+  }
+
+  return data as unknown as BucketInfo;
 }
 
 export async function deleteBucket(name: string): Promise<void> {

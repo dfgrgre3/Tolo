@@ -4,7 +4,7 @@ import * as React from "react";
 import { Upload, Loader2, AlertCircle, CheckCircle, X, FileIcon, Image, Video, Music, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUpload, type UseUploadOptions } from "@/hooks/use-upload";
-import { formatFileSize, isImageFile, isVideoFile, isAudioFile, isDocumentFile } from "@/lib/storage";
+import { formatFileSize, isImageFile, isVideoFile, isAudioFile, isDocumentFile } from "@/lib/storage/client";
 
 interface FileItem {
   file: File;
@@ -16,7 +16,7 @@ interface FileItem {
   result?: { url: string; path: string };
 }
 
-interface UploadZoneProps extends Omit<UseUploadOptions, "bucket"> {
+export interface UploadZoneProps extends Omit<UseUploadOptions, "bucket"> {
   bucket: string;
   multiple?: boolean;
   maxFiles?: number;
@@ -399,7 +399,7 @@ export function UploadZone({
   );
 }
 
-interface SingleFileUploadProps extends Omit<UseUploadOptions, "bucket"> {
+export interface SingleFileUploadProps extends Omit<UseUploadOptions, "bucket"> {
   bucket: string;
   value?: string;
   onChange?: (url: string) => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { uploadFile, uploadLargeFile, generateUserPath, validateFileType, validateFileSize, type UploadOptions, type UploadResult, type FileMetadata } from "@/lib/storage";
+import { uploadFile, uploadLargeFile, generateUserPath, validateFileType, validateFileSize, type UploadOptions, type UploadResult, type FileMetadata } from "@/lib/storage/client";
 
 export interface UseUploadOptions {
   bucket: string;
@@ -199,7 +199,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
       setError(null);
 
       try {
-        const { listFiles: listFilesUtil } = await import("@/lib/storage");
+        const { listFiles: listFilesUtil } = await import("@/lib/storage/client");
         const files = await listFilesUtil({
           bucket,
           folder: listOptions.folder || folder || "",
@@ -231,7 +231,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
       setError(null);
 
       try {
-        const { deleteFiles: deleteFilesUtil } = await import("@/lib/storage");
+        const { deleteFiles: deleteFilesUtil } = await import("@/lib/storage/client");
         await deleteFilesUtil({ bucket, paths });
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Failed to delete files");
@@ -250,7 +250,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
       setError(null);
 
       try {
-        const { moveFile: moveFileUtil } = await import("@/lib/storage");
+        const { moveFile: moveFileUtil } = await import("@/lib/storage/client");
         await moveFileUtil(bucket, fromPath, toPath);
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Failed to move file");
@@ -269,7 +269,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
       setError(null);
 
       try {
-        const { copyFile: copyFileUtil } = await import("@/lib/storage");
+        const { copyFile: copyFileUtil } = await import("@/lib/storage/client");
         await copyFileUtil(bucket, fromPath, toPath);
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Failed to copy file");
@@ -284,7 +284,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
 
   const getSignedUrl = useCallback(
     async (path: string, expiresIn = 3600) => {
-      const { getSignedUrl: getSignedUrlUtil } = await import("@/lib/storage");
+      const { getSignedUrl: getSignedUrlUtil } = await import("@/lib/storage/client");
       return getSignedUrlUtil({ bucket, path, expiresIn });
     },
     [bucket]
@@ -292,7 +292,7 @@ export function useFileManager(options: UseFileManagerOptions): UseFileManagerRe
 
   const getPublicUrl = useCallback(
     async (path: string) => {
-      const { getPublicUrl: getPublicUrlUtil } = await import("@/lib/storage");
+      const { getPublicUrl: getPublicUrlUtil } = await import("@/lib/storage/client");
       return getPublicUrlUtil(bucket, path);
     },
     [bucket]
