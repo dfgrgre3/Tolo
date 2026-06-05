@@ -2,10 +2,15 @@ node_modules
 # Keep environment variables out of version control
 .env
 
-/generated/prisma
+# Prisma has been moved to the backend (d:/backend/prisma/).
+# There are no Prisma artifacts in this frontend project.
 
 .vercel
 .env*
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# User-uploaded files — must NEVER be committed or bundled.
+# All uploads must go to Supabase Storage (stateless cloud architecture).
+/public/uploads/

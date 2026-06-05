@@ -124,3 +124,6 @@ docker-compose.override.yml
 node_modules/ 
 **/node_modules/ 
 .env*
+
+# Markdown files (must never be committed)
+*.md

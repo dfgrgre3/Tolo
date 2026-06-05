@@ -36,6 +36,12 @@ Thumbs.db
 backend
 clerk-nextjs
 
+# Database tooling — belongs in backend, not frontend.
+# If these files accidentally appear here, exclude them from Vercel builds.
+prisma
+prisma.config.ts
+generated
+
 # Docker/local deployment files
 Dockerfile
 Dockerfile.*

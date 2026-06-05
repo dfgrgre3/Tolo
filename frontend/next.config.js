@@ -103,18 +103,11 @@ const nextConfig = {
   // Enable compression
   compress: true,
 
-  async rewrites() {
-    // NOTE: /api/* requests are handled by the Next.js catch-all route at
-    // src/app/api/[...path]/route.ts which proxies to the backend.
-    // We do NOT add a rewrite for /api/* here because it would take priority
-    // over local API handlers like /api/analytics/web-vitals and /api/cache/*.
-    return [
-      {
-        source: '/uploads/:path*',
-        destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api').replace(/\/api\/?$/, '')}/uploads/:path*`,
-      },
-    ];
-  },
+  // NOTE: /api/* requests are handled by the Next.js catch-all route at
+  // src/app/api/[...path]/route.ts which proxies to the backend.
+  // We do NOT add rewrites for /api/* or /uploads/* here — all media must be
+  // served from Supabase Storage CDN (stateless cloud architecture).
+  // Local /uploads paths are NOT supported in production.
 
   // Remove powered by header
   poweredByHeader: false,

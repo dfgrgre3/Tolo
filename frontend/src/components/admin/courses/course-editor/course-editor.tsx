@@ -171,8 +171,8 @@ export function CourseEditor({
   const { isDirectVideo, youtubeEmbedUrl } = React.useMemo(() => {
     const isDirectVideo =
       !!trailerUrl &&
-      (/^\/uploads\//.test(trailerUrl) ||
-        /\.(mp4|webm|ogg|mov|avi|mkv|mpeg)(\?.*)?$/i.test(trailerUrl));
+      // Matches absolute CDN URLs (Supabase Storage, S3, etc.) ending with video extensions
+      (/^https?:\/\/.+\.(mp4|webm|ogg|mov|avi|mkv|mpeg)(\?.*)?$/i.test(trailerUrl));
     const youtubeMatch = trailerUrl?.match(
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/i,
     );

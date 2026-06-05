@@ -30,7 +30,14 @@ const AUTH_REFRESH_ENDPOINT = '/api/auth/refresh';
 const API_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
+// IMPORTANT: Do NOT include 500 or 503 here.
+// 503 means the backend is overwhelmed (DB pool exhaustion, cold start, etc.).
+// Retrying a 503 immediately multiplies the load by MAX_RETRIES × — making
+// pool exhaustion catastrophically worse (thundering herd).
+// 500 is a server-side logic error and is not transient by definition.
+// Only retry transient network/gateway errors: timeout(408), rate-limit(429),
+// bad-gateway(502), and gateway-timeout(504).
+const RETRYABLE_STATUSES = [408, 429, 502, 504];
 const RETRYABLE_METHODS = ['GET', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'];
 
 class ApiError extends Error {
@@ -47,7 +54,10 @@ class ApiError extends Error {
     }
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+    // Add ±10% jitter to prevent thundering herd: when many clients retry
+    // simultaneously they would hammer the backend in lockstep without jitter.
+    new Promise((resolve) => setTimeout(resolve, ms + Math.random() * ms * 0.1));
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 

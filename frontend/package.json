@@ -108,7 +108,6 @@
     "jsdom": "^29.1.1",
     "knip": "^6.7.0",
     "postcss": "^8.5.15",
-    "prisma": "^7.8.0",
     "tailwindcss": "^4.1.18",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
