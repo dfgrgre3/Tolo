@@ -21,11 +21,9 @@ async function parseErrorMessage(response: Response): Promise<string> {
     const text = await response.text();
     console.log("DEBUG [parseErrorMessage]: status=", response.status, "body=", text);
     
-    // Try to parse as JSON
     try {
       const payload = JSON.parse(text);
       
-      // Try different error field formats
       if (typeof payload?.error === 'string') {
         return payload.error;
       }
@@ -38,12 +36,10 @@ async function parseErrorMessage(response: Response): Promise<string> {
       if (typeof payload?.details === 'string') {
         return payload.details;
       }
-      // If it's a successful response but didn't meet expectations
       if (payload?.success === false && typeof payload?.error !== 'string') {
         return `Backend error (${response.status})`;
       }
     } catch {
-      // Not JSON - return raw text limited to 500 chars
       return text.substring(0, 500);
     }
   } catch (err) {
@@ -98,12 +94,14 @@ function mapFrontendPatchToBackend(patch: SettingsPreferencesPatch): any {
   return flat;
 }
 
-export async function fetchSettingsPreferences(): Promise<SettingsPreferences> {
-  const response = await fetch('/api/settings/preferences', {
+type FetchLike = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+
+export async function fetchSettingsPreferences(fetchFn: typeof fetch = fetch): Promise<SettingsPreferences> {
+  const response = await fetchFn('/api/settings/preferences', {
     method: 'GET',
     credentials: 'include',
     cache: 'no-store',
-  });
+  } as RequestInit);
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response));
@@ -114,17 +112,18 @@ export async function fetchSettingsPreferences(): Promise<SettingsPreferences> {
 }
 
 export async function saveSettingsPreferences(
-  patch: SettingsPreferencesPatch
+  patch: SettingsPreferencesPatch,
+  fetchFn: typeof fetch = fetch
 ): Promise<SettingsPreferences> {
   const flatPatch = mapFrontendPatchToBackend(patch);
   console.log("DEBUG [saveSettingsPreferences]: Sending patch:", JSON.stringify(flatPatch));
   
-  const response = await fetch('/api/settings/preferences', {
+  const response = await fetchFn('/api/settings/preferences', {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(flatPatch),
-  });
+  } as RequestInit);
 
   if (!response.ok) {
     const errorMsg = await parseErrorMessage(response);

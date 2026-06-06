@@ -9,7 +9,8 @@
     "lint:frontend": "npm run lint --prefix frontend",
     "test:frontend": "npm run test --prefix frontend",
     "audit": "node scripts/comprehensive-error-check.mjs",
-    "audit:fix": "node scripts/comprehensive-error-check.mjs --fix"
+    "audit:fix": "node scripts/comprehensive-error-check.mjs --fix",
+    "build": "npm run build:frontend"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.4.1",

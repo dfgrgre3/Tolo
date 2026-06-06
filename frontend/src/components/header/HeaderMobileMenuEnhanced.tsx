@@ -41,7 +41,7 @@ export function HeaderMobileMenuEnhanced({
   const searchParams = useSearchParams();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, fetchWithAuth } = useAuth();
 
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,12 +94,12 @@ export function HeaderMobileMenuEnhanced({
       try {
         await saveSettingsPreferences({
           appearance: { theme: nextTheme }
-        });
+        }, fetchWithAuth);
       } catch (error) {
         logger.error("Failed to sync theme preference in MobileMenu:", error);
       }
     }
-  }, [theme, setTheme, user?.id]);
+  }, [theme, setTheme, user?.id, fetchWithAuth]);
 
   const overlayVariants = useMemo(
     () => ({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2, ease: "easeOut" as const } }),

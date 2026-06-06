@@ -47,7 +47,11 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }: HeaderSearchProps) {
   const router = useRouter();
-  const { isEfficiencyMode, toggleEfficiencyMode } = useEfficiency();
+  const { isEfficiencyMode, setMode } = useEfficiency();
+  const toggleEfficiencyMode = () => {
+    // Toggle between performance and lite (lightweight shortcut)
+    setMode(isEfficiencyMode ? "performance" : "lite");
+  };
   const [isSearchOpen, setIsSearchOpen] = useState(isOpen || false);
   const [searchQuery, setSearchQuery] = useState("");
 

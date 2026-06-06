@@ -1,0 +1,119 @@
+/* =============================================
+   ULTRA-LITE MODE - Additional Rules
+   Imported at the end of globals.css
+   This file contains the rules that were too long
+   to inline in globals.css without truncation.
+   ============================================= */
+
+.ultra-lite-mode iframe[data-lazy-iframe],
+.ultra-lite-mode iframe[src*="youtube"] {
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+}
+
+/* When user explicitly opts to keep YouTube iframe, mark with this class */
+.ultra-lite-mode .ultra-lite-keep,
+.ultra-lite-mode iframe.ultra-lite-keep {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 1 !important;
+  position: relative !important;
+}
+
+/* Adaptive images: smaller default in ultra-lite */
+.ultra-lite-mode [data-adaptive-image] img {
+  image-rendering: pixelated !important;
+  filter: contrast(0.95) !important;
+}
+
+/* Performance marker */
+.ultra-lite-mode [data-perf-marker] {
+  display: inline-block;
+  background: hsl(var(--primary));
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+/* Disable heavy hover effects on cards in ultra-lite */
+.ultra-lite-mode .card-hover-effect:hover {
+  transform: none !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Adaptive video: replace with thumbnail if no poster */
+.ultra-lite-mode [data-adaptive-video] {
+  position: relative;
+  background: hsl(var(--muted));
+  min-height: 150px;
+}
+
+/* Hide the YouTube player (replace with link) */
+.ultra-lite-mode iframe[src*="youtube"]:not(.ultra-lite-keep) {
+  display: none !important;
+}
+.ultra-lite-mode iframe[src*="youtube"]:not(.ultra-lite-keep)::before {
+  content: "الفيديو غير متوفر في الوضع الخفيف جداً";
+  display: block;
+  padding: 20px;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+}
+
+/* Force all SVG icons to be smaller in ultra-lite */
+.ultra-lite-mode svg {
+  max-width: 1.25em;
+  max-height: 1.25em;
+}
+
+/* Optimize form inputs */
+.ultra-lite-mode input,
+.ultra-lite-mode textarea,
+.ultra-lite-mode select {
+  font-size: 16px !important; /* prevents iOS zoom */
+  background-image: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Performance indicator badge (optional) */
+.tolo-perf-indicator {
+  position: fixed;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: monospace;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+.tolo-perf-indicator:hover {
+  opacity: 1;
+}
+.tolo-perf-indicator.ultra-lite {
+  background: rgba(220, 38, 38, 0.85);
+}
+.tolo-perf-indicator.saver {
+  background: rgba(245, 158, 11, 0.85);
+}
+.tolo-perf-indicator.lite {
+  background: rgba(59, 130, 246, 0.85);
+}
+.tolo-perf-indicator.balanced {
+  background: rgba(34, 197, 94, 0.85);
+}
+.tolo-perf-indicator.performance {
+  background: rgba(168, 85, 247, 0.85);
+}

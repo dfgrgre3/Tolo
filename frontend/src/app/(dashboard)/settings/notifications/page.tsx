@@ -44,10 +44,11 @@ import {
   fetchSettingsPreferences,
   saveSettingsPreferences,
 } from '@/app/(dashboard)/settings/preferences-client';
-
+import { useAuth } from '@/contexts/auth-context';
 import { LoadingState } from '../_components/loading-state';
 
 export default function NotificationsSettingsPage() {
+  const { fetchWithAuth } = useAuth();
   const [settings, setSettings] = useState<NotificationSettingsPreference>({ ...DEFAULT_NOTIFICATION_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,7 +60,7 @@ export default function NotificationsSettingsPage() {
     const loadSettings = async () => {
       setIsLoading(true);
       try {
-        const preferences = await fetchSettingsPreferences();
+        const preferences = await fetchSettingsPreferences(fetchWithAuth);
         if (!mounted) return;
         setSettings({
           ...DEFAULT_NOTIFICATION_SETTINGS,
@@ -96,7 +97,7 @@ export default function NotificationsSettingsPage() {
     try {
       const updatedPreferences = await saveSettingsPreferences({
         notifications: settings,
-      });
+      }, fetchWithAuth);
       setSettings({
         ...DEFAULT_NOTIFICATION_SETTINGS,
         ...(updatedPreferences.notifications || {}),

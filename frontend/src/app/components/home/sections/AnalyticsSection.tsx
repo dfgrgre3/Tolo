@@ -1,73 +1,51 @@
 import React from 'react';
 import Link from 'next/link';
-import { safeFetch } from '@/lib/safe-client-utils';
-import { getSafeUserId } from '@/lib/safe-client-utils';
+import { safeFetch, getSafeUserId } from '@/lib/safe-client-utils';
 import { logger } from '@/lib/logger';
 import StatusMessage from '@/app/(dashboard)/analytics/components/StatusMessage';
 import { rpgCommonStyles } from "../constants";
 import { Sword, Scroll, Clock, Target, RefreshCw } from "lucide-react";
 
-/**
- * @typedef {Object} DailyData
- * @property {string} day - اسم الوحدة أو اليوم (مثل س1، س2)
- * @property {number} progress - نسبة التقدم في ذلك اليوم
- */
+type DailyData = {
+  day: string;
+  progress: number;
+};
 
-/**
- * @typedef {Object} AnalyticsData
- * @property {number} progressRate - معدل التقدم الحالي
- * @property {number} skillsAcquired - المهارات المكتسبة
- * @property {number} studyHours - ساعات الدراسة
- * @property {string} lastUpdate - وقت آخر تحديث
- * @property {DailyData[]} dailyProgress - بيانات التقدم على مدار 7 أيام/وحدات
- */
+type AnalyticsData = {
+  progressRate: number;
+  skillsAcquired: number;
+  studyHours: number;
+  lastUpdate: string;
+  dailyProgress: Array<{day: string; progress: number;}>;
+};
 
-// Define the available paths for filtering
 const PATH_OPTIONS = ['الكل', 'البرمجة', 'التصميم'];
 
-/**
- * Function to fetch real analytics data from API based on the selected path filter.
- * @param {string} path - The selected study path (e.g., 'البرمجة').
- */
-const fetchAnalyticsData = async (path: string) => {
+const fetchAnalyticsData = async (path: string): Promise<AnalyticsData> => {
   const userId = getSafeUserId();
 
   try {
-    // Fetch analytics data from API
-    const { data, error } = await safeFetch<{
-      progressRate: number;
-      skillsAcquired: number;
-      studyHours: number;
-      dailyProgress: Array<{day: string;progress: number;}>;
-      timestamp: string;
-    }>(
-      `/api/analytics/weekly${userId ? `?userId=${userId}` : ''}${path !== 'الكل' ? `&path=${encodeURIComponent(path)}` : ''}`,
-      undefined,
-      null
+    const { data, error } = await safeFetch<AnalyticsData>(
+      `/api/analytics/weekly${userId ? `?userId=${userId}` : ''}${path !== 'الكل' ? `&path=${encodeURIComponent(path)}` : ''}`
     );
 
     if (error || !data) {
-      // Fallback to progress summary if weekly analytics not available
       const { data: summaryData } = await safeFetch<{
         totalMinutes: number;
         averageFocus: number;
         tasksCompleted: number;
         streakDays: number;
       }>(
-        `/api/progress/summary${userId ? `?userId=${userId}` : ''}`,
-        undefined,
-        null
+        `/api/progress/summary${userId ? `?userId=${userId}` : ''}`
       );
 
       if (summaryData) {
-        // Calculate progress rate from summary
         const progressRate = Math.min(100, Math.round(
           summaryData.tasksCompleted / 10 * 20 +
           summaryData.streakDays / 30 * 30 +
           summaryData.averageFocus / 100 * 50
         ));
 
-        // Generate daily progress from summary data
         const dailyProgress = Array.from({ length: 7 }, (_, i) => ({
           day: `Lvl ${i + 1}`,
           progress: Math.min(100, Math.max(0, progressRate + (i % 3 === 0 ? 5 : -2)))
@@ -82,7 +60,6 @@ const fetchAnalyticsData = async (path: string) => {
         };
       }
 
-      // Final fallback with minimal data
       return {
         progressRate: 0,
         skillsAcquired: 0,
@@ -100,7 +77,7 @@ const fetchAnalyticsData = async (path: string) => {
       skillsAcquired: data.skillsAcquired,
       studyHours: data.studyHours,
       dailyProgress: data.dailyProgress,
-      lastUpdate: new Date(data.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
   } catch (err) {
     logger.error('Error fetching analytics data:', err);

@@ -1,112 +1,304 @@
 "use client";
 
-import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import React, { useState, useEffect, createContext, useContext, useMemo } from "react";
+
+/**
+ * Effective performance modes (the user has no UI choice - all is auto-detected):
+ *  - 'performance': full effects (high-end devices)
+ *  - 'balanced':    some effects reduced (mid-range devices)
+ *  - 'lite':        most effects disabled (low-end devices)
+ *  - 'saver':       all heavy effects disabled (very slow / 2G)
+ *  - 'ultra-lite':  ultra-light for very weak devices (2GB RAM, software GPU, low battery)
+ */
+export type PerformanceMode = "auto" | "performance" | "balanced" | "lite" | "saver" | "ultra-lite";
+
+export type EffectivePerformanceMode = "performance" | "balanced" | "lite" | "saver" | "ultra-lite";
+
+export interface DeviceSignals {
+  deviceMemory: number | null;
+  hardwareConcurrency: number | null;
+  effectiveType: string;
+  downlink: number | null;
+  rtt: number | null;
+  saveData: boolean;
+  gpuType: "software" | "weak" | "hardware" | "none" | "unknown";
+  gpuRenderer: string;
+  cpuBenchMs: number;
+  isMobile: boolean;
+  isTablet: boolean;
+  isLowEnd: boolean;
+  isMidRange: boolean;
+  isHighEnd: boolean;
+  score: number;
+  reducedData: boolean;
+  reducedMotion: boolean;
+  lowBattery: boolean;
+  osName: string;
+  browserName: string;
+}
+
+interface PerformanceCapabilities extends DeviceSignals {
+  recommended: EffectivePerformanceMode;
+}
+
+function decideMode(s: DeviceSignals): EffectivePerformanceMode {
+  // Ultra-lite: save-data, 2g/slow-2g, software GPU, very low score, or low battery
+  if (s.saveData) return "ultra-lite";
+  if (s.effectiveType === "slow-2g" || s.effectiveType === "2g") return "ultra-lite";
+  if (s.gpuType === "software" || s.gpuType === "none") return "ultra-lite";
+  if (s.lowBattery) return "ultra-lite";
+  if (s.score < 20) return "ultra-lite";
+  if (s.score < 35) return "saver";
+  if (s.score < 50) return "lite";
+  if (s.score < 75) return "balanced";
+  return "performance";
+}
+
+/**
+ * Read device signals previously persisted by perf-detect.js (or default).
+ */
+function readPersistedSignals(): DeviceSignals | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("tolo-device-signals");
+    if (!raw) return null;
+    return JSON.parse(raw) as DeviceSignals;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect device capabilities (used as a fallback if perf-detect.js didn't run).
+ */
+function detectCapabilities(): PerformanceCapabilities {
+  if (typeof navigator === "undefined") {
+    return {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      effectiveType: "4g",
+      downlink: null,
+      rtt: null,
+      saveData: false,
+      gpuType: "hardware",
+      gpuRenderer: "",
+      cpuBenchMs: 0,
+      isMobile: false,
+      isTablet: false,
+      isLowEnd: false,
+      isMidRange: false,
+      isHighEnd: true,
+      score: 100,
+      reducedData: false,
+      reducedMotion: false,
+      lowBattery: false,
+      osName: "unknown",
+      browserName: "unknown",
+      recommended: "performance",
+    };
+  }
+
+  // Try persisted signals first (set by perf-detect.js)
+  const persisted = readPersistedSignals();
+  if (persisted) {
+    const score = persisted.score ?? 50;
+    const isLowEnd = score < 20;
+    const isMidRange = score >= 20 && score < 70;
+    const isHighEnd = score >= 70;
+    return {
+      ...persisted,
+      deviceMemory: persisted.deviceMemory ?? 8,
+      hardwareConcurrency: persisted.hardwareConcurrency ?? 4,
+      effectiveType: persisted.effectiveType ?? "4g",
+      saveData: !!persisted.saveData,
+      isLowEnd,
+      isMidRange,
+      isHighEnd,
+      recommended: decideMode(persisted),
+    };
+  }
+
+  // Fallback: detect on the fly
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { effectiveType?: string; saveData?: boolean; downlink?: number; rtt?: number };
+    mozConnection?: { effectiveType?: string; saveData?: boolean; downlink?: number; rtt?: number };
+    webkitConnection?: { effectiveType?: string; saveData?: boolean; downlink?: number; rtt?: number };
+  };
+
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+  const ua = nav.userAgent || "";
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isTablet = /iPad|Android(?!.*Mobile)/i.test(ua) || (nav.maxTouchPoints > 1 && /Macintosh/i.test(ua));
+  const deviceMemory = nav.deviceMemory ?? 4;
+  const hardwareConcurrency = nav.hardwareConcurrency ?? 4;
+  const effectiveType = conn?.effectiveType ?? "4g";
+  const saveData = !!conn?.saveData;
+  const downlink = conn?.downlink ?? null;
+  const rtt = conn?.rtt ?? null;
+  const reducedData =
+    typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-data: reduce)").matches;
+  const reducedMotion =
+    typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lowBattery =
+    typeof document !== "undefined" && document.documentElement.getAttribute("data-low-battery") === "1";
+
+  // Calculate score
+  let score = 50;
+  if (deviceMemory >= 8) score += 25;
+  else if (deviceMemory >= 4) score += 10;
+  else if (deviceMemory >= 2) score -= 5;
+  else score -= 25;
+  if (hardwareConcurrency >= 8) score += 20;
+  else if (hardwareConcurrency >= 4) score += 5;
+  else if (hardwareConcurrency >= 2) score -= 10;
+  else score -= 25;
+  if (effectiveType === "4g") score += 10;
+  else if (effectiveType === "3g") score -= 15;
+  else if (effectiveType === "2g") score -= 30;
+  else if (effectiveType === "slow-2g") score -= 40;
+  if (saveData) score -= 30;
+  if (downlink && downlink < 1.5) score -= 15;
+  if (rtt && rtt > 500) score -= 10;
+  if (reducedData) score -= 25;
+  if (isMobile && hardwareConcurrency < 4) score -= 15;
+  if (isTablet) score += 5;
+  if (lowBattery) score -= 20;
+  if (score < 0) score = 0;
+  if (score > 100) score = 100;
+
+  let osName = "unknown";
+  if (/Windows/i.test(ua)) osName = "windows";
+  else if (/Mac OS X|Macintosh/i.test(ua)) osName = "macos";
+  else if (/Android/i.test(ua)) osName = "android";
+  else if (/iPhone|iPad|iPod/i.test(ua)) osName = "ios";
+  else if (/Linux/i.test(ua)) osName = "linux";
+  else if (/CrOS/i.test(ua)) osName = "chromeos";
+
+  let browserName = "unknown";
+  if (/Edg\//i.test(ua)) browserName = "edge";
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) browserName = "chrome";
+  else if (/Firefox\//i.test(ua)) browserName = "firefox";
+  else if (/Safari\//i.test(ua) && /Version\//i.test(ua)) browserName = "safari";
+  else if (/OPR\//i.test(ua)) browserName = "opera";
+
+  const signals: DeviceSignals = {
+    deviceMemory,
+    hardwareConcurrency,
+    effectiveType,
+    downlink,
+    rtt,
+    saveData,
+    gpuType: "unknown",
+    gpuRenderer: "",
+    cpuBenchMs: 0,
+    isMobile,
+    isTablet,
+    isLowEnd: score < 20,
+    isMidRange: score >= 20 && score < 70,
+    isHighEnd: score >= 70,
+    score,
+    reducedData,
+    reducedMotion,
+    lowBattery,
+    osName,
+    browserName,
+  };
+
+  return {
+    ...signals,
+    recommended: decideMode(signals),
+  };
+}
 
 interface EfficiencyContextType {
+  /** Currently active mode (always auto-detected) */
+  effectiveMode: EffectivePerformanceMode;
+  /** Detected device capabilities */
+  capabilities: PerformanceCapabilities;
+  /** Whether the device is in any reduced-effects mode (lite, balanced, saver, ultra-lite) */
   isEfficiencyMode: boolean;
-  setEfficiencyMode: (enabled: boolean) => void;
-  toggleEfficiencyMode: () => void;
-  isAutoDetected: boolean;
+  /** Quick check: is at least 'lite' (effects disabled) */
+  isLite: boolean;
+  /** Quick check: is 'saver' or 'ultra-lite' (maximum savings) */
+  isSaver: boolean;
+  /** Quick check: is 'ultra-lite' (extreme savings) */
+  isUltraLite: boolean;
+  /** Re-detect device capabilities (useful when user changes device) */
+  redetect: () => void;
 }
 
 const EfficiencyContext = createContext<EfficiencyContextType | undefined>(undefined);
 
+/**
+ * Convert mode to the class names to apply on documentElement.
+ */
+function modeToClassNames(mode: EffectivePerformanceMode): string[] {
+  if (mode === "ultra-lite") return ["efficiency-mode", "ultra-lite-mode"];
+  if (mode === "saver") return ["efficiency-mode"];
+  if (mode === "lite") return ["lite-mode"];
+  return [];
+}
+
 export function EfficiencyProvider({ children }: { children: React.ReactNode }) {
-  const [isEfficiencyMode, setIsEfficiencyMode] = useState(false);
-  const [isAutoDetected, setIsAutoDetected] = useState(false);
+  const [capabilities, setCapabilities] = useState<PerformanceCapabilities>(() => detectCapabilities());
 
-  // Check performance and preferences
+  // Always auto-detect (no user choice)
+  const effectiveMode: EffectivePerformanceMode = capabilities.recommended;
+
+  // Listen for low-battery attribute changes
   useEffect(() => {
-    const checkPerformance = () => {
-      if (typeof window === 'undefined') return;
-
-      // 1. Check user preference from localStorage
-      const stored = localStorage.getItem('efficiency-mode');
-      if (stored !== null) {
-        setIsEfficiencyMode(stored === 'true');
-        return;
+    if (typeof document === "undefined") return;
+    const observer = new MutationObserver(() => {
+      const lb = document.documentElement.getAttribute("data-low-battery") === "1";
+      if (lb && !capabilities.lowBattery) {
+        setCapabilities((prev) => {
+          const next = { ...prev, lowBattery: true };
+          next.recommended = decideMode(next);
+          return next;
+        });
       }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-low-battery"] });
+    return () => observer.disconnect();
+  }, [capabilities.lowBattery]);
 
-      // 2. Check hardware-based automatic detection
-      let shouldEnable = false;
-
-      const nav = navigator as Navigator & {
-        deviceMemory?: number;
-        connection?: { effectiveType?: string; saveData?: boolean };
-        mozConnection?: { effectiveType?: string; saveData?: boolean };
-        webkitConnection?: { effectiveType?: string; saveData?: boolean };
-      };
-
-      // Low device memory (less than 4GB)
-      if (nav.deviceMemory !== undefined && nav.deviceMemory < 4) {
-        shouldEnable = true;
-      }
-
-      // Low CPU cores (less than 4)
-      if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
-        shouldEnable = true;
-      }
-
-      // Slow network connection (2g / slow-2g)
-      const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
-      if (connection) {
-        if (connection.saveData) {
-          // User explicitly requested data saving
-          shouldEnable = true;
-        }
-        const slowConnections = ['slow-2g', '2g'];
-        if (connection.effectiveType && slowConnections.includes(connection.effectiveType)) {
-          shouldEnable = true;
-        }
-      }
-
-      // Mobile devices with weak hardware
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && navigator.hardwareConcurrency && navigator.hardwareConcurrency < 6) {
-        shouldEnable = true;
-      }
-
-      if (shouldEnable) {
-        setIsEfficiencyMode(true);
-        setIsAutoDetected(true);
-      }
-    };
-
-    checkPerformance();
-  }, []);
-
-  // Update HTML class when mode changes
+  // Apply/unapply classes on documentElement
   useEffect(() => {
-    if (typeof document === 'undefined') return;
-    
-    if (isEfficiencyMode) {
-      document.documentElement.classList.add('efficiency-mode');
-    } else {
-      document.documentElement.classList.remove('efficiency-mode');
-    }
-    
-    localStorage.setItem('efficiency-mode', String(isEfficiencyMode));
-  }, [isEfficiencyMode]);
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.classList.remove("efficiency-mode", "lite-mode", "ultra-lite-mode");
 
-  const toggleEfficiencyMode = useCallback(() => {
-    setIsEfficiencyMode(prev => !prev);
-    setIsAutoDetected(false); // Manual override
-  }, []);
+    const classes = modeToClassNames(effectiveMode);
+    for (const c of classes) root.classList.add(c);
+    root.setAttribute("data-perf-mode", effectiveMode);
+  }, [effectiveMode]);
 
-  const setEfficiencyMode = useCallback((enabled: boolean) => {
-    setIsEfficiencyMode(enabled);
-    setIsAutoDetected(false); // Manual override
-  }, []);
+  // Re-detect on demand (e.g. after page becomes idle, or when network changes)
+  const redetect = () => {
+    setCapabilities(detectCapabilities());
+  };
 
-  return React.createElement(EfficiencyContext.Provider, {
-    value: { isEfficiencyMode, setEfficiencyMode, toggleEfficiencyMode, isAutoDetected }
-  }, children);
+  const value = useMemo<EfficiencyContextType>(
+    () => ({
+      effectiveMode,
+      capabilities,
+      isLite: effectiveMode === "lite" || effectiveMode === "saver" || effectiveMode === "ultra-lite",
+      isSaver: effectiveMode === "saver" || effectiveMode === "ultra-lite",
+      isUltraLite: effectiveMode === "ultra-lite",
+      isEfficiencyMode: effectiveMode !== "performance",
+      redetect,
+    }),
+    [effectiveMode, capabilities]
+  );
+
+  return React.createElement(EfficiencyContext.Provider, { value }, children);
 }
 
 export function useEfficiency() {
   const context = useContext(EfficiencyContext);
   if (context === undefined) {
-    throw new Error('useEfficiency must be used within an EfficiencyProvider');
+    throw new Error("useEfficiency must be used within an EfficiencyProvider");
   }
   return context;
 }

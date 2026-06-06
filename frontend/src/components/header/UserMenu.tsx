@@ -41,7 +41,7 @@ import { logger } from '@/lib/logger';
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
 
 export function UserMenu() {
-  const { user, logout } = useAuth();
+  const { user, logout, fetchWithAuth } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -74,12 +74,12 @@ export function UserMenu() {
       try {
         await saveSettingsPreferences({
           appearance: { theme: nextTheme }
-        });
+        }, fetchWithAuth);
       } catch (error) {
         logger.error("Failed to sync theme preference in UserMenu:", error);
       }
     }
-  }, [theme, setTheme, user?.id]);
+  }, [theme, setTheme, user?.id, fetchWithAuth]);
 
   if (!user) return null;
 

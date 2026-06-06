@@ -33,11 +33,11 @@ class WebSocketErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
-
-
     // Completely suppress WebSocket errors - do not log
     // Errors are expected when WebSocket is disabled
-  } override render() {
+  }
+
+  override render() {
     if (this.state.hasError) {
       // Silently return children without WebSocket functionality
       return <>{this.props.children}</>;
@@ -49,13 +49,75 @@ class WebSocketErrorBoundary extends React.Component<
 
 // WebSocket is completely disabled - set as constant outside component
 // Change to true only when deploying to edge runtime (Cloudflare Workers)
-const WEBSOCKET_ENABLED = true;
+let WEBSOCKET_ENABLED = true;
+
+/**
+ * Check if the user is in a performance mode that should disable the WebSocket.
+ * WebSocket is disabled in:
+ *  - efficiency-mode (saver)
+ *  - lite-mode
+ *  - ultra-lite-mode (very weak devices)
+ *  - when the user has save-data enabled
+ *  - when connection is slow (2g/slow-2g/3g)
+ */
+function shouldDisableWebSocket(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const root = document.documentElement;
+    const mode = root.getAttribute("data-perf-mode");
+    if (
+      root.classList.contains("efficiency-mode") ||
+      root.classList.contains("lite-mode") ||
+      root.classList.contains("ultra-lite-mode") ||
+      mode === "saver" ||
+      mode === "lite" ||
+      mode === "ultra-lite"
+    ) {
+      return true;
+    }
+    const conn =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+    if (conn?.saveData) return true;
+    if (conn?.effectiveType && ["slow-2g", "2g"].includes(conn.effectiveType)) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
 
 export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
   const { user } = useAuth();
   const currentUserId = userId || user?.id;
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Listen for efficiency mode changes to disable WebSocket
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const observer = new MutationObserver(() => {
+      if (shouldDisableWebSocket()) {
+        WEBSOCKET_ENABLED = false;
+        if (socket) {
+          try { socket.close(); } catch {}
+        }
+      } else {
+        WEBSOCKET_ENABLED = true;
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-perf-mode"],
+    });
+    // Initial check
+    if (shouldDisableWebSocket()) {
+      WEBSOCKET_ENABLED = false;
+    }
+    return () => observer.disconnect();
+  }, [socket]);
 
   useEffect(() => {
     // CRITICAL: WebSocket is disabled - exit immediately before any operations
@@ -155,8 +217,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       setSocket(null);
       setIsConnected(false);
     };
-  }, [currentUserId]); // Use currentUserId as dependency
-  // Fixed: use consistent dependency array
+  }, [currentUserId]);
 
   // Always provide safe default values
   const contextValue = {

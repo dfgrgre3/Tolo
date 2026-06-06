@@ -355,11 +355,12 @@ function normalizeFetchCatchError(_error: unknown, options?: RequestInit): Error
 export async function safeFetch<T = unknown>(
   url: string,
   options?: RequestInit,
-  fallback: T | null = null
+  fallback: T | null = null,
+  fetchFn: typeof fetchWithTimeout = fetchWithTimeout
 ): Promise<{ data: T | null; error: Error | null; response: Response | null; }> {
   try {
     const finalUrl = buildFinalUrl(url);
-    let response = await fetchWithTimeout(finalUrl, options);
+    let response = await fetchFn(finalUrl, options);
 
     if (shouldAttemptTokenRefresh(url, response)) {
       const refreshed = await refreshAuthSession();

@@ -78,7 +78,7 @@
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 234 40% 20%;
     --input: 234 40% 20%;
@@ -88,9 +88,9 @@
     --sidebar: 240 5.9% 4%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 263.4 70% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 3.7% 12%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 4.8% 98%;
     --sidebar-border: 240 3.7% 14%;
     --sidebar-ring: 263.4 70% 60%;
 
@@ -161,6 +161,8 @@
     --backdrop-blur: 0px !important;
     --glass-opacity: 0.98 !important;
     --radius: 0.5rem !important;
+    /* Disable smooth scrolling */
+    scroll-behavior: auto !important;
   }
 
   .efficiency-mode * {
@@ -174,6 +176,7 @@
     background-attachment: scroll !important;
     transform: none !important;
     opacity: 1 !important;
+    will-change: auto !important;
   }
 
   .efficiency-mode img,
@@ -202,508 +205,291 @@
     -webkit-background-clip: unset !important;
     color: hsl(var(--primary)) !important;
   }
-}
 
-/* Respect user motion preferences - DISABLE ALL ANIMATIONS */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  /* Disable heavy gradient backgrounds */
+  .efficiency-mode .bg-gradient-to-r,
+  .efficiency-mode .bg-gradient-to-l,
+  .efficiency-mode .bg-gradient-to-t,
+  .efficiency-mode .bg-gradient-to-b,
+  .efficiency-mode .bg-gradient-to-tr,
+  .efficiency-mode .bg-gradient-to-tl,
+  .efficiency-mode .bg-gradient-to-br,
+  .efficiency-mode .bg-gradient-to-bl {
+    background-image: none !important;
+  }
+
+  /* Disable grid patterns */
+  .efficiency-mode .bg-grid-pattern,
+  .efficiency-mode [class*="bg-[url"],
+  .efficiency-mode [style*="background-image"] {
+    background-image: none !important;
+  }
+
+  /* Reduce motion for SVG icons with internal animations */
+  .efficiency-mode svg * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Hide decorative elements that consume render time */
+  .efficiency-mode .decorative-blur,
+  .efficiency-mode .blur-3xl,
+  .efficiency-mode .blur-2xl,
+  .efficiency-mode .blur-xl {
+    display: none !important;
+  }
+
+  /* Disable expensive hover effects */
+  .efficiency-mode *:hover {
+    transform: none !important;
+  }
+
+  /* Use system fonts for faster text rendering */
+  .efficiency-mode {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
 }
 
-/* Save data / metered connection — strip heavy visuals automatically */
-@media (prefers-reduced-data: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+/* =============================================
+   LITE MODE - Manual light mode (lighter than normal, heavier than efficiency)
+   ============================================= */
+.lite-mode {
+  --backdrop-blur: 0px !important;
+}
+
+.lite-mode * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation-duration: 0.1s !important;
+    transition-duration: 0.1s !important;
   }
 
-  .mesh-gradient,
-  .ambient-bg {
+  .lite-mode .blur-3xl,
+  .lite-mode .blur-2xl {
+    display: none !important;
+  }
+
+  .lite-mode canvas {
+    display: none !important;
+  }
+
+  .lite-mode .mesh-gradient {
     background-image: none !important;
     background-color: hsl(var(--background)) !important;
   }
 
-  .rpg-glass,
-  .rpg-glass-light,
-  .rpg-glass-premium {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+/* =============================================
+   ULTRA-LITE MODE - For very weak devices
+   (Save-Data, 2G, software GPU, < 2GB RAM, low battery)
+   Activated when perf-detect.js determines score < 20
+   ============================================= */
+.ultra-lite-mode {
+  /* Override ALL variables to flat defaults */
+  --backdrop-blur: 0px !important;
+  --glass-opacity: 1 !important;
+  --radius: 0.25rem !important;
+  color-scheme: light;
+
+  /* Use only system fonts (no remote web font, fastest rendering) */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-synthesis: none !important;
+  text-rendering: optimizeSpeed !important;
+  -webkit-font-smoothing: antialiased !important;
+  scroll-behavior: auto !important;
 }
 
-
-
-/* Core keyframe animations */
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.95);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
+.ultra-lite-mode,
+.ultra-lite-mode * {
+  /* Disable everything heavy */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  background-attachment: scroll !important;
+  transform: none !important;
+  opacity: 1 !important;
+  will-change: auto !important;
+  contain: layout style !important;
+  /* Avoid expensive paint operations */
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
+/* Disable ALL shadows and gradients in ultra-lite */
+.ultra-lite-mode .shadow-sm,
+.ultra-lite-mode .shadow,
+.ultra-lite-mode .shadow-md,
+.ultra-lite-mode .shadow-lg,
+.ultra-lite-mode .shadow-xl,
+.ultra-lite-mode .shadow-2xl,
+.ultra-lite-mode .shadow-inner,
+.ultra-lite-mode .shadow-inner-premium,
+.ultra-lite-mode .drop-shadow-sm,
+.ultra-lite-mode .drop-shadow,
+.ultra-lite-mode .drop-shadow-md,
+.ultra-lite-mode .drop-shadow-lg,
+.ultra-lite-mode .drop-shadow-xl,
+.ultra-lite-mode .drop-shadow-2xl {
+  box-shadow: none !important;
+  filter: none !important;
 }
 
-@keyframes accordion-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-accordion-content-height);
-  }
+/* Hide ALL decorative elements in ultra-lite */
+.ultra-lite-mode canvas,
+.ultra-lite-mode video[autoplay],
+.ultra-lite-mode .mesh-gradient,
+.ultra-lite-mode .ambient-bg,
+.ultra-lite-mode .rpg-glow-primary,
+.ultra-lite-mode .rpg-royal-glow,
+.ultra-lite-mode .blur-3xl,
+.ultra-lite-mode .blur-2xl,
+.ultra-lite-mode .blur-xl,
+.ultra-lite-mode .blur-lg,
+.ultra-lite-mode .blur-md,
+.ultra-lite-mode .decorative-blur,
+.ultra-lite-mode iframe[src*="youtube"]:not(.ultra-lite-keep) {
+  display: none !important;
 }
 
-@keyframes accordion-up {
-  from {
-    height: var(--radix-accordion-content-height);
-  }
-  to {
-    height: 0;
-  }
+/* Disable all gradients in ultra-lite */
+.ultra-lite-mode .bg-gradient-to-r,
+.ultra-lite-mode .bg-gradient-to-l,
+.ultra-lite-mode .bg-gradient-to-t,
+.ultra-lite-mode .bg-gradient-to-b,
+.ultra-lite-mode .bg-gradient-to-tr,
+.ultra-lite-mode .bg-gradient-to-tl,
+.ultra-lite-mode .bg-gradient-to-br,
+.ultra-lite-mode .bg-gradient-to-bl,
+.ultra-lite-mode [class*="bg-gradient"],
+.ultra-lite-mode [style*="background-image"],
+.ultra-lite-mode [style*="linear-gradient"],
+.ultra-lite-mode [style*="radial-gradient"] {
+  background-image: none !important;
+  background-color: hsl(var(--background)) !important;
 }
 
-/* Animations & Transitions */
-.transition-all-300 {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Premium Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.4);
-  background-clip: padding-box;
-}
-
-/* Premium RPG & Utility Enhancements */
-.mesh-gradient {
-  background-color: hsla(234, 66%, 8%, 1);
-  background-image:
-    radial-gradient(closest-side at 0 0, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%),
-    radial-gradient(closest-side at 50% 0, hsla(234, 100%, 40%, 0.15) 0px, transparent 50%),
-    radial-gradient(closest-side at 100% 0, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%);
-}
-
-.dark .rpg-glass {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/60 ring-1 ring-white/10;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  /* backdrop-blur removed for performance - added via JS only when needed */
-}
-
-.rpg-glass-light {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/80 ring-1 ring-black/[0.05];
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
-}
-
-.dark .rpg-glass-premium {
-  @apply relative overflow-hidden bg-black/60 ring-1 ring-white/10;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
-}
-
-.efficiency-mode .rpg-glass,
-.efficiency-mode .rpg-glass-light,
-.efficiency-mode .rpg-glass-premium,
-.efficiency-mode .rpg-card {
+/* Simplify glass cards in ultra-lite */
+.ultra-lite-mode .rpg-glass,
+.ultra-lite-mode .rpg-glass-light,
+.ultra-lite-mode .rpg-glass-premium,
+.ultra-lite-mode .rpg-card,
+.ultra-lite-mode .glass-morphism {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background-color: hsl(var(--card)) !important;
+  background-image: none !important;
   box-shadow: none !important;
-  border-color: hsl(var(--border)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.375rem !important;
+  contain: layout style paint !important;
+}
+
+/* Simplify text effects in ultra-lite */
+.ultra-lite-mode .rpg-neon-text,
+.ultra-lite-mode .rpg-gold-text {
+  background-image: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: currentColor !important;
+  color: hsl(var(--primary)) !important;
+  filter: none !important;
+}
+
+/* Disable hover transforms in ultra-lite */
+.ultra-lite-mode *:hover {
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Force smaller, simpler fonts */
+.ultra-lite-mode h1 { font-size: 1.5rem !important; line-height: 2rem !important; font-weight: 700 !important; }
+.ultra-lite-mode h2 { font-size: 1.25rem !important; line-height: 1.75rem !important; font-weight: 700 !important; }
+.ultra-lite-mode h3 { font-size: 1.125rem !important; line-height: 1.5rem !important; font-weight: 600 !important; }
+.ultra-lite-mode h4 { font-size: 1rem !important; line-height: 1.5rem !important; font-weight: 600 !important; }
+
+/* Reduce image quality (force them to render faster) */
+.ultra-lite-mode img,
+.ultra-lite-mode video {
+  image-rendering: optimizeSpeed !important;
+  image-rendering: -webkit-optimize-contrast !important;
+  filter: none !important;
+  content-visibility: auto !important;
+  contain-intrinsic-size: 300px 200px !important;
+}
+
+/* Lazy load everything offscreen using content-visibility */
+.ultra-lite-mode section,
+.ultra-lite-mode article,
+.ultra-lite-mode aside,
+.ultra-lite-mode main > div {
+  content-visibility: auto !important;
+  contain-intrinsic-size: 600px 400px !important;
+}
+
+/* Disable sticky/fixed positioning where possible (CPU intensive) */
+.ultra-lite-mode [class*="sticky"] {
+  position: relative !important;
+}
+.ultra-lite-mode [class*="fixed"] {
+  position: absolute !important;
+}
+
+/* Hide floating/persistent widgets in ultra-lite */
+.ultra-lite-mode .fixed,
+.ultra-lite-mode [class*="fixed-bottom"],
+.ultra-lite-mode [class*="fixed-top"] {
+  /* Keep them visible but static */
+  will-change: auto !important;
+  transform: none !important;
+  contain: layout style !important;
+}
+
+/* Reduce scrollbar visual weight */
+.ultra-lite-mode ::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+.ultra-lite-mode ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+}
+
+/* SVG internal animations */
+.ultra-lite-mode svg * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Disable grid patterns and other decorative backgrounds */
+.ultra-lite-mode .bg-grid-pattern,
+.ultra-lite-mode [class*="bg-[url"] {
   background-image: none !important;
 }
 
-.custom-scrollbar-premium::-webkit-scrollbar {
-  width: 6px;
+/* Strip backdrop-blur and any webkit-filter */
+.ultra-lite-mode *,
+.ultra-lite-mode *::before,
+.ultra-lite-mode *::after {
+  -webkit-filter: none !important;
+  filter: none !important;
 }
 
-.custom-scrollbar-premium::-webkit-scrollbar-track {
-  @apply bg-transparent;
+/* Simplify buttons (no transitions, no transforms) */
+.ultra-lite-mode button,
+.ultra-lite-mode a,
+.ultra-lite-mode [role="button"] {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
 }
 
-.custom-scrollbar-premium::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+/* Disable custom scrollbars (expensive) */
+.ultra-lite-mode .custom-scrollbar-premium::-webkit-scrollbar {
+  width: 4px !important;
 }
 
-.shadow-inner-premium {
-  box-shadow: inset 0 2px 20px 0 rgba(0, 0, 0, 0.4);
-}
-
-.rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 transition-all duration-300 ease-out;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-}
-
-.rpg-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-  @apply border-primary/40 -translate-y-1;
-}
-
-.dark .rpg-card {
-  @apply border-white/5 bg-white/[0.05] transition-all duration-300 ease-out;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.dark .rpg-card:hover {
-  @apply bg-white/[0.08] border-primary/50 -translate-y-1;
-  box-shadow: 0 12px 40px rgba(249, 115, 22, 0.15);
-}
-
-.rpg-glow-primary {
-  box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
-}
-
-.rpg-neon-text {
-  @apply text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500;
-  filter: drop-shadow(0 0 8px rgba(255, 109, 0, 0.4));
-}
-
-.rpg-gold-text {
-  @apply text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500;
-  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
-}
-
-.rpg-divider {
-  @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-6;
-}
-
-.rpg-royal-glow {
-  box-shadow: 0 0 40px rgba(251, 191, 36, 0.2), 0 0 80px rgba(251, 191, 36, 0.1);
-}
-
-.rpg-royal-border {
-  @apply border border-amber-500/30 relative;
-}
-
-.rpg-royal-border::after {
-  content: '';
-  @apply absolute inset-0 border border-amber-500/10 pointer-events-none rounded-[inherit] scale-[1.02];
-}
-
-/* Animations Removed */
-
-.glass-morphism {
-  @apply bg-white/20 border border-white/20;
-}
-
-.dark .glass-morphism {
-  @apply bg-black/30 border border-white/5;
-}
-
-.gradient-border {
-  position: relative;
-  background: linear-gradient(var(--background), var(--background)) padding-box,
-    linear-gradient(to right, hsl(var(--primary)), transparent) border-box;
-  border: 1px solid transparent;
-}
-
-/* Skeleton Shimmer */
-.animate-shimmer {
-  background: linear-gradient(90deg,
-      hsl(var(--muted)) 25%,
-      hsl(var(--muted) / 0.5) 50%,
-      hsl(var(--muted)) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite linear;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-
-  to {
-    background-position: -200% 0;
-  }
-}
-
-/* Fix RTL dialog positioning */
-.dialog-content {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-[dir="rtl"] .dialog-content {
-  left: auto;
-  right: 50%;
-  transform: translate(50%, -50%);
-}
-
-/* Custom View Transitions for Theme Toggle */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-old(root) {
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  z-index: 9999;
-}
-
-.dark::view-transition-old(root) {
-  z-index: 9999;
-}
-
-.dark::view-transition-new(root) {
-  z-index: 1;
-}
-
-/* ========================================
-   RESPONSIVE UTILITIES - Mobile First
-   ======================================== */
-
-/* Touch-friendly minimum sizes for interactive elements */
-.touch-target {
-  min-width: 44px;
-  min-height: 44px;
-}
-
-/* Prevent text from overflowing on small screens */
-.text-balance {
-  text-wrap: balance;
-}
-
-.text-pretty {
-  text-wrap: pretty;
-}
-
-/* Container with proper padding for all viewports */
-.app-container {
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-  max-width: 100%;
-}
-
-@media (min-width: 640px) {
-  .app-container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .app-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .app-container {
-    padding-left: 2rem;
-    padding-right: 2rem;
-    max-width: 80rem;
-  }
-}
-
-/* Responsive scrollable tabs */
-.tabs-scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-}
-
-.tabs-scroll::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tabs-scroll > * {
-  scroll-snap-align: start;
-}
-
-/* Mobile drawer/sheet improvements */
-.mobile-drawer-content {
-  max-height: 85vh;
-  height: auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Dialog/Drawer positioning - RTL Safe */
-.dialog-content-responsive {
-  position: fixed;
-  z-index: 50;
-  display: grid;
-  gap: 1rem;
-  background-color: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  padding: 1rem;
-  width: calc(100vw - 1rem);
-  max-width: 32rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
-  inset-inline-start: 0.5rem;
-  inset-inline-end: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  border-radius: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .dialog-content-responsive {
-    inset-inline-start: auto;
-    inset-inline-end: auto;
-    left: 50%;
-    right: auto;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-
-  [dir="rtl"] .dialog-content-responsive {
-    left: auto;
-    right: 50%;
-    transform: translate(50%, -50%);
-  }
-}
-
-/* Responsive grid utilities */
-.responsive-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .responsive-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .responsive-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .responsive-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Responsive text helpers */
-.text-responsive-xs { font-size: 0.7rem; line-height: 1rem; }
-.text-responsive-sm { font-size: 0.8125rem; line-height: 1.125rem; }
-.text-responsive-base { font-size: 0.875rem; line-height: 1.25rem; }
-.text-responsive-lg { font-size: 1rem; line-height: 1.5rem; }
-.text-responsive-xl { font-size: 1.125rem; line-height: 1.75rem; }
-.text-responsive-2xl { font-size: 1.25rem; line-height: 1.75rem; }
-.text-responsive-3xl { font-size: 1.5rem; line-height: 2rem; }
-
-@media (min-width: 640px) {
-  .text-responsive-xs { font-size: 0.75rem; }
-  .text-responsive-sm { font-size: 0.875rem; }
-  .text-responsive-base { font-size: 1rem; }
-  .text-responsive-lg { font-size: 1.125rem; }
-  .text-responsive-xl { font-size: 1.25rem; }
-  .text-responsive-2xl { font-size: 1.5rem; }
-  .text-responsive-3xl { font-size: 1.875rem; }
-}
-
-/* Hide on mobile, show on desktop */
-.hide-on-mobile { display: none; }
-@media (min-width: 768px) {
-  .hide-on-mobile { display: initial; }
-}
-
-/* Show on mobile, hide on desktop */
-.show-on-mobile { display: initial; }
-@media (min-width: 768px) {
-  .show-on-mobile { display: none; }
-}
-
-/* Smooth scrolling for mobile */
-.scroll-smooth-mobile {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-/* No tap highlight on touch devices */
-.no-tap-highlight {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-/* Safe area for iOS */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top, 0);
-}
-
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-/* Fix aspect ratio containers */
-.aspect-responsive-square {
-  aspect-ratio: 1 / 1;
-}
-
-.aspect-responsive-video {
-  aspect-ratio: 16 / 9;
-}
-
-/* Better focus for keyboard users only */
-.focus-visible-ring:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
-}
-
-/* Performance: Disable transitions on small devices when data-saver is on */
-@media (prefers-reduced-data: reduce) {
-  .no-data-saver * {
-    animation: none !important;
-    transition: none !important;
-  }
-}
+/* Responsive images: force smaller sizes in ultra-lite */
+.ultra-lite-mode [data-lazy-image] {}

@@ -239,8 +239,10 @@ export {
   DropdownMenuSeparator,
   
   DropdownMenuGroup,
+  DropdownMenuRadioGroup,
   
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuRadioItem,
    };

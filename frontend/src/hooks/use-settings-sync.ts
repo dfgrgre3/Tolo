@@ -2,21 +2,18 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/auth-context';
 import { fetchSettingsPreferences, saveSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
 import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/user-ui-preferences';
 
 import { logger } from '@/lib/logger';
 
-/**
- * Hook to synchronize settings between localStorage and server
- * Exposes a debounced auto-save mechanism to avoid redundant/excessive PATCH requests
- */
 export function useSettingsSync() {
+  const { fetchWithAuth } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingChangesRef = useRef<SettingsPreferencesPatch | null>(null);
 
   const scheduleAutoSave = useCallback((patch: SettingsPreferencesPatch) => {
-    // 1. Merge new patch into pendingChangesRef (nested structures)
     const current = pendingChangesRef.current || {};
     
     pendingChangesRef.current = {
@@ -47,23 +44,20 @@ export function useSettingsSync() {
       } : {}),
     };
 
-    // 2. Clear existing debounce timer
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // 3. Set a new timer to execute the merged PATCH request after 2 seconds
     saveTimeoutRef.current = setTimeout(async () => {
       const changes = pendingChangesRef.current;
       if (changes && Object.keys(changes).length > 0) {
-        pendingChangesRef.current = null; // Clear queue before network request to prevent race conditions
+        pendingChangesRef.current = null;
         try {
           logger.info('Auto-saving accumulated settings:', changes);
-          await saveSettingsPreferences(changes);
+          await saveSettingsPreferences(changes, fetchWithAuth);
         } catch (error) {
           logger.error('Auto-save settings failed:', error);
           toast.error('فشل حفظ الإعدادات تلقائياً');
-          // Re-queue the failed changes, merging with any new ones that might have arrived in the meantime
           pendingChangesRef.current = {
             ...changes,
             ...(pendingChangesRef.current || {}),
@@ -71,24 +65,23 @@ export function useSettingsSync() {
         }
       }
     }, 2000);
-  }, []);
+  }, [fetchWithAuth]);
 
   const syncFromLocalStorage = useCallback(async () => {
     try {
-      const serverPreferences = await fetchSettingsPreferences();
+      const serverPreferences = await fetchSettingsPreferences(fetchWithAuth);
       return serverPreferences;
     } catch (error) {
       logger.error('Settings sync error:', error);
       return null;
     }
-  }, []);
+  }, [fetchWithAuth]);
 
   const applySettingsFromPreferences = useCallback((_preferences: SettingsPreferences) => {
     // Can be used to apply theme or language settings globally if needed
   }, []);
 
   const immediateSave = useCallback(async (patch: SettingsPreferencesPatch) => {
-    // If there are pending debounced changes, merge them and save immediately
     const current = pendingChangesRef.current || {};
     const mergedPatch = {
       ...current,
@@ -106,14 +99,14 @@ export function useSettingsSync() {
     pendingChangesRef.current = null;
 
     try {
-      await saveSettingsPreferences(mergedPatch);
+      await saveSettingsPreferences(mergedPatch, fetchWithAuth);
       return true;
     } catch (error) {
       logger.error('Immediate save failed:', error);
       toast.error('فشل حفظ الإعدادات');
       return false;
     }
-  }, []);
+  }, [fetchWithAuth]);
 
   // Cleanup on unmount
   useEffect(() => {

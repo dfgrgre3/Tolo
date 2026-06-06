@@ -3,12 +3,16 @@ import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
+import './ultra-lite.css';
 import Header from '@/components/header/Header';
 import React, { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/providers/theme-provider';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import {
+  ConditionalAnalytics,
+  ConditionalSpeedInsights,
+} from '@/components/layout/ConditionalAnalytics';
+import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -62,15 +66,19 @@ export default async function RootLayout({
   const hasAuthToken = cookieStore.has('access_token') || cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+      <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
         <head>
+          {/* Performance detection - runs BEFORE React to apply efficiency mode ASAP */}
+          <script src="/perf-detect.js" async />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link rel="dns-prefetch" href="https://i.ytimg.com" />
+          <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
           <meta name="theme-color" content="#f97316" />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+          <meta name="format-detection" content="telephone=no" />
           <script
             id="hydration-fix"
             suppressHydrationWarning
@@ -85,7 +93,7 @@ export default async function RootLayout({
                     'data-lastpass-icon',
                     'data-dashlane-rid'
                   ];
-                  
+
                   const clean = () => {
                     try {
                       attributesToRemove.forEach(attr => {
@@ -144,14 +152,15 @@ export default async function RootLayout({
             storageKey="tolo-theme"
           >
             <GlobalProviders initialAuthHint={hasAuthToken}>
+              <FPSMonitor />
               <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
                 <Header />
               </Suspense>
               {React.Children.toArray(children)}
             </GlobalProviders>
           </ThemeProvider>
-          <Analytics />
-          <SpeedInsights />
+          <ConditionalAnalytics />
+          <ConditionalSpeedInsights />
         </body>
       </html>
   );

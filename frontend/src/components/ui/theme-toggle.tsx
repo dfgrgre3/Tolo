@@ -12,7 +12,7 @@ import { toggleThemeWithTransition } from "@/lib/utils"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
   const { setTheme, theme } = useTheme()
-  const { user } = useAuth()
+  const { user, fetchWithAuth } = useAuth()
  
   const handleToggle = async (e?: React.MouseEvent) => {
     const nextTheme = theme === "light" ? "dark" : "light"
@@ -26,7 +26,7 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
         try {
           await saveSettingsPreferences({
             appearance: { theme: nextTheme }
-          })
+          }, fetchWithAuth)
         } catch (error) {
           logger.error("Failed to sync theme preference:", error)
         }
