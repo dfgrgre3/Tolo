@@ -602,13 +602,14 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 				<m.form
 
-					initial={{ width: 0, opacity: 0 }}
-
-					animate={{ width: "auto", opacity: 1 }}
-					exit={{ width: 0, opacity: 0 }}
+					initial={{ height: 0, opacity: 0 }}
+ 
+					animate={{ height: "auto", opacity: 1 }}
+ 
+					exit={{ height: 0, opacity: 0 }}
 					transition={{ duration: 0.25, ease: "easeInOut" }}
 					onSubmit={handleSearch}
-					className="flex items-center gap-2 absolute top-1/2 -translate-y-1/2 left-2 right-2 md:relative md:translate-y-0 md:left-auto md:right-auto md:top-auto bg-background/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none p-2 md:p-0 rounded-xl md:rounded-none shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:shadow-none z-[100] md:z-auto border border-border/50 md:border-transparent origin-right"
+					className="flex items-center gap-2 absolute top-full left-0 right-0 bg-background/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none p-2 md:p-0 rounded-xl md:rounded-none shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:shadow-none z-[100] md:z-auto border border-border/50 md:border-transparent"
 				>
 
 					<m.div
