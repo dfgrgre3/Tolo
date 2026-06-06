@@ -115,6 +115,37 @@ function checkBaseUrl(warnings: string[]) {
   }
 }
 
+function checkNoSensitiveKeysExposed(errors: string[]) {
+  const allowedKeys = new Set([
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    'NEXT_PUBLIC_API_URL',
+    'NEXT_PUBLIC_ADMIN_URL',
+    'NEXT_PUBLIC_BASE_URL',
+    'NEXT_PUBLIC_RP_ID',
+    'NEXT_PUBLIC_APP_NAME',
+    'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY'
+  ]);
+
+  const sensitivePatterns = [
+    'key', 'token', 'secret', 'password', 'pass', 'database', 'url', 'cred', 'private'
+  ];
+
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('NEXT_PUBLIC_')) {
+      if (allowedKeys.has(key)) {
+        continue;
+      }
+      const lowerKey = key.toLowerCase();
+      const isSensitive = sensitivePatterns.some(pattern => lowerKey.includes(pattern));
+      if (isSensitive) {
+        errors.push(`Security Violation: Sensitive variable ${key} must not be exposed to the client bundle via NEXT_PUBLIC_ prefix.`);
+      }
+    }
+  }
+}
+
 /**
  * Validate all environment variables
  */
@@ -128,6 +159,7 @@ function validateEnvironment(): EnvValidationResult {
   checkDatabaseUrl(errors, isProduction);
   checkSessionDuration(warnings);
   checkBaseUrl(warnings);
+  checkNoSensitiveKeysExposed(errors);
 
   return {
     valid: errors.length === 0,

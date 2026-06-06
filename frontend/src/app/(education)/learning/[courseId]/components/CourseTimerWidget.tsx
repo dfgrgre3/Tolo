@@ -60,6 +60,31 @@ export function CourseTimerWidget({ courseId, courseTitle }: CourseTimerWidgetPr
   };
   const col = stateColors[currentPomodoroState];
 
+  // Generate screen-reader friendly announcements at milestones to avoid spamming every second
+  const [announcement, setAnnouncement] = useState('');
+  useEffect(() => {
+    if (!isRunning || !isMyCourse) {
+      setAnnouncement('');
+      return;
+    }
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    if (timeLeft === totalDuration) {
+      setAnnouncement(`بدأ مؤقت المذاكرة: ${settings.pomodoroWorkMinutes} دقيقة متبقية`);
+    } else if (timeLeft === 0) {
+      setAnnouncement('انتهت الجلسة');
+    } else if (seconds === 0 && minutes % 5 === 0) {
+      setAnnouncement(`الوقت المتبقي: ${minutes} دقائق`);
+    } else if (timeLeft === 60) {
+      setAnnouncement('دقيقة واحدة متبقية');
+    } else if (timeLeft === 30) {
+      setAnnouncement('30 ثانية متبقية');
+    } else if (timeLeft <= 10 && timeLeft > 0) {
+      setAnnouncement(`${timeLeft} ثوانٍ متبقية`);
+    }
+  }, [timeLeft, isRunning, isMyCourse, totalDuration, settings.pomodoroWorkMinutes]);
+
   const handleToggle = () => {
     if (isRunning) {
       pauseTimer();
@@ -88,6 +113,11 @@ export function CourseTimerWidget({ courseId, courseTitle }: CourseTimerWidgetPr
           isRunning && isMyCourse && 'shadow-[0_0_15px_rgba(244,63,94,0.2)]'
         )}
       >
+        {/* Screen Reader Announcements */}
+        <div className="sr-only" aria-live="assertive" aria-atomic="true">
+          {announcement}
+        </div>
+
         {/* Mini circle progress */}
         <div className="relative flex items-center justify-center">
           <svg width="38" height="38" className="-rotate-90">

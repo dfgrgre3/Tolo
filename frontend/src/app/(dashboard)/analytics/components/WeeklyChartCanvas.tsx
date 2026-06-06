@@ -3,43 +3,22 @@
 /**
  * WeeklyChartCanvas
  * -----------------
- * This file is the ONLY place in the analytics page that imports
- * `chart.js` and `react-chartjs-2` statically. It is loaded lazily via
- * `next/dynamic({ ssr: false })` from WeeklyChart.tsx so that the ~200KB
- * chart.js library is NOT pulled into the main bundle of the analytics
- * page (and definitely not into the login / dashboard landing pages).
- *
- * Loading this file on the client registers the required Chart.js
- * controllers/scales, then renders <Bar/> and <Line/> for the
- * subjects-by-time and days-by-time datasets.
+ * Converted to Recharts for lighter bundle footprint and cleaner integration.
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
   Tooltip,
-  Legend,
-  Title,
-  ArcElement,
-} from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Legend,
-  Title,
-  ArcElement
-);
+  Cell,
+  CartesianGrid
+} from 'recharts';
 
 type WeeklyData = {
   bySubject: Record<string, number>;
@@ -60,105 +39,61 @@ const COLORS = [
 ];
 
 export default function WeeklyChartCanvas({ weekly }: WeeklyChartCanvasProps) {
-  // All the data prep is done here so the parent stays free of chart.js.
-  const subjectChartData = useMemo(
-    () => ({
-      labels: Object.keys(weekly.bySubject || {}),
-      datasets: [
-        {
-          label: 'دقائق',
-          data: Object.values(weekly.bySubject || {}),
-          backgroundColor: COLORS,
-          borderColor: COLORS.map((c) => c.replace('0.8', '1')),
-          borderWidth: 2,
-          borderRadius: 8,
-        },
-      ],
-    }),
-    [weekly]
-  );
+  const subjectData = useMemo(() => {
+    const subjects = Object.keys(weekly.bySubject || {});
+    return subjects.map((name, index) => ({
+      name,
+      minutes: weekly.bySubject[name],
+      fill: COLORS[index % COLORS.length]
+    }));
+  }, [weekly]);
 
-  // Day labels are kept raw here (i.e. ISO strings) — the parent decides
-  // how to format them so we don't pull in date-fns / ar locale on the
-  // main bundle path. The parent passes pre-formatted labels.
-  const dayChartData = useMemo(
-    () => ({
-      labels: (weekly.byDay || []).map((d) => String(d.date)),
-      datasets: [
-        {
-          label: 'دقائق',
-          data: (weekly.byDay || []).map((d) => d.minutes),
-          borderColor: 'rgb(16, 185, 129)',
-          backgroundColor: 'rgba(16, 185, 129, 0.3)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          pointBackgroundColor: 'rgb(16, 185, 129)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-        },
-      ],
-    }),
-    [weekly]
-  );
+  const dayData = useMemo(() => {
+    return (weekly.byDay || []).map((d) => ({
+      name: String(d.date),
+      minutes: d.minutes
+    }));
+  }, [weekly]);
+
+  const formatTooltip = (value: any) => {
+    const minutes = Number(value);
+    const hours = (minutes / 60).toFixed(1);
+    return [`${minutes} دقيقة (${hours} ساعة)`, 'وقت المذاكرة'];
+  };
 
   return (
     <>
-      <div className="h-80">
-        <Bar
-          data={subjectChartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const minutes = ctx.parsed.y ?? 0;
-                    const hours = (minutes / 60).toFixed(1);
-                    return `${minutes} دقيقة (${hours} ساعة)`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { callback: (v) => `${v} د` },
-              },
-            },
-          }}
-        />
+      <div className="h-80 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={subjectData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={(v) => `${v} د`} tick={{ fontSize: 12 }} />
+            <Tooltip formatter={formatTooltip} cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
+            <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
+              {subjectData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <div className="h-80">
-        <Line
-          data={dayChartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const minutes = ctx.parsed.y ?? 0;
-                    const hours = (minutes / 60).toFixed(1);
-                    return `${minutes} دقيقة (${hours} ساعة)`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { callback: (v) => `${v} د` },
-              },
-            },
-          }}
-        />
+      <div className="h-80 w-full mt-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={dayData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={(v) => `${v} د`} tick={{ fontSize: 12 }} />
+            <Tooltip formatter={formatTooltip} />
+            <Line
+              type="monotone"
+              dataKey="minutes"
+              stroke="rgb(16, 185, 129)"
+              strokeWidth={3}
+              dot={{ r: 6, stroke: '#fff', strokeWidth: 2, fill: 'rgb(16, 185, 129)' }}
+              activeDot={{ r: 8 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </>
   );

@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 
 interface RequestContext {
   requestId: string;
@@ -58,7 +57,7 @@ function runWithContext<T>(context: RequestContext, fn: () => T): T {
  */
 function initRequestContext(partial?: Partial<RequestContext>): RequestContext {
   return {
-    requestId: partial?.requestId || uuidv4(),
+    requestId: partial?.requestId || crypto.randomUUID(),
     startTime: Date.now(),
     ...partial
   };

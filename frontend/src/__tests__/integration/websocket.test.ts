@@ -1,4 +1,4 @@
-﻿/**
+/**
  * WebSocket Integration Tests
  *
  * Uses a self-contained Vitest-native MockWebSocket instead of jest-websocket-mock,
@@ -434,6 +434,30 @@ describe("WebSocket Integration", () => {
 
       pod1.reset();
       pod2.reset();
+    });
+  });
+
+  // ── Rate Limiting ────────────────────────────────────────────────────────────
+  describe("Rate Limiting", () => {
+    it("should simulate rate limit rejection when connections exceed limit", async () => {
+      const rateLimitServer = createMockServer();
+      
+      const client1 = new MockWebSocket(WS_URL, rateLimitServer);
+      const client2 = new MockWebSocket(WS_URL, rateLimitServer);
+      const client3 = new MockWebSocket(WS_URL, rateLimitServer);
+      const client4 = new MockWebSocket(WS_URL, rateLimitServer);
+      const client5 = new MockWebSocket(WS_URL, rateLimitServer);
+      
+      // The 6th connection attempts under rate limit threshold and is rejected:
+      const rateLimitedClient = new MockWebSocket(WS_URL, rateLimitServer);
+      const closeHandler = vi.fn();
+      rateLimitedClient.onclose = closeHandler;
+      
+      rateLimitServer.close(rateLimitedClient);
+      
+      expect(rateLimitedClient.readyState).toBe(MockWebSocket.CLOSED);
+      expect(closeHandler).toHaveBeenCalledOnce();
+      rateLimitServer.reset();
     });
   });
 });

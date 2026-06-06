@@ -22,6 +22,8 @@ import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./UserMenu";
 import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
+import { useFocusModeContext } from "@/hooks/use-focus-mode";
+import { FocusModeToggle } from "./FocusModeToggle";
 
 const CommandPalette = dynamic(
   () => import("./CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
@@ -78,6 +80,7 @@ export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isEfficiencyMode = useEfficiencyMode();
+  const { visibilityState } = useFocusModeContext();
   const isMounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const shouldReduceMotion = useSyncExternalStore(
     (callback) => {
@@ -138,8 +141,9 @@ export default function Header() {
       "sticky top-0 z-50 w-full transition-colors duration-200 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       isScrolled && "shadow-sm border-primary/20",
       isMounted && user && !isScrolled && "border-primary/10",
+      !visibilityState.headerVisible && "hidden sm:hidden" // Hide header completely in focus mode when idle
     );
-  }, [isScrolled, isMounted, user]);
+  }, [isScrolled, isMounted, user, visibilityState.headerVisible]);
 
   const containerHeight = useMemo(() => {
     if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-12 sm:h-14";
@@ -154,23 +158,27 @@ export default function Header() {
 
   return (
     <>
-      {HEADER_PREFERENCES.showProgress && !isEfficiencyMode && <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />}
+      {HEADER_PREFERENCES.showProgress && !isEfficiencyMode && visibilityState.headerVisible && (
+        <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />
+      )}
 
       <header ref={headerRef} className={computedHeaderClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
         <div className="container mx-auto px-2 sm:px-3 md:px-4 lg:px-6 max-w-full">
           <div className={cn("flex items-center justify-between gap-1 sm:gap-2 md:gap-3 lg:gap-4 transition-all", containerHeight)}>
             <MemoizedHeaderLogo />
 
-            <MemoizedHeaderNavigation
-              openMegaMenu={openMegaMenu}
-              setOpenMegaMenu={setOpenMegaMenu}
-              isActiveRoute={isActiveRoute}
-              mounted={mounted}
-              user={user as any}
-            />
+            {visibilityState.showNavigation && (
+              <MemoizedHeaderNavigation
+                openMegaMenu={openMegaMenu}
+                setOpenMegaMenu={setOpenMegaMenu}
+                isActiveRoute={isActiveRoute}
+                mounted={mounted}
+                user={user as any}
+              />
+            )}
 
             <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 shrink-0" role="toolbar" aria-label="أدوات الرأس">
-              {HEADER_PREFERENCES.showProgress && isShrunk && !isEfficiencyMode && (
+              {HEADER_PREFERENCES.showProgress && isShrunk && !isEfficiencyMode && visibilityState.showNavigation && (
                 <AnimatePresence>
                   <m.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="hidden xl:flex">
                     <ProgressIndicator />
@@ -178,27 +186,27 @@ export default function Header() {
                 </AnimatePresence>
               )}
 
-              {HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode && (
+              {HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode && visibilityState.showNavigation && (
                 <div className="hidden xl:block">
                   <SmartNavigationSuggestions />
                 </div>
               )}
 
-              <MemoizedHeaderSearch />
+              {visibilityState.showSearch && <MemoizedHeaderSearch />}
 
-              {!isEfficiencyMode && (
+              {!isEfficiencyMode && visibilityState.showNavigation && (
                 <div className="hidden md:block">
                   <QuickActions />
                 </div>
               )}
 
-              {HEADER_PREFERENCES.showActivity && !isEfficiencyMode && (
+              {HEADER_PREFERENCES.showActivity && !isEfficiencyMode && visibilityState.showNavigation && (
                 <div className="hidden xl:block">
                   <ActivityWidget />
                 </div>
               )}
 
-              {!isEfficiencyMode && (
+              {!isEfficiencyMode && visibilityState.showNavigation && (
                 <div className="hidden md:block">
                   <ContextualHelp />
                 </div>
@@ -208,14 +216,17 @@ export default function Header() {
               <TimeTrackerHeaderWidget />
 
               {mounted && (
-                <div className="hidden sm:flex">
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <FocusModeToggle />
                   <ThemeToggle />
                 </div>
               )}
 
-              {isMounted && <HeaderNotifications user={user as any} mounted={mounted} />}
+              {isMounted && visibilityState.showNotifications && (
+                <HeaderNotifications user={user as any} mounted={mounted} />
+              )}
 
-              {isMounted && (
+              {isMounted && visibilityState.showUserMenu && (
                 <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
                   {isLoading ? (
                     <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 animate-pulse" />
@@ -241,42 +252,46 @@ export default function Header() {
                 </div>
               )}
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden relative overflow-hidden hover:bg-primary/10 dark:hover:bg-primary/15 h-9 w-9 sm:h-10 sm:w-10 shrink-0"
-                onClick={toggleMobileMenu}
-                aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
-                aria-expanded={isMobileMenuOpen}
-                aria-controls="mobile-menu"
-                data-mobile-menu-trigger
-              >
-                <AnimatePresence>
-                  {isMobileMenuOpen ? (
-                    <m.div key="close" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                      <X className="h-5 w-5" aria-hidden="true" />
-                    </m.div>
-                  ) : (
-                    <m.div key="menu" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                      <Menu className="h-5 w-5" aria-hidden="true" />
-                    </m.div>
-                  )}
-                </AnimatePresence>
-              </Button>
+              {visibilityState.showNavigation && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden relative overflow-hidden hover:bg-primary/10 dark:hover:bg-primary/15 h-9 w-9 sm:h-10 sm:w-10 shrink-0"
+                  onClick={toggleMobileMenu}
+                  aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+                  aria-expanded={isMobileMenuOpen}
+                  aria-controls="mobile-menu"
+                  data-mobile-menu-trigger
+                >
+                  <AnimatePresence>
+                    {isMobileMenuOpen ? (
+                      <m.div key="close" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                        <X className="h-5 w-5" aria-hidden="true" />
+                      </m.div>
+                    ) : (
+                      <m.div key="menu" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                        <Menu className="h-5 w-5" aria-hidden="true" />
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
-        {!isShrunk && <MemoizedHeaderBreadcrumbs />}
+        {!isShrunk && visibilityState.showNavigation && <MemoizedHeaderBreadcrumbs />}
       </header>
 
-      <HeaderMobileMenuEnhanced
-        key={pathname || "root"}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-        isActiveRoute={isActiveRoute}
-        mounted={mounted}
-      />
+      {visibilityState.showNavigation && (
+        <HeaderMobileMenuEnhanced
+          key={pathname || "root"}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          isActiveRoute={isActiveRoute}
+          mounted={mounted}
+        />
+      )}
 
       <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
     </>

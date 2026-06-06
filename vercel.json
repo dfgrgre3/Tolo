@@ -23,6 +23,24 @@
           "value": "origin-when-cross-origin"
         }
       ]
+    },
+    {
+      "source": "/(about|contact|privacy|teachers|tips|pathways|library)?",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    },
+    {
+      "source": "/courses/:path*",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
     }
   ]
 }

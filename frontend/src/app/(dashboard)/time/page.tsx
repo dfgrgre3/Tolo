@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Components
 import TimeManagementHeader from './components/TimeManagementHeader';
@@ -254,15 +255,66 @@ export default function TimeManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 text-center min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="relative">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
-          </div>
+      <div className="min-h-screen bg-[#050B14] text-slate-100 p-4 md:p-6 lg:p-8 space-y-8 animate-in fade-in duration-500">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-lg font-semibold">جاري التحميل...</p>
-            <p className="text-sm text-muted-foreground">يرجى الانتظار بينما نقوم بتحميل بياناتك</p>
+            <Skeleton className="h-10 w-64 bg-emerald-500/10 rounded-xl" />
+            <Skeleton className="h-4 w-96 bg-slate-800/50 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-12 w-32 bg-emerald-500/5 rounded-xl" />
+            <Skeleton className="h-12 w-12 bg-slate-800/40 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-2xl bg-slate-900/40 border border-white/5 p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 bg-emerald-500/10 rounded-lg" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-20 bg-slate-800" />
+                  <Skeleton className="h-6 w-12 bg-slate-800" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Floating Tabs Skeleton */}
+        <div className="max-w-5xl mx-auto">
+          <div className="flex justify-between p-2 gap-2 bg-slate-900/40 border border-white/5 rounded-3xl">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-11 flex-1 bg-slate-800/60 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+
+        {/* Dashboard Content Cards Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="rounded-2xl bg-slate-900/30 border border-white/5 p-6 space-y-4">
+              <Skeleton className="h-6 w-40 bg-slate-800" />
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 border-b border-white/5">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-48 bg-slate-800" />
+                      <Skeleton className="h-3 w-32 bg-slate-800/60" />
+                    </div>
+                    <Skeleton className="h-6 w-16 bg-slate-800 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <div className="rounded-2xl bg-slate-900/30 border border-white/5 p-6 space-y-4">
+              <Skeleton className="h-6 w-32 bg-slate-800" />
+              <Skeleton className="h-[200px] w-full bg-slate-800/50 rounded-xl" />
+            </div>
           </div>
         </div>
       </div>

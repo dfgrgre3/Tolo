@@ -123,6 +123,8 @@ function mapSessionToDevice(session: SessionApiRecord): Device {
   };
 }
 
+import { LoadingState } from '../_components/loading-state';
+
 export default function DevicesPage() {
   const { logout } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
@@ -224,11 +226,7 @@ export default function DevicesPage() {
   const uniqueIpCount = useMemo(() => new Set(devices.map((device) => device.ip)).size, [devices]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-      </div>);
-
+    return <LoadingState />;
   }
 
   return (

@@ -2,11 +2,17 @@ import { Queue, Worker, Job } from 'bullmq';
 import { logger } from '../logger';
 import Redis from 'ioredis';
 
+const globalForQueueRedis = global as unknown as { queueRedis: Redis };
+
 // Dedicated Redis connection for BullMQ as per documentation requirements
 // BullMQ requires maxRetriesPerRequest to be null
-const queueConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const queueConnection = globalForQueueRedis.queueRedis || new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
 });
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForQueueRedis.queueRedis = queueConnection;
+}
 
 let policyCheckLogged = false;
 

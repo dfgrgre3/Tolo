@@ -5,6 +5,7 @@ import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, Messag
 import { logger } from '@/lib/logger';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/contexts/auth-context';
+import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -89,6 +90,20 @@ export default function AIAssistant({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Streaming batch handler
+  const onBatch = useCallback((tokens: string[]) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const lastMsg = newMessages[newMessages.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant') {
+        lastMsg.content += tokens.join('');
+      }
+      return newMessages;
+    });
+  }, []);
+
+  const { addItem, flush } = useTokenStreamBuffer<string>(onBatch, 150);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -192,18 +207,7 @@ export default function AIAssistant({
     setShowSidebar(false);
   };
 
-  const updateAssistantMessage = (content: string) => {
-    setMessages(prev => {
-      const newMessages = [...prev];
-      const lastMsg = newMessages[newMessages.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant') {
-        lastMsg.content = content;
-      }
-      return newMessages;
-    });
-  };
-
-  const handleStreamPayload = (data: string, assistantState: { content: string }) => {
+  const handleStreamPayload = (data: string) => {
     if (data === '[DONE]') {
       setIsStreaming(false);
       return;
@@ -212,8 +216,7 @@ export default function AIAssistant({
     try {
       const parsed = JSON.parse(data);
       if (parsed.content) {
-        assistantState.content += parsed.content;
-        updateAssistantMessage(assistantState.content);
+        addItem(parsed.content);
       }
       if (parsed.conversationId) setConversationId(parsed.conversationId);
       if (parsed.done) setIsStreaming(false);
@@ -227,7 +230,6 @@ export default function AIAssistant({
     if (!reader) return;
 
     const decoder = new TextDecoder();
-    const assistantState = { content: '' };
     setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date() }]);
 
     try {
@@ -239,10 +241,11 @@ export default function AIAssistant({
         const lines = chunk.split('\n');
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            handleStreamPayload(line.slice(6).trim(), assistantState);
+            handleStreamPayload(line.slice(6).trim());
           }
         }
       }
+      flush();
     } finally {
       reader.releaseLock();
     }

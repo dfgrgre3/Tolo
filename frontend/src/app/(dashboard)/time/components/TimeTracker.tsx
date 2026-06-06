@@ -86,10 +86,73 @@ const stateThemes: Record<PomodoroState, {
   },
 };
 
+interface TimerCircleProps {
+  currentPomodoroState: PomodoroState;
+  totalDuration: number;
+  handleToggle: () => void;
+  theme: any;
+}
+
+const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleToggle, theme }: TimerCircleProps) => {
+  const timeLeft = useTimeTrackerStore((state) => state.timeLeft);
+  const isRunning = useTimeTrackerStore((state) => state.isRunning);
+
+  const progress = Math.max(0, Math.min(100, 100 - (timeLeft / totalDuration) * 100));
+  const R = 120;
+  const circ = 2 * Math.PI * R;
+  const offset = circ - (progress / 100) * circ;
+
+  return (
+    <m.div
+      animate={isRunning ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+      transition={isRunning ? { repeat: Infinity, duration: 3, ease: 'easeInOut' } : { duration: 0.3 }}
+      className="relative flex items-center justify-center mb-10 cursor-pointer group"
+      onClick={handleToggle}
+    >
+      {/* Outer glow ring */}
+      <div className={cn(
+        'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500',
+        currentPomodoroState === 'work' ? 'bg-rose-500' :
+        currentPomodoroState === 'shortBreak' ? 'bg-teal-500' : 'bg-violet-500'
+      )} />
+
+      <svg width="280" height="280" className="-rotate-90">
+        {/* Track */}
+        <circle cx="140" cy="140" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+        {/* Progress ring */}
+        <m.circle
+          cx="140" cy="140" r={R}
+          fill="none"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          className={cn(theme.stroke, theme.glow)}
+          transition={{ duration: 1, ease: 'linear' }}
+        />
+      </svg>
+
+      {/* Inner content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+        <span className={cn('text-6xl font-mono font-black tabular-nums tracking-tighter', theme.color, theme.glow)}>
+          {formatTime(timeLeft)}
+        </span>
+        <span className="text-sm font-medium text-white/40 mt-2">
+          {Math.round(progress)}% مكتمل
+        </span>
+        <span className="text-xs text-white/25 mt-1">
+          {isRunning ? 'اضغط للإيقاف' : 'اضغط للبدء'}
+        </span>
+      </div>
+    </m.div>
+  );
+});
+
+TimerCircle.displayName = 'TimerCircle';
+
 export default function TimeTracker({ userId, tasks, onStudySessionCreate }: TimeTrackerProps) {
   const {
     isRunning,
-    timeLeft,
     currentPomodoroState,
     pomodoroCount,
     activeTaskId,
@@ -114,11 +177,6 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
       : currentPomodoroState === 'shortBreak'
       ? settings.pomodoroBreakMinutes * 60
       : settings.longBreakMinutes * 60;
-
-  const progress = Math.max(0, Math.min(100, 100 - (timeLeft / totalDuration) * 100));
-  const R = 120;
-  const circ = 2 * Math.PI * R;
-  const offset = circ - (progress / 100) * circ;
 
   const handleToggle = useCallback(() => {
     if (isRunning) {
@@ -211,49 +269,13 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
               </m.div>
             )}
 
-            {/* Circular Timer */}
-            <m.div
-              animate={isRunning ? { scale: [1, 1.015, 1] } : { scale: 1 }}
-              transition={isRunning ? { repeat: Infinity, duration: 3, ease: 'easeInOut' } : { duration: 0.3 }}
-              className="relative flex items-center justify-center mb-10 cursor-pointer group"
-              onClick={handleToggle}
-            >
-              {/* Outer glow ring */}
-              <div className={cn(
-                'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500',
-                currentPomodoroState === 'work' ? 'bg-rose-500' :
-                currentPomodoroState === 'shortBreak' ? 'bg-teal-500' : 'bg-violet-500'
-              )} />
-
-              <svg width="280" height="280" className="-rotate-90">
-                {/* Track */}
-                <circle cx="140" cy="140" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-                {/* Progress ring */}
-                <m.circle
-                  cx="140" cy="140" r={R}
-                  fill="none"
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={circ}
-                  strokeDashoffset={offset}
-                  className={cn(theme.stroke, theme.glow)}
-                  transition={{ duration: 1, ease: 'linear' }}
-                />
-              </svg>
-
-              {/* Inner content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
-                <span className={cn('text-6xl font-mono font-black tabular-nums tracking-tighter', theme.color, theme.glow)}>
-                  {formatTime(timeLeft)}
-                </span>
-                <span className="text-sm font-medium text-white/40 mt-2">
-                  {Math.round(progress)}% مكتمل
-                </span>
-                <span className="text-xs text-white/25 mt-1">
-                  {isRunning ? 'اضغط للإيقاف' : 'اضغط للبدء'}
-                </span>
-              </div>
-            </m.div>
+            {/* Circular Timer (Isolated state subscription) */}
+            <TimerCircle
+              currentPomodoroState={currentPomodoroState}
+              totalDuration={totalDuration}
+              handleToggle={handleToggle}
+              theme={theme}
+            />
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-4 w-full max-w-sm mb-8">

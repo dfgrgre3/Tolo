@@ -179,7 +179,7 @@ export function PlayerOverlays({
           >
             <div className="w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/85 p-8 text-center shadow-2xl">
               {/* Circular progress ring */}
-              <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center" aria-live="assertive" aria-atomic="true">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
                   <circle
                     cx="48" cy="48" r="42"

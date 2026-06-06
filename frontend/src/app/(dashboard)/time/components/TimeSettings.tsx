@@ -245,7 +245,7 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
                 <Switch
                   id="notifications"
                   checked={settings.notificationsEnabled}
-                  onCheckedChange={(checked) => setSettings(s => ({ ...s, notificationsEnabled: checked }))}
+                  onCheckedChange={(checked: boolean) => setSettings(s => ({ ...s, notificationsEnabled: checked }))}
                 />
               </div>
               <div className="flex items-center justify-between p-3 rounded-2xl bg-white/4 border border-white/8 hover:bg-white/6 transition-colors">
@@ -256,7 +256,7 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
                 <Switch
                   id="sound"
                   checked={settings.soundEnabled}
-                  onCheckedChange={(checked) => setSettings(s => ({ ...s, soundEnabled: checked }))}
+                  onCheckedChange={(checked: boolean) => setSettings(s => ({ ...s, soundEnabled: checked }))}
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
             <Switch
               id="pomodoro"
               checked={settings.pomodoroEnabled}
-              onCheckedChange={(checked) => setSettings(s => ({ ...s, pomodoroEnabled: checked }))}
+              onCheckedChange={(checked: boolean) => setSettings(s => ({ ...s, pomodoroEnabled: checked }))}
             />
           </div>
 
@@ -370,7 +370,7 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
                   <Switch
                     id="autoBreak"
                     checked={settings.autoStartBreak}
-                    onCheckedChange={(checked) => setSettings(s => ({ ...s, autoStartBreak: checked }))}
+                    onCheckedChange={(checked: boolean) => setSettings(s => ({ ...s, autoStartBreak: checked }))}
                   />
                 </div>
                 <p className="text-[10px] text-white/30 text-center">بدء الاستراحة تلقائياً</p>

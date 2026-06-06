@@ -679,8 +679,8 @@ export function CourseVideoPlayer({
       onMouseMove={resetControlsTimeout}
       onMouseDown={() => playerContainerRef.current?.focus()}
       className={cn(
-        "group/player relative aspect-video w-full select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
-        store.isFullscreen && "rounded-none",
+        "group/player relative aspect-video w-full max-h-[70vh] md:max-h-[75vh] lg:max-h-[80vh] select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+        store.isFullscreen && "rounded-none max-h-none",
         className
       )}
     >

@@ -229,7 +229,7 @@ export function TimeTrackerHeaderWidget() {
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center" aria-live="assertive" aria-atomic="true">
                   <span className={cn('text-4xl font-mono font-black tabular-nums', cfg.color)}>
                     {formatTime(timeLeft)}
                   </span>

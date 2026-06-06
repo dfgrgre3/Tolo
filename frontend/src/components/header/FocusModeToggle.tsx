@@ -21,7 +21,7 @@ interface FocusModeToggleProps {
   showLabel?: boolean;
 }
 
-const FocusModeToggle = memo(function FocusModeToggle({
+export const FocusModeToggle = memo(function FocusModeToggle({
   className,
   showLabel = false
 }: FocusModeToggleProps) {

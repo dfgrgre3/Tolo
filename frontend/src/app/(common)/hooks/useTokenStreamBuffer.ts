@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 
 /**
  * useTokenStreamBuffer
@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef } from 'react';
  */
 export function useTokenStreamBuffer<T>(
   onBatch: (items: T[]) => void,
-  interval = 150,
+  interval = 50,
   maxBufferSize = 500,
 ): {
   addItem: (item: T) => void;
@@ -95,6 +95,6 @@ export function useTokenStreamBuffer<T>(
     };
   }, []);
 
-  return { addItem, flush };
+  return useMemo(() => ({ addItem, flush }), [addItem, flush]);
 }
 

@@ -34,14 +34,14 @@ const VolumeControl = ({ isMuted, volume, onToggleMute, onVolumeChange }: any) =
   return (
     <div className="group/volume flex items-center">
       <IconButton icon={VolumeIcon} label="الصوت" onClick={onToggleMute} />
-      <div className="w-24 sm:w-0 sm:overflow-hidden sm:transition-all sm:duration-200 sm:group-hover/volume:mr-2 sm:group-hover/volume:w-28">
+      <div className="w-24 sm:w-0 sm:overflow-hidden sm:transition-all sm:duration-200 sm:group-hover/volume:mr-2 sm:group-hover/volume:w-28 sm:focus-within:w-28 sm:focus-within:mr-2 sm:group-focus-within/volume:mr-2 sm:group-focus-within/volume:w-28">
         <div className="relative h-2 w-full">
           <input
             type="range" min={0} max={1} step={0.05}
             value={isMuted ? 0 : volume}
             onChange={(event) => onVolumeChange(Number(event.target.value))}
             aria-label="مستوى الصوت"
-            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus:outline-none focus:ring-2 focus:ring-white/50"
           />
         </div>
       </div>

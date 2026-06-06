@@ -26,6 +26,7 @@ export function IconButton({
       className={cn(
         "group/icon relative flex h-11 w-11 items-center justify-center rounded-full text-white/80 transition-all duration-200",
         "hover:bg-white/10 hover:text-white hover:scale-105",
+        "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus:outline-none",
         "active:scale-95",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100",
         active && "bg-white/15 text-white",

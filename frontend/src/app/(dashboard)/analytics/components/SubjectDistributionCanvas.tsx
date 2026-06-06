@@ -3,24 +3,22 @@
 /**
  * SubjectDistributionCanvas
  * --------------------------
- * The ONLY place in the analytics page that statically imports
- * `chart.js` and `react-chartjs-2` for the subject distribution chart.
- * Loaded lazily by SubjectDistribution.tsx via next/dynamic with
- * `ssr: false` so the ~200KB chart.js library is NOT in the main bundle.
+ * Converted to Recharts for lighter bundle footprint and cleaner integration.
  */
 
+import React from 'react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+  Cell,
+  PieChart,
+  Pie,
+  Legend
+} from 'recharts';
 
 interface SubjectDistributionCanvasProps {
   subjects: Array<{ name: string; minutes: number; hours: number }>;
@@ -31,92 +29,65 @@ export default function SubjectDistributionCanvas({
   subjects,
   colors,
 }: SubjectDistributionCanvasProps) {
-  const barChartData = {
-    labels: subjects.map((s) => s.name),
-    datasets: [
-      {
-        label: 'ساعات',
-        data: subjects.map((s) => s.hours),
-        backgroundColor: colors.slice(0, subjects.length),
-        borderColor: colors
-          .slice(0, subjects.length)
-          .map((c) => c.replace('0.8', '1')),
-        borderWidth: 2,
-        borderRadius: 8,
-      },
-    ],
+  // Format data for Recharts
+  const data = subjects.map((s, index) => ({
+    name: s.name,
+    hours: s.hours,
+    minutes: s.minutes,
+    fill: colors[index % colors.length]
+  }));
+
+  const formatBarTooltip = (value: any) => {
+    const hours = Number(value);
+    const minutes = hours * 60;
+    return [`${hours.toFixed(1)} ساعة (${Math.round(minutes)} دقيقة)`, 'ساعات'];
   };
 
-  const doughnutChartData = {
-    labels: subjects.map((s) => s.name),
-    datasets: [
-      {
-        data: subjects.map((s) => s.minutes),
-        backgroundColor: colors.slice(0, subjects.length),
-        borderColor: '#fff',
-        borderWidth: 2,
-      },
-    ],
+  const formatPieTooltip = (value: any, name: any) => {
+    const minutes = Number(value);
+    const hours = minutes / 60;
+    const totalMinutes = subjects.reduce((sum, s) => sum + s.minutes, 0);
+    const percentage = totalMinutes > 0 ? ((minutes / totalMinutes) * 100).toFixed(1) : '0.0';
+    return [`${hours.toFixed(1)} ساعة (${percentage}%)`, name];
   };
 
   return (
     <>
-      <div className="h-80">
-        <Bar
-          data={barChartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const hours = ctx.parsed.y ?? 0;
-                    const minutes = hours * 60;
-                    return `${hours.toFixed(1)} ساعة (${Math.round(minutes)} دقيقة)`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { callback: (v) => `${v} س` },
-              },
-            },
-          }}
-        />
+      <div className="h-80 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={(v) => `${v} س`} tick={{ fontSize: 12 }} />
+            <Tooltip formatter={formatBarTooltip} cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
+            <Bar dataKey="hours" radius={[8, 8, 0, 0]}>
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <div className="h-80">
-        <Doughnut
-          data={doughnutChartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { padding: 15, usePointStyle: true },
-              },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const label = ctx.label || '';
-                    const value = (ctx.parsed as number) || 0;
-                    const hours = value / 60;
-                    const total = (ctx.dataset.data as number[]).reduce(
-                      (a, b) => a + b,
-                      0
-                    );
-                    const percentage = ((value / total) * 100).toFixed(1);
-                    return `${label}: ${hours.toFixed(1)} ساعة (${percentage}%)`;
-                  },
-                },
-              },
-            },
-          }}
-        />
+      <div className="h-80 w-full flex items-center justify-center">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="minutes"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={80}
+              paddingAngle={2}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Pie>
+            <Tooltip formatter={formatPieTooltip} />
+            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+          </PieChart>
+        </ResponsiveContainer>
       </div>
     </>
   );

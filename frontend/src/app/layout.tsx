@@ -7,8 +7,6 @@ import Header from '@/components/header/Header';
 import React, { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/providers/theme-provider';
-import { ClerkProvider } from '@clerk/nextjs';
-import { arSA } from '@clerk/localizations';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -64,8 +62,7 @@ export default async function RootLayout({
   const hasAuthToken = cookieStore.has('access_token') || cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
-    <ClerkProvider localization={arSA}>
-      <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -157,6 +154,5 @@ export default async function RootLayout({
           <SpeedInsights />
         </body>
       </html>
-    </ClerkProvider>
   );
 }

@@ -3,114 +3,73 @@
 /**
  * TimeTrendsCanvas
  * ----------------
- * Same pattern as WeeklyChartCanvas: this is the only file in the analytics
- * page that statically imports `chart.js` and `react-chartjs-2`. It is
- * loaded lazily by TimeTrends.tsx via next/dynamic with `ssr: false` so the
- * chart.js library is NOT in the main bundle.
- *
- * Performance note: `LINE_CHART_OPTIONS` is a module-level constant so its
- * object reference never changes between renders. This prevents Chart.js from
- * treating it as a "new" config and re-initialising its animation/scale
- * engine on every parent re-render (which was the source of CPU spikes when
- * the AI streaming buffer flushed tokens and triggered upstream re-renders).
+ * Converted to Recharts for lighter bundle footprint and cleaner integration.
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Legend,
-  Filler
-);
+  Legend
+} from 'recharts';
 
 interface TimeTrendsCanvasProps {
-  // Pre-formatted day data with Arabic labels (formatted by the parent so
-  // we don't pull in date-fns / `ar` locale on this chunk).
   days: Array<{ shortLabel: string; minutes: number }>;
   firstAvg: number;
 }
 
-// ── Static options object ────────────────────────────────────────────────────
-// Defined outside the component so the reference is stable across renders.
-// Chart.js performs a deep-equal check on options; a new object reference on
-// every render forces a full chart teardown + reinitialisation even when the
-// values haven't changed.
-const LINE_CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: true, position: 'top' as const },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => {
-          const minutes = ctx.parsed.y ?? 0;
-          if (ctx.datasetIndex === 0) {
-            const hours = (minutes / 60).toFixed(1);
-            return `${ctx.dataset.label}: ${minutes} دقيقة (${hours} ساعة)`;
-          }
-          return `${ctx.dataset.label}: ${minutes.toFixed(1)} دقيقة`;
-        },
-      },
-    },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-      ticks: { callback: (v: string | number) => `${v} د` },
-    },
-  },
-} as const;
-
 export default function TimeTrendsCanvas({ days, firstAvg }: TimeTrendsCanvasProps) {
-  // Memoize dataset so Chart.js only re-renders when the underlying data
-  // actually changes, not on every parent re-render.
-  const lineChartData = useMemo(() => ({
-    labels: days.map((d) => d.shortLabel),
-    datasets: [
-      {
-        label: 'وقت المذاكرة (دقائق)',
-        data: days.map((d) => d.minutes),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-      },
-      {
-        label: 'المتوسط',
-        data: days.map(() => firstAvg),
-        borderColor: 'rgba(156, 163, 175, 0.5)',
-        backgroundColor: 'transparent',
-        borderDash: [5, 5],
-        pointRadius: 0,
-        fill: false,
-      },
-    ],
-  }), [days, firstAvg]);
+  const data = useMemo(() => {
+    return days.map((d) => ({
+      name: d.shortLabel,
+      minutes: d.minutes,
+      average: firstAvg,
+    }));
+  }, [days, firstAvg]);
+
+  const formatTooltip = (value: any, name: any) => {
+    const minutes = Number(value);
+    if (name === 'minutes') {
+      const hours = (minutes / 60).toFixed(1);
+      return [`${minutes} دقيقة (${hours} ساعة)`, 'وقت المذاكرة'];
+    }
+    return [`${minutes.toFixed(1)} دقيقة`, 'المتوسط'];
+  };
 
   return (
-    <div className="h-96">
-      <Line data={lineChartData} options={LINE_CHART_OPTIONS} />
+    <div className="h-96 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+          <YAxis tickFormatter={(v) => `${v} د`} tick={{ fontSize: 12 }} />
+          <Tooltip formatter={formatTooltip} />
+          <Legend verticalAlign="top" height={36} />
+          <Line
+            name="minutes"
+            type="monotone"
+            dataKey="minutes"
+            stroke="rgb(59, 130, 246)"
+            strokeWidth={3}
+            dot={{ r: 6, stroke: '#fff', strokeWidth: 2, fill: 'rgb(59, 130, 246)' }}
+            activeDot={{ r: 8 }}
+          />
+          <Line
+            name="average"
+            type="monotone"
+            dataKey="average"
+            stroke="rgba(156, 163, 175, 0.7)"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
-

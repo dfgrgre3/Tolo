@@ -4,12 +4,18 @@ import { logger } from './logger';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
+const globalForRedis = global as unknown as { redis: Redis };
+
 // Create Redis client instance (lazy connect)
-const redisClient = new Redis(redisUrl, {
+const redisClient = globalForRedis.redis || new Redis(redisUrl, {
     maxRetriesPerRequest: 3,
     lazyConnect: true,
     enableReadyCheck: true,
 });
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForRedis.redis = redisClient;
+}
 
 redisClient.on('error', (error) => {
     logger.error('[Redis] Connection error:', error);

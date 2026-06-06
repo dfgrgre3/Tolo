@@ -1,9 +1,25 @@
 {
-  "worktrees": {},
-  "sessions": {},
+  "worktrees": {
+    "wt-1780707746740-1": {
+      "branch": "icy-archduke",
+      "path": "d:\\thanawy\\.kilo\\worktrees\\icy-archduke",
+      "parentBranch": "main",
+      "createdAt": "2026-06-06T01:02:26.740Z",
+      "remote": "origin"
+    }
+  },
+  "sessions": {
+    "ses_1658c1820ffeKB0aCNQWhIM6uV": {
+      "worktreeId": "wt-1780707746740-1",
+      "createdAt": "2026-06-06T01:02:27.827Z"
+    }
+  },
   "tabOrder": {
     "local": [
       "pending:1"
     ]
-  }
+  },
+  "worktreeOrder": [
+    "wt-1780707746740-1"
+  ]
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { generateUserPath, validateFileType, validateFileSize, formatFileSize } from "@/lib/storage";
+import DOMPurify from "isomorphic-dompurify";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
@@ -37,7 +38,16 @@ export async function POST(request: NextRequest) {
     const userId = "anonymous";
     const path = generateUserPath(userId, file.name, folder);
 
-    const { data, error } = await supabase.storage.from("uploads").upload(path, file, {
+    let fileToUpload: File | Blob = file;
+    if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
+      const svgText = await file.text();
+      const sanitizedSvg = DOMPurify.sanitize(svgText, {
+        USE_PROFILES: { svg: true },
+      });
+      fileToUpload = new Blob([sanitizedSvg], { type: "image/svg+xml" });
+    }
+
+    const { data, error } = await supabase.storage.from("uploads").upload(path, fileToUpload, {
       upsert: false,
       contentType: file.type,
       cacheControl: "3600",

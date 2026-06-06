@@ -26,10 +26,8 @@ export const maxDuration = 30;
 
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// Per-attempt timeout. We retry once, so total worst-case is ~40s but
-// still under maxDuration above.
+// Hard timeout for requests before failing fast to avoid blocking serverless threads.
 const FETCH_TIMEOUT_MS = 20000;
-const MAX_ATTEMPTS = 2;
 
 // =============================================================================
 // Backend URL resolution (request-time, NOT module-load time)
@@ -101,7 +99,17 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   if (auth) headers['Authorization'] = auth;
 
   const cookie = request.headers.get('cookie');
-  if (cookie) headers['Cookie'] = cookie;
+  if (cookie) {
+    // Filter out Clerk cookies to avoid conflicts and header bloat
+    const cleanedCookies = cookie
+      .split(';')
+      .map(c => c.trim())
+      .filter(c => !c.startsWith('__clerk') && !c.startsWith('__client') && !c.startsWith('__session'))
+      .join('; ');
+    if (cleanedCookies) {
+      headers['Cookie'] = cleanedCookies;
+    }
+  }
 
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
   if (ip) headers['x-forwarded-for'] = ip;
@@ -127,70 +135,31 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
 // Body handling
 // =============================================================================
 
-/**
- * Read the request body as a Uint8Array so we can safely forward it to the
- * upstream backend. We avoid using `request.body` (a ReadableStream) directly
- * because some Vercel Node runtime versions + duplex: 'half' combos
- * intermittently drop the body and produce 502s on POST requests.
- *
- * We return Uint8Array (not Buffer) because Uint8Array is a valid BodyInit
- * per the DOM lib types, while Buffer requires a cast. Node's fetch accepts
- * both at runtime.
- */
-async function readBodyBuffer(request: NextRequest): Promise<Uint8Array | undefined> {
-  if (!METHODS_WITH_BODY.has(request.method)) return undefined;
-  try {
-    const ab = await request.arrayBuffer();
-    if (!ab || ab.byteLength === 0) return undefined;
-    return new Uint8Array(ab);
-  } catch (e: any) {
-    console.warn('[API Proxy] Failed to read request body:', e?.message || e);
-    return undefined;
-  }
-}
 
 // =============================================================================
 // Fetch with timeout + retry
 // =============================================================================
 
 /**
- * fetch() with a hard per-attempt timeout and a single retry.
- *
- * The retry handles Vercel-to-Vercel egress flakiness: a single cold call
- * sometimes times out before the Go backend wakes up. A second attempt
- * typically succeeds immediately because both ends are warm.
+ * fetch() with a hard timeout. We fail fast and let the client-side
+ * (e.g., TanStack React Query) handle retry logic, avoiding serverless
+ * execution billing overhead.
  */
-async function fetchWithTimeoutAndRetry(
+async function fetchWithTimeout(
   url: string,
   init: RequestInit
 ): Promise<Response> {
-  let lastError: unknown = null;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const response = await fetch(url, {
-        ...init,
-        signal: controller.signal,
-      });
-      return response;
-    } catch (err: any) {
-      lastError = err;
-      const msg = err?.message || String(err);
-      const isAbort = err?.name === 'AbortError' || msg.includes('aborted');
-      console.warn(
-        `[API Proxy] Attempt ${attempt}/${MAX_ATTEMPTS} failed for ${url}: ` +
-        `${isAbort ? `timeout after ${FETCH_TIMEOUT_MS}ms` : msg}`
-      );
-      if (attempt < MAX_ATTEMPTS) {
-        // small backoff before retry
-        await new Promise((r) => setTimeout(r, 200 * attempt));
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  throw lastError;
 }
 
 // =============================================================================
@@ -280,6 +249,15 @@ async function handleProxy(
   const params = await props.params;
   const path = params.path.join('/');
 
+  // Bypass media/storage files to avoid memory buffering proxy overhead and redirect directly to Supabase CDN
+  if (params.path[0] === 'storage') {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vowortqooklkavlaqigr.supabase.co';
+    const { search } = new URL(request.url);
+    const redirectUrl = `${supabaseUrl}/storage/${params.path.slice(1).join('/')}${search}`;
+    console.log(`[API Proxy] Media redirect: /api/${path} -> ${redirectUrl}`);
+    return NextResponse.redirect(redirectUrl, { status: 307 });
+  }
+
   // Bypass: local analytics & revalidation routes are handled by their own
   // route handlers and must not be proxied upstream.
   if (path === 'analytics/web-vitals') {
@@ -321,15 +299,17 @@ async function handleProxy(
   const targetUrl = `${backendUrl}/api/${path}${search}`;
   console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
 
-  // Read the body fully as a Uint8Array (the most stable way to forward a
-  // body to an upstream serverless function in Vercel's Node runtime).
-  const body = (await readBodyBuffer(request)) as BodyInit | undefined;
+  // Stream the request body directly to avoid in-memory buffering for large payloads.
+  const hasBody = METHODS_WITH_BODY.has(request.method);
+  const body = hasBody ? request.body : undefined;
 
   try {
-    const response = await fetchWithTimeoutAndRetry(targetUrl, {
+    const response = await fetchWithTimeout(targetUrl, {
       method: request.method,
       headers: upstreamHeaders(request),
       body,
+      // @ts-ignore - duplex is required when sending a stream in Node fetch
+      duplex: hasBody ? 'half' : undefined,
     });
 
     if (!response.ok) {
@@ -341,11 +321,8 @@ async function handleProxy(
 
     const responseHeaders = copyResponseHeaders(response, 'no-store');
 
-    // Read the body fully as an ArrayBuffer to decompress it at the proxy level
-    // and avoid ERR_CONTENT_DECODING_FAILED issues in the browser.
-    const buffer = await response.arrayBuffer();
-
-    return new NextResponse(buffer, {
+    // Pass the ReadableStream directly to support streaming and avoid in-memory buffering.
+    return new NextResponse(response.body, {
       status: response.status,
       headers: responseHeaders,
     });
@@ -355,7 +332,7 @@ async function handleProxy(
     const isTimeout = errName === 'AbortError' || errMsg.toLowerCase().includes('aborted');
     console.error(
       `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path} ` +
-      `after ${MAX_ATTEMPTS} attempts. target=${targetUrl} error=${errMsg}`
+      `target=${targetUrl} error=${errMsg}`
     );
     return NextResponse.json(
       {
@@ -364,7 +341,7 @@ async function handleProxy(
           : 'Failed to connect to backend service',
         details: errMsg,
         target: targetUrl,
-        attempts: MAX_ATTEMPTS,
+        attempts: 1,
         timeoutMs: FETCH_TIMEOUT_MS,
         hint: isTimeout
           ? 'The Vercel Function may be hitting its maxDuration limit (10s on Hobby, 30s on Pro). ' +

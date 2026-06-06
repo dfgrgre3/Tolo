@@ -187,7 +187,7 @@ interface FocusModeContextType {
 
 const FocusModeContext = createContext<FocusModeContextType | null>(null);
 
-function useFocusModeContext() {
+export function useFocusModeContext() {
     const context = useContext(FocusModeContext);
     if (!context) {
         throw new Error("useFocusModeContext must be used within FocusModeProvider");
@@ -195,5 +195,38 @@ function useFocusModeContext() {
     return context;
 }
 
-;
+export function FocusModeProvider({ children }: { children: React.ReactNode }) {
+    const focusMode = useFocusMode();
+
+    useEffect(() => {
+        if (!focusMode.mounted) return;
+
+        if (focusMode.state.isEnabled) {
+            if (typeof document !== "undefined" && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((err) => {
+                    console.error("Failed to enter fullscreen:", err);
+                });
+            }
+        } else {
+            if (typeof document !== "undefined" && document.fullscreenElement) {
+                document.exitFullscreen().catch((err) => {
+                    console.error("Failed to exit fullscreen:", err);
+                });
+            }
+        }
+    }, [focusMode.state.isEnabled, focusMode.mounted]);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && focusMode.state.isEnabled) {
+                focusMode.actions.disable();
+            }
+        };
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    }, [focusMode.state.isEnabled, focusMode.actions]);
+
+    return React.createElement(FocusModeContext.Provider, { value: focusMode }, children);
+}
+
 

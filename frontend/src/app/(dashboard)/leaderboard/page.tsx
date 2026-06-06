@@ -230,19 +230,19 @@ export default function LeaderboardPage() {
                 initial={isEfficiencyMode ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className={`p-6 flex items-center justify-between hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
+                className={`p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
                 
-                          <div className="flex items-center gap-8">
-                             <span className="w-12 text-2xl font-black text-gray-700 group-hover:text-primary transition-colors text-center">{entry.rank}</span>
-                             <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:scale-110 group-hover:rotate-6 transition-all">
+                          <div className="flex flex-row items-center gap-4 sm:gap-8 w-full min-w-0">
+                             <span className="w-8 text-2xl font-black text-gray-700 group-hover:text-primary transition-colors text-center shrink-0">{entry.rank}</span>
+                             <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:scale-110 group-hover:rotate-6 transition-all shrink-0">
                                  {entry.username!.charAt(0).toUpperCase()}
                              </div>
-                             <div className="space-y-1">
-                                <p className="font-black text-lg text-white group-hover:text-primary transition-colors">
+                             <div className="space-y-1 min-w-0">
+                                <p className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
                                    {entry.username}
                                    {entry.userId === userId && <Badge className="mr-3 bg-primary text-[10px] font-black h-5 uppercase">أنت</Badge>}
                                 </p>
-                                <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
+                                <div className="flex items-center gap-4 text-xs font-bold text-gray-500 flex-wrap">
                                    <span className="uppercase tracking-widest text-primary/70">المستوى {entry.level}</span>
                                    <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
                                       <div className="h-full bg-primary/40 w-[65%]" />
@@ -250,7 +250,7 @@ export default function LeaderboardPage() {
                                 </div>
                              </div>
                           </div>
-                          <div className="text-left">
+                          <div className="text-right sm:text-left shrink-0 self-end sm:self-center pr-12 sm:pr-0">
                              <p className="text-2xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP عسكري</p>
                           </div>

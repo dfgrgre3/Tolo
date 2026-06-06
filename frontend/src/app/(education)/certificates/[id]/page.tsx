@@ -35,6 +35,10 @@ export default function CertificatePage() {
     if (params.id) fetchCert();
   }, [params.id, fetchWithAuth]);
 
+  const handleDownloadPDF = () => {
+    window.open(`/api/certificates/${params.id}/pdf`, "_blank");
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -80,9 +84,13 @@ export default function CertificatePage() {
           </div>
           
           <div className="flex items-center gap-3">
+            <Button onClick={handleDownloadPDF} className="rounded-xl gap-2 font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
+              <Download className="w-4 h-4" />
+              تحميل الشهادة الموثقة (PDF)
+            </Button>
             <Button onClick={handlePrint} variant="outline" className="rounded-xl gap-2 font-bold border-white/10 hover:bg-white/5">
               <Printer className="w-4 h-4" />
-              طباعة / PDF
+              طباعة
             </Button>
             <Button className="rounded-xl gap-2 font-black bg-primary hover:bg-primary/90 text-white">
               <Share2 className="w-4 h-4" />

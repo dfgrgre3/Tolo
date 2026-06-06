@@ -337,18 +337,18 @@ function ExamsPageContent() {
                                  initial={{ opacity: 0, x: -30 }}
                                  animate={{ opacity: 1, x: 0 }}
                                  transition={{ delay: idx * 0.05 }}
-                                 className="p-8 flex items-center justify-between hover:bg-white/[0.02] group transition-all">
+                                 className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.02] group transition-all">
 
-                                 <div className="flex items-center gap-8">
-                                    <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-xl font-black shadow-2xl transition-transform group-hover:rotate-6 ${result.score >= 90 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : result.score >= 70 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full">
+                                    <div className={`h-16 w-16 shrink-0 rounded-[1.5rem] flex items-center justify-center text-xl font-black shadow-2xl transition-transform group-hover:rotate-6 ${result.score >= 90 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : result.score >= 70 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
                                        {result.score}%
                                     </div>
-                                    <div className="space-y-1">
-                                       <div className="flex items-center gap-3">
-                                          <h4 className="text-xl font-black text-white group-hover:text-primary transition-colors">{result.exam.subject} - {result.exam.title}</h4>
-                                          <Badge className="bg-white/5 text-[10px] font-black h-5 uppercase tracking-tighter border-white/10">{result.exam.year}</Badge>
+                                    <div className="space-y-1 min-w-0">
+                                       <div className="flex flex-col sm:flex-row sm:items-start sm:items-center gap-2 sm:gap-3">
+                                          <h4 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-relaxed break-words">{result.exam.subject} - {result.exam.title}</h4>
+                                          <Badge className="bg-white/5 text-[10px] font-black h-5 uppercase tracking-tighter border-white/10 w-fit">{result.exam.year}</Badge>
                                        </div>
-                                       <div className="flex items-center gap-6 text-xs font-bold text-gray-500">
+                                       <div className="flex items-center gap-6 text-xs font-bold text-gray-500 flex-wrap">
                                           <div className="flex items-center gap-2">
                                              <Calendar className="w-4 h-4" />
                                              <span>{new Date(result.takenAt).toLocaleDateString('ar-EG')}</span>
@@ -364,7 +364,7 @@ function ExamsPageContent() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => deleteResult(result.id)}
-                                    className="h-12 w-12 rounded-2xl hover:bg-red-500/10 text-gray-600 hover:text-red-500 transition-all">
+                                    className="h-12 w-12 rounded-2xl hover:bg-red-500/10 text-gray-600 hover:text-red-500 transition-all shrink-0 self-end sm:self-center">
 
                                     <Trash2 className="h-5 w-5" />
                                  </Button>

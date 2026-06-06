@@ -45,6 +45,8 @@ import {
   saveSettingsPreferences,
 } from '@/app/(dashboard)/settings/preferences-client';
 
+import { LoadingState } from '../_components/loading-state';
+
 export default function NotificationsSettingsPage() {
   const [settings, setSettings] = useState<NotificationSettingsPreference>({ ...DEFAULT_NOTIFICATION_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
@@ -110,11 +112,7 @@ export default function NotificationsSettingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (

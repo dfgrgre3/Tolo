@@ -58,6 +58,8 @@ type GlobalProvidersProps = {
  * 4. ToastProvider - Notifications (can be used by auth for error toasts)
  * 5. WebSocketProvider - Real-time features (needs auth state)
  */
+import { FocusModeProvider } from '@/hooks/use-focus-mode';
+
 export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
   const [queryClient] = useState(makeQueryClient);
 
@@ -76,10 +78,12 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                         <TooltipProvider>
                           <LazyMotion features={domAnimation} strict>
                             <TimerBootstrap />
-                            <PerformanceProvider key="performance-provider">
-                              {React.Children.toArray(children)}
-                            </PerformanceProvider>
-                            <FooterLazy key="footer-lazy" />
+                            <FocusModeProvider>
+                              <PerformanceProvider key="performance-provider">
+                                {React.Children.toArray(children)}
+                              </PerformanceProvider>
+                              <FooterLazy key="footer-lazy" />
+                            </FocusModeProvider>
                           </LazyMotion>
                           <Toaster richColors closeButton position="top-center" />
                         </TooltipProvider>

@@ -43,6 +43,8 @@ import {
   saveSettingsPreferences,
 } from '@/app/(dashboard)/settings/preferences-client';
 
+import { LoadingState } from '../_components/loading-state';
+
 export default function PrivacySettingsPage() {
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -195,11 +197,7 @@ export default function PrivacySettingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
