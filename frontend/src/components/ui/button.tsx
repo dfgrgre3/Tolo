@@ -31,7 +31,8 @@ const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & {
 Slot.displayName = "Slot";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  // Base: include touch target minimum size (44x44 on touch devices)
+  "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none no-tap-highlight",
   {
     variants: {
       variant: {
@@ -48,11 +49,14 @@ const buttonVariants = cva(
         neon: "bg-black text-primary border border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] hover:bg-primary hover:text-white",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-12 px-6 text-base",
-        xl: "h-14 px-8 text-lg",
-        icon: "h-10 w-10",
+        // Mobile-friendly touch targets (min 44px tall on mobile, 40px on desktop for buttons, 44px for icon)
+        default: "h-10 min-h-[40px] px-4 py-2",
+        sm: "h-9 min-h-[36px] px-3 text-xs sm:h-9",
+        lg: "h-12 min-h-[48px] px-5 sm:px-6 text-base",
+        xl: "h-14 min-h-[56px] px-6 sm:px-8 text-lg",
+        icon: "h-10 w-10 min-h-[40px] min-w-[40px]",
+        "icon-sm": "h-8 w-8 min-h-[32px] min-w-[32px]",
+        "icon-lg": "h-12 w-12 min-h-[48px] min-w-[48px]",
       },
     },
     defaultVariants: {

@@ -155,39 +155,39 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       {/* --- Mesh Background --- */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
+      <div className="fixed inset-0 pointer-events-none -z-10" aria-hidden="true">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] lg:w-[800px] lg:h-[800px] bg-primary/10 blur-[100px] sm:blur-[130px] lg:blur-[150px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] lg:w-[600px] lg:h-[600px] bg-purple-600/10 blur-[100px] sm:blur-[130px] lg:blur-[150px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }} />
       </div>
 
       <AnnouncementTicker />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10" dir="rtl">
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-5 sm:py-6 md:py-8 space-y-6 sm:space-y-8 md:space-y-10" dir="rtl">
         
         {/* --- Epic Hero Header --- */}
         <m.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={STYLES.glass + " p-8 md:p-12 border-primary/20 shadow-primary/5 group transition-all duration-700 hover:border-primary/40"}>
-          
+          className={STYLES.glass + " p-4 sm:p-6 md:p-8 lg:p-12 border-primary/20 shadow-primary/5 group transition-all duration-700 hover:border-primary/40 relative"}>
+
           {/* Animated Background Decoration */}
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent group-hover:via-primary transition-all duration-700" />
-          
-          <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
-            <div className="space-y-6 flex-1 text-center md:text-right">
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-4">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent group-hover:via-primary transition-all duration-700" aria-hidden="true" />
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-10 lg:gap-12 relative z-10">
+            <div className="space-y-4 sm:space-y-5 md:space-y-6 flex-1 w-full md:w-auto text-center md:text-start">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 sm:gap-3 md:gap-4">
                 <m.div
                   whileHover={{ scale: 1.05 }}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
-                  
-                  <Sparkles className="h-4 w-4 animate-pulse" />
+                  className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 animate-pulse" />
                   <span>القائد العام للمنصة</span>
                 </m.div>
                 <Clock />
               </div>
 
-              <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-none">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-none">
                 أهلاً، <span className={STYLES.neonText}>{displayName}</span>
                 <m.span
                   animate={{ rotate: [0, 10, -10, 10, 0] }}
@@ -198,19 +198,19 @@ export default function DashboardPage() {
                 </m.span>
               </h1>
 
-              <p className="max-w-2xl text-xl text-gray-400 font-medium leading-relaxed">
+              <p className="max-w-2xl text-base sm:text-lg md:text-xl text-gray-400 font-medium leading-relaxed mx-auto md:mx-0">
                 قوتك تزداد يوماً بعد يوم، الرتبة القادمة بانتظارك. هل أنت مستعد لخوض تحديات اليوم الملحمية؟
               </p>
-              
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
-                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 h-14 rounded-2xl shadow-[0_10px_30px_rgba(var(--primary),0.4)] flex items-center gap-2 group-hover:scale-105 transition-all text-lg border-b-4 border-black/20">
-                    <Zap className="w-5 h-5 fill-white" />
-                    ابدأ جلسة المذاكرة
-                 </Button>
-                 <Button variant="outline" className="h-14 px-8 rounded-2xl border-white/10 hover:bg-white/5 font-black text-lg gap-2">
-                    <LayoutDashboard className="w-5 h-5" />
-                    التقارير التفصيلية
-                 </Button>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2">
+                <Button className="bg-primary hover:bg-primary/90 text-white font-black px-4 sm:px-6 md:px-8 h-11 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl shadow-[0_10px_30px_rgba(var(--primary),0.4)] flex items-center gap-2 group-hover:scale-105 transition-all text-sm sm:text-base md:text-lg border-b-4 border-black/20">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
+                  ابدأ جلسة المذاكرة
+                </Button>
+                <Button variant="outline" className="h-11 sm:h-12 md:h-14 px-4 sm:px-6 md:px-8 rounded-xl sm:rounded-2xl border-white/10 hover:bg-white/5 font-black text-sm sm:text-base md:text-lg gap-2">
+                  <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
+                  التقارير التفصيلية
+                </Button>
               </div>
             </div>
 
@@ -220,52 +220,47 @@ export default function DashboardPage() {
               animate={{ scale: 1, opacity: 1, rotate: 3 }}
               whileHover={{ rotate: 0, scale: 1.05 }}
               transition={{ type: "spring", damping: 12 }}
-              className="relative">
-              
-               <m.div
+              className="relative shrink-0">
+
+              <m.div
                 animate={{
                   boxShadow: ["0 0 40px rgba(var(--primary), 0.1)", "0 0 80px rgba(var(--primary), 0.3)", "0 0 40px rgba(var(--primary), 0.1)"]
                 }}
                 transition={{ duration: 4, repeat: Infinity }}
-                className="absolute inset-0 bg-primary/20 blur-3xl opacity-60" />
-              
-               <div className="relative flex items-center justify-center h-64 w-64 bg-card/60 border-2 border-primary/40 rounded-[3.5rem] shadow-2xl backdrop-blur-3xl overflow-hidden ring-8 ring-white/5 group/level">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/10 opacity-30" />
-                  
-                  {/* Rotating Border Effect */}
-                  <div className="absolute inset-0 border-4 border-transparent border-t-primary/50 border-r-primary/20 rounded-full animate-spin-slow scale-110 pointer-events-none" />
+                className="absolute inset-0 bg-primary/20 blur-3xl opacity-60" aria-hidden="true" />
 
-                  <div className="text-center space-y-1 relative z-10">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-tighter">الرتبة الأكاديمية</p>
-                    <p className={STYLES.neonText + " text-9xl font-black drop-shadow-2xl"}>{userLevel}</p>
-                    <div className="flex flex-col items-center justify-center gap-1 mt-2">
-                       <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10 shadow-inner">
-                          <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-                          <span className="text-white font-black text-lg">{userXP.toLocaleString()} XP</span>
-                       </div>
+              <div className="relative flex items-center justify-center h-40 w-40 sm:h-48 sm:w-48 md:h-56 md:w-56 lg:h-64 lg:w-64 bg-card/60 border-2 border-primary/40 rounded-2xl sm:rounded-3xl md:rounded-[3.5rem] shadow-2xl backdrop-blur-3xl overflow-hidden ring-4 sm:ring-6 md:ring-8 ring-white/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/10 opacity-30" aria-hidden="true" />
+                <div className="absolute inset-0 border-4 border-transparent border-t-primary/50 border-r-primary/20 rounded-full animate-spin-slow scale-110 pointer-events-none" aria-hidden="true" />
+
+                <div className="text-center space-y-1 relative z-10">
+                  <p className="text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-tighter">الرتبة الأكاديمية</p>
+                  <p className={STYLES.neonText + " text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black drop-shadow-2xl"}>{userLevel}</p>
+                  <div className="flex flex-col items-center justify-center gap-1 mt-2">
+                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-white/10 shadow-inner">
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-500" />
+                      <span className="text-white font-black text-sm sm:text-base md:text-lg">{userXP.toLocaleString()} XP</span>
                     </div>
                   </div>
-                  
-                  {/* Circular XP Progress */}
-                  <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-4">
-                     <circle cx="112" cy="112" r="100" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                     <m.circle
-                    initial={{ strokeDashoffset: 628 }}
-                    animate={{ strokeDashoffset: 628 * (1 - xpPercentage / 100) }}
+                </div>
+
+                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-3 sm:p-4" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+                  <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
+                  <m.circle
+                    initial={{ strokeDashoffset: 552 }}
+                    animate={{ strokeDashoffset: 552 * (1 - xpPercentage / 100) }}
                     transition={{ duration: 2.5, ease: "circOut" }}
-                    cx="112" cy="112" r="100" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={628} className="text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.6)]" />
-                  
-                  </svg>
-               </div>
-               
-               {/* Level Tooltip Floating */}
-               <m.div
+                    cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={552} className="text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.6)]" />
+                </svg>
+              </div>
+
+              <m.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-black px-4 py-1.5 rounded-full shadow-2xl z-20 whitespace-nowrap">
-                
-                  متبقي {(nextLevelXP - userXP % nextLevelXP).toLocaleString()} XP للترقية التالية 🎉
+                className="absolute -bottom-3 sm:-bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-2xl z-20 whitespace-nowrap">
+
+                متبقي {(nextLevelXP - userXP % nextLevelXP).toLocaleString()} XP للترقية التالية 🎉
                </m.div>
             </m.div>
           </div>

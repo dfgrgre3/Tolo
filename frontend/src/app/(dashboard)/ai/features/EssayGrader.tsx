@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { safeFetch } from '@/lib/safe-client-utils';
-import { pollAIJobResult } from '@/../../lib/pollJobResult';
+import { pollAIJobResult } from '@/lib/pollJobResult';
 import ReactMarkdown from 'react-markdown';
 
 export default function EssayGrader() {

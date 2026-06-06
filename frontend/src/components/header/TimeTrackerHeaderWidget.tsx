@@ -112,6 +112,9 @@ export function TimeTrackerHeaderWidget() {
     skipPhase,
   } = useTimeTrackerStore();
 
+  // Only show the widget while the timer is running.
+  if (!isRunning) return null;
+
   const totalDuration =
     currentPomodoroState === 'work'
       ? settings.pomodoroWorkMinutes * 60

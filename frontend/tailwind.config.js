@@ -1,5 +1,4 @@
 
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -8,7 +7,23 @@ module.exports = {
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    // Mobile-first responsive breakpoints
+    screens: {
+      'xs': '480px',   // Small phones (iPhone SE, etc.)
+      'sm': '640px',   // Large phones / small tablets
+      'md': '768px',   // Tablets
+      'lg': '1024px',  // Laptops / small desktops
+      'xl': '1280px',  // Desktops
+      '2xl': '1536px', // Large desktops
+      '3xl': '1920px', // Ultra-wide displays
+    },
     extend: {
+      // Maximum widths for containers
+      maxWidth: {
+        '8xl': '88rem',
+        '9xl': '96rem',
+        'screen-3xl': '1920px',
+      },
       fontFamily: {
         sans: ['var(--font-alexandria)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
         alexandria: ['var(--font-alexandria)', 'sans-serif'],
@@ -63,6 +78,13 @@ module.exports = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      // Spacing for safe areas (iOS notches, etc.)
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top, 0)',
+        'safe-bottom': 'env(safe-area-inset-bottom, 0)',
+        'safe-left': 'env(safe-area-inset-left, 0)',
+        'safe-right': 'env(safe-area-inset-right, 0)',
       },
       // All animations disabled
       animation: {},

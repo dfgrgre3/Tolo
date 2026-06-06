@@ -110,6 +110,24 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
     min-height: 100vh;
+    /* Prevent horizontal overflow on all viewports */
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure all elements respect container bounds */
+  img,
+  video,
+  canvas,
+  svg,
+  iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Ensure no element causes horizontal overflow */
+  * {
+    min-width: 0;
   }
 
   h1,
@@ -442,4 +460,223 @@
 
 .dark::view-transition-new(root) {
   z-index: 1;
+}
+
+/* ========================================
+   RESPONSIVE UTILITIES - Mobile First
+   ======================================== */
+
+/* Touch-friendly minimum sizes for interactive elements */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Prevent text from overflowing on small screens */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Container with proper padding for all viewports */
+.app-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .app-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: 80rem;
+  }
+}
+
+/* Responsive scrollable tabs */
+.tabs-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.tabs-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-scroll > * {
+  scroll-snap-align: start;
+}
+
+/* Mobile drawer/sheet improvements */
+.mobile-drawer-content {
+  max-height: 85vh;
+  height: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dialog/Drawer positioning - RTL Safe */
+.dialog-content-responsive {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  gap: 1rem;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  padding: 1rem;
+  width: calc(100vw - 1rem);
+  max-width: 32rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  inset-inline-start: 0.5rem;
+  inset-inline-end: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .dialog-content-responsive {
+    inset-inline-start: auto;
+    inset-inline-end: auto;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+  }
+
+  [dir="rtl"] .dialog-content-responsive {
+    left: auto;
+    right: 50%;
+    transform: translate(50%, -50%);
+  }
+}
+
+/* Responsive grid utilities */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Responsive text helpers */
+.text-responsive-xs { font-size: 0.7rem; line-height: 1rem; }
+.text-responsive-sm { font-size: 0.8125rem; line-height: 1.125rem; }
+.text-responsive-base { font-size: 0.875rem; line-height: 1.25rem; }
+.text-responsive-lg { font-size: 1rem; line-height: 1.5rem; }
+.text-responsive-xl { font-size: 1.125rem; line-height: 1.75rem; }
+.text-responsive-2xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-responsive-3xl { font-size: 1.5rem; line-height: 2rem; }
+
+@media (min-width: 640px) {
+  .text-responsive-xs { font-size: 0.75rem; }
+  .text-responsive-sm { font-size: 0.875rem; }
+  .text-responsive-base { font-size: 1rem; }
+  .text-responsive-lg { font-size: 1.125rem; }
+  .text-responsive-xl { font-size: 1.25rem; }
+  .text-responsive-2xl { font-size: 1.5rem; }
+  .text-responsive-3xl { font-size: 1.875rem; }
+}
+
+/* Hide on mobile, show on desktop */
+.hide-on-mobile { display: none; }
+@media (min-width: 768px) {
+  .hide-on-mobile { display: initial; }
+}
+
+/* Show on mobile, hide on desktop */
+.show-on-mobile { display: initial; }
+@media (min-width: 768px) {
+  .show-on-mobile { display: none; }
+}
+
+/* Smooth scrolling for mobile */
+.scroll-smooth-mobile {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* No tap highlight on touch devices */
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Safe area for iOS */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Fix aspect ratio containers */
+.aspect-responsive-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-responsive-video {
+  aspect-ratio: 16 / 9;
+}
+
+/* Better focus for keyboard users only */
+.focus-visible-ring:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Performance: Disable transitions on small devices when data-saver is on */
+@media (prefers-reduced-data: reduce) {
+  .no-data-saver * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
