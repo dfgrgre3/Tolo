@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 
-function LoadingSpinner({ className }: { className?: string }) {
+export function LoadingSpinner({ className }: { className?: string }) {
   return (
     <div className={cn("relative h-16 w-16", className)}>
       {/* Pure CSS animated spinner - no framer-motion needed */}
@@ -25,7 +25,7 @@ function LoadingSpinner({ className }: { className?: string }) {
   );
 }
 
-function LoadingPage() {
+export function LoadingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       {/* Top Progress Bar - CSS animation */}
@@ -122,3 +122,10 @@ export function UnifiedLayoutSkeleton() {
     </div>
   );
 }
+
+// Default export for convenient imports
+export default {
+  LoadingSpinner,
+  LoadingPage,
+  UnifiedLayoutSkeleton,
+};

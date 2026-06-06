@@ -59,19 +59,36 @@ export default function TeacherExamsPage() {
 
   useEffect(() => {
     (async () => {
-      const ts = await fetch("/api/teachers").then((r) => r.json());
-      setTeachers(ts);
+      try {
+        const res = await fetch("/api/teachers");
+        const ts = await res.json();
+        // Defensive: API may return an error object (e.g. { error, status }) when the
+        // backend route is missing or the proxy is misconfigured. Only set state when
+        // we actually got an array back, otherwise `teachers.map` would throw.
+        setTeachers(Array.isArray(ts) ? ts : []);
+      } catch (err) {
+        console.error("[TeacherExams] Failed to load teachers:", err);
+        setTeachers([]);
+      }
     })();
   }, []);
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const results = await fetch(`/api/exams/results?userId=${userId}`).then((r) => r.json());
-      setExamResults(results);
+      try {
+        const resultsRes = await fetch(`/api/exams/results?userId=${userId}`);
+        const results = await resultsRes.json();
+        setExamResults(Array.isArray(results) ? results : []);
 
-      const grades = await fetch(`/api/grades?userId=${userId}`).then((r) => r.json());
-      setUserGrades(grades);
+        const gradesRes = await fetch(`/api/grades?userId=${userId}`);
+        const grades = await gradesRes.json();
+        setUserGrades(Array.isArray(grades) ? grades : []);
+      } catch (err) {
+        console.error("[TeacherExams] Failed to load exam results/grades:", err);
+        setExamResults([]);
+        setUserGrades([]);
+      }
     })();
   }, [userId]);
 
@@ -123,12 +140,12 @@ export default function TeacherExamsPage() {
       })
     });
 
-    // Refresh data
+    // Refresh data — defend against non-array responses (e.g. 404/502 error objects).
     const updatedResults = await fetch(`/api/exams/results?userId=${userId}`).then((r) => r.json());
-    setExamResults(updatedResults);
+    setExamResults(Array.isArray(updatedResults) ? updatedResults : []);
 
     const updatedGrades = await fetch(`/api/grades?userId=${userId}`).then((r) => r.json());
-    setUserGrades(updatedGrades);
+    setUserGrades(Array.isArray(updatedGrades) ? updatedGrades : []);
 
     // Reset form
     setTeacherId("");
@@ -144,12 +161,12 @@ export default function TeacherExamsPage() {
 
   async function deleteExamResult(id: string) {
     await fetch(`/api/exams/results/${id}`, { method: "DELETE" });
-    setExamResults((r) => r.filter((x) => x.id !== id));
+    setExamResults((r) => Array.isArray(r) ? r.filter((x) => x.id !== id) : []);
   }
 
   async function deleteGrade(id: string) {
     await fetch(`/api/grades/${id}`, { method: "DELETE" });
-    setUserGrades((g) => g.filter((x) => x.id !== id));
+    setUserGrades((g) => Array.isArray(g) ? g.filter((x) => x.id !== id) : []);
   }
 
   return (
@@ -165,9 +182,9 @@ export default function TeacherExamsPage() {
               aria-label="اختر المدرس"
               value={teacherId}
               onChange={(e) => setTeacherId(e.target.value)}>
-              
+
 							<option value="">اختر المدرس</option>
-							{teachers.map((t) =>
+							{Array.isArray(teachers) && teachers.map((t) =>
               <option key={t.id} value={t.id}>{t.subject} - {t.name}</option>
               )}
 						</select>
@@ -177,7 +194,7 @@ export default function TeacherExamsPage() {
               aria-label="المادة"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}>
-              
+
 							<option value="">اختر المادة</option>
 							<option value="MATH">رياضيات</option>
 							<option value="PHYSICS">فيزياء</option>
@@ -192,7 +209,7 @@ export default function TeacherExamsPage() {
               aria-label="عنوان الامتحان"
               value={examTitle}
               onChange={(e) => setExamTitle(e.target.value)} />
-            
+
 
 						<input
               type="date"
@@ -200,7 +217,7 @@ export default function TeacherExamsPage() {
               aria-label="تاريخ الامتحان"
               value={examDate}
               onChange={(e) => setExamDate(e.target.value)} />
-            
+
 
 						<div className="flex gap-2">
 							<input
@@ -211,7 +228,7 @@ export default function TeacherExamsPage() {
                 aria-label="الدرجة"
                 value={score}
                 onChange={(e) => setScore(Number(e.target.value))} />
-              
+
 							<input
                 type="number"
                 min={1}
@@ -220,7 +237,7 @@ export default function TeacherExamsPage() {
                 aria-label="الدرجة العظمى"
                 value={maxScore}
                 onChange={(e) => setMaxScore(Number(e.target.value))} />
-              
+
 						</div>
 
 						<select
@@ -228,7 +245,7 @@ export default function TeacherExamsPage() {
               aria-label="نوع التقييم"
               value={assignmentType}
               onChange={(e) => setAssignmentType(e.target.value)}>
-              
+
 							<option value="EXAM">امتحان</option>
 							<option value="QUIZ">اختبار قصير</option>
 							<option value="HOMEWORK">واجب منزلي</option>
@@ -243,7 +260,7 @@ export default function TeacherExamsPage() {
                 id="isOnline"
                 checked={isOnline}
                 onChange={(e) => setIsOnline(e.target.checked)} />
-              
+
 							<label htmlFor="isOnline">امتحان أونلاين</label>
 						</div>
 
@@ -253,7 +270,7 @@ export default function TeacherExamsPage() {
               aria-label="ملاحظات"
               value={notes}
               onChange={(e) => setNotes(e.target.value)} />
-            
+
 
 						<button className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm">حفظ الامتحان والدرجة</button>
 					</form>

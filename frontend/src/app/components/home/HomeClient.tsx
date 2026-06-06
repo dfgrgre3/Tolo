@@ -43,6 +43,18 @@ export function HomeClient({ summary }: HomeClientProps) {
   const isEfficiencyMode = useEfficiencyMode();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  // Safety net: if auth isLoading remains true for more than 10s (e.g. network failure),
+  // treat it as not loading so the UI never gets stuck on a permanent spinner.
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setLoadingTimedOut(true), 10000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+  const showLoading = isLoading && !loadingTimedOut;
 
   // --- Data Fetching Logic for Performance - Deferred for initial load ---
   useEffect(() => {
@@ -112,7 +124,7 @@ export function HomeClient({ summary }: HomeClientProps) {
     };
   }, [isLoading, isAuthenticated, isEfficiencyMode]);
 
-  if (isLoading) {
+  if (showLoading) {
     return <HomeLoader />;
   }
 
@@ -124,7 +136,7 @@ export function HomeClient({ summary }: HomeClientProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}>
-          
+
           <Suspense fallback={<HomeLoader />}>
             <LandingPage />
           </Suspense>
@@ -176,14 +188,14 @@ export function HomeClient({ summary }: HomeClientProps) {
         key="home"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}>
-        
+
         <Suspense fallback={<HomeLoader />}>
           <UserHome
             user={displayUser}
             summary={summary}
             performanceMetrics={performanceMetrics}
             metricsLoading={metricsLoading} />
-          
+
         </Suspense>
       </m.div>
     </AnimatePresence>);

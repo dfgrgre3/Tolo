@@ -115,7 +115,10 @@ export function AuthProvider({
   }, [initialAuthHint, user, setIsLoading]);
 
   const completeInitialLoadIfNeeded = useCallback(() => {
-    if (initialAuthHintRef.current && !hasCompletedInitialLoad.current) {
+    // Always allow initial load to complete, regardless of the hint value.
+    // If the hint was `false` we still want to resolve loading so the UI
+    // is never stuck on a permanent spinner.
+    if (!hasCompletedInitialLoad.current) {
       hasCompletedInitialLoad.current = true;
       setIsLoading(false);
       setIsInitialLoad(false);
