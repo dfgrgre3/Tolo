@@ -38,16 +38,33 @@ import { SearchLoadingState } from "./_components/SearchLoadingState";
 import { SearchNoResults } from "./_components/SearchNoResults";
 
 interface HeaderSearchProps {
-	isMobile?: boolean;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
-	const router = useRouter();
-	const { isEfficiencyMode, toggleEfficiencyMode } = useEfficiency();
-	const [isSearchOpen, setIsSearchOpen] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
+export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }: HeaderSearchProps) {
+  const router = useRouter();
+  const { isEfficiencyMode, toggleEfficiencyMode } = useEfficiency();
+  const [isSearchOpen, setIsSearchOpen] = useState(isOpen || false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Sync isSearchOpen state with isOpen prop
+  useEffect(() => {
+    setIsSearchOpen(isOpen || false);
+    if (onOpenChange) {
+      onOpenChange(isSearchOpen);
+    }
+  }, [isOpen, onOpenChange]);
+
+  // Notify parent when search open state changes
+  useEffect(() => {
+    if (onOpenChange) {
+      onOpenChange(isSearchOpen);
+    }
+  }, [isSearchOpen, onOpenChange]);
 
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
@@ -515,9 +532,9 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 
 	if (isMobile) {
-		return (
+		return isSearchOpen ? (
 			<form onSubmit={handleSearch} className="mb-4 space-y-3">
-
+	
 				<div className="flex gap-2">
 					<Button
 						type="button"
@@ -561,15 +578,15 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						<Search className="h-4 w-4" />
 					</Button>
 				</div>
-
+	
 				{/* Mobile Search Scope Filters */}
 				<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="mobile" />
-
+	
 				{/* Mobile Recent Searches */}
 				{searchQuery.trim().length === 0 && recentSearches.length > 0 && (
 					<RecentSearches searches={recentSearches} onSearchClick={handleRecentSearchClick} variant="mobile" />
 				)}
-
+	
 				{/* Mobile Search Results */}
 				{searchQuery.trim().length > 0 && (
 					<div className="space-y-2 max-h-64 overflow-y-auto -webkit-overflow-scrolling: touch">
@@ -586,11 +603,9 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						)}
 					</div>
 				)}
-
+	
 			</form>
-
-		);
-
+		) : null;
 	}
 
 

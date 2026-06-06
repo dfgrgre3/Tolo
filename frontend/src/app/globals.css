@@ -242,21 +242,47 @@
 
 
 
-/* Remove all keyframe animations */
+/* Core keyframe animations */
 @keyframes blob {
-  /* Disabled */
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
 }
 
 @keyframes shimmer {
-  /* Disabled */
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes accordion-down {
-  /* Disabled */
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
 @keyframes accordion-up {
-  /* Disabled */
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 /* Animations & Transitions */
@@ -340,22 +366,23 @@
 }
 
 .rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 transition-none;
+  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 transition-all duration-300 ease-out;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
 .rpg-card:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-  @apply border-primary/40;
+  @apply border-primary/40 -translate-y-1;
 }
 
 .dark .rpg-card {
-  @apply border-white/5 bg-white/[0.05];
+  @apply border-white/5 bg-white/[0.05] transition-all duration-300 ease-out;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .dark .rpg-card:hover {
-  @apply bg-white/[0.05] border-primary/50;
+  @apply bg-white/[0.08] border-primary/50 -translate-y-1;
+  box-shadow: 0 12px 40px rgba(249, 115, 22, 0.15);
 }
 
 .rpg-glow-primary {
