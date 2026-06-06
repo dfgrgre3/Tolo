@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
@@ -41,6 +41,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isInitialLoad: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   adminLogin: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   register: (
@@ -67,7 +68,7 @@ interface AuthContextType {
   logout: (allDevices?: boolean) => Promise<void>;
   verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean; error?: string;}>;
   refreshUser: (options?: {clearOnFailure?: boolean;}) => Promise<boolean>;
-  fetchWithAuth: typeof fetch;
+  fetchWithAuth: (...args: Parameters<typeof fetch>) => Promise<Response>;
   forgotPassword: (email: string) => Promise<{success: boolean; error?: string; message?: string;}>;
   resetPassword: (token: string, newPassword: string) => Promise<{success: boolean; error?: string;}>;
   verifyEmail: (token: string) => Promise<{success: boolean; error?: string;}>;
@@ -85,6 +86,7 @@ export function AuthProvider({
   children,
   initialAuthHint = true
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const {
     user,
     isLoading,
@@ -101,13 +103,24 @@ export function AuthProvider({
   const _userFetchPromise = useRef<Promise<boolean> | null>(null);
   const accessTokenExpiresAt = useRef<number | null>(null);
   const proactiveRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasCompletedInitialLoad = useRef(false);
+  const initialAuthHintRef = useRef(initialAuthHint);
+  initialAuthHintRef.current = initialAuthHint;
 
-  // Ensure isLoading reflects initialAuthHint on server-side hint
+  // Ensure isLoading reflects initialAuthHint on server-side hint and completes after initial auth check
   useEffect(() => {
     if (initialAuthHint !== undefined && !user) {
       setIsLoading(initialAuthHint);
     }
   }, [initialAuthHint, user, setIsLoading]);
+
+  const completeInitialLoadIfNeeded = useCallback(() => {
+    if (initialAuthHintRef.current && !hasCompletedInitialLoad.current) {
+      hasCompletedInitialLoad.current = true;
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    }
+  }, [setIsLoading]);
 
   const delay = useCallback((ms: number) => {
     return new Promise<void>((resolve) => {
@@ -188,13 +201,16 @@ export function AuthProvider({
    * On 401, we attempt /api/auth/refresh once, then retry the original request.
    * This is used for API calls OTHER than /api/auth/me (which handles refresh internally).
    */
-  const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
+    const [input, init] = args;
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const options: RequestInit = { ...(init ?? {}) };
     const executeFetch = async () => {
       if (accessTokenExpiresAt.current && accessTokenExpiresAt.current - Date.now() <= 30000) {
         await refreshToken();
       }
 
-      const response = await fetch(url, {
+      const response = await fetch(input, {
         ...options,
         credentials: 'include'
       });
@@ -205,7 +221,7 @@ export function AuthProvider({
 
         if (refreshed) {
           // Retry the original request with new token
-          return fetch(url, {
+          return fetch(input, {
             ...options,
             credentials: 'include'
           });
@@ -278,6 +294,7 @@ export function AuthProvider({
 
     _userFetchPromise.current = (async () => {
       try {
+        completeInitialLoadIfNeeded();
         // Priority: if we're already refreshing tokens, wait for that first
         if (isRefreshing.current && refreshPromise.current) {
           try {
@@ -291,11 +308,15 @@ export function AuthProvider({
 
         if (response.status === 401) {
           const success = await handle401Retry();
-          if (success) return true;
+          if (success) {
+            completeInitialLoadIfNeeded();
+            return true;
+          }
         } else if (response.ok) {
           const data = await response.json();
           setUser(data.user);
           scheduleProactiveRefresh(data.accessTokenExpiresAt);
+          completeInitialLoadIfNeeded();
           return true;
         }
 
@@ -304,6 +325,7 @@ export function AuthProvider({
           clearUserId();
           clearProactiveRefresh();
         }
+        completeInitialLoadIfNeeded();
         return false;
       } catch (error) {
         if (isTimeoutError(error)) {
@@ -317,6 +339,7 @@ export function AuthProvider({
           clearUserId();
           clearProactiveRefresh();
         }
+        completeInitialLoadIfNeeded();
         return false;
       } finally {
         _userFetchPromise.current = null;
@@ -324,7 +347,7 @@ export function AuthProvider({
     })();
 
     return _userFetchPromise.current;
-  }, [handle401Retry, setUser]);
+  }, [handle401Retry, setUser, completeInitialLoadIfNeeded]);
 
   const ensureStaffRole = useCallback(async (errorLabel: string) => {
     if (!isStaffAdminPanelRole(useAuthStore.getState().user?.role)) {
@@ -623,6 +646,8 @@ export function AuthProvider({
     const checkAuth = async () => {
       if (initialAuthHint === false) {
         setIsLoading(false);
+        setIsInitialLoad(false);
+        hasCompletedInitialLoad.current = true;
         return;
       }
       try {
@@ -631,7 +656,7 @@ export function AuthProvider({
         // Ensure loading stops even on unexpected errors
       } finally {
         if (mounted) {
-          setIsLoading(false);
+          completeInitialLoadIfNeeded();
         }
       }
     };
@@ -641,7 +666,9 @@ export function AuthProvider({
     // Safety timeout: force isLoading to false after 8s to prevent permanent loading screen
     const safetyTimer = setTimeout(() => {
       if (mounted) {
+        hasCompletedInitialLoad.current = true;
         setIsLoading(false);
+        setIsInitialLoad(false);
       }
     }, 8000);
 
@@ -650,7 +677,7 @@ export function AuthProvider({
       clearTimeout(safetyTimer);
       clearProactiveRefresh();
     };
-  }, [clearProactiveRefresh, refreshUser, setIsLoading]);
+  }, [clearProactiveRefresh, refreshUser, setIsLoading, completeInitialLoadIfNeeded, initialAuthHint]);
 
   const sanitizeRedirectPath = (path: string, fallback: string = '/'): string => {
     if (!path || path.includes('//') || !path.startsWith('/')) return fallback;
@@ -672,7 +699,8 @@ export function AuthProvider({
     resetPassword: authApiService.resetPassword,
     verifyEmail: authApiService.verifyEmail,
     resendVerification: authApiService.resendVerification,
-    requestMagicLink: authApiService.requestMagicLink
+    requestMagicLink: authApiService.requestMagicLink,
+    isInitialLoad
   };
 
   return (

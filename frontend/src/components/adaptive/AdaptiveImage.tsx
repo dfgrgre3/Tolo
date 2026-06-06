@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image, { ImageProps } from "next/image";
-import { useEfficiency, useUltraLiteMode } from "@/hooks/use-efficiency-mode";
+import { useUltraLiteMode } from "@/hooks/use-efficiency-mode";
 import { useEfficiency as useEfficiencyCapabilities } from "@/hooks/use-efficiency";
 import { cn } from "@/lib/utils";
 

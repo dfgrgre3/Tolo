@@ -6,12 +6,23 @@
       "parentBranch": "main",
       "createdAt": "2026-06-06T01:02:26.740Z",
       "remote": "origin"
+    },
+    "wt-1780717646281-1": {
+      "branch": "mangrove-theory",
+      "path": "d:\\thanawy\\.kilo\\worktrees\\mangrove-theory",
+      "parentBranch": "main",
+      "createdAt": "2026-06-06T03:47:26.281Z",
+      "remote": "origin"
     }
   },
   "sessions": {
     "ses_1658c1820ffeKB0aCNQWhIM6uV": {
       "worktreeId": "wt-1780707746740-1",
       "createdAt": "2026-06-06T01:02:27.827Z"
+    },
+    "ses_164f4f3c9ffeEj8Ma2BLB9Kl6g": {
+      "worktreeId": "wt-1780717646281-1",
+      "createdAt": "2026-06-06T03:47:34.198Z"
     }
   },
   "tabOrder": {
@@ -20,6 +31,7 @@
     ]
   },
   "worktreeOrder": [
-    "wt-1780707746740-1"
+    "wt-1780707746740-1",
+    "wt-1780717646281-1"
   ]
 }

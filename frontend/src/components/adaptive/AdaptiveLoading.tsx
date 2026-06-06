@@ -207,8 +207,8 @@ export const HeavyMount = React.memo(function HeavyMount({
             if (entry.isIntersecting) {
               if (delay > 0) {
                 setTimeout(tryMount, delay);
-              } else if ("requestIdleCallback" in window) {
-                (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(
+                } else if ("requestIdleCallback" in window) {
+                (window as unknown as { requestIdleCallback: (cb: () => void, options?: { timeout?: number }) => void }).requestIdleCallback(
                   tryMount,
                   { timeout: 1500 }
                 );
@@ -234,7 +234,7 @@ export const HeavyMount = React.memo(function HeavyMount({
       };
     }
     if ("requestIdleCallback" in window) {
-      (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(tryMount, {
+      (window as unknown as { requestIdleCallback: (cb: () => void, options?: { timeout?: number }) => void }).requestIdleCallback(tryMount, {
         timeout: 2000,
       });
     } else {
@@ -272,19 +272,19 @@ export interface FPSMonitorProps {
   disabled?: boolean;
 }
 
-export const FPSMonitor = React.memo(function FPSMonitor({
+function FPSMonitorInner({
   threshold = 30,
   sampleWindow = 3000,
   disabled = false,
-}: FPSMonitorProps) {
-  const { effectiveMode, setMode, isAutoDetected } = useEfficiencyCapabilities();
+}: FPSMonitorProps): null {
+  const { effectiveMode, isEfficiencyMode, redetect } = useEfficiencyCapabilities();
   const isUltraLite = useUltraLiteMode();
   const lastDowngradeRef = useRef(0);
 
   useEffect(() => {
     if (disabled) return;
     if (typeof window === "undefined") return;
-    if (effectiveMode === "performance" && !isAutoDetected) return; // user chose performance, respect
+    if (effectiveMode === "performance") return; // already at the top
     if (isUltraLite) return; // already at lowest
 
     let raf = 0;
@@ -300,7 +300,7 @@ export const FPSMonitor = React.memo(function FPSMonitor({
         const fps = Math.round((frames * 1000) / (now - lastSample));
         frames = 0;
         lastSample = now;
-        // FPS too low: downgrade one level
+        // FPS too low: dispatch a downgrade event so the app can react
         if (fps < threshold && now - lastDowngradeRef.current > 30000) {
           lastDowngradeRef.current = now;
           const order: Array<"performance" | "balanced" | "lite" | "saver" | "ultra-lite"> = [
@@ -313,10 +313,9 @@ export const FPSMonitor = React.memo(function FPSMonitor({
           const idx = order.indexOf(effectiveMode);
           if (idx >= 0 && idx < order.length - 1) {
             const next = order[idx + 1];
-            // Auto-detect or user-chosen: respect auto-detect
-            if (isAutoDetected) {
-              // Switch to a slightly more aggressive mode
-              setMode(next);
+            // Auto-detected mode: re-evaluate capabilities to potentially downgrade
+            if (isEfficiencyMode) {
+              redetect();
               try {
                 window.dispatchEvent(
                   new CustomEvent("tolo-perf-downgrade", { detail: { from: effectiveMode, to: next, fps } })
@@ -335,10 +334,12 @@ export const FPSMonitor = React.memo(function FPSMonitor({
       stop = true;
       cancelAnimationFrame(raf);
     };
-  }, [disabled, threshold, sampleWindow, effectiveMode, setMode, isAutoDetected, isUltraLite]);
+  }, [disabled, threshold, sampleWindow, effectiveMode, isEfficiencyMode, redetect, isUltraLite]);
 
   return null;
-});
+}
+
+export const FPSMonitor = React.memo(FPSMonitorInner);
 
 /* =====================================================================
    IdleRender
@@ -363,7 +364,7 @@ export const IdleRender = React.memo(function IdleRender({
     if (shouldRender) return;
     if (typeof window === "undefined") return;
     if ("requestIdleCallback" in window) {
-      (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(
+      (window as unknown as { requestIdleCallback: (cb: () => void, options?: { timeout?: number }) => void }).requestIdleCallback(
         () => setShouldRender(true),
         { timeout }
       );

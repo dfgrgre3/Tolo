@@ -212,12 +212,18 @@ function detectCapabilities(): PerformanceCapabilities {
 }
 
 interface EfficiencyContextType {
-  /** Currently active mode (always auto-detected) */
+  /** Current user-selected mode (includes "auto" for auto-detection) */
+  mode: PerformanceMode;
+  /** Currently effective mode (auto-detected unless user explicitly chose otherwise) */
   effectiveMode: EffectivePerformanceMode;
-  /** Detected device capabilities */
-  capabilities: PerformanceCapabilities;
+  /** Set the mode (use "auto" to revert to auto-detection) */
+  setMode: (mode: PerformanceMode) => void;
   /** Whether the device is in any reduced-effects mode (lite, balanced, saver, ultra-lite) */
   isEfficiencyMode: boolean;
+  /** Whether the effective mode is being auto-detected (mode === "auto") */
+  isAutoDetected: boolean;
+  /** Detected device capabilities */
+  capabilities: PerformanceCapabilities;
   /** Quick check: is at least 'lite' (effects disabled) */
   isLite: boolean;
   /** Quick check: is 'saver' or 'ultra-lite' (maximum savings) */
@@ -242,9 +248,16 @@ function modeToClassNames(mode: EffectivePerformanceMode): string[] {
 
 export function EfficiencyProvider({ children }: { children: React.ReactNode }) {
   const [capabilities, setCapabilities] = useState<PerformanceCapabilities>(() => detectCapabilities());
+  const [userMode, setUserMode] = useState<PerformanceMode>("auto");
 
-  // Always auto-detect (no user choice)
-  const effectiveMode: EffectivePerformanceMode = capabilities.recommended;
+  // Compute the effective mode:
+  // - If user explicitly chose a mode, use it
+  // - Otherwise, use the auto-detected recommendation
+  const isAutoDetected = userMode === "auto";
+  const effectiveMode: EffectivePerformanceMode =
+    isAutoDetected ? capabilities.recommended : userMode;
+  const mode: PerformanceMode = userMode;
+  const setMode = (next: PerformanceMode) => setUserMode(next);
 
   // Listen for low-battery attribute changes
   useEffect(() => {
@@ -281,15 +294,18 @@ export function EfficiencyProvider({ children }: { children: React.ReactNode }) 
 
   const value = useMemo<EfficiencyContextType>(
     () => ({
+      mode,
       effectiveMode,
-      capabilities,
+      setMode,
       isLite: effectiveMode === "lite" || effectiveMode === "saver" || effectiveMode === "ultra-lite",
       isSaver: effectiveMode === "saver" || effectiveMode === "ultra-lite",
       isUltraLite: effectiveMode === "ultra-lite",
       isEfficiencyMode: effectiveMode !== "performance",
+      isAutoDetected,
+      capabilities,
       redetect,
     }),
-    [effectiveMode, capabilities]
+    [mode, effectiveMode, isAutoDetected, capabilities]
   );
 
   return React.createElement(EfficiencyContext.Provider, { value }, children);

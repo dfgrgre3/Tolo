@@ -29,7 +29,9 @@ type PredictionsData = {
   recommendations: string[];
 };
 
-export const revalidate = 60;
+// This is a client component, so it cannot use `revalidate` (which is server-only).
+// The page is always rendered on demand for the authenticated user.
+export const dynamic = 'force-dynamic';
 
 export default function AnalyticsPage() {
   const { fetchWithAuth } = useAuth();
