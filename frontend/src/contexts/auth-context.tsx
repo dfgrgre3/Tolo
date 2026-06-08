@@ -67,8 +67,8 @@ export function useAuth() {
   const router = useRouter();
   const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  const { signIn } = useSignIn() as any;
-  const { signUp } = useSignUp() as any;
+  const { signIn, setActive: setSignInActive } = useSignIn() as any;
+  const { signUp, setActive: setSignUpActive } = useSignUp() as any;
   
   const user = useAuthStore((state) => state.user);
   const isStoreLoading = useAuthStore((state) => state.isLoading);
@@ -91,13 +91,14 @@ export function useAuth() {
   }, [getToken]);
 
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    if (!signIn) return { success: false, error: 'Auth system not fully loaded' };
+    if (!signIn || !setSignInActive) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const result = await signIn.create({
         identifier: email,
         password,
       });
       if (result.status === 'complete') {
+        await setSignInActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
@@ -105,7 +106,7 @@ export function useAuth() {
       logger.error('Login error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Login failed' };
     }
-  }, [signIn]);
+  }, [signIn, setSignInActive]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     return login(email, password, rememberMe);
@@ -119,19 +120,23 @@ export function useAuth() {
       role?: string;
     }
   ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
-    if (!signUp) return { success: false, error: 'Auth system not fully loaded' };
+    if (!signUp || !setSignUpActive) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      await signUp.create({
+      const result = await signUp.create({
         emailAddress: data.email,
         password: data.password,
         username: data.username,
       });
-      return { success: true };
+      if (result.status === 'complete') {
+        await setSignUpActive({ session: result.createdSessionId });
+        return { success: true, autoLoggedIn: true };
+      }
+      return { success: true, autoLoggedIn: false };
     } catch (err: any) {
       logger.error('Registration error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
     }
-  }, [signUp]);
+  }, [signUp, setSignUpActive]);
 
   const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
