@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitizeSvg } from "./svg-sanitizer";
 import type {
   UploadOptions,
   UploadResult,
@@ -45,9 +45,7 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
   if (file.type === "image/svg+xml" || file.name.endsWith(".svg")) {
     try {
       const text = await file.text();
-      const sanitizedText = DOMPurify.sanitize(text, {
-        USE_PROFILES: { svg: true, svgFilters: true },
-      });
+      const sanitizedText = sanitizeSvg(text);
       fileToUpload = new File([sanitizedText], file.name, {
         type: file.type,
         lastModified: file.lastModified,
