@@ -37,6 +37,16 @@ export interface UserProgress {
   customGoals: CustomGoal[];
   createdAt: string;
   updatedAt: string;
+  examsPassed?: number;
+  tasksCompleted?: number;
+  pomodoroSessions?: number;
+  deepWorkSessions?: number;
+  studyXP?: number;
+  taskXP?: number;
+  examXP?: number;
+  challengeXP?: number;
+  questXP?: number;
+  seasonXP?: number;
 }
 
 export interface LeaderboardEntry {

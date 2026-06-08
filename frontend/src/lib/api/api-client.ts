@@ -25,8 +25,6 @@ interface ApiEnvelope<T> {
     code?: string;
 }
 
-const AUTH_REFRESH_ENDPOINT = '/api/auth/refresh';
-
 const API_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
@@ -109,11 +107,6 @@ function normalizeServerEndpoint(endpoint: string): string {
         : `${SERVER_API_URL}/api${normalized}`;
 }
 
-function normalizeRefreshEndpoint(): string {
-    return typeof window !== 'undefined' && !isProd
-        ? AUTH_REFRESH_ENDPOINT
-        : normalizeServerEndpoint(AUTH_REFRESH_ENDPOINT);
-}
 
 function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
     if (
@@ -130,21 +123,28 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
 }
 
 class ApiClient {
-    private buildHeaders(customOptions: RequestInit): Headers {
+    private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
         const headers = new Headers({
             ...(customOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             ...customOptions.headers,
         });
 
-        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
-
-        // Add CSRF token for state-changing requests in browser
-        if (typeof window !== 'undefined' && isWriteMethod) {
-            const csrfToken = this.getCookie('_csrf');
-            if (csrfToken) {
-                headers.set('X-CSRF-Token', csrfToken);
+        // Add Clerk JWT token in Authorization header if in browser
+        if (typeof window !== 'undefined') {
+            const clerk = (window as any).Clerk;
+            if (clerk?.session) {
+                try {
+                    const token = await clerk.session.getToken();
+                    if (token) {
+                        headers.set('Authorization', `Bearer ${token}`);
+                    }
+                } catch (e) {
+                    console.error('Failed to get Clerk token:', e);
+                }
             }
         }
+
+        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
 
         // Auto-generate Idempotency-Key for write requests (idempotency middleware)
         if (isWriteMethod && !headers.has('Idempotency-Key')) {
@@ -152,6 +152,31 @@ class ApiClient {
         }
 
         return headers;
+    }
+
+    private ensureIdempotencyKey(options: FetchOptions): void {
+        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method || 'GET');
+        if (!isWriteMethod) return;
+
+        if (!options.headers) {
+            options.headers = {};
+        }
+
+        if (options.headers instanceof Headers) {
+            if (!options.headers.has('Idempotency-Key')) {
+                options.headers.set('Idempotency-Key', crypto.randomUUID());
+            }
+        } else if (Array.isArray(options.headers)) {
+            const hasKey = options.headers.some(([k]) => k.toLowerCase() === 'idempotency-key');
+            if (!hasKey) {
+                options.headers.push(['Idempotency-Key', crypto.randomUUID()]);
+            }
+        } else {
+            const keys = Object.keys(options.headers).map(k => k.toLowerCase());
+            if (!keys.includes('idempotency-key')) {
+                (options.headers as Record<string, string>)['Idempotency-Key'] = crypto.randomUUID();
+            }
+        }
     }
 
     private resetAuthStore(): void {
@@ -181,12 +206,13 @@ class ApiClient {
     }
 
     public async fetch(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<Response> {
+        this.ensureIdempotencyKey(options);
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
 
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeout);
 
-        const headers = this.buildHeaders(customOptions);
+        const headers = await this.buildHeaders(customOptions);
 
         try {
             const url = normalizeEndpoint(endpoint);
@@ -200,18 +226,14 @@ class ApiClient {
                 signal: controller.signal,
             });
 
-            const response = method.toUpperCase() === 'GET'
+            const response = (method.toUpperCase() === 'GET' && !endpoint.includes('/exams/'))
                 ? await requestCache.getResponse(url, customOptions, fetcher)
                 : await fetcher();
 
             timer.stop();
             clearTimeout(id);
 
-            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login') && retryCount < 1) {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    return this.fetch(endpoint, options, retryCount + 1);
-                }
+            if (response.status === 401 && retryCount < 1) {
                 this.resetAuthStore();
             }
 
@@ -220,7 +242,8 @@ class ApiClient {
             const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(responseStatus) && retryCount < retries;
             if (shouldRetry) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                return this.fetch(endpoint, options, retryCount + 1);
+                const updatedHeaders = await this.buildHeaders(customOptions);
+                return this.fetch(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
             }
 
             return response;
@@ -229,7 +252,8 @@ class ApiClient {
 
             if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                return this.fetch(endpoint, options, retryCount + 1);
+                const updatedHeaders = await this.buildHeaders(customOptions);
+                return this.fetch(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
             }
 
             this.logNetworkError(error, endpoint);
@@ -258,12 +282,13 @@ class ApiClient {
     }
 
     private async request<T>(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<T> {
+        this.ensureIdempotencyKey(options);
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
 
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeout);
 
-        const headers = this.buildHeaders(customOptions);
+        const headers = await this.buildHeaders(customOptions);
 
         try {
             const url = normalizeEndpoint(endpoint);
@@ -278,7 +303,7 @@ class ApiClient {
                 signal: controller.signal,
             });
 
-            const response = method.toUpperCase() === 'GET'
+            const response = (method.toUpperCase() === 'GET' && !endpoint.includes('/exams/'))
                 ? await requestCache.getResponse(url, customOptions, fetcher)
                 : await fetcher();
 
@@ -286,14 +311,8 @@ class ApiClient {
 
             clearTimeout(id);
 
-            // Handle 401 Unauthorized - Attempt Token Refresh
-            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login') && retryCount < 1) {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    // Retry original request once more
-                    return this.request<T>(endpoint, options, retryCount + 1);
-                }
-                
+            // Handle 401 Unauthorized
+            if (response.status === 401 && retryCount < 1) {
                 this.resetAuthStore();
             }
 
@@ -301,7 +320,8 @@ class ApiClient {
                 const shouldRetry = await this.handleApiErrorResponse(response, retryCount, retries, method);
                 if (shouldRetry) {
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                    return this.request<T>(endpoint, options, retryCount + 1);
+                    const updatedHeaders = await this.buildHeaders(customOptions);
+                    return this.request<T>(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
                 }
             }
 
@@ -326,38 +346,6 @@ class ApiClient {
             this.logNetworkError(error, endpoint);
             throw error;
         }
-    }
-
-    private refreshPromise: Promise<boolean> | null = null;
-
-    private async refreshToken(): Promise<boolean> {
-        if (this.refreshPromise) return this.refreshPromise;
-
-        this.refreshPromise = (async () => {
-            try {
-                const headers: Record<string, string> = {};
-                if (typeof window !== 'undefined') {
-                    const csrfToken = this.getCookie('_csrf');
-                    if (csrfToken) {
-                        headers['X-CSRF-Token'] = csrfToken;
-                    }
-                }
-
-                const response = await fetch(normalizeRefreshEndpoint(), {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include',
-                });
-                return response.ok;
-            } catch {
-
-                return false;
-            } finally {
-                this.refreshPromise = null;
-            }
-        })();
-
-        return this.refreshPromise;
     }
 
     public get<T>(endpoint: string, options?: FetchOptions): Promise<T> {
@@ -390,14 +378,6 @@ class ApiClient {
 
     public delete<T>(endpoint: string, options?: FetchOptions): Promise<T> {
         return this.request<T>(endpoint, { ...options, method: 'DELETE' });
-    }
-
-    private getCookie(name: string): string | null {
-        if (typeof document === 'undefined') return null;
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-        return null;
     }
 }
 

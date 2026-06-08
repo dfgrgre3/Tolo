@@ -147,8 +147,8 @@ export default function DashboardPage() {
   }
 
   const displayName = user?.name || user?.username || user?.email?.split("@")[0] || "يا بطل";
-  const userLevel = userProgress?.level || user?.level || 1;
-  const userXP = userProgress?.totalXP || user?.totalXP || 0;
+  const userLevel = userProgress?.level || 1;
+  const userXP = userProgress?.totalXP || 0;
   const nextLevelXP = userLevel * 1000;
   const xpPercentage = Math.min(userXP % nextLevelXP / (nextLevelXP / 100), 100);
 
@@ -327,7 +327,7 @@ export default function DashboardPage() {
           <div className={STYLES.divider} />
 
           <StatsGrid
-            currentStreak={user?.currentStreak || 0}
+            currentStreak={userProgress?.currentStreak || 0}
             totalXP={userXP}
             achievementsCount={userProgress?.achievements?.length || 0} />
           

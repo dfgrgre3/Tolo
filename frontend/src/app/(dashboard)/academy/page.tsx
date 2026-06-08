@@ -28,11 +28,13 @@ import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
 import { Badge } from "../../../components/ui/badge";
 import { useAuth } from "../../../contexts/auth-context";
+import { useGamification } from "@/hooks/use-gamification";
 import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
   const { user, fetchWithAuth } = useAuth();
+  const { userProgress } = useGamification({ userId: user?.id || "" });
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "completed" | "explore">("active");
@@ -66,12 +68,12 @@ export default function GamifiedCoursesDashboard() {
   const completedQuests = enrolledCourses.filter((c) => (c.progress || 0) >= 100);
   const exploreCourses = courses.filter((c) => !c.enrolled).slice(0, 4); // Suggest 4
 
-  const totalXP = user?.totalXP || 0;
-  const masteryLevel = user?.level || 1;
-  const examsPassedCount = user?.examsPassed || 0;
-  const currentStreak = user?.currentStreak || 0;
-  const tasksCompletedCount = user?.tasksCompleted || 0;
-  const studyTimeHours = Math.round((user?.totalStudyTime || 0) / 60);
+  const totalXP = userProgress?.totalXP || 0;
+  const masteryLevel = userProgress?.level || 1;
+  const examsPassedCount = userProgress?.examsPassed || 0;
+  const currentStreak = userProgress?.currentStreak || 0;
+  const tasksCompletedCount = userProgress?.tasksCompleted || 0;
+  const studyTimeHours = Math.round((userProgress?.totalStudyTime || 0) / 60);
 
   if (loading) {
     return (
@@ -376,7 +378,7 @@ export default function GamifiedCoursesDashboard() {
                   <span className="text-muted-foreground font-medium">التقدم الأسبوعي</span>
                   <span className="font-bold text-primary">65%</span>
                 </div>
-                <Progress value={Math.min(user?.totalXP ? (user.totalXP % 1000) / 10 : 0, 100)} className="h-2 bg-primary/20" />
+                <Progress value={Math.min(totalXP ? (totalXP % 1000) / 10 : 0, 100)} className="h-2 bg-primary/20" />
                 <p className="text-[10px] text-muted-foreground text-left">3 ساعات متبقية لتحقيق الهدف</p>
               </div>
 

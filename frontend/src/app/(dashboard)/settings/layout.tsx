@@ -34,6 +34,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useGamification } from '@/hooks/use-gamification';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -431,6 +432,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, isLoading, logout } = useAuth();
+  const { userProgress } = useGamification({ userId: user?.id || "" });
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -544,7 +546,19 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           >
             <SidebarContent
               isSidebarOpen={isSidebarOpen}
-              user={{...user, name: user.name ?? undefined, username: user.username ?? undefined, avatar: user.avatar ?? undefined, phone: user.phone ?? undefined, school: user.school ?? undefined, bio: user.bio ?? undefined, emailVerified: user.emailVerified ?? undefined}}
+              user={{
+                ...user,
+                name: user.name ?? undefined,
+                username: user.username ?? undefined,
+                avatar: user.avatar ?? undefined,
+                phone: user.phone ?? undefined,
+                school: user.school ?? undefined,
+                bio: user.bio ?? undefined,
+                emailVerified: user.emailVerified ?? undefined,
+                totalXP: userProgress?.totalXP || 0,
+                level: userProgress?.level || 1,
+                currentStreak: userProgress?.currentStreak || 0
+              }}
               currentItem={currentItem!}
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onCloseMobile={() => setIsMobileSidebarOpen(false)}
@@ -575,7 +589,19 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 <SidebarContent
                   mobile
                   isSidebarOpen={isSidebarOpen}
-                  user={{...user, name: user.name ?? undefined, username: user.username ?? undefined, avatar: user.avatar ?? undefined, phone: user.phone ?? undefined, school: user.school ?? undefined, bio: user.bio ?? undefined, emailVerified: user.emailVerified ?? undefined}}
+                  user={{
+                    ...user,
+                    name: user.name ?? undefined,
+                    username: user.username ?? undefined,
+                    avatar: user.avatar ?? undefined,
+                    phone: user.phone ?? undefined,
+                    school: user.school ?? undefined,
+                    bio: user.bio ?? undefined,
+                    emailVerified: user.emailVerified ?? undefined,
+                    totalXP: userProgress?.totalXP || 0,
+                    level: userProgress?.level || 1,
+                    currentStreak: userProgress?.currentStreak || 0
+                  }}
                   currentItem={currentItem!}
                   onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                   onCloseMobile={() => setIsMobileSidebarOpen(false)}

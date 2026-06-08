@@ -1,49 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth as useClerkAuth, useUser as useClerkUser, useSignIn, useSignUp } from '@clerk/nextjs';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
 
-interface AuthContextType {
-  user: AuthUser | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  isInitialLoad: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
-  adminLogin: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
-  register: (
-    data: {
-      email: string;
-      password: string;
-      username?: string;
-      role?: string;
-    }
-  ) => Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}>;
-  logout: (allDevices?: boolean) => Promise<void>;
-  verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean; error?: string;}>;
-  refreshUser: (options?: {clearOnFailure?: boolean;}) => Promise<boolean>;
-  fetchWithAuth: (...args: Parameters<typeof fetch>) => Promise<Response>;
-  forgotPassword: (email: string) => Promise<{success: boolean; error?: string; message?: string;}>;
-  resetPassword: (token: string, newPassword: string) => Promise<{success: boolean; error?: string;}>;
-  verifyEmail: (token: string) => Promise<{success: boolean; error?: string;}>;
-  resendVerification: (email: string) => Promise<{success: boolean; error?: string;}>;
-  requestMagicLink: (email: string) => Promise<{success: boolean; error?: string;}>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export function AuthProvider({
   children,
   initialAuthHint,
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
-  const router = useRouter();
-  const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
+  const { isLoaded: isClerkLoaded, userId } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  const { signIn } = useSignIn() as any;
-  const { signUp } = useSignUp() as any;
-  
   const { user: storeUser, setUser, reset: resetStore } = useAuthStore();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -92,6 +60,23 @@ export function AuthProvider({
     }
   }, [clerkUser, isClerkLoaded, isUserLoaded, setUser, resetStore]);
 
+  return <>{children}</>;
+}
+
+export function useAuth() {
+  const router = useRouter();
+  const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
+  const { signIn } = useSignIn() as any;
+  const { signUp } = useSignUp() as any;
+  
+  const user = useAuthStore((state) => state.user);
+  const isStoreLoading = useAuthStore((state) => state.isLoading);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const resetStore = useAuthStore((state) => state.reset);
+  
+  const isLoading = !isClerkLoaded || !isUserLoaded || isStoreLoading;
+
   const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const [input, init] = args;
     const token = await getToken();
@@ -105,7 +90,7 @@ export function AuthProvider({
     });
   }, [getToken]);
 
-  const login = useCallback(async (email: string, password: string): Promise<{success: boolean; error?: string;}> => {
+  const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     if (!signIn) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const result = await signIn.create({
@@ -122,12 +107,18 @@ export function AuthProvider({
     }
   }, [signIn]);
 
-  const adminLogin = useCallback(async (email: string, password: string): Promise<{success: boolean; error?: string;}> => {
-    // Admin login goes through Clerk sign in, role restriction verified on backend
-    return login(email, password);
+  const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
+    return login(email, password, rememberMe);
   }, [login]);
 
-  const register = useCallback(async (data: { email: string; password: string; username?: string }): Promise<{success: boolean; error?: string;}> => {
+  const register = useCallback(async (
+    data: {
+      email: string;
+      password: string;
+      username?: string;
+      role?: string;
+    }
+  ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
     if (!signUp) return { success: false, error: 'Auth system not fully loaded' };
     try {
       await signUp.create({
@@ -142,45 +133,45 @@ export function AuthProvider({
     }
   }, [signUp]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
     resetStore();
     router.replace('/login');
   }, [signOut, resetStore, router]);
 
-  const verify2FA = useCallback(async () => {
+  const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean) => {
     return { success: false, error: '2FA managed by Clerk' };
   }, []);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
     return !!userId;
   }, [userId]);
 
-  const forgotPassword = useCallback(async () => {
+  const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; error?: string; message?: string;}> => {
+    return { success: false, error: 'Reset password managed via Clerk', message: '' };
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, newPassword: string) => {
     return { success: false, error: 'Reset password managed via Clerk' };
   }, []);
 
-  const resetPassword = useCallback(async () => {
-    return { success: false, error: 'Reset password managed via Clerk' };
-  }, []);
-
-  const verifyEmail = useCallback(async () => {
+  const verifyEmail = useCallback(async (token: string) => {
     return { success: false, error: 'Email verification managed via Clerk' };
   }, []);
 
-  const resendVerification = useCallback(async () => {
+  const resendVerification = useCallback(async (email: string) => {
     return { success: false, error: 'Verification managed via Clerk' };
   }, []);
 
-  const requestMagicLink = useCallback(async () => {
+  const requestMagicLink = useCallback(async (email: string) => {
     return { success: false, error: 'Magic links managed via Clerk' };
   }, []);
 
-  const value: AuthContextType = {
-    user: storeUser,
-    isLoading: !isClerkLoaded || !isUserLoaded,
-    isAuthenticated: !!userId,
-    isInitialLoad,
+  return {
+    user,
+    isLoading,
+    isAuthenticated,
+    isInitialLoad: isLoading,
     login,
     adminLogin,
     register,
@@ -194,18 +185,4 @@ export function AuthProvider({
     resendVerification,
     requestMagicLink,
   };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

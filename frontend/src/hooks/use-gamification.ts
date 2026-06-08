@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { logger } from '@/lib/logger';
+import { useState, useCallback } from 'react';
+import { useGamificationQuery } from './use-gamification-query';
 import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/types/gamification';
 export type { CustomGoal };
-import * as gamificationApi from '@/lib/api/gamification-client';
 
 interface UseGamificationOptions {
   userId: string;
@@ -12,246 +11,121 @@ interface UseGamificationOptions {
   enableRealTime?: boolean;
 }
 
-interface GamificationState {
-  userProgress: UserProgress | null;
-  achievements: Achievement[];
-  leaderboard: LeaderboardEntry[];
-  currentAchievement: {
-    key: string;
-    title: string;
-    description: string;
-    icon: string;
-    xpReward: number;
-  } | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
 export function useGamification({
   userId,
   enableNotifications = true,
   enableRealTime = true
 }: UseGamificationOptions) {
-  const [state, setState] = useState<GamificationState>({
-    userProgress: null,
-    achievements: [],
-    leaderboard: [],
-    currentAchievement: null,
-    isLoading: true,
-    error: null
-  });
+  const query = useGamificationQuery(userId);
 
-  // Load initial data
-  const loadInitialData = useCallback(async () => {
-    if (!userId) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
+  // Maintain local currentAchievement state for notification modals
+  const [currentAchievement, setCurrentAchievement] = useState<{
+    key: string;
+    title: string;
+    description: string;
+    icon: string;
+    xpReward: number;
+  } | null>(null);
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+  const clearAchievementNotification = useCallback(() => {
+    setCurrentAchievement(null);
+  }, []);
 
-      const [userProgress, achievements, leaderboard] = await Promise.all([
-        gamificationApi.fetchUserProgress(userId).catch(err => {
-          logger.error('Error fetching user progress:', err);
-          return null;
-        }),
-        gamificationApi.fetchAchievements().catch(err => {
-          logger.error('Error fetching achievements:', err);
-          return [] as Achievement[];
-        }),
-        gamificationApi.fetchLeaderboard('global', 50).catch(err => {
-          logger.error('Error fetching leaderboard:', err);
-          return [] as LeaderboardEntry[];
-        })
-      ]);
-
-      setState(prev => ({
-        ...prev,
-        userProgress,
-        achievements,
-        leaderboard,
-        isLoading: false
-      }));
-
-    } catch (error) {
-      logger.error('Error loading gamification data:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'فشل في تحميل بيانات نظام النقاط',
-        isLoading: false
-      }));
-    }
-  }, [userId]);
-
-  // Handle periodic refresh (Optional for "real-lite" updates)
-  useEffect(() => {
-    if (!userId || !enableRealTime) return;
-    
-    // Keep this conservative; WebSocket-driven events should handle urgent updates.
-    const interval = setInterval(() => {
-      loadInitialData();
-    }, 300000);
-
-    return () => clearInterval(interval);
-  }, [userId, loadInitialData, enableRealTime]);
-
-  // Load initial data when userId changes
-  useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
-
-  // Update user progress
   const updateProgress = useCallback(async (
     action: string,
     data?: Record<string, unknown>
   ): Promise<UserProgress | null> => {
-    if (!userId) return null;
-
     try {
-      const updatedProgress = await gamificationApi.updateUserProgress(userId, action, data);
-
-      setState(prev => ({
-        ...prev,
-        userProgress: updatedProgress
-      }));
-
-      return updatedProgress;
-    } catch (error) {
-      logger.error('Error updating progress:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'فشل في تحديث التقدم'
-      }));
+      const updated = await query.updateProgress({ action, data });
+      return updated;
+    } catch {
       return null;
     }
-  }, [userId]);
+  }, [query.updateProgress]);
 
-  // Create custom goal
   const createCustomGoal = useCallback(async (
     goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>
   ): Promise<CustomGoal | null> => {
-    if (!userId) return null;
-
     try {
-      const newGoal = await gamificationApi.createCustomGoal(userId, goalData);
-
-      setState(prev => {
-        if (!prev.userProgress) return prev;
-        return {
-          ...prev,
-          userProgress: {
-            ...prev.userProgress,
-            customGoals: [...prev.userProgress.customGoals, newGoal]
-          }
-        };
-      });
-
+      const newGoal = await query.createCustomGoal(goalData);
       return newGoal;
-    } catch (error) {
-      logger.error('Error creating custom goal:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'فشل في إنشاء الهدف'
-      }));
+    } catch {
       return null;
     }
-  }, [userId]);
+  }, [query.createCustomGoal]);
 
-  // Update custom goal
   const updateCustomGoal = useCallback(async (
     goalId: string,
     currentValue: number
   ): Promise<CustomGoal | null> => {
     try {
-      const updatedGoal = await gamificationApi.updateCustomGoal(goalId, currentValue);
-
-      setState(prev => {
-        if (!prev.userProgress) return prev;
-        return {
-          ...prev,
-          userProgress: {
-            ...prev.userProgress,
-            customGoals: prev.userProgress.customGoals.map(g =>
-              g.id === goalId ? updatedGoal : g
-            )
-          }
-        };
-      });
-
+      const updatedGoal = await query.updateCustomGoal({ goalId, currentValue });
       return updatedGoal;
-    } catch (error) {
-      logger.error('Error updating custom goal:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'فشل في تحديث الهدف'
-      }));
+    } catch {
       return null;
     }
-  }, []);
+  }, [query.updateCustomGoal]);
 
-  // Clear achievement notification
-  const clearAchievementNotification = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentAchievement: null
-    }));
-  }, []);
+  const getUserRank = useCallback(() => {
+    if (!query.userProgress || !Array.isArray(query.leaderboard)) return null;
+    const userEntry = query.leaderboard.find(entry => entry.userId === userId);
+    return userEntry?.rank || null;
+  }, [query.userProgress, query.leaderboard, userId]);
 
-  // Refresh data
-  const refreshData = useCallback(async () => {
-    await loadInitialData();
-  }, [loadInitialData]);
+  const getEarnedAchievements = useCallback(() => {
+    if (!query.userProgress) return [];
+    return query.achievements.filter(achievement =>
+      query.userProgress!.achievements.includes(achievement.key)
+    );
+  }, [query.userProgress, query.achievements]);
+
+  const getAvailableAchievements = useCallback(() => {
+    if (!query.userProgress) return [];
+    return query.achievements.filter(achievement =>
+      !query.userProgress!.achievements.includes(achievement.key)
+    );
+  }, [query.userProgress, query.achievements]);
+
+  const getAchievementsByCategory = useCallback((category: string) => {
+    return query.achievements.filter(achievement => achievement.category === category);
+  }, [query.achievements]);
+
+  const getUserLevelProgress = useCallback(() => {
+    if (!query.userProgress) return { currentLevel: 1, currentLevelXP: 0, nextLevelXP: 100 };
+
+    const currentLevel = query.userProgress.level;
+    const currentLevelXP = query.userProgress.totalXP;
+    const nextLevelXP = currentLevel * 100;
+
+    return {
+      currentLevel,
+      currentLevelXP,
+      nextLevelXP,
+      progressPercentage: Math.min((currentLevelXP / nextLevelXP) * 100, 100)
+    };
+  }, [query.userProgress]);
 
   return {
     // State
-    ...state,
+    userProgress: query.userProgress,
+    achievements: query.achievements,
+    leaderboard: query.leaderboard,
+    currentAchievement,
+    isLoading: query.isLoading,
+    error: query.error,
 
     // Actions
     updateProgress,
     createCustomGoal,
     updateCustomGoal,
     clearAchievementNotification,
-    refreshData,
+    refreshData: query.refreshData,
 
     // Utilities
-    getUserRank: () => {
-      if (!state.userProgress || !Array.isArray(state.leaderboard)) return null;
-      const userEntry = state.leaderboard.find(entry => entry.userId === userId);
-      return userEntry?.rank || null;
-    },
-
-    getEarnedAchievements: () => {
-      if (!state.userProgress) return [];
-      return state.achievements.filter(achievement =>
-        state.userProgress!.achievements.includes(achievement.key)
-      );
-    },
-
-    getAvailableAchievements: () => {
-      if (!state.userProgress) return [];
-      return state.achievements.filter(achievement =>
-        !state.userProgress!.achievements.includes(achievement.key)
-      );
-    },
-
-    getAchievementsByCategory: (category: string) => {
-      return state.achievements.filter(achievement => achievement.category === category);
-    },
-
-    getUserLevelProgress: () => {
-      if (!state.userProgress) return { currentLevel: 1, currentLevelXP: 0, nextLevelXP: 100 };
-
-      const currentLevel = state.userProgress.level;
-      const currentLevelXP = state.userProgress.totalXP;
-      const nextLevelXP = currentLevel * 100; // Simple calculation for demo
-
-      return {
-        currentLevel,
-        currentLevelXP,
-        nextLevelXP,
-        progressPercentage: Math.min((currentLevelXP / nextLevelXP) * 100, 100)
-      };
-    }
+    getUserRank,
+    getEarnedAchievements,
+    getAvailableAchievements,
+    getAchievementsByCategory,
+    getUserLevelProgress
   };
 }

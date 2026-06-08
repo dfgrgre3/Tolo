@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useGamification } from '@/hooks/use-gamification';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingsCard } from './components';
@@ -21,6 +22,7 @@ import { PrivacyInfoPanel } from './_components/privacy-info-panel';
 
 export default function ProfileSettingsPage() {
   const { user, isLoading, refreshUser } = useAuth();
+  const { userProgress } = useGamification({ userId: user?.id || "" });
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -137,7 +139,12 @@ export default function ProfileSettingsPage() {
 
       <VerificationWarning verified={user.emailVerified ?? false} />
 
-      <ProfileHero profile={profile} user={user} isEditing={isEditing} isUploadingAvatar={isUploadingAvatar} onAvatarClick={handleAvatarClick} fileInputRef={fileInputRef} onAvatarChange={handleAvatarChange} />
+      <ProfileHero profile={profile} user={{
+        ...user,
+        totalXP: userProgress?.totalXP || 0,
+        level: userProgress?.level || 1,
+        currentStreak: userProgress?.currentStreak || 0,
+      }} isEditing={isEditing} isUploadingAvatar={isUploadingAvatar} onAvatarClick={handleAvatarClick} fileInputRef={fileInputRef} onAvatarChange={handleAvatarChange} />
 
       <PersonalInfoForm profile={profile} isEditing={isEditing} hasChanges={hasChanges} onInputChange={handleInputChange} />
 

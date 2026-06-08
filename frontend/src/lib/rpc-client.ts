@@ -1,8 +1,8 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { CourseService, GetCourseRequestSchema, GetCoursesRequestSchema } from "@/gen/thanawy/v1/course_pb";
-import { AuthService } from "@/gen/thanawy/v1/auth_pb";
-import { AnalyticsService } from "@/gen/thanawy/v1/analytics_pb";
+import { CourseService, GetCourseRequestSchema, GetCoursesRequestSchema } from "@/data-access/grpc/course_pb";
+import { AuthService } from "@/data-access/grpc/auth_pb";
+import { AnalyticsService } from "@/data-access/grpc/analytics_pb";
 import { cache } from "react";
 import { trimTrailingSlashes } from "./utils";
 import { toJson, isMessage } from "@bufbuild/protobuf";

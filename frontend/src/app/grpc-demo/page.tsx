@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { rpcClient } from '@/lib/rpc-client';
-import { Course } from '@/gen/thanawy/v1/course_pb';
+import { Course } from '@/data-access/grpc/course_pb';
 
 export default function GrpcDemoPage() {
   const [courses, setCourses] = useState<Course[]>([]);

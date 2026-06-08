@@ -13,6 +13,8 @@ import { m, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
 import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
 
+import { useGamification } from "@/hooks/use-gamification";
+
 // Dynamic imports to reduce initial bundle size
 const LandingPage = dynamic(() => import("@/app/components/home/LandingPage"), {
   loading: () => <HomeLoader />,
@@ -39,6 +41,7 @@ interface HomeClientProps {
 
 export function HomeClient({ summary }: HomeClientProps) {
   const { user: authUser, isLoading, isAuthenticated } = useAuth();
+  const { userProgress } = useGamification({ userId: authUser?.id || "" });
   const _router = useRouter();
   const isEfficiencyMode = useEfficiencyMode();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
@@ -161,21 +164,21 @@ export function HomeClient({ summary }: HomeClientProps) {
     twoFactorEnabled: false,
     biometricEnabled: false,
     lastLogin: authUser.lastLogin || null,
-    totalXP: authUser.totalXP ?? 0,
-    level: authUser.level ?? 1,
-    currentStreak: authUser.currentStreak ?? 0,
-    longestStreak: authUser.longestStreak ?? 0,
-    totalStudyTime: authUser.totalStudyTime ?? 0,
-    tasksCompleted: authUser.tasksCompleted ?? 0,
-    examsPassed: authUser.examsPassed ?? 0,
-    pomodoroSessions: authUser.pomodoroSessions ?? 0,
-    deepWorkSessions: authUser.deepWorkSessions ?? 0,
-    studyXP: authUser.studyXP ?? 0,
-    taskXP: authUser.taskXP ?? 0,
-    examXP: authUser.examXP ?? 0,
-    challengeXP: authUser.challengeXP ?? 0,
-    questXP: authUser.questXP ?? 0,
-    seasonXP: authUser.seasonXP ?? 0,
+    totalXP: userProgress?.totalXP ?? 0,
+    level: userProgress?.level ?? 1,
+    currentStreak: userProgress?.currentStreak ?? 0,
+    longestStreak: userProgress?.longestStreak ?? 0,
+    totalStudyTime: userProgress?.totalStudyTime ?? 0,
+    tasksCompleted: userProgress?.tasksCompleted ?? 0,
+    examsPassed: userProgress?.examsPassed ?? 0,
+    pomodoroSessions: userProgress?.pomodoroSessions ?? 0,
+    deepWorkSessions: userProgress?.deepWorkSessions ?? 0,
+    studyXP: userProgress?.studyXP ?? 0,
+    taskXP: userProgress?.taskXP ?? 0,
+    examXP: userProgress?.examXP ?? 0,
+    challengeXP: userProgress?.challengeXP ?? 0,
+    questXP: userProgress?.questXP ?? 0,
+    seasonXP: userProgress?.seasonXP ?? 0,
     balance: 0,
     aiCredits: 0,
     examCredits: 0,

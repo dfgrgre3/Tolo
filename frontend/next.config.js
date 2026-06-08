@@ -47,12 +47,9 @@ const nextConfig = {
       'recharts',
       'date-fns',
       'zod',
-      '@tanstack/react-table',
       'sonner',
       'clsx',
       'tailwind-merge',
-      'lodash',
-      'axios',
       'lucide-react',
       'framer-motion',
       '@vercel/analytics',
@@ -90,7 +87,7 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     deviceSizes: [640, 1080, 1920],
     imageSizes: [32, 64, 128, 256],
-    dangerouslyAllowSVG: process.env.ALLOW_SVG === 'true',
+    dangerouslyAllowSVG: process.env.NODE_ENV !== 'production' && process.env.ALLOW_SVG === 'true',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Performance optimizations
     unoptimized: process.env.NODE_ENV === 'development',
@@ -156,8 +153,8 @@ const nextConfig = {
     config.performance = {
       hints: 'warning',
       // Set realistic limits to avoid CI/CD build noise while encouraging optimization
-      maxEntrypointSize: 512000,
-      maxAssetSize: 512000,
+      maxEntrypointSize: 200000,
+      maxAssetSize: 200000,
     };
 
     if (!dev) {
