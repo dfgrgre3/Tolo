@@ -21,7 +21,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA } = useAuth();
+  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA, requestMagicLink, verifyOTP } = useAuth();
   
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,8 +68,13 @@ function LoginForm() {
 
     try {
       if (loginMode === 'magic-link') {
-        setErrorStatus('تسجيل الدخول السريع عبر البريد قيد الصيانة حالياً. يرجى استخدام كلمة المرور.');
-        setIsSubmitting(false);
+        const result = await requestMagicLink(data.email.trim().toLowerCase());
+        if (result.success) {
+          setRequires2FA(true);
+          setTwoFactorCode('');
+          return;
+        }
+        setErrorStatus(result.error || 'فشل إرسال كود الدخول السريع.');
         return;
       }
 
@@ -97,18 +102,32 @@ function LoginForm() {
 
   const onVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId2FA || twoFactorCode.length < 6) return;
+    if (twoFactorCode.length < 6) return;
 
     setIsSubmitting(true);
     setErrorStatus(null);
     try {
+      if (loginMode === 'magic-link') {
+        const result = await verifyOTP(twoFactorCode);
+        if (result.success) {
+          return;
+        }
+        setErrorStatus(result.error || 'رمز التحقق غير صحيح');
+        return;
+      }
+
+      if (!userId2FA) {
+        setErrorStatus('معرّف المستخدم غير متوفر.');
+        return;
+      }
+
       const result = await verify2FA(userId2FA, twoFactorCode, getValues('rememberMe'));
       if (result.success) {
         return;
       }
       setErrorStatus(result.error || 'رمز التحقق غير صحيح');
     } catch (err: any) {
-      setErrorStatus(err?.message || 'فشل التحقق من رمز الأمان الثنائي.');
+      setErrorStatus(err?.message || 'فشل التحقق.');
     } finally {
       setIsSubmitting(false);
     }

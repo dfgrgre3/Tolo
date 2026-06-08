@@ -11,9 +11,11 @@ interface TwoFAPanelProps {
   readonly isSubmitting: boolean;
   readonly onVerify2FA: (e: React.FormEvent) => void;
   readonly onBack: () => void;
+  readonly title?: string;
+  readonly subtitle?: string;
 }
 
-export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onBack }: TwoFAPanelProps) {
+export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onBack, title = "الدرع المزدوج", subtitle = "أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية" }: TwoFAPanelProps) {
   return (
     <m.div
       key="2fa-form"
@@ -35,8 +37,8 @@ export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVe
           <Zap className="h-14 w-14 text-primary" />
         </m.div>
         <div className="space-y-3">
-          <h3 className="text-4xl font-black text-white uppercase tracking-tight">الدرع المزدوج</h3>
-          <p className="text-gray-400 font-medium">أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية</p>
+          <h3 className="text-4xl font-black text-white uppercase tracking-tight">{title}</h3>
+          <p className="text-gray-400 font-medium">{subtitle}</p>
         </div>
       </div>
 

@@ -113,6 +113,8 @@ export function LoginAuthView({
           isSubmitting={isSubmitting}
           onVerify2FA={onVerify2FA}
           onBack={() => setRequires2FA(false)}
+          title={loginMode === 'magic-link' ? 'الدخول السريع' : 'الدرع المزدوج'}
+          subtitle={loginMode === 'magic-link' ? 'أدخل رمز الدخول المكون من 6 أرقام المرسل لبريدك الإلكتروني' : 'أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية'}
         />
       )}
     </AnimatePresence>

@@ -17,8 +17,14 @@ export function AuthProvider({
 
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
-    if (isClerkLoaded && isUserLoaded) {
-      if (clerkUser) {
+    if (isClerkLoaded) {
+      if (!userId) {
+        resetStore();
+        setIsInitialLoad(false);
+        return;
+      }
+
+      if (isUserLoaded && clerkUser) {
         const mappedUser: AuthUser = {
           id: clerkUser.id,
           email: '', // Excluded initially to prevent leakage in SSR serialization
@@ -53,12 +59,10 @@ export function AuthProvider({
             });
           }
         });
-      } else {
-        resetStore();
+        setIsInitialLoad(false);
       }
-      setIsInitialLoad(false);
     }
-  }, [clerkUser, isClerkLoaded, isUserLoaded, setUser, resetStore]);
+  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
 
   return <>{children}</>;
 }
@@ -75,7 +79,7 @@ export function useAuth() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const resetStore = useAuthStore((state) => state.reset);
   
-  const isLoading = !isClerkLoaded || !isUserLoaded || isStoreLoading;
+  const isLoading = !isClerkLoaded || (userId ? !isUserLoaded || isStoreLoading : false);
 
   const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const [input, init] = args;
@@ -168,9 +172,46 @@ export function useAuth() {
     return { success: false, error: 'Verification managed via Clerk' };
   }, []);
 
-  const requestMagicLink = useCallback(async (email: string) => {
-    return { success: false, error: 'Magic links managed via Clerk' };
-  }, []);
+  const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
+    if (!signIn) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      const result = await signIn.create({
+        identifier: email,
+      });
+      const firstFactor = result.supportedFirstFactors.find(
+        (f: any) => f.strategy === 'email_code'
+      );
+      if (firstFactor) {
+        await signIn.prepareFirstFactor({
+          strategy: 'email_code',
+          emailAddressId: firstFactor.emailAddressId,
+        });
+        return { success: true };
+      }
+      return { success: false, error: 'طريقة الدخول السريع غير مدعومة لهذا الحساب' };
+    } catch (err: any) {
+      logger.error('Magic link request error:', err);
+      return { success: false, error: err.errors?.[0]?.message || 'فشل إرسال كود الدخول السريع' };
+    }
+  }, [signIn]);
+
+  const verifyOTP = useCallback(async (code: string): Promise<{success: boolean; error?: string;}> => {
+    if (!signIn || !setSignInActive) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'email_code',
+        code,
+      });
+      if (result.status === 'complete') {
+        await setSignInActive({ session: result.createdSessionId });
+        return { success: true };
+      }
+      return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
+    } catch (err: any) {
+      logger.error('OTP verification error:', err);
+      return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
+    }
+  }, [signIn, setSignInActive]);
 
   return {
     user,
@@ -189,5 +230,6 @@ export function useAuth() {
     verifyEmail,
     resendVerification,
     requestMagicLink,
+    verifyOTP,
   };
 }
