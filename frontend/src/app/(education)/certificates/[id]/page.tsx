@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { m } from "framer-motion";
 import { Award, Download, Share2, Printer, CheckCircle2, ShieldCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,10 +99,8 @@ export default function CertificatePage() {
         </div>
 
         {/* --- THE CERTIFICATE DESIGN --- */}
-        <m.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative bg-white text-[#1a1a1a] p-1 shadow-2xl rounded-sm print:shadow-none print:m-0"
+        <div
+          className="relative bg-white text-[#1a1a1a] p-1 shadow-2xl rounded-sm print:shadow-none print:m-0 certificate-fade-in"
         >
           {/* Outer Border */}
           <div className="border-[16px] border-[#1a1a1a] p-2 relative overflow-hidden">
@@ -196,7 +193,7 @@ export default function CertificatePage() {
 
             </div>
           </div>
-        </m.div>
+        </div>
 
         {/* Bottom Banner */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">

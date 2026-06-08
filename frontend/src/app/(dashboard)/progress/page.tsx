@@ -16,13 +16,14 @@ import {
   Sword,
   Calendar
 } from "lucide-react";
-import { m } from "framer-motion";
-
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Recharts is heavy (~150KB) — loaded lazily as separate client chunks
+// after hydration. The page itself stays a client component but its
+// bundle is dramatically smaller on first paint.
 const SkillRadarChart = dynamic(() => import("./components/ProgressCharts").then(mod => mod.SkillRadarChart), {
   ssr: false,
   loading: () => <div className="h-[400px] w-full bg-white/5 animate-pulse rounded-2xl" />
@@ -37,6 +38,11 @@ const GrowthLineChart = dynamic(() => import("./components/ProgressCharts").then
   ssr: false,
   loading: () => <div className="h-[350px] w-full bg-white/5 animate-pulse rounded-2xl" />
 });
+
+// framer-motion is heavy (~80KB) — we replace it with lightweight CSS
+// animations (see `progress-fade-up`, `progress-fade-in`, `progress-pop`,
+// `progress-width-grow` in globals.css). The visuals stay the same, the
+// runtime cost is removed from the INP critical path.
 
 const LOCAL_USER_KEY = "tw_user_id";
 
@@ -158,10 +164,8 @@ export default function ProgressPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* --- Header Section --- */}
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row items-center justify-between gap-6"
+        <div
+          className="flex flex-col md:flex-row items-center justify-between gap-6 progress-fade-up"
         >
           <div className="space-y-4 text-center md:text-right">
              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-400">
@@ -186,7 +190,7 @@ export default function ProgressPage() {
                 <p className="text-white font-black text-xl">{totalXP} XP</p>
              </div>
           </div>
-        </m.div>
+        </div>
 
         {/* --- Stats Grid --- */}
         <div className="grid gap-6 md:grid-cols-4">
@@ -196,12 +200,10 @@ export default function ProgressPage() {
             { label: "معدل التركيز", value: summary?.averageFocus ?? 0, unit: "%", icon: Brain, color: "text-purple-400" },
             { label: "المهمات المنجزة", value: summary?.tasksCompleted ?? 0, unit: "مهمة", icon: Target, color: "text-emerald-400" }
           ].map((stat, idx) => (
-            <m.div
+            <div
               key={idx}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all cursor-default"}
+              style={{ animationDelay: `${idx * 0.1}s` }}
+              className={`${STYLES.glass} p-6 group hover:border-primary/50 transition-all cursor-default progress-pop`}
             >
               <div className="flex items-start justify-between">
                  <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>
@@ -216,7 +218,7 @@ export default function ProgressPage() {
                     <span className="text-gray-400 font-medium">{stat.unit}</span>
                  </div>
               </div>
-            </m.div>
+            </div>
           ))}
         </div>
 
@@ -240,12 +242,9 @@ export default function ProgressPage() {
            <TabsContent key="skills" value="skills" className="m-0 focus-visible:outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                  {/* Radar Chart Section */}
-                 <m.div
+                 <div
                    key="skills-radar"
-                   initial={{ opacity: 0, x: -20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   exit={{ opacity: 0, x: -20 }}
-                   className={STYLES.glass + " lg:col-span-2 p-8"}
+                   className={`${STYLES.glass} lg:col-span-2 p-8 progress-fade-up`}
                  >
                    <div className="flex items-center justify-between mb-8">
                       <div>
@@ -259,15 +258,12 @@ export default function ProgressPage() {
                    <div className="h-[400px] min-h-[400px] w-full min-w-0">
                       <SkillRadarChart subjectSkills={subjectSkills} />
                    </div>
-                 </m.div>
+                 </div>
 
                  {/* Skill List Section */}
-                 <m.div
+                 <div
                    key="skills-list"
-                   initial={{ opacity: 0, x: 20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   exit={{ opacity: 0, x: 20 }}
-                   className="space-y-6"
+                   className="space-y-6 progress-fade-up"
                  >
                    <h3 className="text-xl font-black flex items-center gap-3">
                       <Award className="text-amber-500 w-6 h-6" />
@@ -286,11 +282,12 @@ export default function ProgressPage() {
                                 <span>{skill.level}%</span>
                              </div>
                              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                <m.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${skill.level}%` }}
-                                  transition={{ duration: 1, delay: idx * 0.1 }}
-                                  className="h-full bg-gradient-to-r from-primary to-indigo-400"
+                                <div
+                                  style={{
+                                    width: `${skill.level}%`,
+                                    animationDelay: `${idx * 0.1}s`,
+                                  }}
+                                  className="h-full bg-gradient-to-r from-primary to-indigo-400 progress-width-grow"
                                 />
                              </div>
                           </div>
@@ -300,18 +297,16 @@ export default function ProgressPage() {
                    <Button variant="outline" className="w-full border-white/10 hover:bg-white/5 text-gray-500 hover:text-white rounded-xl h-12">
                       عرض جميع المهارات
                    </Button>
-                 </m.div>
+                 </div>
               </div>
            </TabsContent>
 
            <TabsContent key="charts" value="charts" className="m-0 focus-visible:outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  {/* Activity Area Chart */}
-                 <m.div
+                 <div
                    key="chart-activity"
-                   initial={{ opacity: 0, scale: 0.95 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   className={STYLES.glass + " p-8"}
+                   className={`${STYLES.glass} p-8 progress-fade-in`}
                  >
                    <div className="flex items-center justify-between mb-8">
                       <div>
@@ -332,14 +327,12 @@ export default function ProgressPage() {
                    <div className="h-[350px] min-h-[350px] w-full min-w-0">
                       <ActivityAreaChart studyStats={studyStats} CustomTooltip={CustomTooltip} />
                    </div>
-                 </m.div>
+                 </div>
 
                  {/* Progression Line Chart */}
-                 <m.div
+                 <div
                    key="chart-growth"
-                   initial={{ opacity: 0, scale: 0.95 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   className={STYLES.glass + " p-8"}
+                   className={`${STYLES.glass} p-8 progress-fade-in`}
                  >
                    <div className="flex items-center justify-between mb-8">
                       <div>
@@ -351,7 +344,7 @@ export default function ProgressPage() {
                    <div className="h-[350px] min-h-[350px] w-full min-w-0">
                       <GrowthLineChart progressPath={progressPath} />
                    </div>
-                 </m.div>
+                 </div>
               </div>
            </TabsContent>
 

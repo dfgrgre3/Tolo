@@ -54,7 +54,17 @@ const nextConfig = {
       'framer-motion',
       '@vercel/analytics',
       '@vercel/speed-insights',
+      // Performance: heavy libs that should be tree-shaken and
+      // loaded lazily. `hls.js` (~150KB) is only used inside the
+      // video player (already dynamic-imported). jspdf/html2canvas
+      // are only used server-side via the certificates/[id]/pdf
+      // API route, so they never need to be in the client bundle.
+      'hls.js',
     ],
+    // Server-only deps that must NEVER end up in client bundles.
+    // Listed here so webpack/next will hard-fail if any of them
+    // accidentally get imported from a "use client" module.
+    serverComponentsExternalPackages: ['jspdf', 'html2canvas'],
     proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
   },

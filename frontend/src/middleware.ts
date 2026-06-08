@@ -25,7 +25,7 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Generate dynamic CSP Nonce
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const nonce = btoa(crypto.randomUUID());
   const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com; style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com; img-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://*.tolo.app https://*.vercel.app https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com wss: ws:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' https: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;`;
 
   const requestHeaders = new Headers(req.headers);

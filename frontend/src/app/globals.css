@@ -502,3 +502,91 @@
 
 /* Responsive images: force smaller sizes in ultra-lite */
 .ultra-lite-mode [data-lazy-image] {}
+
+/* =========================================================
+   Performance: Lightweight CSS animations (replaces framer-motion)
+   These keep visual fidelity while removing the heavy JS runtime
+   ========================================================= */
+@keyframes certificate-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.certificate-fade-in {
+  animation: certificate-fade-in 0.6s ease-out both;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .certificate-fade-in {
+    animation: none;
+  }
+}
+
+@keyframes progress-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.progress-fade-up {
+  animation: progress-fade-up 0.5s ease-out both;
+  will-change: opacity, transform;
+}
+
+@keyframes progress-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.progress-fade-in {
+  animation: progress-fade-in 0.4s ease-out both;
+}
+
+@keyframes progress-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.progress-pop {
+  animation: progress-pop 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fade-up,
+  .progress-fade-in,
+  .progress-pop {
+    animation: none;
+  }
+}
+
+@keyframes progress-width-grow {
+  from {
+    width: 0;
+  }
+}
+
+.progress-width-grow {
+  animation: progress-width-grow 0.6s ease-out forwards;
+}
