@@ -1,11 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import type { ErrorInfo } from 'react';
-import { logger } from '@/lib/logger';
-import { buildAppUserWebSocketUrl } from '@/lib/realtime/build-ws-url';
 import { useAuth } from './auth-context';
-
+import { useWebSocketStore } from './websocket-store';
 
 type WebSocketContextType = {
   socket: WebSocket | null;
@@ -28,38 +26,23 @@ class WebSocketErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(): {hasError: boolean;} {
-    // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
-  override componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
-    // Completely suppress WebSocket errors - do not log
-    // Errors are expected when WebSocket is disabled
+  override componentDidCatch() {
+    // Suppressed
   }
 
   override render() {
     if (this.state.hasError) {
-      // Silently return children without WebSocket functionality
       return <>{this.props.children}</>;
     }
-
     return this.props.children;
   }
 }
 
-// WebSocket is completely disabled - set as constant outside component
-// Change to true only when deploying to edge runtime (Cloudflare Workers)
 let WEBSOCKET_ENABLED = true;
 
-/**
- * Check if the user is in a performance mode that should disable the WebSocket.
- * WebSocket is disabled in:
- *  - efficiency-mode (saver)
- *  - lite-mode
- *  - ultra-lite-mode (very weak devices)
- *  - when the user has save-data enabled
- *  - when connection is slow (2g/slow-2g/3g)
- */
 function shouldDisableWebSocket(): boolean {
   if (typeof document === "undefined") return false;
   try {
@@ -92,159 +75,65 @@ function shouldDisableWebSocket(): boolean {
 export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
   const { user } = useAuth();
   const currentUserId = userId || user?.id;
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const connect = useWebSocketStore((state) => state.connect);
+  const disconnect = useWebSocketStore((state) => state.disconnect);
 
-  // Listen for efficiency mode changes to disable WebSocket
   useEffect(() => {
     if (typeof document === "undefined") return;
     const observer = new MutationObserver(() => {
       if (shouldDisableWebSocket()) {
         WEBSOCKET_ENABLED = false;
-        if (socket) {
-          try { socket.close(); } catch {}
-        }
+        disconnect();
       } else {
         WEBSOCKET_ENABLED = true;
+        if (currentUserId) {
+          connect(currentUserId);
+        }
       }
     });
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class", "data-perf-mode"],
     });
-    // Initial check
+
     if (shouldDisableWebSocket()) {
       WEBSOCKET_ENABLED = false;
     }
     return () => observer.disconnect();
-  }, [socket]);
+  }, [currentUserId, connect, disconnect]);
 
   useEffect(() => {
-    // CRITICAL: WebSocket is disabled - exit immediately before any operations
     if (!WEBSOCKET_ENABLED || !currentUserId) {
-      setSocket(null);
-      setIsConnected(false);
+      disconnect();
       return;
     }
 
-    // ... rest of the connection logic ...
-    const isWebSocketSupported = typeof window !== 'undefined' && 'WebSocket' in window;
-
-    if (!isWebSocketSupported) {
-      return;
-    }
-
-    let ws: WebSocket | null = null;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 3;
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const connect = () => {
-      if (!WEBSOCKET_ENABLED || !currentUserId) return;
-
-      try {
-        const wsUrl = buildAppUserWebSocketUrl(currentUserId);
-        if (!wsUrl) return;
-
-        ws = new WebSocket(wsUrl);
-
-        const connectionTimeout = setTimeout(() => {
-          if (ws && ws.readyState === WebSocket.CONNECTING) {
-            ws.close();
-          }
-        }, 30000);
-
-        ws.onopen = () => {
-          clearTimeout(connectionTimeout);
-          if (!WEBSOCKET_ENABLED) {
-            ws?.close();
-            return;
-          }
-          setIsConnected(true);
-          setSocket(ws);
-          reconnectAttempts = 0;
-        };
-
-        ws.onmessage = (event) => {
-          if (!WEBSOCKET_ENABLED) return;
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'notification') {
-              logger.info('WebSocket notification:', data.message);
-            }
-          } catch (error) {
-            logger.debug('Failed to parse WebSocket message', error);
-          }
-        };
-
-        ws.onclose = (event) => {
-          clearTimeout(connectionTimeout);
-          setIsConnected(false);
-          setSocket(null);
-          if (WEBSOCKET_ENABLED && reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
-            reconnectAttempts++;
-            const delay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
-            reconnectTimeout = setTimeout(connect, delay);
-          }
-        };
-
-        ws.onerror = () => {
-          clearTimeout(connectionTimeout);
-          if (ws) {
-            try {ws.close();} catch {
-              return;
-            }
-          }
-        };
-      } catch (error) {
-        logger.debug('WebSocket connection attempt failed', error);
-      }
-    };
-
-    connect();
+    connect(currentUserId);
 
     return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (ws) {
-        ws.onerror = null;
-        ws.onopen = null;
-        ws.onmessage = null;
-        ws.onclose = null;
-        try {ws.close();} catch {
-          return;
-        }
-      }
-      setSocket(null);
-      setIsConnected(false);
+      disconnect();
     };
-  }, [currentUserId]);
+  }, [currentUserId, connect, disconnect]);
 
-  // Always provide safe default values
+  const socket = useWebSocketStore((state) => state.socket);
+  const isConnected = useWebSocketStore((state) => state.isConnected);
+
   const contextValue = {
     socket: WEBSOCKET_ENABLED ? socket : null,
     isConnected: WEBSOCKET_ENABLED ? isConnected : false
   };
 
-  // Wrap in error boundary to catch any unexpected errors
   return (
     <WebSocketErrorBoundary>
       <WebSocketContext.Provider value={contextValue}>
         {children}
       </WebSocketContext.Provider>
-    </WebSocketErrorBoundary>);
-
+    </WebSocketErrorBoundary>
+  );
 }
 
 export function useWebSocket() {
-  const context = useContext(WebSocketContext);
-
-  // Always return safe defaults, never undefined
-  if (!context) {
-    return {
-      socket: null,
-      isConnected: false
-    };
-  }
-
-  return context;
+  const socket = useWebSocketStore((state) => state.socket);
+  const isConnected = useWebSocketStore((state) => state.isConnected);
+  return { socket, isConnected };
 }

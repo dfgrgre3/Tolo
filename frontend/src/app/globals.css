@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
+@plugin "@tailwindcss/container-queries";
 
 @layer base {
   :root {

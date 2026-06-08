@@ -24,17 +24,6 @@ const PRECACHE_URLS = [
   '/manifest.json'
 ];
 
-// Check if user is in efficiency/lite mode
-function isLiteMode() {
-  try {
-    // We can't read the DOM directly in SW, so we rely on a query parameter
-    // or check the cache for a marker
-    return false; // Default: don't bypass cache
-  } catch (e) {
-    return false;
-  }
-}
-
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
@@ -190,13 +179,13 @@ async function cacheFirst(request, cacheName) {
       cache.put(request, response.clone());
     }
     return response;
-  } catch (err) {
+  } catch (_err) {
     // Return a tiny offline fallback for images
     return new Response('', { status: 504, statusText: 'Offline' });
   }
 }
 
-async function staleWhileRevalidate(request, cacheName, maxAgeSeconds) {
+async function staleWhileRevalidate(request, cacheName, _maxAgeSeconds) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 

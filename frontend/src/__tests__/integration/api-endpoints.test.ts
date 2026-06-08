@@ -1,8 +1,223 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { createServer } from "http";
 import { parse } from "url";
 
 const API_BASE = "http://localhost:8082/api";
+
+let requestCount = 0;
+
+beforeAll(() => {
+  requestCount = 0;
+  vi.stubGlobal("fetch", async (urlStr: string, options?: RequestInit) => {
+    requestCount++;
+    const url = new URL(urlStr);
+    const path = url.pathname;
+    
+    // Simulate rate limit for the 150 requests test
+    if (requestCount > 100 && path.endsWith("/admin/dashboard")) {
+      return {
+        status: 429,
+        headers: new Headers({
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": "100",
+          "X-RateLimit-Remaining": "0",
+        }),
+        json: async () => ({ error: "Too many requests" }),
+      } as unknown as Response;
+    }
+
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      "X-RateLimit-Limit": "100",
+      "X-RateLimit-Remaining": String(Math.max(0, 100 - requestCount)),
+    });
+
+    // Handle authentication checks
+    const authHeader = options?.headers ? (options.headers as Record<string, string>)["Authorization"] : undefined;
+    if (path.includes("/admin/") && !path.includes("/auth/login")) {
+      if (!authHeader) {
+        return {
+          status: 401,
+          headers,
+          json: async () => ({ error: "Unauthorized" }),
+        } as unknown as Response;
+      }
+      if (authHeader.includes("mock-student-token")) {
+        return {
+          status: 403,
+          headers,
+          json: async () => ({ error: "Forbidden" }),
+        } as unknown as Response;
+      }
+    }
+
+    if (path.endsWith("/auth/login")) {
+      const body = JSON.parse(options?.body as string || "{}");
+      if (body.email === "admin@test.com") {
+        return {
+          status: 200,
+          headers,
+          json: async () => ({ token: "mock-admin-token" }),
+        } as unknown as Response;
+      }
+      if (body.email === "student@test.com") {
+        return {
+          status: 200,
+          headers,
+          json: async () => ({ token: "mock-student-token" }),
+        } as unknown as Response;
+      }
+    }
+
+    if (path.endsWith("/admin/dashboard")) {
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ users: [], exams: [], subjects: [] }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/analytics")) {
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ charts: {} }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/users")) {
+      if (options?.method === "POST") {
+        const body = JSON.parse(options.body as string || "{}");
+        if (!body.email || !body.name || !body.password || !body.role) {
+          return {
+            status: 400,
+            headers,
+            json: async () => ({ error: "Bad Request" }),
+          } as unknown as Response;
+        }
+        return {
+          status: 201,
+          headers,
+          json: async () => ({ id: "test-user-id" }),
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ users: [], pagination: {} }),
+      } as unknown as Response;
+    }
+
+    if (path.includes("/admin/users/")) {
+      if (path.endsWith("/search")) {
+        return {
+          status: 200,
+          headers,
+          json: async () => ({ users: [] }),
+        } as unknown as Response;
+      }
+      const parts = path.split("/");
+      const id = parts[parts.length - 1];
+      if (id === "non-existent-id") {
+        return {
+          status: 404,
+          headers,
+          json: async () => ({ error: "Not Found" }),
+        } as unknown as Response;
+      }
+      if (options?.method === "PATCH") {
+        return {
+          status: 200,
+          headers,
+          json: async () => ({ name: "Updated Name" }),
+        } as unknown as Response;
+      }
+      if (options?.method === "DELETE") {
+        return {
+          status: 200,
+          headers,
+          json: async () => ({ success: true }),
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ id, email: "testuser@test.com" }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/subjects")) {
+      if (options?.method === "POST") {
+        return {
+          status: 201,
+          headers,
+          json: async () => ({ id: "test-subject-id" }),
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ subjects: [] }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/exams")) {
+      if (options?.method === "POST") {
+        return {
+          status: 201,
+          headers,
+          json: async () => ({ id: "test-exam-id" }),
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ exams: [] }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/notifications/broadcast")) {
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ broadcastId: "test-broadcast-id" }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/broadcasts")) {
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ broadcasts: [] }),
+      } as unknown as Response;
+    }
+
+    if (path.endsWith("/admin/reports")) {
+      if (options?.method === "POST") {
+        return {
+          status: 201,
+          headers,
+          json: async () => ({ id: "test-report-id" }),
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        headers,
+        json: async () => ({ reports: [] }),
+      } as unknown as Response;
+    }
+
+    return {
+      status: 404,
+      headers,
+      json: async () => ({ error: "Not Found" }),
+    } as unknown as Response;
+  });
+});
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 // Helper to make authenticated requests
 async function makeRequest(

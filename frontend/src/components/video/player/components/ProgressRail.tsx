@@ -19,7 +19,6 @@ import { useCourseVideoPlayerStore } from "../store";
 import { cn, getRandomFloat } from "@/lib/utils";
 
 export const ProgressRail = memo(function ProgressRail({
-  currentTime,
   duration,
   buffered,
   markers,
@@ -27,7 +26,6 @@ export const ProgressRail = memo(function ProgressRail({
   notes = [],
   onSeek,
 }: {
-  currentTime: number;
   duration: number;
   buffered: number;
   markers: BookmarkItem[];
@@ -35,6 +33,7 @@ export const ProgressRail = memo(function ProgressRail({
   notes?: TimelineNote[];
   onSeek: (value: number) => void;
 }) {
+  const currentTime = useCourseVideoPlayerStore((s) => s.currentTime);
   const railRef = useRef<HTMLDivElement>(null);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
   const [previewPercent, setPreviewPercent] = useState(0);

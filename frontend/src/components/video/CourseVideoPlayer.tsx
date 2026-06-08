@@ -128,6 +128,7 @@ export function CourseVideoPlayer({
   const animationFrameRef = useRef<number | null>(null);
   const runPlaybackLoopRef = useRef<() => void>(() => undefined);
   const pendingSourceSwitchRef = useRef<{ time: number; shouldResume: boolean } | null>(null);
+  const lastCheckedSecondRef = useRef<number>(-1);
 
   const [thumbnailCues, setThumbnailCues] = useState<ReturnType<typeof parseThumbnailVtt>>([]);
   const [youtubePlaybackRates, setYoutubePlaybackRates] = useState<number[]>([]);
@@ -285,11 +286,13 @@ export function CourseVideoPlayer({
     const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = useCourseVideoPlayerStore.getState();
     
     // Interactive Questions Detection
-    if (interactiveQuestions.length > 0 && !activeQuestionId) {
+    const currentSecond = Math.floor(nextTime);
+    if (interactiveQuestions.length > 0 && !activeQuestionId && currentSecond !== lastCheckedSecondRef.current) {
       const question = interactiveQuestions.find(q => 
         Math.abs(q.time - nextTime) < 0.8 && !answeredQuestionIds.has(q.id)
       );
       if (question) {
+        lastCheckedSecondRef.current = currentSecond;
         adapter.pause();
         setPlayerState({ activeQuestionId: question.id, isPlaying: false, showControls: true });
         flashFeedback({ icon: HelpCircle, label: "سؤال تفاعلي" });

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, RefreshCw } from "lucide-react";
-import WeeklySchedule from "@/app/(dashboard)/time/components/WeeklySchedule";
+import WeeklySchedule from "@/app/(dashboard)/time/_components/WeeklySchedule";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ensureUser } from "@/lib/user-utils";
@@ -134,7 +134,7 @@ export default function SchedulePage() {
           schedule={schedule}
           subjects={subjects}
           userId={userId}
-          onScheduleUpdate={(updatedSchedule) =>
+          onScheduleUpdate={(updatedSchedule: any) =>
             setSchedule((prev) => ({
               ...prev,
               ...updatedSchedule

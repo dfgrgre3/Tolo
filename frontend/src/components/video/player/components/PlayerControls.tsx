@@ -49,7 +49,8 @@ const VolumeControl = ({ isMuted, volume, onToggleMute, onVolumeChange }: any) =
   );
 };
 
-const PlaybackInfo = ({ currentTime, duration, playbackRate, isMobile = false }: any) => {
+const PlaybackInfo = ({ duration, playbackRate, isMobile = false }: any) => {
+  const currentTime = useCourseVideoPlayerStore((s) => s.currentTime);
   const hasCustomRate = playbackRate !== 1;
   const containerClass = isMobile 
     ? "flex items-center gap-2 text-[11px] font-bold text-white/60 sm:text-xs"
@@ -108,11 +109,11 @@ export function PlayerControls({
   onCaptureFrame: () => void;
 }) {
   const {
-    currentTime, duration, buffered, isPlaying, isMuted, volume, playbackRate,
+    duration, buffered, isPlaying, isMuted, volume, playbackRate,
     isPip, isFullscreen, isSettingsOpen, isSidebarOpen, showControls, loopStart, loopEnd,
   } = useCourseVideoPlayerStore(
     useShallow((state) => ({
-      currentTime: state.currentTime, duration: state.duration, buffered: state.buffered,
+      duration: state.duration, buffered: state.buffered,
       isPlaying: state.isPlaying, isMuted: state.isMuted, volume: state.volume,
       playbackRate: state.playbackRate, isPip: state.isPip, isFullscreen: state.isFullscreen,
       isSettingsOpen: state.isSettingsOpen, isSidebarOpen: state.isSidebarOpen,
@@ -139,7 +140,7 @@ export function PlayerControls({
       onWheel={handleWheel}
     >
       <ProgressRail
-        currentTime={currentTime} duration={duration} buffered={buffered}
+        duration={duration} buffered={buffered}
         markers={markers} thumbnails={thumbnails} notes={notes} onSeek={onSeek}
       />
 
@@ -160,11 +161,11 @@ export function PlayerControls({
             <IconButton icon={SkipForward} label="تقديم 10 ثوان" onClick={() => onSeekBy(10)} />
             <VolumeControl isMuted={isMuted} volume={volume} onToggleMute={onToggleMute} onVolumeChange={onVolumeChange} />
           </div>
-          <PlaybackInfo currentTime={currentTime} duration={duration} playbackRate={playbackRate} />
+          <PlaybackInfo duration={duration} playbackRate={playbackRate} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <PlaybackInfo currentTime={currentTime} duration={duration} playbackRate={playbackRate} isMobile />
+          <PlaybackInfo duration={duration} playbackRate={playbackRate} isMobile />
           <div className="flex items-center gap-1">
             <IconButton icon={Keyboard} label="اختصارات لوحة المفاتيح" onClick={onOpenHelp} />
             <IconButton icon={Monitor} label="الوضع المسرحي" active={isTheaterMode} onClick={onToggleTheater} className="hidden sm:flex" />

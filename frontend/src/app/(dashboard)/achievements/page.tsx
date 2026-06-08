@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -51,6 +51,7 @@ export default function AchievementsPage() {
 
 	useEffect(() => {
 		if (hasRecentEarning) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setShowCelebration(true);
 		}
 	}, [hasRecentEarning]);

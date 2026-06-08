@@ -38,7 +38,10 @@ export default function AnalyticsPage() {
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<{ summary: SummaryData | null; weekly: WeeklyData | null; predictions: PredictionsData[]; performance: Record<string, unknown> | null } | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const loadAnalyticsData = useCallback(async (userId: string) => {
     const safeFetch = async <T,>(url: string, name: string): Promise<T | null> => {

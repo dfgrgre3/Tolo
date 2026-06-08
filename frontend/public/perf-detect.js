@@ -90,7 +90,7 @@
         score -= 15;
         signals.gpuType = 'none';
       }
-    } catch (e) {
+    } catch (_e) {
       signals.gpuType = 'unknown';
     }
 
@@ -106,10 +106,10 @@
                 applyMode('saver');
               }
             }
-          } catch (e) {}
+          } catch (_e) { /* empty */ }
         }).catch(function () {});
       }
-    } catch (e) {}
+    } catch (_e) { /* empty */ }
 
     // ===== Media queries =====
     try {
@@ -120,7 +120,7 @@
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         signals.reducedMotion = true;
       }
-    } catch (e) {}
+    } catch (_e) { /* empty */ }
 
     // ===== Real CPU benchmark =====
     try {
@@ -131,10 +131,11 @@
       }
       var dt = performance.now() - t0;
       signals.cpuBenchMs = Math.round(dt);
+      signals.cpuBenchAcc = acc;
       if (dt > 35) score -= 25;
       else if (dt > 20) score -= 12;
       else if (dt < 6) score += 5;
-    } catch (e) {}
+    } catch (_e) { /* empty */ }
 
     // ===== UA-based device class =====
     var ua = nav.userAgent || '';
@@ -167,7 +168,7 @@
     // Persist detection signals for client hooks (lightweight)
     try {
       localStorage.setItem('tolo-device-signals', JSON.stringify(signals));
-    } catch (e) {}
+    } catch (_e) { /* empty */ }
 
     function applyMode(m) {
       ROOT.classList.remove('efficiency-mode', 'lite-mode', 'ultra-lite-mode');
@@ -180,8 +181,8 @@
       ROOT.setAttribute('data-perf-mode', m);
       ROOT.setAttribute('data-perf-ready', '1');
     }
-  } catch (e) {
+  } catch (_e) {
     // Fail silently - never break the page
-    try { document.documentElement.setAttribute('data-perf-mode', 'balanced'); } catch (e2) {}
+    try { document.documentElement.setAttribute('data-perf-mode', 'balanced'); } catch (_e2) { /* empty */ }
   }
 })();
