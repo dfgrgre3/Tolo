@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
@@ -66,7 +67,9 @@ export default async function RootLayout({
   const hasAuthToken = cookieStore.has('access_token') || cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
+    <ClerkProvider>
       <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+
         <head>
           {/* Performance detection - runs BEFORE React to apply efficiency mode ASAP */}
           <script src="/perf-detect.js" async />
@@ -163,5 +166,7 @@ export default async function RootLayout({
           <ConditionalSpeedInsights />
         </body>
       </html>
+    </ClerkProvider>
+
   );
 }

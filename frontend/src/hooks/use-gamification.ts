@@ -43,7 +43,10 @@ export function useGamification({
 
   // Load initial data
   const loadInitialData = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
