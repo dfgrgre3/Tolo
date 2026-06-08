@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import ReactMarkdown from 'react-markdown';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { useAuth } from '@/contexts/auth-context';
 import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
 
@@ -442,7 +442,7 @@ export default function AIAssistant({
                 >
                   {message.role === 'assistant' ? (
                     <div className="prose prose-invert prose-sm max-w-none">
-                      <ReactMarkdown
+                      <SafeMarkdown
                         components={{
                           code: ({ className, children, ...props }: any) => {
                             const isInline = !className && typeof children === 'string' && !children?.toString().includes('\n');
@@ -459,15 +459,15 @@ export default function AIAssistant({
                               </code>
                             );
                           },
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                          li: ({ children }) => <li className="text-sm">{children}</li>,
-                          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                          p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                          ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                          li: ({ children }: any) => <li className="text-sm">{children}</li>,
+                          strong: ({ children }: any) => <strong className="font-bold text-white">{children}</strong>,
                         }}
                       >
                         {message.content}
-                      </ReactMarkdown>
+                      </SafeMarkdown>
                     </div>
                   ) : (
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</div>

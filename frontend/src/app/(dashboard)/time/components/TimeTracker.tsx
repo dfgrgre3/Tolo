@@ -150,23 +150,21 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
 TimerCircle.displayName = 'TimerCircle';
 
 export default function TimeTracker({ userId, tasks, onStudySessionCreate }: TimeTrackerProps) {
-  const {
-    isRunning,
-    currentPomodoroState,
-    pomodoroCount,
-    activeTaskId,
-    activeTaskTitle,
-    activeCourseTitle,
-    sessions,
-    settings,
-    startTimer,
-    pauseTimer,
-    resetTimer,
-    skipPhase,
-    selectTask,
-    completeSession,
-    completeSessionEarly,
-  } = useTimeTrackerStore();
+  const isRunning = useTimeTrackerStore((state) => state.isRunning);
+  const currentPomodoroState = useTimeTrackerStore((state) => state.currentPomodoroState);
+  const pomodoroCount = useTimeTrackerStore((state) => state.pomodoroCount);
+  const activeTaskId = useTimeTrackerStore((state) => state.activeTaskId);
+  const activeTaskTitle = useTimeTrackerStore((state) => state.activeTaskTitle);
+  const activeCourseTitle = useTimeTrackerStore((state) => state.activeCourseTitle);
+  const sessions = useTimeTrackerStore((state) => state.sessions);
+  const settings = useTimeTrackerStore((state) => state.settings);
+
+  const startTimer = useTimeTrackerStore((state) => state.startTimer);
+  const pauseTimer = useTimeTrackerStore((state) => state.pauseTimer);
+  const resetTimer = useTimeTrackerStore((state) => state.resetTimer);
+  const skipPhase = useTimeTrackerStore((state) => state.skipPhase);
+  const selectTask = useTimeTrackerStore((state) => state.selectTask);
+  const completeSessionEarly = useTimeTrackerStore((state) => state.completeSessionEarly);
 
   const theme = stateThemes[currentPomodoroState];
 

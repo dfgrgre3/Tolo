@@ -3,14 +3,20 @@
 import { m, AnimatePresence } from "framer-motion";
 import { StickyNote, Clock3 } from "lucide-react";
 import { formatDuration } from "../utils";
+import { useCourseVideoPlayerStore } from "../store";
 
 interface ActiveNotePopupProps {
-  text: string;
-  visible: boolean;
-  time?: number;
+  notes: Array<{ time: number; text: string }>;
 }
 
-export function ActiveNotePopup({ text, visible, time }: ActiveNotePopupProps) {
+export function ActiveNotePopup({ notes }: ActiveNotePopupProps) {
+  const currentTime = useCourseVideoPlayerStore((state) => state.currentTime);
+  const activeNote = notes.find(n => Math.abs(n.time - currentTime) < 2);
+  
+  const visible = !!activeNote;
+  const text = activeNote?.text || "";
+  const time = activeNote?.time;
+
   return (
     <AnimatePresence>
       {visible && (
@@ -33,7 +39,7 @@ export function ActiveNotePopup({ text, visible, time }: ActiveNotePopupProps) {
                   <p className="text-[10px] font-black uppercase tracking-widest text-orange-400">ملاحظتك السابقة</p>
                   {time !== undefined && (
                     <span className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-300">
-                      <Clock3 className="h-2.5 w-2.5" />
+                       <Clock3 className="h-2.5 w-2.5" />
                       {formatDuration(time)}
                     </span>
                   )}

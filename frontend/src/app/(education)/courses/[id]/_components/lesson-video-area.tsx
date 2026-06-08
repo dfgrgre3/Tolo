@@ -2,8 +2,20 @@
 
 import { Lock, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
 import type { CourseLesson } from "./types";
+import dynamic from "next/dynamic";
+
+const CourseVideoPlayer = dynamic(
+  () => import("@/components/video/CourseVideoPlayer").then((mod) => mod.CourseVideoPlayer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-video w-full animate-pulse bg-slate-900 rounded-[28px] border border-white/10 flex items-center justify-center text-white/50">
+        جارِ تحميل المشغل...
+      </div>
+    ),
+  }
+);
 
 export function LessonVideoArea({
   canAccess,

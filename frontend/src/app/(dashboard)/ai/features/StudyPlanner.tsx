@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { safeFetch } from '@/lib/safe-client-utils';
-import ReactMarkdown from 'react-markdown';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function StudyPlanner() {
   const [examDate, setExamDate] = useState('');
@@ -129,7 +129,7 @@ export default function StudyPlanner() {
           </div>
 
           <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none">
-            <ReactMarkdown>{plan}</ReactMarkdown>
+            <SafeMarkdown>{plan}</SafeMarkdown>
           </Card>
         </m.div>
       )}

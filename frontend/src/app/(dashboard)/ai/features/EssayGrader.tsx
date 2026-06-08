@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { safeFetch } from '@/lib/safe-client-utils';
 import { pollAIJobResult } from '@/lib/pollJobResult';
-import ReactMarkdown from 'react-markdown';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function EssayGrader() {
   const [content, setContent] = useState('');
@@ -150,7 +150,7 @@ export default function EssayGrader() {
           </div>
 
           <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none">
-            <ReactMarkdown>{evaluation}</ReactMarkdown>
+            <SafeMarkdown>{evaluation}</SafeMarkdown>
           </Card>
         </m.div>
       )}

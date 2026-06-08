@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { safeFetch } from '@/lib/safe-client-utils';
 import { pollAIJobResult } from '@/lib/pollJobResult';
-import ReactMarkdown from 'react-markdown';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function LessonSummarizer() {
   const [content, setContent] = useState('');
@@ -138,7 +138,7 @@ export default function LessonSummarizer() {
                 <Button variant="ghost" size="icon" className="absolute top-6 left-6 text-gray-500 hover:text-white">
                   <Copy className="w-4 h-4" />
                 </Button>
-                <ReactMarkdown>{summary.split('```')[0]}</ReactMarkdown>
+                <SafeMarkdown>{summary.split('```')[0] || ''}</SafeMarkdown>
               </Card>
             </TabsContent>
 

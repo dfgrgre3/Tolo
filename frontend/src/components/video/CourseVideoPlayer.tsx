@@ -150,7 +150,6 @@ export function CourseVideoPlayer({
     isEnded: s.isEnded,
     qualities: s.qualities,
     errorMessage: s.errorMessage,
-    currentTime: s.currentTime,
     resumeTime: s.resumeTime,
     sidebarTab: s.sidebarTab,
     isSidebarOpen: s.isSidebarOpen,
@@ -688,7 +687,7 @@ export function CourseVideoPlayer({
 
       <AmbientBackground videoRef={videoRef} provider={provider} />
       <GestureOverlay mode={gestureActiveMode} value={gestureValue} visible={!!gestureActiveMode} />
-      <SkipIntroButton currentTime={store.currentTime} markers={mergedMarkers} onSkip={handleSeek} />
+      <SkipIntroButton markers={mergedMarkers} onSkip={handleSeek} />
 
       <div className="absolute inset-0" style={{ filter: `brightness(${store.brightness})` }}>
         {provider === "youtube" ? (
@@ -728,11 +727,7 @@ export function CourseVideoPlayer({
         )}
       </AnimatePresence>
 
-      <ActiveNotePopup
-        text={notes.find(n => Math.abs(n.time - store.currentTime) < 2)?.text || ""}
-        visible={notes.some(n => Math.abs(n.time - store.currentTime) < 2)}
-        time={notes.find(n => Math.abs(n.time - store.currentTime) < 2)?.time}
-      />
+      <ActiveNotePopup notes={notes} />
 
       <AnimatedWatermark
         text={dynamicWatermark}
@@ -825,7 +820,7 @@ export function CourseVideoPlayer({
         onToggleSidebarTab={t => setPlayerState({ sidebarTab: t })}
         onNoteDraftChange={setNoteDraft}
         onAddNoteAtCurrentTime={addNoteAtCurrentTime}
-        onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(store.currentTime)} `)}
+        onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(useCourseVideoPlayerStore.getState().currentTime)} `)}
         onRemoveNote={removeNote}
         onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
         onLessonChange={onLessonChange}

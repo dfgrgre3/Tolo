@@ -4,14 +4,16 @@ import { memo } from "react";
 import { SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BookmarkItem } from "../types";
+import { useCourseVideoPlayerStore } from "../store";
 
 type SkipIntroButtonProps = {
-  currentTime: number;
   markers: BookmarkItem[];
   onSkip: (time: number) => void;
 };
 
-export const SkipIntroButton = memo(({ currentTime, markers, onSkip }: SkipIntroButtonProps) => {
+export const SkipIntroButton = memo(({ markers, onSkip }: SkipIntroButtonProps) => {
+  const currentTime = useCourseVideoPlayerStore((state) => state.currentTime);
+
   const activeMarker = markers.find(m => {
     const label = m.label.toLowerCase();
     const isIntro = label.includes("intro") || label.includes("مقدمة") || label.includes("recap") || label.includes("ملخص");

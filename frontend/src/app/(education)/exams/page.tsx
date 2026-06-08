@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ensureUser } from "@/lib/user-utils";
 import { safeFetch } from "@/lib/safe-client-utils";
+import { useOfflineOutboxStore } from "@/hooks/use-offline-outbox-store";
+import { isCriticalError } from "@/lib/error-utils";
+import { toast } from "sonner";
 
 import { m, AnimatePresence } from "framer-motion";
 import {
@@ -121,16 +124,35 @@ function ExamsPageContent() {
       const scoreNum = parseFloat(score);
       if (isNaN(scoreNum)) return;
 
+      const payload = { userId, examId, score: scoreNum, takenAt: takenAt || undefined };
+
+      // Check offline status first
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+         useOfflineOutboxStore.getState().addSubmission(payload);
+         toast.info("تم حفظ النتيجة محلياً لانقطاع الاتصال بالإنترنت. ستتم مزامنتها تلقائياً فور عودة الاتصال.");
+         setExamId(""); setScore(""); setTakenAt("");
+         return;
+      }
+
       setIsSubmitting(true);
       try {
-         const { data } = await safeFetch<ExamResult>("/api/exams/results", {
+         const { data, error } = await safeFetch<ExamResult>("/api/exams/results", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, examId, score: scoreNum, takenAt: takenAt || undefined })
+            body: JSON.stringify(payload)
          }, null);
-         if (data) {
+
+         if (data && !error) {
             setResults((r) => [data, ...r]);
+            toast.success("تم تسجيل النتيجة بنجاح!");
             setExamId(""); setScore(""); setTakenAt("");
+         } else if (error && !isCriticalError(error)) {
+            // Save to outbox for temporary network failure
+            useOfflineOutboxStore.getState().addSubmission(payload);
+            toast.info("حدث خطأ في الاتصال، تم حفظ النتيجة محلياً لمزامنتها لاحقاً.");
+            setExamId(""); setScore(""); setTakenAt("");
+         } else {
+            toast.error(error?.message || "فشل تسجيل النتيجة.");
          }
       } finally { setIsSubmitting(false); }
    }, [userId, examId, score, takenAt]);

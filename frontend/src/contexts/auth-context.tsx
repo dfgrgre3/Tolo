@@ -37,20 +37,20 @@ export function AuthProvider({
         };
         setUser(mappedUser);
 
-        // Asynchronously load detailed secure profile data from secure backend RPC
-        import('@/lib/rpc-client').then(async ({ authClient }) => {
+        // Asynchronously load detailed secure profile data from repository layer
+        import('@/data-access/repositories/auth-repository').then(async ({ authRepository }) => {
           try {
-            const profile = await authClient.getProfile({});
-            if (profile.user) {
+            const profile = await authRepository.getProfile();
+            if (profile.email) {
               setUser({
                 ...mappedUser,
-                email: profile.user.email,
-                role: profile.user.role || mappedUser.role,
+                email: profile.email,
+                role: profile.role || mappedUser.role,
                 permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
               });
             }
           } catch (e) {
-            logger.error('Failed to load secure profile details via RPC:', e);
+            logger.error('Failed to load secure profile details via repository:', e);
             // Safe fallback to client-side Clerk attributes on failure
             setUser({
               ...mappedUser,

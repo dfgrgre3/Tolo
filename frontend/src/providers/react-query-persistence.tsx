@@ -13,10 +13,10 @@ const CACHE_KEY = 'tolo-react-query-v1';
 const MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
 
 function shouldPersistQuery(query: Parameters<typeof defaultShouldDehydrateQuery>[0]) {
-  if ((query.meta as { persist?: boolean } | undefined)?.persist === false) {
-    return false;
+  if ((query.meta as { persist?: boolean } | undefined)?.persist === true) {
+    return defaultShouldDehydrateQuery(query);
   }
-  return defaultShouldDehydrateQuery(query);
+  return false;
 }
 
 /**

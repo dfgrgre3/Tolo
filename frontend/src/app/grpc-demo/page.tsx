@@ -1,29 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { rpcClient } from '@/lib/rpc-client';
-import { Course } from '@/data-access/grpc/course_pb';
+import { useCourses } from '@/hooks/use-courses';
 
 export default function GrpcDemoPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchCourses() {
-      try {
-        const response = await rpcClient.getCourses({});
-        setCourses((response as any).courses);
-      } catch (err) {
-        console.error('Failed to fetch courses via gRPC/Connect:', err);
-        setError('Failed to fetch courses. Check console for details.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCourses();
-  }, []);
+  const { data: courses = [], isLoading, error } = useCourses();
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -35,7 +15,7 @@ export default function GrpcDemoPage() {
         It bypasses the traditional REST API and uses type-safe Protobuf communication.
       </p>
 
-      {loading && (
+      {isLoading && (
         <div className="flex justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
@@ -43,11 +23,11 @@ export default function GrpcDemoPage() {
 
       {error && (
         <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
+          Failed to fetch courses. Check console for details.
         </div>
       )}
 
-      {!loading && !error && (
+      {!isLoading && !error && (
         <div className="grid gap-4">
           {courses.length === 0 ? (
             <p className="text-center text-gray-500 py-12 border-2 border-dashed rounded-xl">

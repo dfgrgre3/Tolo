@@ -26,7 +26,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Generate dynamic CSP Nonce
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https:; style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com; img-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://*.tolo.app https://*.vercel.app wss: ws:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' https: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;`;
+  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com; style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com; img-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://*.tolo.app https://*.vercel.app https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com wss: ws:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' https: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;`;
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
@@ -43,7 +43,7 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.[\\w]+$|_next/image|favicon.ico).*)",
+    // Skip Next.js internals, static files, API routes, and standard web metadata files
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|[^?]*\\.[\\w]+$).*)",
   ],
 };

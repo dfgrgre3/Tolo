@@ -23,13 +23,21 @@ const FooterLazy = dynamic(() => import('@/components/Footer'), {
   loading: () => <footer className="min-h-[100px] w-full" aria-hidden />,
 });
 
+import { isCriticalError } from '@/lib/error-utils';
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 1000 * 60 * 5,
-        gcTime: 1000 * 60 * 60 * 24,
-        retry: 1,
+        staleTime: 5000,
+        gcTime: 300000,
+        retry: (failureCount, error) => {
+          if (failureCount >= 3 || isCriticalError(error)) {
+            return false;
+          }
+          return true;
+        },
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
         refetchOnMount: true,
@@ -58,6 +66,8 @@ type GlobalProvidersProps = {
  * 4. ToastProvider - Notifications (can be used by auth for error toasts)
  * 5. WebSocketProvider - Real-time features (needs auth state)
  */
+import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
+
 export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
   const [queryClient] = useState(makeQueryClient);
 
@@ -69,6 +79,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
             <ClientLayoutProvider>
               <QueryClientProvider client={queryClient}>
                 <ReactQueryPersistence />
+                <OfflineSyncManager />
                 <AuthProvider initialAuthHint={initialAuthHint}>
                   <GlobalSettingsApplier>
                     <WebSocketProvider>
