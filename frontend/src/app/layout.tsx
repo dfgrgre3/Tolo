@@ -20,7 +20,7 @@ const alexandria = Alexandria({
   variable: '--font-alexandria',
   display: 'swap',
   preload: true,
-  weight: ['400', '600', '700'],
+  weight: ['400', '700'],          // reduced from 3 weights to 2 — saves ~15KB
   adjustFontFallback: true,
   fallback: ['system-ui', 'sans-serif'],
 });
@@ -73,7 +73,16 @@ export default async function RootLayout({
       <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
 
         <head>
-          {/* Inline performance detection - runs synchronously before render to prevent FOUC */}
+          {/* ── Preconnect to external origins ─────────────────────────────── */}
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://clerk.tolo.app" crossOrigin="anonymous" />
+
+          {/*
+            Inline performance detection — FAST path only.
+            Only lightweight signals (memory, network, cores, UA) run synchronously
+            to prevent FOUC. Heavy CPU benchmark + WebGL GPU detection are
+            deferred to requestIdleCallback AFTER the page paints.
+          */}
           <script
             id="perf-detect"
             nonce={nonce}
@@ -89,7 +98,7 @@ export default async function RootLayout({
                     var score = 50;
                     var signals = {};
 
-                    // ===== Memory =====
+                    // ── Memory ──────────────────────────────────────────────
                     var mem = nav.deviceMemory;
                     signals.deviceMemory = typeof mem === 'number' ? mem : null;
                     if (typeof mem === 'number') {
@@ -99,7 +108,7 @@ export default async function RootLayout({
                       else score -= 25;
                     }
 
-                    // ===== CPU cores =====
+                    // ── CPU cores ───────────────────────────────────────────
                     var cores = nav.hardwareConcurrency;
                     signals.hardwareConcurrency = typeof cores === 'number' ? cores : null;
                     if (typeof cores === 'number') {
@@ -109,137 +118,150 @@ export default async function RootLayout({
                       else score -= 25;
                     }
 
-                    // ===== Network =====
+                    // ── Network ─────────────────────────────────────────────
                     var connType = (conn && conn.effectiveType) || '4g';
                     var downlink = (conn && conn.downlink) || null;
-                    var rtt = (conn && conn.rtt) || null;
+                    var rtt     = (conn && conn.rtt)      || null;
                     signals.effectiveType = connType;
-                    signals.downlink = downlink;
-                    signals.rtt = rtt;
-                    signals.saveData = !!(conn && conn.saveData);
+                    signals.downlink      = downlink;
+                    signals.rtt           = rtt;
+                    signals.saveData      = !!(conn && conn.saveData);
 
-                    if (connType === '4g') score += 10;
-                    else if (connType === '3g') score -= 15;
-                    else if (connType === '2g') score -= 30;
+                    if (connType === '4g')      score += 10;
+                    else if (connType === '3g')      score -= 15;
+                    else if (connType === '2g')      score -= 30;
                     else if (connType === 'slow-2g') score -= 40;
 
-                    if (signals.saveData) score -= 30;
+                    if (signals.saveData)          score -= 30;
                     if (downlink && downlink < 1.5) score -= 15;
-                    if (rtt && rtt > 500) score -= 10;
+                    if (rtt      && rtt      > 500) score -= 10;
 
-                    // ===== WebGL renderer detection =====
-                    try {
-                      var canvas = document.createElement('canvas');
-                      var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                      if (gl) {
-                        var ext = gl.getExtension('WEBGL_debug_renderer_info');
-                        if (ext) {
-                          var renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '';
-                          signals.gpuRenderer = String(renderer).slice(0, 120);
-                          if (/SwiftShader|Software|llvmpipe|Microsoft Basic/i.test(renderer)) {
-                            score -= 30;
-                            signals.gpuType = 'software';
-                          } else if (/Mali-4|Adreno \\(TM\\) [12]\\d\\d|PowerVR SGX/i.test(renderer)) {
-                            score -= 10;
-                            signals.gpuType = 'weak';
-                          } else {
-                            signals.gpuType = 'hardware';
-                          }
-                        }
-                      } else {
-                        score -= 15;
-                        signals.gpuType = 'none';
-                      }
-                    } catch (e) {
-                      signals.gpuType = 'unknown';
-                    }
+                    // ── UA-based device class ───────────────────────────────
+                    var ua       = nav.userAgent || '';
+                    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+                    var isTablet = /iPad|Android(?!.*Mobile)/i.test(ua) ||
+                                   (nav.maxTouchPoints > 1 && /Macintosh/i.test(ua));
+                    signals.isMobile = isMobile;
+                    signals.isTablet = isTablet;
 
-                    // ===== Battery =====
-                    try {
-                      if (nav.getBattery) {
-                        nav.getBattery().then(function (bat) {
-                          try {
-                            if (bat.level <= 0.15 && !bat.charging) {
-                              ROOT.setAttribute('data-low-battery', '1');
-                              var currentMode = ROOT.getAttribute('data-perf-mode');
-                              if (currentMode === 'performance' || currentMode === 'balanced') {
-                                applyMode('saver');
-                              }
-                            }
-                          } catch (e) {}
-                        }).catch(function () {});
-                      }
-                    } catch (e) {}
+                    if (isMobile && typeof cores === 'number' && cores < 4)  score -= 15;
+                    if (isMobile && typeof cores === 'number' && cores <= 2)  score -= 10;
+                    if (isTablet)                                              score += 5;
 
-                    // ===== Media queries =====
+                    // ── Media queries ───────────────────────────────────────
                     try {
-                      if (window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches) {
-                        score -= 25;
-                        signals.reducedData = true;
+                      if (window.matchMedia('(prefers-reduced-data: reduce)').matches) {
+                        score -= 25; signals.reducedData = true;
                       }
-                      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         signals.reducedMotion = true;
                       }
                     } catch (e) {}
 
-                    // ===== Real CPU benchmark =====
-                    try {
-                      var t0 = performance.now();
-                      var acc = 0;
-                      for (var i = 0; i < 200000; i++) {
-                        acc += Math.sqrt(i) * Math.sin(i);
-                      }
-                      var dt = performance.now() - t0;
-                      signals.cpuBenchMs = Math.round(dt);
-                      if (dt > 35) score -= 25;
-                      else if (dt > 20) score -= 12;
-                      else if (dt < 6) score += 5;
-                    } catch (e) {}
-
-                    // ===== UA-based device class =====
-                    var ua = nav.userAgent || '';
-                    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-                    var isTablet = /iPad|Android(?!.*Mobile)/i.test(ua) || (nav.maxTouchPoints > 1 && /Macintosh/i.test(ua));
-                    signals.isMobile = isMobile;
-                    signals.isTablet = isTablet;
-
-                    if (isMobile && typeof cores === 'number' && cores < 4) score -= 15;
-                    if (isMobile && typeof cores === 'number' && cores <= 2) score -= 10;
-                    if (isTablet) score += 5;
-
-                    // Clamp
-                    if (score < 0) score = 0;
-                    if (score > 100) score = 100;
+                    // ── Clamp & decide ──────────────────────────────────────
+                    score = Math.max(0, Math.min(100, score));
                     signals.score = score;
 
-                    // ===== Decide mode =====
                     var mode;
-                    if (signals.saveData) mode = 'ultra-lite';
+                    if (signals.saveData)                       mode = 'ultra-lite';
                     else if (connType === 'slow-2g' || connType === '2g') mode = 'ultra-lite';
-                    else if (score < 20) mode = 'ultra-lite';
-                    else if (score < 35) mode = 'saver';
-                    else if (score < 50) mode = 'lite';
-                    else if (score < 75) mode = 'balanced';
-                    else mode = 'performance';
+                    else if (score < 20)                        mode = 'ultra-lite';
+                    else if (score < 35)                        mode = 'saver';
+                    else if (score < 50)                        mode = 'lite';
+                    else if (score < 75)                        mode = 'balanced';
+                    else                                        mode = 'performance';
 
                     applyMode(mode);
 
-                    // Persist detection signals for client hooks (lightweight)
-                    try {
-                      localStorage.setItem('tolo-device-signals', JSON.stringify(signals));
-                    } catch (e) {}
+                    try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch (e) {}
 
                     function applyMode(m) {
                       ROOT.classList.remove('efficiency-mode', 'lite-mode', 'ultra-lite-mode');
-                      if (m === 'saver') ROOT.classList.add('efficiency-mode');
-                      else if (m === 'lite') ROOT.classList.add('lite-mode');
+                      if (m === 'saver')      ROOT.classList.add('efficiency-mode');
+                      else if (m === 'lite')  ROOT.classList.add('lite-mode');
                       else if (m === 'ultra-lite') {
-                        ROOT.classList.add('efficiency-mode');
-                        ROOT.classList.add('ultra-lite-mode');
+                        ROOT.classList.add('efficiency-mode', 'ultra-lite-mode');
                       }
                       ROOT.setAttribute('data-perf-mode', m);
                       ROOT.setAttribute('data-perf-ready', '1');
                     }
+
+                    // ── DEFERRED: heavy CPU benchmark + WebGL GPU detection ──
+                    // Runs AFTER paint so it never blocks First Contentful Paint.
+                    var deferHeavy = function () {
+                      try {
+                        // CPU benchmark
+                        var t0 = performance.now();
+                        var acc = 0;
+                        for (var i = 0; i < 200000; i++) { acc += Math.sqrt(i) * Math.sin(i); }
+                        var dt = performance.now() - t0;
+                        signals.cpuBenchMs = Math.round(dt);
+                        var cpuAdj = 0;
+                        if (dt > 35) cpuAdj = -25;
+                        else if (dt > 20) cpuAdj = -12;
+                        else if (dt < 6)  cpuAdj =   5;
+                        // WebGL GPU detection
+                        try {
+                          var canvas = document.createElement('canvas');
+                          var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                          if (gl) {
+                            var ext = gl.getExtension('WEBGL_debug_renderer_info');
+                            if (ext) {
+                              var renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '';
+                              signals.gpuRenderer = String(renderer).slice(0, 120);
+                              if (/SwiftShader|Software|llvmpipe|Microsoft Basic/i.test(renderer)) {
+                                cpuAdj -= 30; signals.gpuType = 'software';
+                              } else if (/Mali-4|Adreno \\(TM\\) [12]\\d\\d|PowerVR SGX/i.test(renderer)) {
+                                cpuAdj -= 10; signals.gpuType = 'weak';
+                              } else {
+                                signals.gpuType = 'hardware';
+                              }
+                            }
+                          } else {
+                            cpuAdj -= 15; signals.gpuType = 'none';
+                          }
+                        } catch (e) { signals.gpuType = 'unknown'; }
+                        // Re-evaluate mode with refined score
+                        var refined = Math.max(0, Math.min(100, score + cpuAdj));
+                        signals.score = refined;
+                        var refined_mode;
+                        if (signals.saveData || connType === 'slow-2g' || connType === '2g') {
+                          refined_mode = 'ultra-lite';
+                        } else if (refined < 20 || signals.gpuType === 'software') {
+                          refined_mode = 'ultra-lite';
+                        } else if (refined < 35) { refined_mode = 'saver'; }
+                        else if (refined < 50)   { refined_mode = 'lite'; }
+                        else if (refined < 75)   { refined_mode = 'balanced'; }
+                        else                     { refined_mode = 'performance'; }
+                        // Only downgrade, never upgrade after the fact
+                        var order = ['performance','balanced','lite','saver','ultra-lite'];
+                        var cur_idx = order.indexOf(ROOT.getAttribute('data-perf-mode') || 'balanced');
+                        var new_idx = order.indexOf(refined_mode);
+                        if (new_idx > cur_idx) applyMode(refined_mode);
+                        try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch(e) {}
+                      } catch (e) {}
+                    };
+
+                    // Battery check (async, never blocking)
+                    try {
+                      if (nav.getBattery) {
+                        nav.getBattery().then(function (bat) {
+                          if (bat.level <= 0.15 && !bat.charging) {
+                            ROOT.setAttribute('data-low-battery', '1');
+                            var cur = ROOT.getAttribute('data-perf-mode');
+                            if (cur === 'performance' || cur === 'balanced') applyMode('saver');
+                          }
+                        }).catch(function () {});
+                      }
+                    } catch (e) {}
+
+                    if ('requestIdleCallback' in window) {
+                      window.requestIdleCallback(deferHeavy, { timeout: 3000 });
+                    } else {
+                      // Fallback: run after first paint (~100ms)
+                      setTimeout(deferHeavy, 100);
+                    }
+
                   } catch (e) {
                     try { document.documentElement.setAttribute('data-perf-mode', 'balanced'); } catch (e2) {}
                   }

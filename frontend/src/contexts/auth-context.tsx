@@ -71,15 +71,29 @@ export function useAuth() {
   const router = useRouter();
   const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  const { signIn, setActive: setSignInActive } = useSignIn() as any;
-  const { signUp, setActive: setSignUpActive } = useSignUp() as any;
-  
+  // useSignIn/useSignUp may return null outside a <SignIn/> / <SignUp/> component context
+  // (e.g. on custom pages). We coalesce to safe defaults and treat them as "not loaded".
+  const signInResult = (useSignIn() as any) ?? {};
+  const signUpResult = (useSignUp() as any) ?? {};
+  const isSignInLoaded = !!signInResult.isLoaded;
+  const signIn = signInResult.signIn ?? null;
+  const setSignInActive = signInResult.setActive ?? null;
+  const isSignUpLoaded = !!signUpResult.isLoaded;
+  const signUp = signUpResult.signUp ?? null;
+  const setSignUpActive = signUpResult.setActive ?? null;
+
   const user = useAuthStore((state) => state.user);
   const isStoreLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const resetStore = useAuthStore((state) => state.reset);
-  
-  const isLoading = !isClerkLoaded || (userId ? !isUserLoaded || isStoreLoading : false);
+
+  // Auth-system is "fully loaded" only when Clerk core + user data + signIn + signUp
+  // contexts have all reported `isLoaded: true`. This prevents calling signIn.create()
+  // before Clerk is ready, which would otherwise return "Auth system not fully loaded".
+  const authSystemReady = isClerkLoaded && isSignInLoaded && isSignUpLoaded && (!userId || isUserLoaded);
+  // Backwards-compatible `isLoading` flag for the existing UI: true until we know
+  // for sure whether the user is signed in.
+  const isLoading = !authSystemReady || isStoreLoading;
 
   const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const [input, init] = args;
