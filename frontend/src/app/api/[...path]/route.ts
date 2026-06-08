@@ -299,17 +299,24 @@ async function handleProxy(
   const targetUrl = `${backendUrl}/api/${path}${search}`;
   console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
 
-  // Stream the request body directly to avoid in-memory buffering for large payloads.
   const hasBody = METHODS_WITH_BODY.has(request.method);
-  const body = hasBody ? request.body : undefined;
+  let body: any = undefined;
+  if (hasBody) {
+    try {
+      const arrayBuffer = await request.arrayBuffer();
+      if (arrayBuffer.byteLength > 0) {
+        body = arrayBuffer;
+      }
+    } catch (e) {
+      console.warn(`[API Proxy] Failed to read request body: ${e}`);
+    }
+  }
 
   try {
     const response = await fetchWithTimeout(targetUrl, {
       method: request.method,
       headers: upstreamHeaders(request),
       body,
-      // @ts-ignore - duplex is required when sending a stream in Node fetch
-      duplex: hasBody ? 'half' : undefined,
     });
 
     if (!response.ok) {
