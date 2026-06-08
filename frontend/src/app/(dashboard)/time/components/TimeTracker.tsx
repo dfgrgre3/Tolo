@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -103,10 +102,11 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
   const offset = circ - (progress / 100) * circ;
 
   return (
-    <m.div
-      animate={isRunning ? { scale: [1, 1.015, 1] } : { scale: 1 }}
-      transition={isRunning ? { repeat: Infinity, duration: 3, ease: 'easeInOut' } : { duration: 0.3 }}
-      className="relative flex items-center justify-center mb-10 cursor-pointer group"
+    <div
+      className={cn(
+        "relative flex items-center justify-center mb-10 cursor-pointer group transition-all duration-300",
+        isRunning && "animate-[pulse_3s_infinite_ease-in-out] scale-[1.015]"
+      )}
       onClick={handleToggle}
     >
       {/* Outer glow ring */}
@@ -120,15 +120,14 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
         {/* Track */}
         <circle cx="140" cy="140" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
         {/* Progress ring */}
-        <m.circle
+        <circle
           cx="140" cy="140" r={R}
           fill="none"
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={offset}
-          className={cn(theme.stroke, theme.glow)}
-          transition={{ duration: 1, ease: 'linear' }}
+          className={cn(theme.stroke, theme.glow, "transition-[stroke-dashoffset] duration-1000 ease-out")}
         />
       </svg>
 
@@ -144,7 +143,7 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
           {isRunning ? 'اضغط للإيقاف' : 'اضغط للبدء'}
         </span>
       </div>
-    </m.div>
+    </div>
   );
 });
 
@@ -244,29 +243,20 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
 
           <div className="relative z-10 p-6 md:p-8 flex flex-col items-center">
             {/* Title row */}
-            <m.div
-              key={currentPomodoroState}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn('flex items-center gap-2.5 mb-1', theme.color)}
-            >
+            <div className={cn('flex items-center gap-2.5 mb-1 transition-all duration-300', theme.color)}>
               {theme.icon}
               <h2 className="text-xl font-bold text-white">متتبع الوقت</h2>
-            </m.div>
-            <p className={cn('text-sm font-medium mb-6', theme.color)}>{theme.label}</p>
+            </div>
+            <p className={cn('text-sm font-medium mb-6 transition-all duration-300', theme.color)}>{theme.label}</p>
 
             {/* Context badge */}
             {(activeCourseTitle || activeTaskTitle) && (
-              <m.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs"
-              >
+              <div className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs transition-all duration-300">
                 {activeCourseTitle
                   ? <><BookOpen className="h-3 w-3 text-blue-400 shrink-0" /><span>{activeCourseTitle}</span></>
                   : <><Zap className="h-3 w-3 text-amber-400 shrink-0" /><span>{activeTaskTitle}</span></>
                 }
-              </m.div>
+              </div>
             )}
 
             {/* Circular Timer (Isolated state subscription) */}
@@ -296,21 +286,12 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
                   isRunning ? theme.stopBg : theme.playBg
                 )}
               >
-                <AnimatePresence mode="popLayout">
-                  <m.div
-                    key={isRunning ? 'pause' : 'play'}
-                    initial={{ y: 12, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -12, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex items-center gap-2"
-                  >
-                    {isRunning
-                      ? <><Pause className="h-5 w-5 fill-current" />إيقاف مؤقت</>
-                      : <><Play className="h-5 w-5 fill-current" />بدء الجلسة</>
-                    }
-                  </m.div>
-                </AnimatePresence>
+                <div className="flex items-center gap-2">
+                  {isRunning
+                    ? <><Pause className="h-5 w-5 fill-current" />إيقاف مؤقت</>
+                    : <><Play className="h-5 w-5 fill-current" />بدء الجلسة</>
+                  }
+                </div>
               </Button>
 
               <Button
@@ -324,24 +305,17 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
             </div>
 
             {/* Early completion button */}
-            <AnimatePresence>
-              {isRunning && currentPomodoroState === 'work' && (
-                <m.div
-                  initial={{ opacity: 0, height: 0, y: -10 }}
-                  animate={{ opacity: 1, height: 'auto', y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -10 }}
-                  className="mb-6 w-full max-w-sm overflow-hidden"
+            {isRunning && currentPomodoroState === 'work' && (
+              <div className="mb-6 w-full max-w-sm overflow-hidden transition-all duration-300">
+                <Button
+                  onClick={completeSessionEarly}
+                  className="w-full h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/30 hover:bg-teal-500/20 font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/20"
                 >
-                  <Button
-                    onClick={completeSessionEarly}
-                    className="w-full h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/30 hover:bg-teal-500/20 font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/20"
-                  >
-                    <Target className="h-4 w-4" />
-                    إنهاء الجلسة وحفظ الدقائق المنقضية
-                  </Button>
-                </m.div>
-              )}
-            </AnimatePresence>
+                  <Target className="h-4 w-4" />
+                  إنهاء الجلسة وحفظ الدقائق المنقضية
+                </Button>
+              </div>
+            )}
 
             {/* Pomodoro progress dots */}
             <div className="flex items-center gap-2 mb-6">
@@ -349,15 +323,14 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
               {Array.from({ length: settings.goalTarget }).map((_, i) => {
                 const done = i < (pomodoroCount % settings.goalTarget);
                 return (
-                  <m.div
+                  <div
                     key={i}
-                    animate={{ scale: done ? [1, 1.3, 1] : 1 }}
                     className={cn(
                       'h-2.5 w-2.5 rounded-full transition-all duration-500',
                       done
-                        ? currentPomodoroState === 'work' ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]'
-                          : currentPomodoroState === 'shortBreak' ? 'bg-teal-500'
-                          : 'bg-violet-500'
+                        ? currentPomodoroState === 'work' ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)] scale-110'
+                          : currentPomodoroState === 'shortBreak' ? 'bg-teal-500 scale-110'
+                          : 'bg-violet-500 scale-110'
                         : 'bg-white/10'
                     )}
                   />
@@ -451,34 +424,29 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
             </div>
           ) : (
             <div className="space-y-2">
-              <AnimatePresence>
-                {recentSessions.map((session, i) => (
-                  <m.div
-                    key={session.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/4 hover:bg-white/7 transition-colors"
-                  >
-                    <div className={cn(
-                      'h-8 w-8 rounded-xl flex items-center justify-center shrink-0',
-                      session.type === 'work' ? 'bg-rose-500/20 text-rose-400'
-                        : session.type === 'shortBreak' ? 'bg-teal-500/20 text-teal-400'
-                        : 'bg-violet-500/20 text-violet-400'
-                    )}>
-                      <Timer className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white/80 truncate">
-                        {session.courseTitle || session.taskTitle || 'جلسة دراسة'}
-                      </p>
-                      <p className="text-xs text-white/30">
-                        {session.durationMin} دقيقة • {new Date(session.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </m.div>
-                ))}
-              </AnimatePresence>
+              {recentSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-white/4 hover:bg-white/7 transition-colors"
+                >
+                  <div className={cn(
+                    'h-8 w-8 rounded-xl flex items-center justify-center shrink-0',
+                    session.type === 'work' ? 'bg-rose-500/20 text-rose-400'
+                      : session.type === 'shortBreak' ? 'bg-teal-500/20 text-teal-400'
+                      : 'bg-violet-500/20 text-violet-400'
+                  )}>
+                    <Timer className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white/80 truncate">
+                      {session.courseTitle || session.taskTitle || 'جلسة دراسة'}
+                    </p>
+                    <p className="text-xs text-white/30">
+                      {session.durationMin} دقيقة • {new Date(session.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

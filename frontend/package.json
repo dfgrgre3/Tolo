@@ -15,8 +15,8 @@
     "type-check": "npx tsc --noEmit",
     "perf": "node scripts/check-server.js && npx lighthouse http://localhost:3000 --chrome-flags='--headless --disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --ignore-certificate-errors --allow-insecure-localhost' --output=json --output-path=./lighthouse-results.json --only-categories=performance",
     "check:env": "tsx scripts/check-environment.ts",
-    "check:errors": "node ../scripts/comprehensive-error-check.mjs",
-    "check:errors:fix": "node ../scripts/comprehensive-error-check.mjs --fix",
+    "check:errors": "node scripts/comprehensive-error-check.mjs",
+    "check:errors:fix": "node scripts/comprehensive-error-check.mjs --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
@@ -47,14 +47,12 @@
     "@tanstack/react-query": "^5.90.21",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "bullmq": "^5.78.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "hls.js": "^1.6.16",
     "html2canvas": "^1.4.1",
-    "ioredis": "^5.10.1",
     "isomorphic-dompurify": "^3.16.0",
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",
@@ -72,7 +70,6 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "web-vitals": "^3.4.0",
-    "winston": "^3.19.0",
     "zod": "^3.24.1",
     "zod-validation-error": "^5.0.0",
     "zustand": "^5.0.12"
@@ -114,6 +111,10 @@
     "@connectrpc/protoc-gen-connect-es": {
       "@bufbuild/protoc-gen-es": "$@bufbuild/protoc-gen-es",
       "@connectrpc/connect": "$@connectrpc/connect"
-    }
+    },
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3"
   }
 }

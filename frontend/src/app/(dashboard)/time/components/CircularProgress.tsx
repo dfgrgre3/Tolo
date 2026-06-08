@@ -1,4 +1,4 @@
-﻿import { m } from "framer-motion";
+import React from "react";
 
 interface CircularProgressProps {
   value: number;
@@ -50,18 +50,18 @@ export default function CircularProgress({
             cy={size / 2}
           />
           {/* Progress */}
-          <m.circle
-            className={`fill-transparent ${colorClass}`}
+          <circle
+            className={`fill-transparent ${colorClass} transition-[stroke-dashoffset] duration-1000 ease-out`}
             stroke="currentColor"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             r={radius}
             cx={size / 2}
             cy={size / 2}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            style={{ strokeDasharray: circumference }}
+            style={{ 
+              strokeDasharray: circumference,
+              strokeDashoffset: strokeDashoffset
+            }}
           />
         </svg>
         

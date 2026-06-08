@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
+import DOMPurify from "isomorphic-dompurify";
 import type {
   UploadOptions,
   UploadResult,
@@ -40,7 +41,23 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
   }
 
-  const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+  let fileToUpload = file;
+  if (file.type === "image/svg+xml" || file.name.endsWith(".svg")) {
+    try {
+      const text = await file.text();
+      const sanitizedText = DOMPurify.sanitize(text, {
+        USE_PROFILES: { svg: true, svgFilters: true },
+      });
+      fileToUpload = new File([sanitizedText], file.name, {
+        type: file.type,
+        lastModified: file.lastModified,
+      });
+    } catch (e) {
+      console.error("SVG sanitization failed, uploading raw file", e);
+    }
+  }
+
+  const { data, error } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
     upsert,
     contentType: contentType || file.type,
     cacheControl,

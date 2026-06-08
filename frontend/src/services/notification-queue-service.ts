@@ -1,6 +1,4 @@
-import { Job } from 'bullmq';
 import { logger } from '../lib/logger';
-import { notificationQueue } from '../lib/queue/bullmq';
 
 type NotificationChannel = 'email' | 'sms' | 'push' | 'in-app';
 

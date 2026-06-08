@@ -1,5 +1,4 @@
-import { useEffect, useRef, useCallback, type MutableRefObject } from "react";
-import Hls from "hls.js";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { Sparkles } from "lucide-react";
 import { useCourseVideoPlayerStore } from "../store";
 import { shouldUseHls } from "../utils";
@@ -32,7 +31,7 @@ export function useHlsEngine({
   flashFeedback,
 }: HlsEngineOptions) {
   const { setPlayerState } = useCourseVideoPlayerStore();
-  const hlsRef = useRef<Hls | null>(null);
+  const hlsRef = useRef<any>(null);
   const hlsRetryTimeoutRef = useRef<number | null>(null);
   const hlsRetryStateRef = useRef({ network: 0, media: 0 });
 
@@ -59,84 +58,103 @@ export function useHlsEngine({
       return;
     }
 
-    if (!Hls.isSupported()) {
-      video.src = activeVideoUrl;
-      return;
-    }
+    let active = true;
 
-    const hls = new Hls({
-      enableWorker: true,
-      capLevelToPlayerSize: true,
-      backBufferLength: 90,
-    });
+    const initHls = async () => {
+      try {
+        const HlsModule = await import("hls.js");
+        const Hls = HlsModule.default || HlsModule;
 
-    hlsRef.current = hls;
-    hls.loadSource(activeVideoUrl);
-    hls.attachMedia(video);
+        if (!active) return;
 
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setPlayerState({
-        qualities: parseQualities(hls.levels),
-        currentAutoQuality: hls.levels[hls.currentLevel]?.height ?? null,
-        isLoading: false,
-      });
-    });
-
-    hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-      setPlayerState({
-        currentAutoQuality: hls.levels[data.level]?.height ?? null,
-      });
-    });
-
-    hls.on(Hls.Events.ERROR, (_, data) => {
-      if (!data.fatal) return;
-
-      const retryState = hlsRetryStateRef.current;
-      const lowerQuality = () => {
-        if (hls.currentLevel > 0) {
-          hls.currentLevel = hls.currentLevel - 1;
-          setPlayerState({ selectedQuality: hls.currentLevel });
-        }
-      };
-
-      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-        retryState.network += 1;
-        lowerQuality();
-        if (retryState.network <= 4) {
-          hlsRetryTimeoutRef.current = window.setTimeout(() => {
-            hls.startLoad();
-          }, Math.min(1200 * retryState.network, 5000));
-          flashFeedback({
-            icon: Sparkles,
-            label: "نعيد محاولة الاتصال بجودة أقل...",
-          });
+        if (!Hls.isSupported()) {
+          video.src = activeVideoUrl;
           return;
         }
-      }
 
-      if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-        retryState.media += 1;
-        if (retryState.media <= 2) {
-          lowerQuality();
-          hls.recoverMediaError();
-          flashFeedback({
-            icon: Sparkles,
-            label: "جارٍ استعادة البث...",
+        const hls = new Hls({
+          enableWorker: true,
+          capLevelToPlayerSize: true,
+          backBufferLength: 90,
+        });
+
+        hlsRef.current = hls;
+        hls.loadSource(activeVideoUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setPlayerState({
+            qualities: parseQualities(hls.levels),
+            currentAutoQuality: hls.levels[hls.currentLevel]?.height ?? null,
+            isLoading: false,
           });
-          return;
-        }
-      }
+        });
 
-      hls.destroy();
-      setPlayerState({
-        errorMessage: "تعذر تشغيل البث الحالي بعد عدة محاولات.",
-        isLoading: false,
-      });
-    });
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+          setPlayerState({
+            currentAutoQuality: hls.levels[data.level]?.height ?? null,
+          });
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (!data.fatal) return;
+
+          const retryState = hlsRetryStateRef.current;
+          const lowerQuality = () => {
+            if (hls.currentLevel > 0) {
+              hls.currentLevel = hls.currentLevel - 1;
+              setPlayerState({ selectedQuality: hls.currentLevel });
+            }
+          };
+
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            retryState.network += 1;
+            lowerQuality();
+            if (retryState.network <= 4) {
+              hlsRetryTimeoutRef.current = window.setTimeout(() => {
+                hls.startLoad();
+              }, Math.min(1200 * retryState.network, 5000));
+              flashFeedback({
+                icon: Sparkles,
+                label: "نعيد محاولة الاتصال بجودة أقل...",
+              });
+              return;
+            }
+          }
+
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            retryState.media += 1;
+            if (retryState.media <= 2) {
+              lowerQuality();
+              hls.recoverMediaError();
+              flashFeedback({
+                icon: Sparkles,
+                label: "جارٍ استعادة البث...",
+              });
+              return;
+            }
+          }
+
+          hls.destroy();
+          setPlayerState({
+            errorMessage: "تعذر تشغيل البث الحالي بعد عدة محاولات.",
+            isLoading: false,
+          });
+        });
+      } catch (err) {
+        console.error("Failed to load HLS engine dynamically:", err);
+        video.src = activeVideoUrl;
+      }
+    };
+
+    initHls();
 
     return () => {
-      hls.destroy();
-      hlsRef.current = null;
+      active = false;
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
       if (hlsRetryTimeoutRef.current) {
         clearTimeout(hlsRetryTimeoutRef.current);
       }

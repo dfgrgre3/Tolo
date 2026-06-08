@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { CourseCard } from "./course-card";
 import type { CourseSummary } from "./types";
+import { ComponentErrorBoundary } from "@/components/ui/error-boundary";
 
 export function CoursesList({
   loading,
@@ -68,7 +69,9 @@ export function CoursesList({
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {filteredCourses.map((course, index) => (
-        <CourseCard key={course.id} course={course} index={index} />
+        <ComponentErrorBoundary key={course.id}>
+          <CourseCard course={course} index={index} />
+        </ComponentErrorBoundary>
       ))}
     </div>
   );

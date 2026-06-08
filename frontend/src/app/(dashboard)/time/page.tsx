@@ -420,31 +420,37 @@ export default function TimeManagementPage() {
                   </div>
                 </div>
 
-                <DashboardTab
-                  stats={stats}
-                  subjects={subjects}
-                  tasks={filteredTasks}
-                  reminders={filteredReminders}
-                  studySessions={studySessions}
-                  showCompletedTasks={showCompletedTasks}
-                  showUpcomingRemindersOnly={showUpcomingRemindersOnly}
-                  onTabChange={setActiveTab}
-                  onToggleCompletedTasks={() => setShowCompletedTasks(!showCompletedTasks)}
-                  onToggleUpcomingReminders={() => setShowUpcomingRemindersOnly(!showUpcomingRemindersOnly)}
-                  onTimerToggle={handleTimerToggle}
-                />
+                <ComponentErrorBoundary>
+                  <DashboardTab
+                    stats={stats}
+                    subjects={subjects}
+                    tasks={filteredTasks}
+                    reminders={filteredReminders}
+                    studySessions={studySessions}
+                    showCompletedTasks={showCompletedTasks}
+                    showUpcomingRemindersOnly={showUpcomingRemindersOnly}
+                    onTabChange={setActiveTab}
+                    onToggleCompletedTasks={() => setShowCompletedTasks(!showCompletedTasks)}
+                    onToggleUpcomingReminders={() => setShowUpcomingRemindersOnly(!showUpcomingRemindersOnly)}
+                    onTimerToggle={handleTimerToggle}
+                  />
+                </ComponentErrorBoundary>
 
                 {showAnalytics && activeTab === "dashboard" && (
                   <div className="space-y-6">
-                    <LazyTimeAnalytics
-                      tasks={tasks}
-                      studySessions={studySessions}
-                      reminders={reminders}
-                    />
-                    <LazyProductivityInsights
-                      tasks={tasks}
-                      studySessions={studySessions}
-                    />
+                    <ComponentErrorBoundary>
+                      <LazyTimeAnalytics
+                        tasks={tasks}
+                        studySessions={studySessions}
+                        reminders={reminders}
+                      />
+                    </ComponentErrorBoundary>
+                    <ComponentErrorBoundary>
+                      <LazyProductivityInsights
+                        tasks={tasks}
+                        studySessions={studySessions}
+                      />
+                    </ComponentErrorBoundary>
                   </div>
                 )}
               </TabsContent>
@@ -464,7 +470,9 @@ export default function TimeManagementPage() {
                 </div>
                 {userId ? (
                   <div className="animate-in fade-in duration-700">
-                    <LazyWeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
+                    <ComponentErrorBoundary>
+                      <LazyWeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
+                    </ComponentErrorBoundary>
                   </div>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground bg-background/20 backdrop-blur-sm rounded-2xl border border-dashed">
@@ -508,14 +516,16 @@ export default function TimeManagementPage() {
                 </div>
                 {userId ? (
                   <div className="animate-in fade-in duration-700">
-                    <LazyTaskManagement
-                      initialTasks={filteredTasks}
-                      userId={userId}
-                      subjects={subjects}
-                      onTaskUpdate={handleTaskUpdate}
-                      onTaskCreate={handleTaskCreate}
-                      onTaskDelete={handleTaskDelete}
-                    />
+                    <ComponentErrorBoundary>
+                      <LazyTaskManagement
+                        initialTasks={filteredTasks}
+                        userId={userId}
+                        subjects={subjects}
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskCreate={handleTaskCreate}
+                        onTaskDelete={handleTaskDelete}
+                      />
+                    </ComponentErrorBoundary>
                   </div>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground bg-background/20 backdrop-blur-sm rounded-2xl border border-dashed">
@@ -554,12 +564,14 @@ export default function TimeManagementPage() {
                 </div>
                 {userId ? (
                   <div className="animate-in fade-in duration-700">
-                    <LazyTimeTracker
-                      userId={userId}
-                      tasks={mapTasksForTimeTracker}
-                      subjects={subjects.map(String)}
-                      onStudySessionCreate={handleStudySessionCreate}
-                    />
+                    <ComponentErrorBoundary>
+                      <LazyTimeTracker
+                        userId={userId}
+                        tasks={mapTasksForTimeTracker}
+                        subjects={subjects.map(String)}
+                        onStudySessionCreate={handleStudySessionCreate}
+                      />
+                    </ComponentErrorBoundary>
                   </div>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground bg-background/20 backdrop-blur-sm rounded-2xl border border-dashed">
@@ -593,10 +605,12 @@ export default function TimeManagementPage() {
                   </div>
                 </div>
                 <div className="animate-in fade-in duration-700">
-                  <LazyStudySessionsHistory
-                    sessions={filteredSessions.length > 0 ? filteredSessions : studySessions}
-                    subjects={subjects.map(String)}
-                  />
+                  <ComponentErrorBoundary>
+                    <LazyStudySessionsHistory
+                      sessions={filteredSessions.length > 0 ? filteredSessions : studySessions}
+                      subjects={subjects.map(String)}
+                    />
+                  </ComponentErrorBoundary>
                 </div>
               </TabsContent>
 
@@ -624,13 +638,15 @@ export default function TimeManagementPage() {
                 </div>
                 {userId ? (
                   <div className="animate-in fade-in duration-700">
-                    <LazyReminders
-                      initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders}
-                      userId={userId}
-                      onReminderUpdate={handleReminderUpdate}
-                      onReminderCreate={handleReminderCreate}
-                      onReminderDelete={handleReminderDelete}
-                    />
+                    <ComponentErrorBoundary>
+                      <LazyReminders
+                        initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders}
+                        userId={userId}
+                        onReminderUpdate={handleReminderUpdate}
+                        onReminderCreate={handleReminderCreate}
+                        onReminderDelete={handleReminderDelete}
+                      />
+                    </ComponentErrorBoundary>
                   </div>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground bg-background/20 backdrop-blur-sm rounded-2xl border border-dashed">

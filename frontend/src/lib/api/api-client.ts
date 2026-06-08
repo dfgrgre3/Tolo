@@ -59,9 +59,16 @@ const sleep = (ms: number) =>
     // simultaneously they would hammer the backend in lockstep without jitter.
     new Promise((resolve) => setTimeout(resolve, ms + Math.random() * ms * 0.1));
 
+const isBrowser = typeof window !== 'undefined';
+const isProd = process.env.NODE_ENV === 'production';
+
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
-const BASE_API_URL = trimTrailingSlashes(typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL));
+const BASE_API_URL = trimTrailingSlashes(
+  isProd
+    ? (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
+    : (isBrowser ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL))
+);
 const SERVER_API_URL = trimTrailingSlashes(process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL);
 
 function normalizeEndpoint(endpoint: string): string {
@@ -72,7 +79,7 @@ function normalizeEndpoint(endpoint: string): string {
 
     const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     if (normalized.startsWith('/api/')) {
-        if (typeof window === 'undefined') {
+        if (typeof window === 'undefined' || isProd) {
             return BASE_API_URL.endsWith('/api')
                 ? `${BASE_API_URL}${normalized.substring(4)}`
                 : `${BASE_API_URL}${normalized}`;
@@ -103,7 +110,7 @@ function normalizeServerEndpoint(endpoint: string): string {
 }
 
 function normalizeRefreshEndpoint(): string {
-    return typeof window !== 'undefined'
+    return typeof window !== 'undefined' && !isProd
         ? AUTH_REFRESH_ENDPOINT
         : normalizeServerEndpoint(AUTH_REFRESH_ENDPOINT);
 }
@@ -208,7 +215,9 @@ class ApiClient {
                 this.resetAuthStore();
             }
 
-            const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(response.status) && retryCount < retries;
+            const responseOk = response.ok;
+            const responseStatus = response.status;
+            const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(responseStatus) && retryCount < retries;
             if (shouldRetry) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.fetch(endpoint, options, retryCount + 1);
@@ -391,7 +400,6 @@ class ApiClient {
         return null;
     }
 }
-
 
 export const apiClient = new ApiClient();
 export default apiClient;

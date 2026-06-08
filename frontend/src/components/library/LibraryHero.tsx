@@ -4,6 +4,8 @@ import { m } from "framer-motion";
 import { Plus, Library, Sparkles, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import Image from "next/image";
+
 interface LibraryHeroProps {
   onUploadClick: () => void;
   stats: {
@@ -23,10 +25,13 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
         transition={{ duration: 1.5 }}
         className="absolute inset-0"
       >
-        <img 
+        <Image 
           src="/images/library/hero.png" 
           alt="Royal Library"
-          className="w-full h-full object-cover"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+          className="object-cover"
+          priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />

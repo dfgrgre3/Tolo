@@ -1,41 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearUserId } from '@/lib/user-utils';
+import { useAuth as useClerkAuth, useUser as useClerkUser, useSignIn, useSignUp } from '@clerk/nextjs';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
-import { requestCache } from '@/lib/api/request-cache';
-import { apiRoutes } from '@/lib/api/routes';
-import { authApiService } from '@/services/auth/auth-api-service';
-import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
-
-const isTimeoutError = (error: unknown) => {
-  return error === 'timeout' ||
-    (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout')));
-};
-
-const fetchWithTimeout = async (url: string, options: RequestInit, ms: number = 10000) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort('timeout'), ms);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-const fetchCachedAuthMe = () => {
-  const options: RequestInit = { credentials: 'include' };
-  return requestCache.getResponse('/api/auth/me', options, () =>
-    fetchWithTimeout('/api/auth/me', options, 10000)
-  );
-};
-
-/**
- * AuthContext - Client-side authentication state management.
- * (Now backed by Zustand for better performance and smaller context size)
- */
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -45,25 +14,12 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   adminLogin: (email: string, password: string, rememberMe?: boolean) => Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}>;
   register: (
-  data: {
-    email: string;
-    password: string;
-    username?: string;
-    role?: string;
-    country?: string;
-    dateOfBirth?: string | null;
-    gender?: string;
-    phone?: string;
-    alternativePhone?: string;
-    gradeLevel?: string;
-    educationType?: string;
-    section?: string;
-    interestedSubjects?: string[];
-    studyGoal?: string;
-    subjectsTaught?: string[];
-    classesTaught?: string[];
-    experienceYears?: string;
-  }
+    data: {
+      email: string;
+      password: string;
+      username?: string;
+      role?: string;
+    }
   ) => Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}>;
   logout: (allDevices?: boolean) => Promise<void>;
   verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{success: boolean; error?: string;}>;
@@ -78,619 +34,153 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * AuthProvider - Wraps the app to provide authentication state.
- * Syncs internal logic with useAuthStore.
- */
 export function AuthProvider({
   children,
-  initialAuthHint = true
+  initialAuthHint,
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const {
-    user,
-    isLoading,
-    setIsLoading,
-    setUser,
-    reset: _resetStore,
-    isRefreshing: _isRefreshingStore,
-    setIsRefreshing: _setIsRefreshingStore
-  } = useAuthStore();
-
   const router = useRouter();
-  const isRefreshing = useRef(false);
-  const refreshPromise = useRef<Promise<boolean> | null>(null);
-  const _userFetchPromise = useRef<Promise<boolean> | null>(null);
-  const accessTokenExpiresAt = useRef<number | null>(null);
-  const proactiveRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasCompletedInitialLoad = useRef(false);
-  const initialAuthHintRef = useRef(initialAuthHint);
-  initialAuthHintRef.current = initialAuthHint;
+  const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
+  const { signIn } = useSignIn() as any;
+  const { signUp } = useSignUp() as any;
+  
+  const { user: storeUser, setUser, reset: resetStore } = useAuthStore();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Ensure isLoading reflects initialAuthHint on server-side hint and completes after initial auth check
+  // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
-    if (initialAuthHint !== undefined && !user) {
-      setIsLoading(initialAuthHint);
-    }
-  }, [initialAuthHint, user, setIsLoading]);
+    if (isClerkLoaded && isUserLoaded) {
+      if (clerkUser) {
+        const mappedUser: AuthUser = {
+          id: clerkUser.id,
+          email: '', // Excluded initially to prevent leakage in SSR serialization
+          username: clerkUser.username || null,
+          name: clerkUser.fullName || clerkUser.username || null,
+          avatar: clerkUser.imageUrl || null,
+          role: (clerkUser.publicMetadata?.role as string) || 'USER',
+          emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
+          permissions: [], // Excluded initially
+        };
+        setUser(mappedUser);
 
-  const completeInitialLoadIfNeeded = useCallback(() => {
-    // Always allow initial load to complete, regardless of the hint value.
-    // If the hint was `false` we still want to resolve loading so the UI
-    // is never stuck on a permanent spinner.
-    if (!hasCompletedInitialLoad.current) {
-      hasCompletedInitialLoad.current = true;
-      setIsLoading(false);
+        // Asynchronously load detailed secure profile data from secure backend RPC
+        import('@/lib/rpc-client').then(async ({ authClient }) => {
+          try {
+            const profile = await authClient.getProfile({});
+            if (profile.user) {
+              setUser({
+                ...mappedUser,
+                email: profile.user.email,
+                role: profile.user.role || mappedUser.role,
+                permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
+              });
+            }
+          } catch (e) {
+            logger.error('Failed to load secure profile details via RPC:', e);
+            // Safe fallback to client-side Clerk attributes on failure
+            setUser({
+              ...mappedUser,
+              email: clerkUser.emailAddresses[0]?.emailAddress || '',
+              permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
+            });
+          }
+        });
+      } else {
+        resetStore();
+      }
       setIsInitialLoad(false);
     }
-  }, [setIsLoading]);
+  }, [clerkUser, isClerkLoaded, isUserLoaded, setUser, resetStore]);
 
-  const delay = useCallback((ms: number) => {
-    return new Promise<void>((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  }, []);
-
-  const clearProactiveRefresh = useCallback(() => {
-    if (proactiveRefreshTimer.current) {
-      clearTimeout(proactiveRefreshTimer.current);
-      proactiveRefreshTimer.current = null;
-    }
-  }, []);
-
-  const scheduleProactiveRefresh = useCallback((expiresAt?: number | null) => {
-    clearProactiveRefresh();
-    if (!expiresAt || !Number.isFinite(expiresAt)) return;
-
-    accessTokenExpiresAt.current = expiresAt;
-    const refreshInMs = Math.max(expiresAt - Date.now() - 30000, 0);
-    proactiveRefreshTimer.current = setTimeout(() => {
-      void (async () => {
-        if (!isRefreshing.current) {
-          await refreshTokenRef.current?.();
-        }
-      })();
-    }, refreshInMs);
-  }, [clearProactiveRefresh]);
-
-  const refreshTokenRef = useRef<(() => Promise<boolean>) | null>(null);
-
-  /**
-   * Attempt to refresh the access token.
-   * Uses a ref to ensure only one refresh happens at a time (deduplication).
-   */
-  const refreshToken = useCallback(async (): Promise<boolean> => {
-    // If already refreshing, wait for the existing promise
-    if (isRefreshing.current && refreshPromise.current) {
-      return refreshPromise.current;
-    }
-
-    isRefreshing.current = true;
-
-    refreshPromise.current = (async () => {
-      try {
-        const response = await fetchWithTimeout(apiRoutes.auth.refresh, {
-          method: 'POST',
-          credentials: 'include'
-        }, 10000);
-
-        if (!response.ok) return false;
-
-        const data = await response.json().catch(() => null) as { accessTokenExpiresAt?: number } | null;
-        scheduleProactiveRefresh(data?.accessTokenExpiresAt);
-        return true;
-      } catch (error) {
-        if (isTimeoutError(error)) {
-          logger.warn('refreshToken timed out after 10s');
-        } else {
-          logger.error('refreshToken unexpected error:', error);
-        }
-        return false;
-      } finally {
-        isRefreshing.current = false;
-        refreshPromise.current = null;
-      }
-    })();
-
-    return refreshPromise.current;
-  }, [scheduleProactiveRefresh]);
-
-  useEffect(() => {
-    refreshTokenRef.current = refreshToken;
-  }, [refreshToken]);
-
-  /**
-   * Fetch wrapper that automatically handles 401 responses.
-   * On 401, we attempt /api/auth/refresh once, then retry the original request.
-   * This is used for API calls OTHER than /api/auth/me (which handles refresh internally).
-   */
   const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const [input, init] = args;
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-    const options: RequestInit = { ...(init ?? {}) };
-    const executeFetch = async () => {
-      if (accessTokenExpiresAt.current && accessTokenExpiresAt.current - Date.now() <= 30000) {
-        await refreshToken();
-      }
-
-      const response = await fetch(input, {
-        ...options,
-        credentials: 'include'
-      });
-
-      if (response.status === 401) {
-        // Try to refresh via the dedicated endpoint
-        const refreshed = await refreshToken();
-
-        if (refreshed) {
-          // Retry the original request with new token
-          return fetch(input, {
-            ...options,
-            credentials: 'include'
-          });
-        }
-
-        // Refresh failed - user needs to login again
-        setUser(null);
-        clearUserId();
-        if (typeof window !== 'undefined') {
-          const fullPath = `${window.location.pathname}${window.location.search}`;
-          const redirectPath = sanitizeRedirectPath(fullPath, '/');
-          const loginUrl = redirectPath === '/login' ?
-            '/login' :
-            `/login?redirect=${encodeURIComponent(redirectPath)}`;
-          router.replace(loginUrl);
-        } else {
-          router.replace('/login');
-        }
-      }
-
-      return response;
-    };
-
-    const method = options.method || 'GET';
-    if (method.toUpperCase() === 'GET') {
-      return requestCache.getResponse(url, options, executeFetch);
+    const token = await getToken();
+    const headers = new Headers(init?.headers || {});
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
-    return executeFetch();
-  }, [refreshToken, router, setUser]);
+    return fetch(input, {
+      ...init,
+      headers,
+    });
+  }, [getToken]);
 
-  const attemptUserFetch = useCallback(async () => {
-    const response = await fetchCachedAuthMe();
-    
-    if (response.ok) {
-      const data = await response.json();
-      setUser(data.user);
-      scheduleProactiveRefresh(data.accessTokenExpiresAt);
-      return true;
-    }
-    return false;
-  }, [setUser]);
-
-  const handle401Retry = useCallback(async () => {
-    const refreshed = await refreshToken();
-    if (!refreshed) return false;
-
+  const login = useCallback(async (email: string, password: string): Promise<{success: boolean; error?: string;}> => {
+    if (!signIn) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      return await attemptUserFetch();
-    } catch (retryError) {
-      if (isTimeoutError(retryError)) {
-        logger.warn('refreshUser retry timed out');
-        return false;
-      }
-      throw retryError;
-    }
-  }, [refreshToken, attemptUserFetch]);
-
-  /**
-   * Fetch current user profile from the server.
-   * Centralizes auth state restoration.
-   */
-  const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
-    const clearOnFailure = options?.clearOnFailure ?? true;
-
-    // Deduplicate concurrent user refresh calls to prevent hammering the server
-    // and overlapping timeouts.
-    if (_userFetchPromise.current) {
-      return _userFetchPromise.current;
-    }
-
-    _userFetchPromise.current = (async () => {
-      try {
-        completeInitialLoadIfNeeded();
-        // Priority: if we're already refreshing tokens, wait for that first
-        if (isRefreshing.current && refreshPromise.current) {
-          try {
-            await refreshPromise.current;
-          } catch (e) {
-            // Ignore refresh promise errors here as we'll handle failure in the fetch
-          }
-        }
-
-        const response = await fetchCachedAuthMe();
-
-        if (response.status === 401) {
-          const success = await handle401Retry();
-          if (success) {
-            completeInitialLoadIfNeeded();
-            return true;
-          }
-        } else if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-          scheduleProactiveRefresh(data.accessTokenExpiresAt);
-          completeInitialLoadIfNeeded();
-          return true;
-        }
-
-        if (clearOnFailure) {
-          setUser(null);
-          clearUserId();
-          clearProactiveRefresh();
-        }
-        completeInitialLoadIfNeeded();
-        return false;
-      } catch (error) {
-        if (isTimeoutError(error)) {
-          logger.warn('refreshUser timed out or was aborted (background check)');
-        } else {
-          logger.error('refreshUser error:', error);
-        }
-
-        if (clearOnFailure) {
-          setUser(null);
-          clearUserId();
-          clearProactiveRefresh();
-        }
-        completeInitialLoadIfNeeded();
-        return false;
-      } finally {
-        _userFetchPromise.current = null;
-      }
-    })();
-
-    return _userFetchPromise.current;
-  }, [handle401Retry, setUser, completeInitialLoadIfNeeded]);
-
-  const ensureStaffRole = useCallback(async (errorLabel: string) => {
-    if (!isStaffAdminPanelRole(useAuthStore.getState().user?.role)) {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
-      setUser(null);
-      clearUserId();
-      return { success: false as const, error: errorLabel };
-    }
-    return { success: true as const };
-  }, [setUser]);
-
-  const adminLogin = useCallback(async (
-    email: string,
-    password: string,
-    rememberMe: boolean = false
-  ): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    try {
-      const response = await fetch(apiRoutes.auth.adminLogin, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }),
-        credentials: 'include'
+      const result = await signIn.create({
+        identifier: email,
+        password,
       });
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 403) {
-          return { success: false, error: data.error || 'You do not have permission to access the admin panel.' };
-        }
-        return { success: false, error: data.error || 'Admin login failed' };
+      if (result.status === 'complete') {
+        return { success: true };
       }
-      if (data.requires2FA) {
-        return { success: true, requires2FA: true, userId: data.user?.id };
-      }
-      requestCache.clear();
-      await delay(50);
-      let hydrated = await refreshUser({ clearOnFailure: false });
-      if (!hydrated) { await delay(150); hydrated = await refreshUser({ clearOnFailure: false }); }
-      if (!hydrated) { await delay(300); hydrated = await refreshUser({ clearOnFailure: false }); }
-      if (!hydrated) {
-        setUser(null);
-        clearUserId();
-        return { success: false, error: 'Unable to restore your session. Please try again.' };
-      }
-      const roleCheck = await ensureStaffRole('You do not have permission to access the admin panel.');
-      if (!roleCheck.success) {
-        return { success: false, error: roleCheck.error };
-      }
+      return { success: false, error: `Additional steps required: ${result.status}` };
+    } catch (err: any) {
+      logger.error('Login error:', err);
+      return { success: false, error: err.errors?.[0]?.message || 'Login failed' };
+    }
+  }, [signIn]);
+
+  const adminLogin = useCallback(async (email: string, password: string): Promise<{success: boolean; error?: string;}> => {
+    // Admin login goes through Clerk sign in, role restriction verified on backend
+    return login(email, password);
+  }, [login]);
+
+  const register = useCallback(async (data: { email: string; password: string; username?: string }): Promise<{success: boolean; error?: string;}> => {
+    if (!signUp) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      await signUp.create({
+        emailAddress: data.email,
+        password: data.password,
+        username: data.username,
+      });
       return { success: true };
-    } catch {
-      return { success: false, error: 'Network error. Please try again.' };
+    } catch (err: any) {
+      logger.error('Registration error:', err);
+      return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
     }
-  }, [delay, ensureStaffRole, refreshUser, setUser]);
+  }, [signUp]);
 
-  /**
-   * Login function - authenticates with the API and updates state.
-   */
-  const login = useCallback(async (
-    email: string,
-    password: string,
-    rememberMe: boolean = false
-  ): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return { success: false, error: data.error || 'Login failed' };
-      }
-
-      requestCache.clear();
-
-      // If 2FA is required, return early with relevant data
-      if (data.requires2FA) {
-        return {
-          success: true,
-          requires2FA: true,
-          userId: data.user?.id
-        };
-      }
-
-      // Keep initial user payload for immediate UI updates.
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          username: data.user.username ?? null,
-          name: data.user.name ?? data.user.username ?? null,
-          avatar: data.user.avatar ?? null,
-          role: data.user.role ?? 'USER',
-          emailVerified: data.user.emailVerified ?? null,
-          phoneVerified: data.user.phoneVerified ?? null,
-          permissions: data.user.permissions ?? []
-        });
-      }
-
-      // Post-login hydration can race with cookie persistence in some browsers.
-      // Give a tiny initial delay for cookies to settle, then retry briefly.
-      await delay(50);
-      let hydrated = await refreshUser({ clearOnFailure: false });
-      if (!hydrated) {
-        await delay(150);
-        hydrated = await refreshUser({ clearOnFailure: false });
-      }
-      if (!hydrated) {
-        await delay(300);
-        hydrated = await refreshUser({ clearOnFailure: false });
-      }
-
-      if (!hydrated && !data.user) {
-        setUser(null);
-        return { success: false, error: 'Unable to restore your session. Please try again.' };
-      }
-
-      return { success: true };
-    } catch {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  }, [delay, refreshUser, setUser]);
-
-  /**
-   * Verify 2FA token and complete login.
-   */
-  const verify2FA = useCallback(async (
-    userId: string,
-    token: string,
-    rememberMe: boolean = false
-  ): Promise<{success: boolean; error?: string;}> => {
-    try {
-      const response = await fetch('/api/auth/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, token, rememberMe }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return { success: false, error: data.error || '2FA verification failed' };
-      }
-
-      requestCache.clear();
-
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          username: data.user.username ?? null,
-          name: data.user.name ?? data.user.username ?? null,
-          avatar: data.user.avatar ?? null,
-          role: data.user.role ?? 'USER',
-          emailVerified: data.user.emailVerified ?? null,
-          phoneVerified: data.user.phoneVerified ?? null,
-          permissions: data.user.permissions ?? []
-        });
-      }
-
-      await delay(50);
-      await refreshUser({ clearOnFailure: false });
-
-      return { success: true };
-    } catch {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  }, [delay, refreshUser, setUser]);
-
-  /**
-   * Register function - creates account via API.
-   */
-  const register = useCallback(async (
-    dataPayload: {
-      email: string;
-      password: string;
-      username?: string;
-      role?: string;
-      country?: string;
-      dateOfBirth?: string | null;
-      gender?: string;
-      phone?: string;
-      alternativePhone?: string;
-      gradeLevel?: string;
-      educationType?: string;
-      section?: string;
-      interestedSubjects?: string[];
-      studyGoal?: string;
-      subjectsTaught?: string[];
-      classesTaught?: string[];
-      experienceYears?: string;
-    }
-  ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataPayload),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: data.error || data.details?.[0] || 'Registration failed'
-        };
-      }
-
-      requestCache.clear();
-
-      // Prefer server-driven auto-login from /api/auth/register when available.
-      if (data?.autoLoggedIn === true) {
-        if (data.user) {
-          setUser({
-            id: data.user.id,
-            email: data.user.email,
-            username: data.user.username ?? null,
-            name: data.user.name ?? data.user.username ?? null,
-            avatar: data.user.avatar ?? null,
-            role: data.user.role ?? 'USER',
-            emailVerified: data.user.emailVerified ?? null,
-            phoneVerified: data.user.phoneVerified ?? null,
-            permissions: data.user.permissions ?? []
-          });
-        }
-
-        await delay(50);
-        let hydrated = await refreshUser({ clearOnFailure: false });
-        if (!hydrated) {
-          await delay(150);
-          hydrated = await refreshUser({ clearOnFailure: false });
-        }
-        if (!hydrated) {
-          await delay(300);
-          hydrated = await refreshUser({ clearOnFailure: false });
-        }
-
-        if (!hydrated && !data.user) {
-          setUser(null);
-          return {
-            success: false,
-            error: 'Unable to restore your session after registration. Please sign in.'
-          };
-        }
-
-        return {
-          success: true,
-          message: data.message,
-          autoLoggedIn: true
-        };
-      }
-
-      // Backward-compatible fallback: try immediate sign-in client-side.
-      const loginResult = await login(dataPayload.email.trim().toLowerCase(), dataPayload.password, false);
-      if (loginResult.success) {
-        return { success: true, message: data.message, autoLoggedIn: true };
-      }
-
-      return { success: true, message: data.message, autoLoggedIn: false };
-    } catch {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  }, [delay, login, refreshUser, setUser]);
-
-  /**
-   * Logout function - clears session and redirects to login.
-   */
-  const logout = useCallback(async (allDevices: boolean = false) => {
-    try {
-      await fetch(`/api/auth/logout${allDevices ? '?all=true' : ''}`, {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        signal: AbortSignal.timeout(5000) // 5s timeout for logout
-      });
-    } catch {
-      // Even if API call fails, clear local state
-    }
-    setUser(null);
-    clearUserId();
-    requestCache.clear();
-    clearProactiveRefresh();
+  const logout = useCallback(async () => {
+    await signOut();
+    resetStore();
     router.replace('/login');
-    router.refresh();
-  }, [clearProactiveRefresh, router, setUser]);
+  }, [signOut, resetStore, router]);
 
-  // Check auth state on mount
-  useEffect(() => {
-    let mounted = true;
+  const verify2FA = useCallback(async () => {
+    return { success: false, error: '2FA managed by Clerk' };
+  }, []);
 
-    const checkAuth = async () => {
-      if (initialAuthHint === false) {
-        setIsLoading(false);
-        setIsInitialLoad(false);
-        hasCompletedInitialLoad.current = true;
-        return;
-      }
-      try {
-        await refreshUser();
-      } catch {
-        // Ensure loading stops even on unexpected errors
-      } finally {
-        if (mounted) {
-          completeInitialLoadIfNeeded();
-        }
-      }
-    };
+  const refreshUser = useCallback(async () => {
+    return !!userId;
+  }, [userId]);
 
-    checkAuth();
+  const forgotPassword = useCallback(async () => {
+    return { success: false, error: 'Reset password managed via Clerk' };
+  }, []);
 
-    // Safety timeout: force isLoading to false after 8s to prevent permanent loading screen
-    const safetyTimer = setTimeout(() => {
-      if (mounted) {
-        hasCompletedInitialLoad.current = true;
-        setIsLoading(false);
-        setIsInitialLoad(false);
-      }
-    }, 8000);
+  const resetPassword = useCallback(async () => {
+    return { success: false, error: 'Reset password managed via Clerk' };
+  }, []);
 
-    return () => {
-      mounted = false;
-      clearTimeout(safetyTimer);
-      clearProactiveRefresh();
-    };
-  }, [clearProactiveRefresh, refreshUser, setIsLoading, completeInitialLoadIfNeeded, initialAuthHint]);
+  const verifyEmail = useCallback(async () => {
+    return { success: false, error: 'Email verification managed via Clerk' };
+  }, []);
 
-  const sanitizeRedirectPath = (path: string, fallback: string = '/'): string => {
-    if (!path || path.includes('//') || !path.startsWith('/')) return fallback;
-    return path;
-  };
+  const resendVerification = useCallback(async () => {
+    return { success: false, error: 'Verification managed via Clerk' };
+  }, []);
+
+  const requestMagicLink = useCallback(async () => {
+    return { success: false, error: 'Magic links managed via Clerk' };
+  }, []);
 
   const value: AuthContextType = {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
+    user: storeUser,
+    isLoading: !isClerkLoaded || !isUserLoaded,
+    isAuthenticated: !!userId,
+    isInitialLoad,
     login,
     adminLogin,
     register,
@@ -698,12 +188,11 @@ export function AuthProvider({
     verify2FA,
     refreshUser,
     fetchWithAuth,
-    forgotPassword: authApiService.forgotPassword,
-    resetPassword: authApiService.resetPassword,
-    verifyEmail: authApiService.verifyEmail,
-    resendVerification: authApiService.resendVerification,
-    requestMagicLink: authApiService.requestMagicLink,
-    isInitialLoad
+    forgotPassword,
+    resetPassword,
+    verifyEmail,
+    resendVerification,
+    requestMagicLink,
   };
 
   return (
@@ -713,16 +202,10 @@ export function AuthProvider({
   );
 }
 
-/**
- * useAuth hook - Provides access to the authentication context.
- * Must be used within an AuthProvider.
- */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-
   return context;
 }
