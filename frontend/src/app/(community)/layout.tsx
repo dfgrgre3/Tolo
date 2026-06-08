@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function CommunityGroupLayout({ children }: { children: React.ReactNode }) {
-  return <>{React.Children.toArray(children)}</>;
+  return <>{children}</>;
 }

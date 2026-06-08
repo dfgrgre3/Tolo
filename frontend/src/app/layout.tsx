@@ -1,5 +1,6 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
@@ -57,19 +58,25 @@ export const viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the CSP nonce that the middleware set on the request headers.
+  // This nonce MUST be applied to every inline <script> we render so the
+  // browser allows them under the `script-src 'nonce-...'` directive.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
-    <ClerkProvider>
+    <ClerkProvider nonce={nonce}>
       <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
 
         <head>
           {/* Inline performance detection - runs synchronously before render to prevent FOUC */}
           <script
             id="perf-detect"
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: `
                 (function () {
@@ -132,7 +139,7 @@ export default function RootLayout({
                           if (/SwiftShader|Software|llvmpipe|Microsoft Basic/i.test(renderer)) {
                             score -= 30;
                             signals.gpuType = 'software';
-                          } else if (/Mali-4|Adreno \(TM\) [12]\d\d|PowerVR SGX/i.test(renderer)) {
+                          } else if (/Mali-4|Adreno \\(TM\\) [12]\\d\\d|PowerVR SGX/i.test(renderer)) {
                             score -= 10;
                             signals.gpuType = 'weak';
                           } else {
@@ -249,6 +256,7 @@ export default function RootLayout({
           <meta name="format-detection" content="telephone=no" />
           <script
             id="hydration-fix"
+            nonce={nonce}
             suppressHydrationWarning
             dangerouslySetInnerHTML={{
               __html: `
@@ -324,7 +332,7 @@ export default function RootLayout({
               <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
                 <Header />
               </Suspense>
-              {React.Children.toArray(children)}
+              {children}
             </GlobalProviders>
           </ThemeProvider>
           <ConditionalAnalytics />
