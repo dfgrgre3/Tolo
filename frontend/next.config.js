@@ -58,6 +58,7 @@ const nextConfig = {
     proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
   },
+  serverExternalPackages: ['isomorphic-dompurify'],
 
   // Optimize images
   images: {

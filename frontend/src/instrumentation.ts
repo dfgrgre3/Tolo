@@ -13,18 +13,29 @@ export async function register() {
       
       const originalError = console.error;
       const originalWarn = console.warn;
+      let isIntercepting = false;
       
       console.error = (...args) => {
-        if (process.env.NODE_ENV === 'production') {
-          logger.error('Intercepted Console Error', new Error(args.map(a => String(a)).join(' ')));
+        if (!isIntercepting && process.env.NODE_ENV === 'production') {
+          isIntercepting = true;
+          try {
+            logger.error('Intercepted Console Error', new Error(args.map(a => String(a)).join(' ')));
+          } finally {
+            isIntercepting = false;
+          }
         }
         originalError.apply(console, args);
       };
       
       console.warn = (...args) => {
         const warnMsg = args.map(a => String(a)).join(' ');
-        if (process.env.NODE_ENV === 'production') {
-          logger.warn('Intercepted Console Warning', { details: args });
+        if (!isIntercepting && process.env.NODE_ENV === 'production') {
+          isIntercepting = true;
+          try {
+            logger.warn('Intercepted Console Warning', { details: args });
+          } finally {
+            isIntercepting = false;
+          }
         }
         originalWarn.apply(console, args);
       };
