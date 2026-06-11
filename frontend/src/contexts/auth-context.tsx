@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth as useClerkAuth, useUser as useClerkUser, useSignIn, useSignUp } from '@clerk/nextjs';
+import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@clerk/nextjs';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
 
@@ -24,7 +24,13 @@ export function AuthProvider({
         return;
       }
 
-      if (isUserLoaded && clerkUser) {
+      if (isUserLoaded) {
+        if (!clerkUser) {
+          resetStore();
+          setIsInitialLoad(false);
+          return;
+        }
+
         const mappedUser: AuthUser = {
           id: clerkUser.id,
           email: '', // Excluded initially to prevent leakage in SSR serialization
@@ -71,26 +77,22 @@ export function useAuth() {
   const router = useRouter();
   const { isLoaded: isClerkLoaded, userId, getToken, signOut } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  // useSignIn/useSignUp may return null outside a <SignIn/> / <SignUp/> component context
-  // (e.g. on custom pages). We coalesce to safe defaults and treat them as "not loaded".
-  const signInResult = (useSignIn() as any) ?? {};
-  const signUpResult = (useSignUp() as any) ?? {};
-  const isSignInLoaded = !!signInResult.isLoaded;
-  const signIn = signInResult.signIn ?? null;
-  const setSignInActive = signInResult.setActive ?? null;
-  const isSignUpLoaded = !!signUpResult.isLoaded;
-  const signUp = signUpResult.signUp ?? null;
-  const setSignUpActive = signUpResult.setActive ?? null;
+  // useClerk() returns a stable Clerk instance that exposes signIn, signUp, and
+  // setActive(). Unlike useSignIn()/useSignUp(), it works from any component in
+  // the tree — even from custom (non-Clerk-hosted) login/register pages.
+  const clerk = useClerk();
+  const isClerkInstanceReady = !!clerk;
 
   const user = useAuthStore((state) => state.user);
   const isStoreLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const resetStore = useAuthStore((state) => state.reset);
 
-  // Auth-system is "fully loaded" only when Clerk core + user data + signIn + signUp
-  // contexts have all reported `isLoaded: true`. This prevents calling signIn.create()
-  // before Clerk is ready, which would otherwise return "Auth system not fully loaded".
-  const authSystemReady = isClerkLoaded && isSignInLoaded && isSignUpLoaded && (!userId || isUserLoaded);
+  // Auth-system is "fully loaded" when Clerk core + the user object have reported
+  // `isLoaded: true`. signIn/signUp/setActive from useClerk() are always available
+  // (they're not gated on a <SignIn/> / <SignUp/> context like useSignIn/useSignUp
+  // are), so we no longer need to wait for those to "load" before allowing login.
+  const authSystemReady = isClerkLoaded && (!userId || isUserLoaded);
   // Backwards-compatible `isLoading` flag for the existing UI: true until we know
   // for sure whether the user is signed in.
   const isLoading = !authSystemReady || isStoreLoading;
@@ -109,14 +111,14 @@ export function useAuth() {
   }, [getToken]);
 
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    if (!signIn || !setSignInActive) return { success: false, error: 'Auth system not fully loaded' };
+    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await signIn.create({
+      const result = await clerk.client.signIn.create({
         identifier: email,
         password,
       });
       if (result.status === 'complete') {
-        await setSignInActive({ session: result.createdSessionId });
+        await clerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
@@ -124,7 +126,7 @@ export function useAuth() {
       logger.error('Login error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Login failed' };
     }
-  }, [signIn, setSignInActive]);
+  }, [clerk]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     return login(email, password, rememberMe);
@@ -138,15 +140,15 @@ export function useAuth() {
       role?: string;
     }
   ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
-    if (!signUp || !setSignUpActive) return { success: false, error: 'Auth system not fully loaded' };
+    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await signUp.create({
+      const result = await clerk.client.signUp.create({
         emailAddress: data.email,
         password: data.password,
         username: data.username,
       });
       if (result.status === 'complete') {
-        await setSignUpActive({ session: result.createdSessionId });
+        await clerk.setActive({ session: result.createdSessionId });
         return { success: true, autoLoggedIn: true };
       }
       return { success: true, autoLoggedIn: false };
@@ -154,7 +156,7 @@ export function useAuth() {
       logger.error('Registration error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
     }
-  }, [signUp, setSignUpActive]);
+  }, [clerk]);
 
   const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
@@ -187,16 +189,16 @@ export function useAuth() {
   }, []);
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
-    if (!signIn) return { success: false, error: 'Auth system not fully loaded' };
+    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await signIn.create({
+      const result = await clerk.client.signIn.create({
         identifier: email,
       });
-      const firstFactor = result.supportedFirstFactors.find(
+      const firstFactor = result.supportedFirstFactors?.find(
         (f: any) => f.strategy === 'email_code'
-      );
-      if (firstFactor) {
-        await signIn.prepareFirstFactor({
+      ) as any;
+      if (firstFactor && firstFactor.emailAddressId) {
+        await clerk.client.signIn.prepareFirstFactor({
           strategy: 'email_code',
           emailAddressId: firstFactor.emailAddressId,
         });
@@ -207,17 +209,17 @@ export function useAuth() {
       logger.error('Magic link request error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'فشل إرسال كود الدخول السريع' };
     }
-  }, [signIn]);
+  }, [clerk]);
 
   const verifyOTP = useCallback(async (code: string): Promise<{success: boolean; error?: string;}> => {
-    if (!signIn || !setSignInActive) return { success: false, error: 'Auth system not fully loaded' };
+    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await signIn.attemptFirstFactor({
+      const result = await clerk.client.signIn.attemptFirstFactor({
         strategy: 'email_code',
         code,
       });
       if (result.status === 'complete') {
-        await setSignInActive({ session: result.createdSessionId });
+        await clerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
@@ -225,7 +227,7 @@ export function useAuth() {
       logger.error('OTP verification error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
     }
-  }, [signIn, setSignInActive]);
+  }, [clerk]);
 
   return {
     user,

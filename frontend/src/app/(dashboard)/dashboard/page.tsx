@@ -133,7 +133,7 @@ export default function DashboardPage() {
   }, [user, fetchWithAuth]);
 
   // Performance Optimization: Defer rendering but allow SSR skeleton
-  if (isAuthLoading || isGamificationLoading) {
+  if (isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="relative h-24 w-24">

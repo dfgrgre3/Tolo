@@ -63,9 +63,9 @@ const isProd = process.env.NODE_ENV === 'production';
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
 const BASE_API_URL = trimTrailingSlashes(
-  isProd
-    ? (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
-    : (isBrowser ? '/api' : (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL))
+  isBrowser
+    ? '/api'
+    : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
 );
 const SERVER_API_URL = trimTrailingSlashes(process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL);
 
@@ -76,13 +76,21 @@ function normalizeEndpoint(endpoint: string): string {
     }
 
     const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    if (normalized.startsWith('/api/')) {
-        if (typeof window === 'undefined' || isProd) {
-            return BASE_API_URL.endsWith('/api')
-                ? `${BASE_API_URL}${normalized.substring(4)}`
-                : `${BASE_API_URL}${normalized}`;
+    
+    // In the browser, always use relative path (/api/...) to route through Next.js proxy.
+    // This avoids CORS issues entirely.
+    if (isBrowser) {
+        if (normalized.startsWith('/api/')) {
+            return normalized;
         }
-        return normalized;
+        return `/api${normalized}`;
+    }
+
+    // Server-side (SSR) requests use the absolute base URL
+    if (normalized.startsWith('/api/')) {
+        return BASE_API_URL.endsWith('/api')
+            ? `${BASE_API_URL}${normalized.substring(4)}`
+            : `${BASE_API_URL}${normalized}`;
     }
     if (BASE_API_URL.endsWith('/api')) {
         return `${BASE_API_URL}${normalized}`;
