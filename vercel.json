@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
-  "installCommand": "npm install --prefix frontend --include=dev --legacy-peer-deps",
-  "buildCommand": "npm run build --prefix frontend && cp -R frontend/.next .next",
+  "installCommand": "npm install --prefix frontend --include=dev --legacy-peer-deps && rm -rf node_modules && ln -s frontend/node_modules node_modules",
+  "buildCommand": "touch .env frontend/.env && npm run build --prefix frontend && rm -rf .next && cp -R frontend/.next .next",
   "outputDirectory": ".next",
   "regions": [
     "fra1"
