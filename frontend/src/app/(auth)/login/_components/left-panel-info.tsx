@@ -107,13 +107,13 @@ export function LeftPanelInfo({ deviceInfo }: LeftPanelInfoProps) {
         <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/8 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center shrink-0">
-              <span className="text-primary font-black text-sm">{TESTIMONIALS[0].avatar}</span>
+              <span className="text-primary font-black text-sm">{TESTIMONIALS[0]!.avatar}</span>
             </div>
             <div className="space-y-1 flex-1">
-              <p className="text-gray-300 text-[11px] font-medium leading-relaxed">"{TESTIMONIALS[0].text}"</p>
+              <p className="text-gray-300 text-[11px] font-medium leading-relaxed">"{TESTIMONIALS[0]!.text}"</p>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-primary w-3 h-3" />
-                <span className="text-gray-500 text-[9px] font-black uppercase tracking-wider">{TESTIMONIALS[0].name} · {TESTIMONIALS[0].role}</span>
+                <span className="text-gray-500 text-[9px] font-black uppercase tracking-wider">{TESTIMONIALS[0]!.name} · {TESTIMONIALS[0]!.role}</span>
               </div>
             </div>
           </div>

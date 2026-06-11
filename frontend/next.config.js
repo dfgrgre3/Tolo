@@ -122,6 +122,15 @@ const nextConfig = {
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {
+    // Fallback for Node.js built-in modules used in client-side bundles
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        async_hooks: false,   // Prevent webpack from resolving async_hooks on the client
+      };
+    }
+
     // Better chunk splitting for vendor libraries
     if (!isServer) {
       config.optimization = {

@@ -24,7 +24,7 @@ export function AuthProviders() {
     setLoadingProvider('google');
     try {
       await openSignIn({
-        redirectUrl: '/dashboard',
+        fallbackRedirectUrl: '/dashboard',
         appearance: { elements: { rootBox: 'hidden' } },
       });
     } catch {

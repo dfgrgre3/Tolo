@@ -1,4 +1,3 @@
-
 interface RequestContext {
   requestId: string;
   userId?: string;
@@ -8,8 +7,12 @@ interface RequestContext {
   startTime: number;
 }
 
-// Fallback implementation for browser and SSR where async_hooks is not available
-class MockAsyncLocalStorage<T> {
+interface ALS<T> {
+  run<R>(store: T, fn: () => R): R;
+  getStore(): T | undefined;
+}
+
+class MockAsyncLocalStorage<T> implements ALS<T> {
   run<R>(store: T, fn: () => R): R {
     return fn();
   }
@@ -18,38 +21,34 @@ class MockAsyncLocalStorage<T> {
   }
 }
 
-// Lazy load AsyncLocalStorage only on server-side
-// We use require to avoid static analysis attempting to bundle this on the client
-const isServer = typeof window === 'undefined';
-let storage: any;
-
-if (isServer) {
+function tryCreateALS(): ALS<RequestContext> {
   try {
-    const { AsyncLocalStorage } = require('async_hooks');
-    storage = new AsyncLocalStorage();
-  } catch (_error) {
-    // If requirement fails, use the mock
-    storage = new MockAsyncLocalStorage<RequestContext>();
+    if (typeof process === 'undefined' || process.release?.name !== 'node') {
+      return new MockAsyncLocalStorage<RequestContext>();
+    }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const hookMod = require('async_hooks');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return new (hookMod.AsyncLocalStorage as any)() as ALS<RequestContext>;
+  } catch {
+    return new MockAsyncLocalStorage<RequestContext>();
   }
-} else {
-  // Use mock for browser
-  storage = new MockAsyncLocalStorage<RequestContext>();
 }
 
-const contextStorage = storage;
+const storage: ALS<RequestContext> = tryCreateALS();
 
 /**
  * Get the current request context from AsyncLocalStorage
  */
 export function getRequestContext(): RequestContext | undefined {
-  return contextStorage.getStore();
+  return storage.getStore();
 }
 
 /**
  * Run a function within a request context
  */
 function runWithContext<T>(context: RequestContext, fn: () => T): T {
-  return contextStorage.run(context, fn);
+  return storage.run(context, fn);
 }
 
 /**
