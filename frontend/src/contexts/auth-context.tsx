@@ -116,6 +116,7 @@ export function useAuth() {
       const result = await clerk.client.signIn.create({
         identifier: email,
         password,
+        strategy: 'password',
       });
       if (result.status === 'complete') {
         await clerk.setActive({ session: result.createdSessionId });
