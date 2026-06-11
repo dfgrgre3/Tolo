@@ -31,6 +31,14 @@ function generateNonce(): string {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  const { userId } = await auth();
+  const url = new URL(req.url);
+
+  // Redirect authenticated users from root route to dashboard
+  if (userId && url.pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
