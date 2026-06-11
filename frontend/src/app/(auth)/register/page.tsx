@@ -173,7 +173,7 @@ function RegisterForm() {
     }
   };
 
-  if (isAuthLoading) {
+  if (isAuthLoading && !isSubmitting && !showOTP) {
     return <LoadingState />;
   }
 
