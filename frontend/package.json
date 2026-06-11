@@ -53,6 +53,7 @@
     "framer-motion": "^12.38.0",
     "hls.js": "^1.6.16",
     "html2canvas": "^1.4.1",
+    "ioredis": "^5.11.1",
     "isomorphic-dompurify": "^3.16.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
