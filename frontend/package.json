@@ -4,15 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
-    "dev:no-turbo": "next dev --webpack",
-    "clear-cache": "node -e \"require('fs').rmSync('.next/cache', {recursive: true, force: true})\"",
-    "build": "next build --webpack",
-    "build:turbopack": "next build --turbopack",
-    "build:safe": "next build --webpack",
+    "clear-cache": "npx rimraf .next/cache",
+    "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
-    "clean": "node -e \"require('fs').rmSync('.next', {recursive: true, force: true})\"",
+    "clean": "npx rimraf .next",
     "lint": "eslint",
     "type-check": "npx tsc --noEmit",
     "perf": "node scripts/check-server.js && npx lighthouse http://localhost:3000 --chrome-flags='--headless --disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --ignore-certificate-errors --allow-insecure-localhost' --output=json --output-path=./lighthouse-results.json --only-categories=performance",
@@ -56,7 +54,6 @@
     "hls.js": "^1.6.16",
     "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^3.16.0",
-    "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
     "next": "16.2.6",
@@ -94,6 +91,7 @@
     "jsdom": "^29.1.1",
     "knip": "^6.7.0",
     "postcss": "^8.5.15",
+    "rimraf": "^5.0.5",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
@@ -102,8 +100,6 @@
   "overrides": {
     "import-in-the-middle": "^2.0.1",
     "require-in-the-middle": "^8.0.1",
-    "rimraf": "^5.0.5",
-    "glob": "^10.4.5",
     "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.1.3",
     "@humanwhocodes/config-array": "npm:@eslint/config-array@^0.16.0",
     "@simplewebauthn/typescript-types": "npm:@simplewebauthn/types@^12.0.0",
@@ -113,10 +109,6 @@
     "@connectrpc/protoc-gen-connect-es": {
       "@bufbuild/protoc-gen-es": "$@bufbuild/protoc-gen-es",
       "@connectrpc/connect": "$@connectrpc/connect"
-    },
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3"
+    }
   }
 }

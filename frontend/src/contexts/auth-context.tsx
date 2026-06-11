@@ -15,60 +15,65 @@ export function AuthProvider({
   const { user: storeUser, setUser, reset: resetStore } = useAuthStore();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const lastSyncedId = React.useRef<string | null>(null);
+
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
-    if (isClerkLoaded) {
-      if (!userId) {
+    if (!isClerkLoaded) return;
+
+    if (!userId) {
+      if (lastSyncedId.current !== null) {
+        lastSyncedId.current = null;
         resetStore();
+      }
+      setIsInitialLoad(false);
+      return;
+    }
+
+    if (isUserLoaded && clerkUser) {
+      // Avoid redundant profile syncs and state updates if already synced for the current userId
+      if (lastSyncedId.current === userId && storeUser?.id === userId) {
         setIsInitialLoad(false);
         return;
       }
 
-      if (isUserLoaded) {
-        if (!clerkUser) {
-          resetStore();
-          setIsInitialLoad(false);
-          return;
-        }
+      lastSyncedId.current = userId;
 
+      // Asynchronously load detailed secure profile data from repository layer
+      import('@/data-access/repositories/auth-repository').then(async ({ authRepository }) => {
         const mappedUser: AuthUser = {
           id: clerkUser.id,
-          email: '', // Excluded initially to prevent leakage in SSR serialization
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
           username: clerkUser.username || null,
           name: clerkUser.fullName || clerkUser.username || null,
           avatar: clerkUser.imageUrl || null,
-          role: (clerkUser.publicMetadata?.role as string) || 'USER',
+          role: 'STUDENT', // Default to safe role
           emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
-          permissions: [], // Excluded initially
+          permissions: [], // Default to no permissions
         };
-        setUser(mappedUser);
 
-        // Asynchronously load detailed secure profile data from repository layer
-        import('@/data-access/repositories/auth-repository').then(async ({ authRepository }) => {
-          try {
-            const profile = await authRepository.getProfile();
-            if (profile.email) {
-              setUser({
-                ...mappedUser,
-                email: profile.email,
-                role: profile.role || mappedUser.role,
-                permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
-              });
-            }
-          } catch (e) {
-            logger.error('Failed to load secure profile details via repository:', e);
-            // Safe fallback to client-side Clerk attributes on failure
-            setUser({
-              ...mappedUser,
-              email: clerkUser.emailAddresses[0]?.emailAddress || '',
-              permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
-            });
-          }
-        });
-        setIsInitialLoad(false);
-      }
+        try {
+          const profile = await authRepository.getProfile();
+          setUser({
+            ...mappedUser,
+            email: profile.email || mappedUser.email,
+            role: profile.role || 'STUDENT', // Trust server-side role
+            permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
+          });
+        } catch (e) {
+          logger.error('Failed to load secure profile details via repository:', e);
+          // Safe fallback to STUDENT role with no permissions on server failure (prevents privilege escalation)
+          setUser({
+            ...mappedUser,
+            role: 'STUDENT',
+            permissions: [],
+          });
+        } finally {
+          setIsInitialLoad(false);
+        }
+      });
     }
-  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
+  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, storeUser?.id]);
 
   return <>{children}</>;
 }

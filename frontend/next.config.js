@@ -3,6 +3,9 @@
 const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
   // ─── Basics ────────────────────────────────────────────────────────────────
   reactStrictMode: true,
   compress: true,           // gzip/brotli at the Next.js edge
@@ -23,6 +26,13 @@ const nextConfig = {
     ],
   },
 
+  // ─── Turbopack ──────────────────────────────────────────────────────────────
+  turbopack: {
+    // Empty config to silence the warning — we use `--webpack` for production builds
+    // to leverage custom splitChunks optimization (Clerk, framer-motion, recharts).
+  },
+
+  outputFileTracingRoot: process.cwd(),
   // ─── Experimental ──────────────────────────────────────────────────────────
   experimental: {
     // Tree-shake heavy packages — avoids importing the full library
@@ -131,48 +141,7 @@ const nextConfig = {
       };
     }
 
-    // Better chunk splitting for vendor libraries
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...(config.optimization.splitChunks || {}),
-          chunks: 'all',
-          cacheGroups: {
-            // Separate Clerk (large) into its own chunk
-            clerk: {
-              test: /[\\/]node_modules[\\/](@clerk)[\\/]/,
-              name: 'vendor-clerk',
-              chunks: 'all',
-              priority: 30,
-            },
-            // Separate framer-motion
-            framer: {
-              test: /[\\/]node_modules[\\/](framer-motion)[\\/]/,
-              name: 'vendor-framer',
-              chunks: 'all',
-              priority: 25,
-            },
-            // Separate recharts (heavy chart lib)
-            recharts: {
-              test: /[\\/]node_modules[\\/](recharts|d3-.*)[\\/]/,
-              name: 'vendor-recharts',
-              chunks: 'all',
-              priority: 20,
-            },
-            // General heavy vendor chunk
-            vendors: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-              minSize: 20_000,
-              reuseExistingChunk: true,
-            },
-          },
-        },
-      };
-    }
+
 
     return config;
   },
