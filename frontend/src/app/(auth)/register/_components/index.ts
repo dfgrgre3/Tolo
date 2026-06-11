@@ -7,3 +7,4 @@ export { RoleStep } from './role-step';
 export { PersonalInfoStep } from './personal-info-step';
 export { PreferencesStep } from './preferences-step';
 export { RegisterFooter } from './register-footer';
+export { OTPVerificationStep } from './otp-verification-step';

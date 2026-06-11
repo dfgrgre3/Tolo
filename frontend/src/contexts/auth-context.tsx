@@ -151,12 +151,21 @@ export function useAuth() {
         await clerk.setActive({ session: result.createdSessionId });
         return { success: true, autoLoggedIn: true };
       }
+      // Email verification required — trigger OTP send automatically
+      if (result.status === 'missing_requirements' || result.unverifiedFields?.includes('email_address')) {
+        try {
+          await clerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+        } catch (prepareErr) {
+          logger.error('Failed to prepare email verification:', prepareErr);
+        }
+      }
       return { success: true, autoLoggedIn: false };
     } catch (err: any) {
       logger.error('Registration error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
     }
   }, [clerk]);
+
 
   const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
