@@ -59,13 +59,13 @@ export default clerkMiddleware(async (auth, req) => {
   const isDev = process.env.NODE_ENV === 'development';
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval' " : ""}https: https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval' " : ""}https: https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com https://challenges.cloudflare.com`,
     `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://fonts.googleapis.com`,
     "img-src 'self' https: data: blob:",
     "font-src 'self' https://fonts.gstatic.com data:",
     "worker-src 'self' blob:",
-    "connect-src 'self' https://*.tolo.app https://*.vercel.app https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com https://*.supabase.co wss: ws:",
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com",
+    "connect-src 'self' https://*.tolo.app https://*.vercel.app https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com https://*.supabase.co https://challenges.cloudflare.com wss: ws:",
+    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.clerk.accounts.dev https://clerk.tolo.app https://*.clerk.com https://challenges.cloudflare.com",
     "media-src 'self' https: blob:",
     "object-src 'none'",
     "base-uri 'self'",
