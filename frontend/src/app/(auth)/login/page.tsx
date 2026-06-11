@@ -90,6 +90,7 @@ function LoginForm() {
           setUserId2FA(result.userId || null);
           return;
         }
+        redirectAfterLogin(redirectUrl);
         return;
       }
       setErrorStatus(result.error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
@@ -110,6 +111,7 @@ function LoginForm() {
       if (loginMode === 'magic-link') {
         const result = await verifyOTP(twoFactorCode);
         if (result.success) {
+          redirectAfterLogin(redirectUrl);
           return;
         }
         setErrorStatus(result.error || 'رمز التحقق غير صحيح');
@@ -123,6 +125,7 @@ function LoginForm() {
 
       const result = await verify2FA(userId2FA, twoFactorCode, getValues('rememberMe'));
       if (result.success) {
+        redirectAfterLogin(redirectUrl);
         return;
       }
       setErrorStatus(result.error || 'رمز التحقق غير صحيح');
