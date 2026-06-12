@@ -10,7 +10,7 @@ export function AuthProvider({
   children,
   initialAuthHint,
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
-  const { isLoaded: isClerkLoaded, userId } = useClerkAuth();
+  const { isLoaded: isClerkLoaded, userId, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
   const { user: storeUser, setUser, reset: resetStore } = useAuthStore();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -53,7 +53,9 @@ export function AuthProvider({
         };
 
         try {
-          const profile = await authRepository.getProfile();
+          const token = await getToken();
+          const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+          const profile = await authRepository.getProfile(headers);
           setUser({
             ...mappedUser,
             email: profile.email || mappedUser.email,
