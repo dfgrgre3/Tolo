@@ -86,7 +86,14 @@ export function useAuth() {
   // setActive(). Unlike useSignIn()/useSignUp(), it works from any component in
   // the tree — even from custom (non-Clerk-hosted) login/register pages.
   const clerk = useClerk();
-  const isClerkInstanceReady = !!clerk;
+  const getClerkInstance = useCallback(() => {
+    if (clerk) return clerk;
+    if (typeof window !== 'undefined') {
+      return (window as any).Clerk;
+    }
+    return null;
+  }, [clerk]);
+  const isClerkInstanceReady = !!getClerkInstance();
 
   const user = useAuthStore((state) => state.user);
   const isStoreLoading = useAuthStore((state) => state.isLoading);
@@ -116,15 +123,16 @@ export function useAuth() {
   }, [getToken]);
 
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await clerk.client.signIn.create({
+      const result = await activeClerk.client.signIn.create({
         identifier: email,
         password,
         strategy: 'password',
       });
       if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
+        await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       if (result.status === 'needs_second_factor') {
@@ -135,7 +143,7 @@ export function useAuth() {
       logger.error('Login error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Login failed' };
     }
-  }, [clerk]);
+  }, [getClerkInstance]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     return login(email, password, rememberMe);
@@ -149,21 +157,22 @@ export function useAuth() {
       role?: string;
     }
   ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
-    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await clerk.client.signUp.create({
+      const result = await activeClerk.client.signUp.create({
         emailAddress: data.email,
         password: data.password,
         username: data.username,
       });
       if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
+        await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true, autoLoggedIn: true };
       }
       // Email verification required — trigger OTP send automatically
       if (result.status === 'missing_requirements' || result.unverifiedFields?.includes('email_address')) {
         try {
-          await clerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          await activeClerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         } catch (prepareErr) {
           logger.error('Failed to prepare email verification:', prepareErr);
         }
@@ -173,7 +182,7 @@ export function useAuth() {
       logger.error('Registration error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
     }
-  }, [clerk]);
+  }, [getClerkInstance]);
 
 
   const logout = useCallback(async (allDevices?: boolean) => {
@@ -183,11 +192,12 @@ export function useAuth() {
   }, [signOut, resetStore, router]);
 
   const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
-    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const signIn = clerk.client.signIn;
+      const signIn = activeClerk.client.signIn;
       const factor = signIn.supportedSecondFactors?.find(
-        (f: any) => f.strategy === 'totp' || f.strategy === 'phone_code' || f.strategy === 'email_code' || f.strategy === 'backup_code'
+          (f: any) => f.strategy === 'totp' || f.strategy === 'phone_code' || f.strategy === 'email_code' || f.strategy === 'backup_code'
       );
       const strategy = (factor?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
       const result = await signIn.attemptSecondFactor({
@@ -195,7 +205,7 @@ export function useAuth() {
         code: token,
       });
       if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
+        await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
@@ -203,7 +213,7 @@ export function useAuth() {
       logger.error('2FA verification error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
     }
-  }, [clerk]);
+  }, [getClerkInstance]);
 
   const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
     return !!userId;
@@ -226,16 +236,17 @@ export function useAuth() {
   }, []);
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
-    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await clerk.client.signIn.create({
+      const result = await activeClerk.client.signIn.create({
         identifier: email,
       });
       const firstFactor = result.supportedFirstFactors?.find(
-        (f: any) => f.strategy === 'email_code'
+          (f: any) => f.strategy === 'email_code'
       ) as any;
       if (firstFactor && firstFactor.emailAddressId) {
-        await clerk.client.signIn.prepareFirstFactor({
+        await activeClerk.client.signIn.prepareFirstFactor({
           strategy: 'email_code',
           emailAddressId: firstFactor.emailAddressId,
         });
@@ -246,17 +257,18 @@ export function useAuth() {
       logger.error('Magic link request error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'فشل إرسال كود الدخول السريع' };
     }
-  }, [clerk]);
+  }, [getClerkInstance]);
 
   const verifyOTP = useCallback(async (code: string): Promise<{success: boolean; error?: string;}> => {
-    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const result = await clerk.client.signIn.attemptFirstFactor({
+      const result = await activeClerk.client.signIn.attemptFirstFactor({
         strategy: 'email_code',
         code,
       });
       if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
+        await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
@@ -264,7 +276,7 @@ export function useAuth() {
       logger.error('OTP verification error:', err);
       return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
     }
-  }, [clerk]);
+  }, [getClerkInstance]);
 
   return {
     user,
