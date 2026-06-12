@@ -24,8 +24,8 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
   // Countdown timer
   useEffect(() => {
     if (countdown <= 0) {
-      setCanResend(true);
-      return;
+      const t = setTimeout(() => setCanResend(true), 0);
+      return () => clearTimeout(t);
     }
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
@@ -117,10 +117,12 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
   // Auto-submit when all 6 digits entered
   useEffect(() => {
     if (otp.every(d => d !== '') && !isVerifying && !success) {
-      handleVerify();
+      const t = setTimeout(() => {
+        handleVerify();
+      }, 0);
+      return () => clearTimeout(t);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otp]);
+  }, [otp, handleVerify, isVerifying, success]);
 
   return (
     <m.div

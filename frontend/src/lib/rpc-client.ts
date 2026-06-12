@@ -20,6 +20,16 @@ const transport = createConnectTransport({
   useHttpGet: true,
   // Ensure Next.js fetch caching is enabled for gRPC GET requests
   fetch: (input, init) => {
+    const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : '';
+    const isAuthRequest = urlStr.includes('AuthService') || urlStr.includes('/auth/');
+    
+    if (isAuthRequest) {
+      return fetch(input, {
+        ...init,
+        cache: 'no-store'
+      });
+    }
+
     return fetch(input, {
       ...init,
       next: { revalidate: 60 } // Cache for 60 seconds

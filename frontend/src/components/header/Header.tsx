@@ -226,18 +226,18 @@ export default function Header() {
                   ) : user ? (
                     <UserMenu />
                   ) : (
-                    <div className="hidden lg:flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       <Link href={loginUrl}>
-                        <Button variant="ghost" size="sm" className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-3 lg:px-4">
+                        <Button variant="ghost" size="sm" className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-2 sm:px-3 lg:px-4">
                           <LogIn className="h-4 w-4" />
-                          <span className="hidden xl:inline">تسجيل الدخول</span>
+                          <span className="hidden sm:inline">تسجيل الدخول</span>
                         </Button>
                       </Link>
-                      <Link href="/register">
-                        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-4 lg:px-6 hover:scale-105 active:scale-95 group relative overflow-hidden">
+                      <Link href="/register" className="hidden sm:block">
+                        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-3 sm:px-4 lg:px-6 hover:scale-105 active:scale-95 group relative overflow-hidden">
                           <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]" />
                           <UserPlus className="h-4 w-4 transition-transform group-hover:rotate-12 relative z-10" />
-                          <span className="relative z-10 font-bold hidden xl:inline">إنشاء حساب</span>
+                          <span className="relative z-10 font-bold hidden md:inline">إنشاء حساب</span>
                         </Button>
                       </Link>
                     </div>

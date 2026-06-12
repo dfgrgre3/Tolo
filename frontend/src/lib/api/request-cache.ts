@@ -50,6 +50,9 @@ class RequestCacheManager {
     // We only deduplicate and cache GET requests
     if (method.toUpperCase() !== "GET") return "";
 
+    // If not in browser (server-side), do NOT cache/deduplicate to prevent cross-request leakage
+    if (typeof window === 'undefined') return "";
+
     // Check if the request explicitly bypasses cache
     if (options?.headers) {
       const headers = new Headers(options.headers);

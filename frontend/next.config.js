@@ -26,12 +26,6 @@ const nextConfig = {
     ],
   },
 
-  // ─── Turbopack ──────────────────────────────────────────────────────────────
-  turbopack: {
-    // Empty config to silence the warning — we use `--webpack` for production builds
-    // to leverage custom splitChunks optimization (Clerk, framer-motion, recharts).
-  },
-
   outputFileTracingRoot: process.cwd(),
   // ─── Experimental ──────────────────────────────────────────────────────────
   experimental: {

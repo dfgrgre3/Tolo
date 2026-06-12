@@ -136,11 +136,33 @@ function LoginForm() {
     }
   };
 
+  const [deviceInfo, setDeviceInfo] = useState({ os: 'نظام تشغيل آمن', browser: 'تولو ويب' });
+
+  useEffect(() => {
+    const ua = window.navigator.userAgent;
+    let os = 'نظام تشغيل آمن';
+    let browser = 'تولو ويب';
+    
+    if (ua.includes('Win')) os = 'ويندوز';
+    else if (ua.includes('Mac')) os = 'ماك أو إس';
+    else if (ua.includes('Linux')) os = 'لينكس';
+    else if (ua.includes('Android')) os = 'أندرويد';
+    else if (ua.includes('like Mac')) os = 'آي أو إس';
+
+    if (ua.includes('Firefox')) browser = 'فايرفوكس';
+    else if (ua.includes('Chrome')) browser = 'جوجل كروم';
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'سافاري';
+    else if (ua.includes('Edge')) browser = 'إيدج';
+
+    const t = setTimeout(() => {
+      setDeviceInfo({ os, browser });
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
   const onResendVerification = () => {
     setErrorStatus('يرجى التحقق من صندوق البريد الوارد لإعادة تفعيل حسابك.');
   };
-
-  const emptyDeviceInfo = { os: 'نظام تشغيل آمن', browser: 'تولو ويب' };
 
   if (isAuthLoading) {
     return (
@@ -165,7 +187,7 @@ function LoginForm() {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)] z-10"
       >
-        <LeftPanelInfo deviceInfo={emptyDeviceInfo} />
+        <LeftPanelInfo deviceInfo={deviceInfo} />
         <div className="lg:col-span-7 p-10 md:p-16 lg:p-24 bg-[#080808]/50 flex flex-col justify-center space-y-12">
           <LoginFormHeader />
           <LoginAuthView

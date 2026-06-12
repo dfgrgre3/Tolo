@@ -127,6 +127,9 @@ export function useAuth() {
         await clerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
+      if (result.status === 'needs_second_factor') {
+        return { success: true, requires2FA: true, userId: result.id };
+      }
       return { success: false, error: `Additional steps required: ${result.status}` };
     } catch (err: any) {
       logger.error('Login error:', err);
@@ -179,9 +182,28 @@ export function useAuth() {
     router.replace('/login');
   }, [signOut, resetStore, router]);
 
-  const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean) => {
-    return { success: false, error: '2FA managed by Clerk' };
-  }, []);
+  const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
+    if (!clerk) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      const signIn = clerk.client.signIn;
+      const factor = signIn.supportedSecondFactors?.find(
+        (f: any) => f.strategy === 'totp' || f.strategy === 'phone_code' || f.strategy === 'email_code' || f.strategy === 'backup_code'
+      );
+      const strategy = (factor?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+      const result = await signIn.attemptSecondFactor({
+        strategy,
+        code: token,
+      });
+      if (result.status === 'complete') {
+        await clerk.setActive({ session: result.createdSessionId });
+        return { success: true };
+      }
+      return { success: false, error: `Additional steps required: ${result.status}` };
+    } catch (err: any) {
+      logger.error('2FA verification error:', err);
+      return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
+    }
+  }, [clerk]);
 
   const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
     return !!userId;
