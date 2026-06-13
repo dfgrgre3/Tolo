@@ -1,3 +1,6 @@
+import { LoadingPage } from "@/components/ui/loading-state";
+
 export default function Loading() {
-  return null;
+  return <LoadingPage />;
 }
+

@@ -83,7 +83,12 @@ export default clerkMiddleware(async (auth, req) => {
     "https://tolo.app",
     "https://clerk.tolo.app",
     "https://clerk-telemetry.com",
+    "https://*.clerk-telemetry.com",
     "https://challenges.cloudflare.com",
+    "https://us.i.posthog.com",
+    "https://us-assets.i.posthog.com",
+    "https://*.clerk.accounts.dev",
+    "https://*.clerk.com",
     requestWsOrigin,
   ];
   if (apiWsOrigin) connectSources.push(apiWsOrigin);
@@ -95,13 +100,8 @@ export default clerkMiddleware(async (auth, req) => {
   if (vercelOrigin) connectSources.push(vercelOrigin);
 
   if (isDev) {
-    connectSources.push("https://*.clerk.accounts.dev");
     connectSources.push("https://*.vercel.app");
     connectSources.push("https://*.supabase.co");
-    connectSources.push("https://*.clerk.com");
-    connectSources.push("https://*.clerk-telemetry.com");
-  } else {
-    connectSources.push("https://clerk.com");
   }
 
   // Dynamic Frame Sources
@@ -111,13 +111,10 @@ export default clerkMiddleware(async (auth, req) => {
     "https://www.youtube-nocookie.com",
     "https://clerk.tolo.app",
     "https://challenges.cloudflare.com",
+    "https://*.clerk.accounts.dev",
+    "https://*.clerk.com",
+    "https://clerk.com",
   ];
-  if (isDev) {
-    frameSources.push("https://*.clerk.accounts.dev");
-    frameSources.push("https://*.clerk.com");
-  } else {
-    frameSources.push("https://clerk.com");
-  }
 
   // Dynamic Frame Ancestors
   const frameAncestors = [
