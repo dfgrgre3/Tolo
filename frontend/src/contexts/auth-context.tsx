@@ -6,6 +6,7 @@ import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@cle
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
 import { authApiService } from '@/services/auth/auth-api-service';
+import { authRepository } from '@/data-access/repositories/auth-repository';
 
 // Helper to extract Clerk error messages safely without using 'any'
 function getClerkErrorMessage(err: unknown, fallback: string): string {
@@ -27,7 +28,7 @@ export function AuthProvider({
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
   const { isLoaded: isClerkLoaded, userId, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  const { user: storeUser, setUser, reset: resetStore } = useAuthStore();
+  const { setUser, reset: resetStore } = useAuthStore();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const lastSyncedId = React.useRef<string | null>(null);
@@ -38,15 +39,26 @@ export function AuthProvider({
     currentUserIdRef.current = userId || null;
   }, [userId]);
 
+  // Safety timeout: if Clerk fails to load (e.g. CSP/network/adblock issues),
+  // force initial load to false so the application can render in unauthenticated fallback mode.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isClerkLoaded) {
+        logger.warn('Clerk failed to load within 5 seconds. Falling back to unauthenticated state.');
+        resetStore();
+        setIsInitialLoad(false);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isClerkLoaded, resetStore]);
+
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
     if (!isClerkLoaded) return;
 
-    if (!userId) {
-      if (lastSyncedId.current !== null) {
-        lastSyncedId.current = null;
-        resetStore();
-      }
+    if (!userId || (isUserLoaded && !clerkUser)) {
+      lastSyncedId.current = null;
+      resetStore();
       setIsInitialLoad(false);
       return;
     }
@@ -54,11 +66,8 @@ export function AuthProvider({
     let isCancelled = false;
 
     if (isUserLoaded && clerkUser) {
-      // Avoid redundant profile syncs and state updates if already synced for the current userId
-      if (lastSyncedId.current === userId && storeUser?.id === userId) {
-        setIsInitialLoad(false);
-        return;
-      }
+      // Get current store user without triggering effect dependency re-runs
+      const currentStoreUser = useAuthStore.getState().user;
 
       // Pre-validation check for admin routes
       const role = clerkUser.publicMetadata?.role as string | undefined;
@@ -72,23 +81,33 @@ export function AuthProvider({
         return;
       }
 
+      const mappedUser: AuthUser = {
+        id: clerkUser.id,
+        email: clerkUser.emailAddresses[0]?.emailAddress || '',
+        username: clerkUser.username || null,
+        name: clerkUser.fullName || clerkUser.username || null,
+        avatar: clerkUser.imageUrl || null,
+        role: (role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT',
+        emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
+        permissions: Array.isArray(clerkUser.publicMetadata?.permissions)
+          ? (clerkUser.publicMetadata.permissions as string[])
+          : [],
+      };
+
+      // Set user immediately from Clerk to prevent loading UI hangs
+      if (lastSyncedId.current !== userId || currentStoreUser?.id !== userId) {
+        setUser(mappedUser);
+      }
+
+      // Avoid redundant profile syncs and state updates if already synced for the current userId
+      if (lastSyncedId.current === userId && currentStoreUser?.id === userId) {
+        setIsInitialLoad(false);
+        return;
+      }
+
       lastSyncedId.current = userId;
 
-      // Asynchronously load detailed secure profile data from repository layer
-      import('@/data-access/repositories/auth-repository').then(async ({ authRepository }) => {
-        if (isCancelled || currentUserIdRef.current !== userId) return;
-
-        const mappedUser: AuthUser = {
-          id: clerkUser.id,
-          email: clerkUser.emailAddresses[0]?.emailAddress || '',
-          username: clerkUser.username || null,
-          name: clerkUser.fullName || clerkUser.username || null,
-          avatar: clerkUser.imageUrl || null,
-          role: 'STUDENT', // Default to safe role
-          emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
-          permissions: [], // Default to no permissions
-        };
-
+      const syncProfile = async () => {
         try {
           const token = await getToken();
           if (isCancelled || currentUserIdRef.current !== userId) return;
@@ -108,29 +127,21 @@ export function AuthProvider({
         } catch (e) {
           if (isCancelled || currentUserIdRef.current !== userId) return;
           logger.error('Failed to load secure profile details via repository:', e);
-          // Safe fallback to STUDENT role with no permissions on server failure (prevents privilege escalation)
-          setUser({
-            ...mappedUser,
-            role: 'STUDENT',
-            permissions: [],
-          });
+          // Fallback user is already set, so we just log the error and ensure loading ends
         } finally {
           if (!isCancelled && currentUserIdRef.current === userId) {
             setIsInitialLoad(false);
           }
         }
-      }).catch((err) => {
-        logger.error('Failed to load auth-repository module:', err);
-        if (!isCancelled && currentUserIdRef.current === userId) {
-          setIsInitialLoad(false);
-        }
-      });
+      };
+
+      syncProfile();
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, storeUser?.id, getToken]);
+  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, getToken]);
 
   return <>{children}</>;
 }
@@ -158,14 +169,9 @@ export function useAuth() {
   const resetStore = useAuthStore((state) => state.reset);
   const setUser = useAuthStore((state) => state.setUser);
 
-  // Auth-system is "fully loaded" when Clerk core + the user object have reported
-  // `isLoaded: true`. signIn/signUp/setActive from useClerk() are always available
-  // (they're not gated on a <SignIn/> / <SignUp/> context like useSignIn/useSignUp
-  // are), so we no longer need to wait for those to "load" before allowing login.
-  const authSystemReady = isClerkLoaded && (!userId || isUserLoaded);
-  // Backwards-compatible `isLoading` flag for the existing UI: true until we know
-  // for sure whether the user is signed in.
-  const isLoading = !authSystemReady || isStoreLoading;
+  // Use Zustand store's loading state as the single source of truth.
+  // This prevents infinite hangs if Clerk fails to load.
+  const isLoading = isStoreLoading;
 
   const fetchWithAuth = useCallback(async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const [input, init] = args;
@@ -315,7 +321,6 @@ export function useAuth() {
       await clerkUser.reload();
       const token = await getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-      const { authRepository } = await import('@/data-access/repositories/auth-repository');
       const profile = await authRepository.getProfile(headers);
       
       const mappedUser: AuthUser = {
@@ -343,12 +348,68 @@ export function useAuth() {
   }, [userId, clerkUser, getToken, setUser, resetStore]);
 
   const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; error?: string; message?: string;}> => {
-    return authApiService.forgotPassword(email);
-  }, []);
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      const result = await activeClerk.client.signIn.create({
+        identifier: email,
+      });
+      const firstFactor = result.supportedFirstFactors?.find(
+        (f) => (f as { strategy: string }).strategy === 'reset_password_email_code'
+      ) as { strategy: string; emailAddressId?: string } | undefined;
 
-  const resetPassword = useCallback(async (token: string, newPassword: string) => {
-    return authApiService.resetPassword(token, newPassword);
-  }, []);
+      if (firstFactor && firstFactor.emailAddressId) {
+        await activeClerk.client.signIn.prepareFirstFactor({
+          strategy: 'reset_password_email_code',
+          emailAddressId: firstFactor.emailAddressId,
+        });
+        return { success: true, message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.' };
+      }
+      return { success: false, error: 'طريقة استعادة كلمة المرور غير مدعومة لهذا الحساب' };
+    } catch (err: unknown) {
+      logger.error('Forgot password error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إرسال رمز التحقق') };
+    }
+  }, [getClerkInstance]);
+
+  const resetPassword = useCallback(async (tokenOrPassword: string, newPassword?: string, code?: string, email?: string): Promise<{success: boolean; error?: string;}> => {
+    if (newPassword !== undefined) {
+      return authApiService.resetPassword(tokenOrPassword, newPassword);
+    }
+    
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      if (!code) {
+        return { success: false, error: 'رمز التحقق مطلوب' };
+      }
+      
+      let signIn = activeClerk.client.signIn;
+      if (!signIn || !signIn.identifier || (email && signIn.identifier !== email)) {
+        if (!email) {
+          return { success: false, error: 'الجلسة انتهت. يرجى طلب رمز جديد.' };
+        }
+        signIn = await activeClerk.client.signIn.create({
+          identifier: email,
+        });
+      }
+
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code,
+        password: tokenOrPassword,
+      });
+
+      if (result.status === 'complete') {
+        await activeClerk.setActive({ session: result.createdSessionId });
+        return { success: true };
+      }
+      return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
+    } catch (err: unknown) {
+      logger.error('Reset password error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إعادة تعيين كلمة المرور') };
+    }
+  }, [getClerkInstance]);
 
   const verifyEmail = useCallback(async (token: string) => {
     return authApiService.verifyEmail(token);

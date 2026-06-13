@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Loader2, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
   const { forgotPassword } = useAuth();
+  const router = useRouter();
   const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,11 +41,14 @@ export default function ForgotPasswordPage() {
       const result = await forgotPassword(data.email);
 
       if (result.success) {
-        toast.success('تم إرسال رابط إعادة التعيين بنجاح');
+        toast.success('تم إرسال رمز التحقق بنجاح');
         setStatus({
           type: 'success',
-          message: result.message || 'إذا كان هذا البريد مسجلاً لدينا، فستصلك رسالة تحتوي على رابط إعادة تعيين كلمة المرور.',
+          message: result.message || 'تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح. جاري تحويلك لإدخال الرمز...',
         });
+        setTimeout(() => {
+          router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
+        }, 1500);
       } else {
         toast.error(result.error || 'حدث خطأ ما');
         setStatus({

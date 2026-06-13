@@ -15,19 +15,21 @@ if (typeof window !== 'undefined') {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     if (isSignedIn && user) {
       posthog.identify(user.id, {
         email: user.primaryEmailAddress?.emailAddress,
         fullName: user.fullName,
         username: user.username,
       });
-    } else if (!isSignedIn) {
+    } else {
       posthog.reset();
     }
-  }, [isSignedIn, user]);
+  }, [isLoaded, isSignedIn, user]);
 
   return <PHProvider client={posthog}>{children}</PHProvider>;
 }

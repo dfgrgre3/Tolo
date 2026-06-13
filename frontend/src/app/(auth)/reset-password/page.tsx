@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { errorService } from '@/lib/logging/error-service';
 
-const resetPasswordSchema = z.object({
+const createResetPasswordSchema = (isClerkFlow: boolean) => z.object({
+  code: isClerkFlow ? z.string().length(6, 'رمز التحقق يجب أن يكون 6 أرقام') : z.string().optional(),
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
     .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد')
     .regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد')
@@ -24,14 +25,22 @@ const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+type ResetPasswordValues = {
+  code?: string;
+  password: string;
+  confirmPassword: string;
+};
 
 function ResetPasswordForm() {
   const { resetPassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const email = searchParams.get('email');
   
+  const isClerkFlow = !!email;
+  const schema = useMemo(() => createResetPasswordSchema(isClerkFlow), [isClerkFlow]);
+
   const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -41,11 +50,11 @@ function ResetPasswordForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<ResetPasswordValues>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data: ResetPasswordValues) => {
-    if (!token) {
+    if (!token && !email) {
       toast.error('رابط غير صالح');
       setStatus({ type: 'error', message: 'رابط إعادة التعيين غير صالح أو مفقود.' });
       return;
@@ -55,7 +64,9 @@ function ResetPasswordForm() {
     setStatus(null);
 
     try {
-      const result = await resetPassword(token, data.password);
+      const result = isClerkFlow
+        ? await resetPassword(data.password, undefined, data.code, email)
+        : await resetPassword(token!, data.password);
 
       if (result.success) {
         toast.success('تمت إعادة تعيين كلمة المرور بنجاح');
@@ -82,7 +93,7 @@ function ResetPasswordForm() {
     setIsLoading(false);
   };
 
-  if (!token) {
+  if (!token && !email) {
     return (
       <m.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -142,6 +153,23 @@ function ResetPasswordForm() {
         </AnimatePresence>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {isClerkFlow && (
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">رمز التحقق (6 أرقام)</span>
+              <div className="relative group">
+                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+                <input
+                  {...register('code')}
+                  type="text"
+                  maxLength={6}
+                  className="w-full h-14 pr-12 pl-6 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm text-center tracking-[0.5em]"
+                  placeholder="000000"
+                />
+              </div>
+              {errors.code && <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.code.message}</p>}
+            </div>
+          )}
+
           <div className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">الشيفرة الجديدة</span>
             <div className="relative group">
