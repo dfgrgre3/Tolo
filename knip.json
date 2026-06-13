@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "frontend": {
+      "entry": [
+        "scripts/*.ts",
+        "scripts/*.mjs"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mjs}"],
+      "ignore": [
+        "scratch/**/*",
+        "brain/**/*",
+        "**/*.bak.*",
+        "**/*.old.*"
+      ],
+      "ignoreDependencies": [
+        "lucide-react"
+      ]
+    }
+  }
+}

@@ -64,7 +64,7 @@ import { useMediaSession } from "./player/hooks/useMediaSession";
 
 // Store & Types
 import {
-  defaultPlayerUiState,
+  createDefaultPlayerUiState,
   useCourseVideoPlayerStore,
 } from "./player/store";
 import type {
@@ -538,7 +538,7 @@ export function CourseVideoPlayer({
 
   useEffect(() => {
     resetPlayerState({
-      ...defaultPlayerUiState,
+      ...createDefaultPlayerUiState(),
       isLoading: true,
       volume: initialPreferences.volume,
       isMuted: initialPreferences.isMuted,

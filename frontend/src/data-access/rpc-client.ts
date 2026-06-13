@@ -4,7 +4,7 @@ import { CourseService, GetCourseRequestSchema, GetCoursesRequestSchema } from "
 import { AuthService } from "@/data-access/grpc/auth_pb";
 import { AnalyticsService } from "@/data-access/grpc/analytics_pb";
 import { cache } from "react";
-import { trimTrailingSlashes } from "./utils";
+import { trimTrailingSlashes } from "@/lib/utils";
 import { toJson, isMessage } from "@bufbuild/protobuf";
 
 const isBrowser = typeof window !== 'undefined';

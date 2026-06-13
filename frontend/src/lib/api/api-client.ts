@@ -38,12 +38,20 @@ const RETRY_DELAY = 1000;
 const RETRYABLE_STATUSES = [408, 429, 502, 504];
 const RETRYABLE_METHODS = ['GET', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'];
 
+interface ClerkWindow extends Window {
+    Clerk?: {
+        session?: {
+            getToken: () => Promise<string | null>;
+        };
+    };
+}
+
 class ApiError extends Error {
     public status: number;
     public code?: string;
-    public data?: any;
+    public data?: Record<string, unknown>;
 
-    constructor(message: string, status: number, code?: string, data?: any) {
+    constructor(message: string, status: number, code?: string, data?: Record<string, unknown>) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
@@ -132,14 +140,37 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
 
 class ApiClient {
     private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
-        const headers = new Headers({
-            ...(customOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-            ...customOptions.headers,
-        });
+        const headers = new Headers();
+        
+        if (!(customOptions.body instanceof FormData)) {
+            headers.set('Content-Type', 'application/json');
+        }
+
+        if (customOptions.headers) {
+            if (customOptions.headers instanceof Headers) {
+                customOptions.headers.forEach((value, key) => {
+                    headers.set(key, value);
+                });
+            } else if (Array.isArray(customOptions.headers)) {
+                customOptions.headers.forEach(([key, value]) => {
+                    headers.set(key, value);
+                });
+            } else {
+                Object.entries(customOptions.headers).forEach(([key, value]) => {
+                    headers.set(key, value);
+                });
+            }
+        }
 
         // Add Clerk JWT token in Authorization header if in browser
         if (typeof window !== 'undefined') {
-            const clerk = (window as any).Clerk;
+            const clerk = (window as unknown as {
+                Clerk?: {
+                    session?: {
+                        getToken: () => Promise<string | null>;
+                    };
+                };
+            }).Clerk;
             if (clerk?.session) {
                 try {
                     const token = await clerk.session.getToken();
@@ -160,31 +191,6 @@ class ApiClient {
         }
 
         return headers;
-    }
-
-    private ensureIdempotencyKey(options: FetchOptions): void {
-        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method || 'GET');
-        if (!isWriteMethod) return;
-
-        if (!options.headers) {
-            options.headers = {};
-        }
-
-        if (options.headers instanceof Headers) {
-            if (!options.headers.has('Idempotency-Key')) {
-                options.headers.set('Idempotency-Key', crypto.randomUUID());
-            }
-        } else if (Array.isArray(options.headers)) {
-            const hasKey = options.headers.some(([k]) => k.toLowerCase() === 'idempotency-key');
-            if (!hasKey) {
-                options.headers.push(['Idempotency-Key', crypto.randomUUID()]);
-            }
-        } else {
-            const keys = Object.keys(options.headers).map(k => k.toLowerCase());
-            if (!keys.includes('idempotency-key')) {
-                (options.headers as Record<string, string>)['Idempotency-Key'] = crypto.randomUUID();
-            }
-        }
     }
 
     private resetAuthStore(): void {
@@ -213,72 +219,84 @@ class ApiClient {
         return !!((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries);
     }
 
-    public async fetch(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<Response> {
-        this.ensureIdempotencyKey(options);
+    public async fetch(endpoint: string, options: FetchOptions = {}): Promise<Response> {
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
+        let retryCount = 0;
+        let savedIdempotencyKey: string | null = null;
 
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
+        while (true) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
 
-        const headers = await this.buildHeaders(customOptions);
-
-        try {
-            const url = normalizeEndpoint(endpoint);
-            const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
-            
-            const method = customOptions.method || 'GET';
-            const fetcher = () => fetch(url, {
-                ...customOptions,
-                headers,
-                credentials: 'include',
-                signal: controller.signal,
-            });
-
-            const response = (method.toUpperCase() === 'GET' && !endpoint.includes('/exams/'))
-                ? await requestCache.getResponse(url, customOptions, fetcher)
-                : await fetcher();
-
-            timer.stop();
-            clearTimeout(id);
-
-            if (response.status === 401 && retryCount < 1) {
-                this.resetAuthStore();
+            const headers = await this.buildHeaders(customOptions);
+            if (savedIdempotencyKey) {
+                headers.set('Idempotency-Key', savedIdempotencyKey);
+            } else {
+                savedIdempotencyKey = headers.get('Idempotency-Key');
             }
 
-            const responseOk = response.ok;
-            const responseStatus = response.status;
-            const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(responseStatus) && retryCount < retries;
-            if (shouldRetry) {
-                await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                const updatedHeaders = await this.buildHeaders(customOptions);
-                return this.fetch(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
+            try {
+                const url = normalizeEndpoint(endpoint);
+                const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
+                
+                const method = customOptions.method || 'GET';
+                const fetcher = () => fetch(url, {
+                    ...customOptions,
+                    headers,
+                    credentials: 'include',
+                    signal: controller.signal,
+                });
+
+                const response = (method.toUpperCase() === 'GET' && !endpoint.includes('/exams/'))
+                    ? await requestCache.getResponse(url, customOptions, fetcher)
+                    : await fetcher();
+
+                timer.stop();
+                clearTimeout(id);
+
+                if (response.status === 401 && retryCount < 1) {
+                    this.resetAuthStore();
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login';
+                    }
+                }
+
+                const responseStatus = response.status;
+                const shouldRetry = this.canRetryMethod(method) && RETRYABLE_STATUSES.includes(responseStatus) && retryCount < retries;
+                if (shouldRetry) {
+                    retryCount++;
+                    await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
+                    continue;
+                }
+
+                return response;
+            } catch (error: unknown) {
+                clearTimeout(id);
+
+                if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
+                    retryCount++;
+                    await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
+                    continue;
+                }
+
+                this.logNetworkError(error, endpoint);
+                throw error;
             }
-
-            return response;
-        } catch (error: unknown) {
-            clearTimeout(id);
-
-            if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
-                await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                const updatedHeaders = await this.buildHeaders(customOptions);
-                return this.fetch(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
-            }
-
-            this.logNetworkError(error, endpoint);
-            throw error;
         }
     }
 
     private async handleApiErrorResponse(response: Response, retryCount: number, retries: number, method: string): Promise<boolean> {
         let errorMessage = `Server error: ${response.statusText}`;
         let errorCode = 'HTTP_ERROR';
-        let errorData: any = null;
+        let errorData: Record<string, unknown> | undefined = undefined;
         
         const responseText = await response.text();
         try {
             errorData = JSON.parse(responseText);
-            errorMessage = errorData.error || errorData.message || errorMessage;
-            errorCode = errorData.code || errorCode;
+            if (errorData) {
+                errorMessage = (errorData.error as string) || (errorData.message as string) || errorMessage;
+                errorCode = (errorData.code as string) || errorCode;
+            }
         } catch {
             if (responseText) errorMessage = responseText;
         }
@@ -289,71 +307,35 @@ class ApiClient {
         throw new ApiError(errorMessage, response.status, errorCode, errorData);
     }
 
-    private async request<T>(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<T> {
-        this.ensureIdempotencyKey(options);
-        const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
+    private async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+        const response = await this.fetch(endpoint, options);
 
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-
-        const headers = await this.buildHeaders(customOptions);
-
-        try {
-            const url = normalizeEndpoint(endpoint);
+        if (!response.ok) {
+            let errorMessage = `Server error: ${response.statusText}`;
+            let errorCode = 'HTTP_ERROR';
+            let errorData: Record<string, unknown> | undefined = undefined;
             
-            const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
-            
-            const method = customOptions.method || 'GET';
-            const fetcher = () => fetch(url, {
-                ...customOptions,
-                headers,
-                credentials: 'include', // Ensure cookies are sent (access_token)
-                signal: controller.signal,
-            });
-
-            const response = (method.toUpperCase() === 'GET' && !endpoint.includes('/exams/'))
-                ? await requestCache.getResponse(url, customOptions, fetcher)
-                : await fetcher();
-
-            timer.stop();
-
-            clearTimeout(id);
-
-            // Handle 401 Unauthorized
-            if (response.status === 401 && retryCount < 1) {
-                this.resetAuthStore();
-            }
-
-            if (!response.ok) {
-                const shouldRetry = await this.handleApiErrorResponse(response, retryCount, retries, method);
-                if (shouldRetry) {
-                    await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                    const updatedHeaders = await this.buildHeaders(customOptions);
-                    return this.request<T>(endpoint, { ...options, headers: updatedHeaders }, retryCount + 1);
+            const responseText = await response.text();
+            try {
+                errorData = JSON.parse(responseText);
+                if (errorData) {
+                    errorMessage = (errorData.error as string) || (errorData.message as string) || errorMessage;
+                    errorCode = (errorData.code as string) || errorCode;
                 }
+            } catch {
+                if (responseText) errorMessage = responseText;
             }
-
-            // Check for empty response
-            const contentLength = response.headers.get('content-length');
-            if (response.status === 204 || contentLength === '0') {
-                return {} as T;
-            }
-
-            const payload = await response.json() as T | ApiEnvelope<T>;
-            return unwrapApiEnvelope<T>(payload);
-        } catch (error: unknown) {
-            clearTimeout(id);
-
-            if (error instanceof ApiError) throw error;
-
-            if (this.isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
-                await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-                return this.request<T>(endpoint, options, retryCount + 1);
-            }
-
-            this.logNetworkError(error, endpoint);
-            throw error;
+            throw new ApiError(errorMessage, response.status, errorCode, errorData);
         }
+
+        // Check for empty response
+        const contentLength = response.headers.get('content-length');
+        if (response.status === 204 || contentLength === '0') {
+            return {} as T;
+        }
+
+        const payload = await response.json() as T | ApiEnvelope<T>;
+        return unwrapApiEnvelope<T>(payload);
     }
 
     public get<T>(endpoint: string, options?: FetchOptions): Promise<T> {

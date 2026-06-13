@@ -1,7 +1,6 @@
 'use client';
 
-import React, { Suspense, useState } from 'react';
-import dynamic from 'next/dynamic';
+import React, { Suspense, useState, useMemo } from 'react';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import { SettingsProvider } from '@/contexts/settings-context';
@@ -17,15 +16,12 @@ import { PerformanceProvider } from '@/components/providers/PerformanceProvider'
 import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 import { EfficiencyProvider } from '@/hooks/use-efficiency';
-
-const FooterLazy = dynamic(() => import('@/components/Footer'), {
-  ssr: false,
-  loading: () => <footer className="min-h-[100px] w-full" aria-hidden />,
-});
-
+import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
+import Footer from '@/components/Footer';
 import { isCriticalError } from '@/lib/error-utils';
 
 function makeQueryClient() {
+  const isDev = process.env.NODE_ENV === 'development';
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -34,7 +30,8 @@ function makeQueryClient() {
         staleTime: 60_000,
         // 10 min garbage-collect window (enough for navigation within a session)
         gcTime: 600_000,
-        retry: (failureCount, error) => {
+        // Disable retry in development to speed up debugging, otherwise retry transient network errors
+        retry: isDev ? false : (failureCount, error) => {
           if (failureCount >= 3 || isCriticalError(error)) {
             return false;
           }
@@ -70,8 +67,6 @@ type GlobalProvidersProps = {
  * 4. ToastProvider - Notifications (can be used by auth for error toasts)
  * 5. WebSocketProvider - Real-time features (needs auth state)
  */
-import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
-
 export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
   const [queryClient] = useState(makeQueryClient);
 
@@ -89,12 +84,12 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                     <WebSocketProvider>
                       <NotificationsProvider>
                         <TooltipProvider>
-                          <LazyMotion features={domAnimation} strict>
+                          <LazyMotion features={domAnimation}>
                             <TimerBootstrap />
                             <PerformanceProvider key="performance-provider">
                               {children}
                             </PerformanceProvider>
-                            <FooterLazy key="footer-lazy" />
+                            <Footer key="footer-static" />
                           </LazyMotion>
                           <Toaster richColors closeButton position="top-center" />
                         </TooltipProvider>
@@ -111,6 +106,6 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
   );
 }
 
-
 // No re-exports here to avoid circular dependencies.
 // Import contexts directly from '@/contexts/...'
+

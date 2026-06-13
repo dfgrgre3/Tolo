@@ -35,13 +35,11 @@ class WebSocketErrorBoundary extends React.Component<
 
   override render() {
     if (this.state.hasError) {
-      return <>{this.props.children}</>;
+      return null;
     }
     return this.props.children;
   }
 }
-
-let WEBSOCKET_ENABLED = true;
 
 function shouldDisableWebSocket(): boolean {
   if (typeof document === "undefined") return false;
@@ -77,33 +75,35 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
   const currentUserId = userId || user?.id;
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
+  const [websocketEnabled, setWebsocketEnabled] = React.useState(true);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
+
+    // Check initial state
+    const initialDisabled = shouldDisableWebSocket();
+    setWebsocketEnabled(!initialDisabled);
+
     const observer = new MutationObserver(() => {
-      if (shouldDisableWebSocket()) {
-        WEBSOCKET_ENABLED = false;
+      const isDisabled = shouldDisableWebSocket();
+      setWebsocketEnabled(!isDisabled);
+      if (isDisabled) {
         disconnect();
-      } else {
-        WEBSOCKET_ENABLED = true;
-        if (currentUserId) {
-          connect(currentUserId);
-        }
+      } else if (currentUserId) {
+        connect(currentUserId);
       }
     });
+
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class", "data-perf-mode"],
     });
 
-    if (shouldDisableWebSocket()) {
-      WEBSOCKET_ENABLED = false;
-    }
     return () => observer.disconnect();
   }, [currentUserId, connect, disconnect]);
 
   useEffect(() => {
-    if (!WEBSOCKET_ENABLED || !currentUserId) {
+    if (!websocketEnabled || !currentUserId) {
       disconnect();
       return;
     }
@@ -113,14 +113,14 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     return () => {
       disconnect();
     };
-  }, [currentUserId, connect, disconnect]);
+  }, [currentUserId, websocketEnabled, connect, disconnect]);
 
   const socket = useWebSocketStore((state) => state.socket);
   const isConnected = useWebSocketStore((state) => state.isConnected);
 
   const contextValue = {
-    socket: WEBSOCKET_ENABLED ? socket : null,
-    isConnected: WEBSOCKET_ENABLED ? isConnected : false
+    socket: websocketEnabled ? socket : null,
+    isConnected: websocketEnabled ? isConnected : false
   };
 
   return (

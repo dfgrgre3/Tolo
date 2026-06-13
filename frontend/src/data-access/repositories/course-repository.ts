@@ -1,4 +1,4 @@
-import { rpcClient } from '@/lib/rpc-client';
+import { rpcClient } from '@/data-access/rpc-client';
 
 export interface Course {
   id: string;

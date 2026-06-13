@@ -7,6 +7,19 @@ import ErrorPage, { ErrorType } from './error-pages';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
 
+// Precise helper to detect React/Next.js hydration mismatch errors
+function checkIsHydrationError(message: string): boolean {
+  const msg = message.toLowerCase();
+  return (
+    msg.includes('hydration') ||
+    msg.includes('mismatch') ||
+    msg.includes('did not match') ||
+    msg.includes('text content') ||
+    msg.includes('extra attributes') ||
+    msg.includes('expected server')
+  );
+}
+
 /**
  * خصائص مكون ErrorBoundary
  */
@@ -79,8 +92,8 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentWillUnmount() {
-    // Unregister when unmounting
-    errorManager.registerBoundaryCallback(() => {});
+    // Unregister when unmounting safely
+    errorManager.unregisterBoundaryCallback(this.handleBoundaryError);
 
     if (this.retryTimeoutId) {
       clearTimeout(this.retryTimeoutId);
@@ -109,9 +122,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Check if this is a hydration mismatch
-    const isHydrationError = error.message.toLowerCase().includes('hydration') ||
-    error.message.toLowerCase().includes('server') ||
-    error.message.toLowerCase().includes('client');
+    const isHydrationError = checkIsHydrationError(error.message);
 
     // Log error to console
     if (isHydrationError) {
@@ -204,7 +215,7 @@ class ErrorBoundary extends Component<Props, State> {
     // Full traces are recorded server-side via the error logging service.
     const subject = `Error Report: ${this.state.errorId}`;
     const body = `Error ID: ${this.state.errorId}\n\nPlease describe what you were doing when this error occurred.`;
-    window.open(`mailto:support@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:support@tolo.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   renderComponentVariant() {
@@ -360,9 +371,7 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       const isHydrationError = Boolean(
-        error?.message.toLowerCase().includes('hydration') ||
-        error?.message.toLowerCase().includes('server') ||
-        error?.message.toLowerCase().includes('client')
+        error && checkIsHydrationError(error.message)
       );
 
       return this.renderGlobalVariant(isHydrationError);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
@@ -41,9 +42,13 @@ interface UploadChunkBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    const userId = "anonymous";
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
@@ -128,11 +133,11 @@ export async function POST(request: NextRequest) {
       const chunkIndex = parseInt(chunkIndexStr, 10);
       const totalChunks = parseInt(totalChunksStr || "0", 10);
 
-      // Verify session exists
+      // Verify session exists and belongs to user
       const session = await getSessionMeta(uploadId);
-      if (!session) {
+      if (!session || session.userId !== userId) {
         return NextResponse.json(
-          { error: "Upload session not found or expired" },
+          { error: "Upload session not found or access denied" },
           { status: 404 }
         );
       }
@@ -200,6 +205,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
     if (!redis) {
@@ -219,10 +229,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const session = await getSessionMeta(uploadId);
+    if (!session || session.userId !== userId) {
+      return NextResponse.json(
+        { error: "Upload session not found or access denied" },
+        { status: 404 }
+      );
+    }
+
     const progress = await getUploadProgress(uploadId);
     if (!progress) {
       return NextResponse.json(
-        { error: "Upload session not found or expired" },
+        { error: "Upload progress not found" },
         { status: 404 }
       );
     }
@@ -245,6 +263,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
     if (!redis) {
@@ -269,9 +292,9 @@ export async function PUT(request: NextRequest) {
 
     // Verify session and all chunks received
     const session = await getSessionMeta(uploadId);
-    if (!session) {
+    if (!session || session.userId !== userId) {
       return NextResponse.json(
-        { error: "Upload session not found or expired" },
+        { error: "Upload session not found or access denied" },
         { status: 404 }
       );
     }
@@ -321,6 +344,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
     if (!redis) {
@@ -337,6 +365,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing uploadId query parameter" },
         { status: 400 }
+      );
+    }
+
+    const session = await getSessionMeta(uploadId);
+    if (!session || session.userId !== userId) {
+      return NextResponse.json(
+        { error: "Upload session not found or access denied" },
+        { status: 404 }
       );
     }
 

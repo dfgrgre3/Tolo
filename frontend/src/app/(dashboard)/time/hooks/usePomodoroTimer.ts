@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { StudySession } from '../types';
 import { TimeSettingsData } from '../_components/TimeSettings';
-
 import { logger } from '@/lib/logger';
 
 export function usePomodoroTimer(
@@ -13,7 +12,6 @@ export function usePomodoroTimer(
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [currentPomodoroState, setCurrentPomodoroState] = useState<'work' | 'shortBreak' | 'longBreak'>('work');
   const [pomodoroCount, setPomodoroCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
 
   // Load settings from localStorage or use defaults
   const [settings] = useState<TimeSettingsData>(() => {
@@ -38,6 +36,26 @@ export function usePomodoroTimer(
     };
   });
 
+  const WORK_DURATION = settings.pomodoroWorkMinutes * 60;
+  const SHORT_BREAK = settings.pomodoroBreakMinutes * 60;
+  const LONG_BREAK = 15 * 60; 
+  const GOAL_TARGET = 4;
+
+  const [timeLeft, setTimeLeft] = useState(WORK_DURATION);
+
+  // References to keep state values updated without re-triggering effects
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const activeTaskIdRef = useRef(activeTaskId);
+  activeTaskIdRef.current = activeTaskId;
+  const currentPomodoroStateRef = useRef(currentPomodoroState);
+  currentPomodoroStateRef.current = currentPomodoroState;
+  const pomodoroCountRef = useRef(pomodoroCount);
+  pomodoroCountRef.current = pomodoroCount;
+  const timeLeftRef = useRef(timeLeft);
+  timeLeftRef.current = timeLeft;
+
+  const sessionStartTimeRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize audio element
@@ -47,27 +65,34 @@ export function usePomodoroTimer(
     }
   }, [settings.soundEnabled]);
 
-  const WORK_DURATION = settings.pomodoroWorkMinutes * 60;
-  const SHORT_BREAK = settings.pomodoroBreakMinutes * 60;
-  const LONG_BREAK = 15 * 60; 
-  const GOAL_TARGET = 4;
+  // Track the actual start time when work starts
+  useEffect(() => {
+    if (isRunning && !sessionStartTimeRef.current && currentPomodoroState === 'work') {
+      sessionStartTimeRef.current = new Date().toISOString();
+    }
+  }, [isRunning, currentPomodoroState]);
 
   const handleTimerComplete = useCallback(() => {
-    if (currentPomodoroState === 'work') {
-      const newPomodoroCount = pomodoroCount + 1;
+    const currentState = currentPomodoroStateRef.current;
+    const currentCount = pomodoroCountRef.current;
+    const currentTaskId = activeTaskIdRef.current;
+    const currentSettings = settingsRef.current;
+
+    if (currentState === 'work') {
+      const newPomodoroCount = currentCount + 1;
       setPomodoroCount(newPomodoroCount);
 
-      if (settings.soundEnabled && audioRef.current) {
+      if (currentSettings.soundEnabled && audioRef.current) {
         audioRef.current.play().catch(e => logger.info("Audio play failed:", e));
       }
 
-      if (activeTaskId) {
+      if (currentTaskId) {
         const session: StudySession = {
           id: `session_${Date.now()}`,
           userId,
-          taskId: activeTaskId,
+          taskId: currentTaskId,
           durationMin: Math.floor(WORK_DURATION / 60),
-          startTime: new Date(Date.now() - WORK_DURATION * 1000).toISOString(),
+          startTime: sessionStartTimeRef.current || new Date(Date.now() - WORK_DURATION * 1000).toISOString(),
           endTime: new Date().toISOString(),
           subjectId: 'default',
           createdAt: new Date().toISOString(),
@@ -78,6 +103,8 @@ export function usePomodoroTimer(
         onStudySessionCreate(session);
       }
 
+      sessionStartTimeRef.current = null; // reset for next work session
+
       if (newPomodoroCount % GOAL_TARGET === 0) {
         setCurrentPomodoroState('longBreak');
         setTimeLeft(LONG_BREAK);
@@ -85,49 +112,66 @@ export function usePomodoroTimer(
         setCurrentPomodoroState('shortBreak');
         setTimeLeft(SHORT_BREAK);
       }
-      
-      setIsRunning(settings.autoStartBreak);
+      setIsRunning(currentSettings.autoStartBreak);
     } else {
       setCurrentPomodoroState('work');
       setTimeLeft(WORK_DURATION);
-      setIsRunning(settings.autoStartBreak);
+      setIsRunning(currentSettings.autoStartBreak);
     }
+  }, [userId, onStudySessionCreate, WORK_DURATION, LONG_BREAK, SHORT_BREAK, GOAL_TARGET]);
 
-  }, [currentPomodoroState, pomodoroCount, activeTaskId, WORK_DURATION, settings, userId, onStudySessionCreate, LONG_BREAK, SHORT_BREAK]);
+  // Keep a stable ref to handleTimerComplete for the useEffect timer
+  const handleTimerCompleteRef = useRef(handleTimerComplete);
+  handleTimerCompleteRef.current = handleTimerComplete;
 
+  // Accurate timer using delta time tracking
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            handleTimerComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
+    if (!isRunning) return;
+
+    const startTime = Date.now();
+    const durationMs = timeLeftRef.current * 1000;
+    const targetTime = startTime + durationMs;
+
+    const tick = () => {
+      const now = Date.now();
+      const diffSeconds = Math.max(0, Math.round((targetTime - now) / 1000));
+      
+      setTimeLeft(diffSeconds);
+
+      if (diffSeconds <= 0) {
+        handleTimerCompleteRef.current();
+      } else {
+        timeoutId = setTimeout(tick, 1000);
+      }
     };
-  }, [isRunning, timeLeft, handleTimerComplete]);
+
+    let timeoutId = setTimeout(tick, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [isRunning]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);
-    if (currentPomodoroState === 'work') setTimeLeft(WORK_DURATION);
-    else if (currentPomodoroState === 'shortBreak') setTimeLeft(SHORT_BREAK);
+    sessionStartTimeRef.current = null;
+    const currentState = currentPomodoroStateRef.current;
+    if (currentState === 'work') setTimeLeft(WORK_DURATION);
+    else if (currentState === 'shortBreak') setTimeLeft(SHORT_BREAK);
     else setTimeLeft(LONG_BREAK);
-  }, [currentPomodoroState, WORK_DURATION, SHORT_BREAK, LONG_BREAK]);
+  }, [WORK_DURATION, SHORT_BREAK, LONG_BREAK]);
 
   const toggleTimer = useCallback(() => {
-    if (timeLeft === 0) resetTimer();
+    if (timeLeftRef.current === 0) {
+      resetTimer();
+    }
     setIsRunning(prev => !prev);
-  }, [timeLeft, resetTimer]);
+  }, [resetTimer]);
 
   const skipCurrentPhase = useCallback(() => {
-    if (currentPomodoroState === 'work') {
-      if ((pomodoroCount + 1) % GOAL_TARGET === 0) {
+    const currentState = currentPomodoroStateRef.current;
+    const currentCount = pomodoroCountRef.current;
+    sessionStartTimeRef.current = null;
+
+    if (currentState === 'work') {
+      if ((currentCount + 1) % GOAL_TARGET === 0) {
         setCurrentPomodoroState('longBreak');
         setTimeLeft(LONG_BREAK);
       } else {
@@ -139,7 +183,7 @@ export function usePomodoroTimer(
       setTimeLeft(WORK_DURATION);
     }
     setIsRunning(false);
-  }, [currentPomodoroState, pomodoroCount, GOAL_TARGET, LONG_BREAK, SHORT_BREAK, WORK_DURATION]);
+  }, [GOAL_TARGET, LONG_BREAK, SHORT_BREAK, WORK_DURATION]);
 
   return {
     isRunning,

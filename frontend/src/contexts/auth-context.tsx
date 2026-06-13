@@ -5,6 +5,21 @@ import { useRouter } from 'next/navigation';
 import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@clerk/nextjs';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 import { logger } from '@/lib/logger';
+import { authApiService } from '@/services/auth/auth-api-service';
+
+// Helper to extract Clerk error messages safely without using 'any'
+function getClerkErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object') {
+    const clerkErr = err as { errors?: { message?: string }[]; message?: string };
+    if (Array.isArray(clerkErr.errors) && clerkErr.errors.length > 0) {
+      return clerkErr.errors[0]?.message || fallback;
+    }
+    if (typeof clerkErr.message === 'string') {
+      return clerkErr.message;
+    }
+  }
+  return fallback;
+}
 
 export function AuthProvider({
   children,
@@ -16,6 +31,12 @@ export function AuthProvider({
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const lastSyncedId = React.useRef<string | null>(null);
+  const currentUserIdRef = React.useRef<string | null>(null);
+
+  // Sync ref with current userId to prevent race conditions during async calls
+  useEffect(() => {
+    currentUserIdRef.current = userId || null;
+  }, [userId]);
 
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
@@ -30,9 +51,23 @@ export function AuthProvider({
       return;
     }
 
+    let isCancelled = false;
+
     if (isUserLoaded && clerkUser) {
       // Avoid redundant profile syncs and state updates if already synced for the current userId
       if (lastSyncedId.current === userId && storeUser?.id === userId) {
+        setIsInitialLoad(false);
+        return;
+      }
+
+      // Pre-validation check for admin routes
+      const role = clerkUser.publicMetadata?.role as string | undefined;
+      const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+      if (isAdminRoute && role && role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
+        logger.warn('Unauthorized admin route access attempt by role:', role);
+        lastSyncedId.current = userId;
+        resetStore();
         setIsInitialLoad(false);
         return;
       }
@@ -41,6 +76,8 @@ export function AuthProvider({
 
       // Asynchronously load detailed secure profile data from repository layer
       import('@/data-access/repositories/auth-repository').then(async ({ authRepository }) => {
+        if (isCancelled || currentUserIdRef.current !== userId) return;
+
         const mappedUser: AuthUser = {
           id: clerkUser.id,
           email: clerkUser.emailAddresses[0]?.emailAddress || '',
@@ -54,15 +91,22 @@ export function AuthProvider({
 
         try {
           const token = await getToken();
+          if (isCancelled || currentUserIdRef.current !== userId) return;
+
           const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
           const profile = await authRepository.getProfile(headers);
+          if (isCancelled || currentUserIdRef.current !== userId) return;
+
           setUser({
             ...mappedUser,
             email: profile.email || mappedUser.email,
-            role: profile.role || 'STUDENT', // Trust server-side role
-            permissions: (clerkUser.publicMetadata?.permissions as string[]) || [],
+            role: (profile.role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT', // Trust server-side role
+            permissions: Array.isArray(clerkUser.publicMetadata?.permissions)
+              ? (clerkUser.publicMetadata.permissions as string[])
+              : [],
           });
         } catch (e) {
+          if (isCancelled || currentUserIdRef.current !== userId) return;
           logger.error('Failed to load secure profile details via repository:', e);
           // Safe fallback to STUDENT role with no permissions on server failure (prevents privilege escalation)
           setUser({
@@ -71,11 +115,22 @@ export function AuthProvider({
             permissions: [],
           });
         } finally {
+          if (!isCancelled && currentUserIdRef.current === userId) {
+            setIsInitialLoad(false);
+          }
+        }
+      }).catch((err) => {
+        logger.error('Failed to load auth-repository module:', err);
+        if (!isCancelled && currentUserIdRef.current === userId) {
           setIsInitialLoad(false);
         }
       });
     }
-  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, storeUser?.id]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, storeUser?.id, getToken]);
 
   return <>{children}</>;
 }
@@ -91,7 +146,7 @@ export function useAuth() {
   const getClerkInstance = useCallback(() => {
     if (clerk) return clerk;
     if (typeof window !== 'undefined') {
-      return (window as any).Clerk;
+      return (window as unknown as { Clerk?: typeof clerk }).Clerk || null;
     }
     return null;
   }, [clerk]);
@@ -101,6 +156,7 @@ export function useAuth() {
   const isStoreLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const resetStore = useAuthStore((state) => state.reset);
+  const setUser = useAuthStore((state) => state.setUser);
 
   // Auth-system is "fully loaded" when Clerk core + the user object have reported
   // `isLoaded: true`. signIn/signUp/setActive from useClerk() are always available
@@ -141,15 +197,41 @@ export function useAuth() {
         return { success: true, requires2FA: true, userId: result.id };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Login error:', err);
-      return { success: false, error: err.errors?.[0]?.message || 'Login failed' };
+      return { success: false, error: getClerkErrorMessage(err, 'Login failed') };
     }
   }, [getClerkInstance]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
-    return login(email, password, rememberMe);
-  }, [login]);
+    const activeClerk = getClerkInstance();
+    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      const result = await activeClerk.client.signIn.create({
+        identifier: email,
+        password,
+        strategy: 'password',
+      });
+      if (result.status === 'complete') {
+        await activeClerk.setActive({ session: result.createdSessionId });
+        
+        // Check role immediately after setting active
+        const role = activeClerk.user?.publicMetadata?.role;
+        if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
+          await activeClerk.signOut();
+          return { success: false, error: 'غير مصرح لك بالدخول كمسؤول' };
+        }
+        return { success: true };
+      }
+      if (result.status === 'needs_second_factor') {
+        return { success: true, requires2FA: true, userId: result.id };
+      }
+      return { success: false, error: `الخطوات الإضافية مطلوبة: ${result.status}` };
+    } catch (err: unknown) {
+      logger.error('Admin login error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول') };
+    }
+  }, [getClerkInstance]);
 
   const register = useCallback(async (
     data: {
@@ -180,12 +262,11 @@ export function useAuth() {
         }
       }
       return { success: true, autoLoggedIn: false };
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Registration error:', err);
-      return { success: false, error: err.errors?.[0]?.message || 'Registration failed' };
+      return { success: false, error: getClerkErrorMessage(err, 'Registration failed') };
     }
   }, [getClerkInstance]);
-
 
   const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
@@ -198,10 +279,16 @@ export function useAuth() {
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const signIn = activeClerk.client.signIn;
+      if (signIn.id !== userId) {
+        return { success: false, error: 'محاولة تسجيل دخول غير صالحة' };
+      }
       const factor = signIn.supportedSecondFactors?.find(
-          (f: any) => f.strategy === 'totp' || f.strategy === 'phone_code' || f.strategy === 'email_code' || f.strategy === 'backup_code'
+          (f) => (f as { strategy: string }).strategy === 'totp' || 
+                 (f as { strategy: string }).strategy === 'phone_code' || 
+                 (f as { strategy: string }).strategy === 'email_code' || 
+                 (f as { strategy: string }).strategy === 'backup_code'
       );
-      const strategy = (factor?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+      const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
       const result = await signIn.attemptSecondFactor({
         strategy,
         code: token,
@@ -211,30 +298,64 @@ export function useAuth() {
         return { success: true };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('2FA verification error:', err);
-      return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
+      return { success: false, error: getClerkErrorMessage(err, 'رمز التحقق غير صحيح') };
     }
   }, [getClerkInstance]);
 
   const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
-    return !!userId;
-  }, [userId]);
+    if (!userId || !clerkUser) {
+      if (options?.clearOnFailure) {
+        resetStore();
+      }
+      return false;
+    }
+    try {
+      await clerkUser.reload();
+      const token = await getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const { authRepository } = await import('@/data-access/repositories/auth-repository');
+      const profile = await authRepository.getProfile(headers);
+      
+      const mappedUser: AuthUser = {
+        id: clerkUser.id,
+        email: clerkUser.emailAddresses[0]?.emailAddress || '',
+        username: clerkUser.username || null,
+        name: clerkUser.fullName || clerkUser.username || null,
+        avatar: clerkUser.imageUrl || null,
+        role: (profile.role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT',
+        emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
+        permissions: Array.isArray(clerkUser.publicMetadata?.permissions)
+          ? (clerkUser.publicMetadata.permissions as string[])
+          : [],
+      };
+      
+      setUser(mappedUser);
+      return true;
+    } catch (e) {
+      logger.error('Failed to refresh user profile:', e);
+      if (options?.clearOnFailure) {
+        resetStore();
+      }
+      return false;
+    }
+  }, [userId, clerkUser, getToken, setUser, resetStore]);
 
   const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; error?: string; message?: string;}> => {
-    return { success: false, error: 'Reset password managed via Clerk', message: '' };
+    return authApiService.forgotPassword(email);
   }, []);
 
   const resetPassword = useCallback(async (token: string, newPassword: string) => {
-    return { success: false, error: 'Reset password managed via Clerk' };
+    return authApiService.resetPassword(token, newPassword);
   }, []);
 
   const verifyEmail = useCallback(async (token: string) => {
-    return { success: false, error: 'Email verification managed via Clerk' };
+    return authApiService.verifyEmail(token);
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
-    return { success: false, error: 'Verification managed via Clerk' };
+    return authApiService.resendVerification(email);
   }, []);
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
@@ -245,8 +366,8 @@ export function useAuth() {
         identifier: email,
       });
       const firstFactor = result.supportedFirstFactors?.find(
-          (f: any) => f.strategy === 'email_code'
-      ) as any;
+          (f) => (f as { strategy: string }).strategy === 'email_code'
+      ) as { strategy: string; emailAddressId?: string } | undefined;
       if (firstFactor && firstFactor.emailAddressId) {
         await activeClerk.client.signIn.prepareFirstFactor({
           strategy: 'email_code',
@@ -255,9 +376,9 @@ export function useAuth() {
         return { success: true };
       }
       return { success: false, error: 'طريقة الدخول السريع غير مدعومة لهذا الحساب' };
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Magic link request error:', err);
-      return { success: false, error: err.errors?.[0]?.message || 'فشل إرسال كود الدخول السريع' };
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إرسال كود الدخول السريع') };
     }
   }, [getClerkInstance]);
 
@@ -274,9 +395,9 @@ export function useAuth() {
         return { success: true };
       }
       return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('OTP verification error:', err);
-      return { success: false, error: err.errors?.[0]?.message || 'رمز التحقق غير صحيح' };
+      return { success: false, error: getClerkErrorMessage(err, 'رمز التحقق غير صحيح') };
     }
   }, [getClerkInstance]);
 
@@ -300,3 +421,5 @@ export function useAuth() {
     verifyOTP,
   };
 }
+
+

@@ -42,16 +42,16 @@ import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './
 import { logger } from '@/lib/logger';
 import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 
-const LazyWeeklySchedule = dynamic(() => import("@/app/(dashboard)/time/_components/WeeklySchedule"));
-const LazyTaskManagement = dynamic(() => import("@/app/(dashboard)/time/_components/TaskManagement"));
-const LazyStudySessionsHistory = dynamic(() => import("@/app/(dashboard)/time/_components/StudySessionsHistory"));
-const LazyReminders = dynamic(() => import("@/app/(dashboard)/time/_components/Reminders"));
-const LazyTimeTracker = dynamic(() => import("@/app/(dashboard)/time/_components/TimeTracker"));
-const LazyTimeAnalytics = dynamic(() => import('./_components/TimeAnalytics'));
-const LazyProductivityInsights = dynamic(() => import('./_components/ProductivityInsights'));
-const LazyExportDialog = dynamic(() => import('./_components/ExportDialog'));
-const LazyKeyboardShortcutsHelp = dynamic(() => import('./_components/KeyboardShortcutsHelp'));
-const QuickActionButton = dynamic(() => import('./_components/QuickActionButton'));
+const LazyWeeklySchedule = dynamic(() => import("@/app/(dashboard)/time/_components/WeeklySchedule"), { ssr: false });
+const LazyTaskManagement = dynamic(() => import("@/app/(dashboard)/time/_components/TaskManagement"), { ssr: false });
+const LazyStudySessionsHistory = dynamic(() => import("@/app/(dashboard)/time/_components/StudySessionsHistory"), { ssr: false });
+const LazyReminders = dynamic(() => import("@/app/(dashboard)/time/_components/Reminders"), { ssr: false });
+const LazyTimeTracker = dynamic(() => import("@/app/(dashboard)/time/_components/TimeTracker"), { ssr: false });
+const LazyTimeAnalytics = dynamic(() => import('./_components/TimeAnalytics'), { ssr: false });
+const LazyProductivityInsights = dynamic(() => import('./_components/ProductivityInsights'), { ssr: false });
+const LazyExportDialog = dynamic(() => import('./_components/ExportDialog'), { ssr: false });
+const LazyKeyboardShortcutsHelp = dynamic(() => import('./_components/KeyboardShortcutsHelp'), { ssr: false });
+const QuickActionButton = dynamic(() => import('./_components/QuickActionButton'), { ssr: false });
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");

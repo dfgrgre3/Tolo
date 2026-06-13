@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import WalletDashboard from "@/components/billing/WalletDashboard";
+import dynamic from "next/dynamic";
+const WalletDashboard = dynamic(() => import("@/components/billing/WalletDashboard"), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-white/5 animate-pulse rounded-2xl" />
+});
 import SubscriptionPlans from "@/components/billing/SubscriptionPlans";
 import { CreditCard, Wallet, Sparkles, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";

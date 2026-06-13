@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -141,4 +143,13 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "tolo",
+  project: "frontend",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  hideSourceMaps: false,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
+

@@ -8,6 +8,7 @@ import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
 
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
+import * as Sentry from '@sentry/nextjs';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -147,6 +148,12 @@ class ErrorService {
   public registerBoundaryCallback(callback: (error: Error, errorId: string) => void) {
     this.boundaryCallback = callback;
   }
+  
+  public unregisterBoundaryCallback(callback: (error: Error, errorId: string) => void) {
+    if (this.boundaryCallback === callback) {
+      this.boundaryCallback = null;
+    }
+  }
 
   /**
    * Core logging method
@@ -171,6 +178,22 @@ class ErrorService {
     // Add to in-memory logs
     this.logs.push(logEntry);
     if (this.logs.length > this.maxLogs) this.logs.shift();
+
+    // Report to Sentry
+    Sentry.captureException(errorObj, {
+      level: logEntry.severity === 'critical'
+        ? 'fatal'
+        : logEntry.severity === 'high'
+          ? 'error'
+          : logEntry.severity === 'medium'
+            ? 'warning'
+            : 'info',
+      tags: {
+        source: logEntry.source,
+        sessionId: logEntry.sessionId,
+      },
+      extra: context,
+    });
 
     // Persist to localStorage if on client
     if (typeof window !== 'undefined') {

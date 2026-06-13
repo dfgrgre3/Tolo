@@ -297,27 +297,30 @@ async function handleProxy(
   }
 
   const targetUrl = `${backendUrl}/api/${path}${search}`;
-  console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
+  }
 
   const hasBody = METHODS_WITH_BODY.has(request.method);
-  let body: any = undefined;
-  if (hasBody) {
-    try {
-      const arrayBuffer = await request.arrayBuffer();
-      if (arrayBuffer.byteLength > 0) {
-        body = arrayBuffer;
-      }
-    } catch (e) {
-      console.warn(`[API Proxy] Failed to read request body: ${e}`);
-    }
+  let body: RequestInit['body'] = undefined;
+  let duplex: 'half' | undefined = undefined;
+
+  if (hasBody && request.body) {
+    body = request.body;
+    duplex = 'half';
   }
 
   try {
-    const response = await fetchWithTimeout(targetUrl, {
+    const fetchOptions: RequestInit & { duplex?: 'half' } = {
       method: request.method,
       headers: upstreamHeaders(request),
       body,
-    });
+    };
+    if (duplex) {
+      fetchOptions.duplex = duplex;
+    }
+
+    const response = await fetchWithTimeout(targetUrl, fetchOptions);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -333,9 +336,10 @@ async function handleProxy(
       status: response.status,
       headers: responseHeaders,
     });
-  } catch (error: any) {
-    const errName = error?.name || '';
-    const errMsg = error?.message || String(error);
+  } catch (error: unknown) {
+    const errObj = error as Record<string, unknown> | null;
+    const errName = (errObj && typeof errObj.name === 'string') ? errObj.name : '';
+    const errMsg = (errObj && typeof errObj.message === 'string') ? errObj.message : String(error);
     const isTimeout = errName === 'AbortError' || errMsg.toLowerCase().includes('aborted');
     console.error(
       `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path} ` +

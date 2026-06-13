@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
-    "src/app/layout.tsx",
-    "src/app/page.tsx",
-    "src/app/api/**/route.ts",
     "scripts/*.ts",
     "scripts/*.mjs"
   ],

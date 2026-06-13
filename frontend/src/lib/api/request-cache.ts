@@ -16,6 +16,9 @@ class RequestCacheManager {
   // Stores resolved cache entries
   private cache = new Map<string, CacheEntry<any>>();
 
+  // Max size limit to prevent memory leaks in long sessions
+  private readonly maxCacheSize = 100;
+
   // Default cache TTL: 5 seconds (good for preventing double-clicks and rapid renders)
   private defaultTTL = 5000;
 
@@ -103,6 +106,15 @@ class RequestCacheManager {
         if (response.ok) {
           // Clone the response to cache, returning the original
           const cachedResponse = response.clone();
+          
+          // Enforce max cache size limit (FIFO eviction)
+          if (this.cache.size >= this.maxCacheSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+              this.cache.delete(firstKey);
+            }
+          }
+          
           this.cache.set(key, {
             data: cachedResponse,
             timestamp: Date.now()

@@ -97,6 +97,11 @@ function PulseDot({ state, isRunning }: { state: PomodoroState; isRunning: boole
 export function TimeTrackerHeaderWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     isRunning,
@@ -112,8 +117,8 @@ export function TimeTrackerHeaderWidget() {
     skipPhase,
   } = useTimeTrackerStore();
 
-  // Only show the widget while the timer is running.
-  if (!isRunning) return null;
+  // Only show the widget while the timer is running and component is mounted.
+  if (!mounted || !isRunning) return null;
 
   const totalDuration =
     currentPomodoroState === 'work'

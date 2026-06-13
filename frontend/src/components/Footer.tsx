@@ -47,8 +47,6 @@ export default function Footer() {
   }];
 
 
-  if (!isMounted) return null;
-
   return (
     <footer className="relative mt-12 sm:mt-16 md:mt-20 border-t border-border bg-background pt-12 sm:pt-16 md:pt-20 pb-8 sm:pb-10 overflow-hidden" dir="rtl">
       {/* --- Ambient Background Effects --- */}
@@ -117,7 +115,7 @@ export default function Footer() {
         <div className="relative pt-6 sm:pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex flex-col md:flex-row items-center gap-3 sm:gap-6 text-center md:text-start w-full md:w-auto">
             <p className="font-bold text-gray-600 text-xs sm:text-sm">© {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.</p>
-            {user &&
+            {isMounted && user &&
             <m.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}

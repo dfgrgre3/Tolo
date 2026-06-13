@@ -7,7 +7,7 @@ export interface AuthUser {
   username: string | null;
   name?: string | null;
   avatar: string | null;
-  role: string;
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM';
   emailVerified: boolean | null;
 
   permissions: string[];

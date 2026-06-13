@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/rpc-client';
+import { authClient } from '@/data-access/rpc-client';
 
 export interface UserProfile {
   email: string;

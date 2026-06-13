@@ -51,7 +51,7 @@ type PlayerStore = PlayerUiState & {
   resetPlayerState: (partial?: Partial<PlayerUiState>) => void;
 };
 
-export const defaultPlayerUiState: PlayerUiState = {
+export const createDefaultPlayerUiState = (): PlayerUiState => ({
   isPlaying: false,
   isLoading: true,
   showControls: true,
@@ -85,17 +85,17 @@ export const defaultPlayerUiState: PlayerUiState = {
   loopEnd: null,
   activeQuestionId: null,
   answeredQuestionIds: new Set(),
-};
+});
 
 export const useCourseVideoPlayerStore = create<PlayerStore>((set) => ({
-  ...defaultPlayerUiState,
+  ...createDefaultPlayerUiState(),
   setPlayerState: (partial) =>
     set((state) => ({
       ...(typeof partial === "function" ? partial(state) : partial),
     })),
   resetPlayerState: (partial) =>
     set(() => ({
-      ...defaultPlayerUiState,
+      ...createDefaultPlayerUiState(),
       ...partial,
     })),
 }));
