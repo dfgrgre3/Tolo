@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api/api-client';
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
 
 interface NotificationsResponse {
   notifications: Notification[];
@@ -171,6 +172,18 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const { socket, isConnected } = useWebSocket();
   const { isAuthenticated } = useAuth();
 
+  // Wait for Clerk to fully resolve the session before fetching.
+  // isAuthenticated alone is not enough — the JWT token may not be
+  // available yet, which causes a 401 → redirect → infinite reload loop.
+  const { isLoaded: isClerkLoaded } = useClerkAuth();
+
+  // Use a stable ref so the polling interval always reads the latest auth state
+  // without being re-created on every render.
+  const isAuthReadyRef = useRef(false);
+  useEffect(() => {
+    isAuthReadyRef.current = isAuthenticated && isClerkLoaded;
+  }, [isAuthenticated, isClerkLoaded]);
+
   useEffect(() => {
     if (!socket || !isConnected) return;
 
@@ -204,13 +217,17 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isConnected]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchNotifications(true);
-    }
+    // Only fetch after Clerk has fully resolved the session AND isAuthenticated is true.
+    // isAuthenticated can become true before the JWT token is ready (Clerk's internal
+    // state initializes in two steps). Calling the API before the token is ready
+    // results in a 401 → window.location.href redirect → full page reload → infinite loop.
+    if (!isAuthenticated || !isClerkLoaded) return;
+
+    fetchNotifications(true);
 
     // Poll conservatively as a fallback for WebSocket.
     const pollInterval = setInterval(() => {
-      if (isAuthenticated && !isConnectedRef.current) {
+      if (isAuthReadyRef.current && !isConnectedRef.current) {
         fetchNotifications(true);
       }
     }, 300000);
@@ -218,7 +235,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [fetchNotifications, isAuthenticated]);
+  }, [fetchNotifications, isAuthenticated, isClerkLoaded]);
 
   const value = useMemo(() => ({
     notifications,
@@ -230,11 +247,12 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     loadMore,
     soundEnabled,
     toggleSound
-  }), [notifications, unreadCount, isLoading, hasMore, fetchNotifications, loadMore, soundEnabled, toggleSound, markAsRead]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [notifications, unreadCount, isLoading, hasMore, fetchNotifications, loadMore, soundEnabled, toggleSound]);
 
   return (
     <NotificationsContext.Provider value={value}>
       {children}
-    </NotificationsContext.Provider>);
-
+    </NotificationsContext.Provider>
+  );
 }

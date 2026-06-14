@@ -66,10 +66,14 @@ function LoginForm() {
   // Redirect already-authenticated users to dashboard.
   // hasRedirected guard ensures this fires at most once even if Clerk
   // triggers multiple state updates during session initialization.
+  // We also check isAuthLoading is FALSE before redirecting — if Clerk
+  // is still initializing (isAuthLoading=true), isAuthenticated may be
+  // a stale value from the previous render cycle and cause a premature redirect.
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated && !hasRedirected.current) {
-      redirectAfterLogin(redirectUrl);
-    }
+    if (isAuthLoading) return; // Wait for Clerk to fully resolve
+    if (!isAuthenticated) return; // Not logged in yet
+    if (hasRedirected.current) return; // Already redirected — ignore Clerk re-renders
+    redirectAfterLogin(redirectUrl);
   }, [isAuthLoading, isAuthenticated, redirectAfterLogin, redirectUrl]);
 
   const onSubmit = async (data: LoginFormValues) => {

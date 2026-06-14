@@ -46,16 +46,29 @@ export default clerkMiddleware(async (auth, req) => {
   if (userId && isAuthPage) {
     const destination = url.pathname === "/admin-login" ? "/admin/dashboard" : "/dashboard";
     // Redirect loop protection: if we recently redirected to the same destination
-    // (within 3 seconds), break the loop to prevent infinite page reloads.
+    // within the protection window, break the loop to prevent infinite page reloads.
+    // Window: 10s (generous enough for slow Clerk session init)
+    // Threshold: 2 redirects (any more = loop detected)
     const lastRedirectDest = req.cookies.get("__redirect_dest")?.value;
     const lastRedirectTs = req.cookies.get("__redirect_ts")?.value;
+    const lastRedirectCount = parseInt(req.cookies.get("__redirect_count")?.value || "0", 10);
     const now = Date.now();
-    if (lastRedirectDest === destination && lastRedirectTs && (now - parseInt(lastRedirectTs, 10)) < 3000) {
-      // Loop detected — let the request through instead of redirecting again
+    const withinWindow = lastRedirectTs && (now - parseInt(lastRedirectTs, 10)) < 10_000;
+    const isSameDest = lastRedirectDest === destination;
+
+    if (isSameDest && withinWindow && lastRedirectCount >= 2) {
+      // Loop detected — let the request through to break the cycle
+      // Clear the counters so future legitimate redirects work
+      const passThrough = NextResponse.next();
+      passThrough.cookies.delete("__redirect_dest");
+      passThrough.cookies.delete("__redirect_ts");
+      passThrough.cookies.delete("__redirect_count");
+      return passThrough;
     } else {
       const response = NextResponse.redirect(new URL(destination, req.url));
-      response.cookies.set("__redirect_dest", destination, { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 5 });
-      response.cookies.set("__redirect_ts", String(now), { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 5 });
+      response.cookies.set("__redirect_dest", destination, { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 15 });
+      response.cookies.set("__redirect_ts", isSameDest && withinWindow ? (lastRedirectTs || String(now)) : String(now), { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 15 });
+      response.cookies.set("__redirect_count", String(isSameDest && withinWindow ? lastRedirectCount + 1 : 1), { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 15 });
       return response;
     }
   }

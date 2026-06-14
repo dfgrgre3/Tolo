@@ -138,9 +138,29 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
     return payload as T;
 }
 
+/**
+ * Detect whether Clerk's browser-side session is still active.
+ * This checks the Clerk JS SDK directly (not React hooks) so it can
+ * be called from non-component code like the API client.
+ *
+ * Returns true if Clerk has an active session with a valid ID.
+ */
+function isClerkSessionActive(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const clerk = (window as unknown as Record<string, unknown>)?.Clerk as
+            | { session?: { id?: string; status?: string } | null }
+            | undefined;
+        // session.id being present and status being "active" means the session is valid.
+        return !!(clerk?.session?.id && clerk?.session?.status === 'active');
+    } catch {
+        return false;
+    }
+}
+
 const REDIRECT_LOOP_KEY = '__api_redirect_count';
-const REDIRECT_LOOP_WINDOW = 10_000; // 10 seconds
-const MAX_REDIRECTS_IN_WINDOW = 3;
+const REDIRECT_LOOP_WINDOW = 15_000; // 15 seconds — generous window to catch slow loops
+const MAX_REDIRECTS_IN_WINDOW = 2;   // at most 2 redirects per window
 
 function detectRedirectLoop(): boolean {
     if (typeof window === 'undefined') return false;
@@ -309,9 +329,23 @@ class ApiClient {
                     // Only redirect if an Authorization header was actually sent.
                     // This avoids redirect loops on initialization before Clerk is loaded.
                     if (headers.has('Authorization')) {
-                        // Check for redirect loop first — if we've already redirected
-                        // multiple times in a short window, break the cycle.
-                        if (detectRedirectLoop()) {
+                        // CRITICAL: If Clerk still reports an active session, the 401 is
+                        // likely a transient issue (backend hasn't synced the new token yet,
+                        // or the backend rejected a valid Clerk JWT for a non-auth reason).
+                        // In this case, do NOT redirect or reset the auth store — that would
+                        // trigger an infinite page-reload loop:
+                        //   Dashboard → 401 → redirect to /login → middleware redirect
+                        //   to /dashboard → API call → 401 → repeat.
+                        if (isClerkSessionActive()) {
+                            console.warn(
+                                `[API Proxy] Received 401 for ${endpoint} but Clerk session is still active. ` +
+                                `Skipping redirect to prevent infinite reload loop. ` +
+                                `The backend may need time to sync, or the endpoint may require different permissions.`
+                            );
+                            // Do NOT resetAuthStore() or redirect — Clerk session is valid.
+                        } else if (detectRedirectLoop()) {
+                            // Check for redirect loop first — if we've already redirected
+                            // multiple times in a short window, break the cycle.
                             console.error(
                                 'API redirect loop detected! Multiple 401 redirects occurred in a short window. ' +
                                 'Stopping automatic redirects to prevent infinite page reloads. ' +

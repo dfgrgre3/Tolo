@@ -85,7 +85,7 @@ export function AuthProvider({
         logger.warn('Clerk failed to load within 5 seconds. Falling back to unauthenticated state.');
         resetStore();
       }
-    }, 5000);
+    }, 8000); // Increased from 5s to 8s — Clerk can be slow on first load
     return () => clearTimeout(timer);
   }, [isClerkLoaded, isUserLoaded, resetStore]);
 

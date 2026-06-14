@@ -8,6 +8,11 @@ import { toast } from 'sonner';
 const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
 
+// Auth pages that should NOT be saved as "last visited" (to prevent redirect loops)
+const AUTH_PATHS = ['/login', '/register', '/admin-login', '/verify-email', '/forgot-password', '/reset-password'];
+// A small flag stored in sessionStorage to prevent restore-loops during auth transitions
+const RESTORE_GUARD_KEY = 'thanawy:restoredOnce';
+
 function restoreInputState(el: Element, data: any) {
   if (el instanceof HTMLInputElement) {
     if (el.type === 'checkbox' || el.type === 'radio') {
@@ -47,12 +52,23 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
     if (isFirstRender.current) {
       isFirstRender.current = false;
 
-      // If we're at the root, check if we should redirect back to where they were
+      // Only restore if we're at the root AND we haven't already restored in this tab session.
+      // The RESTORE_GUARD_KEY prevents the loop:
+      //   1. Middleware redirects authenticated user from /login → /
+      //   2. ClientLayoutProvider would restore /dashboard → middleware sees user → redirects again...
+      // By setting the guard after the first restore, we break the cycle.
       if (pathname === '/') {
-        const lastVisited = safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'session' }) ||
-        safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
+        const alreadyRestored = sessionStorage.getItem(RESTORE_GUARD_KEY);
+        if (alreadyRestored) return;
 
-        if (lastVisited && lastVisited !== '/') {
+        const lastVisited = safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'session' }) ||
+          safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
+
+        // Do NOT restore to auth pages (that would create a loop with middleware auth checks)
+        const isAuthPath = lastVisited && AUTH_PATHS.some(p => lastVisited.startsWith(p));
+
+        if (lastVisited && lastVisited !== '/' && !isAuthPath) {
+          sessionStorage.setItem(RESTORE_GUARD_KEY, '1');
           const timer = setTimeout(() => {
             router.push(lastVisited);
             toast.info('جاري استعادة جلستك السابقة...', {
@@ -66,10 +82,14 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
     }
   }, [pathname, router]);
 
-  // Save current path
+  // Save current path — but NEVER save auth pages to prevent redirect loops
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
+    const isAuthPage = AUTH_PATHS.some(p => pathname.startsWith(p));
+    if (isAuthPage) return;
     safeSetItem(LAST_VISITED_PATH_KEY, fullPath, { storageType: 'session' });
+    // Clear the restore guard when user successfully navigates to a real page
+    sessionStorage.removeItem(RESTORE_GUARD_KEY);
   }, [pathname, fullPath]);
 
   // Optimized Scroll Restoration Logic
