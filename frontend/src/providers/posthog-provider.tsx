@@ -14,7 +14,7 @@ if (typeof window !== 'undefined') {
     person_profiles: 'identified_only',
     capture_pageview: false, // Track pageviews manually to align with Next.js App Router routing
     capture_performance: true, // Automatically captures Web Vitals/Performance
-    disabled: !hasValidKey,
+    opt_out_capturing_by_default: !hasValidKey,
   });
 }
 
