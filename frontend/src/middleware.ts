@@ -77,12 +77,11 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect();
   }
 
-  // Get or generate session-based CSP nonce to preserve browser/CDN caching
-  let nonce = req.cookies.get("csp-nonce")?.value;
-  const isNewNonce = !nonce;
-  if (!nonce) {
-    nonce = generateNonce();
-  }
+  // Generate a fresh nonce for every request.
+  // CSP nonces MUST be unique per response — reusing a nonce via cookie
+  // defeats the security model and causes CSP violations when the nonce
+  // stored in the cookie drifts out of sync with what Clerk received.
+  const nonce = generateNonce();
 
   // Helper to extract domain origin safely
   const getDomainFromUrl = (url: string | undefined): string => {
@@ -162,9 +161,15 @@ export default clerkMiddleware(async (auth, req) => {
     frameAncestors.push(baseOrigin);
   }
 
+  // Note: 'unsafe-inline' is included alongside the nonce.
+  // When a nonce is present in script-src, browsers automatically ignore
+  // 'unsafe-inline' (per the CSP3 spec), so this is a no-op security-wise.
+  // It serves as a graceful fallback for edge cases where the nonce doesn't
+  // propagate correctly (e.g., Vercel CDN stripping response headers on
+  // pre-rendered pages, or older CSP Level 2 browsers).
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-hashes' 'sha256-HOy+N/XLxP4bBXPgFk73cDMc524cZhcklyvEq7GJ34c=' ${isDev ? "'unsafe-eval' " : ""}https: https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-hashes' 'sha256-HOy+N/XLxP4bBXPgFk73cDMc524cZhcklyvEq7GJ34c=' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     "img-src 'self' https: data: blob:",
     "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",
@@ -195,14 +200,8 @@ export default clerkMiddleware(async (auth, req) => {
   // Also expose nonce for client-side needs (Clerk, analytics, etc.)
   response.headers.set("x-nonce", nonce);
 
-  if (isNewNonce) {
-    response.cookies.set("csp-nonce", nonce, {
-      httpOnly: true,
-      secure: !isDev,
-      sameSite: "lax",
-      path: "/",
-    });
-  }
+  // Clear any stale cached nonce cookie — nonces must never be reused
+  response.cookies.delete("csp-nonce");
 
   return response;
 });

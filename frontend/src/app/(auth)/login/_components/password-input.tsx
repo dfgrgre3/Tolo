@@ -33,6 +33,7 @@ export function PasswordInput({ showPassword, setShowPassword, registration, err
         showPasswordToggle
         onTogglePassword={() => setShowPassword(!showPassword)}
         showPassword={showPassword}
+        autoComplete="current-password"
       />
     </div>
   );

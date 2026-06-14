@@ -17,6 +17,7 @@ interface PremiumInputProps {
   showPassword?: boolean;
   endAdornment?: ReactNode;
   dir?: 'rtl' | 'ltr';
+  autoComplete?: string;
 }
 
 function getErrorMessage(error?: { message?: string } | string): string | undefined {
@@ -106,6 +107,7 @@ export function PremiumInput({
   showPassword,
   endAdornment,
   dir,
+  autoComplete,
 }: PremiumInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
@@ -134,6 +136,7 @@ export function PremiumInput({
         <input
           {...registration}
           type={type}
+          autoComplete={autoComplete}
           onFocus={() => setIsFocused(true)}
           onBlur={(e) => {
             setIsFocused(false);
