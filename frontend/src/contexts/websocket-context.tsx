@@ -45,6 +45,15 @@ class WebSocketErrorBoundary extends React.Component<
 function shouldDisableWebSocket(): boolean {
   if (typeof document === "undefined") return false;
   try {
+    // Vercel serverless environments do not support persistent WebSockets
+    const apiHost = process.env.NEXT_PUBLIC_API_URL;
+    if (apiHost && apiHost.includes('.vercel.app')) {
+      return true;
+    }
+    if (typeof window !== "undefined" && (window.location.hostname.endsWith(".vercel.app") || window.location.hostname.includes("vercel.app"))) {
+      return true;
+    }
+
     const root = document.documentElement;
     const mode = root.getAttribute("data-perf-mode");
     if (
@@ -77,7 +86,10 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
   const currentUserId = userId || user?.id;
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
-  const [websocketEnabled, setWebsocketEnabled] = React.useState(true);
+  const [websocketEnabled, setWebsocketEnabled] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return !shouldDisableWebSocket();
+  });
 
   // Store getToken in a ref to avoid re-triggering effects on every render.
   // getToken reference changes on every Clerk render which would cause

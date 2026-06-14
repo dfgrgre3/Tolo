@@ -19,19 +19,38 @@ const transport = createConnectTransport({
   baseUrl,
   useHttpGet: true,
   // Ensure Next.js fetch caching is enabled for gRPC GET requests
-  fetch: (input, init) => {
+  fetch: async (input, init) => {
     const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : '';
     const isAuthRequest = urlStr.includes('AuthService') || urlStr.includes('/auth/');
     
+    const newInit = { ...init };
+    if (isBrowser) {
+      const headers = new Headers(newInit.headers);
+      if (!headers.has('Authorization')) {
+        const clerk = (window as any).Clerk;
+        if (clerk?.session) {
+          try {
+            const token = await clerk.session.getToken();
+            if (token) {
+              headers.set('Authorization', `Bearer ${token}`);
+            }
+          } catch (e) {
+            console.error('Failed to get Clerk token for RPC request:', e);
+          }
+        }
+      }
+      newInit.headers = headers;
+    }
+
     if (isAuthRequest) {
       return fetch(input, {
-        ...init,
+        ...newInit,
         cache: 'no-store'
       });
     }
 
     return fetch(input, {
-      ...init,
+      ...newInit,
       next: { revalidate: 60 } // Cache for 60 seconds
     });
   }

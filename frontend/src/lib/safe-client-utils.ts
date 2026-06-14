@@ -360,12 +360,32 @@ export async function safeFetch<T = unknown>(
 ): Promise<{ data: T | null; error: Error | null; response: Response | null; }> {
   try {
     const finalUrl = buildFinalUrl(url);
-    let response = await fetchFn(finalUrl, options);
+
+    const newOptions = { ...options };
+    if (typeof window !== 'undefined') {
+      const headers = new Headers(newOptions.headers);
+      if (!headers.has('Authorization')) {
+        const clerk = (window as any).Clerk;
+        if (clerk?.session) {
+          try {
+            const token = await clerk.session.getToken();
+            if (token) {
+              headers.set('Authorization', `Bearer ${token}`);
+            }
+          } catch (e) {
+            console.error('Failed to get Clerk token for safeFetch request:', e);
+          }
+        }
+      }
+      newOptions.headers = headers;
+    }
+
+    let response = await fetchFn(finalUrl, newOptions);
 
     if (shouldAttemptTokenRefresh(url, response)) {
       const refreshed = await refreshAuthSession();
       if (refreshed) {
-        response = await fetchWithTimeout(finalUrl, options);
+        response = await fetchWithTimeout(finalUrl, newOptions);
       }
     }
 
