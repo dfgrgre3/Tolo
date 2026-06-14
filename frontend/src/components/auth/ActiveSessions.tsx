@@ -18,6 +18,8 @@ import { m, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { useAuth } from '@/contexts/auth-context';
+
 interface UserSession {
   id: string;
   userId: string;
@@ -30,6 +32,7 @@ interface UserSession {
 }
 
 export function ActiveSessions() {
+  const { fetchWithAuth } = useAuth();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRevoking, setIsRevoking] = useState<string | null>(null);
@@ -37,7 +40,7 @@ export function ActiveSessions() {
   const fetchSessions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/sessions', { credentials: 'include' });
+      const res = await fetchWithAuth('/api/auth/sessions');
       const data = await res.json();
       if (data.success) {
         setSessions(data.sessions || []);
@@ -58,9 +61,8 @@ export function ActiveSessions() {
   const handleRevoke = async (sessionId: string) => {
     setIsRevoking(sessionId);
     try {
-      const res = await fetch(`/api/auth/sessions?sessionId=${sessionId}`, {
-        method: 'DELETE',
-        credentials: 'include'
+      const res = await fetchWithAuth(`/api/auth/sessions?sessionId=${sessionId}`, {
+        method: 'DELETE'
       });
       const data = await res.json();
       if (data.success) {
