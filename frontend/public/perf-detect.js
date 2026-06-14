@@ -23,7 +23,7 @@
           return;
         }
       }
-    } catch (e) {}
+    } catch (_e) { /* intentionally empty — localStorage may be unavailable */ }
 
     var nav = navigator;
     var conn = nav.connection || nav.mozConnection || nav.webkitConnection;
@@ -89,7 +89,7 @@
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         signals.reducedMotion = true;
       }
-    } catch (e) {}
+    } catch (_e) { /* matchMedia may not be available */ }
 
     // ── Clamp & decide ──────────────────────────────────────
     score = Math.max(0, Math.min(100, score));
@@ -106,7 +106,7 @@
 
     applyMode(mode);
 
-    try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch (e) {}
+    try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch (_e) { /* storage quota may be exceeded */ }
 
     function applyMode(m) {
       ROOT.classList.remove('efficiency-mode', 'lite-mode', 'ultra-lite-mode');
@@ -153,7 +153,7 @@
           } else {
             cpuAdj -= 15; signals.gpuType = 'none';
           }
-        } catch (e) { signals.gpuType = 'unknown'; }
+        } catch (_e) { signals.gpuType = 'unknown'; }
         // Re-evaluate mode with refined score
         var refined = Math.max(0, Math.min(100, score + cpuAdj));
         signals.score = refined;
@@ -171,8 +171,8 @@
         var cur_idx = order.indexOf(ROOT.getAttribute('data-perf-mode') || 'balanced');
         var new_idx = order.indexOf(refined_mode);
         if (new_idx > cur_idx) applyMode(refined_mode);
-        try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch(e) {}
-      } catch (e) {}
+        try { localStorage.setItem('tolo-device-signals', JSON.stringify(signals)); } catch(_e) { /* storage quota may be exceeded */ }
+      } catch (_e) { /* benchmark or GPU detection failed silently */ }
     };
 
     // Battery check (async, never blocking)
@@ -195,7 +195,7 @@
       setTimeout(deferHeavy, 100);
     }
 
-  } catch (e) {
-    try { document.documentElement.setAttribute('data-perf-mode', 'balanced'); } catch (e2) {}
+  } catch (_e) {
+    try { document.documentElement.setAttribute('data-perf-mode', 'balanced'); } catch (_e2) { /* DOM may not be ready */ }
   }
 })();
