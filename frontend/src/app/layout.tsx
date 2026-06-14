@@ -1,6 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
@@ -16,6 +14,7 @@ import {
   ConditionalSpeedInsights,
 } from '@/components/layout/ConditionalAnalytics';
 import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
+import { ClerkWithNonce } from '@/components/layout/ClerkWithNonce';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -60,18 +59,13 @@ export const viewport = {
   ],
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Read the CSP nonce that the middleware set on the request headers.
-  // This nonce MUST be applied to every inline <script> we render so the
-  // browser allows them under the `script-src 'nonce-...'` directive.
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
-
   return (
-    <ClerkProvider nonce={nonce}>
+    <ClerkWithNonce>
       <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
 
         <head>
@@ -79,9 +73,9 @@ export default async function RootLayout({
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link rel="preconnect" href="https://clerk.tolo.app" crossOrigin="anonymous" />
 
-          {/* Centralized performance detection script loaded with CSP nonce */}
-          <script id="perf-detect" src="/perf-detect.js" nonce={nonce} />
-          
+          {/* Centralized performance detection script */}
+          <script id="perf-detect" src="/perf-detect.js" />
+
           <link rel="dns-prefetch" href="https://i.ytimg.com" />
           <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
           <meta name="theme-color" content="#f97316" />
@@ -90,7 +84,6 @@ export default async function RootLayout({
           <meta name="format-detection" content="telephone=no" />
           <script
             id="hydration-fix"
-            nonce={nonce}
             suppressHydrationWarning
             dangerouslySetInnerHTML={{
               __html: `
@@ -177,7 +170,6 @@ export default async function RootLayout({
           <ConditionalSpeedInsights />
         </body>
       </html>
-    </ClerkProvider>
-
+    </ClerkWithNonce>
   );
 }
