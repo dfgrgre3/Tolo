@@ -43,14 +43,14 @@ export function AuthProvider({
   // force initial load to false so the application can render in unauthenticated fallback mode.
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!isClerkLoaded) {
+      if (!isClerkLoaded || !isUserLoaded) {
         logger.warn('Clerk failed to load within 5 seconds. Falling back to unauthenticated state.');
         resetStore();
         setIsInitialLoad(false);
       }
     }, 5000);
     return () => clearTimeout(timer);
-  }, [isClerkLoaded, resetStore]);
+  }, [isClerkLoaded, isUserLoaded, resetStore]);
 
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {

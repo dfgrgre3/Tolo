@@ -26,8 +26,9 @@ function tryCreateALS(): ALS<RequestContext> {
     if (typeof process === 'undefined' || process.release?.name !== 'node') {
       return new MockAsyncLocalStorage<RequestContext>();
     }
+    const modName = 'async_hooks';
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const hookMod = require('async_hooks');
+    const hookMod = require(modName);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return new (hookMod.AsyncLocalStorage as any)() as ALS<RequestContext>;
   } catch {
