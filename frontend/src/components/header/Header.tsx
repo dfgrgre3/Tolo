@@ -78,7 +78,7 @@ export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isEfficiencyMode = useEfficiencyMode();
-  const isMounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+
   const shouldReduceMotion = useSyncExternalStore(
     (callback) => {
       if (typeof window === "undefined") return () => {};
@@ -137,9 +137,9 @@ export default function Header() {
     return cn(
       "sticky top-0 z-50 w-full transition-colors duration-200 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       isScrolled && "shadow-sm border-primary/20",
-      isMounted && user && !isScrolled && "border-primary/10"
+      mounted && user && !isScrolled && "border-primary/10"
     );
-  }, [isScrolled, isMounted, user]);
+  }, [isScrolled, mounted, user]);
 
   const containerHeight = useMemo(() => {
     if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-12 sm:h-14";
@@ -215,11 +215,11 @@ export default function Header() {
                 </div>
               )}
 
-              {isMounted && (
+              {mounted && (
                 <HeaderNotifications user={user as any} mounted={mounted} />
               )}
 
-              {isMounted && (
+              {mounted && (
                 <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
                   {isLoading ? (
                     <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 animate-pulse" />

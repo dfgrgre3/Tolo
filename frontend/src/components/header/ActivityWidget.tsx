@@ -50,11 +50,10 @@ export function ActivityWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { socket, isConnected } = useWebSocket();
   
-  const mounted = React.useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 

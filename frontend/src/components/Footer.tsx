@@ -20,14 +20,12 @@ import { m } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import Image from "next/image";
-
 export default function Footer() {
   const { user } = useAuth();
-  const isMounted = React.useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const footerLinks = [
   { title: "الأكاديمية", items: [
