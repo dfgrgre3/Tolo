@@ -260,7 +260,14 @@ class ApiClient {
                     if (headers.has('Authorization')) {
                         this.resetAuthStore();
                         if (typeof window !== 'undefined') {
-                            window.location.href = '/login';
+                            const currentPath = window.location.pathname;
+                            // Never redirect if already on an auth page — that would create a loop.
+                            // Also skip redirect for auth endpoints themselves (login/register calls).
+                            const isAlreadyOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/admin-login';
+                            const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
+                            if (!isAlreadyOnAuthPage && !isAuthEndpoint) {
+                                window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+                            }
                         }
                     } else {
                         console.warn('API returned 401, but no Authorization header was sent. Skipping auto-redirect to prevent infinite loops.');

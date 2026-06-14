@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,6 +40,8 @@ function AdminLoginContent() {
   const [userId2FA, setUserId2FA] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const { verify2FA } = useAuth();
+  // Guard to ensure we only redirect once — prevents infinite loops from auth-state fluctuations.
+  const hasRedirected = useRef(false);
 
   const redirectUrl = useMemo(
     () => sanitizeRedirectPath(searchParams.get('redirect'), '/admin'),
@@ -54,13 +56,17 @@ function AdminLoginContent() {
     resolver: zodResolver(loginSchema),
   });
 
+  // NOTE: Do NOT call router.refresh() here — it causes an infinite reload loop.
+  // router.refresh() re-initializes AuthProvider which flips isLoading true→false
+  // again, re-triggering this effect indefinitely.
   const redirectAfterLogin = useCallback((target: string) => {
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
     router.replace(target);
-    router.refresh();
   }, [router]);
 
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated && isStaffAdminPanelRole(user?.role)) {
+    if (!isAuthLoading && isAuthenticated && isStaffAdminPanelRole(user?.role) && !hasRedirected.current) {
       redirectAfterLogin(redirectUrl);
     }
   }, [isAuthLoading, isAuthenticated, user, redirectAfterLogin, redirectUrl]);

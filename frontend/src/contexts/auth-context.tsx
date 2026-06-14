@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@clerk/nextjs';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
@@ -28,11 +28,21 @@ export function AuthProvider({
 }: {children: React.ReactNode; initialAuthHint?: boolean;}) {
   const { isLoaded: isClerkLoaded, userId, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  const { setUser, reset: resetStore } = useAuthStore();
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  // Use stable selectors (not the whole store object) to avoid triggering
+  // the sync useEffect on every unrelated store update.
+  const setUser = useAuthStore((s) => s.setUser);
+  const resetStore = useAuthStore((s) => s.reset);
+  const setIsLoading = useAuthStore((s) => s.setIsLoading);
 
   const lastSyncedId = React.useRef<string | null>(null);
   const currentUserIdRef = React.useRef<string | null>(null);
+  // Prevent concurrent syncProfile calls from overlapping state updates
+  const isSyncing = React.useRef(false);
+  // Store getToken in a ref so we can call it inside effects without
+  // adding it to the dependency array (its reference changes every render,
+  // which would re-trigger the sync effect and cause an infinite loop).
+  const getTokenRef = React.useRef(getToken);
+  React.useEffect(() => { getTokenRef.current = getToken; });
 
   // Sync ref with current userId to prevent race conditions during async calls
   useEffect(() => {
@@ -40,13 +50,12 @@ export function AuthProvider({
   }, [userId]);
 
   // Safety timeout: if Clerk fails to load (e.g. CSP/network/adblock issues),
-  // force initial load to false so the application can render in unauthenticated fallback mode.
+  // force isLoading to false so the application can render in unauthenticated fallback mode.
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isClerkLoaded || !isUserLoaded) {
         logger.warn('Clerk failed to load within 5 seconds. Falling back to unauthenticated state.');
         resetStore();
-        setIsInitialLoad(false);
       }
     }, 5000);
     return () => clearTimeout(timer);
@@ -58,8 +67,7 @@ export function AuthProvider({
 
     if (!userId || (isUserLoaded && !clerkUser)) {
       lastSyncedId.current = null;
-      resetStore();
-      setIsInitialLoad(false);
+      resetStore(); // reset() already sets isLoading: false
       return;
     }
 
@@ -76,8 +84,7 @@ export function AuthProvider({
       if (isAdminRoute && role && role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
         logger.warn('Unauthorized admin route access attempt by role:', role);
         lastSyncedId.current = userId;
-        resetStore();
-        setIsInitialLoad(false);
+        resetStore(); // reset() already sets isLoading: false
         return;
       }
 
@@ -101,15 +108,21 @@ export function AuthProvider({
 
       // Avoid redundant profile syncs and state updates if already synced for the current userId
       if (lastSyncedId.current === userId && currentStoreUser?.id === userId) {
-        setIsInitialLoad(false);
+        setIsLoading(false); // Ensure store loading state is cleared
         return;
       }
 
       lastSyncedId.current = userId;
 
       const syncProfile = async () => {
+        // Prevent overlapping concurrent calls (e.g., Clerk re-renders fast)
+        if (isSyncing.current) return;
+        isSyncing.current = true;
         try {
-          const token = await getToken();
+          // Use ref to avoid listing getToken in dependency array.
+          // getToken reference changes on every Clerk render which would
+          // cause this effect — and the resulting setState calls — to loop.
+          const token = await getTokenRef.current();
           if (isCancelled || currentUserIdRef.current !== userId) return;
 
           const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -129,8 +142,9 @@ export function AuthProvider({
           logger.error('Failed to load secure profile details via repository:', e);
           // Fallback user is already set, so we just log the error and ensure loading ends
         } finally {
+          isSyncing.current = false;
           if (!isCancelled && currentUserIdRef.current === userId) {
-            setIsInitialLoad(false);
+            setIsLoading(false); // Mark loading complete in the shared store
           }
         }
       };
@@ -141,7 +155,12 @@ export function AuthProvider({
     return () => {
       isCancelled = true;
     };
-  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore, getToken]);
+  // NOTE: getToken is intentionally omitted from deps — it changes reference
+  // on every Clerk render and would cause an infinite loop if included.
+  // We access the latest version safely via getTokenRef instead.
+  // setIsLoading is also omitted — it is a stable Zustand setter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
 
   return <>{children}</>;
 }

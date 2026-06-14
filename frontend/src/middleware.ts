@@ -34,9 +34,13 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
   const url = new URL(req.url);
 
-  // Redirect authenticated users from root route or public auth pages to dashboard
-  if (userId && (url.pathname === "/" || url.pathname === "/login" || url.pathname === "/register")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Redirect authenticated users away from public auth pages.
+  // Only redirect if Clerk has fully resolved the session (userId is present and
+  // not undefined/null). Avoid redirecting from API routes to prevent loops.
+  const isAuthPage = ["/", "/login", "/register", "/admin-login"].includes(url.pathname);
+  if (userId && isAuthPage) {
+    const destination = url.pathname === "/admin-login" ? "/admin/dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(destination, req.url));
   }
 
   if (isProtectedRoute(req)) {

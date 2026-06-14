@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +30,9 @@ function LoginForm() {
   const [userId2FA, setUserId2FA] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [loginMode, setLoginMode] = useState<'password' | 'magic-link'>('password');
+  // Guard to ensure we only redirect once — prevents infinite loops caused by
+  // auth-state fluctuations (e.g., isLoading toggling) after the initial redirect.
+  const hasRedirected = useRef(false);
 
   const redirectUrl = useMemo(
     () => sanitizeRedirectPath(searchParams.get('redirect'), '/dashboard'),
@@ -50,13 +53,21 @@ function LoginForm() {
     }
   });
 
+  // NOTE: Do NOT call router.refresh() here.
+  // router.refresh() forces a full server-side re-render which re-initializes
+  // AuthProvider. This causes isLoading to flip true→false again, which
+  // re-triggers this effect — creating an infinite refresh loop.
   const redirectAfterLogin = useCallback((target: string) => {
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
     router.replace(target);
-    router.refresh();
   }, [router]);
 
+  // Redirect already-authenticated users to dashboard.
+  // hasRedirected guard ensures this fires at most once even if Clerk
+  // triggers multiple state updates during session initialization.
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
+    if (!isAuthLoading && isAuthenticated && !hasRedirected.current) {
       redirectAfterLogin(redirectUrl);
     }
   }, [isAuthLoading, isAuthenticated, redirectAfterLogin, redirectUrl]);
@@ -90,6 +101,9 @@ function LoginForm() {
           setUserId2FA(result.userId || null);
           return;
         }
+        // Redirect immediately on successful login.
+        // The useEffect above will also fire when isAuthenticated becomes true,
+        // but hasRedirected ref ensures only one redirect happens.
         redirectAfterLogin(redirectUrl);
         return;
       }
