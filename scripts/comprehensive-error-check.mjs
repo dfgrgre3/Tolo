@@ -6,9 +6,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const docsDir = join(root, "docs");
-const reportPath = join(docsDir, "audit-report.md");
+const reportPath = join(docsDir, "unified-audit-report.md");
 const isFixMode = process.argv.includes("--fix");
 const now = new Date();
+
+// Projects locations
+const frontendDir = join(root, "frontend");
+const adminDir = resolve(root, "../admin");
+const backendDir = resolve(root, "../backend");
 
 const ignoredDirs = new Set([
   ".git",
@@ -19,6 +24,8 @@ const ignoredDirs = new Set([
   "build",
   "out",
   "test-results",
+  ".gocache",
+  ".venv",
 ]);
 
 const secretPatterns = [
@@ -59,9 +66,9 @@ function clip(value, max = 8_000) {
 }
 
 function walkFiles(dir, files = []) {
+  if (!existsSync(dir)) return files;
   for (const entry of readdirSync(dir)) {
     const fullPath = join(dir, entry);
-    const rel = relative(root, fullPath);
     const stats = statSync(fullPath);
 
     if (stats.isDirectory()) {
@@ -75,7 +82,8 @@ function walkFiles(dir, files = []) {
       continue;
     }
 
-    if (rel.endsWith("package-lock.json") || rel.endsWith("pnpm-lock.yaml") || rel.endsWith("tsconfig.tsbuildinfo")) {
+    const name = entry.toLowerCase();
+    if (name === "package-lock.json" || name === "pnpm-lock.yaml" || name === "tsconfig.tsbuildinfo" || name === "go.sum") {
       continue;
     }
 
@@ -87,32 +95,35 @@ function walkFiles(dir, files = []) {
 function secretScan() {
   const started = Date.now();
   const findings = [];
+  const dirsToScan = [root, adminDir, backendDir].filter(existsSync);
 
-  for (const file of walkFiles(root)) {
-    const rel = relative(root, file);
-    let content = "";
+  for (const dir of dirsToScan) {
+    for (const file of walkFiles(dir)) {
+      const rel = relative(root, file);
+      let content = "";
 
-    try {
-      content = readFileSync(file, "utf8");
-    } catch {
-      continue;
-    }
-
-    const lines = content.split(/\r?\n/);
-    lines.forEach((line, index) => {
-      if (rel === ".env.example" && line.includes("your-")) {
-        return;
+      try {
+        content = readFileSync(file, "utf8");
+      } catch {
+        continue;
       }
-      if (line.includes("valid-jwt-token")) {
-        return;
-      }
-      for (const { name, pattern } of secretPatterns) {
-        if (pattern.test(line)) {
-          findings.push(`${rel}:${index + 1} - ${name}`);
-          break;
+
+      const lines = content.split(/\r?\n/);
+      lines.forEach((line, index) => {
+        if (rel.endsWith(".env.example") && line.includes("your-")) {
+          return;
         }
-      }
-    });
+        if (line.includes("valid-jwt-token")) {
+          return;
+        }
+        for (const { name, pattern } of secretPatterns) {
+          if (pattern.test(line)) {
+            findings.push(`${relative(root, file)}:${index + 1} - ${name}`);
+            break;
+          }
+        }
+      });
+    }
   }
 
   return {
@@ -122,10 +133,6 @@ function secretScan() {
     summary: findings.length === 0 ? "No obvious hard-coded secrets found." : `${findings.length} possible secret references found.`,
     output: findings.join("\n"),
   };
-}
-
-function dependencyAudit() {
-  return runCheck("npm dependency audit", "npm audit --audit-level=moderate --omit=dev", join(root, "frontend"), true);
 }
 
 function statusIcon(status) {
@@ -149,7 +156,7 @@ function renderReport(results) {
     })
     .join("\n\n");
 
-  return `# Thanawy Project Audit Report
+  return `# Unified Project Audit Report
 
 Generated: ${now.toISOString()}
 Mode: ${isFixMode ? "fix" : "check"}
@@ -166,16 +173,45 @@ ${sections}
 
 const checks = [];
 
-if (isFixMode) {
-  checks.push(runCheck("ESLint auto-fix", "npx eslint . --fix", join(root, "frontend"), true));
+// ==================== FRONTEND CHECKS ====================
+if (existsSync(frontendDir)) {
+  console.log("Adding Frontend checks...");
+  if (isFixMode) {
+    checks.push(runCheck("Frontend: ESLint auto-fix", "npx eslint . --fix", frontendDir, true));
+  }
+  checks.push(runCheck("Frontend: TypeScript type-check", "npx tsc --noEmit", frontendDir));
+  checks.push(runCheck("Frontend: ESLint", "npx eslint .", frontendDir, true));
+  checks.push(runCheck("Frontend: Unit tests", "npm test", frontendDir));
+  checks.push(runCheck("Frontend: Dependency audit", "npm audit --audit-level=moderate --omit=dev", frontendDir, true));
 }
 
-checks.push(runCheck("TypeScript type-check", "npx tsc --noEmit", join(root, "frontend")));
-checks.push(runCheck("ESLint", "npx eslint .", join(root, "frontend"), true));
-checks.push(runCheck("Frontend tests", "npm test", join(root, "frontend")));
-checks.push(runCheck("Next production build", "npm run build", join(root, "frontend")));
+// ==================== ADMIN CHECKS ====================
+if (existsSync(adminDir)) {
+  console.log("Adding Admin checks...");
+  if (isFixMode) {
+    checks.push(runCheck("Admin: ESLint auto-fix", "npx eslint . --fix", adminDir, true));
+  }
+  checks.push(runCheck("Admin: TypeScript type-check", "npx tsc --noEmit", adminDir));
+  checks.push(runCheck("Admin: ESLint", "npx eslint .", adminDir, true));
+  checks.push(runCheck("Admin: Unit tests", "npm test", adminDir));
+  checks.push(runCheck("Admin: Dependency audit", "npm audit --audit-level=moderate --omit=dev", adminDir, true));
+}
+
+// ==================== BACKEND CHECKS ====================
+if (existsSync(backendDir)) {
+  console.log("Adding Backend checks...");
+  if (isFixMode) {
+    checks.push(runCheck("Backend: Go formatting", "gofmt -w .", backendDir, true));
+  }
+  checks.push(runCheck("Backend: Go vet", "go vet ./...", backendDir));
+  checks.push(runCheck("Backend: Go compilation check", "go build -o NUL ./...", backendDir));
+  checks.push(runCheck("Backend: Go tests", "go test ./...", backendDir));
+  checks.push(runCheck("Backend: Prisma Schema validate", "npx prisma validate", backendDir));
+}
+
+// ==================== GLOBAL CHECKS ====================
+console.log("Running Global checks...");
 checks.push(secretScan());
-checks.push(dependencyAudit());
 
 if (!existsSync(docsDir)) {
   mkdirSync(docsDir, { recursive: true });
@@ -183,7 +219,7 @@ if (!existsSync(docsDir)) {
 
 writeFileSync(reportPath, renderReport(checks), "utf8");
 
-console.log(`Audit report written to ${relative(root, reportPath)}`);
+console.log(`\nAudit report written to ${relative(root, reportPath)}`);
 console.log(`Passed: ${checks.filter((check) => check.status === "pass").length}`);
 console.log(`Warnings: ${checks.filter((check) => check.status === "warn").length}`);
 console.log(`Failed: ${checks.filter((check) => check.status === "fail").length}`);

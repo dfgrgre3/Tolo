@@ -5,9 +5,17 @@ param(
 $ErrorActionPreference = "Continue"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).ProviderPath
 $DocsDir = Join-Path $Root "docs"
-$ReportPath = Join-Path $DocsDir "audit-report.md"
+$ReportPath = Join-Path $DocsDir "unified-audit-report.md"
 $Results = New-Object System.Collections.Generic.List[object]
-$IgnoredDirs = @(".git", ".next", "node_modules", "coverage", "dist", "build", "out", "test-results")
+
+$frontendDir = Join-Path $Root "frontend"
+$adminDir = Resolve-Path (Join-Path $Root "../admin") -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProviderPath
+$backendDir = Resolve-Path (Join-Path $Root "../backend") -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProviderPath
+
+if (-not $adminDir) { $adminDir = Join-Path $Root "../admin" }
+if (-not $backendDir) { $backendDir = Join-Path $Root "../backend" }
+
+$IgnoredDirs = @(".git", ".next", "node_modules", "coverage", "dist", "build", "out", "test-results", ".gocache", ".venv")
 $TextExtensions = @(
   ".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".md", ".yml", ".yaml", ".toml",
   ".sql", ".ps1", ".sh", ".env", ".example", ".txt", ".css", ".scss", ".html", ".dockerignore",
@@ -96,7 +104,7 @@ function Test-ShouldAuditFile {
   if ($File.Length -gt 1MB) {
     return $false
   }
-  if ($File.Name -in @("package-lock.json", "pnpm-lock.yaml", "tsconfig.tsbuildinfo")) {
+  if ($File.Name -in @("package-lock.json", "pnpm-lock.yaml", "tsconfig.tsbuildinfo", "go.sum")) {
     return $false
   }
   if ($TextExtensions -contains $File.Extension -or $File.Name.StartsWith(".")) {
@@ -133,7 +141,7 @@ function Get-FileSecretFindings {
 
   for ($i = 0; $i -lt $lines.Count; $i++) {
     $line = [string]$lines[$i]
-    if ($relative -eq ".env.example" -and $line.Contains("your-")) {
+    if ($relative.EndsWith(".env.example") -and $line.Contains("your-")) {
       continue
     }
     if ($line.Contains("valid-jwt-token")) {
@@ -158,13 +166,19 @@ function Invoke-SecretScan {
     @{ Name = "Likely hard-coded secret"; Pattern = "\b(secret|api[_-]?key|token|password)\b\s*[:=]\s*[""'][^""']{12,}[""']" }
   )
 
-  $files = Get-ChildItem -Path $Root -Recurse -File -Force |
-    Where-Object { Test-ShouldAuditFile -File $_ }
+  $pathsToScan = @($Root)
+  if (Test-Path $adminDir) { $pathsToScan += $adminDir }
+  if (Test-Path $backendDir) { $pathsToScan += $backendDir }
 
-  foreach ($file in $files) {
-    $fileFindings = Get-FileSecretFindings -File $file -Patterns $patterns
-    if ($null -ne $fileFindings) {
-      $findings.AddRange($fileFindings)
+  foreach ($scanPath in $pathsToScan) {
+    $files = Get-ChildItem -Path $scanPath -Recurse -File -Force -ErrorAction SilentlyContinue |
+      Where-Object { Test-ShouldAuditFile -File $_ }
+
+    foreach ($file in $files) {
+      $fileFindings = Get-FileSecretFindings -File $file -Patterns $patterns
+      if ($null -ne $fileFindings) {
+        $findings.AddRange($fileFindings)
+      }
     }
   }
 
@@ -185,25 +199,47 @@ function Get-StatusLabel {
   return "FAIL"
 }
 
-$backendDir = Join-Path $Root "backend"
-$frontendDir = Join-Path $Root "frontend"
+# ==================== RUNNING CHECKS ====================
 
-if ($Fix) {
-  Invoke-AuditCommand -Name "ESLint auto-fix" -FilePath "npx.cmd" -Arguments @("eslint", ".", "--fix") -WorkingDirectory $frontendDir -WarnOnly
-  if (Test-Path $backendDir) {
-    Invoke-AuditCommand -Name "Go formatting" -FilePath "gofmt.exe" -Arguments @("-w", ".") -WorkingDirectory $backendDir -WarnOnly
+# Frontend
+if (Test-Path $frontendDir) {
+  Write-Host "Adding Frontend checks..." -ForegroundColor Cyan
+  if ($Fix) {
+    Invoke-AuditCommand -Name "Frontend: ESLint auto-fix" -FilePath "npx.cmd" -Arguments @("eslint", ".", "--fix") -WorkingDirectory $frontendDir -WarnOnly
   }
+  Invoke-AuditCommand -Name "Frontend: TypeScript type-check" -FilePath "npx.cmd" -Arguments @("tsc", "--noEmit") -WorkingDirectory $frontendDir
+  Invoke-AuditCommand -Name "Frontend: ESLint" -FilePath "npx.cmd" -Arguments @("eslint", ".") -WorkingDirectory $frontendDir -WarnOnly
+  Invoke-AuditCommand -Name "Frontend: Unit tests" -FilePath "npm.cmd" -Arguments @("test") -WorkingDirectory $frontendDir
+  Invoke-AuditCommand -Name "Frontend: Dependency audit" -FilePath "npm.cmd" -Arguments @("audit", "--audit-level=moderate", "--omit=dev") -WorkingDirectory $frontendDir -WarnOnly
 }
 
-Invoke-AuditCommand -Name "TypeScript type-check" -FilePath "npx.cmd" -Arguments @("tsc", "--noEmit") -WorkingDirectory $frontendDir
-Invoke-AuditCommand -Name "ESLint" -FilePath "npx.cmd" -Arguments @("eslint", ".") -WorkingDirectory $frontendDir -WarnOnly
-Invoke-AuditCommand -Name "Frontend tests" -FilePath "npm.cmd" -Arguments @("test") -WorkingDirectory $frontendDir
-Invoke-AuditCommand -Name "Next production build" -FilePath "npm.cmd" -Arguments @("run", "build") -WorkingDirectory $frontendDir
-if (Test-Path $backendDir) {
-  Invoke-AuditCommand -Name "Go tests" -FilePath "go.exe" -Arguments @("test", "./...") -WorkingDirectory $backendDir
+# Admin
+if (Test-Path $adminDir) {
+  Write-Host "Adding Admin checks..." -ForegroundColor Cyan
+  if ($Fix) {
+    Invoke-AuditCommand -Name "Admin: ESLint auto-fix" -FilePath "npx.cmd" -Arguments @("eslint", ".", "--fix") -WorkingDirectory $adminDir -WarnOnly
+  }
+  Invoke-AuditCommand -Name "Admin: TypeScript type-check" -FilePath "npx.cmd" -Arguments @("tsc", "--noEmit") -WorkingDirectory $adminDir
+  Invoke-AuditCommand -Name "Admin: ESLint" -FilePath "npx.cmd" -Arguments @("eslint", ".") -WorkingDirectory $adminDir -WarnOnly
+  Invoke-AuditCommand -Name "Admin: Unit tests" -FilePath "npm.cmd" -Arguments @("test") -WorkingDirectory $adminDir
+  Invoke-AuditCommand -Name "Admin: Dependency audit" -FilePath "npm.cmd" -Arguments @("audit", "--audit-level=moderate", "--omit=dev") -WorkingDirectory $adminDir -WarnOnly
 }
+
+# Backend
+if (Test-Path $backendDir) {
+  Write-Host "Adding Backend checks..." -ForegroundColor Cyan
+  if ($Fix) {
+    Invoke-AuditCommand -Name "Backend: Go formatting" -FilePath "gofmt.exe" -Arguments @("-w", ".") -WorkingDirectory $backendDir -WarnOnly
+  }
+  Invoke-AuditCommand -Name "Backend: Go vet" -FilePath "go.exe" -Arguments @("vet", "./...") -WorkingDirectory $backendDir
+  Invoke-AuditCommand -Name "Backend: Go compilation check" -FilePath "go.exe" -Arguments @("build", "-o", "NUL", "./...") -WorkingDirectory $backendDir
+  Invoke-AuditCommand -Name "Backend: Go tests" -FilePath "go.exe" -Arguments @("test", "./...") -WorkingDirectory $backendDir
+  Invoke-AuditCommand -Name "Backend: Prisma Schema validate" -FilePath "npx.cmd" -Arguments @("prisma", "validate") -WorkingDirectory $backendDir
+}
+
+# Global
+Write-Host "Running Global checks..." -ForegroundColor Cyan
 Invoke-SecretScan
-Invoke-AuditCommand -Name "npm dependency audit" -FilePath "npm.cmd" -Arguments @("audit", "--audit-level=moderate", "--omit=dev") -WorkingDirectory $frontendDir -WarnOnly
 
 if (-not (Test-Path $DocsDir)) {
   New-Item -ItemType Directory -Path $DocsDir | Out-Null
@@ -214,7 +250,7 @@ $warned = @($Results | Where-Object { $_.Status -eq "warn" }).Count
 $failed = @($Results | Where-Object { $_.Status -eq "fail" }).Count
 
 $report = New-Object System.Text.StringBuilder
-[void]$report.AppendLine("# Thanawy Project Audit Report")
+[void]$report.AppendLine("# Unified Project Audit Report")
 [void]$report.AppendLine("")
 [void]$report.AppendLine("Generated: $((Get-Date).ToUniversalTime().ToString("o"))")
 [void]$report.AppendLine("Mode: $(if ($Fix) { "fix" } else { "check" })")
@@ -249,10 +285,10 @@ foreach ($result in $Results) {
 
 Set-Content -Path $ReportPath -Value $report.ToString() -Encoding UTF8
 
-Write-Host "Audit report written to docs\audit-report.md"
-Write-Host "Passed: $passed"
-Write-Host "Warnings: $warned"
-Write-Host "Failed: $failed"
+Write-Host "Audit report written to docs\unified-audit-report.md" -ForegroundColor Green
+Write-Host "Passed: $passed" -ForegroundColor Green
+Write-Host "Warnings: $warned" -ForegroundColor Yellow
+Write-Host "Failed: $failed" -ForegroundColor Red
 
 if ($failed -gt 0) {
   exit 1
