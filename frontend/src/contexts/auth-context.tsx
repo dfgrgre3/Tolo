@@ -245,6 +245,9 @@ export function useAuth() {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
+      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
+        await activeClerk.signOut();
+      }
       const result = await activeClerk.client.signIn.create({
         identifier: email,
         password,
@@ -260,6 +263,27 @@ export function useAuth() {
       return { success: false, error: `Additional steps required: ${result.status}` };
     } catch (err: unknown) {
       logger.error('Login error:', err);
+      const errMsg = getClerkErrorMessage(err, '');
+      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
+        try {
+          await activeClerk.signOut();
+          const result = await activeClerk.client.signIn.create({
+            identifier: email,
+            password,
+            strategy: 'password',
+          });
+          if (result.status === 'complete') {
+            await activeClerk.setActive({ session: result.createdSessionId });
+            return { success: true };
+          }
+          if (result.status === 'needs_second_factor') {
+            return { success: true, requires2FA: true, userId: result.id };
+          }
+        } catch (retryErr) {
+          logger.error('Login retry error:', retryErr);
+          return { success: false, error: getClerkErrorMessage(retryErr, 'Login failed') };
+        }
+      }
       return { success: false, error: getClerkErrorMessage(err, 'Login failed') };
     }
   }, [getClerkInstance]);
@@ -268,6 +292,9 @@ export function useAuth() {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
+      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
+        await activeClerk.signOut();
+      }
       const result = await activeClerk.client.signIn.create({
         identifier: email,
         password,
@@ -290,6 +317,32 @@ export function useAuth() {
       return { success: false, error: `الخطوات الإضافية مطلوبة: ${result.status}` };
     } catch (err: unknown) {
       logger.error('Admin login error:', err);
+      const errMsg = getClerkErrorMessage(err, '');
+      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
+        try {
+          await activeClerk.signOut();
+          const result = await activeClerk.client.signIn.create({
+            identifier: email,
+            password,
+            strategy: 'password',
+          });
+          if (result.status === 'complete') {
+            await activeClerk.setActive({ session: result.createdSessionId });
+            const role = activeClerk.user?.publicMetadata?.role;
+            if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
+              await activeClerk.signOut();
+              return { success: false, error: 'غير مصرح لك بالدخول كمسؤول' };
+            }
+            return { success: true };
+          }
+          if (result.status === 'needs_second_factor') {
+            return { success: true, requires2FA: true, userId: result.id };
+          }
+        } catch (retryErr) {
+          logger.error('Admin login retry error:', retryErr);
+          return { success: false, error: getClerkErrorMessage(retryErr, 'فشل تسجيل الدخول') };
+        }
+      }
       return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول') };
     }
   }, [getClerkInstance]);
@@ -305,6 +358,9 @@ export function useAuth() {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
+      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
+        await activeClerk.signOut();
+      }
       const result = await activeClerk.client.signUp.create({
         emailAddress: data.email,
         password: data.password,
@@ -325,6 +381,32 @@ export function useAuth() {
       return { success: true, autoLoggedIn: false };
     } catch (err: unknown) {
       logger.error('Registration error:', err);
+      const errMsg = getClerkErrorMessage(err, '');
+      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
+        try {
+          await activeClerk.signOut();
+          const result = await activeClerk.client.signUp.create({
+            emailAddress: data.email,
+            password: data.password,
+            username: data.username,
+          });
+          if (result.status === 'complete') {
+            await activeClerk.setActive({ session: result.createdSessionId });
+            return { success: true, autoLoggedIn: true };
+          }
+          if (result.status === 'missing_requirements' || result.unverifiedFields?.includes('email_address')) {
+            try {
+              await activeClerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+            } catch (prepareErr) {
+              logger.error('Failed to prepare email verification on retry:', prepareErr);
+            }
+          }
+          return { success: true, autoLoggedIn: false };
+        } catch (retryErr) {
+          logger.error('Registration retry error:', retryErr);
+          return { success: false, error: getClerkErrorMessage(retryErr, 'Registration failed') };
+        }
+      }
       return { success: false, error: getClerkErrorMessage(err, 'Registration failed') };
     }
   }, [getClerkInstance]);

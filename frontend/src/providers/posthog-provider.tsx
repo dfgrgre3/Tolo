@@ -8,13 +8,12 @@ import { useUser } from '@clerk/nextjs';
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const hasValidKey = !!posthogKey && posthogKey !== 'phc_placeholder_key_for_dev';
 
-if (typeof window !== 'undefined') {
-  posthog.init(posthogKey || 'phc_placeholder_key_for_dev', {
+if (typeof window !== 'undefined' && hasValidKey) {
+  posthog.init(posthogKey, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
     person_profiles: 'identified_only',
     capture_pageview: false, // Track pageviews manually to align with Next.js App Router routing
     capture_performance: true, // Automatically captures Web Vitals/Performance
-    opt_out_capturing_by_default: !hasValidKey,
   });
 }
 
@@ -22,7 +21,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const { user, isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !hasValidKey) return;
 
     if (isSignedIn && user) {
       posthog.identify(user.id, {

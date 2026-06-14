@@ -12,7 +12,7 @@
  * the previous build. Bump again on any future breaking change.
  */
 
-const CACHE_VERSION = 'tolo-v3';
+const CACHE_VERSION = 'tolo-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const SEARCH_CACHE = `${CACHE_VERSION}-search`;
@@ -82,11 +82,17 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
+  // Identify Next.js internal RSC / Prefetch requests
+  const isNextRsc = url.searchParams.has('_rsc') ||
+                    request.headers.has('rsc') ||
+                    request.headers.has('next-router-state-tree') ||
+                    request.headers.has('next-router-prefetch');
+
   // ---------------------------------------------------------------------------
-  // API requests: passthrough.
+  // API and Next.js RSC requests: passthrough.
   //
-  // We deliberately do NOT cache API responses because they are almost always
-  // authenticated and depend on the current session. Caching them risks
+  // We deliberately do NOT cache API or RSC responses because they are almost
+  // always authenticated and depend on the current session. Caching them risks
   // serving stale 401/403/404 responses to a user who has since logged in or
   // whose data has changed.
   //
@@ -94,10 +100,10 @@ self.addEventListener('fetch', (event) => {
   // (cookies such as `access_token` set by the Next.js middleware) are
   // explicitly forwarded. In some browsers the default `fetch(request)`
   // inside a Service Worker can lose credentials on cross-origin or
-  // sub-resource requests, which is the root cause of the 401s reported on
-  // /api/notifications after the user is redirected from /login.
+  // sub-resource requests, which is the root cause of the 401s / 404s reported
+  // on navigation.
   // ---------------------------------------------------------------------------
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith('/api/') || isNextRsc) {
     event.respondWith(passthroughApiRequest(request));
     return;
   }
