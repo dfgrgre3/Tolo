@@ -93,8 +93,7 @@ export function AuthProvider({
   useEffect(() => {
     if (!isClerkLoaded) return;
 
-    // Use ref to get the actual clerkUser object (avoids listing it in deps)
-    const activeClerkUser = clerkUserRef.current;
+    const activeClerkUser = clerkUser;
 
     if (!userId || (isUserLoaded && !activeClerkUser)) {
       lastSyncedId.current = null;
