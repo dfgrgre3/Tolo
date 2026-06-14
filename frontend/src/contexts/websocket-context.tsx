@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import type { ErrorInfo } from 'react';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { useAuth } from './auth-context';
 import { useWebSocketStore } from './websocket-store';
 
@@ -72,6 +73,7 @@ function shouldDisableWebSocket(): boolean {
 
 export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
   const { user } = useAuth();
+  const { getToken, isLoaded } = useClerkAuth();
   const currentUserId = userId || user?.id;
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
@@ -84,13 +86,16 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     const initialDisabled = shouldDisableWebSocket();
     setWebsocketEnabled(!initialDisabled);
 
-    const observer = new MutationObserver(() => {
+    const observer = new MutationObserver(async () => {
       const isDisabled = shouldDisableWebSocket();
       setWebsocketEnabled(!isDisabled);
       if (isDisabled) {
         disconnect();
-      } else if (currentUserId) {
-        connect(currentUserId);
+      } else if (currentUserId && isLoaded) {
+        const token = await getToken();
+        if (token) {
+          connect(currentUserId, token);
+        }
       }
     });
 
@@ -100,20 +105,31 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     });
 
     return () => observer.disconnect();
-  }, [currentUserId, connect, disconnect]);
+  }, [currentUserId, connect, disconnect, getToken, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     if (!websocketEnabled || !currentUserId) {
       disconnect();
       return;
     }
 
-    connect(currentUserId);
+    const establishConnection = async () => {
+      const token = await getToken();
+      if (token) {
+        connect(currentUserId, token);
+      } else {
+        disconnect();
+      }
+    };
+
+    establishConnection();
 
     return () => {
       disconnect();
     };
-  }, [currentUserId, websocketEnabled, connect, disconnect]);
+  }, [currentUserId, websocketEnabled, connect, disconnect, getToken, isLoaded]);
 
   const socket = useWebSocketStore((state) => state.socket);
   const isConnected = useWebSocketStore((state) => state.isConnected);

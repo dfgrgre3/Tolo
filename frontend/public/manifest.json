@@ -1,0 +1,16 @@
+{
+  "name": "Tolo",
+  "short_name": "Tolo",
+  "description": "منصة تعليمية تفاعلية للثانوية العامة - كورسات، امتحانات، ومدرسين",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

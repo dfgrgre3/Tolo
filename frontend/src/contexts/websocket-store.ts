@@ -5,7 +5,8 @@ import { buildAppUserWebSocketUrl } from "@/lib/realtime/build-ws-url";
 type WebSocketStore = {
   socket: WebSocket | null;
   isConnected: boolean;
-  connect: (userId: string) => void;
+  token: string | null;
+  connect: (userId: string, token?: string) => void;
   disconnect: () => void;
   listeners: Set<(event: MessageEvent) => void>;
   subscribe: (listener: (event: MessageEvent) => void) => () => void;
@@ -18,13 +19,19 @@ const maxReconnectAttempts = 3;
 export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   socket: null,
   isConnected: false,
+  token: null,
   listeners: new Set(),
 
-  connect: (userId: string) => {
+  connect: (userId: string, token?: string) => {
     // Cleanup existing if any
     get().disconnect();
 
-    const wsUrl = buildAppUserWebSocketUrl(userId);
+    const currentToken = token !== undefined ? token : get().token;
+    if (token !== undefined) {
+      set({ token });
+    }
+
+    const wsUrl = buildAppUserWebSocketUrl(userId, currentToken || undefined);
     if (!wsUrl) return;
 
     try {
@@ -59,7 +66,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
         if (reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
           reconnectAttempts++;
           const delay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
-          reconnectTimeout = setTimeout(() => get().connect(userId), delay);
+          reconnectTimeout = setTimeout(() => get().connect(userId, currentToken || undefined), delay);
         }
       };
 
@@ -85,7 +92,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       socket.onclose = null;
       try { socket.close(); } catch {}
     }
-    set({ socket: null, isConnected: false });
+    set({ socket: null, isConnected: false, token: null });
   },
 
   subscribe: (listener) => {

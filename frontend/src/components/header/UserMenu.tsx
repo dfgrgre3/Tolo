@@ -74,12 +74,12 @@ export function UserMenu() {
       try {
         await saveSettingsPreferences({
           appearance: { theme: nextTheme }
-        }, fetchWithAuth);
+        });
       } catch (error) {
         logger.error("Failed to sync theme preference in UserMenu:", error);
       }
     }
-  }, [theme, setTheme, user?.id, fetchWithAuth]);
+  }, [theme, setTheme, user?.id]);
 
   if (!user) return null;
 

@@ -2,14 +2,12 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/auth-context';
 import { fetchSettingsPreferences, saveSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
 import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/user-ui-preferences';
 
 import { logger } from '@/lib/logger';
 
 export function useSettingsSync() {
-  const { fetchWithAuth } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingChangesRef = useRef<SettingsPreferencesPatch | null>(null);
 
@@ -54,7 +52,7 @@ export function useSettingsSync() {
         pendingChangesRef.current = null;
         try {
           logger.info('Auto-saving accumulated settings:', changes);
-          await saveSettingsPreferences(changes, fetchWithAuth);
+          await saveSettingsPreferences(changes);
         } catch (error) {
           logger.error('Auto-save settings failed:', error);
           toast.error('فشل حفظ الإعدادات تلقائياً');
@@ -65,17 +63,17 @@ export function useSettingsSync() {
         }
       }
     }, 2000);
-  }, [fetchWithAuth]);
+  }, []);
 
   const syncFromLocalStorage = useCallback(async () => {
     try {
-      const serverPreferences = await fetchSettingsPreferences(fetchWithAuth);
+      const serverPreferences = await fetchSettingsPreferences();
       return serverPreferences;
     } catch (error) {
       logger.error('Settings sync error:', error);
       return null;
     }
-  }, [fetchWithAuth]);
+  }, []);
 
   const applySettingsFromPreferences = useCallback((_preferences: SettingsPreferences) => {
     // Can be used to apply theme or language settings globally if needed
@@ -99,14 +97,14 @@ export function useSettingsSync() {
     pendingChangesRef.current = null;
 
     try {
-      await saveSettingsPreferences(mergedPatch, fetchWithAuth);
+      await saveSettingsPreferences(mergedPatch);
       return true;
     } catch (error) {
       logger.error('Immediate save failed:', error);
       toast.error('فشل حفظ الإعدادات');
       return false;
     }
-  }, [fetchWithAuth]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

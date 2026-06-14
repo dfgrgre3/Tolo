@@ -47,7 +47,7 @@ import { LoadingState } from '../_components/loading-state';
 
 export default function PrivacySettingsPage() {
   const router = useRouter();
-  const { user, logout, fetchWithAuth } = useAuth();
+  const { user, logout } = useAuth();
   const { applySettingsFromPreferences } = useSettingsSync();
   const [settings, setSettings] = useState<PrivacySettingsPreference>({ ...DEFAULT_PRIVACY_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +62,7 @@ export default function PrivacySettingsPage() {
     const loadSettings = async () => {
       setIsLoading(true);
       try {
-      const preferences = await fetchSettingsPreferences(fetchWithAuth);
+      const preferences = await fetchSettingsPreferences();
         if (!mounted) return;
         setSettings(preferences.privacy);
         applySettingsFromPreferences(preferences);
@@ -97,7 +97,7 @@ export default function PrivacySettingsPage() {
     try {
       const updatedPreferences = await saveSettingsPreferences({
         privacy: settings,
-      }, fetchWithAuth);
+      });
       setSettings(updatedPreferences.privacy);
       toast.success('تم حفظ إعدادات الخصوصية');
       setHasChanges(false);

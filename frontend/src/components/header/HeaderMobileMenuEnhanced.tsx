@@ -94,12 +94,12 @@ export function HeaderMobileMenuEnhanced({
       try {
         await saveSettingsPreferences({
           appearance: { theme: nextTheme }
-        }, fetchWithAuth);
+        });
       } catch (error) {
         logger.error("Failed to sync theme preference in MobileMenu:", error);
       }
     }
-  }, [theme, setTheme, user?.id, fetchWithAuth]);
+  }, [theme, setTheme, user?.id]);
 
   const overlayVariants = useMemo(
     () => ({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2, ease: "easeOut" as const } }),

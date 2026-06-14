@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Check, CheckCheck, ExternalLink, Clock } from 'lucide-react';
-import { safeFetch } from '@/lib/safe-client-utils';
+import { apiClient } from '@/lib/api/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,20 +38,11 @@ export default function NotificationsPage() {
         offset: currentOffset.toString(),
       });
 
-      const { data, response, error: fetchErr } = await safeFetch<any>(`/api/notifications?${params}`);
+      const response = await apiClient.get<Notification[]>(`/notifications?${params}`);
  
-      if (response && (response.status === 401 || response.status === 403)) {
-        setNotifications([]);
-        setUnreadCount(0);
-        setHasMore(false);
-        return;
-      }
- 
-      if (fetchErr || !response || !response.ok) throw fetchErr || new Error('Failed to fetch notifications');
-      const payload = data?.data ?? data;
-      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
-      const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
-      const nextHasMore = typeof payload?.hasMore === 'boolean' ? payload.hasMore : nextNotifications.length === limit;
+      const nextNotifications = Array.isArray(response) ? response : [];
+      const nextUnreadCount = nextNotifications.filter((n) => !n.isRead).length;
+      const nextHasMore = nextNotifications.length === limit;
 
       if (reset) {
         setNotifications(nextNotifications);
@@ -63,8 +54,13 @@ export default function NotificationsPage() {
 
       setUnreadCount(nextUnreadCount);
       setHasMore(nextHasMore);
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Error fetching notifications:', error);
+      if (error?.status === 401 || error?.status === 403) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setHasMore(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -78,26 +74,18 @@ export default function NotificationsPage() {
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const response = await fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ notificationIds, all }),
-      });
-
-      if (!response.ok) throw new Error('Failed to mark notifications as read');
-
-      const data = await response.json();
+      const id = notificationIds && notificationIds.length > 0 ? notificationIds[0] : '';
+      await apiClient.post<{ success: boolean }>('/notifications/mark-read', { id });
 
       if (all) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        setUnreadCount(0);
       } else if (notificationIds) {
         setNotifications((prev) =>
           prev.map((n) => (notificationIds.includes(n.id) ? { ...n, isRead: true } : n))
         );
+        setUnreadCount((prev) => Math.max(0, prev - notificationIds.length));
       }
-
-      setUnreadCount(data.unreadCount);
     } catch (error) {
       logger.error('Error marking notifications as read:', error);
     }

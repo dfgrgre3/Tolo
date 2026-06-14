@@ -95,7 +95,19 @@ function getBackendUrl(): string {
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
 
-  const auth = request.headers.get('authorization');
+  let auth = request.headers.get('authorization');
+  if (!auth) {
+    try {
+      const url = new URL(request.url);
+      const token = url.searchParams.get('token');
+      if (token) {
+        auth = `Bearer ${token}`;
+      }
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }
+
   if (auth) headers['Authorization'] = auth;
 
   const cookie = request.headers.get('cookie');
@@ -296,7 +308,10 @@ async function handleProxy(
     );
   }
 
+  // Connect-RPC routes are registered under both root and /api/ prefixes on the backend.
+  // We route them under /api/ here so that Vercel serverless routing forwards them correctly.
   const targetUrl = `${backendUrl}/api/${path}${search}`;
+
   if (process.env.NODE_ENV !== 'production') {
     console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
   }

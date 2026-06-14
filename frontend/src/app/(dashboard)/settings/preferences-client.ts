@@ -9,6 +9,8 @@ import {
   DEFAULT_PRIVACY_SETTINGS,
 } from '@/types/user-ui-preferences';
 
+import apiClient from '@/lib/api/api-client';
+
 type PreferencesResponse = {
   success?: boolean;
   data?: {
@@ -96,7 +98,9 @@ function mapFrontendPatchToBackend(patch: SettingsPreferencesPatch): any {
 
 type FetchLike = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
-export async function fetchSettingsPreferences(fetchFn: typeof fetch = fetch): Promise<SettingsPreferences> {
+export async function fetchSettingsPreferences(
+  fetchFn: FetchLike = (input, init) => apiClient.fetch(input as string, init)
+): Promise<SettingsPreferences> {
   const response = await fetchFn('/api/settings/preferences', {
     method: 'GET',
     credentials: 'include',
@@ -113,7 +117,7 @@ export async function fetchSettingsPreferences(fetchFn: typeof fetch = fetch): P
 
 export async function saveSettingsPreferences(
   patch: SettingsPreferencesPatch,
-  fetchFn: typeof fetch = fetch
+  fetchFn: FetchLike = (input, init) => apiClient.fetch(input as string, init)
 ): Promise<SettingsPreferences> {
   const flatPatch = mapFrontendPatchToBackend(patch);
   console.log("DEBUG [saveSettingsPreferences]: Sending patch:", JSON.stringify(flatPatch));

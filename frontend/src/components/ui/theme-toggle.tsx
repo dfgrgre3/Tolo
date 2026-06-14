@@ -26,7 +26,7 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
         try {
           await saveSettingsPreferences({
             appearance: { theme: nextTheme }
-          }, fetchWithAuth)
+          })
         } catch (error) {
           logger.error("Failed to sync theme preference:", error)
         }
