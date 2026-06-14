@@ -79,6 +79,12 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
   const disconnect = useWebSocketStore((state) => state.disconnect);
   const [websocketEnabled, setWebsocketEnabled] = React.useState(true);
 
+  // Store getToken in a ref to avoid re-triggering effects on every render.
+  // getToken reference changes on every Clerk render which would cause
+  // infinite reconnection loops if included in dependency arrays.
+  const getTokenRef = React.useRef(getToken);
+  React.useEffect(() => { getTokenRef.current = getToken; });
+
   useEffect(() => {
     if (typeof document === "undefined") return;
 
@@ -92,7 +98,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       if (isDisabled) {
         disconnect();
       } else if (currentUserId && isLoaded) {
-        const token = await getToken();
+        const token = await getTokenRef.current();
         if (token) {
           connect(currentUserId, token);
         }
@@ -105,7 +111,8 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     });
 
     return () => observer.disconnect();
-  }, [currentUserId, connect, disconnect, getToken, isLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId, connect, disconnect, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -116,7 +123,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     }
 
     const establishConnection = async () => {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       if (token) {
         connect(currentUserId, token);
       } else {
@@ -129,7 +136,8 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     return () => {
       disconnect();
     };
-  }, [currentUserId, websocketEnabled, connect, disconnect, getToken, isLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId, websocketEnabled, connect, disconnect, isLoaded]);
 
   const socket = useWebSocketStore((state) => state.socket);
   const isConnected = useWebSocketStore((state) => state.isConnected);

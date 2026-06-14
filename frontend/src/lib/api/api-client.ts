@@ -138,6 +138,57 @@ function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
     return payload as T;
 }
 
+const REDIRECT_LOOP_KEY = '__api_redirect_count';
+const REDIRECT_LOOP_WINDOW = 10_000; // 10 seconds
+const MAX_REDIRECTS_IN_WINDOW = 3;
+
+function detectRedirectLoop(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const raw = sessionStorage.getItem(REDIRECT_LOOP_KEY);
+        if (!raw) return false;
+        const { count, timestamp } = JSON.parse(raw) as { count: number; timestamp: number };
+        if (Date.now() - timestamp > REDIRECT_LOOP_WINDOW) {
+            sessionStorage.removeItem(REDIRECT_LOOP_KEY);
+            return false;
+        }
+        return count >= MAX_REDIRECTS_IN_WINDOW;
+    } catch {
+        return false;
+    }
+}
+
+function recordRedirect(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        const raw = sessionStorage.getItem(REDIRECT_LOOP_KEY);
+        let count = 0;
+        let timestamp = Date.now();
+        if (raw) {
+            const parsed = JSON.parse(raw) as { count: number; timestamp: number };
+            if (Date.now() - parsed.timestamp <= REDIRECT_LOOP_WINDOW) {
+                count = parsed.count;
+                timestamp = parsed.timestamp;
+            }
+        }
+        sessionStorage.setItem(REDIRECT_LOOP_KEY, JSON.stringify({
+            count: count + 1,
+            timestamp,
+        }));
+    } catch {
+        // ignore
+    }
+}
+
+function clearRedirectCount(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        sessionStorage.removeItem(REDIRECT_LOOP_KEY);
+    } catch {
+        // ignore
+    }
+}
+
 class ApiClient {
     private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
         const headers = new Headers();
@@ -258,15 +309,30 @@ class ApiClient {
                     // Only redirect if an Authorization header was actually sent.
                     // This avoids redirect loops on initialization before Clerk is loaded.
                     if (headers.has('Authorization')) {
-                        this.resetAuthStore();
-                        if (typeof window !== 'undefined') {
-                            const currentPath = window.location.pathname;
-                            // Never redirect if already on an auth page — that would create a loop.
-                            // Also skip redirect for auth endpoints themselves (login/register calls).
-                            const isAlreadyOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/admin-login';
-                            const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
-                            if (!isAlreadyOnAuthPage && !isAuthEndpoint) {
-                                window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+                        // Check for redirect loop first — if we've already redirected
+                        // multiple times in a short window, break the cycle.
+                        if (detectRedirectLoop()) {
+                            console.error(
+                                'API redirect loop detected! Multiple 401 redirects occurred in a short window. ' +
+                                'Stopping automatic redirects to prevent infinite page reloads. ' +
+                                'The user may need to manually log in again.'
+                            );
+                            // Clear the counter so future manual attempts can work
+                            clearRedirectCount();
+                            // Reset auth store but do NOT redirect
+                            this.resetAuthStore();
+                        } else {
+                            this.resetAuthStore();
+                            if (typeof window !== 'undefined') {
+                                const currentPath = window.location.pathname;
+                                // Never redirect if already on an auth page — that would create a loop.
+                                // Also skip redirect for auth endpoints themselves (login/register/me calls).
+                                const isAlreadyOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/admin-login' || currentPath === '/verify-email';
+                                const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh') || endpoint.includes('/auth/me');
+                                if (!isAlreadyOnAuthPage && !isAuthEndpoint) {
+                                    recordRedirect();
+                                    window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+                                }
                             }
                         }
                     } else {

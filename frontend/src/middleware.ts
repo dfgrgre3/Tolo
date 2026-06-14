@@ -30,6 +30,8 @@ function generateNonce(): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
   const url = new URL(req.url);
@@ -37,10 +39,25 @@ export default clerkMiddleware(async (auth, req) => {
   // Redirect authenticated users away from public auth pages.
   // Only redirect if Clerk has fully resolved the session (userId is present and
   // not undefined/null). Avoid redirecting from API routes to prevent loops.
-  const isAuthPage = ["/", "/login", "/register", "/admin-login"].includes(url.pathname);
+  // NOTE: Do NOT include "/" here. The root path is a public landing page and
+  // redirecting authenticated users away from it can cause an infinite loop
+  // when combined with ClientLayoutProvider's last-visited-path restoration.
+  const isAuthPage = ["/login", "/register", "/admin-login"].includes(url.pathname);
   if (userId && isAuthPage) {
     const destination = url.pathname === "/admin-login" ? "/admin/dashboard" : "/dashboard";
-    return NextResponse.redirect(new URL(destination, req.url));
+    // Redirect loop protection: if we recently redirected to the same destination
+    // (within 3 seconds), break the loop to prevent infinite page reloads.
+    const lastRedirectDest = req.cookies.get("__redirect_dest")?.value;
+    const lastRedirectTs = req.cookies.get("__redirect_ts")?.value;
+    const now = Date.now();
+    if (lastRedirectDest === destination && lastRedirectTs && (now - parseInt(lastRedirectTs, 10)) < 3000) {
+      // Loop detected — let the request through instead of redirecting again
+    } else {
+      const response = NextResponse.redirect(new URL(destination, req.url));
+      response.cookies.set("__redirect_dest", destination, { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 5 });
+      response.cookies.set("__redirect_ts", String(now), { httpOnly: true, secure: !isDev, sameSite: "lax", path: "/", maxAge: 5 });
+      return response;
+    }
   }
 
   if (isProtectedRoute(req)) {
@@ -53,8 +70,6 @@ export default clerkMiddleware(async (auth, req) => {
   if (!nonce) {
     nonce = generateNonce();
   }
-
-  const isDev = process.env.NODE_ENV === 'development';
 
   // Helper to extract domain origin safely
   const getDomainFromUrl = (url: string | undefined): string => {

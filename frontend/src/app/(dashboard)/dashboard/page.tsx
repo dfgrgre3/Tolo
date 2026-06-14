@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { m } from "framer-motion";
 import {
@@ -44,6 +44,12 @@ export default function DashboardPage() {
   const [recentActivities, setRecentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
+  // Store fetchWithAuth in a ref to avoid re-triggering this effect on every render.
+  // fetchWithAuth changes reference because it depends on Clerk's getToken which
+  // changes on every render, which would cause infinite API calls and refresh loops.
+  const fetchWithAuthRef = useRef(fetchWithAuth);
+  useEffect(() => { fetchWithAuthRef.current = fetchWithAuth; });
+
   useEffect(() => {
     setMounted(true);
     
@@ -52,8 +58,8 @@ export default function DashboardPage() {
       try {
         setIsDataLoading(true);
         const [coursesRes, activitiesRes] = await Promise.all([
-          fetchWithAuth("/api/my-courses?limit=1"),
-          fetchWithAuth("/api/notifications?limit=5")
+          fetchWithAuthRef.current("/api/my-courses?limit=1"),
+          fetchWithAuthRef.current("/api/notifications?limit=5")
         ]);
 
         if (coursesRes.ok) {
@@ -83,7 +89,8 @@ export default function DashboardPage() {
     };
 
     if (user) fetchDashboardData();
-  }, [user, fetchWithAuth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (isAuthLoading) {
     return (

@@ -44,6 +44,34 @@ export function AuthProvider({
   const getTokenRef = React.useRef(getToken);
   React.useEffect(() => { getTokenRef.current = getToken; });
 
+  // ── Stable snapshot of clerkUser fields ──────────────────────────────────
+  // Clerk replaces the clerkUser object reference on every internal state
+  // update (token refresh, polling, etc.) even when the actual user data has
+  // NOT changed. Listing `clerkUser` directly in the dependency array therefore
+  // re-triggers the sync effect on EVERY Clerk render, causing an infinite loop.
+  // We instead depend on a stable string that only changes when the actual
+  // data changes. This is the recommended pattern for Clerk hooks.
+  const clerkUserStableKey = React.useMemo(() => {
+    if (!clerkUser) return null;
+    return JSON.stringify({
+      id: clerkUser.id,
+      email: clerkUser.emailAddresses[0]?.emailAddress,
+      username: clerkUser.username,
+      fullName: clerkUser.fullName,
+      imageUrl: clerkUser.imageUrl,
+      role: clerkUser.publicMetadata?.role,
+      permissions: clerkUser.publicMetadata?.permissions,
+      emailVerified: clerkUser.emailAddresses[0]?.verification?.status,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clerkUser?.id, clerkUser?.username, clerkUser?.fullName,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      (clerkUser?.publicMetadata?.role as string) ?? null]);
+  // Keep a ref to the latest clerkUser so the async syncProfile can access it
+  // without being listed as a dependency.
+  const clerkUserRef = React.useRef(clerkUser);
+  React.useEffect(() => { clerkUserRef.current = clerkUser; });
+
   // Sync ref with current userId to prevent race conditions during async calls
   useEffect(() => {
     currentUserIdRef.current = userId || null;
@@ -65,7 +93,10 @@ export function AuthProvider({
   useEffect(() => {
     if (!isClerkLoaded) return;
 
-    if (!userId || (isUserLoaded && !clerkUser)) {
+    // Use ref to get the actual clerkUser object (avoids listing it in deps)
+    const activeClerkUser = clerkUserRef.current;
+
+    if (!userId || (isUserLoaded && !activeClerkUser)) {
       lastSyncedId.current = null;
       resetStore(); // reset() already sets isLoading: false
       return;
@@ -73,12 +104,12 @@ export function AuthProvider({
 
     let isCancelled = false;
 
-    if (isUserLoaded && clerkUser) {
+    if (isUserLoaded && activeClerkUser) {
       // Get current store user without triggering effect dependency re-runs
       const currentStoreUser = useAuthStore.getState().user;
 
       // Pre-validation check for admin routes
-      const role = clerkUser.publicMetadata?.role as string | undefined;
+      const role = activeClerkUser.publicMetadata?.role as string | undefined;
       const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
       if (isAdminRoute && role && role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
@@ -89,15 +120,15 @@ export function AuthProvider({
       }
 
       const mappedUser: AuthUser = {
-        id: clerkUser.id,
-        email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        username: clerkUser.username || null,
-        name: clerkUser.fullName || clerkUser.username || null,
-        avatar: clerkUser.imageUrl || null,
+        id: activeClerkUser.id,
+        email: activeClerkUser.emailAddresses[0]?.emailAddress || '',
+        username: activeClerkUser.username || null,
+        name: activeClerkUser.fullName || activeClerkUser.username || null,
+        avatar: activeClerkUser.imageUrl || null,
         role: (role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT',
-        emailVerified: clerkUser.emailAddresses[0]?.verification?.status === 'verified',
-        permissions: Array.isArray(clerkUser.publicMetadata?.permissions)
-          ? (clerkUser.publicMetadata.permissions as string[])
+        emailVerified: activeClerkUser.emailAddresses[0]?.verification?.status === 'verified',
+        permissions: Array.isArray(activeClerkUser.publicMetadata?.permissions)
+          ? (activeClerkUser.publicMetadata.permissions as string[])
           : [],
       };
 
@@ -129,12 +160,14 @@ export function AuthProvider({
           const profile = await authRepository.getProfile(headers);
           if (isCancelled || currentUserIdRef.current !== userId) return;
 
+          // Re-read from ref to get the freshest clerkUser without adding to deps
+          const freshClerkUser = clerkUserRef.current;
           setUser({
             ...mappedUser,
             email: profile.email || mappedUser.email,
             role: (profile.role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT', // Trust server-side role
-            permissions: Array.isArray(clerkUser.publicMetadata?.permissions)
-              ? (clerkUser.publicMetadata.permissions as string[])
+            permissions: Array.isArray(freshClerkUser?.publicMetadata?.permissions)
+              ? (freshClerkUser.publicMetadata.permissions as string[])
               : [],
           });
         } catch (e) {
@@ -155,12 +188,15 @@ export function AuthProvider({
     return () => {
       isCancelled = true;
     };
-  // NOTE: getToken is intentionally omitted from deps — it changes reference
-  // on every Clerk render and would cause an infinite loop if included.
-  // We access the latest version safely via getTokenRef instead.
-  // setIsLoading is also omitted — it is a stable Zustand setter.
+  // NOTE: `clerkUser` is intentionally replaced by `clerkUserStableKey` in deps.
+  // Clerk replaces the clerkUser object reference on every internal state update
+  // (token refresh, polling, etc.) even when data hasn't changed, which would
+  // re-trigger this effect and cause an infinite loop. We use a stable key
+  // computed from the actual fields that matter, and access clerkUser itself
+  // via clerkUserRef inside the async body.
+  // getToken + setIsLoading are also omitted — accessed via refs / stable Zustand setters.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clerkUser, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
+  }, [clerkUserStableKey, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
 
   return <>{children}</>;
 }
