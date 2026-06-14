@@ -255,9 +255,15 @@ class ApiClient {
                 clearTimeout(id);
 
                 if (response.status === 401 && retryCount < 1) {
-                    this.resetAuthStore();
-                    if (typeof window !== 'undefined') {
-                        window.location.href = '/login';
+                    // Only redirect if an Authorization header was actually sent.
+                    // This avoids redirect loops on initialization before Clerk is loaded.
+                    if (headers.has('Authorization')) {
+                        this.resetAuthStore();
+                        if (typeof window !== 'undefined') {
+                            window.location.href = '/login';
+                        }
+                    } else {
+                        console.warn('API returned 401, but no Authorization header was sent. Skipping auto-redirect to prevent infinite loops.');
                     }
                 }
 
