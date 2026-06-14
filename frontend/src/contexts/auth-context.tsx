@@ -240,13 +240,35 @@ export function useAuth() {
     });
   }, [getToken]);
 
+  /** Sign out every active Clerk session, then wait briefly so Clerk propagates the state. */
+  const forceSignOutAll = useCallback(async (activeClerk: ReturnType<typeof getClerkInstance>) => {
+    if (!activeClerk) return;
+    try {
+      const sessions = activeClerk.client?.sessions ?? [];
+      if (sessions.length > 0) {
+        // Sign out each session individually for reliability
+        await Promise.all(
+          sessions.map((s: { id: string }) => activeClerk.signOut({ sessionId: s.id }).catch(() => {}))
+        );
+      } else if (activeClerk.session) {
+        await activeClerk.signOut();
+      }
+      // Small delay to let Clerk propagate the sign-out across its internal state
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (e) {
+      logger.warn('forceSignOutAll error (non-fatal):', e);
+    }
+  }, [getClerkInstance]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
-        await activeClerk.signOut();
-      }
+      // Always clear any existing sessions before attempting a new sign-in.
+      // This is the key fix: switching accounts requires all old sessions to be
+      // fully cleared from Clerk's client state before signIn.create() is called.
+      await forceSignOutAll(activeClerk);
+
       const result = await activeClerk.client.signIn.create({
         identifier: email,
         password,
@@ -262,38 +284,16 @@ export function useAuth() {
       return { success: false, error: `Additional steps required: ${result.status}` };
     } catch (err: unknown) {
       logger.error('Login error:', err);
-      const errMsg = getClerkErrorMessage(err, '');
-      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
-        try {
-          await activeClerk.signOut();
-          const result = await activeClerk.client.signIn.create({
-            identifier: email,
-            password,
-            strategy: 'password',
-          });
-          if (result.status === 'complete') {
-            await activeClerk.setActive({ session: result.createdSessionId });
-            return { success: true };
-          }
-          if (result.status === 'needs_second_factor') {
-            return { success: true, requires2FA: true, userId: result.id };
-          }
-        } catch (retryErr) {
-          logger.error('Login retry error:', retryErr);
-          return { success: false, error: getClerkErrorMessage(retryErr, 'Login failed') };
-        }
-      }
-      return { success: false, error: getClerkErrorMessage(err, 'Login failed') };
+      return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.') };
     }
-  }, [getClerkInstance]);
+  }, [getClerkInstance, forceSignOutAll]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
-        await activeClerk.signOut();
-      }
+      await forceSignOutAll(activeClerk);
+
       const result = await activeClerk.client.signIn.create({
         identifier: email,
         password,
@@ -316,35 +316,9 @@ export function useAuth() {
       return { success: false, error: `الخطوات الإضافية مطلوبة: ${result.status}` };
     } catch (err: unknown) {
       logger.error('Admin login error:', err);
-      const errMsg = getClerkErrorMessage(err, '');
-      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
-        try {
-          await activeClerk.signOut();
-          const result = await activeClerk.client.signIn.create({
-            identifier: email,
-            password,
-            strategy: 'password',
-          });
-          if (result.status === 'complete') {
-            await activeClerk.setActive({ session: result.createdSessionId });
-            const role = activeClerk.user?.publicMetadata?.role;
-            if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
-              await activeClerk.signOut();
-              return { success: false, error: 'غير مصرح لك بالدخول كمسؤول' };
-            }
-            return { success: true };
-          }
-          if (result.status === 'needs_second_factor') {
-            return { success: true, requires2FA: true, userId: result.id };
-          }
-        } catch (retryErr) {
-          logger.error('Admin login retry error:', retryErr);
-          return { success: false, error: getClerkErrorMessage(retryErr, 'فشل تسجيل الدخول') };
-        }
-      }
       return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول') };
     }
-  }, [getClerkInstance]);
+  }, [getClerkInstance, forceSignOutAll]);
 
   const register = useCallback(async (
     data: {
@@ -357,9 +331,8 @@ export function useAuth() {
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      if (activeClerk.session || (activeClerk.client && activeClerk.client.sessions && activeClerk.client.sessions.length > 0)) {
-        await activeClerk.signOut();
-      }
+      await forceSignOutAll(activeClerk);
+
       const result = await activeClerk.client.signUp.create({
         emailAddress: data.email,
         password: data.password,
@@ -380,35 +353,9 @@ export function useAuth() {
       return { success: true, autoLoggedIn: false };
     } catch (err: unknown) {
       logger.error('Registration error:', err);
-      const errMsg = getClerkErrorMessage(err, '');
-      if (errMsg.toLowerCase().includes('session already exists') || (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as any).errors) && (err as any).errors[0]?.code === 'session_already_exists')) {
-        try {
-          await activeClerk.signOut();
-          const result = await activeClerk.client.signUp.create({
-            emailAddress: data.email,
-            password: data.password,
-            username: data.username,
-          });
-          if (result.status === 'complete') {
-            await activeClerk.setActive({ session: result.createdSessionId });
-            return { success: true, autoLoggedIn: true };
-          }
-          if (result.status === 'missing_requirements' || result.unverifiedFields?.includes('email_address')) {
-            try {
-              await activeClerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-            } catch (prepareErr) {
-              logger.error('Failed to prepare email verification on retry:', prepareErr);
-            }
-          }
-          return { success: true, autoLoggedIn: false };
-        } catch (retryErr) {
-          logger.error('Registration retry error:', retryErr);
-          return { success: false, error: getClerkErrorMessage(retryErr, 'Registration failed') };
-        }
-      }
-      return { success: false, error: getClerkErrorMessage(err, 'Registration failed') };
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.') };
     }
-  }, [getClerkInstance]);
+  }, [getClerkInstance, forceSignOutAll]);
 
   const logout = useCallback(async (allDevices?: boolean) => {
     await signOut();
