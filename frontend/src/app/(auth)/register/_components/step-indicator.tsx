@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 export function StepIndicator({ step }: { readonly step: number }) {
   return (
     <div className="flex items-center justify-center gap-4 px-4">
-      {[1, 2, 3].map((i) => (
+      {[1, 2].map((i) => (
         <div key={i} className="flex items-center gap-4">
           <m.div
             animate={{
@@ -22,7 +22,7 @@ export function StepIndicator({ step }: { readonly step: number }) {
           >
             {step > i ? <Check className="w-6 h-6 stroke-[3px]" /> : i}
           </m.div>
-          {i < 3 && (
+          {i < 2 && (
             <div className="w-12 md:w-24 h-1 rounded-full bg-white/5 overflow-hidden">
               <m.div
                 animate={{ width: step > i ? "100%" : "0%" }}

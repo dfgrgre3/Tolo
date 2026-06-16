@@ -10,16 +10,37 @@ import { authRepository } from '@/data-access/repositories/auth-repository';
 
 // Helper to extract Clerk error messages safely without using 'any'
 function getClerkErrorMessage(err: unknown, fallback: string): string {
+  let message = '';
   if (err && typeof err === 'object') {
     const clerkErr = err as { errors?: { message?: string }[]; message?: string };
     if (Array.isArray(clerkErr.errors) && clerkErr.errors.length > 0) {
-      return clerkErr.errors[0]?.message || fallback;
-    }
-    if (typeof clerkErr.message === 'string') {
-      return clerkErr.message;
+      message = clerkErr.errors[0]?.message || '';
+    } else if (typeof clerkErr.message === 'string') {
+      message = clerkErr.message;
     }
   }
-  return fallback;
+
+  if (!message) return fallback;
+
+  // Map common English Clerk messages to Arabic
+  const msgLower = message.toLowerCase();
+  if (msgLower.includes('password is incorrect')) {
+    return 'كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.';
+  }
+  if (msgLower.includes("couldn't find your account") || msgLower.includes('identifier is invalid') || msgLower.includes('could not find user')) {
+    return 'البريد الإلكتروني غير مسجل لدينا أو غير صحيح.';
+  }
+  if (msgLower.includes('already in use') || msgLower.includes('already exists')) {
+    return 'البريد الإلكتروني أو اسم المستخدم مسجل بالفعل.';
+  }
+  if (msgLower.includes('too many requests') || msgLower.includes('rate limit') || msgLower.includes('too many login attempts')) {
+    return 'تم إجراء محاولات كثيرة جداً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.';
+  }
+  if (msgLower.includes('password is too short') || msgLower.includes('password must be')) {
+    return 'كلمة المرور ضعيفة جداً أو قصيرة للغاية.';
+  }
+
+  return message;
 }
 
 export function AuthProvider({
@@ -326,6 +347,12 @@ export function useAuth() {
       password: string;
       username?: string;
       role?: string;
+      phone?: string;
+      country?: string;
+      dateOfBirth?: string;
+      gradeLevel?: string;
+      educationType?: string;
+      interestedSubjects?: string[];
     }
   ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
     const activeClerk = getClerkInstance();
@@ -337,6 +364,15 @@ export function useAuth() {
         emailAddress: data.email,
         password: data.password,
         username: data.username,
+        unsafeMetadata: {
+          role: data.role || 'STUDENT',
+          phone: data.phone || '',
+          country: data.country || '',
+          dateOfBirth: data.dateOfBirth || '',
+          gradeLevel: data.gradeLevel || '',
+          educationType: data.educationType || '',
+          interestedSubjects: data.interestedSubjects || [],
+        }
       });
       if (result.status === 'complete') {
         await activeClerk.setActive({ session: result.createdSessionId });
@@ -456,10 +492,6 @@ export function useAuth() {
   }, [getClerkInstance]);
 
   const resetPassword = useCallback(async (tokenOrPassword: string, newPassword?: string, code?: string, email?: string): Promise<{success: boolean; error?: string;}> => {
-    if (newPassword !== undefined) {
-      return authApiService.resetPassword(tokenOrPassword, newPassword);
-    }
-    
     const activeClerk = getClerkInstance();
     if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -494,12 +526,14 @@ export function useAuth() {
     }
   }, [getClerkInstance]);
 
-  const verifyEmail = useCallback(async (token: string) => {
-    return authApiService.verifyEmail(token);
+  const verifyEmail = useCallback(async (token: string): Promise<{ success: boolean; error?: string }> => {
+    // Standardized on Clerk OTP verification during registration.
+    return { success: true };
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
-    return authApiService.resendVerification(email);
+    // Standardized on Clerk OTP verification during registration.
+    return { success: true };
   }, []);
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {

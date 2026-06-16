@@ -10,10 +10,10 @@ function seededRandom(seed: number): number {
 
 const BACKGROUND_ELEMENTS = Array.from({ length: 20 }, (_, i) => ({
   id: `bg-element-${i}`,
-  left: seededRandom(i + 1) * 100,
-  top: seededRandom(i + 21) * 100,
-  delay: seededRandom(i + 41) * 5,
-  xOffset: seededRandom(i + 61) * 40 - 20,
+  left: Number((seededRandom(i + 1) * 100).toFixed(4)),
+  top: Number((seededRandom(i + 21) * 100).toFixed(4)),
+  delay: Number((seededRandom(i + 41) * 5).toFixed(4)),
+  xOffset: Number((seededRandom(i + 61) * 40 - 20).toFixed(4)),
 }));
 
 export function BackgroundLayers() {

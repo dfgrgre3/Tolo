@@ -1,11 +1,12 @@
 'use client';
 
 import { m } from 'framer-motion';
-import { User, Mail, Lock, Eye, EyeOff, Phone, Flag, Calendar, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, Phone, Calendar, ArrowRight } from 'lucide-react';
 import { type UseFormRegister, type FieldErrors } from 'react-hook-form';
 import { PremiumInput } from '@/components/auth/premium-input';
 import { Button } from '@/components/ui/button';
 import { PasswordStrengthMeter } from './password-strength-meter';
+import { cn } from '@/lib/utils';
 
 interface PersonalInfoStepProps {
   readonly register: UseFormRegister<any>;
@@ -14,17 +15,15 @@ interface PersonalInfoStepProps {
   readonly setShowPassword: (v: boolean) => void;
   readonly showConfirmPassword: boolean;
   readonly setShowConfirmPassword: (v: boolean) => void;
-  readonly selectedCountry: string;
-  readonly handleCountryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   readonly handlePhoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readonly passwordValue: string;
   readonly onNext: () => void;
-  readonly onBack: () => void;
+  readonly onBack?: () => void;
 }
 
 export function PersonalInfoStep({
   register, errors, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword,
-  selectedCountry, handleCountryChange, handlePhoneChange, passwordValue, onNext, onBack
+  handlePhoneChange, passwordValue, onNext, onBack
 }: PersonalInfoStepProps) {
   return (
     <m.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
@@ -61,20 +60,6 @@ export function PersonalInfoStep({
           error={errors.confirmPassword?.message}
         />
 
-        <div className="space-y-2">
-          <m.div animate={{ backgroundColor: selectedCountry ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.05)" }}
-            className="relative border border-white/10 rounded-2xl h-16 flex items-center">
-            <select value={selectedCountry} onChange={handleCountryChange}
-              className="w-full h-full bg-transparent px-12 font-bold text-white outline-none appearance-none cursor-pointer">
-              {COUNTRIES.map((country) => (
-                <option key={country.code} value={country.code} className="bg-[#0a0a0a] text-white">{country.name}</option>
-              ))}
-            </select>
-            <Flag className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-            <span className="absolute right-12 top-1/2 -translate-y-[180%] text-[10px] font-black uppercase text-primary/80 tracking-widest">الدولة</span>
-          </m.div>
-        </div>
-
         <PremiumInput
           registration={{
             ...register('phone'),
@@ -91,8 +76,10 @@ export function PersonalInfoStep({
       </div>
 
       <div className="flex gap-6 pt-6">
-        <Button type="button" variant="outline" onClick={onBack} className="h-18 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-lg hover:bg-white/10 transition-colors">سابـق</Button>
-        <Button type="button" onClick={onNext} className="h-18 flex-[2] rounded-2xl bg-primary font-black text-black text-lg shadow-xl shadow-primary/10 group overflow-hidden relative">
+        {onBack && (
+          <Button type="button" variant="outline" onClick={onBack} className="h-18 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-lg hover:bg-white/10 transition-colors">سابـق</Button>
+        )}
+        <Button type="button" onClick={onNext} className={cn("h-18 rounded-2xl bg-primary font-black text-black text-lg shadow-xl shadow-primary/10 group overflow-hidden relative", onBack ? "flex-[2]" : "w-full")}>
           <m.div className="absolute inset-0 bg-white/20" initial={{ y: "100%" }} whileHover={{ y: 0 }} transition={{ duration: 0.3 }} />
           <div className="relative z-10 flex items-center justify-center gap-3">تأكيد البيانات <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" /></div>
         </Button>
@@ -100,14 +87,3 @@ export function PersonalInfoStep({
     </m.div>
   );
 }
-
-const COUNTRIES = [
-  { code: 'EG', name: 'مصر', phoneCode: '+20' },
-  { code: 'SA', name: 'السعودية', phoneCode: '+966' },
-  { code: 'AE', name: 'الإمارات', phoneCode: '+971' },
-  { code: 'KW', name: 'الكويت', phoneCode: '+965' },
-  { code: 'QA', name: 'قطر', phoneCode: '+974' },
-  { code: 'OM', name: 'عمان', phoneCode: '+968' },
-  { code: 'BH', name: 'البحرين', phoneCode: '+973' },
-  { code: 'JO', name: 'الأردن', phoneCode: '+962' }
-];

@@ -2,7 +2,6 @@
 
 import React from "react";
 import { m } from "framer-motion";
-import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 
 interface SocialGoalSectionProps {
@@ -57,7 +56,8 @@ export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
                     whileHover={{ y: -5, scale: 1.1, zIndex: 50 }}
                     className="h-12 w-12 rounded-full border-2 border-background bg-card flex items-center justify-center overflow-hidden hover:border-primary transition-all cursor-pointer shadow-xl relative"
                   >
-                    <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" width={48} height={48} className="object-cover" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" width={48} height={48} className="object-cover" />
                   </m.div>
                 ))}
                 <div className="h-12 w-12 rounded-full border-2 border-background bg-primary flex items-center justify-center text-xs font-black text-white relative z-10 shadow-xl shadow-primary/20">

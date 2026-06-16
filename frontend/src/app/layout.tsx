@@ -66,7 +66,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkWithNonce>
-      <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
+      <html lang="ar" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
 
         <head>
           {/* ── Preconnect to external origins ─────────────────────────────── */}

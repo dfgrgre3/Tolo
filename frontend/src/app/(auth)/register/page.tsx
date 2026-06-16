@@ -36,7 +36,6 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'يجب أن تحتوي على رقم'),
   confirmPassword: z.string().min(1, 'تأكيد كلمة المرور مطلوب'),
   phone: z.string().optional(),
-  country: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gradeLevel: z.string().optional(),
   educationType: z.string().optional(),
@@ -52,9 +51,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 // ─── Validators per step ─────────────────────────────────────────────────────
 
 const STEP_FIELDS: Record<number, (keyof RegisterFormValues)[]> = {
-  1: ['role'],
-  2: ['username', 'email', 'password', 'confirmPassword'],
-  3: ['acceptTerms'],
+  1: ['username', 'email', 'password', 'confirmPassword'],
+  2: ['acceptTerms'],
 };
 
 // ─── Main form component ─────────────────────────────────────────────────────
@@ -68,7 +66,6 @@ function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState('EG');
   const [interestedSubjects, setInterestedSubjects] = useState<string[]>([]);
   const [showOTP, setShowOTP] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -83,13 +80,12 @@ function RegisterForm() {
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      role: undefined,
+      role: 'STUDENT',
       username: '',
       email: '',
       password: '',
       confirmPassword: '',
       phone: '',
-      country: 'EG',
       dateOfBirth: '',
       gradeLevel: '',
       educationType: '',
@@ -125,11 +121,6 @@ function RegisterForm() {
     setStep(s => s - 1);
   }, []);
 
-  const handleCountryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCountry(e.target.value);
-    setValue('country', e.target.value);
-  }, [setValue]);
-
   const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setValue('phone', e.target.value);
   }, [setValue]);
@@ -153,6 +144,11 @@ function RegisterForm() {
         password: data.password,
         username: data.username,
         role: data.role,
+        phone: data.phone,
+        dateOfBirth: data.dateOfBirth,
+        gradeLevel: data.gradeLevel,
+        educationType: data.educationType,
+        interestedSubjects: data.interestedSubjects,
       });
 
       if (result.success) {
@@ -229,33 +225,22 @@ function RegisterForm() {
             <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <AnimatePresence mode="wait">
                 {step === 1 && (
-                  <RoleStep
-                    key="step1"
-                    register={register}
-                    roleValue={roleValue}
-                    onNext={handleNextStep}
-                  />
-                )}
-                {step === 2 && (
                   <PersonalInfoStep
-                    key="step2"
+                    key="step1"
                     register={register}
                     errors={errors}
                     showPassword={showPassword}
                     setShowPassword={setShowPassword}
                     showConfirmPassword={showConfirmPassword}
                     setShowConfirmPassword={setShowConfirmPassword}
-                    selectedCountry={selectedCountry}
-                    handleCountryChange={handleCountryChange}
                     handlePhoneChange={handlePhoneChange}
                     passwordValue={passwordValue}
                     onNext={handleNextStep}
-                    onBack={handlePrevStep}
                   />
                 )}
-                {step === 3 && (
+                {step === 2 && (
                   <PreferencesStep
-                    key="step3"
+                    key="step2"
                     register={register}
                     errors={errors}
                     interestedSubjects={interestedSubjects}
