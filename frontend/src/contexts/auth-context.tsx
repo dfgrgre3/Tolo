@@ -230,11 +230,8 @@ export function useAuth() {
   // the tree — even from custom (non-Clerk-hosted) login/register pages.
   const clerk = useClerk();
   const getClerkInstance = useCallback(() => {
-    if (clerk) return clerk;
-    if (typeof window !== 'undefined') {
-      return (window as unknown as { Clerk?: typeof clerk }).Clerk || null;
-    }
-    return null;
+    const active = clerk || (typeof window !== 'undefined' ? (window as unknown as { Clerk?: typeof clerk }).Clerk : null);
+    return active && active.client ? active : null;
   }, [clerk]);
   const isClerkInstanceReady = !!getClerkInstance();
 
@@ -283,12 +280,15 @@ export function useAuth() {
 
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       // Always clear any existing sessions before attempting a new sign-in.
       // This is the key fix: switching accounts requires all old sessions to be
       // fully cleared from Clerk's client state before signIn.create() is called.
       await forceSignOutAll(activeClerk);
+
+      // After forceSignOut, Clerk may reset the client. Re-check availability.
+      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
 
       const result = await activeClerk.client.signIn.create({
         identifier: email,
@@ -311,9 +311,11 @@ export function useAuth() {
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       await forceSignOutAll(activeClerk);
+
+      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
 
       const result = await activeClerk.client.signIn.create({
         identifier: email,
@@ -356,9 +358,11 @@ export function useAuth() {
     }
   ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       await forceSignOutAll(activeClerk);
+
+      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
 
       const result = await activeClerk.client.signUp.create({
         emailAddress: data.email,
@@ -401,7 +405,7 @@ export function useAuth() {
 
   const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const signIn = activeClerk.client.signIn;
       if (signIn.id !== userId) {
@@ -468,7 +472,7 @@ export function useAuth() {
 
   const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; error?: string; message?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const result = await activeClerk.client.signIn.create({
         identifier: email,
@@ -493,12 +497,13 @@ export function useAuth() {
 
   const resetPassword = useCallback(async (tokenOrPassword: string, newPassword?: string, code?: string, email?: string): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       if (!code) {
         return { success: false, error: 'رمز التحقق مطلوب' };
       }
       
+      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
       let signIn = activeClerk.client.signIn;
       if (!signIn || !signIn.identifier || (email && signIn.identifier !== email)) {
         if (!email) {
@@ -538,7 +543,7 @@ export function useAuth() {
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const result = await activeClerk.client.signIn.create({
         identifier: email,
@@ -562,7 +567,7 @@ export function useAuth() {
 
   const verifyOTP = useCallback(async (code: string): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
-    if (!activeClerk) return { success: false, error: 'Auth system not fully loaded' };
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const result = await activeClerk.client.signIn.attemptFirstFactor({
         strategy: 'email_code',
