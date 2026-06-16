@@ -127,6 +127,20 @@ const nextConfig = {
   // ─── Redirects ─────────────────────────────────────────────────────────────
   // (add here if needed)
 
+  // ─── Rewrites ──────────────────────────────────────────────────────────────
+  async rewrites() {
+    return [
+      {
+        // Clerk path-based proxy:
+        // source  : /__clerk/:path*                              (e.g. /__clerk/npm/@clerk/clerk-js@6/dist/clerk.browser.js)
+        // destination: https://clerk.tolo.com/:path*            (maps to clerk.tolo.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js)
+        // NOTE: Do NOT include /__clerk in the destination — it would double the prefix and cause 404s.
+        source: "/__clerk/:path*",
+        destination: "https://clerk.tolo.com/:path*",
+      },
+    ];
+  },
+
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {
     // Fallback for Node.js built-in modules used in client-side bundles

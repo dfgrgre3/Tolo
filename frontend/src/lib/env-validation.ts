@@ -67,7 +67,8 @@ function checkNoSensitiveKeysExposed(errors: string[]) {
     'NEXT_PUBLIC_BASE_URL',
     'NEXT_PUBLIC_RP_ID',
     'NEXT_PUBLIC_APP_NAME',
-    'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY'
+    'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY',
+    'NEXT_PUBLIC_CLERK_PROXY_URL',
   ]);
 
   const sensitivePatterns = [

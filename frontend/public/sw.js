@@ -12,7 +12,7 @@
  * the previous build. Bump again on any future breaking change.
  */
 
-const CACHE_VERSION = 'tolo-v5';
+const CACHE_VERSION = 'tolo-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const SEARCH_CACHE = `${CACHE_VERSION}-search`;
@@ -229,9 +229,11 @@ async function networkFirst(request, cacheName) {
       cache.put(request, response.clone());
     }
     return response;
-  } catch (err) {
+  } catch (_err) {
     const cached = await caches.match(request);
     if (cached) return cached;
-    throw err;
+    // Return a graceful offline response instead of rethrowing —
+    // rethrowing causes "FetchEvent resulted in a network error" console spam.
+    return new Response('', { status: 504, statusText: 'Offline' });
   }
 }

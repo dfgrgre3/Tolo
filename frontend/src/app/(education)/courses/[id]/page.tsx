@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import CourseDetailClient from "./CourseDetailClient";
 
 interface Props {
@@ -104,11 +105,15 @@ export default async function Page({ params }: Props) {
     console.error("Error generating Course schema:", error);
   }
 
+  // Read nonce injected by middleware for CSP compliance on the JSON-LD <script> block.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <>
       {schema && (
         <script
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       )}

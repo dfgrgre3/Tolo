@@ -174,7 +174,10 @@ export default clerkMiddleware(
     // بناء نص الـ CSP النهائي والمعياري للمتصفحات
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-hashes' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
+      // 'unsafe-inline' is silently IGNORED by browsers when a nonce is present (CSP Level 2+ spec).
+      // Keeping it causes the browser violation warning. Remove it and rely solely on the nonce.
+      // 'strict-dynamic' allows nonce-trusted scripts to dynamically load further scripts (required for Clerk bootstrap).
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-hashes' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' https: data: blob:",
       "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",
@@ -208,10 +211,7 @@ export default clerkMiddleware(
 
     return response;
   },
-  {
-    ...(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? { publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY } : {}),
-    ...(process.env.CLERK_SECRET_KEY ? { secretKey: process.env.CLERK_SECRET_KEY } : {}),
-  },
+  {},
 );
 
 export const config = {
