@@ -83,7 +83,6 @@ export default async function RootLayout({
           <script id="perf-detect" src="/perf-detect.js" nonce={nonce} />
 
           <link rel="dns-prefetch" href="https://i.ytimg.com" />
-          <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
           <meta name="theme-color" content="#f97316" />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />

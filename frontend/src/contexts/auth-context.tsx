@@ -416,20 +416,24 @@ export function useAuth() {
     router.replace('/login');
   }, [signOut, resetStore, router]);
 
-  const verify2FA = useCallback(async (userId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
+  const verify2FA = useCallback(async (signInId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       const signIn = activeClerk.client.signIn;
-      if (signIn.id !== userId) {
-        return { success: false, error: 'محاولة تسجيل دخول غير صالحة' };
+      // signInId is the SignIn resource .id (from signIn.create result),
+      // not the Clerk userId. We compare against signIn.id from the active session.
+      if (signInId && signIn.id && signIn.id !== signInId) {
+        return { success: false, error: 'محاولة تسجيل دخول غير صالحة أو منتهية الصلاحية' };
       }
-      const factor = signIn.supportedSecondFactors?.find(
-          (f) => (f as { strategy: string }).strategy === 'totp' || 
-                 (f as { strategy: string }).strategy === 'phone_code' || 
-                 (f as { strategy: string }).strategy === 'email_code' || 
-                 (f as { strategy: string }).strategy === 'backup_code'
-      );
+      // Pick the best available second factor strategy
+      const strategyPriority = ['totp', 'email_code', 'phone_code', 'backup_code'];
+      const factor = strategyPriority.reduce<{ strategy: string } | undefined>((found, s) => {
+        if (found) return found;
+        return signIn.supportedSecondFactors?.find(
+          (f) => (f as { strategy: string }).strategy === s
+        ) as { strategy: string } | undefined;
+      }, undefined);
       const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
       const result = await signIn.attemptSecondFactor({
         strategy,
@@ -439,7 +443,7 @@ export function useAuth() {
         await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
-      return { success: false, error: `Additional steps required: ${result.status}` };
+      return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
     } catch (err: unknown) {
       logger.error('2FA verification error:', err);
       return { success: false, error: getClerkErrorMessage(err, 'رمز التحقق غير صحيح') };
@@ -545,14 +549,80 @@ export function useAuth() {
   }, [getClerkInstance]);
 
   const verifyEmail = useCallback(async (token: string): Promise<{ success: boolean; error?: string }> => {
-    // Standardized on Clerk OTP verification during registration.
+    // Email verification is handled via Clerk OTP during registration (see OTPVerificationStep).
     return { success: true };
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
-    // Standardized on Clerk OTP verification during registration.
+    // Resend is handled via Clerk's prepareEmailAddressVerification in OTPVerificationStep.
     return { success: true };
   }, []);
+
+  /**
+   * Sign in with an OAuth provider (Google, GitHub, Apple, etc.).
+   * Redirects the user to the provider's auth page, then back to /sso-callback.
+   * Clerk handles the callback and session creation automatically.
+   */
+  const signInWithOAuth = useCallback(async (
+    provider: 'oauth_google' | 'oauth_github' | 'oauth_apple' | 'oauth_microsoft',
+    redirectUrl?: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const activeClerk = getClerkInstance();
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      await forceSignOutAll(activeClerk);
+      const freshClerk = getClerkInstance();
+      if (!freshClerk?.client?.signIn) return { success: false, error: 'Auth system not fully loaded' };
+
+      // authenticateWithRedirect triggers the OAuth flow.
+      // The user will be redirected back to redirectUrl after authentication.
+      await freshClerk.client.signIn.authenticateWithRedirect({
+        strategy: provider,
+        redirectUrl: redirectUrl ?? `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: redirectUrl ?? `${window.location.origin}/dashboard`,
+      });
+      return { success: true };
+    } catch (err: unknown) {
+      logger.error('OAuth sign-in error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول عبر الخدمة الخارجية') };
+    }
+  }, [getClerkInstance, forceSignOutAll]);
+
+  /**
+   * Update the current user's password via Clerk.
+   * Requires the user to provide their current password for verification.
+   */
+  const updatePassword = useCallback(async (
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!clerkUser) return { success: false, error: 'المستخدم غير مسجل الدخول' };
+    try {
+      await clerkUser.updatePassword({ currentPassword, newPassword });
+      return { success: true };
+    } catch (err: unknown) {
+      logger.error('Update password error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل تحديث كلمة المرور') };
+    }
+  }, [clerkUser]);
+
+  /**
+   * Initiate an email address change via Clerk.
+   * Clerk will send a verification code to the new email.
+   */
+  const initiateEmailChange = useCallback(async (
+    newEmail: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!clerkUser) return { success: false, error: 'المستخدم غير مسجل الدخول' };
+    try {
+      const emailAddress = await clerkUser.createEmailAddress({ email: newEmail });
+      await emailAddress.prepareVerification({ strategy: 'email_code' });
+      return { success: true };
+    } catch (err: unknown) {
+      logger.error('Initiate email change error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إرسال رمز التحقق للبريد الجديد') };
+    }
+  }, [clerkUser]);
 
   const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
     const activeClerk = getClerkInstance();
@@ -615,6 +685,9 @@ export function useAuth() {
     resendVerification,
     requestMagicLink,
     verifyOTP,
+    signInWithOAuth,
+    updatePassword,
+    initiateEmailChange,
   };
 }
 

@@ -4,6 +4,7 @@ import { m } from 'framer-motion';
 import { useClerk } from '@clerk/nextjs';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 
 function GoogleIcon() {
   return (
@@ -16,29 +17,43 @@ function GoogleIcon() {
   );
 }
 
+function GitHubIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+    </svg>
+  );
+}
+
 export function AuthProviders() {
-  const { openSignIn } = useClerk();
+  const clerk = useClerk();
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'github' | null>(null);
 
-  const handleGoogleLogin = async () => {
-    setLoadingProvider('google');
+  /**
+   * Trigger OAuth sign-in via Clerk's authenticateWithRedirect.
+   * Routes through the /__clerk proxy for first-party domain compliance.
+   */
+  const handleOAuthLogin = async (provider: 'oauth_google' | 'oauth_github') => {
+    const key = provider === 'oauth_google' ? 'google' : 'github';
+    setLoadingProvider(key);
     try {
-      await openSignIn({
-        fallbackRedirectUrl: '/dashboard',
-        appearance: { elements: { rootBox: 'hidden' } },
+      const signIn = clerk.client?.signIn;
+      if (!signIn) {
+        logger.warn('Clerk signIn not available — falling back to hosted sign-in');
+        window.location.href = `/sign-in?strategy=${provider}`;
+        return;
+      }
+
+      await signIn.authenticateWithRedirect({
+        strategy: provider,
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: `${window.location.origin}/dashboard`,
       });
-    } catch {
-      // user closed modal
-    } finally {
+    } catch (err) {
+      logger.error('OAuth login error:', err);
       setLoadingProvider(null);
     }
-  };
-
-  const handleGithubLogin = () => {
-    setLoadingProvider('github');
-    // Navigate to Clerk hosted sign-in with GitHub strategy pre-selected
-    const redirectTo = encodeURIComponent(window.location.origin + '/dashboard');
-    window.location.href = `/sign-in?strategy=oauth_github&redirect_url=${redirectTo}`;
+    // No finally reset — page navigates away on success.
   };
 
   return (
@@ -51,12 +66,14 @@ export function AuthProviders() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
+        {/* Google */}
         <m.button
           whileHover={{ scale: 1.02, borderColor: 'rgba(255,255,255,0.2)' }}
           whileTap={{ scale: 0.97 }}
-          onClick={handleGoogleLogin}
+          onClick={() => handleOAuthLogin('oauth_google')}
           disabled={!!loadingProvider}
           type="button"
+          aria-label="تسجيل الدخول بـ Google"
           className="flex items-center justify-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] h-14 transition-all shadow-sm hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loadingProvider === 'google' ? (
@@ -67,20 +84,20 @@ export function AuthProviders() {
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/70">Google</span>
         </m.button>
 
+        {/* GitHub */}
         <m.button
           whileHover={{ scale: 1.02, borderColor: 'rgba(255,255,255,0.2)' }}
           whileTap={{ scale: 0.97 }}
-          onClick={handleGithubLogin}
+          onClick={() => handleOAuthLogin('oauth_github')}
           disabled={!!loadingProvider}
           type="button"
+          aria-label="تسجيل الدخول بـ GitHub"
           className="flex items-center justify-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] h-14 transition-all shadow-sm hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loadingProvider === 'github' ? (
             <Loader2 className="h-5 w-5 animate-spin text-white/50" />
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-            </svg>
+            <GitHubIcon />
           )}
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/70">GitHub</span>
         </m.button>

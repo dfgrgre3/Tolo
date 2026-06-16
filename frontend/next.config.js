@@ -121,7 +121,7 @@ const nextConfig = {
           },
         ],
       },
-      // Note: /__clerk/npm/* is handled by the API route at src/app/__clerk/npm/[...path]/route.ts
+      // Note: /__clerk/npm/* no longer routes through Next.js — Clerk JS loads directly from CDN via clerkJSUrl
     ];
   },
 
@@ -131,23 +131,27 @@ const nextConfig = {
   // ─── Rewrites ──────────────────────────────────────────────────────────────
   async rewrites() {
     return [
-      // Note: /__clerk/npm/@clerk/* is handled by the API route — no rewrite needed here.
+      {
+        // Clerk npm bundle proxy (MUST come before the general /__clerk rewrite):
+        // Maps /__clerk/npm/* → app router route that proxies to jsDelivr CDN
+        //
+        // This ensures Clerk's JS bundle requests are handled by the local
+        // app router route at src/app/__clerk/npm/[...path]/route.ts, which
+        // proxies them to https://cdn.jsdelivr.net/npm/@clerk/...
+        //
+        // Without this rule, the general /__clerk/:path* rewrite below would
+        // forward npm bundle requests to frontend-api.clerk.services, which
+        // returns 404 for npm paths.
+        source: "/__clerk/npm/:path*",
+        destination: "/__clerk/npm/:path*",
+      },
       {
         // Clerk frontend API proxy:
         // Maps /__clerk/* → https://frontend-api.clerk.services/*
         //
         // This proxies Clerk client-side API requests (session, user, etc.) through the
         // main domain, bypassing ad-blockers that block clerk.accounts.dev / clerk.com.
-        //
-        // frontend-api.clerk.services is Clerk's canonical backend infrastructure —
-        // no DNS CNAME setup required (unlike custom domains like clerk.tolo.com).
-        //
-        // IMPORTANT: Exclude /__clerk/npm/* so those requests are handled by the
-        // Next.js API route at src/app/__clerk/npm/[...path]/route.ts, which correctly
-        // proxies Clerk JS bundles from jsDelivr with application/javascript MIME type.
-        // Without this exclusion, the catch-all rewrite intercepts npm bundle requests
-        // and forwards them to the Clerk API server, which returns 404 or text/plain.
-        source: "/__clerk/:path((?!npm/).*)",
+        source: "/__clerk/:path*",
         destination: "https://frontend-api.clerk.services/:path*",
       },
     ];

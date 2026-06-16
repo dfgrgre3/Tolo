@@ -70,6 +70,16 @@ function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
     'NEXT_PUBLIC_APP_NAME',
     'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY',
     'NEXT_PUBLIC_CLERK_PROXY_URL',
+    'NEXT_PUBLIC_CLERK_JS_URL',
+    // WebSocket & analytics — explicitly whitelisted because their names
+    // contain patterns like 'key' or 'url' that would trip the sensitive check
+    'NEXT_PUBLIC_WS_HOST',
+    'NEXT_PUBLIC_WS_URL',
+    'NEXT_PUBLIC_POSTHOG_KEY',
+    'NEXT_PUBLIC_POSTHOG_HOST',
+    'NEXT_PUBLIC_SENTRY_DSN',
+    'NEXT_PUBLIC_GOOGLE_ANALYTICS_ID',
+    'NEXT_PUBLIC_GRPC_URL',
   ]);
 
   const sensitivePatterns = [

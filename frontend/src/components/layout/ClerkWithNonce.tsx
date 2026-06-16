@@ -1,43 +1,30 @@
 /**
  * ClerkWithNonce — Server Component
  *
- * Clerk is configured as a path-based proxy on the main domain:
- *   Frontend API URL : https://tolo.com/__clerk  (proxied through to frontend-api.clerk.services)
- *   JWKS URL         : https://tolo.com/__clerk/.well-known/jwks.json
+ * Clerk v7 configuration is driven entirely by environment variables:
+ *   NEXT_PUBLIC_CLERK_PROXY_URL  → routes Clerk API calls through /__clerk
+ *   NEXT_PUBLIC_CLERK_DOMAIN     → satellite domain (optional)
+ *   NEXT_PUBLIC_CLERK_JS_URL     → direct CDN URL for the clerk-js bundle
  *
- * The clerk-js bundle is served via the /__clerk Next.js rewrite in next.config.js:
- *   source      : /__clerk/:path*
- *   destination : https://frontend-api.clerk.services/:path*   ← NO double prefix
+ * The /__clerk/* rewrite in next.config.js forwards Clerk API calls to
+ * frontend-api.clerk.services, bypassing ad-blockers and ensuring
+ * requests originate from the first-party domain.
+ *
+ * The clerk-js bundle itself is loaded from jsDelivr CDN via NEXT_PUBLIC_CLERK_JS_URL
+ * — this avoids the Vercel negative-lookahead rewrite bug that caused 404s on npm paths.
  *
  * The nonce is injected per-request by the middleware for CSP compliance.
- *
- * frontend-api.clerk.services is Clerk's canonical backend infrastructure —
- * no DNS CNAME setup required (unlike custom domains like clerk.tolo.com).
- * This avoids 502 Bad Gateway errors that occur when the custom domain DNS is not configured.
  */
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProviderClient } from './ClerkProviderClient';
 import { headers } from 'next/headers';
 import React from 'react';
 
 export async function ClerkWithNonce({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
-  // proxyUrl tells Clerk SDK to route all client-side API calls through /__clerk
-  // instead of the default clerk.tolo.com directly.
-  // Must be the path only (/__clerk) — Clerk resolves it relative to the current origin.
-  const proxyUrl = process.env.NEXT_PUBLIC_CLERK_PROXY_URL ?? '/__clerk';
-
-  // domain is required when the app is deployed to a hostname other than the Clerk primary
-  // domain (tolo.com). It tells Clerk which domain holds the auth state.
-  const domain = process.env.NEXT_PUBLIC_CLERK_DOMAIN;
-
   return (
-    <ClerkProvider
-      nonce={nonce}
-      proxyUrl={proxyUrl}
-      {...(domain ? { domain } : {})}
-    >
+    <ClerkProviderClient nonce={nonce}>
       {children}
-    </ClerkProvider>
+    </ClerkProviderClient>
   );
 }
