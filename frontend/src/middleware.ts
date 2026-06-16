@@ -179,7 +179,10 @@ export default clerkMiddleware(
       "default-src 'self'",
       // 'strict-dynamic': nonce-trusted scripts can load further scripts dynamically (required for Clerk bootstrap).
       // URL-based sources in script-src are IGNORED when 'strict-dynamic' is present (CSP Level 2+ spec).
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
+      // 'unsafe-inline' is ignored by browsers that support nonces/hashes (CSP Level 2+), but
+      // sha256 hashes are required for any inline scripts injected by Next.js/Sentry/libraries.
+      // The hash below covers the inline script that violates CSP (browser provides the hash in the error).
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'sha256-HOy+N/XLxP4bBXPgFk73cDMc524cZhcklyvEq7GJ34c=' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' https: data: blob:",
       "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",

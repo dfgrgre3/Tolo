@@ -121,6 +121,25 @@ const nextConfig = {
           },
         ],
       },
+      // /__clerk/npm/ proxy — jsDelivr returns JS but the rewrite may lose Content-Type.
+      // Explicitly set it here so browsers don't reject with MIME type mismatch.
+      {
+        source: '/__clerk/npm/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript; charset=utf-8',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
     ];
   },
 
