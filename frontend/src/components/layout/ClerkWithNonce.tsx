@@ -2,20 +2,18 @@
  * ClerkWithNonce — Server Component
  *
  * Clerk is configured as a path-based proxy on the main domain:
- *   Frontend API URL : https://tolo.com/__clerk  (i.e. clerk.tolo.com proxied through tolo.com)
+ *   Frontend API URL : https://tolo.com/__clerk  (proxied through to frontend-api.clerk.services)
  *   JWKS URL         : https://tolo.com/__clerk/.well-known/jwks.json
  *
  * The clerk-js bundle is served via the /__clerk Next.js rewrite in next.config.js:
  *   source      : /__clerk/:path*
- *   destination : https://clerk.tolo.com/:path*   ← NO double prefix
+ *   destination : https://frontend-api.clerk.services/:path*   ← NO double prefix
  *
  * The nonce is injected per-request by the middleware for CSP compliance.
  *
- * ⚠️  PREREQUISITE — clerk.tolo.com DNS must be configured:
- *   1. Clerk Dashboard → Configure → Paths → Proxy URL = https://clerk.tolo.com
- *   2. DNS CNAME: clerk.tolo.com → frontend-api.clerk.services
- *   3. Clerk auto-provisions TLS for the proxy domain.
- *   Without these steps the /__clerk rewrite returns 502 Bad Gateway and Clerk JS cannot load.
+ * frontend-api.clerk.services is Clerk's canonical backend infrastructure —
+ * no DNS CNAME setup required (unlike custom domains like clerk.tolo.com).
+ * This avoids 502 Bad Gateway errors that occur when the custom domain DNS is not configured.
  */
 import { ClerkProvider } from '@clerk/nextjs';
 import { headers } from 'next/headers';

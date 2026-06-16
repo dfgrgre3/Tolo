@@ -76,9 +76,8 @@ export default async function RootLayout({
         <head>
           {/* ── Preconnect to external origins ─────────────────────────────── */}
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          {/* Preconnect to both possible Clerk domains (app + com) */}
-          <link rel="preconnect" href="https://clerk.tolo.com" crossOrigin="anonymous" />
-          <link rel="preconnect" href="https://accounts.tolo.com" crossOrigin="anonymous" />
+          {/* Preconnect to Clerk's frontend API infrastructure (proxied via /__clerk) */}
+          <link rel="preconnect" href="https://frontend-api.clerk.services" crossOrigin="anonymous" />
 
           {/* Centralized performance detection script — nonce required for CSP */}
           <script id="perf-detect" src="/perf-detect.js" nonce={nonce} />
