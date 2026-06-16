@@ -171,13 +171,12 @@ export default clerkMiddleware(
     const frameAncestors = ["'self'", "https://tolo.app", "https://www.tolo.app"];
     if (baseOrigin) frameAncestors.push(baseOrigin);
 
-    // بناء نص الـ CSP النهائي والمعياري للمتصفحات
+      // بناء نص الـ CSP النهائي والمعياري للمتصفحات
     const cspHeader = [
       "default-src 'self'",
-      // 'unsafe-inline' is silently IGNORED by browsers when a nonce is present (CSP Level 2+ spec).
-      // Keeping it causes the browser violation warning. Remove it and rely solely on the nonce.
-      // 'strict-dynamic' allows nonce-trusted scripts to dynamically load further scripts (required for Clerk bootstrap).
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-hashes' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
+      // 'strict-dynamic': nonce-trusted scripts can load further scripts dynamically (required for Clerk bootstrap).
+      // URL-based sources in script-src are IGNORED when 'strict-dynamic' is present (CSP Level 2+ spec).
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' https: data: blob:",
       "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",

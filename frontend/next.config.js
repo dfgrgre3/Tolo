@@ -132,9 +132,15 @@ const nextConfig = {
     return [
       {
         // Clerk path-based proxy:
-        // source  : /__clerk/:path*                              (e.g. /__clerk/npm/@clerk/clerk-js@6/dist/clerk.browser.js)
-        // destination: https://clerk.tolo.com/:path*            (maps to clerk.tolo.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js)
-        // NOTE: Do NOT include /__clerk in the destination — it would double the prefix and cause 404s.
+        // Maps /__clerk/* → https://clerk.tolo.com/*
+        //
+        // PREREQUISITE (DNS + Clerk Dashboard):
+        //   1. In Clerk Dashboard → Configure → Paths → set Proxy URL = https://clerk.tolo.com
+        //   2. DNS: add CNAME  clerk.tolo.com → frontend-api.clerk.services
+        //   3. Clerk auto-provisions TLS for the proxy domain.
+        //
+        // Without steps 1-3 the proxy destination returns 502 Bad Gateway.
+        // Do NOT include /__clerk in the destination — it would double the prefix.
         source: "/__clerk/:path*",
         destination: "https://clerk.tolo.com/:path*",
       },

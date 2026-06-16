@@ -10,6 +10,12 @@
  *   destination : https://clerk.tolo.com/:path*   ← NO double prefix
  *
  * The nonce is injected per-request by the middleware for CSP compliance.
+ *
+ * ⚠️  PREREQUISITE — clerk.tolo.com DNS must be configured:
+ *   1. Clerk Dashboard → Configure → Paths → Proxy URL = https://clerk.tolo.com
+ *   2. DNS CNAME: clerk.tolo.com → frontend-api.clerk.services
+ *   3. Clerk auto-provisions TLS for the proxy domain.
+ *   Without these steps the /__clerk rewrite returns 502 Bad Gateway and Clerk JS cannot load.
  */
 import { ClerkProvider } from '@clerk/nextjs';
 import { headers } from 'next/headers';

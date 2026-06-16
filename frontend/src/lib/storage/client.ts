@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
+import { apiClient } from "@/lib/api/api-client";
 import { sanitizeSvg } from "./svg-sanitizer";
 import type {
   UploadOptions,
@@ -34,8 +35,7 @@ export function getSupabaseClient() {
 }
 
 export async function uploadFile(options: UploadOptions): Promise<UploadResult> {
-  const supabase = getSupabaseClient();
-  const { bucket, path, file, upsert = false, contentType, cacheControl = "3600", onProgress } = options;
+  const { bucket, file, contentType, onProgress } = options;
 
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
@@ -55,18 +55,12 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
     }
   }
 
-  const { data, error } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
-    upsert,
-    contentType: contentType || file.type,
-    cacheControl,
-    duplex: "half",
-  });
+  const formData = new FormData();
+  formData.append("file", fileToUpload);
+  formData.append("context", bucket);
+  formData.append("category", "any");
 
-  if (error) {
-    throw new Error(`Upload failed: ${error.message}`);
-  }
-
-  const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+  const data = await apiClient.post<{ fileUrl: string; fileKey: string; fileName: string; fileSize: number; mimeType: string }>('/upload', formData);
 
   const metadata: FileMetadata = {
     name: file.name,
@@ -81,15 +75,15 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
   }
 
   return {
-    path: data.path,
-    fullPath: data.fullPath,
-    publicUrl: publicUrlData.publicUrl,
+    path: data.fileKey,
+    fullPath: data.fileKey,
+    publicUrl: data.fileUrl,
     metadata,
   };
 }
 
 export async function uploadLargeFile(options: UploadOptions): Promise<UploadResult> {
-  const { file, onProgress } = options;
+  const { bucket, file, contentType, onProgress } = options;
 
   if (file.size <= MAX_FILE_SIZE) {
     return uploadFile(options);
@@ -99,13 +93,46 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
     onProgress(0);
   }
 
-  const result = await uploadFile(options);
+  // 1. Get presigned URL
+  const presignData = await apiClient.post<{ uploadUrl: string; fileKey: string; publicUrl: string; expiresIn: number }>('/upload/presign', {
+    fileName: file.name,
+    contentType: contentType || file.type,
+    fileSize: file.size,
+    context: bucket,
+    category: "any"
+  });
+
+  // 2. Upload directly to S3 via fetch
+  const response = await fetch(presignData.uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': contentType || file.type,
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Large file upload failed: ${response.statusText}`);
+  }
 
   if (onProgress) {
     onProgress(100);
   }
 
-  return result;
+  const metadata: FileMetadata = {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: file.lastModified,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  return {
+    path: presignData.fileKey,
+    fullPath: presignData.fileKey,
+    publicUrl: presignData.publicUrl,
+    metadata,
+  };
 }
 
 export async function getSignedUrl(options: SignedUrlOptions): Promise<string> {
@@ -156,13 +183,17 @@ export async function listFiles(options: ListFilesOptions): Promise<FileListItem
 }
 
 export async function deleteFiles(options: DeleteOptions): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { bucket, paths } = options;
+  const { paths } = options;
 
-  const { error } = await supabase.storage.from(bucket).remove(paths);
-
-  if (error) {
-    throw new Error(`Failed to delete files: ${error.message}`);
+  for (const path of paths) {
+    try {
+      await apiClient.delete('/upload', {
+        body: JSON.stringify({ fileKey: path }),
+      });
+    } catch (e) {
+      console.error(`Failed to delete file ${path}:`, e);
+      throw e;
+    }
   }
 }
 
