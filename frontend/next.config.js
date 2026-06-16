@@ -121,25 +121,7 @@ const nextConfig = {
           },
         ],
       },
-      // /__clerk/npm/ proxy — jsDelivr returns JS but the rewrite may lose Content-Type.
-      // Explicitly set it here so browsers don't reject with MIME type mismatch.
-      {
-        source: '/__clerk/npm/:path*',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript; charset=utf-8',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
-          },
-        ],
-      },
+      // Note: /__clerk/npm/* is handled by the API route at src/app/__clerk/npm/[...path]/route.ts
     ];
   },
 
@@ -149,16 +131,7 @@ const nextConfig = {
   // ─── Rewrites ──────────────────────────────────────────────────────────────
   async rewrites() {
     return [
-      {
-        // Clerk npm bundle proxy → jsDelivr CDN
-        // When proxyUrl is set, Clerk SDK loads its JS bundles from /__clerk/npm/@clerk/...
-        // frontend-api.clerk.services does NOT serve static npm files (returns 502).
-        // jsDelivr is Clerk's CDN for npm packages — serves the actual JS bundles.
-        //
-        // This rule MUST come before the general /__clerk/:path* rule.
-        source: "/__clerk/npm/@clerk/:path*",
-        destination: "https://cdn.jsdelivr.net/npm/@clerk/:path*",
-      },
+      // Note: /__clerk/npm/@clerk/* is handled by the API route — no rewrite needed here.
       {
         // Clerk frontend API proxy:
         // Maps /__clerk/* → https://frontend-api.clerk.services/*
@@ -169,8 +142,12 @@ const nextConfig = {
         // frontend-api.clerk.services is Clerk's canonical backend infrastructure —
         // no DNS CNAME setup required (unlike custom domains like clerk.tolo.com).
         //
-        // Do NOT include /__clerk in the destination — it would double the prefix.
-        source: "/__clerk/:path*",
+        // IMPORTANT: Exclude /__clerk/npm/* so those requests are handled by the
+        // Next.js API route at src/app/__clerk/npm/[...path]/route.ts, which correctly
+        // proxies Clerk JS bundles from jsDelivr with application/javascript MIME type.
+        // Without this exclusion, the catch-all rewrite intercepts npm bundle requests
+        // and forwards them to the Clerk API server, which returns 404 or text/plain.
+        source: "/__clerk/:path((?!npm/).*)",
         destination: "https://frontend-api.clerk.services/:path*",
       },
     ];
