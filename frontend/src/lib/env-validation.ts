@@ -55,6 +55,7 @@ function checkNoSensitiveKeysExposed(errors: string[]) {
   const allowedKeys = new Set([
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_CLERK_DOMAIN',
     'NEXT_PUBLIC_CLERK_IS_SATELLITE',
@@ -75,7 +76,8 @@ function checkNoSensitiveKeysExposed(errors: string[]) {
     'key', 'token', 'secret', 'password', 'pass', 'database', 'url', 'cred', 'private'
   ];
 
-  for (const key of Object.keys(process.env)) {
+  for (const rawKey of Object.keys(process.env)) {
+    const key = rawKey.trim();
     if (key.startsWith('NEXT_PUBLIC_')) {
       if (allowedKeys.has(key)) {
         continue;
@@ -83,7 +85,7 @@ function checkNoSensitiveKeysExposed(errors: string[]) {
       const lowerKey = key.toLowerCase();
       const isSensitive = sensitivePatterns.some(pattern => lowerKey.includes(pattern));
       if (isSensitive) {
-        errors.push(`Security Violation: Sensitive variable ${key} must not be exposed to the client bundle via NEXT_PUBLIC_ prefix.`);
+        errors.push(`Security Violation: Sensitive variable ${rawKey} must not be exposed to the client bundle via NEXT_PUBLIC_ prefix.`);
       }
     }
   }
