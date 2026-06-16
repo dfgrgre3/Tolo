@@ -24,17 +24,33 @@ const isProtectedRoute = createRouteMatcher([
  * يجب أن يطابق القيم المسموح بها في CSP header (RFC 7230 token characters).
  */
 function generateNonce(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  // Convert to base64 (URL-safe variant)
-  return btoa(String.fromCharCode(...bytes));
+  // Use Web Crypto's randomUUID if available (clean, fast, standard)
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().replace(/-/g, '');
+  }
+  // Fallback to random bytes
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    try {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      let binary = '';
+      bytes.forEach((b) => {
+        binary += String.fromCharCode(b);
+      });
+      return btoa(binary);
+    } catch {
+      // Fall through to basic generator
+    }
+  }
+  // Ultimate fallback using Math.random
+  return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
 }
 
 const isDev = process.env.NODE_ENV === 'development';
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
-  const url = new URL(req.url);
+  const url = req.nextUrl || new URL(req.url);
 
   // Redirect authenticated users away from public auth pages.
   // Only redirect if Clerk has fully resolved the session (userId is present and
@@ -53,7 +69,8 @@ export default clerkMiddleware(async (auth, req) => {
     const lastRedirectTs = req.cookies.get("__redirect_ts")?.value;
     const lastRedirectCount = parseInt(req.cookies.get("__redirect_count")?.value || "0", 10);
     const now = Date.now();
-    const withinWindow = lastRedirectTs && (now - parseInt(lastRedirectTs, 10)) < 10_000;
+    const parsedTs = lastRedirectTs ? parseInt(lastRedirectTs, 10) : NaN;
+    const withinWindow = !isNaN(parsedTs) && (now - parsedTs) < 10_000;
     const isSameDest = lastRedirectDest === destination;
 
     if (isSameDest && withinWindow && lastRedirectCount >= 2) {
@@ -97,7 +114,9 @@ export default clerkMiddleware(async (auth, req) => {
   const supabaseOrigin = getDomainFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const apiOrigin = getDomainFromUrl(process.env.NEXT_PUBLIC_API_URL);
   const baseOrigin = getDomainFromUrl(process.env.NEXT_PUBLIC_BASE_URL);
-  const vercelOrigin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
+  const vercelOrigin = process.env.VERCEL_URL 
+    ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
+    : "";
 
   // Derive specific WebSocket origins to prevent insecure ws: and wss: wildcards
   const requestWsOrigin = url.origin.replace(/^http/, 'ws');

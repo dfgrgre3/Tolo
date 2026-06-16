@@ -128,9 +128,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML pages: stale-while-revalidate
+  // HTML pages: bypass service worker cache entirely to prevent stale chunk references
   if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE, 60 * 60 * 24));
     return;
   }
 

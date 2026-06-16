@@ -14,7 +14,8 @@ import {
   ConditionalSpeedInsights,
 } from '@/components/layout/ConditionalAnalytics';
 import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
-import { ClerkWithNonce } from '@/components/layout/ClerkWithNonce';
+import { ClerkProvider } from '@clerk/nextjs';
+import { headers } from 'next/headers';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -59,14 +60,16 @@ export const viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
-    <ClerkWithNonce>
-      <html lang="ar" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <ClerkProvider nonce={nonce}>
+      <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
 
         <head>
           {/* ── Preconnect to external origins ─────────────────────────────── */}
@@ -108,6 +111,6 @@ export default function RootLayout({
           <ConditionalSpeedInsights />
         </body>
       </html>
-    </ClerkWithNonce>
+    </ClerkProvider>
   );
 }
