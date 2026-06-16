@@ -90,8 +90,9 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
       } else {
         setError('رمز التحقق غير صحيح أو منتهي الصلاحية');
       }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || 'فشل التحقق. يرجى المحاولة مرة أخرى.');
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: { message?: string }[] };
+      setError(clerkErr?.errors?.[0]?.message || 'فشل التحقق. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsVerifying(false);
     }
@@ -107,8 +108,9 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || 'فشل إعادة الإرسال');
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: { message?: string }[] };
+      setError(clerkErr?.errors?.[0]?.message || 'فشل إعادة الإرسال');
     } finally {
       setIsResending(false);
     }

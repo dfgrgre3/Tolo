@@ -287,16 +287,21 @@ export function useAuth() {
       // fully cleared from Clerk's client state before signIn.create() is called.
       await forceSignOutAll(activeClerk);
 
-      // After forceSignOut, Clerk may reset the client. Re-check availability.
-      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
+      // After forceSignOut, Clerk resets the client internally (client.signIn may
+      // become undefined on the old reference). Re-fetch a fresh Clerk instance
+      // so client.signIn is available again.
+      const freshClerk = getClerkInstance();
+      if (!freshClerk?.client?.signIn) return { success: false, error: 'Auth system not fully loaded' };
 
-      const result = await activeClerk.client.signIn.create({
+      const result = await freshClerk.client.signIn.create({
         identifier: email,
         password,
         strategy: 'password',
       });
       if (result.status === 'complete') {
-        await activeClerk.setActive({ session: result.createdSessionId });
+        // Use the fresh Clerk instance (not the stale activeClerk) because
+        // forceSignOutAll reset the internal client state.
+        await freshClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       if (result.status === 'needs_second_factor') {
@@ -315,20 +320,25 @@ export function useAuth() {
     try {
       await forceSignOutAll(activeClerk);
 
-      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
+      // Re-fetch a fresh Clerk instance after sign-out to avoid using stale
+      // reference where client.signIn may have been reset.
+      const freshClerk = getClerkInstance();
+      if (!freshClerk?.client?.signIn) return { success: false, error: 'Auth system not fully loaded' };
 
-      const result = await activeClerk.client.signIn.create({
+      const result = await freshClerk.client.signIn.create({
         identifier: email,
         password,
         strategy: 'password',
       });
       if (result.status === 'complete') {
-        await activeClerk.setActive({ session: result.createdSessionId });
+        // Use the fresh Clerk instance (not the stale activeClerk) because
+        // forceSignOutAll reset the internal client state.
+        await freshClerk.setActive({ session: result.createdSessionId });
         
         // Check role immediately after setting active
-        const role = activeClerk.user?.publicMetadata?.role;
+        const role = freshClerk.user?.publicMetadata?.role;
         if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
-          await activeClerk.signOut();
+          await freshClerk.signOut();
           return { success: false, error: 'غير مصرح لك بالدخول كمسؤول' };
         }
         return { success: true };
@@ -362,9 +372,12 @@ export function useAuth() {
     try {
       await forceSignOutAll(activeClerk);
 
-      if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
+      // Re-fetch a fresh Clerk instance after sign-out to avoid using stale
+      // reference where client.signUp may have been reset.
+      const freshClerk = getClerkInstance();
+      if (!freshClerk?.client?.signUp) return { success: false, error: 'Auth system not fully loaded' };
 
-      const result = await activeClerk.client.signUp.create({
+      const result = await freshClerk.client.signUp.create({
         emailAddress: data.email,
         password: data.password,
         username: data.username,
@@ -379,13 +392,13 @@ export function useAuth() {
         }
       });
       if (result.status === 'complete') {
-        await activeClerk.setActive({ session: result.createdSessionId });
+        await freshClerk.setActive({ session: result.createdSessionId });
         return { success: true, autoLoggedIn: true };
       }
       // Email verification required — trigger OTP send automatically
       if (result.status === 'missing_requirements' || result.unverifiedFields?.includes('email_address')) {
         try {
-          await activeClerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          await freshClerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         } catch (prepareErr) {
           logger.error('Failed to prepare email verification:', prepareErr);
         }

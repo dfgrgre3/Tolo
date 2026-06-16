@@ -12,7 +12,7 @@
  * the previous build. Bump again on any future breaking change.
  */
 
-const CACHE_VERSION = 'tolo-v4';
+const CACHE_VERSION = 'tolo-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const SEARCH_CACHE = `${CACHE_VERSION}-search`;
@@ -104,6 +104,23 @@ self.addEventListener('fetch', (event) => {
   // on navigation.
   // ---------------------------------------------------------------------------
   if (url.pathname.startsWith('/api/') || isNextRsc) {
+    event.respondWith(passthroughApiRequest(request));
+    return;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Clerk auth endpoints: always passthrough without caching.
+  //
+  // Clerk uses /__clerk/ prefixed routes and cookies for session management.
+  // Caching any of these would break auth state and cause stale session errors.
+  // ---------------------------------------------------------------------------
+  if (
+    url.pathname.startsWith('/__clerk') ||
+    url.pathname.startsWith('/__session') ||
+    url.pathname.includes('/clerk/') ||
+    url.searchParams.has('__clerk_') ||
+    request.headers.get('cookie')?.includes('__clerk')
+  ) {
     event.respondWith(passthroughApiRequest(request));
     return;
   }

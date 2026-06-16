@@ -133,6 +133,8 @@ export default clerkMiddleware(async (auth, req) => {
     "https://tolo.app",
     "https://clerk.tolo.app",
     "https://clerk.tolo.com",
+    "https://tolo.com",
+    "https://*.tolo.com",
     "https://accounts.tolo.com",
     "https://clerk-telemetry.com",
     "https://*.clerk-telemetry.com",
@@ -163,6 +165,8 @@ export default clerkMiddleware(async (auth, req) => {
     "https://www.youtube-nocookie.com",
     "https://clerk.tolo.app",
     "https://clerk.tolo.com",
+    "https://tolo.com",
+    "https://*.tolo.com",
     "https://accounts.tolo.com",
     "https://challenges.cloudflare.com",
     "https://*.clerk.accounts.dev",
@@ -188,7 +192,7 @@ export default clerkMiddleware(async (auth, req) => {
   // pre-rendered pages, or older CSP Level 2 browsers).
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-hashes' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-hashes' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://clerk.tolo.app https://clerk.tolo.com https://tolo.com https://*.tolo.com https://accounts.tolo.com https://*.clerk.com https://challenges.cloudflare.com https://cdn.jsdelivr.net`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     "img-src 'self' https: data: blob:",
     "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",
