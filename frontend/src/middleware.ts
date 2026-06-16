@@ -135,6 +135,7 @@ export default clerkMiddleware(
       "https://clerk-telemetry.com",
       "https://*.clerk-telemetry.com",
       "https://challenges.cloudflare.com",
+      "https://cdn.jsdelivr.net",
       "https://us.i.posthog.com",
       "https://us-assets.i.posthog.com",
       "https://*.clerk.accounts.dev",

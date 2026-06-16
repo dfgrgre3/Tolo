@@ -7,6 +7,7 @@
 
 import { safeGetItem, safeSetItem } from './safe-client-utils';
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
@@ -26,18 +27,11 @@ function normalizeUserId(value: unknown): string | null {
 
 async function getAuthenticatedUser(): Promise<string | null> {
   try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include',
-      cache: 'no-store'
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const authenticatedId = normalizeUserId(data?.user?.id);
-      if (authenticatedId) {
-        safeSetItem(LOCAL_USER_KEY, authenticatedId);
-        return authenticatedId;
-      }
+    const data = await apiClient.get<any>('/auth/me');
+    const authenticatedId = normalizeUserId(data?.user?.id);
+    if (authenticatedId) {
+      safeSetItem(LOCAL_USER_KEY, authenticatedId);
+      return authenticatedId;
     }
   } catch (error) {
     logger.warn('Unexpected error reading authenticated user:', error);
@@ -47,20 +41,13 @@ async function getAuthenticatedUser(): Promise<string | null> {
 
 async function createGuestUser(): Promise<string | null> {
   try {
-    // The Go backend uses GET /api/users/guest
-    const response = await fetch('/api/auth/guest', {
-      method: 'GET',
-      cache: 'no-store'
-    });
+    const data = await apiClient.get<any>('/auth/guest');
     
-    if (response.ok) {
-      const data = await response.json();
-      if (data?.id) {
-        const id = normalizeUserId(data.id);
-        if (id) {
-          safeSetItem(LOCAL_USER_KEY, id);
-          return id;
-        }
+    if (data?.id) {
+      const id = normalizeUserId(data.id);
+      if (id) {
+        safeSetItem(LOCAL_USER_KEY, id);
+        return id;
       }
     }
   } catch (error) {

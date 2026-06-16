@@ -131,11 +131,21 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        // Clerk path-based proxy:
+        // Clerk npm bundle proxy → jsDelivr CDN
+        // When proxyUrl is set, Clerk SDK loads its JS bundles from /__clerk/npm/@clerk/...
+        // frontend-api.clerk.services does NOT serve static npm files (returns 502).
+        // jsDelivr is Clerk's CDN for npm packages — serves the actual JS bundles.
+        //
+        // This rule MUST come before the general /__clerk/:path* rule.
+        source: "/__clerk/npm/@clerk/:path*",
+        destination: "https://cdn.jsdelivr.net/npm/@clerk/:path*",
+      },
+      {
+        // Clerk frontend API proxy:
         // Maps /__clerk/* → https://frontend-api.clerk.services/*
         //
-        // This proxies all Clerk client-side requests through the main domain,
-        // bypassing ad-blockers that block clerk.accounts.dev / clerk.com domains.
+        // This proxies Clerk client-side API requests (session, user, etc.) through the
+        // main domain, bypassing ad-blockers that block clerk.accounts.dev / clerk.com.
         //
         // frontend-api.clerk.services is Clerk's canonical backend infrastructure —
         // no DNS CNAME setup required (unlike custom domains like clerk.tolo.com).

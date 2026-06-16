@@ -51,7 +51,7 @@ function checkBaseUrl(warnings: string[]) {
   }
 }
 
-function checkNoSensitiveKeysExposed(errors: string[]) {
+function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
   const allowedKeys = new Set([
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
@@ -79,10 +79,14 @@ function checkNoSensitiveKeysExposed(errors: string[]) {
   for (const rawKey of Object.keys(process.env)) {
     const key = rawKey.trim();
     if (key.startsWith('NEXT_PUBLIC_')) {
-      if (allowedKeys.has(key)) {
+      const cleanKey = key.replace(/[^A-Za-z0-9_]/g, '');
+      if (allowedKeys.has(key) || allowedKeys.has(cleanKey)) {
+        if (key !== rawKey || cleanKey !== key) {
+          warnings.push(`Variable ${cleanKey} has invisible or invalid characters in its name.`);
+        }
         continue;
       }
-      const lowerKey = key.toLowerCase();
+      const lowerKey = cleanKey.toLowerCase();
       const isSensitive = sensitivePatterns.some(pattern => lowerKey.includes(pattern));
       if (isSensitive) {
         errors.push(`Security Violation: Sensitive variable ${rawKey} must not be exposed to the client bundle via NEXT_PUBLIC_ prefix.`);
@@ -102,7 +106,7 @@ function validateEnvironment(): EnvValidationResult {
   checkProductionVars(errors, isProduction);
   checkSessionDuration(warnings);
   checkBaseUrl(warnings);
-  checkNoSensitiveKeysExposed(errors);
+  checkNoSensitiveKeysExposed(errors, warnings);
 
   return {
     valid: errors.length === 0,

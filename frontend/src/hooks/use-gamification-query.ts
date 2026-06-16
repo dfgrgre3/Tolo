@@ -21,12 +21,14 @@ export function useGamificationQuery(userId: string) {
   const achievementsQuery = useQuery({
     queryKey: ["gamification", "achievements"],
     queryFn: () => gamificationApi.fetchAchievements(),
+    enabled: !!userId,
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
   const leaderboardQuery = useQuery({
     queryKey: ["gamification", "leaderboard", "global"],
     queryFn: () => gamificationApi.fetchLeaderboard("global", 50),
+    enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });
 
