@@ -48,7 +48,8 @@ function generateNonce(): string {
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(
+  async (auth, req) => {
   const { userId } = await auth();
   const url = req.nextUrl || new URL(req.url);
 
@@ -227,7 +228,13 @@ export default clerkMiddleware(async (auth, req) => {
   response.cookies.delete("csp-nonce");
 
   return response;
-});
+},
+  {
+    // تمرير المفاتيح مباشرة لضمان توفرها في Edge Runtime
+    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY,
+  },
+);
 
 export const config = {
   matcher: [
