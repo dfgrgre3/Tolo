@@ -70,8 +70,7 @@ export default async function RootLayout({
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
-    <ClerkWithNonce>
-      <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
 
         <head>
           {/* ── Preconnect to external origins ─────────────────────────────── */}
@@ -91,29 +90,30 @@ export default async function RootLayout({
           <script id="hydration-fix" src="/hydration-fix.js" nonce={nonce} />
         </head>
         <body className={`${alexandria.variable} font-sans`}>
-          <SWRegistration />
-          <PostHogProvider>
-            <PostHogPageView />
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem={false}
-              disableTransitionOnChange
-              storageKey="tolo-theme"
-            >
-              <GlobalProviders>
-                <FPSMonitor />
-                <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
-                  <Header />
-                </Suspense>
-                {children}
-              </GlobalProviders>
-            </ThemeProvider>
-          </PostHogProvider>
+          <ClerkWithNonce>
+            <SWRegistration />
+            <PostHogProvider>
+              <PostHogPageView />
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem={false}
+                disableTransitionOnChange
+                storageKey="tolo-theme"
+              >
+                <GlobalProviders>
+                  <FPSMonitor />
+                  <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+                    <Header />
+                  </Suspense>
+                  {children}
+                </GlobalProviders>
+              </ThemeProvider>
+            </PostHogProvider>
+          </ClerkWithNonce>
           <ConditionalAnalytics />
           <ConditionalSpeedInsights />
         </body>
       </html>
-    </ClerkWithNonce>
   );
 }

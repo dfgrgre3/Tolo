@@ -58,11 +58,6 @@ export default clerkMiddleware(
   async (auth, req) => {
     const url = req.nextUrl || new URL(req.url);
 
-    // تخطي معالجة Clerk Proxy تماماً لمنع أي تداخل مع جلسة المصادقة
-    if (url.pathname.startsWith("/__clerk")) {
-      return NextResponse.next();
-    }
-
     const isAuthPage = ["/login", "/register", "/admin-login"].includes(url.pathname);
 
     // [إصلاح جوهري]: حماية المسارات المطلوبة فوراً عبر Clerk لتفادي استدعاء الدالة المزدوج
@@ -222,8 +217,10 @@ export default clerkMiddleware(
 export const config = {
   matcher: [
     // تخطي قراءة الملفات الثابتة لتسريع الأداء وتجنب استهلاك معالج خادم Vercel
-    "/((?!_next|__clerk|[^?]*\\.(?:html?|css|js|json|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|[^?]*\\.(?:html?|css|js|json|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // تفعيل دائم لروابط الـ API والـ TRPC الخلفية
     "/(api|trpc)(.*)",
+    // Clerk proxy path — ضروري لتمرير طلبات Clerk عبر الـ middleware
+    "/__clerk/:path*",
   ],
 };
