@@ -27,8 +27,8 @@ export default function SSOCallbackPage() {
     const redirectUrl = params.get('redirect_url') || '/dashboard';
 
     handleRedirectCallback({
-      afterSignInUrl: redirectUrl,
-      afterSignUpUrl: redirectUrl,
+      signInForceRedirectUrl: redirectUrl,
+      signUpForceRedirectUrl: redirectUrl,
     }).catch((err) => {
       // If the callback fails (e.g., user cancelled, token expired), send to login
       console.error('[SSO Callback] handleRedirectCallback failed:', err);
