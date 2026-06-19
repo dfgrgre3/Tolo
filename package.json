@@ -11,7 +11,7 @@
     "audit": "node scripts/comprehensive-error-check.mjs",
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix",
     "knip": "npx knip --directory frontend",
-    "build": "npm run build:frontend"
+    "build": "npm install --prefix frontend --include=dev --legacy-peer-deps && npm run build:frontend"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.5",
