@@ -3,28 +3,11 @@
 import { useState, useEffect, memo } from "react";
 import { useWebSocket } from "@/contexts/websocket-context";
 import { m, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
-import {
-  Activity,
-  Clock,
-
-
-  BookOpen,
-
-
-
-
-  Bell } from
-"lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ar } from "date-fns/locale";
-import { logger } from '@/lib/logger';
-import { rpgCommonStyles } from "../constants";
-
-// Note: Arabic locale may not be available in all date-fns versions
-// Fallback to English if Arabic locale is not found
+import { Activity, BookOpen, Bell } from "lucide-react";
+import { logger } from "@/lib/logger";
+import { rpgCommonStyles } from "../../constants";
+import { ActivityCard } from "./ActivityCard";
 
 interface ActivityItem {
   id: string;
@@ -78,7 +61,6 @@ function extractActivities(payload: ActivitiesApiResponse | ActivityApiItem[] | 
   return [];
 }
 
-
 function extractStudySessions(payload: StudySessionsApiResponse | StudySession[] | null): StudySession[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -95,9 +77,6 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        // ✅ Use the dedicated activities endpoint.
-        // The backend reads userId from the JWT auth cookie — no query param needed.
-        // This endpoint has: L1 in-process cache → L2 Redis → covering-index DB query.
         const { data, error } = await safeFetch<ActivitiesApiResponse | ActivityApiItem[]>(
           '/api/activities/recent?limit=10',
           undefined,
@@ -117,16 +96,13 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           }));
           setActivities(transformed);
         } else if (!error && items.length === 0) {
-          // Fallback: fetch recent study sessions if no notifications
           const sessionsUrl = '/api/study-sessions?limit=5';
           const { data: sessionsData } = await safeFetch<StudySessionsApiResponse | StudySession[]>(
             sessionsUrl,
             undefined,
             null
           );
-          const sessions: StudySession[] = Array.isArray(sessionsData)
-            ? sessionsData
-            : (sessionsData as StudySessionsApiResponse)?.sessions ?? (sessionsData as StudySessionsApiResponse)?.data ?? [];
+          const sessions = extractStudySessions(sessionsData);
 
           if (sessions.length > 0) {
             setActivities(
@@ -184,20 +160,6 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
     };
   }, [isConnected, socket]);
 
-
-
-  const formatTime = (date: Date) => {
-    try {
-      return formatDistanceToNow(date, { addSuffix: true, locale: ar });
-    } catch {
-      const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-      if (seconds < 60) return "منذ قليل";
-      if (seconds < 3600) return `منذ ${Math.floor(seconds / 60)} دقيقة`;
-      if (seconds < 86400) return `منذ ${Math.floor(seconds / 3600)} ساعة`;
-      return `منذ ${Math.floor(seconds / 86400)} يوم`;
-    }
-  };
-
   return (
     <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-16 shadow-2xl relative overflow-hidden group/activity`}>
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-30 group-hover/activity:opacity-50 transition-opacity duration-1000" />
@@ -210,8 +172,8 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          
+          className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6"
+        >
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-lg animate-pulse" />
@@ -238,69 +200,19 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
 
         <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
           <AnimatePresence>
-            {activities.length > 0 ? activities.map((activity, index) =>
-            <m.div
-              key={activity.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ delay: index * 0.05 }}
-              layout>
-              
-                <Card className="bg-black/40 border-white/5 shadow-2xl hover:bg-white/5 hover:border-blue-500/30 transition-all duration-500 group/item relative overflow-hidden backdrop-blur-xl">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover/item:animate-shimmer" />
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-6">
-                      <div className={`flex-shrink-0 rounded-2xl p-4 border ${activity.color} transition-all duration-500 group-hover/item:scale-110 group-hover/item:rotate-3 shadow-xl relative z-10`}>
-                        {activity.icon}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 relative z-10">
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <h3 className="font-black text-gray-100 text-xl group-hover/item:text-blue-400 transition-colors">
-                            {activity.title}
-                          </h3>
-                          <span className="flex-shrink-0 text-xs font-bold text-gray-500 flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                            <Clock className="h-3 w-3 text-blue-400" />
-                            {formatTime(activity.timestamp)}
-                          </span>
-                        </div>
-                        
-                        <p className="text-gray-400 text-base mb-6 leading-relaxed line-clamp-2 group-hover/item:text-gray-300 transition-colors">
-                          {activity.description}
-                        </p>
-
-                        <div className="flex items-center gap-3">
-                          <Badge
-                          variant="outline"
-                          className="text-[10px] uppercase tracking-[0.2em] font-black border-white/10 bg-white/5 text-gray-400 px-3 py-1">
-                          
-                            {activity.type === "achievement" && "إنجاز ملحمي (Epic Achievement)"}
-                            {activity.type === "task_completed" && "تم إكمال المهمة (Quest Clear)"}
-                            {activity.type === "study_session" && "جلسة مذاكرة (Training Log)"}
-                            {activity.type === "milestone" && "إنجاز مرحلي (Level Milestone)"}
-                            {activity.type === "notification" && "تنبيه النظام (System Alert)"}
-                          </Badge>
-                          {index === 0 &&
-                        <Badge className="text-[10px] uppercase font-black px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                              جديد (NEW)
-                            </Badge>
-                        }
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </m.div>
-            ) : !activities.length &&
-            <div className="text-center py-20 flex flex-col items-center">
-                 <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-                   <Activity className="h-10 w-10 text-gray-600" />
-                 </div>
-                 <p className="text-xl font-bold text-gray-500 mb-2">لا توجد أنشطة لعرضها حالياً</p>
-                 <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لتظهر أنشطتك هنا.</p>
+            {activities.length > 0 ? (
+              activities.map((activity, index) => (
+                <ActivityCard key={activity.id} activity={activity} index={index} />
+              ))
+            ) : (
+              <div className="text-center py-20 flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                  <Activity className="h-10 w-10 text-gray-600" />
+                </div>
+                <p className="text-xl font-bold text-gray-500 mb-2">لا توجد أنشطة لعرضها حالياً</p>
+                <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لتظهر أنشطتك هنا.</p>
               </div>
-            }
+            )}
           </AnimatePresence>
         </div>
       </div>
@@ -320,8 +232,8 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           background: rgba(255, 255, 255, 0.1);
         }
       `}</style>
-    </section>);
-
+    </section>
+  );
 });
 
 export default LiveActivityFeedSection;

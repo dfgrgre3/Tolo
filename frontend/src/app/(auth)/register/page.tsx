@@ -251,6 +251,8 @@ function RegisterForm() {
                   />
                 )}
               </AnimatePresence>
+              {/* Clerk CAPTCHA widget placeholder */}
+              <div id="clerk-captcha" />
             </form>
           </div>
         </m.div>

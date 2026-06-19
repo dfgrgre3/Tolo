@@ -1,6 +1,6 @@
-import DashboardPage from "./(dashboard)/dashboard/page";
+import { HomeClient } from "@/app/components/home/HomeClient";
 
 export default function Home() {
-	return <DashboardPage />;
+	return <HomeClient summary={null} />;
 }
 
