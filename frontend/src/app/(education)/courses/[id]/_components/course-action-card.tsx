@@ -17,7 +17,6 @@ export function CourseActionCard({
   bookmarked,
   setBookmarked,
   onEnroll,
-  router,
 }: {
   course: Course;
   courseProgress: number;
@@ -28,8 +27,8 @@ export function CourseActionCard({
   bookmarked: boolean;
   setBookmarked: (v: boolean) => void;
   onEnroll: () => void;
-  router: ReturnType<typeof useRouter>;
 }) {
+  const router = useRouter();
   return (
     <div className="sticky top-24 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-6 shadow-lg shadow-black/5 dark:shadow-black/20">
       {/* Thumbnail */}

@@ -20,7 +20,7 @@ import { headers } from 'next/headers';
 import React from 'react';
 
 export async function ClerkWithNonce({ children }: { children: React.ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const nonce = (await headers()).get('x-nonce') ?? '';
 
   return (
     <ClerkProviderClient nonce={nonce}>

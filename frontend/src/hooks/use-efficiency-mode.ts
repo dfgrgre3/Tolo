@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * useEfficiencyMode - Hook to detect and react to Efficiency Mode
@@ -8,60 +8,76 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
  * Returns true if the device is in efficiency mode (either by auto-detection
  * or user choice). Detects both the legacy `efficiency-mode` class and the
  * newer `lite-mode` class, as well as the `data-perf-mode` attribute.
+ *
+ * Note: We intentionally avoid useSyncExternalStore here because in React 19
+ * with turbopack, it can cause RSC serialization errors like:
+ * "Event handlers cannot be passed to Client Component props."
+ * The useEffect pattern is safer and provides the same functionality.
  */
 export function useEfficiencyMode(): boolean {
-  // Use useSyncExternalStore to avoid hydration mismatches
-  const subscribe = (callback: () => void) => {
-    if (typeof window === 'undefined') return () => {};
-    const observer = new MutationObserver(callback);
+  const [isEfficiencyMode, setIsEfficiencyMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const checkMode = () => {
+      const root = document.documentElement;
+      const mode = root.getAttribute('data-perf-mode');
+      return (
+        root.classList.contains('efficiency-mode') ||
+        root.classList.contains('lite-mode') ||
+        root.classList.contains('ultra-lite-mode') ||
+        mode === 'saver' ||
+        mode === 'lite' ||
+        mode === 'ultra-lite'
+      );
+    };
+
+    // Initial check
+    setIsEfficiencyMode(checkMode());
+
+    // Watch for changes
+    const observer = new MutationObserver(() => {
+      setIsEfficiencyMode(checkMode());
+    });
+
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-perf-mode'],
     });
+
     return () => observer.disconnect();
-  };
+  }, []);
 
-  const getSnapshot = (): boolean => {
-    if (typeof document === 'undefined') return false;
-    const root = document.documentElement;
-    const mode = root.getAttribute('data-perf-mode');
-    return (
-      root.classList.contains('efficiency-mode') ||
-      root.classList.contains('lite-mode') ||
-      root.classList.contains('ultra-lite-mode') ||
-      mode === 'saver' ||
-      mode === 'lite' ||
-      mode === 'ultra-lite'
-    );
-  };
-
-  const getServerSnapshot = (): boolean => false;
-
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return isEfficiencyMode;
 }
 
 /**
  * Hook to get the current performance mode (or null during SSR).
  */
 export function usePerformanceMode(): string | null {
-  const subscribe = (callback: () => void) => {
-    if (typeof window === 'undefined') return () => {};
-    const observer = new MutationObserver(callback);
+  const [mode, setMode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const getMode = () => document.documentElement.getAttribute('data-perf-mode');
+
+    setMode(getMode());
+
+    const observer = new MutationObserver(() => {
+      setMode(getMode());
+    });
+
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-perf-mode'],
     });
+
     return () => observer.disconnect();
-  };
+  }, []);
 
-  const getSnapshot = (): string | null => {
-    if (typeof document === 'undefined') return null;
-    return document.documentElement.getAttribute('data-perf-mode');
-  };
-
-  const getServerSnapshot = (): string | null => null;
-
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return mode;
 }
 
 /**
@@ -69,23 +85,29 @@ export function usePerformanceMode(): string | null {
  * Ultra-lite is the most aggressive mode for very weak devices.
  */
 export function useUltraLiteMode(): boolean {
-  const subscribe = (callback: () => void) => {
-    if (typeof window === 'undefined') return () => {};
-    const observer = new MutationObserver(callback);
+  const [isUltraLite, setIsUltraLite] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const checkUltraLite = () => {
+      const root = document.documentElement;
+      return root.classList.contains('ultra-lite-mode') || root.getAttribute('data-perf-mode') === 'ultra-lite';
+    };
+
+    setIsUltraLite(checkUltraLite());
+
+    const observer = new MutationObserver(() => {
+      setIsUltraLite(checkUltraLite());
+    });
+
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-perf-mode'],
     });
+
     return () => observer.disconnect();
-  };
+  }, []);
 
-  const getSnapshot = (): boolean => {
-    if (typeof document === 'undefined') return false;
-    const root = document.documentElement;
-    return root.classList.contains('ultra-lite-mode') || root.getAttribute('data-perf-mode') === 'ultra-lite';
-  };
-
-  const getServerSnapshot = (): boolean => false;
-
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return isUltraLite;
 }

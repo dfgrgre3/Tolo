@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const res = await fetch(`${apiUrl}/courses/${id}`, {
       next: { revalidate: 3600 } // Cache for 1 hour
     });
-    
+
     if (!res.ok) {
       return {
         title: "كورس غير موجود | Tolo",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useCallback } from "react";
 import { BookOpen, Search, Sparkles, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { apiClient } from "@/lib/api/api-client";
+import { addSearchQuery } from "@/lib/search-history";
 import { sortCourses } from "./_components/utils";
 import { CatalogStats } from "./_components/catalog-stats";
 import { SpotlightCourses } from "./_components/spotlight-courses";
@@ -28,6 +29,20 @@ export default function CoursesPage() {
   const [enrolledOnly, setEnrolledOnly] = useState(false);
 
   const deferredSearch = useDeferredValue(searchQuery);
+
+  // Save search queries to localStorage for dashboard suggestions
+  const debouncedSaveSearch = useCallback(
+    (() => {
+      let timeout: ReturnType<typeof setTimeout>;
+      return (query: string) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          if (query.trim()) addSearchQuery(query);
+        }, 1000);
+      };
+    })(),
+    []
+  );
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -248,12 +263,15 @@ export default function CoursesPage() {
               <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
                 <div className="relative">
                   <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="ابحث باسم الدورة أو المدرس أو المادة"
-                    className="h-14 rounded-2xl border-slate-200 bg-slate-50 pr-11 text-base dark:border-white/10 dark:bg-white/5"
-                  />
+                    <Input
+                      value={searchQuery}
+                      onChange={(event) => {
+                        setSearchQuery(event.target.value);
+                        debouncedSaveSearch(event.target.value);
+                      }}
+                      placeholder="ابحث باسم الدورة أو المدرس أو المادة"
+                      className="h-14 rounded-2xl border-slate-200 bg-slate-50 pr-11 text-base dark:border-white/10 dark:bg-white/5"
+                    />
                 </div>
 
                 <Button

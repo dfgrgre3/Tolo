@@ -46,7 +46,7 @@ function getClerkErrorMessage(err: unknown, fallback: string): string {
 export function AuthProvider({
   children,
   initialAuthHint,
-}: {children: React.ReactNode; initialAuthHint?: boolean;}) {
+}: { children: React.ReactNode; initialAuthHint?: boolean; }) {
   const { isLoaded: isClerkLoaded, userId, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
   // Use stable selectors (not the whole store object) to avoid triggering
@@ -84,10 +84,10 @@ export function AuthProvider({
       permissions: clerkUser.publicMetadata?.permissions,
       emailVerified: clerkUser.emailAddresses[0]?.verification?.status,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clerkUser?.id, clerkUser?.username, clerkUser?.fullName,
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      (clerkUser?.publicMetadata?.role as string) ?? null]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  (clerkUser?.publicMetadata?.role as string) ?? null]);
   // Keep a ref to the latest clerkUser so the async syncProfile can access it
   // without being listed as a dependency.
   const clerkUserRef = React.useRef(clerkUser);
@@ -184,6 +184,7 @@ export function AuthProvider({
           const freshClerkUser = clerkUserRef.current;
           setUser({
             ...mappedUser,
+            id: profile.id || mappedUser.id, // Trust database UUID as the primary identifier
             email: profile.email || mappedUser.email,
             role: (profile.role as 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM') || 'STUDENT', // Trust server-side role
             permissions: Array.isArray(freshClerkUser?.publicMetadata?.permissions)
@@ -208,14 +209,14 @@ export function AuthProvider({
     return () => {
       isCancelled = true;
     };
-  // NOTE: `clerkUser` is intentionally replaced by `clerkUserStableKey` in deps.
-  // Clerk replaces the clerkUser object reference on every internal state update
-  // (token refresh, polling, etc.) even when data hasn't changed, which would
-  // re-trigger this effect and cause an infinite loop. We use a stable key
-  // computed from the actual fields that matter, and access clerkUser itself
-  // via clerkUserRef inside the async body.
-  // getToken + setIsLoading are also omitted — accessed via refs / stable Zustand setters.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // NOTE: `clerkUser` is intentionally replaced by `clerkUserStableKey` in deps.
+    // Clerk replaces the clerkUser object reference on every internal state update
+    // (token refresh, polling, etc.) even when data hasn't changed, which would
+    // re-trigger this effect and cause an infinite loop. We use a stable key
+    // computed from the actual fields that matter, and access clerkUser itself
+    // via clerkUserRef inside the async body.
+    // getToken + setIsLoading are also omitted — accessed via refs / stable Zustand setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clerkUserStableKey, isClerkLoaded, isUserLoaded, userId, setUser, resetStore]);
 
   return <>{children}</>;
@@ -266,7 +267,7 @@ export function useAuth() {
       if (sessions.length > 0) {
         // Sign out each session individually for reliability
         await Promise.all(
-          sessions.map((s: { id: string }) => activeClerk.signOut({ sessionId: s.id }).catch(() => {}))
+          sessions.map((s: { id: string }) => activeClerk.signOut({ sessionId: s.id }).catch(() => { }))
         );
       } else if (activeClerk.session) {
         await activeClerk.signOut();
@@ -278,7 +279,7 @@ export function useAuth() {
     }
   }, [getClerkInstance]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
+  const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -314,7 +315,7 @@ export function useAuth() {
     }
   }, [getClerkInstance, forceSignOutAll]);
 
-  const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{success: boolean; requires2FA?: boolean; userId?: string; error?: string;}> => {
+  const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -334,7 +335,7 @@ export function useAuth() {
         // Use the fresh Clerk instance (not the stale activeClerk) because
         // forceSignOutAll reset the internal client state.
         await freshClerk.setActive({ session: result.createdSessionId });
-        
+
         // Check role immediately after setting active
         const role = freshClerk.user?.publicMetadata?.role;
         if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
@@ -366,7 +367,7 @@ export function useAuth() {
       educationType?: string;
       interestedSubjects?: string[];
     }
-  ): Promise<{success: boolean; error?: string; message?: string; autoLoggedIn?: boolean;}> => {
+  ): Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -416,7 +417,7 @@ export function useAuth() {
     router.replace('/login');
   }, [signOut, resetStore, router]);
 
-  const verify2FA = useCallback(async (signInId: string, token: string, rememberMe?: boolean): Promise<{success: boolean; error?: string;}> => {
+  const verify2FA = useCallback(async (signInId: string, token: string, rememberMe?: boolean): Promise<{ success: boolean; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -450,7 +451,7 @@ export function useAuth() {
     }
   }, [getClerkInstance]);
 
-  const refreshUser = useCallback(async (options?: {clearOnFailure?: boolean;}) => {
+  const refreshUser = useCallback(async (options?: { clearOnFailure?: boolean; }) => {
     if (!userId || !clerkUser) {
       if (options?.clearOnFailure) {
         resetStore();
@@ -462,9 +463,9 @@ export function useAuth() {
       const token = await getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
       const profile = await authRepository.getProfile(headers);
-      
+
       const mappedUser: AuthUser = {
-        id: clerkUser.id,
+        id: profile.id || clerkUser.id, // Trust database UUID as the primary identifier
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
         username: clerkUser.username || null,
         name: clerkUser.fullName || clerkUser.username || null,
@@ -475,7 +476,7 @@ export function useAuth() {
           ? (clerkUser.publicMetadata.permissions as string[])
           : [],
       };
-      
+
       setUser(mappedUser);
       return true;
     } catch (e) {
@@ -487,7 +488,7 @@ export function useAuth() {
     }
   }, [userId, clerkUser, getToken, setUser, resetStore]);
 
-  const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; error?: string; message?: string;}> => {
+  const forgotPassword = useCallback(async (email: string): Promise<{ success: boolean; error?: string; message?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -512,14 +513,14 @@ export function useAuth() {
     }
   }, [getClerkInstance]);
 
-  const resetPassword = useCallback(async (tokenOrPassword: string, newPassword?: string, code?: string, email?: string): Promise<{success: boolean; error?: string;}> => {
+  const resetPassword = useCallback(async (tokenOrPassword: string, newPassword?: string, code?: string, email?: string): Promise<{ success: boolean; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
       if (!code) {
         return { success: false, error: 'رمز التحقق مطلوب' };
       }
-      
+
       if (!activeClerk.client) return { success: false, error: 'Auth system not fully loaded' };
       let signIn = activeClerk.client.signIn;
       if (!signIn || !signIn.identifier || (email && signIn.identifier !== email)) {
@@ -624,7 +625,7 @@ export function useAuth() {
     }
   }, [clerkUser]);
 
-  const requestMagicLink = useCallback(async (email: string): Promise<{success: boolean; error?: string;}> => {
+  const requestMagicLink = useCallback(async (email: string): Promise<{ success: boolean; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
@@ -632,7 +633,7 @@ export function useAuth() {
         identifier: email,
       });
       const firstFactor = result.supportedFirstFactors?.find(
-          (f) => (f as { strategy: string }).strategy === 'email_code'
+        (f) => (f as { strategy: string }).strategy === 'email_code'
       ) as { strategy: string; emailAddressId?: string } | undefined;
       if (firstFactor && firstFactor.emailAddressId) {
         await activeClerk.client.signIn.prepareFirstFactor({
@@ -648,7 +649,7 @@ export function useAuth() {
     }
   }, [getClerkInstance]);
 
-  const verifyOTP = useCallback(async (code: string): Promise<{success: boolean; error?: string;}> => {
+  const verifyOTP = useCallback(async (code: string): Promise<{ success: boolean; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {

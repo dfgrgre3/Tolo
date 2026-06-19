@@ -326,7 +326,6 @@ export default function CourseDetailClient() {
               bookmarked={bookmarked}
               setBookmarked={setBookmarked}
               onEnroll={handleEnroll}
-              router={router}
             />
           </div>
         </m.div>

@@ -16,6 +16,7 @@ import {
 import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
 import { ClerkWithNonce } from '@/components/layout/ClerkWithNonce';
 import { headers } from 'next/headers';
+import Script from 'next/script';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -26,6 +27,8 @@ const alexandria = Alexandria({
   adjustFontFallback: true,
   fallback: ['system-ui', 'sans-serif'],
 });
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: { default: 'Tolo - منصة تعليمية تفاعلية', template: '%s | Tolo' },
@@ -66,30 +69,32 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Read nonce for html element (required to allow inline scripts under CSP).
-  // ClerkWithNonce reads it independently to pass to ClerkProvider.
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Default to empty string to ensure consistent SSR/CSR rendering
+  // (avoids hydration mismatch when nonce prop is undefined).
+  const nonce = (await headers()).get('x-nonce') ?? '';
 
   return (
     <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
 
-        <head>
-          {/* ── Preconnect to external origins ─────────────────────────────── */}
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          {/* Preconnect to Clerk's frontend API infrastructure (proxied via /__clerk) */}
-          <link rel="preconnect" href="https://frontend-api.clerk.services" crossOrigin="anonymous" />
+      <head>
+        {/* ── Preconnect to external origins ─────────────────────────────── */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Preconnect to Clerk's frontend API infrastructure (proxied via /__clerk) */}
+        <link rel="preconnect" href="https://frontend-api.clerk.services" crossOrigin="anonymous" />
 
-          {/* Centralized performance detection script — nonce required for CSP */}
-          <script id="perf-detect" src="/perf-detect.js" nonce={nonce} />
+        {/* Centralized performance detection script */}
+        <script id="perf-detect" src="/perf-detect.js" defer nonce={nonce} suppressHydrationWarning />
 
-          <link rel="dns-prefetch" href="https://i.ytimg.com" />
-          <meta name="theme-color" content="#f97316" />
-          <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="format-detection" content="telephone=no" />
-          {/* Hydration attribute cleanup — nonce required for CSP */}
-          <script id="hydration-fix" src="/hydration-fix.js" nonce={nonce} />
-        </head>
-        <body className={`${alexandria.variable} font-sans`}>
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        <meta name="theme-color" content="#f97316" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="format-detection" content="telephone=no" />
+        {/* Hydration attribute cleanup */}
+        <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
+      </head>
+      <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
+        <div suppressHydrationWarning>
           <ClerkWithNonce>
             <SWRegistration />
             <PostHogProvider>
@@ -113,7 +118,8 @@ export default async function RootLayout({
           </ClerkWithNonce>
           <ConditionalAnalytics />
           <ConditionalSpeedInsights />
-        </body>
-      </html>
+        </div>
+      </body>
+    </html>
   );
 }

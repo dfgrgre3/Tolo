@@ -25,6 +25,7 @@ import { RecentActivitySidebar } from "./components/recent-activity-sidebar";
 import { AIAssistantPromo } from "./components/ai-assistant-promo";
 import { SocialGoalSection } from "./components/social-goal-section";
 import { DashboardFooter } from "./components/dashboard-footer";
+import { LearningSuggestions } from "./components/learning-suggestions";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5",
@@ -202,6 +203,9 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
+        {/* --- Learning Suggestions (based on recent searches) --- */}
+        <LearningSuggestions />
 
         {/* --- Social Goal Section --- */}
         <SocialGoalSection glassStyle={STYLES.glass} />

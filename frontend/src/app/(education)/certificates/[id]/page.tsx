@@ -17,10 +17,20 @@ export default function CertificatePage() {
   useEffect(() => {
     const fetchCert = async () => {
       try {
-        const res = await fetchWithAuth(`/api/certificates/${params.id}`);
+        // Try hexagonal route first, fallback to legacy
+        const res = await fetchWithAuth(`/api/hex/certificates/${params.id}`);
         if (res.ok) {
           const data = await res.json();
-          setCert(data.certificate);
+          // API returns { certificate: { certificate: {...}, user: {...}, subject: {...} } }
+          const certData = data.certificate;
+          if (certData) {
+            setCert({
+              id: certData.certificate.id,
+              issuedAt: certData.certificate.issuedAt,
+              user: certData.user,
+              subject: certData.subject,
+            });
+          }
         } else {
           toast.error("فشل في تحميل الشهادة");
         }

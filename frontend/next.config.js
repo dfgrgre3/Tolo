@@ -53,27 +53,8 @@ const nextConfig = {
 
   // ─── HTTP Headers ──────────────────────────────────────────────────────────
   async headers() {
-    return [
-      // Static assets — 1 year immutable cache (Next.js content-hashes them)
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Next.js image optimisation endpoint — 30 days
-      {
-        source: '/_next/image(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=2592000, stale-while-revalidate=86400',
-          },
-        ],
-      },
+    const isProduction = process.env.NODE_ENV === 'production';
+    const headers = [
       // Public folder assets (fonts, icons, sw.js, manifest, etc.)
       {
         source: '/fonts/:path*',
@@ -121,41 +102,53 @@ const nextConfig = {
           },
         ],
       },
-      // Note: /__clerk/npm/* no longer routes through Next.js — Clerk JS loads directly from CDN via clerkJSUrl
     ];
+
+    // Only add custom Cache-Control headers for static assets in production
+    // In development, these can break Next.js dev server behavior
+    if (isProduction) {
+      headers.unshift(
+        // Static assets — 1 year immutable cache (Next.js content-hashes them)
+        {
+          source: '/_next/static/:path*',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+        // Next.js image optimisation endpoint — 30 days
+        {
+          source: '/_next/image(.*)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=2592000, stale-while-revalidate=86400',
+            },
+          ],
+        }
+      );
+    }
+
+    return headers;
   },
 
   // ─── Redirects ─────────────────────────────────────────────────────────────
   // (add here if needed)
 
   // ─── Rewrites ──────────────────────────────────────────────────────────────
-  async rewrites() {
-    return [
-      {
-        // Clerk npm bundle proxy (MUST come before the general /__clerk rewrite):
-        // Maps /__clerk/npm/* → app router route that proxies to jsDelivr CDN
-        //
-        // This ensures Clerk's JS bundle requests are handled by the local
-        // app router route at src/app/__clerk/npm/[...path]/route.ts, which
-        // proxies them to https://cdn.jsdelivr.net/npm/@clerk/...
-        //
-        // Without this rule, the general /__clerk/:path* rewrite below would
-        // forward npm bundle requests to frontend-api.clerk.services, which
-        // returns 404 for npm paths.
-        source: "/__clerk/npm/:path*",
-        destination: "/__clerk/npm/:path*",
-      },
-      {
-        // Clerk frontend API proxy:
-        // Maps /__clerk/* → https://frontend-api.clerk.services/*
-        //
-        // This proxies Clerk client-side API requests (session, user, etc.) through the
-        // main domain, bypassing ad-blockers that block clerk.accounts.dev / clerk.com.
-        source: "/__clerk/:path*",
-        destination: "https://frontend-api.clerk.services/:path*",
-      },
-    ];
-  },
+  // Note: Clerk /__clerk/* proxy is now handled by the local route handler at
+  // src/app/__clerk/[...path]/route.ts instead of external rewrites.
+  // This avoids SSL handshake failures (EPROTO) that occurred with external
+  // rewrites on Windows dev machines and some Vercel deployments.
+  //
+  // The route handler handles both:
+  //   - npm bundles → jsDelivr CDN (with correct MIME type)
+  //   - Clerk API requests → frontend-api.clerk.services (with cookie forwarding)
+  //
+  // No rewrites are needed. The middleware.ts config matcher includes /__clerk/:path*
+  // so the middleware injects CSP headers on all Clerk proxy requests.
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {
@@ -167,8 +160,6 @@ const nextConfig = {
         async_hooks: false,   // Prevent webpack from resolving async_hooks on the client
       };
     }
-
-
 
     return config;
   },
@@ -189,5 +180,3 @@ export default withSentryConfig(nextConfig, {
   disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
   disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
 });
-
-

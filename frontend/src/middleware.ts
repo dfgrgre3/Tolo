@@ -58,6 +58,14 @@ export default clerkMiddleware(
   async (auth, req) => {
     const url = req.nextUrl || new URL(req.url);
 
+    // ── Pass-through: npm bundle requests → local route handler ───────
+    // The /__clerk/npm/* path is handled by src/app/__clerk/[...path]/route.ts
+    // which proxies to jsDelivr CDN. clerkMiddleware doesn't handle these
+    // and would return 404. Return next() so the request reaches the route.
+    if (url.pathname.startsWith('/__clerk/npm/')) {
+      return NextResponse.next();
+    }
+
     const isAuthPage = ["/login", "/register", "/admin-login"].includes(url.pathname);
 
     // [إصلاح جوهري]: حماية المسارات المطلوبة فوراً عبر Clerk لتفادي استدعاء الدالة المزدوج
@@ -220,7 +228,7 @@ export const config = {
     "/((?!_next|[^?]*\\.(?:html?|css|js|json|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // تفعيل دائم لروابط الـ API والـ TRPC الخلفية
     "/(api|trpc)(.*)",
-    // Clerk proxy path — ضروري لتمرير طلبات Clerk عبر الـ middleware
+    // Clerk proxy path — ضروري لتمرير طلبات Clerk عبر الـ proxy
     "/__clerk/:path*",
   ],
 };
