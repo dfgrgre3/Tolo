@@ -65,13 +65,15 @@ export async function GET(
       }
     } catch (err) {
       console.error('[__clerk proxy] npm fetch failed:', err);
-      return new NextResponse('Upstream fetch failed', { status: 502 });
+      return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
     }
 
     if (!upstream.ok) {
-      return new NextResponse(`Upstream returned ${upstream.status}`, {
-        status: upstream.status,
-      });
+      const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+      return NextResponse.json(
+        { error: errorText, upstreamStatus: upstream.status },
+        { status: upstream.status }
+      );
     }
 
     const body = await upstream.arrayBuffer();
@@ -113,13 +115,15 @@ export async function GET(
     });
   } catch (err) {
     console.error('[__clerk proxy] API fetch failed:', err);
-    return new NextResponse('Upstream fetch failed', { status: 502 });
+    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
   }
 
   if (!upstream.ok) {
-    return new NextResponse(`Upstream returned ${upstream.status}`, {
-      status: upstream.status,
-    });
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
   }
 
   const body = await upstream.arrayBuffer();
@@ -174,13 +178,15 @@ export async function POST(
     });
   } catch (err) {
     console.error('[__clerk proxy] POST fetch failed:', err);
-    return new NextResponse('Upstream fetch failed', { status: 502 });
+    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
   }
 
   if (!upstream.ok) {
-    return new NextResponse(`Upstream returned ${upstream.status}`, {
-      status: upstream.status,
-    });
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
   }
 
   const body = await upstream.arrayBuffer();
@@ -221,13 +227,15 @@ export async function PUT(
     });
   } catch (err) {
     console.error('[__clerk proxy] PUT fetch failed:', err);
-    return new NextResponse('Upstream fetch failed', { status: 502 });
+    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
   }
 
   if (!upstream.ok) {
-    return new NextResponse(`Upstream returned ${upstream.status}`, {
-      status: upstream.status,
-    });
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
   }
 
   const body = await upstream.arrayBuffer();
@@ -263,13 +271,15 @@ export async function DELETE(
     });
   } catch (err) {
     console.error('[__clerk proxy] DELETE fetch failed:', err);
-    return new NextResponse('Upstream fetch failed', { status: 502 });
+    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
   }
 
   if (!upstream.ok) {
-    return new NextResponse(`Upstream returned ${upstream.status}`, {
-      status: upstream.status,
-    });
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
   }
 
   const body = await upstream.arrayBuffer();
@@ -308,13 +318,15 @@ export async function PATCH(
     });
   } catch (err) {
     console.error('[__clerk proxy] PATCH fetch failed:', err);
-    return new NextResponse('Upstream fetch failed', { status: 502 });
+    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
   }
 
   if (!upstream.ok) {
-    return new NextResponse(`Upstream returned ${upstream.status}`, {
-      status: upstream.status,
-    });
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
   }
 
   const body = await upstream.arrayBuffer();
