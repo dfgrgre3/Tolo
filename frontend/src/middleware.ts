@@ -2,8 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // 1. الإعدادات العامة وفلاتر المسارات (Global Configuration)
+// تشمل مسارات الصفحات ومسارات الـ API المحلية الحساسة التي تتطلب مصادقة (Authentication).
+// تنبيه: المسارات الموجهة للخلفية (Go API) يتم تمريرها وحمايتها في الخلفية مباشرة،
+// أما مسارات Next.js API المحلية الحساسة فيجب إضافتها هنا لمنع أي تجاوز.
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
+  "/admin(.*)",
   "/ai(.*)",
   "/profile(.*)",
   "/progress(.*)",
@@ -18,6 +22,8 @@ const isProtectedRoute = createRouteMatcher([
   "/notifications(.*)",
   "/subscription(.*)",
   "/time(.*)",
+  // مسارات الـ API المحلية الحساسة داخل Next.js (مثل إبطال الكاش)
+  "/api/cache/revalidate(.*)",
 ]);
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -71,6 +77,25 @@ export default clerkMiddleware(
     // [إصلاح جوهري]: حماية المسارات المطلوبة فوراً عبر Clerk لتفادي استدعاء الدالة المزدوج
     if (isProtectedRoute(req)) {
       await auth.protect();
+
+      if (url.pathname.startsWith("/admin")) {
+        const authObj = await auth();
+        const sessionClaims = authObj.sessionClaims as any;
+        const role = sessionClaims?.metadata?.role || sessionClaims?.role;
+        if (role !== "ADMIN" && role !== "SUPER_ADMIN" && role !== "MODERATOR") {
+          return NextResponse.redirect(new URL("/unauthorized", req.url));
+        }
+      }
+    }
+
+    // [تحسين أداء أمني]: تجاوز سياسات الـ CSP وتوليد الـ Nonce لطلبات الـ API وبروكسي Clerk
+    // لكونها لا تحتاج لعرض HTML ولا تشغل نصوص برمجية (Scripts).
+    const isApiOrClerk = url.pathname.startsWith('/api') || 
+                         url.pathname.startsWith('/trpc') || 
+                         url.pathname.startsWith('/__clerk');
+
+    if (isApiOrClerk) {
+      return NextResponse.next();
     }
 
     // [إصلاح جوهري]: التحقق من حالة الدخول فقط عند زيارة صفحات التسجيل لمنع حلقات التوجيه اللانهائية

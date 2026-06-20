@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { auth } from "@clerk/nextjs/server";
 
 const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
 
@@ -27,9 +28,46 @@ function isAllowedRevalidatePath(p: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const cookie = request.headers.get("cookie") || "";
+  // CSRF validation via strict Origin/Referer matching
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
+  const host = request.headers.get("host") || "";
+  const expectedHost = host.split(":")[0];
+
+  let isCsrfValid = false;
+
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      if (originUrl.hostname === expectedHost) {
+        isCsrfValid = true;
+      }
+    } catch {
+      // Ignore invalid URL
+    }
+  } else if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      if (refererUrl.hostname === expectedHost) {
+        isCsrfValid = true;
+      }
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  if (!isCsrfValid) {
+    return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
+  }
+
+  const { userId, getToken } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  }
+
+  const token = await getToken();
   const me = await fetch(`${BACKEND_URL}/api/auth/me`, {
-    headers: { Cookie: cookie },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     cache: "no-store",
   });
   if (!me.ok) {

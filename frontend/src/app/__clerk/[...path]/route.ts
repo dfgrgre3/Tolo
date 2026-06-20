@@ -28,6 +28,7 @@ export async function GET(
 ) {
   const { path } = await params;
   const reqPath = path.join('/');
+  const { search } = _req.nextUrl;
 
   // ── Route: npm bundle → jsDelivr CDN ──────────────────────────────────
   if (path[0] === 'npm') {
@@ -36,7 +37,7 @@ export async function GET(
     const pkgRest = path.slice(1).join('/');
     // Remove leading '@clerk/' if present since we're already adding it
     const cleanPkgRest = pkgRest.replace(/^@clerk\//, '');
-    const upstreamUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}`;
+    const upstreamUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
 
     console.log(`[__clerk proxy] npm → ${upstreamUrl}`);
 
@@ -51,7 +52,7 @@ export async function GET(
       });
 
       if (!upstream.ok) {
-        const fallbackUrl = `https://frontend-api.clerk.services/${reqPath}`;
+        const fallbackUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
         console.log(`[__clerk proxy] npm (jsdelivr returned ${upstream.status}) → falling back to Clerk API: ${fallbackUrl}`);
         upstream = await fetch(fallbackUrl, {
           headers: {
@@ -95,7 +96,7 @@ export async function GET(
   }
 
   // ── Route: Clerk frontend API → frontend-api.clerk.services ──────────
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}`;
+  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
 
   console.log(`[__clerk proxy] api → ${upstreamUrl}`);
 
@@ -153,7 +154,8 @@ export async function POST(
 ) {
   const { path } = await params;
   const reqPath = path.join('/');
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}`;
+  const { search } = _req.nextUrl;
+  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
 
   console.log(`[__clerk proxy] POST → ${upstreamUrl}`);
 
@@ -201,7 +203,8 @@ export async function PUT(
 ) {
   const { path } = await params;
   const reqPath = path.join('/');
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}`;
+  const { search } = _req.nextUrl;
+  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
 
   let upstream: Response;
   try {
@@ -237,4 +240,100 @@ export async function PUT(
   if (setCookie) headers.set('Set-Cookie', setCookie);
 
   return new NextResponse(body, { status: upstream.status, headers });
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  const reqPath = path.join('/');
+  const { search } = _req.nextUrl;
+  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: 'DELETE',
+      headers: {
+        'Accept': '*/*',
+        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
+      },
+      redirect: 'follow',
+    });
+  } catch (err) {
+    console.error('[__clerk proxy] DELETE fetch failed:', err);
+    return new NextResponse('Upstream fetch failed', { status: 502 });
+  }
+
+  if (!upstream.ok) {
+    return new NextResponse(`Upstream returned ${upstream.status}`, {
+      status: upstream.status,
+    });
+  }
+
+  const body = await upstream.arrayBuffer();
+
+  const headers = new Headers();
+  const contentType = upstream.headers.get('Content-Type');
+  if (contentType) headers.set('Content-Type', contentType);
+
+  const setCookie = upstream.headers.get('Set-Cookie');
+  if (setCookie) headers.set('Set-Cookie', setCookie);
+
+  return new NextResponse(body, { status: upstream.status, headers });
+}
+
+export async function PATCH(
+  _req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  const reqPath = path.join('/');
+  const { search } = _req.nextUrl;
+  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+
+  let upstream: Response;
+  try {
+    const requestBody = await _req.text();
+    upstream = await fetch(upstreamUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': _req.headers.get('Content-Type') || 'application/json',
+        'Accept': '*/*',
+        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
+      },
+      body: requestBody,
+      redirect: 'follow',
+    });
+  } catch (err) {
+    console.error('[__clerk proxy] PATCH fetch failed:', err);
+    return new NextResponse('Upstream fetch failed', { status: 502 });
+  }
+
+  if (!upstream.ok) {
+    return new NextResponse(`Upstream returned ${upstream.status}`, {
+      status: upstream.status,
+    });
+  }
+
+  const body = await upstream.arrayBuffer();
+
+  const headers = new Headers();
+  const contentType = upstream.headers.get('Content-Type');
+  if (contentType) headers.set('Content-Type', contentType);
+
+  const setCookie = upstream.headers.get('Set-Cookie');
+  if (setCookie) headers.set('Set-Cookie', setCookie);
+
+  return new NextResponse(body, { status: upstream.status, headers });
+}
+
+export async function OPTIONS(_req: NextRequest) {
+  const headers = new Headers();
+  headers.set('Access-Control-Allow-Origin', _req.headers.get('origin') || '*');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  headers.set('Access-Control-Allow-Credentials', 'true');
+  return new NextResponse(null, { status: 204, headers });
 }

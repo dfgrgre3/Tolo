@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { generateUserPath, validateFileType, validateFileSize, formatFileSize } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
 
@@ -8,6 +9,43 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // CSRF validation via strict Origin/Referer matching
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const host = request.headers.get("host") || "";
+    const expectedHost = host.split(":")[0];
+
+    let isCsrfValid = false;
+
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (originUrl.hostname === expectedHost) {
+          isCsrfValid = true;
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    } else if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.hostname === expectedHost) {
+          isCsrfValid = true;
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    }
+
+    if (!isCsrfValid) {
+      return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
@@ -35,7 +73,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = "anonymous";
     const path = generateUserPath(userId, file.name, folder);
 
     let fileToUpload: File | Blob = file;
@@ -79,6 +116,43 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // CSRF validation via strict Origin/Referer matching
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const host = request.headers.get("host") || "";
+    const expectedHost = host.split(":")[0];
+
+    let isCsrfValid = false;
+
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (originUrl.hostname === expectedHost) {
+          isCsrfValid = true;
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    } else if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.hostname === expectedHost) {
+          isCsrfValid = true;
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    }
+
+    if (!isCsrfValid) {
+      return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
@@ -87,6 +161,20 @@ export async function DELETE(request: NextRequest) {
 
     if (paths.length === 0) {
       return NextResponse.json({ error: "No paths provided" }, { status: 400 });
+    }
+
+    // Security check: Ensure all paths belong to the authenticated user to prevent IDOR deletions
+    const invalidPaths = paths.filter(path => {
+      const cleanPath = path.replace(/^\/+|\/+$/g, "");
+      const parts = cleanPath.split("/");
+      return parts[0] !== userId && parts[1] !== userId;
+    });
+
+    if (invalidPaths.length > 0) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only delete your own files" },
+        { status: 403 }
+      );
     }
 
     const { error } = await supabase.storage.from("uploads").remove(paths);

@@ -98,17 +98,18 @@ export function AuthProvider({
     currentUserIdRef.current = userId || null;
   }, [userId]);
 
-  // Safety timeout: if Clerk fails to load (e.g. CSP/network/adblock issues),
-  // force isLoading to false so the application can render in unauthenticated fallback mode.
+  // Safety timeout: if Clerk or RPC fails to load/sync within 8 seconds,
+  // force isLoading to false so the application can render in fallback mode.
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!isClerkLoaded || !isUserLoaded) {
-        logger.warn('Clerk failed to load within 5 seconds. Falling back to unauthenticated state.');
-        resetStore();
+      const storeLoading = useAuthStore.getState().isLoading;
+      if (storeLoading) {
+        logger.warn('Auth system failed to fully load/sync within 8 seconds. Forcing isLoading to false.');
+        setIsLoading(false);
       }
-    }, 8000); // Increased from 5s to 8s — Clerk can be slow on first load
+    }, 8000); // 8s safety margin
     return () => clearTimeout(timer);
-  }, [isClerkLoaded, isUserLoaded, resetStore]);
+  }, [setIsLoading]);
 
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
@@ -136,6 +137,9 @@ export function AuthProvider({
         logger.warn('Unauthorized admin route access attempt by role:', role);
         lastSyncedId.current = userId;
         resetStore(); // reset() already sets isLoading: false
+        if (typeof window !== 'undefined') {
+          window.location.href = '/unauthorized';
+        }
         return;
       }
 
