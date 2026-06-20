@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+function getClerkDomain(): string {
+  const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.replace(/['"]/g, '').trim();
+  if (!pubKey) {
+    console.warn('[__clerk proxy] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not defined, using fallback');
+    return 'frontend-api.clerk.services';
+  }
+
+  try {
+    const parts = pubKey.split('_');
+    const base64Part = parts[2] || parts[parts.length - 1];
+    if (!base64Part) {
+      return 'frontend-api.clerk.services';
+    }
+
+    let decoded = atob(base64Part);
+    if (decoded.endsWith('$')) {
+      decoded = decoded.slice(0, -1);
+    }
+    return decoded.trim();
+  } catch (err) {
+    console.error('[__clerk proxy] Failed to parse publishable key:', err);
+    return 'frontend-api.clerk.services';
+  }
+}
+
 /**
  * Universal Clerk proxy route.
  *
@@ -52,7 +77,8 @@ export async function GET(
       });
 
       if (!upstream.ok) {
-        const fallbackUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+        const domain = getClerkDomain();
+        const fallbackUrl = `https://${domain}/${reqPath}${search}`;
         console.log(`[__clerk proxy] npm (jsdelivr returned ${upstream.status}) → falling back to Clerk API: ${fallbackUrl}`);
         upstream = await fetch(fallbackUrl, {
           headers: {
@@ -97,8 +123,9 @@ export async function GET(
     return new NextResponse(body, { status: 200, headers });
   }
 
-  // ── Route: Clerk frontend API → frontend-api.clerk.services ──────────
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+  // ── Route: Clerk frontend API ────────────────────────────────────────
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
 
   console.log(`[__clerk proxy] api → ${upstreamUrl}`);
 
@@ -159,7 +186,8 @@ export async function POST(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
 
   console.log(`[__clerk proxy] POST → ${upstreamUrl}`);
 
@@ -210,7 +238,8 @@ export async function PUT(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
 
   let upstream: Response;
   try {
@@ -257,7 +286,8 @@ export async function DELETE(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
 
   let upstream: Response;
   try {
@@ -301,7 +331,8 @@ export async function PATCH(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const upstreamUrl = `https://frontend-api.clerk.services/${reqPath}${search}`;
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
 
   let upstream: Response;
   try {
