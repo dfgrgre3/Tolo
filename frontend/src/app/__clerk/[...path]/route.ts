@@ -34,6 +34,19 @@ interface ClerkFetchResult {
   fallbackDomain?: string;
 }
 
+function cleanSearchQuery(search: string): string {
+  if (!search) return '';
+  try {
+    const params = new URLSearchParams(search);
+    params.delete('path');
+    const cleaned = params.toString();
+    return cleaned ? `?${cleaned}` : '';
+  } catch (e) {
+    console.error('[__clerk proxy] Failed to parse search query:', e);
+    return search;
+  }
+}
+
 /**
  * Common fetch helper that requests Clerk frontend API, handles timeouts, and implements fallbacks.
  */
@@ -46,11 +59,11 @@ async function clerkFetch(
   body?: string
 ): Promise<ClerkFetchResult> {
   const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  const cleanedSearch = cleanSearchQuery(search);
+  const upstreamUrl = `https://${domain}/${reqPath}${cleanedSearch}`;
   
   const headersInit: Record<string, string> = {
     'Accept': '*/*',
-    'Accept-Encoding': 'gzip, br',
   };
   if (cookies) headersInit['Cookie'] = cookies;
   if (contentType) headersInit['Content-Type'] = contentType;
@@ -82,7 +95,7 @@ async function clerkFetch(
     for (const fallbackDomain of fallbackDomains) {
       if (fallbackDomain === domain) continue;
 
-      const fallbackUrl = `https://${fallbackDomain}/${reqPath}${search}`;
+      const fallbackUrl = `https://${fallbackDomain}/${reqPath}${cleanedSearch}`;
       console.log(`[__clerk proxy] Trying fallback ${method} → ${fallbackUrl}`);
 
       const fallbackController = new AbortController();
@@ -173,19 +186,18 @@ export async function GET(
       upstream = await fetch(upstreamUrl, {
         headers: {
           'Accept': 'application/javascript, */*',
-          'Accept-Encoding': 'gzip, br',
         },
         redirect: 'follow',
       });
 
       if (!upstream.ok) {
         const domain = getClerkDomain();
-        const fallbackUrl = `https://${domain}/${reqPath}${search}`;
+        const cleanedSearch = cleanSearchQuery(search);
+        const fallbackUrl = `https://${domain}/${reqPath}${cleanedSearch}`;
         console.log(`[__clerk proxy] npm (jsdelivr returned ${upstream.status}) → falling back to Clerk API: ${fallbackUrl}`);
         upstream = await fetch(fallbackUrl, {
           headers: {
             'Accept': 'application/javascript, */*',
-            'Accept-Encoding': 'gzip, br',
             ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
           },
           redirect: 'follow',
