@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const preferredRegion = 'fra1';
+export const maxDuration = 30;
 
 function getClerkDomain(): string {
   const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.replace(/['"]/g, '').trim();
@@ -27,26 +29,129 @@ function getClerkDomain(): string {
   }
 }
 
+interface ClerkFetchResult {
+  response: Response;
+  fallbackDomain?: string;
+}
+
 /**
- * Universal Clerk proxy route.
- *
- * Handles TWO types of requests:
- *   1. npm bundle requests (/__clerk/npm/@clerk/<pkg>/dist/<bundle>.js)
- *      → proxied to jsDelivr CDN with correct MIME type
- *   2. Clerk frontend API requests (/__clerk/v1/..., /__clerk/oauth/..., etc.)
- *      → proxied to frontend-api.clerk.services
- *
- * Previously, the Clerk API proxy was implemented as a Next.js rewrite in
- * next.config.js that pointed to frontend-api.clerk.services externally.
- * However, on Windows dev machines and some Vercel deployments, the external
- * rewrite triggered SSL handshake failures (EPROTO / SSL alert number 40).
- *
- * By converting to a local route handler:
- *   - No external SSL handshake at the Edge/rewrite layer
- *   - The proxy runs as first-party JavaScript with full error handling
- *   - Correct MIME types are enforced for JS bundles
- *   - Caching headers are forwarded properly
+ * Common fetch helper that requests Clerk frontend API, handles timeouts, and implements fallbacks.
  */
+async function clerkFetch(
+  method: string,
+  reqPath: string,
+  search: string,
+  cookies: string | null,
+  contentType: string | null,
+  body?: string
+): Promise<ClerkFetchResult> {
+  const domain = getClerkDomain();
+  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  
+  const headersInit: Record<string, string> = {
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, br',
+  };
+  if (cookies) headersInit['Cookie'] = cookies;
+  if (contentType) headersInit['Content-Type'] = contentType;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+  try {
+    const res = await fetch(upstreamUrl, {
+      method,
+      headers: headersInit,
+      body,
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return { response: res };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn(`[__clerk proxy] Primary fetch failed for ${domain}:`, err);
+
+    // Fallback: try alternative domains
+    const fallbackDomains = [
+      'frontend-api.clerk.services',
+      'clerk.tolo.app',
+      'clerk.tolo.com',
+    ];
+
+    for (const fallbackDomain of fallbackDomains) {
+      if (fallbackDomain === domain) continue;
+
+      const fallbackUrl = `https://${fallbackDomain}/${reqPath}${search}`;
+      console.log(`[__clerk proxy] Trying fallback ${method} → ${fallbackUrl}`);
+
+      const fallbackController = new AbortController();
+      const fallbackTimeout = setTimeout(() => fallbackController.abort(), 5000);
+
+      try {
+        const fallbackRes = await fetch(fallbackUrl, {
+          method,
+          headers: headersInit,
+          body,
+          redirect: 'follow',
+          signal: fallbackController.signal,
+        });
+        clearTimeout(fallbackTimeout);
+
+        if (fallbackRes.ok) {
+          console.log(`[__clerk proxy] Fallback succeeded with domain ${fallbackDomain}`);
+          return { response: fallbackRes, fallbackDomain };
+        }
+      } catch (fallbackErr) {
+        clearTimeout(fallbackTimeout);
+        console.error(`[__clerk proxy] Fallback to ${fallbackDomain} failed:`, fallbackErr);
+      }
+    }
+    throw err;
+  }
+}
+
+/**
+ * Builds NextResponse from upstream response, copying cookies, content-type and caching headers.
+ */
+async function handleUpstreamResponse(result: ClerkFetchResult): Promise<NextResponse> {
+  const { response: upstream, fallbackDomain } = result;
+
+  if (!upstream.ok) {
+    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
+    return NextResponse.json(
+      { error: errorText, upstreamStatus: upstream.status },
+      { status: upstream.status }
+    );
+  }
+
+  const body = await upstream.arrayBuffer();
+  const headers = new Headers();
+  
+  const contentType = upstream.headers.get('Content-Type');
+  if (contentType) {
+    headers.set('Content-Type', contentType);
+  } else {
+    headers.set('Content-Type', 'application/json; charset=utf-8');
+  }
+
+  const setCookie = upstream.headers.get('Set-Cookie');
+  if (setCookie) headers.set('Set-Cookie', setCookie);
+
+  const cacheControl = upstream.headers.get('Cache-Control');
+  if (cacheControl) headers.set('Cache-Control', cacheControl);
+
+  const etag = upstream.headers.get('ETag');
+  if (etag) headers.set('ETag', etag);
+
+  if (fallbackDomain) {
+    headers.set('X-Clerk-Proxy-Fallback', fallbackDomain);
+    headers.set('Cache-Control', 'no-store, max-age=0');
+  }
+
+  return new NextResponse(body, { status: upstream.status, headers });
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> },
@@ -57,10 +162,7 @@ export async function GET(
 
   // ── Route: npm bundle → jsDelivr CDN ──────────────────────────────────
   if (path[0] === 'npm') {
-    // path is like ['npm', '@clerk', 'ui@1', 'dist', 'ui.browser.js']
-    // We need to skip 'npm' and join the rest
     const pkgRest = path.slice(1).join('/');
-    // Remove leading '@clerk/' if present since we're already adding it
     const cleanPkgRest = pkgRest.replace(/^@clerk\//, '');
     const upstreamUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
 
@@ -124,61 +226,19 @@ export async function GET(
   }
 
   // ── Route: Clerk frontend API ────────────────────────────────────────
-  const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
-
-  console.log(`[__clerk proxy] api → ${upstreamUrl}`);
-
-  let upstream: Response;
+  const cookies = _req.headers.get('cookie');
   try {
-    upstream = await fetch(upstreamUrl, {
-      headers: {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, br',
-        // Forward cookie if present (Clerk uses cookies for session)
-        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-      },
-      redirect: 'follow',
-    });
+    const result = await clerkFetch('GET', reqPath, search, cookies, null);
+    return await handleUpstreamResponse(result);
   } catch (err) {
-    console.error('[__clerk proxy] API fetch failed:', err);
-    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
+    console.error('[__clerk proxy] GET failed:', err);
+    return NextResponse.json({ 
+      error: 'Upstream fetch failed',
+      path: reqPath,
+    }, { status: 502 });
   }
-
-  if (!upstream.ok) {
-    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-    return NextResponse.json(
-      { error: errorText, upstreamStatus: upstream.status },
-      { status: upstream.status }
-    );
-  }
-
-  const body = await upstream.arrayBuffer();
-
-  const headers = new Headers();
-  // Forward Content-Type from upstream (it's usually application/json)
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) {
-    headers.set('Content-Type', contentType);
-  } else {
-    headers.set('Content-Type', 'application/json; charset=utf-8');
-  }
-
-  // Forward Set-Cookie from upstream (Clerk sets session cookies)
-  const setCookie = upstream.headers.get('Set-Cookie');
-  if (setCookie) headers.set('Set-Cookie', setCookie);
-
-  // Forward caching headers
-  const cacheControl = upstream.headers.get('Cache-Control');
-  if (cacheControl) headers.set('Cache-Control', cacheControl);
-
-  const etag = upstream.headers.get('ETag');
-  if (etag) headers.set('ETag', etag);
-
-  return new NextResponse(body, { status: upstream.status, headers });
 }
 
-// Clerk sometimes uses POST for API requests (e.g., sign-in, sign-up)
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> },
@@ -186,49 +246,17 @@ export async function POST(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  const cookies = _req.headers.get('cookie');
+  const contentType = _req.headers.get('Content-Type');
 
-  console.log(`[__clerk proxy] POST → ${upstreamUrl}`);
-
-  let upstream: Response;
   try {
     const requestBody = await _req.text();
-    upstream = await fetch(upstreamUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': _req.headers.get('Content-Type') || 'application/json',
-        'Accept': '*/*',
-        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-      },
-      body: requestBody,
-      redirect: 'follow',
-    });
+    const result = await clerkFetch('POST', reqPath, search, cookies, contentType, requestBody);
+    return await handleUpstreamResponse(result);
   } catch (err) {
-    console.error('[__clerk proxy] POST fetch failed:', err);
-    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
+    console.error('[__clerk proxy] POST failed:', err);
+    return NextResponse.json({ error: 'Upstream fetch failed', path: reqPath }, { status: 502 });
   }
-
-  if (!upstream.ok) {
-    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-    return NextResponse.json(
-      { error: errorText, upstreamStatus: upstream.status },
-      { status: upstream.status }
-    );
-  }
-
-  const body = await upstream.arrayBuffer();
-
-  const headers = new Headers();
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) {
-    headers.set('Content-Type', contentType);
-  }
-
-  const setCookie = upstream.headers.get('Set-Cookie');
-  if (setCookie) headers.set('Set-Cookie', setCookie);
-
-  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 export async function PUT(
@@ -238,45 +266,17 @@ export async function PUT(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  const cookies = _req.headers.get('cookie');
+  const contentType = _req.headers.get('Content-Type');
 
-  let upstream: Response;
   try {
     const requestBody = await _req.text();
-    upstream = await fetch(upstreamUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': _req.headers.get('Content-Type') || 'application/json',
-        'Accept': '*/*',
-        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-      },
-      body: requestBody,
-      redirect: 'follow',
-    });
+    const result = await clerkFetch('PUT', reqPath, search, cookies, contentType, requestBody);
+    return await handleUpstreamResponse(result);
   } catch (err) {
-    console.error('[__clerk proxy] PUT fetch failed:', err);
-    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
+    console.error('[__clerk proxy] PUT failed:', err);
+    return NextResponse.json({ error: 'Upstream fetch failed', path: reqPath }, { status: 502 });
   }
-
-  if (!upstream.ok) {
-    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-    return NextResponse.json(
-      { error: errorText, upstreamStatus: upstream.status },
-      { status: upstream.status }
-    );
-  }
-
-  const body = await upstream.arrayBuffer();
-
-  const headers = new Headers();
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) headers.set('Content-Type', contentType);
-
-  const setCookie = upstream.headers.get('Set-Cookie');
-  if (setCookie) headers.set('Set-Cookie', setCookie);
-
-  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 export async function DELETE(
@@ -286,42 +286,15 @@ export async function DELETE(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  const cookies = _req.headers.get('cookie');
 
-  let upstream: Response;
   try {
-    upstream = await fetch(upstreamUrl, {
-      method: 'DELETE',
-      headers: {
-        'Accept': '*/*',
-        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-      },
-      redirect: 'follow',
-    });
+    const result = await clerkFetch('DELETE', reqPath, search, cookies, null);
+    return await handleUpstreamResponse(result);
   } catch (err) {
-    console.error('[__clerk proxy] DELETE fetch failed:', err);
-    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
+    console.error('[__clerk proxy] DELETE failed:', err);
+    return NextResponse.json({ error: 'Upstream fetch failed', path: reqPath }, { status: 502 });
   }
-
-  if (!upstream.ok) {
-    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-    return NextResponse.json(
-      { error: errorText, upstreamStatus: upstream.status },
-      { status: upstream.status }
-    );
-  }
-
-  const body = await upstream.arrayBuffer();
-
-  const headers = new Headers();
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) headers.set('Content-Type', contentType);
-
-  const setCookie = upstream.headers.get('Set-Cookie');
-  if (setCookie) headers.set('Set-Cookie', setCookie);
-
-  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 export async function PATCH(
@@ -331,45 +304,17 @@ export async function PATCH(
   const { path } = await params;
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
-  const domain = getClerkDomain();
-  const upstreamUrl = `https://${domain}/${reqPath}${search}`;
+  const cookies = _req.headers.get('cookie');
+  const contentType = _req.headers.get('Content-Type');
 
-  let upstream: Response;
   try {
     const requestBody = await _req.text();
-    upstream = await fetch(upstreamUrl, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': _req.headers.get('Content-Type') || 'application/json',
-        'Accept': '*/*',
-        ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-      },
-      body: requestBody,
-      redirect: 'follow',
-    });
+    const result = await clerkFetch('PATCH', reqPath, search, cookies, contentType, requestBody);
+    return await handleUpstreamResponse(result);
   } catch (err) {
-    console.error('[__clerk proxy] PATCH fetch failed:', err);
-    return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
+    console.error('[__clerk proxy] PATCH failed:', err);
+    return NextResponse.json({ error: 'Upstream fetch failed', path: reqPath }, { status: 502 });
   }
-
-  if (!upstream.ok) {
-    const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-    return NextResponse.json(
-      { error: errorText, upstreamStatus: upstream.status },
-      { status: upstream.status }
-    );
-  }
-
-  const body = await upstream.arrayBuffer();
-
-  const headers = new Headers();
-  const contentType = upstream.headers.get('Content-Type');
-  if (contentType) headers.set('Content-Type', contentType);
-
-  const setCookie = upstream.headers.get('Set-Cookie');
-  if (setCookie) headers.set('Set-Cookie', setCookie);
-
-  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 export async function OPTIONS(_req: NextRequest) {

@@ -95,7 +95,18 @@ export const proxy = clerkMiddleware(
                          url.pathname.startsWith('/__clerk');
 
     if (isApiOrClerk) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      
+      // Add strict no-cache headers for Clerk API requests to prevent
+      // Service Worker from intercepting and caching them
+      if (url.pathname.startsWith('/__clerk/')) {
+        response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
+        response.headers.set('Surrogate-Control', 'no-store');
+      }
+      
+      return response;
     }
 
     // [إصلاح جوهري]: التحقق من حالة الدخول فقط عند زيارة صفحات التسجيل لمنع حلقات التوجيه اللانهائية
@@ -214,7 +225,7 @@ export const proxy = clerkMiddleware(
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' https: data: blob:",
       "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:",
-      "worker-src 'self' blob:",
+      "worker-src 'self' blob: https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com",
       `connect-src ${connectSources.join(" ")}`,
       `frame-src ${frameSources.join(" ")}`,
       "media-src 'self' https: blob:",
