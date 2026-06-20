@@ -147,8 +147,8 @@ const nextConfig = {
   //   - npm bundles → jsDelivr CDN (with correct MIME type)
   //   - Clerk API requests → frontend-api.clerk.services (with cookie forwarding)
   //
-  // No rewrites are needed. The middleware.ts config matcher includes /__clerk/:path*
-  // so the middleware injects CSP headers on all Clerk proxy requests.
+  // No rewrites are needed. The proxy.ts config matcher includes /__clerk/:path*
+  // so the proxy injects CSP headers on all Clerk proxy requests.
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {

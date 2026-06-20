@@ -60,7 +60,7 @@ function generateNonce(): string {
 }
 
 // 2. تصدير برمجية الوسيط الأساسية (Main Middleware Execution)
-export default clerkMiddleware(
+export const proxy = clerkMiddleware(
   async (auth, req) => {
     const url = req.nextUrl || new URL(req.url);
 
