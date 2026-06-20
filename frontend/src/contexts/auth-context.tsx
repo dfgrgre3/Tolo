@@ -286,27 +286,68 @@ export function useAuth() {
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string; }> => {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
-    try {
-      // Always clear any existing sessions before attempting a new sign-in.
-      // This is the key fix: switching accounts requires all old sessions to be
-      // fully cleared from Clerk's client state before signIn.create() is called.
-      await forceSignOutAll(activeClerk);
-
-      // After forceSignOut, Clerk resets the client internally (client.signIn may
-      // become undefined on the old reference). Re-fetch a fresh Clerk instance
-      // so client.signIn is available again.
-      const freshClerk = getClerkInstance();
-      if (!freshClerk?.client?.signIn) return { success: false, error: 'Auth system not fully loaded' };
-
-      const result = await freshClerk.client.signIn.create({
+    
+    // Helper to attempt sign-in without force-signing-out first.
+    // Signing out before every login race-conditions the Clerk client state
+    // (client.signIn may be reset or in transition) causing signIn.create()
+    // to fail with an unexpected error that falls through to the generic
+    // Arabic fallback message.
+    const attemptSignIn = async (clk: NonNullable<ReturnType<typeof getClerkInstance>>) => {
+      if (!clk.client.signIn) {
+        // If signIn is not available (e.g. a session is already active),
+        // we need to sign out first. Throw a special signal for the outer
+        // catch to handle by force-signing-out and retrying.
+        throw new Error('No signIn available - session exists');
+      }
+      return clk.client.signIn.create({
         identifier: email,
         password,
         strategy: 'password',
       });
+    };
+
+    try {
+      let result;
+      try {
+        result = await attemptSignIn(activeClerk);
+      } catch (firstErr: unknown) {
+        // Determine if we need to sign out first before retrying.
+        // This can happen in two scenarios:
+        //   1. attemptSignIn threw because client.signIn was undefined (a session already exists).
+        //   2. Clerk's signIn.create() rejected with a session-related error (e.g. "already signed in").
+        let needsSignOut = false;
+        if (firstErr instanceof Error && firstErr.message.includes('signIn')) {
+          // Our own throw from attemptSignIn when signIn is unavailable
+          needsSignOut = true;
+        } else if (firstErr && typeof firstErr === 'object') {
+          const clerkMsg = ((firstErr as { errors?: { message?: string }[] }).errors?.[0]?.message || '').toLowerCase();
+          if (clerkMsg.includes('already') || clerkMsg.includes('sign')) {
+            needsSignOut = true;
+          }
+        }
+
+        if (needsSignOut) {
+          await forceSignOutAll(activeClerk);
+          // After sign-out, Clerk resets the client internally. Re-fetch a fresh
+          // Clerk instance so client.signIn is available again.
+          const freshClerk = getClerkInstance();
+          if (!freshClerk?.client?.signIn) {
+            return { success: false, error: 'Auth system not fully loaded' };
+          }
+          result = await freshClerk.client.signIn.create({
+            identifier: email,
+            password,
+            strategy: 'password',
+          });
+        } else {
+          // Rethrow non-session errors to be caught by the outer handler
+          throw firstErr;
+        }
+      }
+
       if (result.status === 'complete') {
-        // Use the fresh Clerk instance (not the stale activeClerk) because
-        // forceSignOutAll reset the internal client state.
-        await freshClerk.setActive({ session: result.createdSessionId });
+        const clerkToActivate = getClerkInstance() || activeClerk;
+        await clerkToActivate.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       if (result.status === 'needs_second_factor') {
