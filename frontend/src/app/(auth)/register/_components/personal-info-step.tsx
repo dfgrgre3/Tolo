@@ -38,7 +38,7 @@ export function PersonalInfoStep({
             label="كلمة المرور"
             icon={<Lock size={20} />}
             endAdornment={
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             }
@@ -53,7 +53,7 @@ export function PersonalInfoStep({
           label="تأكيد كلمة المرور"
           icon={<Lock size={20} />}
           endAdornment={
-            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="p-2 text-gray-500 hover:text-white transition-colors">
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           }
@@ -77,7 +77,7 @@ export function PersonalInfoStep({
 
       <div className="flex gap-6 pt-6">
         {onBack && (
-          <Button type="button" variant="outline" onClick={onBack} className="h-18 flex-1 rounded-2xl border-white/10 bg-white/5 font-black text-white text-lg hover:bg-white/10 transition-colors">سابـق</Button>
+          <Button type="button" variant="outline" onClick={onBack} className="h-18 flex-1 rounded-2xl border-border bg-muted/40 font-black text-foreground hover:bg-muted/60 transition-colors">سابـق</Button>
         )}
         <Button type="button" onClick={onNext} className={cn("h-18 rounded-2xl bg-primary font-black text-black text-lg shadow-xl shadow-primary/10 group overflow-hidden relative", onBack ? "flex-[2]" : "w-full")}>
           <m.div className="absolute inset-0 bg-white/20" initial={{ y: "100%" }} whileHover={{ y: 0 }} transition={{ duration: 0.3 }} />

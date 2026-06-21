@@ -133,18 +133,16 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className="relative w-full max-w-lg mx-auto z-10"
     >
-      <div className="rounded-[3rem] border border-white/5 bg-black/70 backdrop-blur-3xl shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden">
-        <div className="p-10 md:p-14 text-center space-y-10">
+      <div className="rounded-[3rem] border border-border bg-card/40 backdrop-blur-3xl shadow-2xl overflow-hidden transition-colors duration-300">
+        <div className="p-10 md:p-14 text-center space-y-10 bg-card/20">
 
           {/* Icon */}
           <m.div
             animate={success ? { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] } : {}}
-            className="mx-auto w-24 h-24 rounded-[2rem] flex items-center justify-center"
+            className="mx-auto w-24 h-24 rounded-[2rem] flex items-center justify-center border"
             style={{
-              background: success
-                ? 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))'
-                : 'linear-gradient(135deg, rgba(255,109,0,0.2), rgba(255,109,0,0.05))',
-              border: `1px solid ${success ? 'rgba(34,197,94,0.3)' : 'rgba(255,109,0,0.3)'}`,
+              backgroundColor: success ? "hsl(var(--muted))" : "hsl(var(--muted))",
+              borderColor: success ? "rgba(34,197,94,0.3)" : "rgba(255,109,0,0.3)",
             }}
           >
             <AnimatePresence mode="wait">
@@ -162,10 +160,10 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
 
           {/* Title */}
           <div className="space-y-3">
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tighter">
               {success ? 'تم التحقق بنجاح! 🎉' : 'تحقق من بريدك'}
             </h2>
-            <p className="text-gray-500 font-bold text-sm leading-relaxed">
+            <p className="text-muted-foreground font-bold text-sm leading-relaxed">
               {success
                 ? 'جارٍ تحويلك إلى لوحة التحكم...'
                 : <>أرسلنا رمز تحقق مكوّن من 6 أرقام إلى<br /><span className="text-primary font-black">{email}</span></>
@@ -191,15 +189,15 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
                     whileFocus={{ scale: 1.08 }}
                     animate={{
                       borderColor: digit
-                        ? 'rgba(255,109,0,0.8)'
+                        ? 'hsl(var(--primary) / 0.8)'
                         : error
-                          ? 'rgba(239,68,68,0.5)'
-                          : 'rgba(255,255,255,0.08)',
+                          ? 'hsl(var(--destructive) / 0.5)'
+                          : 'hsl(var(--border))',
                       backgroundColor: digit
-                        ? 'rgba(255,109,0,0.08)'
-                        : 'rgba(255,255,255,0.03)',
+                        ? 'hsl(var(--primary) / 0.08)'
+                        : 'hsl(var(--muted) / 0.3)',
                     }}
-                    className="w-12 h-14 md:w-14 md:h-16 rounded-2xl border text-white text-2xl font-black text-center outline-none transition-shadow"
+                    className="w-12 h-14 md:w-14 md:h-16 rounded-2xl border text-foreground text-2xl font-black text-center outline-none transition-shadow"
                     style={{ boxShadow: digit ? '0 0 20px rgba(255,109,0,0.15)' : 'none' }}
                     autoFocus={index === 0}
                   />
@@ -214,7 +212,7 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    className="text-sm font-bold text-red-400"
+                    className="text-sm font-bold text-destructive"
                   >
                     {error}
                   </m.p>
@@ -246,7 +244,7 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
 
               {/* Resend */}
               <div className="flex items-center justify-center gap-3 text-sm">
-                <span className="text-gray-600 font-bold">لم تستلم الرمز؟</span>
+                <span className="text-muted-foreground font-bold">لم تستلم الرمز؟</span>
                 {canResend ? (
                   <button
                     type="button"
@@ -261,7 +259,7 @@ export function OTPVerificationStep({ email, onSuccess }: OTPVerificationStepPro
                     إعادة الإرسال
                   </button>
                 ) : (
-                  <span className="text-gray-500 font-black tabular-nums">
+                  <span className="text-muted-foreground font-black tabular-nums">
                     {countdown}ث
                   </span>
                 )}

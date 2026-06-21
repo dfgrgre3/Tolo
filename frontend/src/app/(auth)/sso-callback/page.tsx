@@ -38,12 +38,9 @@ export default function SSOCallbackPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex items-center justify-center bg-[#020202]"
+      className="w-full flex items-center justify-center py-16 px-4 selection:bg-primary/30 z-10"
       dir="rtl"
     >
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full pointer-events-none" />
-
       <m.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -59,8 +56,8 @@ export default function SSOCallbackPage() {
         </div>
 
         <div className="space-y-2">
-          <p className="text-lg font-bold text-white">جاري إتمام تسجيل الدخول...</p>
-          <p className="text-sm text-white/40">يتم التحقق من هويتك بأمان</p>
+          <p className="text-lg font-bold text-foreground">جاري إتمام تسجيل الدخول...</p>
+          <p className="text-sm text-muted-foreground">يتم التحقق من هويتك بأمان</p>
         </div>
       </m.div>
     </div>

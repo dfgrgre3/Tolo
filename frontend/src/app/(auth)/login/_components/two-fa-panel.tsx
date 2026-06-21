@@ -37,8 +37,8 @@ export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVe
           <Zap className="h-14 w-14 text-primary" />
         </m.div>
         <div className="space-y-3">
-          <h3 className="text-4xl font-black text-white uppercase tracking-tight">{title}</h3>
-          <p className="text-gray-400 font-medium">{subtitle}</p>
+          <h3 className="text-4xl font-black text-foreground uppercase tracking-tight">{title}</h3>
+          <p className="text-muted-foreground font-medium">{subtitle}</p>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVe
           <button
             type="button"
             onClick={onBack}
-            className="w-full text-[12px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center justify-center gap-2"
+            className="w-full text-[12px] font-black text-muted-foreground hover:text-foreground transition-colors uppercase tracking-[0.4em] flex items-center justify-center gap-2"
           >
             <ArrowRight size={14} /> العودة للخلف
           </button>

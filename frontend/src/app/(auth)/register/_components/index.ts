@@ -1,4 +1,4 @@
-export { BackgroundLayers } from './background-layers';
+
 export { LoadingState } from './loading-state';
 export { RegisterHeader } from './register-header';
 export { StepIndicator } from './step-indicator';

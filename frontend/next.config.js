@@ -138,17 +138,14 @@ const nextConfig = {
   // (add here if needed)
 
   // ─── Rewrites ──────────────────────────────────────────────────────────────
-  // Note: Clerk /__clerk/* proxy is now handled by the local route handler at
-  // src/app/__clerk/[...path]/route.ts instead of external rewrites.
-  // This avoids SSL handshake failures (EPROTO) that occurred with external
-  // rewrites on Windows dev machines and some Vercel deployments.
-  //
-  // The route handler handles both:
-  //   - npm bundles → jsDelivr CDN (with correct MIME type)
-  //   - Clerk API requests → frontend-api.clerk.services (with cookie forwarding)
-  //
-  // No rewrites are needed. The proxy.ts config matcher includes /__clerk/:path*
-  // so the proxy injects CSP headers on all Clerk proxy requests.
+  async rewrites() {
+    return [
+      {
+        source: '/__clerk/:path*',
+        destination: '/clerk-proxy/:path*',
+      },
+    ];
+  },
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {

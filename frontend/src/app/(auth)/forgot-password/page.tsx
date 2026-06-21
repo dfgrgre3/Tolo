@@ -72,25 +72,19 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-black overflow-hidden" dir="rtl">
-      {/* Background Decor */}
-      <div className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] bg-primary/20 blur-[130px] rounded-full" />
-      <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-blue-600/10 blur-[130px] rounded-full" />
-      
+    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10" dir="rtl">
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-2xl"
+        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-border bg-card/40 p-8 md:p-12 backdrop-blur-2xl shadow-2xl transition-colors duration-300"
       >
-        <div className="absolute inset-0 border border-white/5 pointer-events-none rounded-[2.5rem]" />
-
         <div className="mb-10 text-center space-y-4">
-           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 shadow-xl">
+           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 shadow-xl border border-primary/20">
               <KeyRound className="w-8 h-8 text-primary" />
            </div>
-           <h2 className="text-3xl font-black text-white tracking-tight">استعادة <span className="text-primary">الشيفرة</span></h2>
-           <p className="text-gray-400 text-sm font-medium">لا تقلق، سنرسل لك رابطاً لاستعادة الوصول إلى حسابك.</p>
+           <h2 className="text-3xl font-black text-foreground tracking-tight">استعادة <span className="text-primary">الشيفرة</span></h2>
+           <p className="text-muted-foreground text-sm font-medium">لا تقلق، سنرسل لك رابطاً لاستعادة الوصول إلى حسابك.</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -101,14 +95,14 @@ export default function ForgotPasswordPage() {
               exit={{ opacity: 0, height: 0 }}
               className={`mb-8 p-4 rounded-2xl flex items-start gap-3 border ${
                 status.type === 'error' 
-                  ? 'bg-red-500/10 border-red-500/20 text-red-500' 
-                  : 'bg-green-500/10 border-green-500/20 text-green-400'
+                  ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' 
+                  : 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
               }`}
             >
               {status.type === 'error' ? (
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500" />
               ) : (
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-500" />
               )}
               <p className="text-xs font-bold leading-relaxed">{status.message}</p>
             </m.div>
@@ -117,27 +111,27 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           <div className="space-y-3">
-            <label htmlFor="forgot-email" className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">المعرف الإلكتروني (البريد)</label>
+            <label htmlFor="forgot-email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">المعرف الإلكتروني (البريد)</label>
             <div className="relative group">
-              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
                 id="forgot-email"
                 {...register('email')}
                 type="email"
                 disabled={isLoading || status?.type === 'success'}
-                className="w-full h-14 pr-12 pl-6 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm disabled:opacity-50"
+                className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm disabled:opacity-50"
                 placeholder="warrior@realm.me"
               />
             </div>
             {errors.email && (
-              <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.email.message}</p>
+              <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.email.message}</p>
             )}
           </div>
 
           <Button
             type="submit"
             disabled={isLoading || status?.type === 'success'}
-            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden"
+            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden shadow-lg shadow-primary/20"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             {isLoading ? (
@@ -152,14 +146,14 @@ export default function ForgotPasswordPage() {
         </form>
 
         <div className="mt-10 text-center">
-          <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-gray-500 hover:text-white transition-all uppercase tracking-widest group">
+          <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-muted-foreground hover:text-foreground transition-all uppercase tracking-widest group">
             <ArrowLeft className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> العودة للبوابة
           </Link>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center opacity-30">
+        <div className="mt-8 pt-6 border-t border-border flex items-center justify-center opacity-40">
           <Sparkles size={12} className="text-primary mr-2" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">Ancient Key Protection</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Ancient Key Protection</span>
           <Sparkles size={12} className="text-primary ml-2" />
         </div>
       </m.div>

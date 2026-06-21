@@ -71,8 +71,8 @@ function VerifyEmailContent() {
                />
                <ShieldCheck className="absolute inset-0 m-auto w-10 h-10 text-primary animate-pulse" />
             </div>
-            <h2 className="text-3xl font-black text-white tracking-tight">جاري التحقق...</h2>
-            <p className="text-gray-400 font-medium">{message}</p>
+            <h2 className="text-3xl font-black text-foreground tracking-tight">جاري التحقق...</h2>
+            <p className="text-muted-foreground font-medium">{message}</p>
           </m.div>
         )}
 
@@ -92,12 +92,12 @@ function VerifyEmailContent() {
               />
             </div>
             <div>
-              <h2 className="text-4xl font-black text-white mb-3">تم النشوء!</h2>
-              <p className="text-green-400/80 font-bold max-w-sm mx-auto">{message}</p>
+              <h2 className="text-4xl font-black text-foreground mb-3">تم النشوء!</h2>
+              <p className="text-green-600 dark:text-green-400 font-bold max-w-sm mx-auto">{message}</p>
             </div>
             <Button 
               asChild
-              className="h-14 px-8 rounded-2xl bg-white text-black font-black hover:bg-white/90 group"
+              className="h-14 px-8 rounded-2xl bg-primary text-black font-black hover:bg-primary/90 shadow-lg shadow-primary/20 group"
             >
               <Link href="/dashboard">
                 الدخول للمنصة <ArrowRight className="mr-3 h-5 w-5 rotate-180 group-hover:-translate-x-1 transition-transform" />
@@ -117,19 +117,19 @@ function VerifyEmailContent() {
               <AlertCircle className="w-12 h-12 text-red-500" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-3xl font-black text-white">عائق في السجل</h2>
-              <p className="text-red-400/80 font-bold">{message}</p>
+              <h2 className="text-3xl font-black text-foreground">عائق في السجل</h2>
+              <p className="text-red-600 dark:text-red-400 font-bold">{message}</p>
             </div>
             <div className="flex flex-col gap-4 max-w-xs mx-auto">
               <Button 
                 onClick={() => router.refresh()}
-                className="h-14 rounded-2xl bg-white/5 border border-white/10 text-white font-black hover:bg-white/10"
+                className="h-14 rounded-2xl bg-muted/40 border border-border text-foreground hover:bg-muted/60"
               >
                 المحاولة مجدداً
               </Button>
               <Link 
                 href="/login"
-                className="text-xs font-black text-gray-500 hover:text-white transition-all uppercase tracking-widest"
+                className="text-xs font-black text-muted-foreground hover:text-foreground transition-all uppercase tracking-widest"
               >
                 العودة للبوابة
               </Link>
@@ -138,9 +138,9 @@ function VerifyEmailContent() {
         )}
       </AnimatePresence>
       
-      <div className="absolute bottom-8 flex items-center gap-3 opacity-20">
+      <div className="absolute bottom-8 flex items-center gap-3 opacity-30">
          <Sparkles size={14} className="text-primary" />
-         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Identity Verification Core</span>
+         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Identity Verification Core</span>
          <Sparkles size={14} className="text-primary" />
       </div>
     </div>
@@ -149,14 +149,11 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-black overflow-hidden">
-      <div className="absolute top-[-5%] left-[-5%] w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full" />
-      <div className="absolute bottom-[-5%] right-[-5%] w-[500px] h-[500px] bg-blue-600/5 blur-[130px] rounded-full" />
-
+    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10">
       <m.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-[500px] rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl shadow-2xl p-4 md:p-8"
+        className="relative w-full max-w-[500px] rounded-[3rem] border border-border bg-card/40 backdrop-blur-3xl shadow-2xl p-4 md:p-8 transition-colors duration-300"
       >
         <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>}>
           <VerifyEmailContent />

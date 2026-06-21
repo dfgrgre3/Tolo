@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Home } from "lucide-react";
@@ -27,6 +27,11 @@ const routeLabels: Record<string, string> = {
 
 export function HeaderBreadcrumbs() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const breadcrumbs = useMemo(() => {
     if (!pathname) return [];
@@ -53,7 +58,7 @@ export function HeaderBreadcrumbs() {
     return items;
   }, [pathname]);
 
-  if (breadcrumbs.length <= 1) return null;
+  if (!mounted || breadcrumbs.length <= 1) return null;
 
   return (
     <nav

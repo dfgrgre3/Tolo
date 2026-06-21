@@ -15,7 +15,7 @@ export function RememberMeCheckbox({ registration, checked }: RememberMeCheckbox
           {...registration}
           className="peer sr-only"
         />
-        <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
+        <div className="w-7 h-7 rounded-xl border-2 border-border bg-muted/40 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
           <m.div
             animate={{
               scale: checked ? 1 : 0,
@@ -26,7 +26,7 @@ export function RememberMeCheckbox({ registration, checked }: RememberMeCheckbox
           />
         </div>
       </div>
-      <span className="text-[11px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-[0.2em] transition-colors">
+      <span className="text-[11px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-[0.2em] transition-colors">
         تذكر هويتي
       </span>
     </label>

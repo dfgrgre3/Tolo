@@ -23,8 +23,8 @@ export function RoleStep({
     >
       <div className="text-center space-y-3">
         <ShieldCheck className="mx-auto text-primary animate-pulse" size={40} />
-        <h3 className="text-3xl font-black text-white uppercase">تحديد نوع الحساب</h3>
-        <p className="text-gray-500 font-bold">كل هوية تمنحك صلاحيات وأدوات مختلفة</p>
+        <h3 className="text-3xl font-black text-foreground uppercase">تحديد نوع الحساب</h3>
+        <p className="text-muted-foreground font-bold">كل هوية تمنحك صلاحيات وأدوات مختلفة</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -40,22 +40,21 @@ export function RoleStep({
               key={id}
               className={cn(
                 "group cursor-pointer rounded-[2.5rem] border-2 p-12 transition-all text-center space-y-6",
-                active ? "border-primary bg-primary/5 ring-4 ring-primary/5 shadow-2xl shadow-primary/10" : "border-white/5 bg-white/5 hover:border-white/10"
+                active ? "border-primary bg-primary/5 ring-4 ring-primary/5 shadow-2xl shadow-primary/10" : "border-border bg-muted/40 hover:border-border/80"
               )}
             >
               <input type="radio" value={id} {...register('role')} className="hidden" />
-              <m.div
-                animate={{
-                  backgroundColor: active ? "rgba(255,109,0,1)" : "rgba(255,255,255,0.05)",
-                  color: active ? "#000" : "#6b7280"
-                }}
-                className="mx-auto w-24 h-24 rounded-3xl flex items-center justify-center transition-all"
+              <div
+                className={cn(
+                  "mx-auto w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-300",
+                  active ? "bg-primary text-black" : "bg-muted text-muted-foreground"
+                )}
               >
                 <Icon size={48} />
-              </m.div>
+              </div>
               <div className="space-y-2">
-                <span className={cn("block font-black text-2xl transition-colors", active ? "text-white" : "text-gray-500")}>{label}</span>
-                <span className="block text-[11px] text-gray-600 font-black uppercase tracking-widest">{desc}</span>
+                <span className={cn("block font-black text-2xl transition-colors", active ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+                <span className="block text-[11px] text-muted-foreground font-black uppercase tracking-widest">{desc}</span>
               </div>
             </m.label>
           );

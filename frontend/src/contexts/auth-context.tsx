@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -240,6 +240,25 @@ export function useAuth() {
   }, [clerk]);
   const isClerkInstanceReady = !!getClerkInstance();
 
+  /**
+   * Poll until clerk.client is available (max ~3 s) so that pressing the login
+   * button before Clerk fully initialises doesn't immediately surface the
+   * "Auth system not fully loaded" error.
+   */
+  const waitForClerkClient = useCallback((): Promise<ReturnType<typeof getClerkInstance>> => {
+    return new Promise((resolve) => {
+      const instance = getClerkInstance();
+      if (instance) { resolve(instance); return; }
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        const inst = getClerkInstance();
+        if (inst) { clearInterval(interval); resolve(inst); return; }
+        if (attempts >= 30) { clearInterval(interval); resolve(null); }
+      }, 100); // check every 100 ms, up to 3 s
+    });
+  }, [getClerkInstance]);
+
   const user = useAuthStore((state) => state.user);
   const isStoreLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -284,7 +303,7 @@ export function useAuth() {
   }, [getClerkInstance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string; }> => {
-    const activeClerk = getClerkInstance();
+    const activeClerk = await waitForClerkClient();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     
     // Helper to attempt sign-in without force-signing-out first.
@@ -293,16 +312,21 @@ export function useAuth() {
     // to fail with an unexpected error that falls through to the generic
     // Arabic fallback message.
     const attemptSignIn = async (clk: NonNullable<ReturnType<typeof getClerkInstance>>) => {
+      if (clk.session) {
+        // There is an active Clerk session; requesting signIn.create while
+        // a session is alive triggers a "Bad Request" from Clerk because it
+        // considers the user already authenticated.
+        // Throw a special signal so the outer catch signs out first and retries.
+        throw new Error('Session already active - signing out');
+      }
       if (!clk.client.signIn) {
-        // If signIn is not available (e.g. a session is already active),
-        // we need to sign out first. Throw a special signal for the outer
-        // catch to handle by force-signing-out and retrying.
+        // If signIn is not available, we need to sign out first.
+        // Throw a special signal for the outer catch to handle.
         throw new Error('No signIn available - session exists');
       }
       return clk.client.signIn.create({
         identifier: email,
         password,
-        strategy: 'password',
       });
     };
 
@@ -337,7 +361,6 @@ export function useAuth() {
           result = await freshClerk.client.signIn.create({
             identifier: email,
             password,
-            strategy: 'password',
           });
         } else {
           // Rethrow non-session errors to be caught by the outer handler
@@ -358,7 +381,7 @@ export function useAuth() {
       logger.error('Login error:', err);
       return { success: false, error: getClerkErrorMessage(err, 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.') };
     }
-  }, [getClerkInstance, forceSignOutAll]);
+  }, [waitForClerkClient, forceSignOutAll]);
 
   const adminLogin = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string; }> => {
     const activeClerk = getClerkInstance();
@@ -374,7 +397,6 @@ export function useAuth() {
       const result = await freshClerk.client.signIn.create({
         identifier: email,
         password,
-        strategy: 'password',
       });
       if (result.status === 'complete') {
         // Use the fresh Clerk instance (not the stale activeClerk) because

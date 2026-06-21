@@ -37,7 +37,7 @@ export function ErrorBanner({ errorStatus, onResendVerification, onDismiss }: Er
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.97 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-start gap-3 shadow-lg backdrop-blur-xl"
+      className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-300 text-sm flex items-start gap-3 shadow-lg backdrop-blur-xl"
       role="alert"
     >
       <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -45,7 +45,7 @@ export function ErrorBanner({ errorStatus, onResendVerification, onDismiss }: Er
       </div>
 
       <div className="flex-1 space-y-2 min-w-0">
-        <p className="font-semibold text-red-300 leading-snug">{message}</p>
+        <p className="font-semibold text-red-600 dark:text-red-300 leading-snug">{message}</p>
         {showResend && (
           <button
             type="button"
@@ -62,7 +62,7 @@ export function ErrorBanner({ errorStatus, onResendVerification, onDismiss }: Er
         <button
           type="button"
           onClick={onDismiss}
-          className="text-gray-600 hover:text-gray-400 transition-colors shrink-0 p-1"
+          className="text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1"
           aria-label="إغلاق"
         >
           <X size={14} />

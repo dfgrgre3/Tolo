@@ -11,8 +11,16 @@ interface BookDetailsProps {
   onClose: () => void;
 }
 
+import { useState } from "react";
+import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
+
 export function BookDetails({ book, onClose }: BookDetailsProps) {
+  const [showPreview, setShowPreview] = useState(false);
+
   if (!book) return null;
+
+  const isPdf = book.downloadUrl && (book.downloadUrl.toLowerCase().endsWith(".pdf") || book.downloadUrl.includes("/documents/") || book.downloadUrl.includes("/books/"));
+  const googleDocsViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(book.downloadUrl)}&embedded=true`;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" dir="rtl">
@@ -59,87 +67,130 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
         </div>
 
         {/* Right Side: Content */}
-        <div className="flex-1 p-10 md:p-16 overflow-y-auto custom-scrollbar-premium space-y-10">
-          <div className="flex items-center justify-between">
-             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest">
-               <ShieldCheck className="w-3 h-3" />
-               <span>محتوى تم التحقق منه</span>
-             </div>
-             <button 
-               onClick={onClose}
-               className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-500 hover:text-white"
-             >
-               <X className="w-6 h-6" />
-             </button>
-          </div>
-
-          <div className="space-y-4">
-            <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">
-              {book.title}
-            </h2>
-            <div className="flex items-center gap-4 text-xl text-gray-400 font-bold">
-               <User className="w-5 h-5 text-amber-500" />
-               <span>{book.author}</span>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: Star, label: "التقييم", value: book.rating.toFixed(1), color: "text-amber-500" },
-              { icon: Download, label: "التحميلات", value: book.downloads, color: "text-blue-500" },
-              { icon: Eye, label: "المشاهدات", value: book.views, color: "text-purple-500" },
-              { icon: Calendar, label: "تاريخ النشر", value: new Date(book.createdAt).toLocaleDateString('ar-EG'), color: "text-green-500" },
-            ].map((stat, i) => (
-              <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-2">
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                <div className="text-2xl font-black text-white">{stat.value}</div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{stat.label}</div>
+        <div className="flex-1 p-10 md:p-16 overflow-y-auto custom-scrollbar-premium flex flex-col justify-between">
+          {showPreview ? (
+            // Preview Panel (Low Data Consumption)
+            <div className="flex-1 flex flex-col space-y-6 h-full">
+              <div className="flex items-center justify-between">
+                <button 
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4 ml-1" />
+                  <span>العودة للتفاصيل</span>
+                </button>
+                <button 
+                  onClick={onClose}
+                  className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-500 hover:text-white"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-            ))}
-          </div>
 
-          {/* Description */}
-          <div className="space-y-4">
-             <h3 className="text-xl font-black text-white flex items-center gap-3">
-               <div className="w-2 h-6 bg-amber-500 rounded-full" />
-               عن المخطوطة
-             </h3>
-             <p className="text-lg text-gray-400 leading-relaxed font-medium">
-               {book.description || "لا يوجد وصف متاح لهذه المخطوطة حالياً. ولكنها تحتوي على كنوز علمية قيمة تساعدك في رحلتك التعليمية."}
-             </p>
-          </div>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black text-white">{book.title}</h2>
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span>معاينة سحابية سريعة. توفر بيانات الهاتف مقارنة بالتحميل الكامل.</span>
+                </p>
+              </div>
 
-          {/* Tags */}
-          {book.tags && book.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {book.tags.map((tag, i) => (
-                <Badge key={i} variant="secondary" className="bg-white/5 text-gray-400 border-white/10 hover:text-white px-4 py-1.5 font-bold">
-                  #{tag}
-                </Badge>
-              ))}
+              <div className="flex-1 w-full bg-black/40 border border-white/10 rounded-2xl overflow-hidden min-h-[350px]">
+                <iframe
+                  src={googleDocsViewerUrl}
+                  className="w-full h-full border-none"
+                  title={book.title}
+                />
+              </div>
+            </div>
+          ) : (
+            // Details Panel
+            <div className="space-y-10">
+              <div className="flex items-center justify-between">
+                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest">
+                   <ShieldCheck className="w-3 h-3" />
+                   <span>محتوى تم التحقق منه</span>
+                 </div>
+                 <button 
+                   onClick={onClose}
+                   className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-500 hover:text-white"
+                 >
+                   <X className="w-6 h-6" />
+                 </button>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">
+                  {book.title}
+                </h2>
+                <div className="flex items-center gap-4 text-xl text-gray-400 font-bold">
+                   <User className="w-5 h-5 text-amber-500" />
+                   <span>{book.author}</span>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[
+                  { icon: Star, label: "التقييم", value: book.rating.toFixed(1), color: "text-amber-500" },
+                  { icon: Download, label: "التحميلات", value: book.downloads, color: "text-blue-500" },
+                  { icon: Eye, label: "المشاهدات", value: book.views, color: "text-purple-500" },
+                  { icon: Calendar, label: "تاريخ النشر", value: new Date(book.createdAt).toLocaleDateString('ar-EG'), color: "text-green-500" },
+                ].map((stat, i) => (
+                  <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-2">
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                    <div className="text-2xl font-black text-white">{stat.value}</div>
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Description */}
+              <div className="space-y-4">
+                 <h3 className="text-xl font-black text-white flex items-center gap-3">
+                   <div className="w-2 h-6 bg-amber-500 rounded-full" />
+                   عن المخطوطة
+                 </h3>
+                 <p className="text-lg text-gray-400 leading-relaxed font-medium">
+                   {book.description || "لا يوجد وصف متاح لهذه المخطوطة حالياً. ولكنها تحتوي على كنوز علمية قيمة تساعدك في رحلتك التعليمية."}
+                 </p>
+              </div>
+
+              {/* Tags */}
+              {book.tags && book.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {book.tags.map((tag, i) => (
+                    <Badge key={i} variant="secondary" className="bg-white/5 text-gray-400 border-white/10 hover:text-white px-4 py-1.5 font-bold">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Action Footer */}
+              <div className="pt-10 flex flex-col sm:flex-row gap-6">
+                 <Button 
+                   asChild
+                   className="h-20 flex-1 bg-amber-500 text-black font-black rounded-3xl text-xl shadow-2xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-4"
+                 >
+                   <a href={book.downloadUrl} target="_blank" rel="noreferrer">
+                     <span>استدعاء المجلد الأصلي</span>
+                     <Download className="w-6 h-6" />
+                   </a>
+                 </Button>
+                 
+                 {isPdf && (
+                   <Button 
+                     onClick={() => setShowPreview(true)}
+                     variant="outline"
+                     className="h-20 px-10 bg-white/5 border-white/10 text-white font-black rounded-3xl text-xl hover:bg-white/10 transition-all cursor-pointer"
+                   >
+                     <span>معاينة سريعة</span>
+                   </Button>
+                 )}
+              </div>
             </div>
           )}
-
-          {/* Action Footer */}
-          <div className="pt-10 flex flex-col sm:flex-row gap-6">
-             <Button 
-               asChild
-               className="h-20 flex-1 bg-amber-500 text-black font-black rounded-3xl text-xl shadow-2xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-4"
-             >
-               <a href={book.downloadUrl} target="_blank" rel="noreferrer">
-                 <span>استدعاء المجلد الأصلي</span>
-                 <Download className="w-6 h-6" />
-               </a>
-             </Button>
-             
-             <Button 
-               variant="outline"
-               className="h-20 px-10 bg-white/5 border-white/10 text-white font-black rounded-3xl text-xl hover:bg-white/10 transition-all"
-             >
-               <span>معاينة سريعة</span>
-             </Button>
-          </div>
         </div>
       </m.div>
     </div>

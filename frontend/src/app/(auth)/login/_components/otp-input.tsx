@@ -60,7 +60,7 @@ export function OTPInput({ value, onChange, disabled }: OTPInputProps) {
           onChange={(e) => handleChange(e, i)}
           onKeyDown={(e) => handleKeyDown(e, i)}
           className={cn(
-            "w-12 h-16 text-center text-2xl font-black rounded-xl bg-white/5 border border-white/10 text-primary outline-none transition-all focus:border-primary/50 focus:bg-white/10 focus:ring-4 focus:ring-primary/20",
+            "w-12 h-16 text-center text-2xl font-black rounded-xl bg-muted/40 border border-border text-primary outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-4 focus:ring-primary/20 dark:bg-white/5 dark:border-white/10 dark:focus:bg-white/10",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         />

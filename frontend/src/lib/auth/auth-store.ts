@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { clearUserId, setUserId } from '@/lib/user-utils';
 
 export interface AuthUser {
@@ -39,26 +40,43 @@ interface AuthState {
   reset: () => void;
 }
 
-export const useAuthStore = create<AuthState>()((set) => ({
-  user: null,
-  isLoading: true,
-  isAuthenticated: false,
-  isRefreshing: false,
-  lastRefreshedAt: null,
-  setUser: (user) => {
-    if (user?.id) {
-      setUserId(user.id);
-    } else {
-      clearUserId();
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      // isLoading starts true on every page load so Clerk can validate the
+      // cached session before we show protected content.
+      isLoading: true,
+      isAuthenticated: false,
+      isRefreshing: false,
+      lastRefreshedAt: null,
+      setUser: (user) => {
+        if (user?.id) {
+          setUserId(user.id);
+        } else {
+          clearUserId();
+        }
+        set({ user, isAuthenticated: !!user, isLoading: false, lastRefreshedAt: Date.now() });
+      },
+      setIsLoading: (isLoading) => set({ isLoading }),
+      setIsRefreshing: (isRefreshing) => set({ isRefreshing }),
+      setLastRefreshed: () => set({ lastRefreshedAt: Date.now() }),
+      reset: () => {
+        set({ user: null, isAuthenticated: false, isLoading: false, lastRefreshedAt: null });
+        clearUserId();
+      },
+    }),
+    {
+      name: 'tolo-auth-storage', // localStorage key
+      storage: createJSONStorage(() => localStorage),
+      // Only persist the user data and auth flag — never persist loading states.
+      // isLoading is always re-computed on mount so Clerk can re-validate the session.
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        lastRefreshedAt: state.lastRefreshedAt,
+      }),
     }
-    set({ user, isAuthenticated: !!user, isLoading: false, lastRefreshedAt: Date.now() });
-  },
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setIsRefreshing: (isRefreshing) => set({ isRefreshing }),
-  setLastRefreshed: () => set({ lastRefreshedAt: Date.now() }),
-  reset: () => {
-    set({ user: null, isAuthenticated: false, isLoading: false, lastRefreshedAt: null });
-    clearUserId();
-  }
-}));
+  )
+);
 

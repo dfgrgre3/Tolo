@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import { type UseFormRegisterReturn } from 'react-hook-form';
 import { PremiumInput } from '@/components/auth/premium-input';
+import { m } from 'framer-motion';
 
 interface PasswordInputProps {
   readonly showPassword: boolean;
@@ -14,12 +15,18 @@ interface PasswordInputProps {
 
 export function PasswordInput({ showPassword, setShowPassword, registration, error }: PasswordInputProps) {
   return (
-    <div className="space-y-2">
+    <m.div
+      initial={{ height: 0, opacity: 0, scale: 0.96 }}
+      animate={{ height: 'auto', opacity: 1, scale: 1 }}
+      exit={{ height: 0, opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-2 overflow-hidden"
+    >
       <div className="flex items-center justify-between px-2">
-        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">كلمة المرور</span>
+        <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">كلمة المرور</span>
         <Link
           href="/forgot-password"
-          className="text-[11px] font-black text-primary/70 hover:text-primary transition-colors"
+          className="text-[11px] font-black text-primary/80 hover:text-primary transition-colors"
         >
           نسيت كلمة السر؟
         </Link>
@@ -35,6 +42,6 @@ export function PasswordInput({ showPassword, setShowPassword, registration, err
         showPassword={showPassword}
         autoComplete="current-password"
       />
-    </div>
+    </m.div>
   );
 }

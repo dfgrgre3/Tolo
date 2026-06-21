@@ -118,6 +118,7 @@ self.addEventListener('fetch', (event) => {
   // ---------------------------------------------------------------------------
   if (
     url.pathname.startsWith('/__clerk') ||
+    url.pathname.startsWith('/clerk-proxy') ||
     url.pathname.startsWith('/__session') ||
     url.pathname.includes('/clerk/') ||
     url.searchParams.has('__clerk_') ||

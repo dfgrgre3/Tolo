@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { m } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { sanitizeRedirectPath } from '@/services/auth/navigation';
-import { BackgroundLayers, LeftPanelInfo, LoginFormHeader, LoginAuthView, LoginFormFooter } from './_components';
+import { LoginFormHeader, LoginAuthView, LoginFormFooter } from './_components';
 
 const loginSchema = z.object({
   email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),
@@ -157,59 +157,30 @@ function LoginForm() {
     }
   };
 
-  const [deviceInfo, setDeviceInfo] = useState({ os: 'نظام تشغيل آمن', browser: 'تولو ويب' });
-
-  useEffect(() => {
-    const ua = window.navigator.userAgent;
-    let os = 'نظام تشغيل آمن';
-    let browser = 'تولو ويب';
-    
-    if (ua.includes('Win')) os = 'ويندوز';
-    else if (ua.includes('Mac')) os = 'ماك أو إس';
-    else if (ua.includes('Linux')) os = 'لينكس';
-    else if (ua.includes('Android')) os = 'أندرويد';
-    else if (ua.includes('like Mac')) os = 'آي أو إس';
-
-    if (ua.includes('Firefox')) browser = 'فايرفوكس';
-    else if (ua.includes('Chrome')) browser = 'جوجل كروم';
-    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'سافاري';
-    else if (ua.includes('Edge')) browser = 'إيدج';
-
-    const t = setTimeout(() => {
-      setDeviceInfo({ os, browser });
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
-
   const onResendVerification = () => {
     setErrorStatus('يرجى التحقق من صندوق البريد الوارد لإعادة تفعيل حسابك.');
   };
 
   if (isAuthLoading) {
     return (
-      <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden">
-        <BackgroundLayers />
-        <div className="flex flex-col items-center justify-center space-y-4 text-center z-10">
-          <div className="relative">
-            <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary"></div>
-          </div>
-          <p className="animate-pulse text-sm font-medium text-primary/70">جاري التحقق من حالة الجلسة...</p>
+      <div className="flex flex-col items-center justify-center space-y-4 text-center z-10 py-12">
+        <div className="relative">
+          <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary"></div>
         </div>
+        <p className="animate-pulse text-sm font-medium text-primary/70">جاري التحقق من حالة الجلسة...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden selection:bg-primary/30" dir="rtl">
-      <BackgroundLayers />
+    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10" dir="rtl">
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[1150px] grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_50px_150px_rgba(0,0,0,0.9)] z-10"
+        className="relative w-full max-w-[550px] overflow-hidden rounded-[3rem] border border-border bg-card/40 backdrop-blur-3xl shadow-2xl z-10 transition-colors duration-300"
       >
-        <LeftPanelInfo deviceInfo={deviceInfo} />
-        <div className="lg:col-span-7 p-10 md:p-16 lg:p-24 bg-[#080808]/50 flex flex-col justify-center space-y-12">
+        <div className="p-10 md:p-14 bg-card/20 flex flex-col justify-center space-y-12">
           <LoginFormHeader />
           <LoginAuthView
             requires2FA={requires2FA}
@@ -241,8 +212,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden">
-        <BackgroundLayers />
+      <div className="flex items-center justify-center p-12 z-10">
         <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary z-10"></div>
       </div>
     }>

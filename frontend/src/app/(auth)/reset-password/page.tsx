@@ -98,15 +98,15 @@ function ResetPasswordForm() {
       <m.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2.5rem] text-red-500 text-center backdrop-blur-xl"
+        className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2.5rem] text-red-600 dark:text-red-400 text-center backdrop-blur-xl"
       >
-        <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
         <h3 className="text-xl font-black mb-2">رابط غير صالح</h3>
         <p className="text-sm font-medium">يبدو أن رابط إعادة تعيين كلمة المرور قد انتهى أو أنه غير صحيح.</p>
         <Button 
           variant="outline"
           onClick={() => router.push('/forgot-password')}
-          className="mt-6 border-red-500/20 hover:bg-red-500/10 text-red-500 rounded-xl"
+          className="mt-6 border-red-500/20 hover:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl"
         >
           طلب رابط جديد
         </Button>
@@ -115,23 +115,18 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-black overflow-hidden" dir="rtl">
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/20 blur-[130px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 blur-[130px] rounded-full" />
-
+    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10" dir="rtl">
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-2xl"
+        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-border bg-card/40 p-8 md:p-12 backdrop-blur-2xl shadow-2xl transition-colors duration-300"
       >
-        <div className="absolute inset-0 border border-white/5 pointer-events-none rounded-[2.5rem]" />
-
         <div className="mb-10 text-center space-y-4">
-           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
               <ShieldCheck className="w-8 h-8 text-primary shadow-xl" />
            </div>
-           <h2 className="text-3xl font-black text-white tracking-tight">تجديد <span className="text-primary">الهوية</span></h2>
-           <p className="text-gray-400 text-sm font-medium">أدخل شيفرة الدخول الجديدة والآمنة لحسابك.</p>
+           <h2 className="text-3xl font-black text-foreground tracking-tight">تجديد <span className="text-primary">الهوية</span></h2>
+           <p className="text-muted-foreground text-sm font-medium">أدخل شيفرة الدخول الجديدة والآمنة لحسابك.</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -142,11 +137,11 @@ function ResetPasswordForm() {
               exit={{ opacity: 0, height: 0 }}
               className={`mb-8 p-4 rounded-2xl flex items-start gap-3 border ${
                 status.type === 'error' 
-                  ? 'bg-red-500/10 border-red-500/20 text-red-500' 
-                  : 'bg-green-500/10 border-green-500/20 text-green-400'
+                  ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' 
+                  : 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
               }`}
             >
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-500" />
               <p className="text-xs font-bold leading-relaxed">{status.message}</p>
             </m.div>
           )}
@@ -155,61 +150,61 @@ function ResetPasswordForm() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {isClerkFlow && (
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">رمز التحقق (6 أرقام)</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">رمز التحقق (6 أرقام)</span>
               <div className="relative group">
-                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                   {...register('code')}
                   type="text"
                   maxLength={6}
-                  className="w-full h-14 pr-12 pl-6 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm text-center tracking-[0.5em]"
+                  className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm text-center tracking-[0.5em]"
                   placeholder="000000"
                 />
               </div>
-              {errors.code && <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.code.message}</p>}
+              {errors.code && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.code.message}</p>}
             </div>
           )}
 
           <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">الشيفرة الجديدة</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">الشيفرة الجديدة</span>
             <div className="relative group">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                className="w-full h-14 pr-12 pl-12 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm"
+                className="w-full h-14 pr-12 pl-12 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm"
                 placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {errors.password && <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.password.message}</p>}
+            {errors.password && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.password.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">تأكيد الشيفرة</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">تأكيد الشيفرة</span>
             <div className="relative group">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
                 {...register('confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
-                className="w-full h-14 pr-12 pl-6 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm"
+                className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm"
                 placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
               />
             </div>
-            {errors.confirmPassword && <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.confirmPassword.message}</p>}
+            {errors.confirmPassword && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.confirmPassword.message}</p>}
           </div>
 
           <Button
             type="submit"
             disabled={isLoading || status?.type === 'success'}
-            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden"
+            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden shadow-lg shadow-primary/20"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             {isLoading ? (
@@ -223,9 +218,9 @@ function ResetPasswordForm() {
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-30">
+        <div className="mt-8 pt-6 border-t border-border flex items-center justify-between opacity-40">
           <Sparkles size={12} className="text-primary" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">Security Encryption Active</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Security Encryption Active</span>
           <Sparkles size={12} className="text-primary" />
         </div>
       </m.div>
@@ -235,7 +230,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="h-8 w-8 text-primary animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 text-primary animate-spin" /></div>}>
       <ResetPasswordForm />
     </Suspense>
   );

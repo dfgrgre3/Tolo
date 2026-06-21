@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import {
-  BackgroundLayers,
   LoadingState,
   RegisterHeader,
   StepIndicator,
@@ -175,8 +174,7 @@ function RegisterForm() {
 
   if (showOTP) {
     return (
-      <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden" dir="rtl">
-        <BackgroundLayers />
+      <div className="w-full flex items-center justify-center p-4 z-10" dir="rtl">
         <OTPVerificationStep email={registeredEmail} onSuccess={() => router.replace('/dashboard')} />
       </div>
     );
@@ -184,11 +182,9 @@ function RegisterForm() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center py-16 px-4 bg-[#020202] overflow-hidden selection:bg-primary/30"
+      className="w-full flex flex-col items-center justify-center py-16 px-4 selection:bg-primary/30 z-10"
       dir="rtl"
     >
-      <BackgroundLayers />
-
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -204,7 +200,7 @@ function RegisterForm() {
         {/* Card */}
         <m.div
           layout
-          className="relative overflow-hidden rounded-[3rem] border border-white/5 bg-black/60 backdrop-blur-3xl shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+          className="relative overflow-hidden rounded-[3rem] border border-border bg-card/40 backdrop-blur-3xl shadow-2xl transition-colors duration-300"
         >
           <div className="p-8 md:p-14">
             {/* Global error */}
@@ -268,8 +264,7 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#020202] overflow-hidden">
-          <BackgroundLayers />
+        <div className="flex items-center justify-center p-12 z-10">
           <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary z-10" />
         </div>
       }

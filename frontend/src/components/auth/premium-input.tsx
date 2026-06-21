@@ -26,34 +26,21 @@ function getErrorMessage(error?: { message?: string } | string): string | undefi
   return error.message;
 }
 
-function getContainerAnimation(isFocused: boolean, errorMessage: string | undefined) {
-  let borderColor = "rgba(255,255,255,0.08)";
-  let backgroundColor = "rgba(255,255,255,0.04)";
-  let scale = 1;
-
-  if (isFocused) {
-    borderColor = "rgba(255,109,0,0.5)";
-    backgroundColor = "rgba(255,255,255,0.08)";
-    scale = 1.01;
-  } else if (errorMessage) {
-    borderColor = "rgba(239,68,68,0.4)";
-  }
-
-  return { borderColor, backgroundColor, scale };
-}
-
 function getContainerClass(isFocused: boolean, hasError: boolean): string {
   return cn(
-    "relative border rounded-[1.5rem] overflow-hidden transition-shadow duration-300 backdrop-blur-sm",
-    isFocused && "shadow-[0_0_25px_rgba(255,109,0,0.15)]",
-    hasError && "ring-2 ring-red-500/20"
+    "relative border rounded-[1.5rem] overflow-hidden transition-all duration-300 backdrop-blur-sm",
+    isFocused 
+      ? "border-primary/50 bg-muted/60 scale-[1.01] shadow-[0_0_25px_rgba(255,109,0,0.15)]" 
+      : hasError 
+        ? "border-destructive/40 bg-muted/30 ring-2 ring-destructive/20" 
+        : "border-border bg-muted/30"
   );
 }
 
 function getIconClass(isFocused: boolean, errorMessage: string | undefined): string {
   return cn(
     "absolute right-5 top-1/2 -translate-y-1/2 transition-all duration-300 z-10",
-    isFocused ? "text-primary scale-110" : errorMessage ? "text-red-400" : "text-gray-500"
+    isFocused ? "text-primary scale-110" : errorMessage ? "text-destructive" : "text-muted-foreground"
   );
 }
 
@@ -64,20 +51,12 @@ function renderIcon(Icon: ReactNode | React.ElementType) {
   return Icon;
 }
 
-function getLabelAnimation(isActive: boolean, isFocused: boolean, errorMessage: string | undefined) {
-  let color = "rgba(107,114,128,1)";
-  if (isFocused) {
-    color = "rgba(255,109,0,0.9)";
-  } else if (errorMessage) {
-    color = "rgba(239,68,68,1)";
-  }
-
+function getLabelAnimation(isActive: boolean) {
   if (isActive) {
     return {
       y: -18,
       scale: 0.75,
       x: 10,
-      color,
     };
   }
 
@@ -85,7 +64,6 @@ function getLabelAnimation(isActive: boolean, isFocused: boolean, errorMessage: 
     y: 0,
     scale: 1,
     x: 0,
-    color,
   };
 }
 
@@ -116,17 +94,14 @@ export function PremiumInput({
   const errorMessage = getErrorMessage(error);
   const PasswordToggleIcon = showPassword ? EyeOff : Eye;
 
-  const containerAnimation = getContainerAnimation(isFocused, errorMessage);
   const containerClass = getContainerClass(isFocused, !!errorMessage);
   const iconClass = getIconClass(isFocused, errorMessage);
-  const labelAnimation = getLabelAnimation(isActive, isFocused, errorMessage);
+  const labelAnimation = getLabelAnimation(isActive);
   const labelClass = getLabelClass(isActive);
 
   return (
     <div className="space-y-2 group/input" dir={dir}>
-      <m.div
-        animate={containerAnimation}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+      <div
         className={containerClass}
       >
         <div className={iconClass}>
@@ -148,12 +123,16 @@ export function PremiumInput({
             setHasValue(!!e.target.value);
           }}
           placeholder=" "
-          className="peer w-full h-16 pr-14 pl-6 text-white text-base font-bold outline-none bg-transparent relative z-0"
+          className="peer w-full h-16 pr-14 pl-6 text-foreground text-base font-bold outline-none bg-transparent relative z-0"
         />
 
         <m.label
           animate={labelAnimation}
-          className={labelClass}
+          className={cn(
+            labelClass,
+            isFocused ? "text-primary" : errorMessage ? "text-destructive" : "text-muted-foreground",
+            "transition-colors duration-300"
+          )}
         >
           {label}
         </m.label>
@@ -162,7 +141,7 @@ export function PremiumInput({
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2.5 z-20"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-2.5 z-20"
           >
             <PasswordToggleIcon size={20} />
           </button>
@@ -173,7 +152,7 @@ export function PremiumInput({
             {endAdornment}
           </div>
         )}
-      </m.div>
+      </div>
       <AnimatePresence>
         {errorMessage && (
           <m.div
@@ -182,8 +161,8 @@ export function PremiumInput({
             exit={{ opacity: 0, y: -5 }}
             className="flex items-center gap-2 px-3 overflow-hidden"
           >
-            <ShieldAlert size={12} className="text-red-500 shrink-0" />
-            <p className="text-[11px] font-black text-red-400 uppercase tracking-tight">
+            <ShieldAlert size={12} className="text-destructive shrink-0" />
+            <p className="text-[11px] font-black text-destructive uppercase tracking-tight">
               {errorMessage}
             </p>
           </m.div>
