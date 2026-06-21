@@ -43,6 +43,7 @@ function LoginForm() {
     register,
     handleSubmit,
     getValues,
+    watch,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,6 +53,8 @@ function LoginForm() {
       rememberMe: true,
     }
   });
+
+  const rememberMeChecked = watch('rememberMe') ?? true;
 
   // NOTE: Do NOT call router.refresh() here.
   // router.refresh() forces a full server-side re-render which re-initializes
@@ -212,6 +215,7 @@ function LoginForm() {
             requires2FA={requires2FA}
             errorStatus={errorStatus}
             onResendVerification={onResendVerification}
+            onDismiss={() => setErrorStatus(null)}
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
             register={register}
@@ -219,7 +223,7 @@ function LoginForm() {
             loginMode={loginMode}
             showPassword={showPassword}
             setShowPassword={setShowPassword}
-            getValues={getValues}
+            rememberMeChecked={rememberMeChecked}
             setLoginMode={setLoginMode}
             isSubmitting={isSubmitting}
             twoFactorCode={twoFactorCode}

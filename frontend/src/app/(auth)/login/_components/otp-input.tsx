@@ -33,8 +33,18 @@ export function OTPInput({ value, onChange, disabled }: OTPInputProps) {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (!/^\d{6}$/.test(pastedData)) return; // Only accept 6-digit numeric codes
+
+    onChange(pastedData);
+    // Focus the last input
+    inputs.current[5]?.focus();
+  };
+
   return (
-    <div className="flex justify-center gap-3" dir="ltr">
+    <div className="flex justify-center gap-3" dir="ltr" onPaste={handlePaste}>
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <m.input
           key={`otp-slot-${i}`}

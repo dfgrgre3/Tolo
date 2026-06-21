@@ -1,7 +1,5 @@
-'use client';
-
-import { m, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, ArrowRight, RefreshCw } from 'lucide-react';
+import { m } from 'framer-motion';
+import { AlertTriangle, X, RefreshCw } from 'lucide-react';
 
 interface ErrorBannerProps {
   readonly errorStatus: string;
@@ -30,7 +28,8 @@ function humanizeError(raw: string): string {
 
 export function ErrorBanner({ errorStatus, onResendVerification, onDismiss }: ErrorBannerProps) {
   const message = humanizeError(errorStatus);
-  const showResend = errorStatus.includes('تفعيل') || errorStatus.includes('verification') || errorStatus.includes('verify');
+  const lowerStatus = errorStatus.toLowerCase();
+  const showResend = errorStatus.includes('تفعيل') || lowerStatus.includes('verification') || lowerStatus.includes('verify');
 
   return (
     <m.div
@@ -38,7 +37,7 @@ export function ErrorBanner({ errorStatus, onResendVerification, onDismiss }: Er
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.97 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="p-4 rounded-2xl bg-red-500/8 border border-red-500/20 text-red-300 text-sm flex items-start gap-3 shadow-lg backdrop-blur-xl"
+      className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-start gap-3 shadow-lg backdrop-blur-xl"
       role="alert"
     >
       <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0 mt-0.5">

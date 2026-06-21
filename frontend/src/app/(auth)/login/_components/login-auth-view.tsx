@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, m } from 'framer-motion';
-import { type UseFormRegister, type UseFormGetValues, type UseFormHandleSubmit } from 'react-hook-form';
+import { type UseFormRegister, type UseFormHandleSubmit } from 'react-hook-form';
 import { PremiumInput } from '@/components/auth/premium-input';
 import { Mail } from 'lucide-react';
 import { ErrorBanner } from './error-banner';
@@ -22,6 +22,7 @@ interface LoginAuthViewProps {
   readonly requires2FA: boolean;
   readonly errorStatus: string | null;
   readonly onResendVerification: () => void;
+  readonly onDismiss: () => void;
   readonly handleSubmit: UseFormHandleSubmit<LoginFormValues>;
   readonly onSubmit: (data: LoginFormValues) => void;
   readonly register: UseFormRegister<LoginFormValues>;
@@ -32,7 +33,7 @@ interface LoginAuthViewProps {
   readonly loginMode: 'password' | 'magic-link';
   readonly showPassword: boolean;
   readonly setShowPassword: (v: boolean) => void;
-  readonly getValues: UseFormGetValues<LoginFormValues>;
+  readonly rememberMeChecked: boolean;
   readonly setLoginMode: (mode: 'password' | 'magic-link') => void;
   readonly isSubmitting: boolean;
   readonly twoFactorCode: string;
@@ -45,6 +46,7 @@ export function LoginAuthView({
   requires2FA,
   errorStatus,
   onResendVerification,
+  onDismiss,
   handleSubmit,
   onSubmit,
   register,
@@ -52,7 +54,7 @@ export function LoginAuthView({
   loginMode,
   showPassword,
   setShowPassword,
-  getValues,
+  rememberMeChecked,
   setLoginMode,
   isSubmitting,
   twoFactorCode,
@@ -73,7 +75,11 @@ export function LoginAuthView({
         >
           <AnimatePresence>
             {errorStatus && (
-              <ErrorBanner errorStatus={errorStatus} onResendVerification={onResendVerification} />
+              <ErrorBanner
+                errorStatus={errorStatus}
+                onResendVerification={onResendVerification}
+                onDismiss={onDismiss}
+              />
             )}
           </AnimatePresence>
 
@@ -97,7 +103,7 @@ export function LoginAuthView({
             </AnimatePresence>
 
             <div className="flex items-center justify-between px-2">
-              <RememberMeCheckbox registration={register('rememberMe')} getValues={getValues} />
+              <RememberMeCheckbox registration={register('rememberMe')} checked={rememberMeChecked} />
               <LoginModeToggle loginMode={loginMode} setLoginMode={setLoginMode} />
             </div>
 

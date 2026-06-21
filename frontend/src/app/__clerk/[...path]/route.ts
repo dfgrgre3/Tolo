@@ -173,47 +173,69 @@ export async function GET(
   const reqPath = path.join('/');
   const { search } = _req.nextUrl;
 
-  // ── Route: npm bundle → jsDelivr CDN ──────────────────────────────────
+  // ── Route: npm bundle → CDN ────────────────────────────────────────────
   if (path[0] === 'npm') {
     const pkgRest = path.slice(1).join('/');
-    const cleanPkgRest = pkgRest.replace(/^@clerk\//, '');
-    const upstreamUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
+    const cleanPkgRest = pkgRest.replace(/^(npm\/)?@clerk\//, '');
+    const jsDelivrUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
 
-    console.log(`[__clerk proxy] npm → ${upstreamUrl}`);
+    console.log(`[__clerk proxy] npm → ${jsDelivrUrl}`);
 
-    let upstream: Response;
+    let upstream: Response | undefined;
     try {
-      upstream = await fetch(upstreamUrl, {
+      upstream = await fetch(jsDelivrUrl, {
         headers: {
           'Accept': 'application/javascript, */*',
         },
         redirect: 'follow',
       });
 
-      if (!upstream.ok) {
-        const domain = getClerkDomain();
-        const cleanedSearch = cleanSearchQuery(search);
-        const fallbackUrl = `https://${domain}/${reqPath}${cleanedSearch}`;
-        console.log(`[__clerk proxy] npm (jsdelivr returned ${upstream.status}) → falling back to Clerk API: ${fallbackUrl}`);
-        upstream = await fetch(fallbackUrl, {
-          headers: {
-            'Accept': 'application/javascript, */*',
-            ...(_req.headers.get('cookie') && { 'Cookie': _req.headers.get('cookie')! }),
-          },
-          redirect: 'follow',
-        });
+      // jsDelivr returned an error — try Clerk's own static asset server.
+      // @clerk/ui is often served directly from clerk.<instance>.app rather than npm.
+      if (!upstream?.ok) {
+        console.warn(`[__clerk proxy] jsDelivr returned ${upstream.status}, trying Clerk server`);
+        const clerkAssetUrl = `https://${getClerkDomain()}/${reqPath}${search}`;
+        console.log(`[__clerk proxy] npm (fallback) → ${clerkAssetUrl}`);
+        try {
+          upstream = await fetch(clerkAssetUrl, {
+            headers: {
+              'Accept': 'application/javascript, */*',
+            },
+            redirect: 'follow',
+          });
+        } catch (clerkErr) {
+          console.error('[__clerk proxy] Clerk fallback fetch failed:', clerkErr);
+        }
       }
     } catch (err) {
       console.error('[__clerk proxy] npm fetch failed:', err);
-      return NextResponse.json({ error: 'Upstream fetch failed' }, { status: 502 });
     }
 
-    if (!upstream.ok) {
-      const errorText = await upstream.text().catch(() => 'Upstream fetch failed');
-      return NextResponse.json(
-        { error: errorText, upstreamStatus: upstream.status },
-        { status: upstream.status }
-      );
+    // If we still don't have a successful response, return a safe plain-text error
+    if (!upstream || !upstream.ok) {
+      const status = upstream?.status ?? 502;
+      const errorText = await upstream?.text().catch(() => 'Not found') ?? 'Upstream fetch failed';
+      return new NextResponse(errorText, {
+        status,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
+
+    // Verify the response is actually JavaScript — reject HTML/error pages that
+    // some CDNs return with status 200 for known-missing assets.
+    const contentType = upstream.headers.get('Content-Type') || '';
+    const isHtml = contentType.includes('text/html');
+    const isJavaScript = contentType.includes('javascript') || contentType.includes('octet-stream');
+    if (isHtml || !isJavaScript) {
+      console.warn(`[__clerk proxy] Expected JS but got ${contentType || 'no content-type'} from ${jsDelivrUrl}`);
+      const bodyText = await upstream.text().catch(() => 'Not found');
+      return new NextResponse(bodyText, {
+        status: 502,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
     }
 
     const body = await upstream.arrayBuffer();

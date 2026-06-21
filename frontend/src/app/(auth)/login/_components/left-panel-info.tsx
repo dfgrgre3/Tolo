@@ -1,6 +1,4 @@
-'use client';
-
-import { m, AnimatePresence } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ShieldCheck, Sparkles, BookOpen, Users, Trophy, Brain, GraduationCap, Star } from 'lucide-react';
 
 interface LeftPanelInfoProps {
@@ -88,7 +86,7 @@ export function LeftPanelInfo({ deviceInfo }: LeftPanelInfoProps) {
         </div>
       </div>
 
-      {/* Bottom: Testimonial carousel */}
+      {/* Bottom: Testimonial & System status */}
       <m.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -110,13 +108,19 @@ export function LeftPanelInfo({ deviceInfo }: LeftPanelInfoProps) {
               <span className="text-primary font-black text-sm">{TESTIMONIALS[0]!.avatar}</span>
             </div>
             <div className="space-y-1 flex-1">
-              <p className="text-gray-300 text-[11px] font-medium leading-relaxed">"{TESTIMONIALS[0]!.text}"</p>
+              <p className="text-gray-300 text-[11px] font-medium leading-relaxed">&ldquo;{TESTIMONIALS[0]!.text}&rdquo;</p>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-primary w-3 h-3" />
                 <span className="text-gray-500 text-[9px] font-black uppercase tracking-wider">{TESTIMONIALS[0]!.name} · {TESTIMONIALS[0]!.role}</span>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* System info */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 text-[9px] font-black tracking-widest uppercase">
+          <ShieldCheck size={11} className="text-primary/70" />
+          <span>منصة آمنة نشطة على {deviceInfo.os} ({deviceInfo.browser})</span>
         </div>
       </m.div>
     </div>

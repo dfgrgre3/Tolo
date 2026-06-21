@@ -1,14 +1,12 @@
-'use client';
-
 import { m } from 'framer-motion';
-import { type UseFormRegisterReturn, type UseFormGetValues } from 'react-hook-form';
+import { type UseFormRegisterReturn } from 'react-hook-form';
 
 interface RememberMeCheckboxProps {
   readonly registration: UseFormRegisterReturn;
-  readonly getValues: UseFormGetValues<any>;
+  readonly checked: boolean;
 }
 
-export function RememberMeCheckbox({ registration, getValues }: RememberMeCheckboxProps) {
+export function RememberMeCheckbox({ registration, checked }: RememberMeCheckboxProps) {
   return (
     <label className="flex items-center gap-3 cursor-pointer group">
       <div className="relative">
@@ -20,9 +18,9 @@ export function RememberMeCheckbox({ registration, getValues }: RememberMeCheckb
         <div className="w-7 h-7 rounded-xl border-2 border-white/10 bg-white/5 transition-all peer-checked:border-primary peer-checked:bg-primary/20 flex items-center justify-center group-hover:border-primary/50 shadow-inner">
           <m.div
             animate={{
-              scale: getValues('rememberMe') ? 1 : 0,
-              opacity: getValues('rememberMe') ? 1 : 0,
-              rotate: getValues('rememberMe') ? 0 : -45
+              scale: checked ? 1 : 0,
+              opacity: checked ? 1 : 0,
+              rotate: checked ? 0 : -45
             }}
             className="w-3.5 h-3.5 rounded-md bg-primary shadow-[0_0_15px_rgba(255,109,0,0.6)]"
           />
