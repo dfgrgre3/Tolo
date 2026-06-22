@@ -3,9 +3,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@clerk/nextjs';
-import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
+import { useAuthStore, type AuthUser, isAdminRole, resolveClerkRole } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { authApiService } from '@/services/auth/auth-api-service';
 import { authRepository } from '@/data-access/repositories/auth-repository';
 
 // Helper to extract Clerk error messages safely without using 'any'
@@ -39,9 +38,82 @@ function getClerkErrorMessage(err: unknown, fallback: string): string {
   if (msgLower.includes('password is too short') || msgLower.includes('password must be')) {
     return 'كلمة المرور ضعيفة جداً أو قصيرة للغاية.';
   }
+  if (msgLower.includes('incorrect code') || msgLower.includes('invalid code') || msgLower.includes('code is incorrect')) {
+    return 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+  }
+  if (msgLower.includes('code has expired') || msgLower.includes('expired code')) {
+    return 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.';
+  }
+  if (msgLower.includes('verification strategy is not valid') || msgLower.includes('strategy_for_user_invalid')) {
+    return 'طريقة تسجيل الدخول هذه غير صالحة لهذا الحساب (ربما قمت بالتسجيل عبر Google أو الدخول السريع).';
+  }
 
   return message;
 }
+
+function isAlreadySignedInClerkError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+
+  const clerkErr = err as { errors?: { message?: string; longMessage?: string; code?: string }[]; message?: string; status?: string };
+  const messages = [
+    clerkErr.message,
+    clerkErr.status,
+    ...(Array.isArray(clerkErr.errors)
+      ? clerkErr.errors.flatMap((error) => [error.message, error.longMessage, error.code])
+      : []),
+  ];
+
+  return messages.some((message) => {
+    if (typeof message !== 'string') return false;
+    const normalized = message.toLowerCase();
+    return normalized.includes('already signed in') || normalized.includes('session_exists');
+  });
+}
+
+/**
+ * Sets a client-accessible cookie for SSR token forwarding.
+ *
+ * SECURITY DESIGN NOTE — Why access_token is NOT HttpOnly:
+ * ─────────────────────────────────────────────────────────
+ * The Go backend reads the `access_token` cookie during SSR requests from
+ * Next.js server components (getAuthUser() in lib/auth/server.ts). Setting
+ * HttpOnly would prevent the client from writing the cookie via document.cookie,
+ * and Next.js server route handlers (not middleware) cannot set cookies on
+ * the response in all cases.
+ *
+ * MITIGATIONS in place:
+ *   1. Short TTL: cookie expires every 60s and is refreshed every 40s
+ *   2. The REAL session is managed by Clerk's HttpOnly cookies — this cookie
+ *      is only used as a Bearer token forwarder for API calls from Server Components
+ *   3. CSP headers in middleware.ts block XSS vectors for inline scripts
+ *   4. SameSite=Lax prevents CSRF attacks on this cookie
+ *   5. Secure flag is set in production (HTTPS only)
+ *
+ * FUTURE: Migrate Server Component data fetching to use auth().getToken()
+ * (getClerkToken in lib/auth/server.ts) instead of cookie forwarding.
+ * That would allow removing this cookie entirely.
+ */
+function setClientCookie(name: string, value: string, maxAgeSeconds: number) {
+  if (typeof window === 'undefined') return;
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secure}`;
+}
+
+function deleteClientCookie(name: string) {
+  if (typeof window === 'undefined') return;
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
+}
+
+
+/**
+ * Stores the original Clerk SignIn resource (the return value of
+ * signIn.create()) so that verify2FA / resend2FA can reuse the exact same
+ * SignIn object that was prepared during login().  Clerk may reset
+ * client.signIn between re-renders; using a module-level variable preserves
+ * the original signIn attempt and prevents "Incorrect code" errors.
+ */
+let pendingSignInRef: any = null;
 
 export function AuthProvider({
   children,
@@ -98,18 +170,64 @@ export function AuthProvider({
     currentUserIdRef.current = userId || null;
   }, [userId]);
 
-  // Safety timeout: if Clerk or RPC fails to load/sync within 8 seconds,
-  // force isLoading to false so the application can render in fallback mode.
+  // Sync access_token cookie for SSR support
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const storeLoading = useAuthStore.getState().isLoading;
-      if (storeLoading) {
-        logger.warn('Auth system failed to fully load/sync within 8 seconds. Forcing isLoading to false.');
-        setIsLoading(false);
+    if (!isClerkLoaded || !userId) {
+      deleteClientCookie('access_token');
+      return;
+    }
+
+    let active = true;
+    let timerId: NodeJS.Timeout;
+
+    const syncCookie = async () => {
+      try {
+        const token = await getTokenRef.current();
+        if (!active) return;
+        if (token) {
+          // Set access_token cookie with a 60-second lifetime, matching the typical short lifetime of a Clerk token
+          setClientCookie('access_token', token, 60);
+        } else {
+          deleteClientCookie('access_token');
+        }
+      } catch (err) {
+        logger.error('Failed to sync access_token cookie:', err);
+      } finally {
+        if (active) {
+          // Refresh the cookie every 40 seconds to keep it fresh
+          timerId = setTimeout(syncCookie, 40000);
+        }
       }
-    }, 8000); // 8s safety margin
+    };
+
+    syncCookie();
+
+    return () => {
+      active = false;
+      clearTimeout(timerId);
+    };
+  }, [isClerkLoaded, userId]);
+
+  // Safety timeout: if Clerk or RPC fails to load/sync within the safety margin,
+  // force isLoading to false so the application can render in fallback mode.
+  // In development, we use a much longer timeout (45s) to allow for Next.js compilation overhead.
+  // NOTE: We intentionally use getState() instead of listing setIsLoading in deps,
+  // because Zustand selectors return a new function reference on every render which
+  // would cause this effect to re-trigger infinitely, creating a reload loop.
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV === 'development' || 
+      (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+    const timeoutMs = isDev ? 45000 : 8000;
+    const timer = setTimeout(() => {
+      const storeState = useAuthStore.getState();
+      if (storeState.isLoading) {
+        logger.warn(`Auth system failed to fully load/sync within ${timeoutMs / 1000} seconds. Forcing isLoading to false.`);
+        storeState.setIsLoading(false);
+      }
+    }, timeoutMs);
     return () => clearTimeout(timer);
-  }, [setIsLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Map Clerk user to local AuthUser model and sync with Zustand store
   useEffect(() => {
@@ -133,8 +251,11 @@ export function AuthProvider({
       const role = activeClerkUser.publicMetadata?.role as string | undefined;
       const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
-      if (isAdminRoute && role && role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
-        logger.warn('Unauthorized admin route access attempt by role:', role);
+      // SECURITY: Only ADMIN_ROLES may access /admin — TEACHER is NOT an admin-tier role.
+      // Using isAdminRole() from centralized types ensures this stays in sync with
+      // middleware.ts and backend AdminRequired() middleware.
+      if (isAdminRoute && role && !isAdminRole(role)) {
+        logger.warn('[Security] Unauthorized admin route access attempt — role:', role);
         lastSyncedId.current = userId;
         resetStore(); // reset() already sets isLoading: false
         if (typeof window !== 'undefined') {
@@ -317,7 +438,9 @@ export function useAuth() {
         // a session is alive triggers a "Bad Request" from Clerk because it
         // considers the user already authenticated.
         // Throw a special signal so the outer catch signs out first and retries.
-        throw new Error('Session already active - signing out');
+        // NOTE: The message must contain "signIn" to be detected by the catch
+        // block below that checks `firstErr.message.includes('signIn')`.
+        throw new Error('Session already active - signIn unavailable - signing out');
       }
       if (!clk.client.signIn) {
         // If signIn is not available, we need to sign out first.
@@ -374,6 +497,28 @@ export function useAuth() {
         return { success: true };
       }
       if (result.status === 'needs_second_factor') {
+        // Pick the best available second factor strategy
+        const strategyPriority = ['totp', 'email_code', 'phone_code', 'backup_code'];
+        const factor = strategyPriority.reduce<{ strategy: string } | undefined>((found, s) => {
+          if (found) return found;
+          return result.supportedSecondFactors?.find(
+            (f: unknown) => (f as { strategy: string }).strategy === s
+          ) as { strategy: string } | undefined;
+        }, undefined);
+        const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+
+        // Clerk requires preparing/sending the second factor code for email_code and phone_code before attempting to verify.
+        if (strategy === 'email_code' || strategy === 'phone_code') {
+          try {
+            await result.prepareSecondFactor({ strategy });
+          } catch (prepareErr: any) {
+            logger.warn('Failed to prepare second factor during login:', prepareErr);
+          }
+        }
+        // Store the pending signIn reference so verify2FA/resend2FA can reuse the exact
+        // same SignIn resource that was prepared here, even if Clerk resets client.signIn
+        // between re-renders. This prevents "Incorrect code" errors from stale references.
+        pendingSignInRef = result;
         return { success: true, requires2FA: true, userId: result.id };
       }
       return { success: false, error: `Additional steps required: ${result.status}` };
@@ -403,15 +548,37 @@ export function useAuth() {
         // forceSignOutAll reset the internal client state.
         await freshClerk.setActive({ session: result.createdSessionId });
 
-        // Check role immediately after setting active
-        const role = freshClerk.user?.publicMetadata?.role;
-        if (role !== 'ADMIN' && role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
+        // SECURITY: Only ADMIN, SUPER_ADMIN, and MODERATOR may access the admin panel.
+        // TEACHER is a content-creator role, NOT an administrative role.
+        // This check MUST match: middleware.ts isAdminRole(), backend AdminOrModerator().
+        const role = freshClerk.user?.publicMetadata?.role as string | undefined;
+        const adminRoles = new Set(['ADMIN', 'SUPER_ADMIN', 'MODERATOR']);
+        if (!role || !adminRoles.has(role.toUpperCase())) {
           await freshClerk.signOut();
           return { success: false, error: 'غير مصرح لك بالدخول كمسؤول' };
         }
         return { success: true };
       }
       if (result.status === 'needs_second_factor') {
+        // Pick the best available second factor strategy
+        const strategyPriority = ['totp', 'email_code', 'phone_code', 'backup_code'];
+        const factor = strategyPriority.reduce<{ strategy: string } | undefined>((found, s) => {
+          if (found) return found;
+          return result.supportedSecondFactors?.find(
+            (f: unknown) => (f as { strategy: string }).strategy === s
+          ) as { strategy: string } | undefined;
+        }, undefined);
+        const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+
+        // Clerk requires preparing/sending the second factor code for email_code and phone_code before attempting to verify.
+        if (strategy === 'email_code' || strategy === 'phone_code') {
+          try {
+            await result.prepareSecondFactor({ strategy });
+          } catch (prepareErr: any) {
+            logger.warn('Failed to prepare second factor during admin login:', prepareErr);
+          }
+        }
+        pendingSignInRef = result;
         return { success: true, requires2FA: true, userId: result.id };
       }
       return { success: false, error: `الخطوات الإضافية مطلوبة: ${result.status}` };
@@ -488,7 +655,32 @@ export function useAuth() {
     const activeClerk = getClerkInstance();
     if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
     try {
-      const signIn = activeClerk.client.signIn;
+      // If the user is already signed in, Clerk's attemptSecondFactor() will
+      // reject with "You're already signed in". This can happen when Clerk
+      // internally resolves the session between the 2FA prompt and submission
+      // (e.g. via a stored session, a 1FA-only strategy that completed silently,
+      // or because the first factor was already sufficient for this user).
+      // In this case, treat the 2FA as already complete and redirect normally.
+      if (activeClerk.session || (activeClerk.client.sessions?.length ?? 0) > 0) {
+        pendingSignInRef = null;
+        return { success: true };
+      }
+
+      // Use the stored signIn reference if available; fall back to client.signIn.
+      // The stored reference is the exact SignIn resource returned by
+      // signIn.create() in login(), preserving the prepared 2FA state.
+      // Clerk may reset client.signIn between re-renders, causing
+      // attemptSecondFactor() to fail with "Incorrect code". By using the
+      // original reference we avoid this issue entirely.
+      const signIn = pendingSignInRef || activeClerk.client.signIn;
+      if (!signIn) {
+        return { success: false, error: 'Auth system not fully loaded' };
+      }
+      if (signIn.status === 'complete' && signIn.createdSessionId) {
+        pendingSignInRef = null;
+        await activeClerk.setActive({ session: signIn.createdSessionId });
+        return { success: true };
+      }
       // signInId is the SignIn resource .id (from signIn.create result),
       // not the Clerk userId. We compare against signIn.id from the active session.
       if (signInId && signIn.id && signIn.id !== signInId) {
@@ -498,23 +690,65 @@ export function useAuth() {
       const strategyPriority = ['totp', 'email_code', 'phone_code', 'backup_code'];
       const factor = strategyPriority.reduce<{ strategy: string } | undefined>((found, s) => {
         if (found) return found;
-        return signIn.supportedSecondFactors?.find(
-          (f) => (f as { strategy: string }).strategy === s
-        ) as { strategy: string } | undefined;
-      }, undefined);
-      const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+          return signIn.supportedSecondFactors?.find(
+            (f: unknown) => (f as { strategy: string }).strategy === s
+          ) as { strategy: string } | undefined;
+        }, undefined);
+        const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+      
+      // Code is prepared/sent upon initial login detection.
+
       const result = await signIn.attemptSecondFactor({
         strategy,
         code: token,
       });
+      // Clear the stored reference on success so it can't be reused accidentally.
       if (result.status === 'complete') {
+        pendingSignInRef = null;
         await activeClerk.setActive({ session: result.createdSessionId });
         return { success: true };
       }
       return { success: false, error: `خطوة إضافية مطلوبة: ${result.status}` };
     } catch (err: unknown) {
+      if (isAlreadySignedInClerkError(err)) {
+        pendingSignInRef = null;
+        return { success: true };
+      }
+
       logger.error('2FA verification error:', err);
       return { success: false, error: getClerkErrorMessage(err, 'رمز التحقق غير صحيح') };
+    }
+  }, [getClerkInstance]);
+
+  const resend2FA = useCallback(async (signInId: string): Promise<{ success: boolean; error?: string; }> => {
+    const activeClerk = getClerkInstance();
+    if (!activeClerk?.client) return { success: false, error: 'Auth system not fully loaded' };
+    try {
+      // Use the stored signIn reference (same rationale as verify2FA above).
+      const signIn = pendingSignInRef || activeClerk.client.signIn;
+      if (!signIn) {
+        return { success: false, error: 'Auth system not fully loaded' };
+      }
+      if (signInId && signIn.id && signIn.id !== signInId) {
+        return { success: false, error: 'محاولة تسجيل دخول غير صالحة أو منتهية الصلاحية' };
+      }
+      const strategyPriority = ['totp', 'email_code', 'phone_code', 'backup_code'];
+      const factor = strategyPriority.reduce<{ strategy: string } | undefined>((found, s) => {
+        if (found) return found;
+          return signIn.supportedSecondFactors?.find(
+            (f: unknown) => (f as { strategy: string }).strategy === s
+          ) as { strategy: string } | undefined;
+        }, undefined);
+        const strategy = ((factor as { strategy: string } | undefined)?.strategy || 'totp') as 'phone_code' | 'email_code' | 'totp' | 'backup_code';
+
+        if (strategy === 'email_code' || strategy === 'phone_code') {
+          await signIn.prepareSecondFactor({ strategy });
+        return { success: true };
+      }
+      return { success: false, error: 'طريقة التحقق الثنائي هذه لا تتطلب إرسال رمز' };
+    } catch (err: unknown) {
+      logger.error('2FA resend error:', err);
+      return { success: false, error: getClerkErrorMessage(err, 'فشل إعادة إرسال الرمز') };
     }
   }, [getClerkInstance]);
 
@@ -745,6 +979,7 @@ export function useAuth() {
     register,
     logout,
     verify2FA,
+    resend2FA,
     refreshUser,
     fetchWithAuth,
     forgotPassword,
@@ -758,5 +993,3 @@ export function useAuth() {
     initiateEmailChange,
   };
 }
-
-

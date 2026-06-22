@@ -31,9 +31,11 @@ export enum TaskStatus {
 
 export enum UserRole {
     STUDENT = 'STUDENT',
-    ADMIN = 'ADMIN',
+    PREMIUM = 'PREMIUM',
     TEACHER = 'TEACHER',
     MODERATOR = 'MODERATOR',
+    ADMIN = 'ADMIN',
+    SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum UserStatus {

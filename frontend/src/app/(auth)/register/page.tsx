@@ -247,11 +247,12 @@ function RegisterForm() {
                   />
                 )}
               </AnimatePresence>
-              {/* Clerk CAPTCHA widget placeholder */}
-              <div id="clerk-captcha" />
             </form>
           </div>
         </m.div>
+
+        {/* Clerk CAPTCHA widget — must be outside the overflow-hidden card so Clerk can render it */}
+        <div id="clerk-captcha" className="flex justify-center" />
 
         {/* Footer */}
         <RegisterFooter loginUrl="/login" />

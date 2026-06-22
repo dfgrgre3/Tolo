@@ -17,8 +17,8 @@ import {
   Crown } from
 "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { isStaffAdminPanelRole } from "@/lib/auth/admin-panel-roles";
-import { useTheme } from "next-themes";
+import { isStaffAdminPanelRole } from "@/lib/auth";
+import { useTheme } from "@/providers/theme-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,

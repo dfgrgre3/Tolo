@@ -1,4 +1,4 @@
-import { UserRole } from "@/types/enums";
+import { UserRole } from "./roles";
 
 export const PERMISSIONS = {
   /** Matches Go `PermAdminBypass` — grants all scoped permissions when present in effective list. */
@@ -74,7 +74,6 @@ export const PERMISSIONS = {
   AB_TESTING_VIEW: "ab_testing:view",
 
   SETTINGS_VIEW: "settings:view",
-  // Note: SETTINGS_MANAGE is intentionally omitted - backend uses SETTINGS_VIEW for all settings operations
   AUDIT_LOGS_VIEW: "audit_logs:view",
 } as const;
 
@@ -111,11 +110,6 @@ const PERMISSION_KEY_ALIASES: Record<string, Permission> = {
   LIVE_MONITOR_VIEW: PERMISSIONS.LIVE_MONITOR_VIEW,
   AUDIT_LOGS_VIEW: PERMISSIONS.AUDIT_LOGS_VIEW,
   SETTINGS_VIEW: PERMISSIONS.SETTINGS_VIEW,
-  /**
-   * Legacy sidebar key — mapped to SETTINGS_VIEW because backend uses
-   * `settings:view` (PermSettingsView) for both viewing and managing settings.
-   * The backend does not have a separate `settings:manage` permission.
-   */
   SETTINGS_MANAGE: PERMISSIONS.SETTINGS_VIEW,
 };
 
@@ -145,21 +139,9 @@ export function permissionGrantMatches(grant: string, required: Permission | str
   return false;
 }
 
-function getEffectivePermissionStrings(user: {
-  role: string;
-  permissions?: string[] | null;
-}): string[] {
-  const fromApi = user.permissions;
-  if (Array.isArray(fromApi) && fromApi.length > 0) {
-    return fromApi;
-  }
-  const role = user.role as UserRole;
-  return [...(DEFAULT_ROLE_PERMISSIONS[role] || [])];
-}
-
 export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  SUPER_ADMIN: [PERMISSIONS.ADMIN_BYPASS],
   ADMIN: [PERMISSIONS.ADMIN_BYPASS],
-
   MODERATOR: [
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.ANALYTICS_VIEW,
@@ -180,7 +162,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.LIVE_MONITOR_VIEW,
     PERMISSIONS.MARKETING_VIEW,
   ],
-
   TEACHER: [
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.STUDENTS_VIEW,
@@ -196,28 +177,20 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.OWN_CHALLENGES_MANAGE,
     PERMISSIONS.ANALYTICS_VIEW,
   ],
-
+  PREMIUM: [
+    PERMISSIONS.DASHBOARD_VIEW,
+  ],
   STUDENT: [],
 };
 
-/**
- * Effective permissions come from `/api/auth/me` (`GetEffectivePermissions` in Go).
- * Falls back to `DEFAULT_ROLE_PERMISSIONS` only when the API list is empty (e.g. stale cache).
- */
-export function hasPermission(
-  user: { role: string; permissions?: string[] | null } | null,
-  permission: Permission | string,
-): boolean {
-  if (!user) return false;
-
-  const role = user.role?.toUpperCase();
-  if (role === "ADMIN") return true;
-
-  const required = resolvePermissionInput(permission);
-  if (!required) return false;
-
-  for (const grant of getEffectivePermissionStrings(user)) {
-    if (permissionGrantMatches(grant, required)) return true;
+export function getEffectivePermissionStrings(user: {
+  role: string;
+  permissions?: string[] | null;
+}): string[] {
+  const fromApi = user.permissions;
+  if (Array.isArray(fromApi) && fromApi.length > 0) {
+    return fromApi;
   }
-  return false;
+  const role = user.role as UserRole;
+  return [...(DEFAULT_ROLE_PERMISSIONS[role] || [])];
 }

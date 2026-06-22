@@ -13,7 +13,7 @@ import { mainNavItemsWithMegaMenu } from "@/components/mega-menu/navData";
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras, type MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink, HeaderMenuTrigger } from "@/components/navigation";
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/providers/theme-provider";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut } from "lucide-react";
 // Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";

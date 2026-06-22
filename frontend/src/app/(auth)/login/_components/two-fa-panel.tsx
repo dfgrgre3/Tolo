@@ -10,12 +10,13 @@ interface TwoFAPanelProps {
   readonly setTwoFactorCode: (val: string) => void;
   readonly isSubmitting: boolean;
   readonly onVerify2FA: (e: React.FormEvent) => void;
+  readonly onResend2FA?: () => void;
   readonly onBack: () => void;
   readonly title?: string;
   readonly subtitle?: string;
 }
 
-export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onBack, title = "الدرع المزدوج", subtitle = "أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية" }: TwoFAPanelProps) {
+export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVerify2FA, onResend2FA, onBack, title = "الدرع المزدوج", subtitle = "أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية" }: TwoFAPanelProps) {
   return (
     <m.div
       key="2fa-form"
@@ -43,11 +44,26 @@ export function TwoFAPanel({ twoFactorCode, setTwoFactorCode, isSubmitting, onVe
       </div>
 
       <form onSubmit={onVerify2FA} className="space-y-12">
-        <OTPInput
-          value={twoFactorCode}
-          onChange={setTwoFactorCode}
-          disabled={isSubmitting}
-        />
+        <div className="space-y-6">
+          <OTPInput
+            value={twoFactorCode}
+            onChange={setTwoFactorCode}
+            disabled={isSubmitting}
+          />
+
+          {onResend2FA && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onResend2FA}
+                disabled={isSubmitting}
+                className="text-sm font-semibold text-primary/80 hover:text-primary hover:underline transition-all focus:outline-none disabled:opacity-50 disabled:hover:no-underline"
+              >
+                لم يصلك الرمز؟ إعادة إرسال الرمز
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="space-y-5">
           <Button

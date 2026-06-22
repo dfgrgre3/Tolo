@@ -94,8 +94,8 @@ export default async function RootLayout({
         <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
       </head>
       <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
-        <div suppressHydrationWarning>
-          <ClerkWithNonce>
+        <ClerkWithNonce>
+          <div suppressHydrationWarning>
             <SWRegistration />
             <PostHogProvider>
               <PostHogPageView />
@@ -115,10 +115,10 @@ export default async function RootLayout({
                 </GlobalProviders>
               </ThemeProvider>
             </PostHogProvider>
-          </ClerkWithNonce>
-          <ConditionalAnalytics />
-          <ConditionalSpeedInsights />
-        </div>
+            <ConditionalAnalytics />
+            <ConditionalSpeedInsights />
+          </div>
+        </ClerkWithNonce>
       </body>
     </html>
   );

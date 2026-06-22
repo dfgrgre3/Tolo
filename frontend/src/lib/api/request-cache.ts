@@ -26,6 +26,8 @@ class RequestCacheManager {
   private customTTLs: Record<string, number> = {
     "/api/auth/me": 300000,                   // 5 minutes - core auth data rarely changes
     "/api/auth/refresh": 300000,              // 5 minutes
+    "/api/settings": 300000,                  // 5 minutes - app settings rarely change
+    "/api/settings/preferences": 600000,      // 10 minutes - user preferences rarely change
     "/api/ai/recommendations": 30000,         // 30 seconds
     "/api/categories": 60000,                 // 1 minute
     "/api/courses": 15000,                    // 15 seconds

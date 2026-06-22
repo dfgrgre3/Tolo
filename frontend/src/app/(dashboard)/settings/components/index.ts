@@ -5,6 +5,4 @@ export { SettingsToggle } from './SettingsToggle';
 export { SettingsHeader } from './SettingsHeader';
 export { SettingsCard } from './SettingsCard';
 export { default as DeleteAccountDialog } from './DeleteAccountDialog';
-export { TwoFactorSetupModal } from './TwoFactorSetupModal';
-export { default as PhoneVerificationModal } from './PhoneVerificationModal';
 

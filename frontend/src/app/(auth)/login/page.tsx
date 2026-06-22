@@ -21,7 +21,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA, requestMagicLink, verifyOTP } = useAuth();
+  const { login, isAuthenticated, isLoading: isAuthLoading, verify2FA, resend2FA, requestMagicLink, verifyOTP } = useAuth();
   
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,12 +146,33 @@ function LoginForm() {
 
       const result = await verify2FA(userId2FA, twoFactorCode, getValues('rememberMe'));
       if (result.success) {
+        setRequires2FA(false);
+        setUserId2FA(null);
+        setTwoFactorCode('');
         redirectAfterLogin(redirectUrl);
         return;
       }
       setErrorStatus(result.error || 'رمز التحقق غير صحيح');
     } catch (err: any) {
       setErrorStatus(err?.message || 'فشل التحقق.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onResend2FA = async () => {
+    if (!userId2FA) return;
+    setIsSubmitting(true);
+    setErrorStatus(null);
+    try {
+      const result = await resend2FA(userId2FA);
+      if (result.success) {
+        setErrorStatus('تم إعادة إرسال رمز التحقق بنجاح.');
+      } else {
+        setErrorStatus(result.error || 'فشل إعادة إرسال رمز التحقق.');
+      }
+    } catch (err: any) {
+      setErrorStatus(err?.message || 'فشل إعادة إرسال رمز التحقق.');
     } finally {
       setIsSubmitting(false);
     }
@@ -200,6 +221,7 @@ function LoginForm() {
             twoFactorCode={twoFactorCode}
             setTwoFactorCode={setTwoFactorCode}
             onVerify2FA={onVerify2FA}
+            onResend2FA={onResend2FA}
             setRequires2FA={setRequires2FA}
           />
           <LoginFormFooter />
@@ -220,4 +242,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

@@ -179,6 +179,7 @@ function AdminLoginContent() {
                   <input
                     {...register('email')}
                     type="email"
+                    autoComplete="email"
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-4 pr-12 pl-5 text-white outline-none transition-all placeholder:text-gray-600 focus:border-red-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-red-500/10 disabled:opacity-50"
                     placeholder="admin@thanawy.com"
                     dir="rtl"
@@ -198,6 +199,7 @@ function AdminLoginContent() {
                   <input
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-4 pr-12 pl-14 text-white outline-none transition-all placeholder:text-gray-600 focus:border-red-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-red-500/10 disabled:opacity-50"
                     placeholder="â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢â¬¢"
                     dir="rtl"

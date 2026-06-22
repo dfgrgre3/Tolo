@@ -4,33 +4,23 @@
  * 🔐 صفحة الأمان - Security Settings
  * 
  * إدارة أمان الحساب:
- * - تغيير كلمة المرور
- * - التحقق بخطوتين
+ * - إدارة كلمات المرور، رقم الهاتف والمصادقة الثنائية عبر Clerk
+ * - سجل النشاطات الأمنية
+ * - حذف الحساب
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ar } from 'date-fns/locale';
 import { formatDistanceToNow } from 'date-fns';
-import { m } from "framer-motion";
-import {
-  Shield,
-  Key,
-  History,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  ShieldCheck,
-  ShieldX,
-  Smartphone } from
-'lucide-react';
-
-import { cn } from '@/lib/utils';
+import { Shield, History, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
-import { DeleteAccountDialog, TwoFactorSetupModal, PhoneVerificationModal } from '../components';
+import { DeleteAccountDialog } from '../components';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { UserProfile } from '@clerk/nextjs';
+import { useTheme } from '@/providers/theme-provider';
 
 interface SecurityLog {
   ip: string;
@@ -51,297 +41,6 @@ const EVENT_LABELS: Record<string, string> = {
   DEVICE_TRUST_CHANGE: 'تغيير حالة ثقة الجهاز',
   SUSPICIOUS_ACTIVITY: 'نشاط مشبوه'
 };
-
-function PasswordSection() {
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('كلمات المرور الجديدة غير متطابقة');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'فشل تغيير كلمة المرور');
-      }
-
-      toast.success('تم تغيير كلمة المرور بنجاح');
-      setIsChangingPassword(false);
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'فشل تغيير كلمة المرور');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <section className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-              <Key className="h-6 w-6 text-indigo-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">كلمة المرور</h3>
-              <p className="text-sm text-slate-400">آخر تغيير: منذ 3 أشهر</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsChangingPassword(!isChangingPassword)}
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
-            {isChangingPassword ? 'إلغاء' : 'تحديث'}
-          </button>
-        </div>
-
-        {isChangingPassword &&
-          <m.form
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            onSubmit={handlePasswordChange}
-            className="space-y-4 border-t border-white/10 pt-6">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <label className="text-sm text-slate-300">كلمة المرور الحالية</label>
-                <input
-                  type="password"
-                  required
-                  value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-slate-300">كلمة المرور الجديدة</label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-slate-300">تأكيد كلمة المرور الجديدة</label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                </div>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors flex items-center justify-center gap-2">
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              تحديث كلمة المرور
-            </button>
-          </m.form>
-        }
-      </div>
-    </section>
-  );
-}
-
-function TwoFactorSection() {
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [isLoading2FA, setIsLoading2FA] = useState(true);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [isDisabling2FA, setIsDisabling2FA] = useState(false);
-
-  const fetch2FAStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/2fa/status');
-      if (res.ok) {
-        const data = await res.json();
-        setIs2FAEnabled(data.enabled);
-      }
-    } catch (_err) {
-      logger.error('Failed to fetch 2FA status');
-    } finally {
-      setIsLoading2FA(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetch2FAStatus();
-  }, [fetch2FAStatus]);
-
-  const handle2FAToggle = async () => {
-    if (is2FAEnabled) {
-      setIsDisabling2FA(true);
-      try {
-        const res = await fetch('/api/auth/2fa/disable', { method: 'POST' });
-        if (res.ok) {
-          setIs2FAEnabled(false);
-          toast.success('تم تعطيل المصادقة الثنائية');
-        } else {
-          const error = await res.json();
-          throw new Error(error.error || 'فشل في تعطيل المصادقة الثنائية');
-        }
-      } catch (error: unknown) {
-        toast.error(error instanceof Error ? error.message : 'فشل في تعطيل المصادقة الثنائية');
-      } finally {
-        setIsDisabling2FA(false);
-      }
-    } else {
-      setShow2FAModal(true);
-    }
-  };
-
-  const handle2FASuccess = () => {
-    setIs2FAEnabled(true);
-    fetch2FAStatus();
-  };
-
-  return (
-    <>
-      <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "h-12 w-12 rounded-xl flex items-center justify-center",
-              is2FAEnabled ? "bg-green-500/10" : "bg-slate-500/10"
-            )}>
-              {isLoading2FA ?
-                <Loader2 className="h-6 w-6 text-slate-400 animate-spin" /> :
-                is2FAEnabled ?
-                  <ShieldCheck className="h-6 w-6 text-green-400" /> :
-                  <Shield className="h-6 w-6 text-slate-400" />
-              }
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">المصادقة الثنائية (2FA)</h3>
-              <p className="text-sm text-slate-400">
-                {isLoading2FA ? 'جاري التحميل...' :
-                  is2FAEnabled ? 'مفعّلة - حسابك محمي بطبقة إضافية' :
-                    'إضافة طبقة حماية إضافية لحسابك'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handle2FAToggle}
-            disabled={isLoading2FA || isDisabling2FA}
-            className={cn(
-              "px-4 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50",
-              is2FAEnabled ?
-                "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30" :
-                "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-            )}>
-            {isDisabling2FA ?
-              <Loader2 className="h-4 w-4 animate-spin" /> :
-              is2FAEnabled ?
-                <>
-                  <ShieldX className="h-4 w-4" />
-                  تعطيل
-                </> :
-                <>
-                  <ShieldCheck className="h-4 w-4" />
-                  تفعيل
-                </>
-            }
-          </button>
-        </div>
-        {is2FAEnabled &&
-          <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-start gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-green-300">المصادقة الثنائية مفعّلة</p>
-              <p className="text-xs text-green-400/70 mt-1">
-                سيُطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
-              </p>
-            </div>
-          </div>
-        }
-      </section>
-      <TwoFactorSetupModal
-        isOpen={show2FAModal}
-        onClose={() => setShow2FAModal(false)}
-        onSuccess={handle2FASuccess} />
-    </>
-  );
-}
-
-function PhoneSection({ user, refreshUser }: { user: any, refreshUser: () => void }) {
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-
-  return (
-    <>
-      <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "h-12 w-12 rounded-xl flex items-center justify-center",
-              user?.phoneVerified ? "bg-indigo-500/10" : "bg-yellow-500/10"
-            )}>
-              {user?.phoneVerified ?
-                <Smartphone className="h-6 w-6 text-indigo-400" /> :
-                <Smartphone className="h-6 w-6 text-yellow-400" />
-              }
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">تحقق رقم الهاتف</h3>
-              <p className="text-sm text-slate-400">
-                {user?.phoneVerified ? `مفعل: ${user?.phone}` : 'لم يتم التحقق من رقم الهاتف بعد'}
-              </p>
-            </div>
-          </div>
-          {!user?.phoneVerified &&
-            <button
-              onClick={() => setShowPhoneModal(true)}
-              className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors text-sm font-medium">
-              تحقق الآن
-            </button>
-          }
-          {user?.phoneVerified &&
-            <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
-              <CheckCircle2 className="h-4 w-4" />
-              تم التحقق
-            </div>
-          }
-        </div>
-        {!user?.phoneVerified &&
-          <div className="mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-yellow-500/80">
-              التحقق من رقم الهاتف يحمي حسابك ويسمح لنا بالتواصل معك بخصوص الدروس والمهام الهامة.
-            </p>
-          </div>
-        }
-      </section>
-      <PhoneVerificationModal
-        isOpen={showPhoneModal}
-        onClose={() => setShowPhoneModal(false)}
-        onSuccess={() => {
-          setShowPhoneModal(false);
-          refreshUser();
-        }}
-        initialPhone={user?.phone || ''} />
-    </>
-  );
-}
 
 function SecurityLogsSection() {
   const [recentLogs, setRecentLogs] = useState<SecurityLog[]>([]);
@@ -370,38 +69,40 @@ function SecurityLogsSection() {
   return (
     <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-white flex items-center gap-2">
+        <h3 className="font-semibold text-white flex items-center gap-2 text-lg">
           <History className="h-5 w-5 text-indigo-400" />
           سجل النشاطات الأمنية
         </h3>
         <Link href="/settings/security/logs" className="text-sm text-indigo-400 hover:underline">عرض الكل</Link>
       </div>
       <div className="space-y-4">
-        {isLoadingLogs ?
+        {isLoadingLogs ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 text-indigo-500 animate-spin" />
-          </div> :
-          recentLogs.length > 0 ?
-            recentLogs.map((log) =>
-              <div key={log.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  {log.eventType.includes('SUCCESS') || log.eventType === 'REGISTER' ?
-                    <CheckCircle2 className="h-4 w-4 text-green-400" /> :
-                    log.eventType.includes('FAILED') || log.eventType.includes('SUSPICIOUS') ?
-                      <AlertTriangle className="h-4 w-4 text-red-400" /> :
-                      <Shield className="h-4 w-4 text-indigo-400" />
-                  }
-                  <span className="text-slate-300">
-                    {EVENT_LABELS[log.eventType] || log.eventType}
-                  </span>
-                </div>
-                <span className="text-slate-500">
-                  {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ar })}
+          </div>
+        ) : recentLogs.length > 0 ? (
+          recentLogs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                {log.eventType.includes('SUCCESS') || log.eventType === 'REGISTER' ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                ) : log.eventType.includes('FAILED') || log.eventType.includes('SUSPICIOUS') ? (
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                ) : (
+                  <Shield className="h-4 w-4 text-indigo-400" />
+                )}
+                <span className="text-slate-300">
+                  {EVENT_LABELS[log.eventType] || log.eventType}
                 </span>
               </div>
-            ) :
-            <p className="text-center text-xs text-slate-500 py-2">لا يوجد نشاطات مسجلة حتى الآن</p>
-        }
+              <span className="text-slate-500">
+                {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ar })}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-xs text-slate-500 py-2">لا يوجد نشاطات مسجلة حتى الآن</p>
+        )}
       </div>
     </section>
   );
@@ -440,7 +141,7 @@ function DangerZone({ userId }: { userId: string | undefined }) {
   return (
     <section className="rounded-2xl bg-red-500/5 border border-red-500/20 overflow-hidden">
       <div className="p-4 border-b border-red-500/20 bg-red-500/10">
-        <h3 className="font-semibold text-red-400 flex items-center gap-2">
+        <h3 className="font-semibold text-red-400 flex items-center gap-2 text-lg">
           <AlertTriangle className="h-5 w-5" />
           منطقة الخطر
         </h3>
@@ -461,22 +162,52 @@ function DangerZone({ userId }: { userId: string | undefined }) {
 }
 
 export default function SecurityPage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 pb-10">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-3">
           <Shield className="h-7 w-7 text-indigo-400" />
-          الأمان
+          الأمان وحماية الحساب
         </h1>
-        <p className="text-sm text-slate-400 mt-1">إدارة وحماية حسابك وتغيير كلمات المرور</p>
+        <p className="text-sm text-slate-400 mt-1">إدارة كلمات المرور، رقم الهاتف والمصادقة الثنائية</p>
       </div>
 
-      <PasswordSection />
-      <TwoFactorSection />
-      <PhoneSection user={user} refreshUser={refreshUser} />
+      {/* Clerk UserProfile Section */}
+      <section className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
+        <UserProfile
+          routing="hash"
+          appearance={{
+            variables: {
+              colorPrimary: '#f97316', // Orange matching Tolo's brand color
+              colorBackground: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff',
+              colorText: isDark ? '#f8fafc' : '#0f172a',
+              colorTextSecondary: isDark ? '#94a3b8' : '#475569',
+              colorInputBackground: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc',
+              colorInputText: isDark ? '#f8fafc' : '#0f172a',
+              colorBorder: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+              borderRadius: '1rem',
+              fontFamily: 'var(--font-alexandria), sans-serif',
+            },
+            elements: {
+              card: 'bg-transparent border-0 shadow-none p-0 w-full max-w-full',
+              scrollBox: 'bg-transparent shadow-none w-full max-w-full rounded-2xl',
+              pageScrollBox: 'bg-transparent w-full max-w-full p-6',
+              navbar: 'border-r border-slate-200 dark:border-slate-800/40 pr-4',
+              navbarButton: 'text-slate-600 dark:text-slate-400 hover:text-white',
+              profileSectionTitle: 'border-b border-slate-200 dark:border-slate-800/40 pb-2',
+              headerTitle: 'text-white font-bold',
+              headerSubtitle: 'text-slate-400',
+              formButtonPrimary: 'bg-orange-500 hover:bg-orange-600 text-white transition-all',
+            }
+          }}
+        />
+      </section>
+
       <SecurityLogsSection />
       <DangerZone userId={user?.id} />
     </div>

@@ -1,8 +1,4 @@
-import { useAuthStore } from '@/lib/auth/auth-store';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-export type UserRole = 'STUDENT' | 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'MODERATOR' | 'PREMIUM';
+import { useAuthStore, type UserRole, hasPermission } from '@/lib/auth';
 
 /**
  * usePermission — Centralised role & permission checks
@@ -18,13 +14,13 @@ export function usePermission() {
 
   /**
    * Check whether the current user has a specific permission string.
-   * Permissions are stored in `user.permissions` (array of strings).
+   * Delegates to hasPermission() from lib/permissions.ts which uses
+   * permissionGrantMatches() for wildcard support (e.g. "*:manage").
+   * SUPER_ADMIN and ADMIN bypass all permission checks (via permissions.ts).
    */
   const can = (permission: string): boolean => {
     if (!isAuthenticated || !user) return false;
-    // SUPER_ADMIN and ADMIN bypass all permission checks
-    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return true;
-    return user.permissions.includes(permission);
+    return hasPermission(user, permission);
   };
 
   /**
@@ -45,11 +41,11 @@ export function usePermission() {
 
   /**
    * Check whether the current user has ALL of the given permissions.
+   * Uses hasPermission() which respects wildcard grants and SUPER_ADMIN bypass.
    */
   const hasAllPermissions = (...permissions: string[]): boolean => {
     if (!isAuthenticated || !user) return false;
-    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return true;
-    return permissions.every((p) => user.permissions.includes(p));
+    return permissions.every((p) => hasPermission(user, p));
   };
 
   /**

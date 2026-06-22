@@ -1,4 +1,4 @@
-import { PERMISSIONS, type Permission } from "@/lib/permissions";
+import { PERMISSIONS, type Permission } from "@/lib/auth";
 
 /**
  * First matching rule wins. Order: most specific routes before generic `/admin`.

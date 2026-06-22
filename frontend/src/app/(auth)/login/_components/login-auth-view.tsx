@@ -39,6 +39,7 @@ interface LoginAuthViewProps {
   readonly twoFactorCode: string;
   readonly setTwoFactorCode: (v: string) => void;
   readonly onVerify2FA: (e: React.FormEvent) => void;
+  readonly onResend2FA?: () => void;
   readonly setRequires2FA: (v: boolean) => void;
 }
 
@@ -60,6 +61,7 @@ export function LoginAuthView({
   twoFactorCode,
   setTwoFactorCode,
   onVerify2FA,
+  onResend2FA,
   setRequires2FA,
 }: LoginAuthViewProps) {
   return (
@@ -89,6 +91,7 @@ export function LoginAuthView({
               icon={<Mail size={22} strokeWidth={2.5} />}
               registration={register('email')}
               error={errors.email}
+              autoComplete="email"
             />
 
             <AnimatePresence>
@@ -118,6 +121,7 @@ export function LoginAuthView({
           setTwoFactorCode={setTwoFactorCode}
           isSubmitting={isSubmitting}
           onVerify2FA={onVerify2FA}
+          onResend2FA={onResend2FA}
           onBack={() => setRequires2FA(false)}
           title={loginMode === 'magic-link' ? 'الدخول السريع' : 'الدرع المزدوج'}
           subtitle={loginMode === 'magic-link' ? 'أدخل رمز الدخول المكون من 6 أرقام المرسل لبريدك الإلكتروني' : 'أدخل رمز الحماية المكون من 6 أرقام لتأكيد الهوية'}

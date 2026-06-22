@@ -265,8 +265,8 @@ export function trimTrailingSlashes(str: string): string {
  * Executes a theme change with a premium View Transition ripple effect
  */
 export function toggleThemeWithTransition(
-  theme: string,
-  setTheme: (theme: string) => void,
+  theme: "light" | "dark",
+  setTheme: (theme: "light" | "dark" | "system") => void,
   event?: React.MouseEvent | MouseEvent | any
 ) {
   if (typeof window !== 'undefined') {

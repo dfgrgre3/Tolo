@@ -261,12 +261,33 @@ class ApiClient {
             headers.set('Idempotency-Key', crypto.randomUUID());
         }
 
+        // Attach CSRF token for write requests in browser environment
+        if (isWriteMethod && typeof window !== 'undefined' && !headers.has('X-CSRF-Token')) {
+            const cookies = window.document.cookie.split(';').map(c => c.trim());
+            const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
+            let csrfToken: string | undefined;
+            for (const name of csrfNames) {
+                const entry = cookies.find(c => c.startsWith(name + '='));
+                if (entry) {
+                    try {
+                        csrfToken = decodeURIComponent(entry.split('=')[1]);
+                    } catch {
+                        csrfToken = entry.split('=')[1];
+                    }
+                    break;
+                }
+            }
+            if (csrfToken) {
+                headers.set('X-CSRF-Token', csrfToken);
+            }
+        }
+
         return headers;
     }
 
     private resetAuthStore(): void {
         if (typeof window !== 'undefined') {
-            import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
+            import('@/lib/auth').then(({ useAuthStore }) => {
                 useAuthStore.getState().reset();
             }).catch(() => {});
         }

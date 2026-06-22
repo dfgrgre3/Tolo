@@ -5,9 +5,20 @@ export const preferredRegion = 'fra1';
 export const maxDuration = 30;
 
 function getClerkDomain(): string {
+  // Prefer the explicit frontend API URL if available (most reliable).
+  const explicit = process.env.CLERK_FRONTEND_API?.replace(/['"]/g, '').trim();
+  if (explicit) {
+    try {
+      const url = new URL(explicit);
+      return url.hostname;
+    } catch {
+      // If it's not a valid URL, fall through to publishable key parsing
+    }
+  }
+
   const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.replace(/['"]/g, '').trim();
   if (!pubKey) {
-    console.warn('[__clerk proxy] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not defined, using fallback');
+    console.warn('[__clerk proxy] Neither CLERK_FRONTEND_API nor NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is defined, using fallback');
     return 'frontend-api.clerk.services';
   }
 
@@ -150,39 +161,48 @@ async function clerkFetch(
 async function handleUpstreamResponse(result: ClerkFetchResult): Promise<NextResponse> {
   const { response: upstream, fallbackDomain } = result;
 
-  const headers = new Headers();
-
-  // Forward all Set-Cookie headers (Clerk uses cookies for session management)
+  // Collect Set-Cookie headers first — they must be forwarded for BOTH redirect
+  // and non-redirect responses. Clerk sets __client_uat on the handshake 302
+  // itself, so dropping cookies from redirects causes the loop to repeat.
   const setCookieValues = upstream.headers.getSetCookie?.() ?? [];
-  if (setCookieValues.length > 0) {
-    for (const cookie of setCookieValues) {
-      headers.append('Set-Cookie', cookie);
-    }
-  } else {
-    const setCookie = upstream.headers.get('Set-Cookie');
-    if (setCookie) headers.set('Set-Cookie', setCookie);
-  }
+  const legacySetCookie = setCookieValues.length === 0
+    ? upstream.headers.get('Set-Cookie')
+    : null;
 
-  if (fallbackDomain) {
-    headers.set('X-Clerk-Proxy-Fallback', fallbackDomain);
-  }
+  const attachCookies = (headers: Headers) => {
+    if (setCookieValues.length > 0) {
+      for (const cookie of setCookieValues) {
+        headers.append('Set-Cookie', cookie);
+      }
+    } else if (legacySetCookie) {
+      headers.set('Set-Cookie', legacySetCookie);
+    }
+  };
 
   // CRITICAL: Handle Clerk's handshake redirects (3xx) — forward the Location header
-  // directly to the browser. With redirect:'manual', fetch returns an "opaqueredirect"
-  // response for 3xx. We detect this via status 0 or status 3xx and forward it.
+  // AND any Set-Cookie headers directly to the browser.
+  // With redirect:'manual', fetch returns an "opaqueredirect" response for 3xx.
   const isRedirect = upstream.status === 0 ||
     (upstream.status >= 300 && upstream.status < 400);
 
   if (isRedirect) {
-    // For opaqueredirect (status=0), the real status comes from upstream.type.
-    // We emit a 302 so the browser follows Clerk's handshake URL.
     const location = upstream.headers.get('Location');
     if (location) {
-      headers.set('Location', location);
-      headers.set('Cache-Control', 'no-store, max-age=0');
-      return new NextResponse(null, { status: 302, headers });
+      const redirectHeaders = new Headers();
+      attachCookies(redirectHeaders);
+      redirectHeaders.set('Location', location);
+      redirectHeaders.set('Cache-Control', 'no-store, max-age=0');
+      if (fallbackDomain) redirectHeaders.set('X-Clerk-Proxy-Fallback', fallbackDomain);
+      return new NextResponse(null, { status: 302, headers: redirectHeaders });
     }
     // No Location means Clerk issued a redirect without a destination — pass through.
+  }
+
+  const headers = new Headers();
+  attachCookies(headers);
+
+  if (fallbackDomain) {
+    headers.set('X-Clerk-Proxy-Fallback', fallbackDomain);
   }
 
   // Stream upstream body as-is — DO NOT wrap error responses in a new JSON envelope.

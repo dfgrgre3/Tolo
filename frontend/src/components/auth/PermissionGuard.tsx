@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { hasPermission, Permission, resolvePermissionInput } from "@/lib/permissions";
-import { UserRole } from "@/types/enums";
+import { hasPermission, type Permission, resolvePermissionInput, type UserRole } from "@/lib/auth";
 
 interface PermissionGuardProps {
   permission?: Permission | string;
