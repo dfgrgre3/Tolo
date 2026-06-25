@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function RoleStep({
-  register, roleValue, onNext
+  registerAction, roleValue, onNextAction
 }: {
-  readonly register: UseFormRegister<any>;
+  readonly registerAction: UseFormRegister<any>;
   readonly roleValue: string;
-  readonly onNext: () => void;
+  readonly onNextAction: () => void;
 }) {
   return (
     <m.div
@@ -43,7 +43,7 @@ export function RoleStep({
                 active ? "border-primary bg-primary/5 ring-4 ring-primary/5 shadow-2xl shadow-primary/10" : "border-border bg-muted/40 hover:border-border/80"
               )}
             >
-              <input type="radio" value={id} {...register('role')} className="hidden" />
+              <input type="radio" value={id} {...registerAction('role')} className="hidden" />
               <div
                 className={cn(
                   "mx-auto w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-300",
@@ -62,7 +62,7 @@ export function RoleStep({
       </div>
 
       <div className="pt-6">
-        <Button type="button" onClick={onNext} className="h-20 w-full rounded-2xl bg-primary font-black text-black text-xl shadow-2xl group overflow-hidden relative">
+        <Button type="button" onClick={onNextAction} className="h-20 w-full rounded-2xl bg-primary font-black text-black text-xl shadow-2xl group overflow-hidden relative">
           <m.div className="absolute inset-0 bg-white/20" initial={{ y: "100%" }} whileHover={{ y: 0 }} transition={{ duration: 0.3 }} />
           <div className="relative z-10 flex items-center justify-center gap-3">
             متابعة الخطوات <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />

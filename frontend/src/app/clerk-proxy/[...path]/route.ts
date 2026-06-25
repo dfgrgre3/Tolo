@@ -242,7 +242,14 @@ export async function GET(
   if (path[0] === 'npm') {
     const pkgRest = path.slice(1).join('/');
     const cleanPkgRest = pkgRest.replace(/^(npm\/)?@clerk\//, '');
-    const jsDelivrUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
+    let jsDelivrUrl = `https://cdn.jsdelivr.net/npm/@clerk/${cleanPkgRest}${search}`;
+
+    // Map major version specifiers to resolved versions to avoid jsDelivr 404s
+    if (cleanPkgRest.includes('@6/')) {
+      jsDelivrUrl = jsDelivrUrl.replace('@6/', '@6.20.0/');
+    } else if (cleanPkgRest.includes('@1/')) {
+      jsDelivrUrl = jsDelivrUrl.replace('@1/', '@1.20.0/');
+    }
 
     console.log(`[__clerk proxy] npm → ${jsDelivrUrl}`);
 

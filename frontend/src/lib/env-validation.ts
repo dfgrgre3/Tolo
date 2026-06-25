@@ -1,7 +1,7 @@
 /**
-* Environment Variables Validation
-* Validates all required environment variables at startup
-*/
+ * Environment Variables Validation
+ * Validates all required environment variables at startup
+ */
 
 import { logger } from './logger';
 
@@ -30,7 +30,6 @@ function checkProductionVars(errors: string[], isProduction: boolean) {
     }
   }
 }
-
 
 function checkSessionDuration(warnings: string[]) {
   if (process.env.SESSION_DURATION) {
@@ -65,6 +64,8 @@ function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
     'NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL',
     'NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL',
     'NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL',
+    'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL',
+    'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL',
     'NEXT_PUBLIC_API_URL',
     'NEXT_PUBLIC_ADMIN_URL',
     'NEXT_PUBLIC_BASE_URL',
@@ -73,8 +74,7 @@ function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
     'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY',
     'NEXT_PUBLIC_CLERK_PROXY_URL',
     'NEXT_PUBLIC_CLERK_JS_URL',
-    // WebSocket & analytics — explicitly whitelisted because their names
-    // contain patterns like 'key' or 'url' that would trip the sensitive check
+    // WebSocket & analytics — whitelisted
     'NEXT_PUBLIC_WS_HOST',
     'NEXT_PUBLIC_WS_URL',
     'NEXT_PUBLIC_POSTHOG_KEY',
@@ -126,7 +126,6 @@ function validateEnvironment(): EnvValidationResult {
     warnings
   };
 }
-
 
 /**
  * Validate and throw if environment is invalid

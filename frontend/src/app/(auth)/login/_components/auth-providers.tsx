@@ -69,7 +69,7 @@ export function AuthProviders() {
       <div className="grid grid-cols-2 gap-4">
         {/* Google */}
         <m.button
-          whileHover={{ scale: 1.02, borderColor: 'var(--primary)' }}
+          whileHover={{ scale: 1.02, borderColor: 'hsl(var(--primary))' }}
           whileTap={{ scale: 0.97 }}
           onClick={() => handleOAuthLogin('oauth_google')}
           disabled={!!loadingProvider}
@@ -87,7 +87,7 @@ export function AuthProviders() {
 
         {/* GitHub */}
         <m.button
-          whileHover={{ scale: 1.02, borderColor: 'var(--primary)' }}
+          whileHover={{ scale: 1.02, borderColor: 'hsl(var(--primary))' }}
           whileTap={{ scale: 0.97 }}
           onClick={() => handleOAuthLogin('oauth_github')}
           disabled={!!loadingProvider}

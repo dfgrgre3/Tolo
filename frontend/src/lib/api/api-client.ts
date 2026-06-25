@@ -269,10 +269,11 @@ class ApiClient {
             for (const name of csrfNames) {
                 const entry = cookies.find(c => c.startsWith(name + '='));
                 if (entry) {
+                    const value = entry.split('=')[1] || '';
                     try {
-                        csrfToken = decodeURIComponent(entry.split('=')[1]);
+                        csrfToken = decodeURIComponent(value);
                     } catch {
-                        csrfToken = entry.split('=')[1];
+                        csrfToken = value;
                     }
                     break;
                 }

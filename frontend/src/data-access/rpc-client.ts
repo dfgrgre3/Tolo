@@ -47,10 +47,11 @@ const transport = createConnectTransport({
       for (const name of csrfNames) {
         const entry = cookies.find(c => c.startsWith(name + '='));
         if (entry) {
+          const rawValue = entry.split('=')[1] || '';
           try {
-            csrfToken = decodeURIComponent(entry.split('=')[1]);
+            csrfToken = decodeURIComponent(rawValue);
           } catch {
-            csrfToken = entry.split('=')[1];
+            csrfToken = rawValue;
           }
           break;
         }

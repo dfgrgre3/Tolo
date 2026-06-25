@@ -71,42 +71,6 @@ function isAlreadySignedInClerkError(err: unknown): boolean {
 }
 
 /**
- * Sets a client-accessible cookie for SSR token forwarding.
- *
- * SECURITY DESIGN NOTE — Why access_token is NOT HttpOnly:
- * ─────────────────────────────────────────────────────────
- * The Go backend reads the `access_token` cookie during SSR requests from
- * Next.js server components (getAuthUser() in lib/auth/server.ts). Setting
- * HttpOnly would prevent the client from writing the cookie via document.cookie,
- * and Next.js server route handlers (not middleware) cannot set cookies on
- * the response in all cases.
- *
- * MITIGATIONS in place:
- *   1. Short TTL: cookie expires every 60s and is refreshed every 40s
- *   2. The REAL session is managed by Clerk's HttpOnly cookies — this cookie
- *      is only used as a Bearer token forwarder for API calls from Server Components
- *   3. CSP headers in middleware.ts block XSS vectors for inline scripts
- *   4. SameSite=Lax prevents CSRF attacks on this cookie
- *   5. Secure flag is set in production (HTTPS only)
- *
- * FUTURE: Migrate Server Component data fetching to use auth().getToken()
- * (getClerkToken in lib/auth/server.ts) instead of cookie forwarding.
- * That would allow removing this cookie entirely.
- */
-function setClientCookie(name: string, value: string, maxAgeSeconds: number) {
-  if (typeof window === 'undefined') return;
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secure}`;
-}
-
-function deleteClientCookie(name: string) {
-  if (typeof window === 'undefined') return;
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
-}
-
-
-/**
  * Stores the original Clerk SignIn resource (the return value of
  * signIn.create()) so that verify2FA / resend2FA can reuse the exact same
  * SignIn object that was prepared during login().  Clerk may reset
@@ -121,29 +85,16 @@ export function AuthProvider({
 }: { children: React.ReactNode; initialAuthHint?: boolean; }) {
   const { isLoaded: isClerkLoaded, userId, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUser();
-  // Use stable selectors (not the whole store object) to avoid triggering
-  // the sync useEffect on every unrelated store update.
   const setUser = useAuthStore((s) => s.setUser);
   const resetStore = useAuthStore((s) => s.reset);
   const setIsLoading = useAuthStore((s) => s.setIsLoading);
 
   const lastSyncedId = React.useRef<string | null>(null);
   const currentUserIdRef = React.useRef<string | null>(null);
-  // Prevent concurrent syncProfile calls from overlapping state updates
   const isSyncing = React.useRef(false);
-  // Store getToken in a ref so we can call it inside effects without
-  // adding it to the dependency array (its reference changes every render,
-  // which would re-trigger the sync effect and cause an infinite loop).
   const getTokenRef = React.useRef(getToken);
   React.useEffect(() => { getTokenRef.current = getToken; });
 
-  // ── Stable snapshot of clerkUser fields ──────────────────────────────────
-  // Clerk replaces the clerkUser object reference on every internal state
-  // update (token refresh, polling, etc.) even when the actual user data has
-  // NOT changed. Listing `clerkUser` directly in the dependency array therefore
-  // re-triggers the sync effect on EVERY Clerk render, causing an infinite loop.
-  // We instead depend on a stable string that only changes when the actual
-  // data changes. This is the recommended pattern for Clerk hooks.
   const clerkUserStableKey = React.useMemo(() => {
     if (!clerkUser) return null;
     return JSON.stringify({
@@ -156,57 +107,15 @@ export function AuthProvider({
       permissions: clerkUser.publicMetadata?.permissions,
       emailVerified: clerkUser.emailAddresses[0]?.verification?.status,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clerkUser?.id, clerkUser?.username, clerkUser?.fullName,
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   (clerkUser?.publicMetadata?.role as string) ?? null]);
-  // Keep a ref to the latest clerkUser so the async syncProfile can access it
-  // without being listed as a dependency.
+
   const clerkUserRef = React.useRef(clerkUser);
   React.useEffect(() => { clerkUserRef.current = clerkUser; });
 
-  // Sync ref with current userId to prevent race conditions during async calls
   useEffect(() => {
     currentUserIdRef.current = userId || null;
   }, [userId]);
-
-  // Sync access_token cookie for SSR support
-  useEffect(() => {
-    if (!isClerkLoaded || !userId) {
-      deleteClientCookie('access_token');
-      return;
-    }
-
-    let active = true;
-    let timerId: NodeJS.Timeout;
-
-    const syncCookie = async () => {
-      try {
-        const token = await getTokenRef.current();
-        if (!active) return;
-        if (token) {
-          // Set access_token cookie with a 60-second lifetime, matching the typical short lifetime of a Clerk token
-          setClientCookie('access_token', token, 60);
-        } else {
-          deleteClientCookie('access_token');
-        }
-      } catch (err) {
-        logger.error('Failed to sync access_token cookie:', err);
-      } finally {
-        if (active) {
-          // Refresh the cookie every 40 seconds to keep it fresh
-          timerId = setTimeout(syncCookie, 40000);
-        }
-      }
-    };
-
-    syncCookie();
-
-    return () => {
-      active = false;
-      clearTimeout(timerId);
-    };
-  }, [isClerkLoaded, userId]);
 
   // Safety timeout: if Clerk or RPC fails to load/sync within the safety margin,
   // force isLoading to false so the application can render in fallback mode.

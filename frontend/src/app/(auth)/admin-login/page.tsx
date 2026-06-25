@@ -9,7 +9,7 @@ import { ShieldAlert, Lock, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, Shiel
 import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
-import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
+import { isStaffAdminPanelRole } from '@/lib/auth/roles';
 import {
   sanitizeRedirectPath,
 } from '@/services/auth/navigation';
