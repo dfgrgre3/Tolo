@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * Data-Access Layer — central export point for all repositories.
  *

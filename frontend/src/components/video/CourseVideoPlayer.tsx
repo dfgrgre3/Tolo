@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -47,7 +46,7 @@ import { PlayerPanels } from "./player/components/PlayerPanels";
 import { AmbientBackground } from "./player/components/AmbientBackground";
 import { GestureOverlay } from "./player/components/GestureOverlay";
 import { SkipIntroButton } from "./player/components/SkipIntroButton";
-import { InteractiveQuestionOverlay } from "./player/components/InteractiveQuestionOverlay";
+import { SuspendedInteractiveQuestionOverlay } from "./player/components/LazyComponents";
 import { ActiveNotePopup } from "./player/components/ActiveNotePopup";
 
 // Hooks
@@ -113,10 +112,13 @@ export function CourseVideoPlayer({
   onProgress,
 }: CourseVideoPlayerProps) {
   // --- Refs & Internal State ---
-  const [activeVideoUrl, setActiveVideoUrl] = useState(videoUrl);
+  // FIX: Removed `activeVideoUrl` state that was mirroring `videoUrl` prop — caused double render.
+  // Quality switches (non-HLS) temporarily override the URL via ref; all other URL changes
+  // come from the parent prop directly. `setPlaybackState({ isLoading: true })` is the render trigger.
+  const qualityOverrideUrlRef = useRef<string | null>(null);
+  const activeVideoUrl = qualityOverrideUrlRef.current ?? videoUrl;
   const provider = useMemo(() => getProvider(activeVideoUrl), [activeVideoUrl]);
   const youtubeId = useMemo(() => parseYouTubeId(activeVideoUrl), [activeVideoUrl]);
-  const initialPreferences = useMemo(() => readPlayerPreferences(), []);
   
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -332,58 +334,80 @@ export function CourseVideoPlayer({
   }, [user, watermarkText]);
 
   useEffect(() => {
-    // Content Protection: Detect blur which often happens when starting a capture tool
+    const container = playerContainerRef.current;
+
+    // Content Protection: Detect blur which often happens when starting a capture tool.
+    // These MUST stay on `window` — they need global scope to detect tab switches / capture tools.
     const handleBlur = () => {
       const currentIsPlaying = usePlaybackStore.getState().isPlaying;
       if (currentIsPlaying) setIsRecordingDetected(true);
     };
     const handleFocus = () => setIsRecordingDetected(false);
-    
-    // Prevent Right Click
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
-    // PrintScreen / Screenshot Detection
+    // PrintScreen / Screenshot Detection — global by necessity
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'PrintScreen') {
-        // Clear clipboard
         navigator.clipboard?.writeText('').catch(() => undefined);
         setIsRecordingDetected(true);
         setTimeout(() => setIsRecordingDetected(false), 3000);
       }
     };
 
-    // Prevent drag
-    const handleDragStart = (e: DragEvent) => {
-      if (playerContainerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-      }
+    // DevTools Detection (Heuristic) — global by necessity.
+    // Debounced by 500ms to prevent false positives for users with multiple
+    // monitors, tablet pen input, or those who resize the browser window
+    // normally. The overlay only appears if the window stays in a suspicious
+    // state for half a second, which genuine users never trigger.
+    let resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleResize = () => {
+      if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
+      resizeDebounceTimer = setTimeout(() => {
+        resizeDebounceTimer = null;
+        const threshold = 160;
+        const widthDiff = window.outerWidth - window.innerWidth;
+        const heightDiff = window.outerHeight - window.innerHeight;
+        if (widthDiff > threshold || heightDiff > threshold) {
+          setIsRecordingDetected(true);
+        }
+      }, 500);
     };
 
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('contextmenu', handleContextMenu);
     window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('dragstart', handleDragStart);
-    
-    // DevTools Detection (Heuristic)
-    const handleResize = () => {
-      const threshold = 160;
-      const widthDiff = window.outerWidth - window.innerWidth;
-      const heightDiff = window.outerHeight - window.innerHeight;
-      
-      if (widthDiff > threshold || heightDiff > threshold) {
-        setIsRecordingDetected(true);
+    window.addEventListener('resize', handleResize);
+
+    // FIX: Scope contextmenu to the video/iframe element ONLY — not the entire container.
+    // Blocking right-click on the whole container prevented users from right-clicking
+    // on control buttons, captions, and UI overlays, and could conflict with DnD libraries.
+    // Now we only suppress the browser's native video context menu (which exposes "Save video"),
+    // while allowing right-click on all other player UI elements.
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const isVideoElement = target.tagName === 'VIDEO';
+      const isYouTubeEmbed = !!target.closest('[data-youtube-container]');
+      if (isVideoElement || isYouTubeEmbed) {
+        e.preventDefault();
       }
     };
-    window.addEventListener('resize', handleResize);
+    const handleDragStart = (e: DragEvent) => e.preventDefault();
+
+    if (container) {
+      container.addEventListener('contextmenu', handleContextMenu);
+      container.addEventListener('dragstart', handleDragStart);
+    }
 
     return () => {
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('dragstart', handleDragStart);
       window.removeEventListener('resize', handleResize);
+      // Cancel any pending debounce timer on unmount
+      if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
+      if (container) {
+        container.removeEventListener('contextmenu', handleContextMenu);
+        container.removeEventListener('dragstart', handleDragStart);
+      }
     };
   }, []);
 
@@ -619,8 +643,10 @@ export function CourseVideoPlayer({
       shouldResume: store.isPlaying
     };
     setSettingsState({ selectedQuality: qualityId });
+    // FIX: Use ref instead of state to store the quality URL override.
+    // This avoids a redundant render cycle; `setPlaybackState` below is already the render trigger.
+    qualityOverrideUrlRef.current = source.src;
     setPlaybackState({ isLoading: true });
-    setActiveVideoUrl(source.src);
     flashFeedback({ icon: Settings2, label: source.label });
   }, [flashFeedback, getAdapter, hlsRef, qualitySources, store.isPlaying]);
 
@@ -659,33 +685,44 @@ export function CourseVideoPlayer({
   });
 
   // --- Sync & Lifecycle Effects ---
+  // FIX: The old `useEffect(() => setActiveVideoUrl(videoUrl), [videoUrl])` caused a classic
+  // derived-state double render cycle. Now `activeVideoUrl` is computed directly from the prop
+  // (or qualityOverrideUrlRef for quality switches), eliminating the extra render entirely.
+  // When videoUrl prop changes (new lesson), reset the quality override.
   useEffect(() => {
-    setActiveVideoUrl(videoUrl);
+    qualityOverrideUrlRef.current = null;
   }, [videoUrl]);
 
   useEffect(() => {
+    // FIX (Hydration): readPlayerPreferences() is now called inside useEffect only.
+    // Previously it was in useMemo which executes during the render phase — the server
+    // returns DEFAULT_PLAYER_PREFERENCES (no localStorage) while the browser returns the
+    // student's real preferences, causing a Hydration value mismatch and a flash of
+    // incorrect player state. useEffect is guaranteed to run only in the browser after
+    // hydration is complete, making this read 100% safe and isomorphic.
+    const prefs = readPlayerPreferences();
     const resetPlaybackState = usePlaybackStore.getState().resetPlaybackState;
     const resetUIState = useUIStore.getState().resetUIState;
     const resetSettingsState = useSettingsStore.getState().resetSettingsState;
 
     resetPlaybackState({
       isLoading: true,
-      volume: initialPreferences.volume,
-      isMuted: initialPreferences.isMuted,
-      playbackRate: initialPreferences.playbackRate,
+      volume: prefs.volume,
+      isMuted: prefs.isMuted,
+      playbackRate: prefs.playbackRate,
     });
     resetUIState({
-      isSidebarOpen: initialPreferences.isSidebarOpen ?? false,
-      sidebarTab: initialPreferences.sidebarTab ?? "bookmarks",
+      isSidebarOpen: prefs.isSidebarOpen ?? false,
+      sidebarTab: prefs.sidebarTab ?? "bookmarks",
     });
     resetSettingsState({
-      isAmbientMode: initialPreferences.isAmbientMode,
-      selectedSubtitle: initialPreferences.selectedSubtitle,
-      brightness: initialPreferences.brightness,
+      isAmbientMode: prefs.isAmbientMode,
+      selectedSubtitle: prefs.selectedSubtitle,
+      brightness: prefs.brightness,
     });
     setYoutubePlaybackRates([]);
     setNoteDraft("");
-  }, [initialPreferences, lessonId]);
+  }, [lessonId]);
 
   useEffect(() => {
     localStorage.setItem(PLAYER_PREFERENCES_KEY, JSON.stringify({
@@ -799,9 +836,12 @@ export function CourseVideoPlayer({
   }, [store.autoplayCountdown, store.isEnded, onNextVideo]);
 
   // Watch Time Tracking Effect
+  // FIX: Subscribe to `playbackStore.isPlaying` directly instead of `store.isPlaying` (merged object).
+  // The merged `store` object re-creates on any change in all 3 stores, which would restart the
+  // interval unnecessarily. `playbackStore.isPlaying` is a stable, granular subscription.
   useEffect(() => {
     let intervalId: number | null = null;
-    if (store.isPlaying) {
+    if (playbackStore.isPlaying) {
       intervalId = window.setInterval(() => {
         useSettingsStore.getState().incrementWatchSeconds(1);
       }, 1000);
@@ -809,7 +849,7 @@ export function CourseVideoPlayer({
     return () => {
       if (intervalId) window.clearInterval(intervalId);
     };
-  }, [store.isPlaying]);
+  }, [playbackStore.isPlaying]);
 
   // --- Computed Values ---
   const mergedMarkers = useMemo(() => mergeChapterMarkers(bookmarks, chapterMarkers), [bookmarks, chapterMarkers]);
@@ -878,7 +918,7 @@ export function CourseVideoPlayer({
         }}
       >
         {provider === "youtube" ? (
-          <div ref={youtubeContainerRef} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
+          <div ref={youtubeContainerRef} data-youtube-container className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
         ) : (
           <video ref={videoRef} className="h-full w-full object-contain" playsInline preload="metadata">
             {subtitleTracks.map(t => <track key={t.id} kind="subtitles" label={t.label} srcLang={t.language} src={t.src} />)}
@@ -905,7 +945,7 @@ export function CourseVideoPlayer({
           const question = interactiveQuestions.find(q => q.id === store.activeQuestionId);
           if (!question) return null;
           return (
-            <InteractiveQuestionOverlay
+            <SuspendedInteractiveQuestionOverlay
               question={question}
               onAnswer={(isCorrect) => {
                 if (isCorrect) {
@@ -951,9 +991,10 @@ export function CourseVideoPlayer({
           onCancelAutoplay={() => setPlaybackState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
           onPlayNextNow={onNextVideo}
           onRetry={() => {
+            // FIX: Reset quality override ref and trigger reload via state update
+            qualityOverrideUrlRef.current = null;
             setUIState({ errorMessage: null });
             setPlaybackState({ isLoading: true });
-            setActiveVideoUrl(videoUrl);
           }}
         />
       )}

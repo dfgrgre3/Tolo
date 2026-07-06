@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * Exam Repository — fetch exams, submit answers, and retrieve results.
  * Synced with backend exam.go model.

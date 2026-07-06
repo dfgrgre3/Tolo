@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Map, Compass, Shield, Sword, Star, Zap, Trophy, BookOpen, Brain, Target } from "lucide-react";
 import Link from "next/link";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 
 export const metadata: Metadata = {
   title: `مسارات التعلم | ${SITE.name}`,

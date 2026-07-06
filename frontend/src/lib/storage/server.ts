@@ -1,5 +1,4 @@
 import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { sanitizeSvg } from "./svg-sanitizer";
 import type {
   UploadOptions,
@@ -18,8 +17,7 @@ const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 async function getSupabaseServerClient() {
-  const cookieStore = await cookies();
-  return createClient(cookieStore);
+  return createClient();
 }
 
 export async function uploadFileServer(options: UploadOptions): Promise<UploadResult> {
@@ -245,12 +243,12 @@ export async function emptyBucketServer(name: string): Promise<void> {
   }
 }
 
-export function getImageTransformUrlServer(
+export async function getImageTransformUrlServer(
   bucket: string,
   path: string,
   transform: ImageTransformOptions
-): string {
-  const supabase = createClient({} as any);
+): Promise<string> {
+  const supabase = await createClient();
   return supabase.storage.from(bucket).getPublicUrl(path, {
     transform: transform as Record<string, unknown>,
   }).data.publicUrl;

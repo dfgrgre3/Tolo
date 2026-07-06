@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { PrintButton } from "./PrintButton";
-import { SITE, CONTACT } from "@shared/site-config";
+import { SITE, CONTACT } from "@thanawy/shared/site-config";
 
 export const metadata: Metadata = {
   title: `سياسة الخصوصية والشروط | ${SITE.name}`,

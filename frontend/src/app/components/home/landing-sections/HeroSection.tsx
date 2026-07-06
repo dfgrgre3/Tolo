@@ -5,7 +5,7 @@ import { m } from "framer-motion";
 import { Shield, Sword, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 
 interface HeroSectionProps {
   shouldReduceMotion: boolean;

@@ -24,6 +24,10 @@ export interface ChunkInfo {
   index: number;
   size: number;
   uploadedAt: string;
+  /** SHA-256 hex digest of the chunk data supplied by the client, stored for
+   * integrity verification during re-assembly. Optional: absent for legacy
+   * uploads that pre-date checksum enforcement. */
+  checksum?: string;
 }
 
 // ─── Session TTL ─────────────────────────────────────────────────────────
@@ -106,7 +110,8 @@ export async function registerChunk(
   uploadId: string,
   chunkIndex: number,
   chunkSize: number,
-  storedPath: string
+  storedPath: string,
+  checksum?: string,
 ): Promise<{ receivedChunks: number; totalSize: number }> {
   const redis = assertRedis();
 
@@ -114,7 +119,12 @@ export async function registerChunk(
   await redis.zadd(
     chunksKey(uploadId),
     chunkIndex,
-    JSON.stringify({ index: chunkIndex, size: chunkSize, path: storedPath })
+    JSON.stringify({
+      index: chunkIndex,
+      size: chunkSize,
+      path: storedPath,
+      ...(checksum ? { checksum } : {}),
+    })
   );
 
   // Update meta counters

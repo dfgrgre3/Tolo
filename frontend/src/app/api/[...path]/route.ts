@@ -29,6 +29,13 @@ const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // Hard timeout for requests before failing fast to avoid blocking serverless threads.
 const FETCH_TIMEOUT_MS = 20000;
 
+// Maximum allowed request body size forwarded through the proxy.
+// Requests advertising a larger Content-Length are rejected immediately (413)
+// before any upstream connection is made, preventing memory exhaustion and
+// keeping serverless billing low. Routes with their own body-size enforcement
+// (e.g. /api/storage/chunked-upload) never reach this gateway.
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+
 // =============================================================================
 // Backend URL resolution (request-time, NOT module-load time)
 // =============================================================================
@@ -325,6 +332,23 @@ async function handleProxy(
   let duplex: 'half' | undefined = undefined;
 
   if (hasBody && request.body) {
+    // Guard: reject oversized requests before opening an upstream connection.
+    // We check the Content-Length header only — chunked-encoded requests without
+    // a declared length are allowed through (the backend enforces its own limit).
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+      const bodyBytes = parseInt(contentLength, 10);
+      if (!isNaN(bodyBytes) && bodyBytes > MAX_BODY_BYTES) {
+        console.warn(
+          `[API Proxy] Rejected ${request.method} /api/${path} - ` +
+          `Content-Length ${bodyBytes} exceeds MAX_BODY_BYTES ${MAX_BODY_BYTES}`
+        );
+        return NextResponse.json(
+          { error: 'Request entity too large', maxBytes: MAX_BODY_BYTES },
+          { status: 413 }
+        );
+      }
+    }
     body = request.body;
     duplex = 'half';
   }
@@ -364,19 +388,26 @@ async function handleProxy(
       `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path} ` +
       `target=${targetUrl} error=${errMsg}`
     );
+
+    // SECURITY: In production we must NOT expose the internal backend URL
+    // (targetUrl) or raw error messages to the browser — they reveal the
+    // internal network topology. Debug details are still logged above.
+    const isDev = process.env.NODE_ENV !== 'production';
     return NextResponse.json(
       {
         error: isTimeout
           ? 'Backend request timed out'
           : 'Failed to connect to backend service',
-        details: errMsg,
-        target: targetUrl,
-        attempts: 1,
-        timeoutMs: FETCH_TIMEOUT_MS,
-        hint: isTimeout
-          ? 'The Vercel Function may be hitting its maxDuration limit (10s on Hobby, 30s on Pro). ' +
-            'Also possible: cold start on the Go backend or Vercel-to-Vercel egress flakiness.'
-          : 'Check that INTERNAL_API_URL points to a reachable backend and that the deployment is not protected.',
+        ...(isDev ? {
+          details: errMsg,
+          target: targetUrl,
+          attempts: 1,
+          timeoutMs: FETCH_TIMEOUT_MS,
+          hint: isTimeout
+            ? 'The Vercel Function may be hitting its maxDuration limit (10s on Hobby, 30s on Pro). ' +
+              'Also possible: cold start on the Go backend or Vercel-to-Vercel egress flakiness.'
+            : 'Check that INTERNAL_API_URL points to a reachable backend and that the deployment is not protected.',
+        } : {}),
       },
       { status: 502 }
     );

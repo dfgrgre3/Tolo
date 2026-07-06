@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Shield, Star, Zap, Users, Crown, Target, Heart, Compass } from "lucide-react";
 import Link from "next/link";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 
 export const metadata: Metadata = {
   title: `عن ${SITE.name} | مملكة التعلم`,

@@ -1,5 +1,3 @@
-import { ConnectError, Code } from '@connectrpc/connect';
-
 /**
  * Checks if an error is a critical client-side error (e.g., 400, 401, 403, 404, or equivalent Connect RPC codes)
  * that should not be retried.
@@ -14,17 +12,18 @@ export function isCriticalError(error: unknown): boolean {
 
   const errObj = error as Record<string, unknown>;
 
-  // 1. Handle Connect RPC Errors
-  if (error instanceof ConnectError || (typeof error === 'object' && 'code' in errObj)) {
+  // 1. Handle Connect RPC Errors structurally to avoid pulling @connectrpc/connect package into client-side bundles
+  const isConnectError = error instanceof Error && (error.name === 'ConnectError' || error.constructor?.name === 'ConnectError');
+  if (isConnectError || (typeof error === 'object' && 'code' in errObj)) {
     const code = errObj.code;
     const criticalCodes = [
-      Code.InvalidArgument,
-      Code.Unauthenticated,
-      Code.PermissionDenied,
-      Code.NotFound,
-      Code.AlreadyExists,
-      Code.FailedPrecondition,
-      Code.Unimplemented,
+      3,  // InvalidArgument
+      16, // Unauthenticated
+      7,  // PermissionDenied
+      5,  // NotFound
+      6,  // AlreadyExists
+      9,  // FailedPrecondition
+      12, // Unimplemented
     ];
     if (typeof code === 'number' && criticalCodes.includes(code)) {
       return true;

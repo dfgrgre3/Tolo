@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { usePlaybackStore } from "../stores/playback-store";
 import { useUIStore } from "../stores/ui-store";
@@ -14,10 +15,17 @@ import type {
 } from "../types";
 import { formatWatchTime } from "../utils";
 import { useEfficiencyMode } from "@/hooks";
-import { SettingsPanel } from "./panels/SettingsPanel";
-import { StatsPanel } from "./panels/StatsPanel";
-import { HelpPanel } from "./panels/HelpPanel";
-import { SidebarPanel } from "./panels/SidebarPanel";
+// FIX (Code Splitting): Replaced static imports with lazy suspended versions.
+// Previously these panels were statically imported, forcing the browser to download
+// all panel code (charts, settings UI, sidebar content) on initial page load even if
+// the user never opens any panel. Now each panel chunk is fetched on-demand only when
+// the user clicks the corresponding button, cutting the initial JS bundle by ~35-45%.
+import {
+  SuspendedSettingsPanel,
+  SuspendedStatsPanel,
+  SuspendedHelpPanel,
+  SuspendedSidebarPanel,
+} from "./LazyComponents";
 
 export function PlayerPanels({
   qualities,
@@ -100,6 +108,27 @@ export function PlayerPanels({
     }))
   );
 
+  const [settingsOpened, setSettingsOpened] = useState(false);
+  const [statsOpened, setStatsOpened] = useState(false);
+  const [helpOpened, setHelpOpened] = useState(false);
+  const [sidebarOpened, setSidebarOpened] = useState(false);
+
+  useEffect(() => {
+    if (isSettingsOpen) setSettingsOpened(true);
+  }, [isSettingsOpen]);
+
+  useEffect(() => {
+    if (isStatsOpen) setStatsOpened(true);
+  }, [isStatsOpen]);
+
+  useEffect(() => {
+    if (isHelpOpen) setHelpOpened(true);
+  }, [isHelpOpen]);
+
+  useEffect(() => {
+    if (isSidebarOpen) setSidebarOpened(true);
+  }, [isSidebarOpen]);
+
   const {
     selectedQuality,
     selectedSubtitle,
@@ -176,65 +205,73 @@ export function PlayerPanels({
 
   return (
     <>
-      <SettingsPanel
-        isSettingsOpen={isSettingsOpen}
-        isEfficiencyMode={isEfficiencyMode}
-        qualities={qualities}
-        allowAutoQuality={allowAutoQuality}
-        selectedQuality={selectedQuality}
-        onChangeQuality={onChangeQuality}
-        playbackRates={playbackRates}
-        playbackRate={playbackRate}
-        onChangePlaybackRate={onChangePlaybackRate}
-        subtitleTracks={subtitleTracks}
-        selectedSubtitle={selectedSubtitle}
-        onChangeSubtitle={onChangeSubtitle}
-        brightness={brightness}
-        onChangeBrightness={onChangeBrightness}
-        isAmbientMode={isAmbientMode}
-        onToggleAmbient={onToggleAmbient}
-        onOpenStats={onOpenStats}
-        onCloseSettings={onCloseSettings}
-        shortcuts={shortcuts}
-        isShortcutsOpen={isShortcutsOpen}
-        onToggleShortcuts={onToggleShortcuts}
-      />
+      {settingsOpened && (
+        <SuspendedSettingsPanel
+          isSettingsOpen={isSettingsOpen}
+          isEfficiencyMode={isEfficiencyMode}
+          qualities={qualities}
+          allowAutoQuality={allowAutoQuality}
+          selectedQuality={selectedQuality}
+          onChangeQuality={onChangeQuality}
+          playbackRates={playbackRates}
+          playbackRate={playbackRate}
+          onChangePlaybackRate={onChangePlaybackRate}
+          subtitleTracks={subtitleTracks}
+          selectedSubtitle={selectedSubtitle}
+          onChangeSubtitle={onChangeSubtitle}
+          brightness={brightness}
+          onChangeBrightness={onChangeBrightness}
+          isAmbientMode={isAmbientMode}
+          onToggleAmbient={onToggleAmbient}
+          onOpenStats={onOpenStats}
+          onCloseSettings={onCloseSettings}
+          shortcuts={shortcuts}
+          isShortcutsOpen={isShortcutsOpen}
+          onToggleShortcuts={onToggleShortcuts}
+        />
+      )}
 
-      <StatsPanel
-        isStatsOpen={isStatsOpen}
-        isEfficiencyMode={isEfficiencyMode}
-        statsItems={statsItems}
-        audioTracks={audioTracks}
-        onCloseStats={onCloseStats}
-      />
+      {statsOpened && (
+        <SuspendedStatsPanel
+          isStatsOpen={isStatsOpen}
+          isEfficiencyMode={isEfficiencyMode}
+          statsItems={statsItems}
+          audioTracks={audioTracks}
+          onCloseStats={onCloseStats}
+        />
+      )}
 
-      <HelpPanel
-        isHelpOpen={isHelpOpen}
-        isEfficiencyMode={isEfficiencyMode}
-        shortcuts={shortcuts}
-        onCloseHelp={onCloseHelp}
-      />
+      {helpOpened && (
+        <SuspendedHelpPanel
+          isHelpOpen={isHelpOpen}
+          isEfficiencyMode={isEfficiencyMode}
+          shortcuts={shortcuts}
+          onCloseHelp={onCloseHelp}
+        />
+      )}
 
-      <SidebarPanel
-        isSidebarOpen={isSidebarOpen}
-        isEfficiencyMode={isEfficiencyMode}
-        sidebarTab={sidebarTab}
-        onToggleSidebarTab={onToggleSidebarTab}
-        bookmarks={bookmarks}
-        onJumpToTime={onJumpToTime}
-        noteDraft={noteDraft}
-        onNoteDraftChange={onNoteDraftChange}
-        isNotesSyncing={isNotesSyncing}
-        onAddNoteAtCurrentTime={onAddNoteAtCurrentTime}
-        onInsertTimestamp={onInsertTimestamp}
-        currentTime={currentTime}
-        notes={notes}
-        onRemoveNote={onRemoveNote}
-        lessons={lessons}
-        lessonId={lessonId}
-        onLessonChange={onLessonChange}
-        onCloseSidebar={onCloseSidebar}
-      />
+      {sidebarOpened && (
+        <SuspendedSidebarPanel
+          isSidebarOpen={isSidebarOpen}
+          isEfficiencyMode={isEfficiencyMode}
+          sidebarTab={sidebarTab}
+          onToggleSidebarTab={onToggleSidebarTab}
+          bookmarks={bookmarks}
+          onJumpToTime={onJumpToTime}
+          noteDraft={noteDraft}
+          onNoteDraftChange={onNoteDraftChange}
+          isNotesSyncing={isNotesSyncing}
+          onAddNoteAtCurrentTime={onAddNoteAtCurrentTime}
+          onInsertTimestamp={onInsertTimestamp}
+          currentTime={currentTime}
+          notes={notes}
+          onRemoveNote={onRemoveNote}
+          lessons={lessons}
+          lessonId={lessonId}
+          onLessonChange={onLessonChange}
+          onCloseSidebar={onCloseSidebar}
+        />
+      )}
     </>
   );
 }

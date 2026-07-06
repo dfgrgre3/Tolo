@@ -6,7 +6,7 @@ import { errorService as errorManager } from '@/lib/logging/error-service';
 import ErrorPage, { ErrorType } from './error-pages';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
-import { CONTACT } from '@shared/site-config';
+import { CONTACT } from '@thanawy/shared/site-config';
 
 // Precise helper to detect React/Next.js hydration mismatch errors
 function checkIsHydrationError(message: string): boolean {

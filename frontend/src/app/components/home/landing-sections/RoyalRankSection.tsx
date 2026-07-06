@@ -3,7 +3,7 @@
 import React from "react";
 import { m } from "framer-motion";
 import { Crown, Star, Zap, Target, Shield, Users } from "lucide-react";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 
 interface RoyalRankSectionProps {
   mounted: boolean;

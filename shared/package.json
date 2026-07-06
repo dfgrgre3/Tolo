@@ -4,5 +4,27 @@
   "private": true,
   "type": "module",
   "main": "./src/site-config.ts",
-  "types": "./src/site-config.ts"
+  "types": "./src/site-config.ts",
+  "exports": {
+    ".": {
+      "types": "./src/site-config.ts",
+      "default": "./src/site-config.ts"
+    },
+    "./site-config": {
+      "types": "./src/site-config.ts",
+      "default": "./src/site-config.ts"
+    },
+    "./types/api": {
+      "types": "./src/types/api.ts",
+      "default": "./src/types/api.ts"
+    },
+    "./types/enums": {
+      "types": "./src/types/enums.ts",
+      "default": "./src/types/enums.ts"
+    },
+    "./types/user": {
+      "types": "./src/types/user.ts",
+      "default": "./src/types/user.ts"
+    }
+  }
 }

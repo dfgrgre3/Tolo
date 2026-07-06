@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 
 export function LandingFooter() {
   return (

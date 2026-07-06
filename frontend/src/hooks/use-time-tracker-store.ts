@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'sonner';
 
 export type PomodoroState = 'work' | 'shortBreak' | 'longBreak';
@@ -81,8 +81,9 @@ const getDuration = (state: PomodoroState, settings: TimerSettings): number => {
 };
 
 export const useTimeTrackerStore = create<TimeTrackerState>()(
-  persist(
-    (set, get) => ({
+  subscribeWithSelector(
+    persist(
+      (set, get) => ({
       isRunning: false,
       timeLeft: DEFAULT_SETTINGS.pomodoroWorkMinutes * 60,
       currentPomodoroState: 'work',
@@ -317,7 +318,8 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
         sessionStartTime: null,
       }),
     }
-  )
+  )   // closes persist(...)
+  )   // closes subscribeWithSelector(...)
 );
 
 // Timer interval manager — singleton that drives the store tick

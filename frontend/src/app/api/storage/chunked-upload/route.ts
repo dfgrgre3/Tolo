@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
@@ -14,6 +13,21 @@ import {
   cleanupUpload,
   getRedisClient,
 } from "@/lib/redis";
+
+// ─── Auth Helper ────────────────────────────────────────────────────────────
+/**
+ * Resolves the authenticated user via Supabase JWT verification.
+ * SECURITY: We intentionally do NOT read userId from a plain cookie
+ * (e.g. "user_id") because unsigned cookies can be freely modified by
+ * the client. supabase.auth.getUser() validates the signed JWT and is
+ * the only trustworthy source of the caller's identity.
+ */
+async function getAuthenticatedUserId(): Promise<{ userId: string; supabase: Awaited<ReturnType<typeof createClient>> } | null> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (!user || error) return null;
+  return { userId: user.id, supabase };
+}
 
 // ─── Configuration ─────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB max total
@@ -41,13 +55,11 @@ interface UploadChunkBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const supabase = createClient(cookieStore);
+    const { userId, supabase } = auth;
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
@@ -121,6 +133,13 @@ export async function POST(request: NextRequest) {
       const totalChunksStr = formData.get("totalChunks") as string;
       const file = formData.get("file") as File;
       const folder = (formData.get("folder") as string) || "uploads";
+      // Optional SHA-256 checksum for integrity verification.
+      // Clients should send this as the X-Chunk-Checksum request header or
+      // as a "chunkChecksum" form field (header takes precedence).
+      const chunkChecksum =
+        request.headers.get("x-chunk-checksum") ||
+        (formData.get("chunkChecksum") as string | null) ||
+        undefined;
 
       if (!uploadId || !chunkIndexStr || !file) {
         return NextResponse.json(
@@ -175,8 +194,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Chunk upload failed: ${error.message}` }, { status: 500 });
       }
 
-      // Register chunk in Redis
-      const progress = await registerChunk(uploadId, chunkIndex, file.size, data.path);
+      // Register chunk in Redis (with optional checksum for integrity tracking)
+      const progress = await registerChunk(uploadId, chunkIndex, file.size, data.path, chunkChecksum);
 
       const isComplete = totalChunks > 0 && progress.receivedChunks >= totalChunks;
 
@@ -204,11 +223,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { userId } = auth;
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
@@ -263,11 +282,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { userId, supabase } = auth;
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
@@ -277,8 +296,6 @@ export async function PUT(request: NextRequest) {
         { status: 503 }
       );
     }
-
-    const supabase = createClient(cookieStore);
 
     const body = await request.json();
     const { uploadId } = body as { uploadId: string };
@@ -344,11 +361,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { userId, supabase } = auth;
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();
@@ -386,7 +403,6 @@ export async function DELETE(request: NextRequest) {
 
     // Cleanup stored chunk files from Supabase
     if (paths.length > 0) {
-      const supabase = createClient(cookieStore);
       // Remove in batches of 100 (Supabase limit)
       for (let i = 0; i < paths.length; i += 100) {
         const batch = paths.slice(i, i + 100);

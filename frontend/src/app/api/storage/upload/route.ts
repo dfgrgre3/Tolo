@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const supabase = createClient(cookieStore);
+    const supabase = await createClient();
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const supabase = createClient(cookieStore);
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const paths = searchParams.get("paths")?.split(",") || [];

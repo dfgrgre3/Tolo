@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * Auth Repository — all authentication API calls.
  * Uses apiClient for automatic cookie/token handling and retry logic.

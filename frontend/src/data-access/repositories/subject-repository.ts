@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * Subject / Course Repository — public & protected course API calls.
  * Covers: GET courses, curriculum, reviews, lessons, notes, and progress.

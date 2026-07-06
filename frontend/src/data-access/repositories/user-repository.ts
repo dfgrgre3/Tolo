@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * User Repository — profile, billing summary, and settings.
  */

@@ -192,27 +192,37 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
     }
   };
 
-  // Synchronize new sessions from Zustand store to page state
-  const prevSessionsLength = React.useRef(sessions.length);
+  // FIX: Replace the classic `useRef + useEffect` session-length watcher with a direct store
+  // subscription. The old approach was a "Syncing State via Effects" anti-pattern that is
+  // unsafe in React 19's Concurrent Mode (potential double-invocation / race condition).
+  //
+  // `useTimeTrackerStore.subscribe` fires OUTSIDE the React render cycle — it's synchronous
+  // with the store mutation, runs exactly once per session completion, and has no render
+  // dependency to cause re-subscription loops.
   React.useEffect(() => {
-    if (sessions.length > prevSessionsLength.current) {
-      const newSession = sessions[0];
-      if (onStudySessionCreate && newSession) {
-        onStudySessionCreate({
-          id: newSession.id,
-          userId: userId,
-          durationMin: newSession.durationMin,
-          focusScore: 100,
-          startTime: newSession.startTime,
-          endTime: newSession.endTime,
-          subjectId: newSession.courseId,
-          createdAt: newSession.endTime,
-          taskId: newSession.taskId,
-        });
+    const unsub = useTimeTrackerStore.subscribe(
+      (state) => state.sessions,
+      (sessions, prevSessions) => {
+        if (sessions.length > prevSessions.length && onStudySessionCreate) {
+          const newSession = sessions[0];
+          if (newSession) {
+            onStudySessionCreate({
+              id: newSession.id,
+              userId: userId,
+              durationMin: newSession.durationMin,
+              focusScore: 100,
+              startTime: newSession.startTime,
+              endTime: newSession.endTime,
+              subjectId: newSession.courseId,
+              createdAt: newSession.endTime,
+              taskId: newSession.taskId,
+            });
+          }
+        }
       }
-    }
-    prevSessionsLength.current = sessions.length;
-  }, [sessions, onStudySessionCreate, userId]);
+    );
+    return unsub;
+  }, [onStudySessionCreate, userId]); // Stable deps — no re-subscriptions on each tick
 
   // Recent sessions
   const recentSessions = sessions.slice(0, 6);

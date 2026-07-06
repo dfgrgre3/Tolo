@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Mail, MessageSquare, Phone, MapPin, Clock, Zap, Shield, Send } from "lucide-react";
 import { ContactForm } from "./ContactForm";
-import { SITE, CONTACT } from '@shared/site-config';
+import { SITE, CONTACT } from '@thanawy/shared/site-config';
 
 export const metadata: Metadata = {
   title: `تواصل معنا | ${SITE.name}`,

@@ -1,3 +1,5 @@
+import 'server-only';
+
 if (typeof window !== 'undefined') {
   throw new Error('Redis client can only be used on the server side.');
 }

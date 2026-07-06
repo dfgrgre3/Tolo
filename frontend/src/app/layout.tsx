@@ -16,7 +16,7 @@ import {
 import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
 import { headers } from 'next/headers';
 import Script from 'next/script';
-import { SITE } from '@shared/site-config';
+import { SITE } from '@thanawy/shared/site-config';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],

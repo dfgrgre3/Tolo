@@ -20,7 +20,7 @@ import {
 import { m } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { SITE, APP_VERSION } from "@shared/site-config";
+import { SITE, APP_VERSION } from "@thanawy/shared/site-config";
 export default function Footer() {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = React.useState(false);

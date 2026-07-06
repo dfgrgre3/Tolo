@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { m } from "framer-motion";
-import { SITE } from '@shared/site-config';
+import { SITE } from '@thanawy/shared/site-config';
 
 
 export function HeaderLogo() {

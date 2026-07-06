@@ -11,18 +11,13 @@ const isDev = process.env.NODE_ENV === 'development';
 const nextConfig = {
   turbopack: {
     // Monorepo root so Turbopack can resolve files outside the frontend app
-    // (e.g. `d:\thanawy\shared\src` via the @shared/* alias).
     root: path.resolve(__dirname, '..'),
-    // Aliases declared only in `webpack()` are ignored by Turbopack,
-    // so we must mirror them here for the @shared/* path to resolve.
-    resolveAlias: {
-      '@shared': path.resolve(__dirname, '../shared/src'),
-    },
   },
   // ─── Basics ────────────────────────────────────────────────────────────────
   reactStrictMode: true,
   compress: true,           // gzip/brotli at the Next.js edge
   poweredByHeader: false,   // remove X-Powered-By header (minor security + bytes)
+  transpilePackages: ["@thanawy/shared"],
 
   // ─── Image optimisation ────────────────────────────────────────────────────
   images: {
@@ -44,7 +39,6 @@ const nextConfig = {
   },
 
   serverExternalPackages: [
-    '@prisma/client',
     'ioredis',
     '@bufbuild/protobuf',
     '@connectrpc/connect',
@@ -122,27 +116,6 @@ const nextConfig = {
             value: 'Accept-Encoding',
           },
           {
-            // Strict CSP. Sentry + Vercel Insights + Supabase + Cloudflare R2 origins whitelisted.
-            // 'unsafe-inline' / 'unsafe-eval' retained for Next.js framework runtime.
-            // Tighten further by switching to nonce-based CSP when ready.
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' data: https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https:",
-              "media-src 'self' blob: https://*.supabase.co https://*.cloudflarestream.com https://*.youtube.com",
-              "connect-src 'self' https: wss:",
-              "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self' https://*.paymob.com",
-              "object-src 'none'",
-              "upgrade-insecure-requests",
-            ].join('; '),
-          },
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
@@ -162,36 +135,50 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self), payment=(self "https://*.paymob.com")',
           },
+          // ─── Content Security Policy ─────────────────────────────────────────
+          // Provides defence-in-depth against XSS. Next.js generates inline
+          // scripts during hydration so 'unsafe-inline' is required for scripts
+          // until a nonce-based middleware approach is adopted. However, all
+          // script *sources* are tightly allow-listed, limiting injection vectors
+          // significantly compared to having no CSP at all.
+          //
+          // ROADMAP: migrate to nonce-based CSP (middleware.ts nonce injection)
+          // to eliminate 'unsafe-inline' for scripts entirely.
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              // Only load scripts from known-safe origins
+              "script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com https://*.sentry.io",
+              // Styles: self + Google Fonts + inline (required by Tailwind/CSS-in-JS)
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Fonts from Google Fonts CDN only
+              "font-src 'self' data: https://fonts.gstatic.com",
+              // Images: self + Supabase CDN + YouTube thumbnails + Google avatars + DiceBear
+              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
+              // Iframes: YouTube embeds only
+              "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+              // API, Supabase realtime, Sentry, Vercel Analytics
+              "connect-src 'self' wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://o*.ingest.sentry.io",
+              // Video/audio: self + Supabase storage + Bunny + Cloudflare Stream
+              "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com",
+              // Service worker and Web Workers
+              "worker-src 'self' blob:",
+              // Block <object>, <embed>, <applet> — legacy plugin vectors
+              "object-src 'none'",
+              // Restrict <base href> to same origin
+              "base-uri 'self'",
+              // Form submissions to same origin only
+              "form-action 'self'",
+              // Fallback for any unspecified fetch directives
+              "default-src 'self'",
+            ].join('; '),
+          },
         ],
       },
     ];
 
-    // Only add custom Cache-Control headers for static assets in production
-    // In development, these can break Next.js dev server behavior
-    if (isProduction) {
-      headers.unshift(
-        // Static assets — 1 year immutable cache (Next.js content-hashes them)
-        {
-          source: '/_next/static/:path*',
-          headers: [
-            {
-              key: 'Cache-Control',
-              value: 'public, max-age=31536000, immutable',
-            },
-          ],
-        },
-        // Next.js image optimisation endpoint — 30 days
-        {
-          source: '/_next/image(.*)',
-          headers: [
-            {
-              key: 'Cache-Control',
-              value: 'public, max-age=2592000, stale-while-revalidate=86400',
-            },
-          ],
-        }
-      );
-    }
+    // Caching for static assets is managed natively by Next.js and Vercel/CDNs.
+    // Custom overrides are omitted to avoid configuration clashes.
 
     return headers;
   },
@@ -201,12 +188,7 @@ const nextConfig = {
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {
-    // @shared alias → ../shared/src
     config.resolve = config.resolve || {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@shared': path.resolve(__dirname, '../shared/src'),
-    };
 
     // Fallback for Node.js built-in modules used in client-side bundles
     if (!isServer) {

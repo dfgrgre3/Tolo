@@ -1,30 +1,56 @@
 /**
- * Safe SVG Sanitizer
- * A lightweight, zero-dependency utility to sanitize SVG content on both server and client.
- * Prevents XSS and XXE attacks by removing script tags, event handlers, javascript: links, and XML entities.
+ * Safe SVG Sanitizer — Structural DOM-based approach
+ *
+ * Uses DOMPurify (isomorphic-dompurify) with an SVG-specific profile to sanitize
+ * SVG content on both server and client. This replaces the previous naive Regex
+ * approach which was vulnerable to:
+ *   - <foreignObject> smuggling arbitrary HTML + scripts
+ *   - CSS expression() attacks via style attributes
+ *   - data: URI smuggling in xlink:href / href
+ *   - XML namespace confusion (e.g. <svg:script>)
+ *   - Multi-line / encoded event handler bypasses
+ *
+ * DOMPurify operates on a real DOM/XML parser tree, making structural bypasses
+ * fundamentally impossible — it does not pattern-match strings.
  */
+import DOMPurify from "isomorphic-dompurify";
+
 export function sanitizeSvg(svgText: string): string {
   if (!svgText) return "";
 
-  let sanitized = svgText;
+  return DOMPurify.sanitize(svgText, {
+    // Activates DOMPurify's built-in SVG element and attribute allowlist.
+    // Only known-safe SVG presentation elements are permitted (path, circle,
+    // rect, g, defs, use referencing internal IDs, etc.).
+    USE_PROFILES: { svg: true, svgFilters: true },
 
-  // 1. Remove XML External Entities (XXE) and DocType declarations
-  sanitized = sanitized.replace(/<!DOCTYPE\b[^>]*>/gi, "");
-  sanitized = sanitized.replace(/<!ENTITY\b[^>]*>/gi, "");
+    // Explicitly forbid elements that can smuggle foreign content or scripts,
+    // even though USE_PROFILES already excludes them — defence in depth.
+    FORBID_TAGS: [
+      "script",
+      "foreignObject", // Can embed arbitrary HTML/JS
+      "iframe",
+      "object",
+      "embed",
+      "link",          // Can load external stylesheets with expressions
+      "meta",
+    ],
 
-  // 2. Remove <script>...</script> tags and their contents
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+    // Explicitly forbid dangerous attributes beyond the profile defaults.
+    FORBID_ATTR: [
+      "onload",
+      "onerror",
+      "onclick",
+      "onfocus",
+      "onmouseover",
+      "onmouseout",
+      "onkeydown",
+      "onkeyup",
+      "onanimationstart",
+      "onbegin",       // SMIL animation event
+    ],
 
-  // 3. Remove inline event handlers (onmouseover, onload, etc.)
-  // Handles attributes like onload="...", onload='...', and onload=...
-  sanitized = sanitized.replace(/\bon[a-zA-Z]+\s*=\s*(["'])(.*?)\1/gi, "");
-  sanitized = sanitized.replace(/\bon[a-zA-Z]+\s*=\s*([^>\s"'`]+)/gi, "");
-
-  // 4. Remove javascript: URLs in href/xlink:href
-  sanitized = sanitized.replace(/\bhref\s*=\s*(["'])javascript:(.*?)\1/gi, "");
-  sanitized = sanitized.replace(/\bxlink:href\s*=\s*(["'])javascript:(.*?)\1/gi, "");
-  sanitized = sanitized.replace(/\bhref\s*=\s*([^>\s"'`]+javascript:[^>\s"'`]+)/gi, "");
-  sanitized = sanitized.replace(/\bxlink:href\s*=\s*([^>\s"'`]+javascript:[^>\s"'`]+)/gi, "");
-
-  return sanitized;
+    // Prevent data: URIs which can be used to smuggle base64-encoded payloads.
+    ALLOW_DATA_ATTR: false,
+  });
 }

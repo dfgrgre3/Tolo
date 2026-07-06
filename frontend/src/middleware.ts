@@ -24,15 +24,54 @@ function decodeJwt(token: string): JwtPayload | null {
     );
     
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }
 
 const ALLOWED_STUDENT_ROLES = ["STUDENT", "TEACHER", "PARENT", "SUPPORT", "ADMIN", "SUPER_ADMIN", "MODERATOR"];
 
+function generateNonce(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  let binary = "";
+  for (let i = 0; i < arr.length; i++) {
+    binary += String.fromCharCode(arr[i]!);
+  }
+  return btoa(binary);
+}
+
+function applyCsp(response: NextResponse, nonce: string) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cspHeader = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}'${isProduction ? '' : " 'unsafe-eval'"} https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https://*.supabase.co https://*.cloudflarestream.com https://*.youtube.com",
+    "connect-src 'self' https: wss:",
+    "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://*.paymob.com",
+    "object-src 'none'",
+    "upgrade-insecure-requests",
+  ].join('; ');
+  response.headers.set('Content-Security-Policy', cspHeader);
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Generate nonce and request headers for document requests (non-API)
+  const isApi = pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.');
+  const nonce = isApi ? '' : generateNonce();
+  const requestHeaders = new Headers(request.headers);
+  if (nonce) {
+    requestHeaders.set('x-nonce', nonce);
+  }
 
   const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/courses'];
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
@@ -86,7 +125,11 @@ export async function middleware(request: NextRequest) {
     }
 
     // 2. Perform silent token rotation if needed and refresh token is present
-    let nextResponse = NextResponse.next();
+    let nextResponse = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
     if (shouldRefresh && refreshToken) {
       let backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
       backendUrl = backendUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
@@ -135,7 +178,7 @@ export async function middleware(request: NextRequest) {
           redirectRes.cookies.delete('refresh_token');
           return redirectRes;
         }
-      } catch (err) {
+      } catch (_err) {
         // Network error during refresh, allow request to fail gracefully in UI or return error
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Service unavailable during session verification" }, { status: 503 });
@@ -166,10 +209,15 @@ export async function middleware(request: NextRequest) {
     }
 
     // Return the response containing updated set-cookie headers (if rotated successfully)
-    return nextResponse;
+    return nonce ? applyCsp(nextResponse, nonce) : nextResponse;
   }
 
-  return NextResponse.next();
+  const finalResponse = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+  return nonce ? applyCsp(finalResponse, nonce) : finalResponse;
 }
 
 export const config = {

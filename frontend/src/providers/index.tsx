@@ -13,6 +13,7 @@ import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
+import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 import { EfficiencyProvider } from '@/hooks/use-efficiency';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
@@ -84,6 +85,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                       <TooltipProvider>
                         <LazyMotion features={domAnimation}>
                           <TimerBootstrap />
+                          <TimeCoordinatorProvider />
                           <PerformanceProvider key="performance-provider">
                             {children}
                           </PerformanceProvider>

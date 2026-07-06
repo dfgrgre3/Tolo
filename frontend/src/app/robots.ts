@@ -1,5 +1,5 @@
 import { type MetadataRoute } from 'next';
-import { SITE } from '@shared/site-config';
+import { SITE } from '@thanawy/shared/site-config';
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = SITE.url;

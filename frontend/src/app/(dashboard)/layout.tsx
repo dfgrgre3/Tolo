@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import React from 'react';
-import { SITE } from '@shared/site-config';
+import { SITE } from '@thanawy/shared/site-config';
 
 export const metadata: Metadata = {
   title: `لوحة التحكم | ${SITE.name}`,

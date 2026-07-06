@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { subjectRepository } from '@/data-access/repositories/subject-repository';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 import type { Subject } from '@/types/subject';
 import type { PaginatedResponse } from '@/types/api/responses';
 
@@ -12,14 +13,14 @@ function normalizeCourses(data: PaginatedResponse<Subject> | Subject[]): Subject
 export function useCourses() {
   return useQuery({
     queryKey: ['courses'],
-    queryFn: () => subjectRepository.getCourses().then(normalizeCourses),
+    queryFn: () => apiClient.get<PaginatedResponse<Subject> | Subject[]>(apiRoutes.courses.list).then(normalizeCourses),
   });
 }
 
 export function useCourse(id: string) {
   return useQuery({
     queryKey: ['course', id],
-    queryFn: () => subjectRepository.getCourse(id),
+    queryFn: () => apiClient.get<Subject>(apiRoutes.courses.byId(id)),
     enabled: !!id,
   });
 }

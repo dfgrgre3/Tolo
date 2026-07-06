@@ -27,7 +27,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { SITE } from "@shared/site-config";
+import { SITE } from "@thanawy/shared/site-config";
 import {
   AreaChart,
   Area,

@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { CourseService, GetCourseRequestSchema, GetCoursesRequestSchema } from "@/data-access/grpc/course_pb";

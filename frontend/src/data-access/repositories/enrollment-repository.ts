@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * Enrollment Repository — enrollment status, progress, and course progression.
  */
