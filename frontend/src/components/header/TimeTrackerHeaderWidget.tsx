@@ -103,6 +103,17 @@ export function TimeTrackerHeaderWidget() {
     setMounted(true);
   }, []);
 
+  // Close panel on outside click
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isOpen]);
+
   const {
     isRunning,
     timeLeft,
@@ -129,17 +140,6 @@ export function TimeTrackerHeaderWidget() {
 
   const progress = Math.max(0, Math.min(100, 100 - (timeLeft / totalDuration) * 100));
   const cfg = stateConfig[currentPomodoroState];
-
-  // Close panel on outside click
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, [isOpen]);
 
   const toggleTimer = () => {
     if (isRunning) pauseTimer();
