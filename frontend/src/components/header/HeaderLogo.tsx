@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { m } from "framer-motion";
+import { SITE } from '@shared/site-config';
 
 
 export function HeaderLogo() {
@@ -20,8 +21,8 @@ export function HeaderLogo() {
         whileTap={{ scale: 0.95 }}>
         
         <Image
-          src="/logo-tolo.jpg"
-          alt="TOLO"
+          src={SITE.logo}
+          alt={SITE.name}
           width={48}
           height={48}
           className="h-full w-full object-cover"
@@ -37,11 +38,11 @@ export function HeaderLogo() {
       
       <div className="flex flex-col">
         <h1 className="text-3xl font-black tracking-tighter leading-none text-[#1A237E] dark:text-white uppercase transition-colors group-hover:text-primary">
-          TOLO
+          {SITE.name}
         </h1>
         <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#FF6D00] group-hover:translate-x-1 transition-transform whitespace-nowrap">
-             المستقبل يبدأ هنا
+             {SITE.tagline}
            </span>
         </div>
       </div>

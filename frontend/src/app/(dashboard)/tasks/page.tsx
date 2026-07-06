@@ -23,7 +23,7 @@ import {
   Flame } from
 'lucide-react';
 import { Task, TaskStatus, SubjectType } from '@/types/tasks';
-import { TaskForm, TaskList } from '@/app/(dashboard)/tasks/components';
+import { TaskForm, TaskList } from '@/features/tasks/components';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';

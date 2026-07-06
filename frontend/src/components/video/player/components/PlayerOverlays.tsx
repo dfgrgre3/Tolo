@@ -8,7 +8,8 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useUIStore } from "../stores/ui-store";
 import { formatDuration } from "../utils";
 
 export function PlayerOverlays({
@@ -25,24 +26,30 @@ export function PlayerOverlays({
   onRetry?: () => void;
 }) {
   const {
-    feedback,
     isLoading,
-    errorMessage,
     resumeTime,
     isEnded,
     autoplayCountdown,
-  } = useCourseVideoPlayerStore(
+  } = usePlaybackStore(
     useShallow((state) => ({
-      feedback: state.feedback,
       isLoading: state.isLoading,
-      errorMessage: state.errorMessage,
       resumeTime: state.resumeTime,
       isEnded: state.isEnded,
       autoplayCountdown: state.autoplayCountdown,
     }))
   );
 
-  const setPlayerState = useCourseVideoPlayerStore((s) => s.setPlayerState);
+  const {
+    feedback,
+    errorMessage,
+  } = useUIStore(
+    useShallow((state) => ({
+      feedback: state.feedback,
+      errorMessage: state.errorMessage,
+    }))
+  );
+
+  const setUIState = useUIStore((s) => s.setUIState);
   const autoplayProgress = ((5 - autoplayCountdown) / 5) * 100;
 
   return (
@@ -56,8 +63,8 @@ export function PlayerOverlays({
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
             className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
           >
-            <div className="rounded-3xl border border-white/10 bg-black/65 px-5 py-4 text-center shadow-2xl backdrop-blur-xl">
-              <feedback.icon className="mx-auto h-7 w-7 text-white" />
+            <div className="rounded-3xl border border-white/10 bg-black/65 px-5 py-4 text-center shadow-2xl backdrop-blur-xl transition-all duration-300">
+              {feedback.icon && <feedback.icon className="mx-auto h-7 w-7 text-white" />}
               <p className="mt-2 text-sm font-bold text-white">{feedback.label}</p>
             </div>
           </m.div>
@@ -70,6 +77,7 @@ export function PlayerOverlays({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             className="absolute inset-0 z-30 flex items-center justify-center bg-black/35 backdrop-blur-[2px]"
           >
             <div className="relative flex items-center justify-center">
@@ -78,7 +86,7 @@ export function PlayerOverlays({
               {/* Middle ring (opposite direction) */}
               <div className="absolute h-14 w-14 animate-spin rounded-full border-2 border-transparent border-b-cyan-400/60" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
               {/* Inner icon */}
-              <div className="rounded-3xl border border-white/10 bg-black/60 p-4 shadow-xl backdrop-blur-xl">
+              <div className="rounded-3xl border border-white/10 bg-black/60 p-4 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-110">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
               </div>
             </div>
@@ -92,7 +100,8 @@ export function PlayerOverlays({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="absolute left-4 right-4 top-20 z-40 rounded-2xl border border-rose-400/20 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 backdrop-blur-xl"
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="absolute left-4 right-4 top-20 z-40 rounded-2xl border border-rose-400/20 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 backdrop-blur-xl shadow-[0_0_20px_rgba(244,63,94,0.2)]"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -104,7 +113,7 @@ export function PlayerOverlays({
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="rounded-full p-1.5 text-rose-200 transition hover:bg-rose-500/30 hover:text-white"
+                    className="rounded-full p-1.5 text-rose-200 transition-all duration-300 hover:bg-rose-500/30 hover:text-white hover:scale-110"
                     aria-label="إعادة المحاولة"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -112,8 +121,8 @@ export function PlayerOverlays({
                 )}
                 <button
                   type="button"
-                  onClick={() => setPlayerState({ errorMessage: null })}
-                  className="rounded-full p-1.5 text-rose-200 transition hover:bg-rose-500/30 hover:text-white"
+                  onClick={() => setUIState({ errorMessage: null })}
+                  className="rounded-full p-1.5 text-rose-200 transition-all duration-300 hover:bg-rose-500/30 hover:text-white hover:scale-110"
                   aria-label="إغلاق رسالة الخطأ"
                 >
                   <X className="h-4 w-4" />
@@ -130,6 +139,7 @@ export function PlayerOverlays({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="absolute left-4 right-4 top-24 z-40 rounded-[26px] border border-blue-400/20 bg-slate-950/80 p-4 shadow-2xl backdrop-blur-2xl sm:left-auto sm:right-6 sm:w-[340px]"
           >
             <div className="flex items-start justify-between gap-4">
@@ -142,7 +152,7 @@ export function PlayerOverlays({
               <button
                 type="button"
                 onClick={onDismissResume}
-                className="rounded-full p-1 text-white/40 transition hover:bg-white/10 hover:text-white"
+                className="rounded-full p-1 text-white/40 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-110"
                 aria-label="إغلاق اقتراح الاستكمال"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -153,14 +163,14 @@ export function PlayerOverlays({
               <button
                 type="button"
                 onClick={onAcceptResume}
-                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-600"
+                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-blue-600 hover:scale-105"
               >
                 متابعة من هنا
               </button>
               <button
                 type="button"
                 onClick={onDismissResume}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105"
               >
                 تجاهل
               </button>
@@ -175,6 +185,7 @@ export function PlayerOverlays({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-xl"
           >
             <div className="w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/85 p-8 text-center shadow-2xl">
@@ -213,14 +224,14 @@ export function PlayerOverlays({
                 <button
                   type="button"
                   onClick={onCancelAutoplay}
-                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105"
                 >
                   إلغاء
                 </button>
                 <button
                   type="button"
                   onClick={onPlayNextNow}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-600"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-blue-600 hover:scale-105"
                 >
                   تشغيل الآن
                   <ChevronLeft className="h-4 w-4" />

@@ -1,162 +1,123 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Mail, Loader2, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, KeyRound, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { m, AnimatePresence } from "framer-motion";
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
-import { errorService } from '@/lib/logging/error-service';
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email('يرجى إدخال بريد إلكتروني صحيح'),
-});
-
-type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, KeyRound, AlertCircle, CheckCircle, Mail } from "lucide-react";
+import Link from "next/link";
 
 export default function ForgotPasswordPage() {
-  const { forgotPassword } = useAuth();
-  const router = useRouter();
-  const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ForgotPasswordValues>({
-    resolver: zodResolver(forgotPasswordSchema),
-  });
-
-  const onSubmit = async (data: ForgotPasswordValues) => {
-    setIsLoading(true);
-    setStatus(null);
-
-    try {
-      const result = await forgotPassword(data.email);
-
-      if (result.success) {
-        toast.success('تم إرسال رمز التحقق بنجاح');
-        setStatus({
-          type: 'success',
-          message: result.message || 'تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح. جاري تحويلك لإدخال الرمز...',
-        });
-        setTimeout(() => {
-          router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
-        }, 1500);
-      } else {
-        toast.error(result.error || 'حدث خطأ ما');
-        setStatus({
-          type: 'error',
-          message: result.error || 'شيء ما سار بشكل خاطئ. يرجى المحاولة مرة أخرى.',
-        });
-      }
-    } catch (error) {
-      errorService.logError(error, {
-        source: 'ForgotPasswordPage',
-        severity: 'medium',
-      });
-      toast.error('خطأ في الاتصال بالشبكة');
-      setStatus({
-        type: 'error',
-        message: 'خطأ في الشبكة. يرجى التحقق من اتصالك.',
-      });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("يرجى إدخال البريد الإلكتروني");
+      return;
     }
 
-    setIsLoading(false);
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل إرسال رمز الاستعادة");
+      }
+
+      setSuccess("إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رابط لإعادة تعيين كلمة المرور.");
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ غير متوقع");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10" dir="rtl">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-border bg-card/40 p-8 md:p-12 backdrop-blur-2xl shadow-2xl transition-colors duration-300"
-      >
-        <div className="mb-10 text-center space-y-4">
-           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 shadow-xl border border-primary/20">
-              <KeyRound className="w-8 h-8 text-primary" />
-           </div>
-           <h2 className="text-3xl font-black text-foreground tracking-tight">استعادة <span className="text-primary">الشيفرة</span></h2>
-           <p className="text-muted-foreground text-sm font-medium">لا تقلق، سنرسل لك رابطاً لاستعادة الوصول إلى حسابك.</p>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {status && (
-            <m.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className={`mb-8 p-4 rounded-2xl flex items-start gap-3 border ${
-                status.type === 'error' 
-                  ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' 
-                  : 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-              }`}
-            >
-              {status.type === 'error' ? (
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500" />
-              ) : (
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-500" />
-              )}
-              <p className="text-xs font-bold leading-relaxed">{status.message}</p>
-            </m.div>
-          )}
-        </AnimatePresence>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <div className="space-y-3">
-            <label htmlFor="forgot-email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">المعرف الإلكتروني (البريد)</label>
-            <div className="relative group">
-              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input
-                id="forgot-email"
-                {...register('email')}
-                type="email"
-                disabled={isLoading || status?.type === 'success'}
-                className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm disabled:opacity-50"
-                placeholder="warrior@realm.me"
-              />
-            </div>
-            {errors.email && (
-              <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.email.message}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading || status?.type === 'success'}
-            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden shadow-lg shadow-primary/20"
-          >
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <span className="uppercase tracking-widest">إرسـال الرابـط</span>
-                <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
+    <div className="w-full flex items-center justify-center py-6">
+      <div className="w-full max-w-[460px] mx-auto">
+        <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl transition-all duration-300">
+          <CardHeader className="space-y-2 text-center pb-6">
+            <div className="flex justify-center mb-3">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <KeyRound className="h-6 w-6" />
               </div>
-            )}
-          </Button>
-        </form>
-
-        <div className="mt-10 text-center">
-          <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-muted-foreground hover:text-foreground transition-all uppercase tracking-widest group">
-            <ArrowLeft className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> العودة للبوابة
-          </Link>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-border flex items-center justify-center opacity-40">
-          <Sparkles size={12} className="text-primary mr-2" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Ancient Key Protection</span>
-          <Sparkles size={12} className="text-primary ml-2" />
-        </div>
-      </m.div>
+            </div>
+            <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50">استعادة كلمة المرور</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400">أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="grid gap-5">
+              {error && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle className="font-semibold mr-2">خطأ</AlertTitle>
+                  <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <AlertTitle className="font-semibold mr-2">تم الإرسال بنجاح</AlertTitle>
+                  <AlertDescription dir="rtl" className="mr-2">{success}</AlertDescription>
+                </Alert>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <Mail className="h-4 w-4" />
+                  </span>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    dir="ltr"
+                    className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4 pt-4">
+              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0" disabled={isLoading || !!success}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  "إرسال رابط الاستعادة"
+                )}
+              </Button>
+              <div className="text-sm text-center text-slate-500 dark:text-slate-400 font-medium">
+                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4 transition-colors">
+                  العودة لتسجيل الدخول
+                </Link>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -9,14 +9,19 @@ import {
   type PointerEvent,
 } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import type { BookmarkItem, ThumbnailCue, TimelineNote } from "../types";
+import type { BookmarkItem, ThumbnailCue, TimelineNote, InteractiveQuestion } from "../types";
 import {
   clamp,
   formatDuration,
-  getThumbnailCueAtTime,
 } from "../utils";
-import { useCourseVideoPlayerStore } from "../store";
-import { cn, getRandomFloat } from "@/lib/utils";
+import { usePlaybackStore } from "../stores/playback-store";
+import { cn } from "@/lib/utils";
+
+// Double-tap for speed control (mobile-focused)
+const DOUBLE_TAP_THRESHOLD_MS = 300;
+
+// Simple random function for heatmap
+const getRandomFloat = () => Math.random();
 
 export const ProgressRail = memo(function ProgressRail({
   duration,
@@ -24,6 +29,7 @@ export const ProgressRail = memo(function ProgressRail({
   markers,
   thumbnails,
   notes = [],
+  interactiveQuestions = [],
   onSeek,
 }: {
   duration: number;
@@ -31,18 +37,21 @@ export const ProgressRail = memo(function ProgressRail({
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
   notes?: TimelineNote[];
+  interactiveQuestions?: InteractiveQuestion[];
   onSeek: (value: number) => void;
 }) {
-  const currentTime = useCourseVideoPlayerStore((s) => s.currentTime);
+  const currentTime = usePlaybackStore((s) => s.currentTime);
   const railRef = useRef<HTMLDivElement>(null);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
   const [previewPercent, setPreviewPercent] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Mobile-specific: double tap hint
+  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+  const [showDoubleTapHint, setShowDoubleTapHint] = useState(false);
 
-  const { loopStart, loopEnd } = useCourseVideoPlayerStore((s) => ({
-    loopStart: s.loopStart,
-    loopEnd: s.loopEnd,
-  }));
+  const loopStart = usePlaybackStore((s) => s.loopStart);
+  const loopEnd = usePlaybackStore((s) => s.loopEnd);
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPercent = duration > 0 ? (buffered / duration) * 100 : 0;
@@ -64,7 +73,6 @@ export const ProgressRail = memo(function ProgressRail({
     const points = 40;
     const data = [];
     for (let i = 0; i < points; i++) {
-      // Create some "hot" zones
       const base = Math.sin(i / 2) * 15 + 20;
       const noise = getRandomFloat() * 10;
       data.push(Math.max(5, base + noise));
@@ -72,22 +80,7 @@ export const ProgressRail = memo(function ProgressRail({
     return data;
   }, [duration]);
 
-  const activeCue =
-    previewTime !== null ? getThumbnailCueAtTime(thumbnails, previewTime) : null;
-  const activeMarker = useMemo(() => {
-    if (previewTime === null) return null;
-
-    return (
-      markers.find((marker) => {
-        if (marker.endTime && marker.endTime > marker.time) {
-          return previewTime >= marker.time && previewTime <= marker.endTime;
-        }
-
-        return Math.abs(marker.time - previewTime) <= 4;
-      }) ?? null
-    );
-  }, [markers, previewTime]);
-
+  // Mobile-friendly preview - larger touch area
   const updatePreview = useCallback(
     (clientX: number) => {
       if (!railRef.current || duration <= 0) return null;
@@ -190,15 +183,42 @@ export const ProgressRail = memo(function ProgressRail({
     [currentTime, duration, onSeek]
   );
 
+  // Mobile double-tap detection for speed boost hint
   useEffect(() => {
-    if (!isDragging) return;
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!railRef.current) return;
+      const x = e.touches[0]?.clientX ?? 0;
+      
+      if (lastTapRef.current) {
+        const timeDiff = Date.now() - lastTapRef.current.time;
+        const xDiff = Math.abs(x - lastTapRef.current.x);
+        
+        // Double tap detected - show hint
+        if (timeDiff < DOUBLE_TAP_THRESHOLD_MS && xDiff < 50) {
+          setShowDoubleTapHint(true);
+          setTimeout(() => setShowDoubleTapHint(false), 1500);
+        }
+      }
+      
+      lastTapRef.current = { time: Date.now(), x };
+    };
 
-    setPreviewTime(currentTime);
-    setPreviewPercent(safeProgressPercent);
-  }, [currentTime, isDragging, safeProgressPercent]);
+    const rail = railRef.current;
+    rail?.addEventListener('touchstart', handleTouchStart);
+    
+    return () => rail?.removeEventListener('touchstart', handleTouchStart);
+  }, []);
+
+  // Mobile-friendly marker height
+  const markerHeight = useMemo(() => 
+    isDragging ? "h-5" : "h-3", 
+  [isDragging]);
+
+  // Mobile-friendly preview position (higher to avoid thumb obstruction)
+  const previewPositionClass = previewPercent > 85 ? "bottom-12" : "bottom-10";
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div
         ref={railRef}
         role="slider"
@@ -208,7 +228,10 @@ export const ProgressRail = memo(function ProgressRail({
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(currentTime)}
         aria-valuetext={`${formatDuration(currentTime)} من ${formatDuration(duration)}`}
-        className="group/progress relative cursor-pointer py-2 outline-none"
+        className={cn(
+          "group/progress relative cursor-pointer py-5 outline-none sm:py-3", // Increased touch area on mobile
+          "touch-pan-y" // Better touch handling
+        )}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
@@ -229,91 +252,72 @@ export const ProgressRail = memo(function ProgressRail({
         }}
         onKeyDown={handleKeyDown}
       >
+        {/* Double-tap hint for mobile users */}
+        {showDoubleTapHint && (
+          <m.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute -top-10 left-1/2 -translate-x-1/2 rounded-full bg-blue-500/20 px-4 py-1.5 text-[11px] font-bold text-blue-200 backdrop-blur-md sm:hidden"
+          >
+            انقر مرتين لتسريع التشغيل
+          </m.div>
+        )}
+
         <AnimatePresence>
-          {previewTime !== null ? (
+          {previewTime !== null && !isDragging ? (
             <m.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className="pointer-events-none absolute bottom-8 z-20 -translate-x-1/2"
+              className={cn(
+                "pointer-events-none absolute z-20 -translate-x-1/2",
+                previewPositionClass
+              )}
               style={{ left: `${previewPercent}%` }}
             >
-              {activeCue ? (
-                <div className="overflow-hidden rounded-xl border border-white/10 bg-black/95 p-1 shadow-2xl">
-                  <div
-                    className="h-[72px] w-[128px] rounded-lg bg-cover bg-no-repeat"
-                    style={{
-                      backgroundImage: `url(${activeCue.imageUrl})`,
-                      backgroundPosition: `-${activeCue.x}px -${activeCue.y}px`,
-                      backgroundSize:
-                        activeCue.width > 0 && activeCue.height > 0
-                          ? "auto"
-                          : "cover",
-                    }}
-                  />
-                  <div className="px-1 pb-1 pt-2 text-center text-[11px] font-bold text-white">
-                    {formatDuration(previewTime)}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-white/10 bg-black/90 px-2 py-1 text-[11px] font-bold text-white shadow-xl">
-                  {formatDuration(previewTime)}
-                </div>
-              )}
-
-              {activeMarker ? (
-                <div className="mt-2 max-w-[180px] rounded-lg border border-white/10 bg-slate-950/90 px-2 py-1 text-center text-[11px] font-bold text-white/80 shadow-xl">
-                  {activeMarker.label}
-                </div>
-              ) : null}
+              <div className="rounded-xl border border-white/10 bg-black/90 px-3 py-1.5 text-[12px] font-bold text-white shadow-xl sm:px-2 sm:py-1 sm:text-[11px]">
+                {formatDuration(previewTime ?? 0)}
+              </div>
             </m.div>
           ) : null}
         </AnimatePresence>
 
-        {/* Engagement Heatmap */}
-        <div className="absolute inset-x-0 -top-4 bottom-2 pointer-events-none opacity-0 group-hover/progress:opacity-40 group-focus-within/progress:opacity-40 transition-opacity duration-300">
-          <svg className="h-full w-full" preserveAspectRatio="none" viewBox={`0 0 ${heatmapData.length} 50`}>
-            <path
-              d={`M 0 50 ${heatmapData.map((h, i) => `L ${i} ${50 - h}`).join(" ")} L ${heatmapData.length} 50 Z`}
-              fill="url(#heatmapGradient)"
-              className="transition-all duration-500"
-            />
-            <defs>
-              <linearGradient id="heatmapGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-
-        <div className="relative h-2.5 overflow-hidden rounded-full bg-white/15 transition-all duration-200 group-hover/progress:h-3.5 group-focus-within/progress:h-3.5">
+        {/* Progress Rail - thicker on mobile */}
+        <div className="relative h-3 overflow-hidden rounded-full bg-white/20 transition-all duration-300 group-hover/progress:h-4 group-focus-within/progress:h-4 sm:h-2 sm:group-hover/progress:h-2.5 sm:group-focus-within/progress:h-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-white/15"
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-white/10 to-white/5 transition-all duration-300"
             style={{ width: `${safeBufferedPercent}%` }}
           />
 
           {/* A-B Loop Region */}
           {loopRegion && !loopRegion.pending && (
             <div
-              className="absolute inset-y-0 rounded-full bg-violet-400/25 border-x-2 border-violet-400/50"
+              className={cn(
+                "absolute inset-y-0 rounded-full bg-gradient-to-r from-violet-400/30 to-purple-400/30 border-x-2 border-violet-400/60 shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all duration-300",
+                isDragging ? "h-full" : "h-3"
+              )}
               style={{ left: `${loopRegion.start}%`, width: `${loopRegion.width}%` }}
             />
           )}
-          {/* Loop start marker (pending) */}
+          
+          {/* Loop start marker (pending) - larger on mobile */}
           {loopRegion?.pending && (
             <div
-              className="absolute top-1/2 z-10 h-5 w-1 -translate-y-1/2 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.7)]"
+              className={cn(
+                "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-gradient-to-br from-violet-400 to-purple-400 animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.6)] ring-2 ring-violet-400/50 transition-all duration-300",
+                isDragging ? "h-7 w-1.5" : "h-5 w-1"
+              )}
               style={{ left: `${loopRegion.start}%` }}
             />
           )}
 
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-all duration-300"
             style={{ width: `${safeProgressPercent}%` }}
           />
 
-          {/* Chapter / Bookmark Markers */}
+          {/* Chapter / Bookmark Markers - larger touch targets on mobile */}
           {markers.map((marker) => {
             const left = duration > 0 ? (marker.time / duration) * 100 : 0;
             const width =
@@ -324,21 +328,25 @@ export const ProgressRail = memo(function ProgressRail({
             return width ? (
               <div
                 key={`${marker.time}-${marker.label}-segment`}
-                className="absolute inset-y-0 rounded-full bg-amber-300/20"
+                className="absolute inset-y-0 rounded-full bg-gradient-to-r from-amber-300/25 to-orange-300/25 border border-amber-400/20"
                 style={{ left: `${left}%`, width: `${width}%` }}
                 title={marker.label}
               />
             ) : (
               <div
                 key={`${marker.time}-${marker.label}`}
-                className="absolute top-1/2 z-10 h-5 w-[3px] -translate-y-1/2 rounded-full bg-amber-300/90 shadow-[0_0_10px_rgba(251,191,36,0.7)]"
-                style={{ left: `${left}%` }}
+                className={cn(
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 shadow-[0_0_12px_rgba(251,191,36,0.5)] ring-1 ring-amber-400/30 transition-all duration-300 hover:scale-125 cursor-pointer",
+                  markerHeight,
+                  "w-[3px]"
+                )}
+                style={{ left: `${left}%`, marginLeft: "-1.5px" }}
                 title={marker.label}
               />
             );
           })}
 
-          {/* Note Markers on Timeline */}
+          {/* Note Markers on Timeline - larger on mobile */}
           {notes.map((note) => {
             const left = duration > 0 ? (note.time / duration) * 100 : 0;
             const isNear = Math.abs(note.time - currentTime) < 2;
@@ -346,10 +354,10 @@ export const ProgressRail = memo(function ProgressRail({
               <div
                 key={note.id}
                 className={cn(
-                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full transition-all duration-300",
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full transition-all duration-300 ring-1 ring-orange-400/30 hover:scale-125 cursor-pointer",
                   isNear
-                    ? "h-4 w-4 bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.8)] animate-pulse"
-                    : "h-2.5 w-2.5 bg-orange-400/70 shadow-[0_0_6px_rgba(251,146,60,0.4)]"
+                    ? "h-5 w-5 bg-gradient-to-br from-orange-400 to-red-400 shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-pulse"
+                    : "h-3 w-3 bg-gradient-to-br from-orange-400 to-orange-500/80 shadow-[0_0_8px_rgba(251,146,60,0.4)]"
                 )}
                 style={{ left: `${left}%`, marginLeft: "-4px" }}
                 title={note.text}
@@ -357,22 +365,43 @@ export const ProgressRail = memo(function ProgressRail({
             );
           })}
 
-          {/* Progress Thumb */}
+          {/* Interactive Question Markers on Timeline - larger on mobile */}
+          {interactiveQuestions && interactiveQuestions.map((q) => {
+            const timePos = q.timePosition ?? q.time ?? 0;
+            const left = duration > 0 ? (timePos / duration) * 100 : 0;
+            const isNear = Math.abs(timePos - currentTime) < 2;
+            return (
+              <div
+                key={q.id}
+                className={cn(
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full border-2 border-white/50 transition-all duration-300 ring-2 ring-emerald-400/30 hover:scale-125 cursor-pointer",
+                  isNear
+                    ? "h-5 w-5 bg-gradient-to-br from-emerald-400 to-green-400 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse"
+                    : "h-3 w-3 bg-gradient-to-br from-emerald-500 to-green-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                )}
+                style={{ left: `${left}%`, marginLeft: "-6px" }}
+                title="سؤال تفاعلي"
+              />
+            );
+          })}
+
+          {/* Progress Thumb - larger on mobile */}
           <div
             className={cn(
-              "absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-500 transition-all duration-150",
+              "absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gradient-to-br from-blue-500 to-cyan-500 transition-all duration-300 ring-2 ring-blue-400/30",
               isDragging
-                ? "h-5 w-5 shadow-[0_0_24px_rgba(59,130,246,0.9)]"
-                : "h-4 w-4 shadow-[0_0_18px_rgba(59,130,246,0.7)]"
+                ? "h-7 w-7 shadow-[0_0_30px_rgba(59,130,246,0.8)]"
+                : "h-5 w-5 shadow-[0_0_20px_rgba(59,130,246,0.6)] group-hover/progress:scale-110"
             )}
             style={{ left: `${safeProgressPercent}%` }}
           />
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-[12px] font-bold tabular-nums text-white/65">
-        <span>{formatDuration(currentTime)}</span>
-        <span>{formatDuration(duration)}</span>
+      {/* Duration labels - larger on mobile */}
+      <div className="flex items-center justify-between text-[14px] font-bold tabular-nums text-white/90 sm:text-[12px]">
+        <span className="rounded-lg bg-white/5 px-3 py-1.5 text-white/80 backdrop-blur-sm transition-all hover:bg-white/10">{formatDuration(currentTime)}</span>
+        <span className="rounded-lg bg-white/5 px-3 py-1.5 text-white/80 backdrop-blur-sm transition-all hover:bg-white/10">{formatDuration(duration)}</span>
       </div>
     </div>
   );

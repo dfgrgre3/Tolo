@@ -1,6 +1,8 @@
 import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { SEEK_STEP_SECONDS, PLAYBACK_RATES } from "../constants";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useSettingsStore } from "../stores/settings-store";
+import { useUIStore } from "../stores/ui-store";
 
 type KeyboardShortcutsOptions = {
   togglePlayPause: () => | Promise<void>;
@@ -25,7 +27,10 @@ export function useKeyboardShortcuts({
   toggleMute, toggleFullscreen, togglePip, onToggleTheater, changeSubtitle,
   toggleLoop, setOpenPanel, getDuration, subtitleTracks, selectedSubtitle,
 }: KeyboardShortcutsOptions) {
-  const { volume, playbackRate, setPlayerState } = useCourseVideoPlayerStore();
+  const volume = usePlaybackStore((s) => s.volume);
+  const playbackRate = usePlaybackStore((s) => s.playbackRate);
+  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
+  const setUIState = useUIStore((s) => s.setUIState);
 
   const handleSeekKeys = (key: string, shiftKey: boolean) => {
     if (key === "arrowright" || key === "l") {
@@ -105,11 +110,11 @@ export function useKeyboardShortcuts({
         "p": togglePip,
         "t": () => onToggleTheater?.(),
         "a": toggleLoop,
-        "n": () => setPlayerState({ sidebarTab: "notes", isSidebarOpen: true }),
-        "b": () => setPlayerState({ sidebarTab: "bookmarks", isSidebarOpen: true }),
+        "n": () => setUIState({ sidebarTab: "notes", isSidebarOpen: true }),
+        "b": () => setUIState({ sidebarTab: "bookmarks", isSidebarOpen: true }),
         "home": () => handleSeek(0),
         "escape": () => setOpenPanel(null),
-        "?": () => setPlayerState({ isHelpOpen: true }),
+        "?": () => setUIState({ isHelpOpen: true }),
       };
 
       if (simpleActions[key]) {
@@ -132,7 +137,7 @@ export function useKeyboardShortcuts({
     },
     [
       changeSubtitle, getDuration, handleSeek, handleVolumeChange, handlePlaybackRateChange,
-      onToggleTheater, playbackRate, seekBy, selectedSubtitle, setOpenPanel, setPlayerState,
+      onToggleTheater, playbackRate, seekBy, selectedSubtitle, setOpenPanel, setUIState,
       subtitleTracks, toggleFullscreen, toggleLoop, toggleMute, togglePip, togglePlayPause, volume,
     ]
   );

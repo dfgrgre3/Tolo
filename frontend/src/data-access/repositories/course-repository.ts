@@ -1,31 +1,10 @@
-import { rpcClient } from '@/data-access/rpc-client';
+/**
+ * Course Repository — re-exports from subject-repository with legacy aliases.
+ * Maintains backward compatibility with existing code that imports from course-repository.
+ * New code should import directly from subject-repository.
+ */
+export type { Subject as Course } from '@/types/subject';
+export { subjectRepository as courseRepository } from './subject-repository';
 
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  teacherName: string;
-}
-
-export const courseRepository = {
-  async getCourses(): Promise<Course[]> {
-    const response = await rpcClient.getCourses({});
-    return (response.courses || []).map((c: any) => ({
-      id: c.id || '',
-      title: c.title || '',
-      description: c.description || '',
-      teacherName: c.teacherName || '',
-    }));
-  },
-
-  async getCourse(id: string): Promise<Course> {
-    const response = await rpcClient.getCourse({ id });
-    const c = response.course;
-    return {
-      id: c?.id || '',
-      title: c?.title || '',
-      description: c?.description || '',
-      teacherName: c?.teacherName || '',
-    };
-  }
-};
+// ── gRPC / rpcClient compatibility (for grpc-demo page) ──
+export { rpcClient } from '@/data-access/rpc-client';

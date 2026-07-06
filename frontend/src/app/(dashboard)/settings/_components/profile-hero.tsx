@@ -11,7 +11,8 @@ export function ProfileHero({
   isUploadingAvatar,
   onAvatarClick,
   fileInputRef,
-  onAvatarChange
+  onAvatarChange,
+  profileCompletion = 0
 }: {
   profile: ProfileData;
   user: { role?: string; name?: string | null | undefined; email?: string; username?: string | null; totalXP?: number; level?: number; currentStreak?: number };
@@ -20,6 +21,7 @@ export function ProfileHero({
   onAvatarClick: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  profileCompletion?: number;
 }) {
   const isTeacher = user.role === 'TEACHER';
   const userInitial = user.name ? user.name.charAt(0).toUpperCase() : (user.email?.charAt(0).toUpperCase() ?? 'U');
@@ -88,10 +90,25 @@ export function ProfileHero({
             {profile.bio && <p className="text-sm text-slate-400 max-w-lg leading-relaxed">{profile.bio}</p>}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <StatBadge icon={Star} value={user.totalXP || 0} label="نقطة XP" color="text-yellow-400" />
-            <StatBadge icon={Trophy} value={user.level || 1} label="مستوى" color="text-indigo-400" />
-            <StatBadge icon={Flame} value={user.currentStreak || 0} label="تسلسل" color="text-orange-400" />
+          <div className="space-y-3 min-w-[200px]">
+            <div className="grid grid-cols-3 gap-3">
+              <StatBadge icon={Star} value={user.totalXP || 0} label="نقطة XP" color="text-yellow-400" />
+              <StatBadge icon={Trophy} value={user.level || 1} label="مستوى" color="text-indigo-400" />
+              <StatBadge icon={Flame} value={user.currentStreak || 0} label="تسلسل" color="text-orange-400" />
+            </div>
+            
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-slate-500 font-medium">اكتمال الملف</span>
+                <span className="text-[10px] font-bold text-indigo-400">{profileCompletion}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${profileCompletion}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

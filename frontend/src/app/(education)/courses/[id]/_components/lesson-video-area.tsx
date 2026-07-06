@@ -1,9 +1,10 @@
 "use client";
 
-import { Lock, FileText, Shield } from "lucide-react";
+import { Lock, FileText, Shield, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CourseLesson } from "./types";
 import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 
 const CourseVideoPlayer = dynamic(
   () => import("@/components/video/CourseVideoPlayer").then((mod) => mod.CourseVideoPlayer),
@@ -36,18 +37,32 @@ export function LessonVideoArea({
   onAutoComplete: () => void;
   onEnroll: () => void;
 }) {
+  const [progressPercent, setProgressPercent] = useState(0);
+
   if (canAccess && lessonData.videoUrl) {
     return (
-      <CourseVideoPlayer
-        key={lessonData.id}
-        courseId={courseId}
-        lessonId={lessonData.id}
-        lessonTitle={lessonData.title}
-        videoUrl={lessonData.videoUrl}
-        alreadyCompleted={lessonData.completed}
-        watermarkText={authName || userId || "Student"}
-        onLessonAutoComplete={onAutoComplete}
-      />
+      <div className="space-y-4">
+        <div className="flex items-center justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition-colors bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+            <Clock3 className="h-4 w-4" />
+            {progressPercent}% مشاهدة
+          </span>
+        </div>
+        <CourseVideoPlayer
+          key={lessonData.id}
+          courseId={courseId}
+          lessonId={lessonData.id}
+          lessonTitle={lessonData.title}
+          videoUrl={lessonData.videoUrl}
+          alreadyCompleted={lessonData.completed}
+          watermarkText={authName || userId || "Student"}
+          onLessonAutoComplete={onAutoComplete}
+          onProgress={(currentTime, duration) => {
+            const percent = duration > 0 ? Math.round((currentTime / duration) * 100) : 0;
+            setProgressPercent(percent);
+          }}
+        />
+      </div>
     );
   }
 

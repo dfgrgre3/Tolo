@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import { useAuth } from "@/hooks/use-auth";
 /**
  * صفحة إعدادات الخصوصية - Privacy Settings
  * 
@@ -31,9 +32,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { SettingsHeader, SettingsCard, SettingsToggle } from '@/app/(dashboard)/settings/components';
-import { useAuth } from '@/contexts/auth-context';
-import { useSettingsSync } from '@/hooks/use-settings-sync';
+import { SettingsHeader, SettingsCard, SettingsToggle } from '@/app/(dashboard)/settings/components';import { useSettingsSync } from '@/hooks/use-settings-sync';
 import {
   DEFAULT_PRIVACY_SETTINGS,
   type PrivacySettingsPreference,
@@ -185,7 +184,7 @@ export default function PrivacySettingsPage() {
 
       toast.success('تم حذف الحساب بنجاح');
       setShowDeleteConfirm(false);
-      await logout(true);
+      await logout();
       router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'حدث خطأ أثناء حذف الحساب';

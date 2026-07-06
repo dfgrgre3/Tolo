@@ -2,8 +2,12 @@
   "name": "thanawy-monorepo",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "shared"
+  ],
   "scripts": {
-    "vercel-build": "npm install --prefix frontend --include=dev --legacy-peer-deps && npm run build --prefix frontend",
+    "vercel-build": "npm run build --prefix frontend",
     "dev:frontend": "npm run dev --prefix frontend",
     "build:frontend": "npm run build --prefix frontend",
     "lint:frontend": "npm run lint --prefix frontend",
@@ -11,13 +15,6 @@
     "audit": "node scripts/comprehensive-error-check.mjs",
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix",
     "knip": "npx knip --directory frontend",
-    "build": "npm install --prefix frontend --include=dev --legacy-peer-deps && npm run build:frontend"
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^7.5.5",
-    "ioredis": "^5.11.1",
-    "next": "16.2.6",
-    "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "build": "npm run build:frontend"
   }
 }

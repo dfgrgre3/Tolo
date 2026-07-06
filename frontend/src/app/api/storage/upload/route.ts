@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
 import { generateUserPath, validateFileType, validateFileSize, formatFileSize } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
 
@@ -9,7 +8,8 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     const formData = await request.formData();
@@ -116,7 +115,8 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -153,7 +153,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     const { searchParams } = new URL(request.url);

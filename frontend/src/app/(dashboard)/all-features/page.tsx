@@ -21,10 +21,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 
 const features = [
   { href: "/dashboard", title: "لوحة التحكم", description: "نظرة سريعة على نشاطك وآخر إنجازاتك.", icon: BarChart3 },
-  { href: "/progress", title: "خريطة التقدم", description: "تابع مستواك والمهارات والمنحنيات الزمنية.", icon: LineChart },
+  { href: "/settings/progress", title: "خريطة التقدم", description: "تابع مستواك والمهارات والمنحنيات الزمنية.", icon: LineChart },
   { href: "/tasks", title: "المهام", description: "نظم واجباتك وأهدافك اليومية والأسبوعية.", icon: CheckSquare },
   { href: "/schedule", title: "الجدول", description: "رتب مواعيد المذاكرة والاختبارات.", icon: Calendar },
-  { href: "/achievements", title: "الإنجازات", description: "الأوسمة والترقيات وسجل المكافآت.", icon: Award },
+  { href: "/settings/achievements", title: "الإنجازات", description: "الأوسمة والترقيات وسجل المكافآت.", icon: Award },
   { href: "/leaderboard", title: "لوحة الشرف", description: "قارن ترتيبك وتقدمك مع الطلاب.", icon: Trophy },
   { href: "/time", title: "إدارة الوقت", description: "جلسات مذاكرة وتحليلات إنتاجية.", icon: Clock },
   { href: "/ai", title: "المساعد الذكي", description: "مساعدة دراسية وأسئلة مخصصة.", icon: Bot },

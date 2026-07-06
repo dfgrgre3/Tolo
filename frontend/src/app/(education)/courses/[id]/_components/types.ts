@@ -4,6 +4,14 @@ export type Review = {
   comment: string | null;
   createdAt: string;
   user: {name: string | null;avatar: string | null;};
+  comments?: ReviewComment[];
+};
+
+export type ReviewComment = {
+  id: string;
+  comment: string;
+  createdAt: string;
+  user: {name: string | null;avatar: string | null;};
 };
 
 export type ReviewStats = {

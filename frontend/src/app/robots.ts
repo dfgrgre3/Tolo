@@ -1,7 +1,8 @@
 import { type MetadataRoute } from 'next';
+import { SITE } from '@shared/site-config';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://tolo.app';
+  const baseUrl = SITE.url;
 
   return {
     rules: [

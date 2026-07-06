@@ -1,6 +1,5 @@
-// Deprecated: Supabase middleware is no longer used.
-// Clerk is the exclusive source of truth for authentication.
-// Supabase is restricted to storage/CDN operations.
+// Supabase middleware is no longer used.
+// Authentication is handled by the backend API.
 
 import { NextResponse } from "next/server";
 

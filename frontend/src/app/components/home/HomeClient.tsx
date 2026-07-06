@@ -1,10 +1,9 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
-import { ProgressSummary } from "@/types/gamification";
+import { useRouter } from "next/navigation";import { ProgressSummary } from "@/types/gamification";
 import { User as ApiUser } from "@/types/user";
 import { UserRole, UserStatus } from "@/types/enums";
 import { PerformanceMetric } from "./types";
@@ -180,6 +179,11 @@ export function HomeClient({ summary }: HomeClientProps) {
     aiCredits: 0,
     examCredits: 0,
     permissions: authUser.permissions ?? [],
+    // Required fields added in updated User type
+    focusStrategy: ((authUser as unknown) as ApiUser).focusStrategy ?? 'POMODORO',
+    interestedSubjects: ((authUser as unknown) as ApiUser).interestedSubjects ?? [],
+    emailNotifications: ((authUser as unknown) as ApiUser).emailNotifications ?? true,
+    smsNotifications: ((authUser as unknown) as ApiUser).smsNotifications ?? false,
   };
 
   return (

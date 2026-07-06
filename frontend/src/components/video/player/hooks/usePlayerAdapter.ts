@@ -68,7 +68,7 @@ export function usePlayerAdapter({
       getCurrentTime: () => video.currentTime || 0,
       getDuration: () => video.duration || 0,
       pause: () => video.pause(),
-      play: () => video.play(),
+      play: () => Promise.resolve(video.play()),
       seekTo: (seconds) => {
         video.currentTime = seconds;
       },

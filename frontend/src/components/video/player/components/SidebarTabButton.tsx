@@ -6,11 +6,13 @@ export function SidebarTabButton({
   icon: Icon,
   label,
   onClick,
+  className,
 }: {
   active: boolean;
   icon: LucideIcon;
   label: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
@@ -20,7 +22,8 @@ export function SidebarTabButton({
         "flex flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold transition-all",
         active
           ? "bg-white text-slate-950 shadow-lg shadow-black/10"
-          : "text-white/70 hover:bg-white/10 hover:text-white"
+          : "text-white/70 hover:bg-white/10 hover:text-white",
+        className
       )}
     >
       <Icon className="h-4 w-4" />

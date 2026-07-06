@@ -54,28 +54,6 @@ export const LazySection = React.memo(function LazySection({
   const shouldEagerMount =
     forceMount || effectiveMode === "performance" || effectiveMode === "balanced";
 
-  // Disable on lite/ultra-lite
-  if (disableOnUltraLite && isUltraLite) {
-    return (
-      <div
-        ref={ref}
-        className={className}
-        style={{ minHeight, ...style }}
-        data-lazy-section="disabled-ultra-lite"
-      />
-    );
-  }
-  if (disableOnLite && (effectiveMode === "saver" || effectiveMode === "lite")) {
-    return (
-      <div
-        ref={ref}
-        className={className}
-        style={{ minHeight, ...style }}
-        data-lazy-section="disabled-lite"
-      />
-    );
-  }
-
   useEffect(() => {
     if (shouldEagerMount) {
       setInView(true);
@@ -102,6 +80,28 @@ export const LazySection = React.memo(function LazySection({
     observer.observe(el);
     return () => observer.disconnect();
   }, [shouldEagerMount, rootMargin, threshold]);
+
+  // Disable on lite/ultra-lite
+  if (disableOnUltraLite && isUltraLite) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{ minHeight, ...style }}
+        data-lazy-section="disabled-ultra-lite"
+      />
+    );
+  }
+  if (disableOnLite && (effectiveMode === "saver" || effectiveMode === "lite")) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{ minHeight, ...style }}
+        data-lazy-section="disabled-lite"
+      />
+    );
+  }
 
   return (
     <div
@@ -169,20 +169,6 @@ export const HeavyMount = React.memo(function HeavyMount({
     forceMount ||
     (!whenInView && (effectiveMode === "performance" || effectiveMode === "balanced"));
 
-  // In ultra-lite, skip heavy components by default
-  if (disableOnUltraLite && isUltraLite && !forceMount) {
-    return (
-      <div
-        ref={ref}
-        className={className}
-        style={{ minHeight }}
-        data-heavy-mount="disabled-ultra-lite"
-      >
-        {fallback}
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (shouldEagerMount) {
       setMounted(true);
@@ -244,6 +230,20 @@ export const HeavyMount = React.memo(function HeavyMount({
       cancelled = true;
     };
   }, [shouldEagerMount, delay, whenInView]);
+
+  // In ultra-lite, skip heavy components by default
+  if (disableOnUltraLite && isUltraLite && !forceMount) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{ minHeight }}
+        data-heavy-mount="disabled-ultra-lite"
+      >
+        {fallback}
+      </div>
+    );
+  }
 
   return (
     <div

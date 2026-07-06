@@ -1,11 +1,46 @@
 "use client";
 
 import React, { forwardRef, memo } from "react";
-import { Sparkles, Zap, ChevronLeft } from "lucide-react";
+import {
+  Sparkles,
+  Zap,
+  ChevronLeft,
+  BookOpen,
+  Award,
+  Clock,
+  Target,
+  Library,
+  Lightbulb,
+  BarChart3,
+  Trophy,
+  Users,
+  GraduationCap,
+  CreditCard,
+  Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MegaMenuCategory as MegaMenuCategoryType } from "./types";
 import { MegaMenuItem } from "./MegaMenuItem";
 import { categoryStyles } from "@/components/navigation";
+
+const categoryIconMap: Record<string, typeof Sparkles> = {
+  "الدراسة والتعليم": BookOpen,
+  "التقييمات والامتحانات": Award,
+  "تنظيم الوقت": Clock,
+  "التخطيط والأهداف": Target,
+  "المكتبة الرقمية": Library,
+  "المستندات والملخصات": Library,
+  "المحتوى التعليمي": Library,
+  "المحتوى التثقيفي": Lightbulb,
+  "لوحة التحكم والأداء": BarChart3,
+  "التنافس والترتيب": Trophy,
+  "التواصل والمشاركة": Users,
+  "المرحلة الابتدائية": GraduationCap,
+  "المرحلة الإعدادية": GraduationCap,
+  "المرحلة الثانوية": GraduationCap,
+  "الحساب والاشتراك": CreditCard,
+  "الإعدادات والأمان": Settings,
+};
 
 interface MegaMenuCategoryProps {
   category: MegaMenuCategoryType;
@@ -22,22 +57,42 @@ export const MegaMenuCategory = memo(
     { category, categoryIndex, onItemClick, activeRoute, isCompact = false, searchQuery = "", focusedItemIndex = -1 },
     ref
   ) {
+    const isCardFocused = focusedItemIndex !== undefined && focusedItemIndex >= 0;
     const hasActiveSearch = Boolean(searchQuery?.trim());
     const itemCount = category.items.length;
+    const CategoryIcon = categoryIconMap[category.title] || Sparkles;
 
     return (
       <div
         ref={ref}
-        className={cn(categoryStyles.card({ active: category.isPriority, compact: isCompact }), "relative overflow-hidden group/category")}
+        className={cn(
+          categoryStyles.card({ active: category.isPriority || isCardFocused, compact: isCompact }),
+          "relative overflow-hidden group/category transition-all duration-300",
+          "hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 dark:hover:shadow-primary/[0.02]",
+          isCardFocused && "border-primary/50 shadow-lg shadow-primary/15 ring-1 ring-primary/25 scale-[1.015] -translate-y-0.5"
+        )}
         role="group"
         aria-labelledby={`category-title-${categoryIndex}`}
       >
         <div className={cn(categoryStyles.header({ compact: isCompact }))}>
-          <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-primary via-primary/80 to-primary/60 rounded-full group-hover/category:w-full transition-all duration-200" />
+          <div className={cn(
+            "absolute bottom-0 start-0 h-px bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full transition-all duration-300",
+            isCardFocused ? "w-full" : "w-0 group-hover/category:w-full"
+          )} />
           <div
-            className={cn(categoryStyles.iconWrap({ compact: isCompact }), "transition-colors duration-200")}
+            className={cn(
+              categoryStyles.iconWrap({ compact: isCompact }),
+              "transition-all duration-300",
+              isCardFocused 
+                ? "scale-110 rotate-3 bg-primary text-primary-foreground shadow-[0_0_12px_rgba(var(--primary),0.3)]" 
+                : "group-hover/category:scale-110 group-hover/category:rotate-3 group-hover/category:bg-primary group-hover/category:text-primary-foreground group-hover/category:shadow-[0_0_12px_rgba(var(--primary),0.3)]"
+            )}
           >
-            {hasActiveSearch ? <Zap className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} /> : <Sparkles className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} />}
+            {hasActiveSearch ? (
+              <Zap className={cn("h-3.5 w-3.5 text-primary group-hover/category:text-primary-foreground", isCompact && "h-3 w-3")} />
+            ) : (
+              <CategoryIcon className={cn("h-3.5 w-3.5 text-primary group-hover/category:text-primary-foreground transition-colors duration-300", isCompact && "h-3 w-3")} />
+            )}
           </div>
 
           <div className="flex-1 flex items-center justify-between">

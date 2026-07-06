@@ -101,7 +101,8 @@ export default function LibraryPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.author || !formData.subjectId) {
-      return toast.error("أكمل البيانات أولاً");
+      toast.error("أكمل البيانات أولاً");
+      return;
     }
     
     setUploading(true);

@@ -27,7 +27,7 @@ export type Lesson = {
   durationMinutes: number;
   isFree: boolean;
   locked: boolean;
-  attachments: Attachment[];
+  attachments?: Attachment[];
   examId?: string | null;
   interactiveQuestions?: {
     id: string;

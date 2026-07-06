@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { SEEK_STEP_SECONDS, CONTROLS_HIDE_TIMEOUT_MS } from "../constants";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useSettingsStore } from "../stores/settings-store";
+import { useUIStore } from "../stores/ui-store";
 import { clamp } from "../utils";
 import { Volume2, SunMedium, FastForward } from "lucide-react";
 import type { PlayerFeedback } from "../types";
@@ -28,7 +30,12 @@ export function useTouchGestures({
   flashFeedback,
   resetControlsTimeout,
 }: TouchGesturesOptions) {
-  const { volume, brightness, showControls, setPlayerState } = useCourseVideoPlayerStore();
+  const volume = usePlaybackStore((s) => s.volume);
+  const playbackRate = usePlaybackStore((s) => s.playbackRate);
+  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
+  const brightness = useSettingsStore((s) => s.brightness);
+  const setSettingsState = useSettingsStore((s) => s.setSettingsState);
+  const showControls = useUIStore((s) => s.showControls);
   const [gestureActiveMode, setGestureActiveMode] = useState<"volume" | "brightness" | "seek" | "speed" | null>(null);
   const [gestureValue, setGestureValue] = useState<number | string>(0);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
@@ -104,14 +111,13 @@ export function useTouchGestures({
       // Long press for 2x speed
       if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
       longPressTimeoutRef.current = window.setTimeout(() => {
-        const store = useCourseVideoPlayerStore.getState();
-        originalRateRef.current = store.playbackRate;
-        setPlayerState({ playbackRate: 2 });
+        originalRateRef.current = playbackRate;
+        setPlaybackState({ playbackRate: 2 });
         setGestureActiveMode("speed");
         setGestureValue("2");
       }, 500);
     },
-    [brightness, flashFeedback, seekBy, setPlayerState, volume]
+    [brightness, flashFeedback, seekBy, setPlaybackState, volume, playbackRate]
   );
 
   const handleTouchMove = useCallback(
@@ -152,14 +158,14 @@ export function useTouchGestures({
         setGestureValue(nextVolume);
       } else if (gesture.mode === "brightness") {
         const nextBrightness = clamp(gesture.startValue + deltaYRatio, 0.6, 1.3);
-        setPlayerState({ brightness: nextBrightness });
+        setSettingsState({ brightness: nextBrightness });
         setGestureActiveMode("brightness");
         setGestureValue((nextBrightness - 0.6) / (1.3 - 0.6)); // Normalize for UI
       }
 
       if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
     },
-    [handleVolumeChange, setPlayerState]
+    [handleVolumeChange, setSettingsState]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -168,9 +174,8 @@ export function useTouchGestures({
       longPressTimeoutRef.current = null;
     }
 
-    const store = useCourseVideoPlayerStore.getState();
-    if (store.playbackRate === 2 && originalRateRef.current !== 2) {
-      setPlayerState({ playbackRate: originalRateRef.current });
+    if (playbackRate === 2 && originalRateRef.current !== 2) {
+      setPlaybackState({ playbackRate: originalRateRef.current });
       setGestureActiveMode(null);
     }
 

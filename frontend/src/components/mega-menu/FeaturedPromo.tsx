@@ -16,11 +16,11 @@ export function FeaturedPromo({ user, onClose }: FeaturedPromoProps) {
 
   return (
     <div
-      className="relative flex flex-col justify-between h-full min-h-[320px] p-6 rounded-2xl overflow-hidden border border-primary/25 bg-gradient-to-b from-primary/10 via-primary/5 to-background shadow-md group/promo"
+      className="relative flex flex-col justify-between h-full min-h-[320px] p-6 rounded-3xl overflow-hidden border border-primary/20 bg-gradient-to-b from-primary/10 via-primary/5 to-background shadow-md group/promo hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
     >
       {/* Static premium background blobs */}
-      <div className="absolute -right-12 -top-12 w-40 h-40 bg-primary/15 rounded-full blur-3xl" />
-      <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
+      <div className="absolute -right-12 -top-12 w-48 h-48 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="relative z-10 space-y-4">
         {/* Header Badge */}

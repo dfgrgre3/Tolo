@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
 import type { Course, Chapter, Lesson, LessonQuestion, TabKey } from "../types";
+import { apiClient } from "@/lib/api/api-client";
+import { useAuth } from "@/hooks/use-auth";
 
 function applyMockInteractiveQuestions(chapters: Chapter[]) {
   if (chapters.length > 0 && chapters[0]!.subTopics.length > 0) {
@@ -75,6 +77,9 @@ export function useLearningHub() {
   const courseId = params.courseId as string;
   const playerApiRef = useRef<CourseVideoPlayerApi | null>(null);
 
+  const { user, isLoading: authLoading } = useAuth();
+  const userId = user?.id;
+
   const [course, setCourse] = useState<Course | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -105,21 +110,18 @@ export function useLearningHub() {
   const deferredLessonSearch = useDeferredValue(lessonSearch);
 
   useEffect(() => {
+    if (authLoading) return;
+
     const loadLearningHub = async () => {
       try {
         setLoading(true);
 
-        const [curriculumRes, courseRes] = await Promise.all([
-          fetch(`/api/courses/${courseId}/curriculum`, { cache: "no-store" }),
-          fetch(`/api/courses/${courseId}`, { cache: "no-store" }),
+        const [curriculumPayload, coursePayload] = await Promise.all([
+          apiClient.get<any>(`/courses/${courseId}/curriculum${userId ? `?userId=${userId}` : ""}`),
+          apiClient.get<any>(`/courses/${courseId}${userId ? `?userId=${userId}` : ""}`),
         ]);
 
-        if (!courseRes.ok) {
-          throw new Error("تعذر تحميل بيانات الدورة.");
-        }
-
-        const coursePayload = await courseRes.json();
-        if (!coursePayload.enrollment) {
+        if (!coursePayload?.enrollment) {
           toast.error("يجب التسجيل في الدورة للوصول إلى بيئة التعلم.");
           router.replace(`/courses/${courseId}`);
           return;
@@ -134,13 +136,7 @@ export function useLearningHub() {
           thumbnailUrl: subject.thumbnailUrl || null,
         });
 
-        if (!curriculumRes.ok) {
-          throw new Error("تعذر تحميل المنهج الدراسي.");
-        }
-
-        const curriculumPayload = await curriculumRes.json();
-        const nextChapters: Chapter[] =
-          (curriculumPayload.data ?? curriculumPayload).curriculum || [];
+        const nextChapters: Chapter[] = curriculumPayload?.curriculum || [];
 
         applyMockInteractiveQuestions(nextChapters);
         setChapters(nextChapters);
@@ -169,7 +165,7 @@ export function useLearningHub() {
     };
 
     loadLearningHub();
-  }, [courseId, router]);
+  }, [courseId, userId, authLoading, router]);
 
   useEffect(() => {
     if (!isInitialized || !courseId) return;
@@ -211,31 +207,20 @@ export function useLearningHub() {
 
     const loadLessonExtras = async () => {
       try {
-        const [noteRes, questionsRes] = await Promise.all([
-          fetch(`/api/courses/lessons/${activeLessonId}/notes`, { cache: "no-store" }),
-          fetch(`/api/courses/lessons/${activeLessonId}/questions`, { cache: "no-store" }),
+        const [notePayload, questionsPayload] = await Promise.all([
+          apiClient.get<any>(`/courses/lessons/${activeLessonId}/notes${userId ? `?userId=${userId}` : ""}`).catch(() => null),
+          apiClient.get<any>(`/courses/lessons/${activeLessonId}/questions${userId ? `?userId=${userId}` : ""}`).catch(() => null),
         ]);
 
-        if (noteRes.ok) {
-          const notePayload = await noteRes.json();
-          setNoteContent(notePayload.data?.content || "");
-        } else {
-          setNoteContent("");
-        }
-
-        if (questionsRes.ok) {
-          const questionsPayload = await questionsRes.json();
-          setQuestions(questionsPayload.data || []);
-        } else {
-          setQuestions([]);
-        }
+        setNoteContent(notePayload?.content || "");
+        setQuestions(questionsPayload || []);
       } catch (extrasError) {
         logger.error("Error loading lesson extras", extrasError);
       }
     };
 
     loadLessonExtras();
-  }, [activeLessonId]);
+  }, [activeLessonId, userId]);
 
   const progress = useMemo(() => {
     if (allLessons.length === 0) return 0;
@@ -249,7 +234,7 @@ export function useLearningHub() {
   );
 
   const totalAttachments = useMemo(
-    () => allLessons.reduce((sum, lesson) => sum + (lesson.attachments?.length || 0), 0),
+    () => allLessons.reduce((sum, lesson) => sum + (lesson.attachments || []).length, 0),
     [allLessons]
   );
 
@@ -261,7 +246,7 @@ export function useLearningHub() {
       .map((chapter) => ({
         ...chapter,
         subTopics: chapter.subTopics.filter((lesson) =>
-          lesson.name.toLowerCase().includes(normalizedSearch) ||
+          (lesson.name || "").toLowerCase().includes(normalizedSearch) ||
           (lesson.description || "").toLowerCase().includes(normalizedSearch)
         ),
       }))
@@ -307,23 +292,14 @@ export function useLearningHub() {
   const handleLessonComplete = useCallback(
     async (lessonId: string) => {
       try {
-        const response = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ completed: true }),
-        });
-
-        if (!response.ok) throw new Error("تعذر تحديث حالة الدرس.");
-
-        const payload = await response.json();
-        const data = payload.data ?? payload;
+        const data = await apiClient.post<any>(`/courses/lessons/${lessonId}/progress`, { completed: true });
 
         setChapters((current) => markLessonCompletedInChapters(current, lessonId));
 
-        if (data.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
+        if (data?.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
         else toast.success("تم تسجيل الدرس كمكتمل.");
 
-        if (data.isCourseComplete) toast.success("رائع، لقد أنهيت الدورة بالكامل.");
+        if (data?.isCourseComplete) toast.success("رائع، لقد أنهيت الدورة بالكامل.");
       } catch (completeError) {
         logger.error("Error completing lesson", completeError);
         toast.error("تعذر تسجيل إكمال الدرس.");
@@ -337,13 +313,7 @@ export function useLearningHub() {
 
     try {
       setSavingNote(true);
-      const response = await fetch(`/api/courses/lessons/${activeLessonId}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: noteContent }),
-      });
-
-      if (!response.ok) throw new Error("تعذر حفظ الملاحظات.");
+      await apiClient.post(`/courses/lessons/${activeLessonId}/notes`, { content: noteContent });
       toast.success("تم حفظ الملاحظات.");
     } catch (saveError) {
       logger.error("Error saving note", saveError);
@@ -370,16 +340,11 @@ export function useLearningHub() {
 
     try {
       setPostingQuestion(true);
-      const response = await fetch(`/api/courses/lessons/${activeLessonId}/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newQuestion.trim() }),
+      const data = await apiClient.post<any>(`/courses/lessons/${activeLessonId}/questions`, {
+        content: newQuestion.trim(),
       });
 
-      if (!response.ok) throw new Error("تعذر إرسال السؤال.");
-
-      const payload = await response.json();
-      setQuestions((current) => [payload.data, ...current]);
+      setQuestions((current) => [data, ...current]);
       setNewQuestion("");
       toast.success("تم إرسال سؤالك إلى مناقشات الدرس.");
     } catch (questionError) {

@@ -1,15 +1,13 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { m } from "framer-motion";
 import {
   Trophy, Sword, Shield, BookOpen, Target, LayoutDashboard, ChevronRight
 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-import { useAuth } from "@/contexts/auth-context";
-import { useGamification } from "@/hooks/use-gamification";
+import dynamic from "next/dynamic";import { useGamification } from "@/hooks/use-gamification";
 import { logger } from '@/lib/logger';
 
 // --- Dynamic Component Imports ---
@@ -46,8 +44,6 @@ export default function DashboardPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
 
   // Store fetchWithAuth in a ref to avoid re-triggering this effect on every render.
-  // fetchWithAuth changes reference because it depends on Clerk's getToken which
-  // changes on every render, which would cause infinite API calls and refresh loops.
   const fetchWithAuthRef = useRef(fetchWithAuth);
   useEffect(() => { fetchWithAuthRef.current = fetchWithAuth; });
 

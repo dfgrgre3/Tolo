@@ -1,4 +1,28 @@
-import { useAuthStore, type UserRole, hasPermission } from '@/lib/auth';
+"use client";
+
+import { useAuth } from "@/hooks/use-auth";
+
+export type UserRole = "ADMIN" | "SUPER_ADMIN" | "TEACHER" | "MODERATOR" | "STUDENT" | "PREMIUM";
+
+function permissionGrantMatches(grant: string, required: string): boolean {
+  if (grant === required || grant === "admin:bypass") return true;
+  if (grant === "*:manage") return required.endsWith(":manage");
+  if (grant === "*") return true;
+  if (grant.length > 2 && grant.endsWith(":*")) {
+    const mod = grant.slice(0, -2);
+    return required.startsWith(mod + ":");
+  }
+  return false;
+}
+
+function hasPermission(
+  user: { role: string; permissions: string[] } | null,
+  perm: string
+): boolean {
+  if (!user) return false;
+  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return true;
+  return user.permissions.some((grant) => permissionGrantMatches(grant, perm));
+}
 
 /**
  * usePermission — Centralised role & permission checks
@@ -9,57 +33,34 @@ import { useAuthStore, type UserRole, hasPermission } from '@/lib/auth';
  *   if (is('ADMIN')) { ... }
  */
 export function usePermission() {
-  const user = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { user, isAuthenticated } = useAuth();
 
-  /**
-   * Check whether the current user has a specific permission string.
-   * Delegates to hasPermission() from lib/permissions.ts which uses
-   * permissionGrantMatches() for wildcard support (e.g. "*:manage").
-   * SUPER_ADMIN and ADMIN bypass all permission checks (via permissions.ts).
-   */
   const can = (permission: string): boolean => {
     if (!isAuthenticated || !user) return false;
     return hasPermission(user, permission);
   };
 
-  /**
-   * Check whether the current user has an exact role.
-   */
   const is = (role: UserRole): boolean => {
     if (!isAuthenticated || !user) return false;
     return user.role === role;
   };
 
-  /**
-   * Check whether the current user has ANY of the given roles.
-   */
   const hasAnyRole = (...roles: UserRole[]): boolean => {
     if (!isAuthenticated || !user) return false;
-    return roles.includes(user.role);
+    return roles.includes(user.role as UserRole);
   };
 
-  /**
-   * Check whether the current user has ALL of the given permissions.
-   * Uses hasPermission() which respects wildcard grants and SUPER_ADMIN bypass.
-   */
   const hasAllPermissions = (...permissions: string[]): boolean => {
     if (!isAuthenticated || !user) return false;
     return permissions.every((p) => hasPermission(user, p));
   };
 
-  /**
-   * Returns true if the user is an admin-tier role.
-   */
   const isAdmin = (): boolean => {
-    return hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MODERATOR');
+    return hasAnyRole("ADMIN", "SUPER_ADMIN", "MODERATOR");
   };
 
-  /**
-   * Returns true if the user is a content creator (teacher or admin).
-   */
   const isContentCreator = (): boolean => {
-    return hasAnyRole('TEACHER', 'ADMIN', 'SUPER_ADMIN');
+    return hasAnyRole("TEACHER", "ADMIN", "SUPER_ADMIN");
   };
 
   return {

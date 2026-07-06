@@ -205,5 +205,5 @@ Write-Host "`nNext steps:" -ForegroundColor Yellow
 Write-Host "  1. Resolve any code conflicts" -ForegroundColor White
 Write-Host "  2. Update import paths to use @/" -ForegroundColor White
 Write-Host "  3. Update proxy.ts to handle /admin routes" -ForegroundColor White
-Write-Host "  4. Update layout.tsx for ClerkProvider in admin pages" -ForegroundColor White
+Write-Host "  4. Test route guards in admin pages" -ForegroundColor White
 Write-Host "  5. Test the full application" -ForegroundColor White

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { adminFetch } from "@/lib/api/admin-api";
+import { apiClient } from "@/lib/api/api-client";
 
 export type DeviceType = "desktop" | "mobile" | "tablet" | "unknown";
 export type SessionStatus = "active" | "expired" | "revoked" | "suspended";
@@ -237,20 +238,25 @@ export function useMySessions() {
   const sessionsQuery = useQuery({
     queryKey: ["my-sessions"],
     queryFn: async () => {
-      const response = await adminFetch("/security/my-sessions");
-      if (!response.ok) throw new Error("Failed to fetch sessions");
-      const data = await response.json();
-      return (data.data?.sessions || data.sessions || []) as DeviceInfo[];
+      const data = await apiClient.get<any[]>("/auth/sessions");
+      return data.map((s: any) => ({
+        id: s.id,
+        userId: s.userId,
+        ipAddress: s.ip || "127.0.0.1",
+        browser: s.browser || "Unknown Browser",
+        os: s.os || "Unknown OS",
+        location: s.country || "",
+        lastActiveAt: s.lastActive || s.createdAt || new Date().toISOString(),
+        expiresAt: s.expiresAt,
+        status: s.isActive ? "active" : "revoked",
+        isCurrentDevice: false,
+      })) as DeviceInfo[];
     },
   });
 
   const revokeSession = useMutation({
     mutationFn: async (sessionId: string) => {
-      const response = await adminFetch(`/security/my-sessions/${sessionId}/revoke`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to revoke session");
-      return response.json();
+      return apiClient.delete(`/auth/sessions/${sessionId}`);
     },
     onSuccess: () => {
       toast.success("تم إنهاء الجلسة");
@@ -260,11 +266,7 @@ export function useMySessions() {
 
   const revokeAllOthers = useMutation({
     mutationFn: async () => {
-      const response = await adminFetch("/security/my-sessions/revoke-others", {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to revoke sessions");
-      return response.json();
+      return apiClient.delete("/auth/sessions");
     },
     onSuccess: () => {
       toast.success("تم إنهاء جميع الجلسات الأخرى");

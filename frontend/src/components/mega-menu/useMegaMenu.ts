@@ -16,6 +16,7 @@ interface UseMegaMenuProps {
 export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { unreadCount: notificationCount } = useNotificationsContext();
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(-1);
@@ -43,52 +44,30 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
     });
   }, []);
 
-  const filteredCategories = useMemo(() => {
-    let result = categories;
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      result = categories
-        .map(category => ({
-          ...category,
-          items: category.items.filter(item =>
-            item.label.toLowerCase().includes(query) ||
-            item.description?.toLowerCase().includes(query) ||
-            item.href.toLowerCase().includes(query)
-          )
-        }))
-        .filter(category => category.items.length > 0);
-      return result;
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('megaMenuRecentSearches');
     }
+  }, []);
 
-    const hasExamSoon = true;
-    return [...result].sort((a, b) => {
-      let scoreA = 0;
-      let scoreB = 0;
-      if (hasExamSoon) {
-        if (a.title.includes("امتحانات") || a.title.includes("الفعاليات")) {
-          scoreA += 100;
-          a.isPriority = true;
-          a.priorityLabel = "موصى به للامتحان";
-        }
-        if (b.title.includes("امتحانات") || b.title.includes("الفعاليات")) {
-          scoreB += 100;
-          b.isPriority = true;
-          b.priorityLabel = "موصى به للامتحان";
-        }
-      }
-      if (a.title.includes("ذكية") || a.title.includes("AI")) {
-        scoreA += 50;
-        a.isPriority = a.isPriority || true;
-        if (!a.priorityLabel) a.priorityLabel = "ذكاء اصطناعي";
-      }
-      if (b.title.includes("ذكية") || b.title.includes("AI")) {
-        scoreB += 50;
-        b.isPriority = b.isPriority || true;
-        if (!b.priorityLabel) b.priorityLabel = "ذكاء اصطناعي";
-      }
-      return scoreB - scoreA;
-    });
-  }, [categories, searchQuery]);
+  const filteredCategories = useMemo(() => {
+    if (!debouncedQuery.trim()) {
+      // Return original order when no search - no unnecessary sorting
+      return categories;
+    }
+    const query = debouncedQuery.toLowerCase().trim();
+    return categories
+      .map(category => ({
+        ...category,
+        items: category.items.filter(item =>
+          item.label.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query) ||
+          item.href.toLowerCase().includes(query)
+        )
+      }))
+      .filter(category => category.items.length > 0);
+  }, [categories, debouncedQuery]);
 
   const handleArrowDown = useCallback(() => {
     if (focusedCategoryIndex === -1) {
@@ -146,7 +125,15 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
       onClose();
       return;
     }
-    if (isSearchFocused) return;
+    if (isSearchFocused) {
+      if (e.key === "ArrowDown" && filteredCategories.length > 0) {
+        e.preventDefault();
+        setIsSearchFocused(false);
+        setFocusedCategoryIndex(0);
+        setFocusedItemIndex(0);
+      }
+      return;
+    }
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
@@ -168,7 +155,7 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
         handleEnter();
         break;
     }
-  }, [onClose, isSearchFocused, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
+  }, [onClose, isSearchFocused, filteredCategories.length, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -177,11 +164,12 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
   }, [isOpen, handleKeyDown]);
 
   const updateSearchQuery = useCallback((query: string) => {
+    setSearchQuery(query);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(query);
       setFocusedCategoryIndex(-1);
       setFocusedItemIndex(-1);
+      setDebouncedQuery(query);
     }, 150);
   }, []);
 
@@ -200,6 +188,7 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
     focusedCategoryIndex,
     focusedItemIndex,
     recentSearches,
+    clearRecentSearches,
     filteredCategories,
   };
 }

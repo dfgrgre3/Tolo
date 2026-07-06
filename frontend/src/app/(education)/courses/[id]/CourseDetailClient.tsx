@@ -1,10 +1,10 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { m, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/contexts/auth-context";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
@@ -19,8 +19,11 @@ import {
   Lock,
   GraduationCap,
   FileText,
-  Layers } from
-"lucide-react";
+  Layers,
+  Check,
+  Award,
+  BookMarked
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -30,6 +33,7 @@ import { levelConfig, container, fadeUp, getListItems } from "./_components/type
 import { LessonVideoArea } from "./_components/lesson-video-area";
 import { CourseActionCard } from "./_components/course-action-card";
 import { ReviewsTab } from "./_components/reviews-tab";
+import { CertificatePreviewModal } from "./_components/CertificatePreviewModal";
 
 export default function CourseDetailClient() {
   const params = useParams();
@@ -51,6 +55,7 @@ export default function CourseDetailClient() {
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   useEffect(() => {
     if (authUser?.id) {
@@ -183,6 +188,7 @@ export default function CourseDetailClient() {
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
   const courseProgress = lessons.length > 0 ? Math.round(completedCount / lessons.length * 100) : 0;
   const canAccessActiveLesson = Boolean(course?.enrolled || activeLessonData?.isFree);
+  const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.videoUrl), [lessons]);
 
   if (loading) {
     return (
@@ -215,11 +221,11 @@ export default function CourseDetailClient() {
   const levelInfo = levelConfig[course.level] || levelConfig.INTERMEDIATE;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] pb-20" dir="rtl">
-      {/* Ambient background */}
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] pb-20 relative overflow-hidden" dir="rtl">
+      {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/[0.02] blur-[150px] rounded-full" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/[0.02] blur-[130px] rounded-full" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/[0.04] blur-[150px] rounded-full" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/[0.03] blur-[130px] rounded-full" />
       </div>
 
       <m.div
@@ -231,7 +237,7 @@ export default function CourseDetailClient() {
         {/* Breadcrumb */}
         <m.nav
           variants={fadeUp}
-          className="flex items-center gap-2 text-sm text-gray-500">
+          className="flex items-center gap-2 text-sm text-gray-400">
           <Link href="/courses" className="hover:text-primary transition-colors font-medium">
             الدورات التعليمية
           </Link>
@@ -248,55 +254,62 @@ export default function CourseDetailClient() {
           <div className="lg:col-span-3 space-y-6">
             {/* Badges */}
             <div className="flex flex-wrap gap-2">
-              <Badge className={cn("border px-3 py-1 font-medium text-xs", levelInfo.bg, levelInfo.color, levelInfo.border)}>
+              <Badge className={cn("border px-3 py-1 font-bold text-xs rounded-full", levelInfo.bg, levelInfo.color, levelInfo.border)}>
                 {levelInfo.label}
               </Badge>
-              <Badge className="border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 py-1 font-medium text-xs">
+              <Badge className="border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 py-1 font-bold text-xs rounded-full">
                 {course.subject}
               </Badge>
               {course.price === 0 &&
-              <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 px-3 py-1 font-medium text-xs">
-                  مجانية
+                <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 px-3 py-1 font-bold text-xs rounded-full">
+                  مجانية بالكامل
                 </Badge>
               }
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight tracking-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight tracking-tight bg-gradient-to-r from-gray-950 via-gray-900 to-gray-800 dark:from-white dark:via-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
               {course.title}
             </h1>
 
             {/* Description */}
-            <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl">
+            <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl font-medium">
               {course.description}
             </p>
 
-            {/* Instructor */}
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+            {/* Instructor Quick Info */}
+            <div className="flex items-center gap-4 bg-white/40 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/5 p-3 rounded-2xl max-w-xs">
+              <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-primary to-violet-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-primary/20">
                 {course.instructor.charAt(0)}
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">المعلم</p>
-                <p className="text-base font-bold text-gray-900 dark:text-white">{course.instructor}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">المعلم المشرف</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-black text-gray-900 dark:text-white">{course.instructor}</p>
+                  <span className="h-3.5 w-3.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full flex items-center justify-center" title="مدرس موثق">
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Stats row */}
             <div className="flex flex-wrap gap-4">
               {[
-              { icon: Star, label: "التقييم", value: course.rating.toFixed(1), color: "text-amber-500" },
-              { icon: Users, label: "المسجلين", value: course.enrolledCount, color: "text-blue-500" },
-              { icon: Clock, label: "المدة", value: `${course.duration} ساعة`, color: "text-purple-500" },
-              { icon: BookOpen, label: "الدروس", value: lessons.length, color: "text-emerald-500" }].
-              map((stat, i) =>
-              <div
-                key={i}
-                className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 px-4 py-3">
-                  <stat.icon className={cn("h-4 w-4", stat.color)} />
+                { icon: Star, label: "التقييم", value: course.rating.toFixed(1), color: "text-amber-500" },
+                { icon: Users, label: "المسجلين", value: `${course.enrolledCount}+ طالب`, color: "text-blue-500" },
+                { icon: Clock, label: "المدة", value: `${course.duration} ساعة`, color: "text-purple-500" },
+                { icon: BookOpen, label: "الدروس", value: `${lessons.length} درس`, color: "text-emerald-500" }
+              ].map((stat, i) =>
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-2xl border border-gray-200/60 dark:border-white/[0.05] bg-white/80 dark:bg-gray-900/40 p-4 shadow-sm hover:scale-[1.02] transition-transform duration-200">
+                  <div className={cn("p-2 rounded-xl bg-gray-50 dark:bg-white/5", stat.color.replace("text-", "bg-") + "/10")}>
+                    <stat.icon className={cn("h-5 w-5", stat.color)} />
+                  </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{stat.label}</p>
-                    <p className="text-sm font-black text-gray-900 dark:text-white">{stat.value}</p>
+                    <p className="text-sm font-black text-gray-900 dark:text-white mt-0.5">{stat.value}</p>
                   </div>
                 </div>
               )}
@@ -304,12 +317,12 @@ export default function CourseDetailClient() {
 
             {/* Tags */}
             {(course.tags || []).length > 0 &&
-            <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 {(course.tags || []).map((tag) =>
-              <span key={tag} className="rounded-lg bg-gray-100 dark:bg-white/5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {tag}
+                  <span key={tag} className="rounded-xl border border-gray-200/50 dark:border-white/5 bg-gray-100/50 dark:bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    #{tag}
                   </span>
-              )}
+                )}
               </div>
             }
           </div>
@@ -326,27 +339,29 @@ export default function CourseDetailClient() {
               bookmarked={bookmarked}
               setBookmarked={setBookmarked}
               onEnroll={handleEnroll}
+              firstFreeLesson={firstFreeLesson}
+              onPreviewCertificate={() => setIsCertModalOpen(true)}
             />
           </div>
         </m.div>
 
-        {/* Tabs */}
+        {/* Tabs & Content */}
         <m.div variants={fadeUp} className="space-y-8">
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5 max-w-fit">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-gray-150/60 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/5 max-w-fit shadow-inner">
             {[
-            { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
-            { key: "overview", label: "نظرة عامة", icon: FileText },
-            { key: "reviews", label: "التقييمات", icon: Star }].
-            map((tab) =>
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as "curriculum" | "overview" | "reviews")}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
-                activeTab === tab.key ?
-                "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm" :
-                "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              )}>
+              { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
+              { key: "overview", label: "نظرة عامة", icon: FileText },
+              { key: "reviews", label: "التقييمات", icon: Star }
+            ].map((tab) =>
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as "curriculum" | "overview" | "reviews")}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-300",
+                  activeTab === tab.key ?
+                    "bg-white dark:bg-gray-800 text-primary dark:text-white shadow-md shadow-black/[0.03]" :
+                    "text-gray-500 hover:text-gray-850 dark:hover:text-gray-300"
+                )}>
                 <tab.icon className="h-4 w-4" />
                 <span>{tab.label}</span>
               </button>
@@ -355,65 +370,68 @@ export default function CourseDetailClient() {
 
           {/* Curriculum Tab */}
           {activeTab === "curriculum" &&
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Lessons list */}
-              <div className="lg:col-span-5 space-y-3">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    قائمة الدروس
-                  </h2>
-                  <span className="text-xs font-medium text-gray-500">
+              <div className="lg:col-span-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-black text-gray-905 dark:text-white">
+                      محتوى الدورة بالتفصيل
+                    </h2>
+                    <p className="text-xs text-gray-400 dark:text-gray-550 mt-1">تصفح الدروس وابدأ التعلم</p>
+                  </div>
+                  <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">
                     {completedCount}/{lessons.length} مكتملة
                   </span>
                 </div>
 
                 <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                   {lessons.map((lesson, idx) =>
-                <button
-                  key={lesson.id}
-                  onClick={() => setActiveLesson(lesson.id)}
-                  className={cn(
-                    "w-full p-4 rounded-xl text-right flex gap-4 items-center transition-all group",
-                    activeLesson === lesson.id ?
-                    "bg-primary/5 dark:bg-primary/10 border border-primary/20" :
-                    "bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10"
-                  )}>
+                    <button
+                      key={lesson.id}
+                      onClick={() => setActiveLesson(lesson.id)}
+                      className={cn(
+                        "w-full p-4 rounded-2xl text-right flex gap-4 items-center transition-all group",
+                        activeLesson === lesson.id ?
+                          "bg-primary/5 dark:bg-primary/10 border border-primary/20 shadow-md shadow-primary/[0.02]" :
+                          "bg-white dark:bg-gray-900/40 border border-gray-200/60 dark:border-white/[0.05] hover:border-gray-300 dark:hover:border-white/10"
+                      )}>
                       <div
-                    className={cn(
-                      "h-9 w-9 min-w-[36px] rounded-xl flex items-center justify-center text-xs font-bold transition-all",
-                      lesson.completed ?
-                      "bg-emerald-500 text-white" :
-                      activeLesson === lesson.id ?
-                      "bg-primary text-white" :
-                      "bg-gray-100 dark:bg-white/5 text-gray-500"
-                    )}>
-                        {lesson.completed ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                        className={cn(
+                          "h-10 w-10 min-w-[40px] rounded-xl flex items-center justify-center text-xs font-black transition-all",
+                          lesson.completed ?
+                            "bg-emerald-500 text-white" :
+                            activeLesson === lesson.id ?
+                              "bg-primary text-white" :
+                              "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
+                        )}>
+                        {lesson.completed ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4
-                      className={cn(
-                        "font-bold text-sm truncate transition-colors",
-                        activeLesson === lesson.id ? "text-primary" : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
-                      )}>
+                          className={cn(
+                            "font-bold text-sm truncate transition-colors",
+                            activeLesson === lesson.id ? "text-primary" : "text-gray-700 dark:text-gray-300 group-hover:text-gray-950 dark:group-hover:text-white"
+                          )}>
                           {lesson.title}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          <span className="text-[11px] text-gray-400">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-[11px] text-gray-400 font-medium">
                             {Math.floor(lesson.duration / 60)} دقيقة
                           </span>
                           {lesson.isFree &&
-                          <Badge className="h-5 border-0 bg-emerald-500/10 px-2 text-[9px] font-bold text-emerald-500">
+                            <Badge className="h-5 border-0 bg-emerald-500/10 px-2 text-[9px] font-bold text-emerald-500 rounded-full">
                               معاينة مجانية
                             </Badge>
                           }
                           {lesson.locked &&
-                          <Lock className="w-3 h-3 text-gray-400" />
+                            <Lock className="w-3 h-3 text-gray-450" />
                           }
                         </div>
                       </div>
                     </button>
-                )}
+                  )}
                 </div>
               </div>
 
@@ -421,39 +439,39 @@ export default function CourseDetailClient() {
               <div className="lg:col-span-7 space-y-6">
                 <AnimatePresence mode="wait">
                   {activeLessonData &&
-                <m.div
-                  key={activeLessonData.id}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 16 }}
-                  className="space-y-6">
+                    <m.div
+                      key={activeLessonData.id}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 16 }}
+                      className="space-y-6">
                       {/* Video player */}
-                      <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80">
+                      <div className="rounded-[28px] overflow-hidden border border-gray-250 dark:border-white/[0.08] bg-white dark:bg-gray-900/80 shadow-md">
                         <LessonVideoArea
-                           canAccess={canAccessActiveLesson}
-                           lessonData={activeLessonData}
-                           courseId={course.id}
-                           courseEnrolled={course.enrolled}
-                           authName={authUser?.name}
-                           userId={userId}
-                           onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
-                           onEnroll={handleEnroll}
+                          canAccess={canAccessActiveLesson}
+                          lessonData={activeLessonData}
+                          courseId={course.id}
+                          courseEnrolled={course.enrolled}
+                          authName={authUser?.name}
+                          userId={userId}
+                          onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
+                          onEnroll={handleEnroll}
                         />
 
                         {/* Lesson details */}
                         <div className="p-6 space-y-4 border-t border-gray-100 dark:border-white/5">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-4">
                             <div>
                               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{activeLessonData.title}</h2>
                               {activeLessonData.description &&
-                              <p className="text-sm text-gray-500 mt-1">{activeLessonData.description}</p>
+                                <p className="text-sm text-gray-400 mt-1.5">{activeLessonData.description}</p>
                               }
                             </div>
                             {!activeLessonData.completed && course.enrolled &&
-                            <Button
-                              onClick={() => handleLessonComplete(activeLessonData.id)}
-                              size="sm"
-                              className="gap-1.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600">
+                              <Button
+                                onClick={() => handleLessonComplete(activeLessonData.id)}
+                                size="sm"
+                                className="gap-1.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 font-bold">
                                 <CheckCircle2 className="h-4 w-4" />
                                 <span>مكتمل</span>
                               </Button>
@@ -461,9 +479,9 @@ export default function CourseDetailClient() {
                           </div>
 
                           {activeLessonData.content && canAccessActiveLesson &&
-                          <div
-                            className="prose prose-sm dark:prose-invert max-w-none pt-4 border-t border-gray-100 dark:border-white/5"
-                            dangerouslySetInnerHTML={{ __html: activeLessonData.content }} />
+                            <div
+                              className="prose prose-sm dark:prose-invert max-w-none pt-4 border-t border-gray-100 dark:border-white/5"
+                              dangerouslySetInnerHTML={{ __html: activeLessonData.content }} />
                           }
                         </div>
                       </div>
@@ -472,7 +490,7 @@ export default function CourseDetailClient() {
                       <div className="flex items-center justify-between">
                         <Button
                           variant="ghost"
-                          className="gap-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700"
+                          className="gap-2 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700"
                           onClick={() => {
                             const idx = lessons.findIndex((l) => l.id === activeLesson);
                             if (idx > 0) setActiveLesson(lessons[idx - 1]!.id);
@@ -482,7 +500,7 @@ export default function CourseDetailClient() {
                         </Button>
 
                         <Button
-                          className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-medium"
+                          className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-bold"
                           onClick={() => {
                             const idx = lessons.findIndex((l) => l.id === activeLesson);
                             if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1]!.id);
@@ -492,7 +510,7 @@ export default function CourseDetailClient() {
                         </Button>
                       </div>
                     </m.div>
-                }
+                  }
                 </AnimatePresence>
               </div>
             </div>
@@ -500,64 +518,87 @@ export default function CourseDetailClient() {
 
           {/* Overview Tab */}
           {activeTab === "overview" &&
-          <m.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl">
               <div className="space-y-6">
-                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">عن هذه الدورة</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{course.description}</p>
+                <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.05] bg-white dark:bg-gray-900/60 p-6 space-y-4 shadow-sm">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">عن هذه الدورة</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">{course.description}</p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">ما ستتعلمه</h3>
-                  <ul className="space-y-3">
+                <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.05] bg-white dark:bg-gray-900/60 p-6 space-y-4 shadow-sm">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">ما ستتعلمه في هذه الدورة</h3>
+                  <ul className="grid grid-cols-1 gap-3">
                     {getListItems(
                       course.whatYouLearn,
                       course.learningObjectives,
-                      ["فهم المفاهيم الأساسية للموضوع", "تطبيق المعرفة في مشاريع عملية", "اكتساب مهارات متقدمة في المجال", "الاستعداد للاختبارات والتقييمات"]
-                    ).
-                  map((item: string, i: number) =>
-                  <li key={i} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                        <span>{item}</span>
+                      ["فهم المفاهيم الأساسية للموضوع بشكل مبسط ورائع", "تطبيق القواعد وحل النماذج والامتحانات السابقة", "اكتساب مهارات التفكير والتحليل وحل المسائل الصعبة", "الاستعداد الكامل لاختبارات نهاية العام وتحقيق التفوق"]
+                    ).map((item: string, i: number) =>
+                      <li key={i} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="p-0.5 rounded-full bg-emerald-500/10 text-emerald-500 mt-0.5 shrink-0">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                        <span className="font-medium">{item}</span>
                       </li>
-                  )}
+                    )}
                   </ul>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">المتطلبات</h3>
+                <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.05] bg-white dark:bg-gray-900/60 p-6 space-y-4 shadow-sm">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">المتطلبات الأساسية</h3>
                   <ul className="space-y-3">
                     {getListItems(
                       course.coursePrerequisites,
                       course.requirements,
-                      ["المعرفة الأساسية بالموضوع", "الرغبة في التعلم والتطبيق", "جهاز حاسوب أو هاتف ذكي"]
-                    ).
-                  map((item: string, i: number) =>
-                  <li key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                        <span>{item}</span>
+                      ["المعرفة التمهيدية البسيطة بالمادة الدراسية", "الرغبة الصادقة والالتزام بمشاهدة جميع الحلقات", "دفتر لتدوين الملاحظات، وجهاز متصل بالإنترنت"]
+                    ).map((item: string, i: number) =>
+                      <li key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                        <span className="font-medium">{item}</span>
                       </li>
-                  )}
+                    )}
                   </ul>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">عن المعلم</h3>
+                {/* Highly Advanced Instructor Profile Card */}
+                <div className="rounded-[24px] border border-gray-200/80 dark:border-white/[0.07] bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900/85 dark:via-gray-900/85 dark:to-black/20 p-6 space-y-5 shadow-md">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">نبذة عن المحاضر</h3>
+                  
                   <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-primary/10 to-violet-500/10 border border-primary/20 flex items-center justify-center text-primary text-2xl font-black shadow-inner">
                       {course.instructor.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 dark:text-white">{course.instructor}</p>
-                      <div className="flex items-center gap-1 text-amber-500 mt-1">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span className="text-xs font-bold">{course.rating.toFixed(1)} تقييم</span>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-extrabold text-gray-900 dark:text-white text-base">{course.instructor}</p>
+                        <span className="h-4 w-4 bg-blue-500 text-white rounded-full flex items-center justify-center" title="حساب موثق">
+                          <Check className="h-2.5 w-2.5 stroke-[3]" />
+                        </span>
                       </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 font-bold mt-0.5">معلم وموجه أول المادة</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                    مدرس أول بخبرة تتجاوز 12 عاماً في تبسيط المناهج وإعداد الامتحانات النموذجية. قاد أكثر من 15 ألف طالب بنجاح نحو التفوق والدرجات النهائية.
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
+                    <div className="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold text-gray-400">الطلاب</p>
+                      <p className="text-sm font-black text-gray-900 dark:text-white mt-1">15K+</p>
+                    </div>
+                    <div className="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold text-gray-400">التقييم</p>
+                      <p className="text-sm font-black text-gray-900 dark:text-white mt-1">4.9 ★</p>
+                    </div>
+                    <div className="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold text-gray-400">الكورسات</p>
+                      <p className="text-sm font-black text-gray-900 dark:text-white mt-1">12 دورتين</p>
                     </div>
                   </div>
                 </div>
@@ -567,25 +608,61 @@ export default function CourseDetailClient() {
 
           {/* Reviews Tab */}
           {activeTab === "reviews" &&
-          <ReviewsTab
-             courseId={courseId}
-             courseRating={course.rating}
-             enrolled={course.enrolled}
-             reviews={reviews}
-             setReviews={setReviews}
-             reviewStats={reviewStats}
-             setReviewStats={setReviewStats}
-             reviewsLoading={reviewsLoading}
-             setReviewsLoading={setReviewsLoading}
-             userRating={userRating}
-             setUserRating={setUserRating}
-             userComment={userComment}
-             setUserComment={setUserComment}
-             submittingReview={submittingReview}
-             setSubmittingReview={setSubmittingReview} />
+            <ReviewsTab
+              courseId={courseId}
+              courseRating={course.rating}
+              enrolled={course.enrolled}
+              reviews={reviews}
+              setReviews={setReviews}
+              reviewStats={reviewStats}
+              setReviewStats={setReviewStats}
+              reviewsLoading={reviewsLoading}
+              setReviewsLoading={setReviewsLoading}
+              userRating={userRating}
+              setUserRating={setUserRating}
+              userComment={userComment}
+              setUserComment={setUserComment}
+              submittingReview={submittingReview}
+              setSubmittingReview={setSubmittingReview} />
           }
         </m.div>
+
+        {/* Separator */}
+        <div className="border-t border-gray-200 dark:border-white/5 my-10" />
+
+        {/* Certificate Preview Banner (Trigger certificate modal) */}
+        <m.div
+          variants={fadeUp}
+          className="rounded-[28px] border border-amber-500/20 dark:border-amber-500/10 bg-gradient-to-br from-amber-500/[0.03] to-amber-500/[0.01] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4 text-right">
+            <div className="h-14 w-14 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-500 border border-amber-500/30">
+              <Award className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-gray-900 dark:text-white">شهادة تخرج موثقة بانتظارك</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md">
+                أكمل متطلبات الدورة واحصل فوراً على شهادة إكمال معتمدة وشاركها مع أصدقائك أو معلمك.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setIsCertModalOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold px-6 h-12 rounded-xl transition-all shadow-md shadow-amber-500/20 shrink-0 gap-2">
+            <Award className="h-5 w-5" />
+            <span>معاينة شهادتك التفاعلية</span>
+          </Button>
+        </m.div>
+
       </m.div>
+
+      {/* Certificate Modal */}
+      <CertificatePreviewModal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+        studentName={authUser?.name || "طالب متفوق"}
+        courseTitle={course.title}
+        instructorName={course.instructor}
+      />
     </div>
   );
 }

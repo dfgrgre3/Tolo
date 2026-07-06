@@ -16,13 +16,17 @@ import { HeaderNavigation } from "./HeaderNavigation";
 import { HeaderNotifications } from "./HeaderNotifications";
 import { HeaderBreadcrumbs } from "./HeaderBreadcrumbs";
 import { useMegaMenuState } from "./useMegaMenuState";
+import { MegaMenu } from "@/components/mega-menu";
+import { headerNavItems } from "@/components/mega-menu/navData";
 import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 import { UserMenu } from "./UserMenu";
 import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
+import { ImpersonationBanner } from "./ImpersonationBanner";
 
+// Dynamic imports with optimization
 const CommandPalette = dynamic(
   () => import("./CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
@@ -58,26 +62,19 @@ const ReadingProgressBar = dynamic(
   { ssr: false, loading: () => null }
 );
 
+// Memoized components for performance
 const MemoizedHeaderLogo = memo(HeaderLogo);
 const MemoizedHeaderSearch = memo(HeaderSearch);
 const MemoizedHeaderNavigation = memo(HeaderNavigation);
 const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
-const buildLoginUrl = (redirect?: string) => {
-  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
-};
-
-const HEADER_PREFERENCES = {
-  compactMode: false,
-  showProgress: true,
-  showSuggestions: true,
-  showActivity: true,
-};
+import { useLoginUrl, useHeaderClasses, useContainerHeight, useHeaderWidgets, HEADER_PREFERENCES } from "./useHeaderOptimizations";
 
 export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isEfficiencyMode = useEfficiencyMode();
+  const loginUrl = useLoginUrl();
 
   const shouldReduceMotion = useSyncExternalStore(
     (callback) => {
@@ -103,13 +100,25 @@ export default function Header() {
   const { user, isLoading } = useAuth();
   const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
   const headerRef = useRef<HTMLElement>(null);
+  const [schoolsMenuOpen, setSchoolsMenuOpen] = useState<string | null>(null);
+
+  const headerClasses = useHeaderClasses(isScrolled, mounted, user);
+  const containerHeight = useContainerHeight(isShrunk);
+  const widgets = useHeaderWidgets(isEfficiencyMode);
 
   useEffect(() => {
-    if (!mounted) return;
-    const height = headerRef.current?.offsetHeight;
-    if (height) {
-      document.documentElement.style.setProperty('--header-height', `${height}px`);
-    }
+    if (!mounted || !headerRef.current) return;
+    const updateHeight = () => {
+      const height = headerRef.current?.offsetHeight;
+      if (height) {
+        document.documentElement.style.setProperty('--header-height', `${height}px`);
+      }
+    };
+    
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(headerRef.current);
+    return () => observer.disconnect();
   }, [mounted]);
 
   useHeaderKeyboardShortcuts({
@@ -133,46 +142,37 @@ export default function Header() {
     return pathname.startsWith(href);
   }, [pathname]);
 
-  const computedHeaderClasses = useMemo(() => {
-    return cn(
-      "sticky top-0 z-50 w-full transition-colors duration-200 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-      isScrolled && "shadow-sm border-primary/20",
-      mounted && user && !isScrolled && "border-primary/10"
-    );
-  }, [isScrolled, mounted, user]);
-
-  const containerHeight = useMemo(() => {
-    if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-12 sm:h-14";
-    return "h-14 sm:h-16";
-  }, [isShrunk]);
-
-  const loginUrl = useMemo(() => {
-    const query = searchParams.toString();
-    const fullPath = `${pathname || '/'}${query ? `?${query}` : ''}`;
-    return buildLoginUrl(fullPath);
-  }, [pathname, searchParams]);
-
   return (
     <>
-      {HEADER_PREFERENCES.showProgress && !isEfficiencyMode && (
-        <ReadingProgressBar position="top" height={2} animate={!shouldReduceMotion} />
+      <ImpersonationBanner />
+      {widgets.progress && (
+        <ReadingProgressBar position="top" height={1} animate={!shouldReduceMotion} />
       )}
 
-      <header ref={headerRef} className={computedHeaderClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
+      <header ref={headerRef} className={headerClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
         <div className="container mx-auto px-2 sm:px-3 md:px-4 lg:px-6 max-w-full">
-          <div className={cn("flex items-center justify-between gap-1 sm:gap-2 md:gap-3 lg:gap-4 transition-all", containerHeight)}>
-            <MemoizedHeaderLogo />
+          <div className={cn("flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 transition-all", containerHeight)}>
+            {/* Left side: Logo and teaching links */}
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+              <MemoizedHeaderLogo />
+              <div className="hidden lg:flex items-center gap-2">
+                <Link href="/teach" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/5">
+                  التدريس على Tolo
+                </Link>
+                <Link href="/careers" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/5">
+                  وظائف Tolo
+                </Link>
+              </div>
+            </div>
 
-            <MemoizedHeaderNavigation
-              openMegaMenu={openMegaMenu}
-              setOpenMegaMenu={setOpenMegaMenu}
-              isActiveRoute={isActiveRoute}
-              mounted={mounted}
-              user={user as any}
-            />
+            {/* Center: Search bar - always visible */}
+            <div className="flex-1 max-w-2xl mx-4">
+              <MemoizedHeaderSearch />
+            </div>
 
-            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 shrink-0" role="toolbar" aria-label="أدوات الرأس">
-              {HEADER_PREFERENCES.showProgress && isShrunk && !isEfficiencyMode && (
+            {/* Right side: Schools, Plans, and widgets */}
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0" role="toolbar" aria-label="أدوات الرأس">
+              {isShrunk && widgets.progress && (
                 <AnimatePresence>
                   <m.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="hidden xl:flex">
                     <ProgressIndicator />
@@ -180,27 +180,49 @@ export default function Header() {
                 </AnimatePresence>
               )}
 
-              {HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode && (
+              {/* Schools with megamenu */}
+              <div className="hidden lg:block">
+                {headerNavItems[0] && (() => {
+                  const item = headerNavItems[0];
+                  return (
+                    <MegaMenu
+                      categories={item.megaMenu || []}
+                      isOpen={schoolsMenuOpen === item.href}
+                      onClose={() => setSchoolsMenuOpen(null)}
+                      onOpen={() => setSchoolsMenuOpen(item.href)}
+                      activeRoute={isActiveRoute}
+                      label={item.label}
+                      user={user as any}
+                      className="relative h-11 px-4 flex items-center gap-2 transition-all duration-300 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5"
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Plans link */}
+              <Link href="/plans" className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary transition-all rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5">
+                الخطط
+              </Link>
+
+              {widgets.suggestions && (
                 <div className="hidden xl:block">
                   <SmartNavigationSuggestions />
                 </div>
               )}
 
-              <MemoizedHeaderSearch />
-
-              {!isEfficiencyMode && (
+              {widgets.quickActions && (
                 <div className="hidden md:block">
                   <QuickActions />
                 </div>
               )}
 
-              {HEADER_PREFERENCES.showActivity && !isEfficiencyMode && (
+              {widgets.activity && (
                 <div className="hidden xl:block">
                   <ActivityWidget />
                 </div>
               )}
 
-              {!isEfficiencyMode && (
+              {widgets.contextualHelp && (
                 <div className="hidden md:block">
                   <ContextualHelp />
                 </div>
@@ -269,9 +291,24 @@ export default function Header() {
               </Button>
             </div>
           </div>
+
+          {/* Second row: Navigation items below the logo & actions */}
+          <div className="hidden lg:flex items-center justify-center border-t border-border/40 py-1.5">
+            <MemoizedHeaderNavigation
+              openMegaMenu={openMegaMenu}
+              setOpenMegaMenu={setOpenMegaMenu}
+              isActiveRoute={isActiveRoute}
+              mounted={mounted}
+              user={user as any}
+            />
+          </div>
+
         </div>
 
         {!isShrunk && <MemoizedHeaderBreadcrumbs />}
+        
+        {/* Premium bottom glow border line */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent pointer-events-none" />
       </header>
 
       <HeaderMobileMenuEnhanced

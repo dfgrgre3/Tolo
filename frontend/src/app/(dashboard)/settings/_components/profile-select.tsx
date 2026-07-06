@@ -15,7 +15,7 @@ export function ProfileSelect({
   value: string;
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   disabled?: boolean;
-  options: { value: string; label: string }[];
+  options: ReadonlyArray<{ value: string; label: string }>;
 }) {
   return (
     <div className="space-y-2">

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { m } from "framer-motion";
-import { Star, Loader2, MessageSquare } from "lucide-react";
+import { Star, Loader2, MessageSquare, Reply, ChevronDown, ChevronUp, Send, User, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -26,6 +26,10 @@ export function ReviewsTab({
   setSubmittingReview
 
 }: {courseId: string;courseRating: number;enrolled: boolean;reviews: Review[];setReviews: (r: Review[]) => void;reviewStats: ReviewStats | null;setReviewStats: (s: ReviewStats | null) => void;reviewsLoading: boolean;setReviewsLoading: (l: boolean) => void;userRating: number;setUserRating: (r: number) => void;userComment: string;setUserComment: (c: string) => void;submittingReview: boolean;setSubmittingReview: (s: boolean) => void;}) {
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [submittingReplies, setSubmittingReplies] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     const fetchReviews = async () => {
       setReviewsLoading(true);
@@ -80,6 +84,76 @@ export function ReviewsTab({
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  const handleSubmitReply = async (reviewId: string) => {
+    const comment = replyInputs[reviewId]?.trim();
+    if (!comment) {
+      toast.error("يرجى كتابة رد");
+      return;
+    }
+
+    setSubmittingReplies(prev => ({ ...prev, [reviewId]: true }));
+    try {
+      const res = await fetch(`/api/courses/reviews/${reviewId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment })
+      });
+      if (res.ok) {
+        toast.success("تم إرسال ردك");
+        setReplyInputs(prev => ({ ...prev, [reviewId]: "" }));
+        // Refresh reviews
+        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const reviewData = refreshData.data || refreshData;
+          setReviews(reviewData.reviews || []);
+        }
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "فشل إرسال الرد");
+      }
+    } catch {
+      toast.error("حدث خطأ أثناء إرسال الرد");
+    } finally {
+      setSubmittingReplies(prev => ({ ...prev, [reviewId]: false }));
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const res = await fetch(`/api/courses/reviews/comments/${commentId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("تم حذف الرد");
+        // Refresh reviews
+        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const reviewData = refreshData.data || refreshData;
+          setReviews(reviewData.reviews || []);
+        }
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "فشل حذف الرد");
+      }
+    } catch {
+      toast.error("حدث خطأ أثناء حذف الرد");
+    }
+  };
+
+  const toggleExpand = (reviewId: string) => {
+    setExpandedReviews(prev => {
+      const next = new Set(prev);
+      if (next.has(reviewId)) {
+        next.delete(reviewId);
+      } else {
+        next.add(reviewId);
+      }
+      return next;
+    });
   };
 
   const avgRating = reviewStats?.avgRating || courseRating;
@@ -214,6 +288,87 @@ export function ReviewsTab({
               {review.comment &&
           <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{review.comment}</p>
           }
+
+              {/* Comments/Replies Section */}
+              {review.comments && review.comments.length > 0 && (
+                <div className="pt-3 border-t border-gray-100 dark:border-white/5">
+                  <button
+                    onClick={() => toggleExpand(review.id)}
+                    className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  >
+                    <Reply className="h-3 w-3" />
+                    {review.comments.length} رد
+                    {expandedReviews.has(review.id) ? (
+                      <ChevronUp className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                  </button>
+
+                  {expandedReviews.has(review.id) && (
+                    <div className="mt-3 space-y-2">
+                      {review.comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <User className="h-3 w-3 text-gray-400" />
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                {comment.user?.name || "مستخدم"}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(comment.createdAt).toLocaleDateString("ar-EG", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric"
+                                })}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              title="حذف الرد"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{comment.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reply Input */}
+              {enrolled && (
+                <div className="pt-3 border-t border-gray-100 dark:border-white/5">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={replyInputs[review.id] || ""}
+                      onChange={(e) => setReplyInputs(prev => ({ ...prev, [review.id]: e.target.value }))}
+                      placeholder="اكتب ردك..."
+                      className="flex-1 h-9 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <Button
+                      onClick={() => handleSubmitReply(review.id)}
+                      disabled={submittingReplies[review.id] || !replyInputs[review.id]?.trim()}
+                      size="sm"
+                      className="h-9 px-3 gap-1 bg-primary text-white rounded-lg text-xs font-bold"
+                    >
+                      {submittingReplies[review.id] ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Send className="h-3 w-3" />
+                      )}
+                      إرسال
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
         )}
         </div> :

@@ -1,4 +1,4 @@
-﻿
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -57,4 +57,4 @@ const AlertDescription = React.forwardRef<
 ))
 AlertDescription.displayName = "AlertDescription"
 
-export { Alert,  AlertDescription }
+export { Alert, AlertTitle, AlertDescription }

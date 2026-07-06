@@ -27,6 +27,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { SITE } from "@shared/site-config";
 import {
   AreaChart,
   Area,
@@ -94,10 +95,10 @@ const VirtualCard = ({ balance }: {balance: number;}) =>
     <div className="relative h-full flex flex-col justify-between text-white z-10">
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">تولو بريميوم</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{SITE.nameAr} بريميوم</p>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
-            <span className="font-black text-xl italic uppercase tracking-wider">Tolo Platinum</span>
+            <span className="font-black text-xl italic uppercase tracking-wider">{SITE.name} Platinum</span>
           </div>
         </div>
         <div className="w-12 h-12 bg-white/20 rounded-xl backdrop-blur-md flex items-center justify-center border border-white/30">
@@ -137,7 +138,10 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
 
   const handleSubmit = async () => {
     const val = parseFloat(amount);
-    if (!val || val <= 0) return toast.error("يرجى إدخال مبلغ صحيح");
+    if (!val || val <= 0) {
+      toast.error("يرجى إدخال مبلغ صحيح");
+      return;
+    }
     setLoading(true);
     await onDeposit(val);
     setLoading(false);
@@ -397,7 +401,7 @@ export default function WalletDashboard() {
                 <div className="grid grid-cols-2 gap-6">
                   {[
                 { label: "منصرف هـذا الشهر", val: stats.spent, icon: ArrowDownLeft, color: "text-rose-400", bg: "bg-rose-500/10" },
-                { label: "توفير تولو", val: 450, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10" }].
+                { label: "توفير " + SITE.nameAr, val: 450, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10" }].
                 map((s, i) =>
                 <div key={i} className="bg-white/5 rounded-[2.2rem] p-6 border border-white/5 transition-all hover:bg-white/10">
                       <div className={`${s.bg} ${s.color} w-10 h-10 rounded-xl flex items-center justify-center mb-4`}>

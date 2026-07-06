@@ -121,9 +121,9 @@ export function LessonTabsSection({
           )}
 
           {activeTab === "resources" && (
-            activeLesson.attachments.length > 0 ? (
+            (activeLesson?.attachments || []).length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
-                {activeLesson.attachments.map((attachment) => (
+                {(activeLesson?.attachments ?? []).map((attachment) => (
                   <div
                     key={attachment.id}
                     className="flex items-center justify-between gap-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.03]"

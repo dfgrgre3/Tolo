@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
@@ -42,12 +41,12 @@ interface UploadChunkBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     // Validate that Redis is available for chunked uploads
@@ -205,7 +204,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -263,7 +263,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -277,7 +278,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     const body = await request.json();
@@ -344,7 +344,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -385,7 +386,6 @@ export async function DELETE(request: NextRequest) {
 
     // Cleanup stored chunk files from Supabase
     if (paths.length > 0) {
-      const cookieStore = await cookies();
       const supabase = createClient(cookieStore);
       // Remove in batches of 100 (Supabase limit)
       for (let i = 0; i < paths.length; i += 100) {

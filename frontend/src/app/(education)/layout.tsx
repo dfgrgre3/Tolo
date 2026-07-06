@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import React from 'react';
+import { SITE } from '@shared/site-config';
 
 export const metadata: Metadata = {
-  title: 'التعليم | Tolo',
-  description: 'الكورسات، الامتحانات، المكتبة التعليمية، والمدرسين على منصة تولو',
+  title: `التعليم | ${SITE.name}`,
+  description: `الكورسات، الامتحانات، المكتبة التعليمية، والمدرسين على منصة ${SITE.nameAr}`,
   openGraph: {
-    title: 'التعليم | Tolo',
-    description: 'تصفح الكورسات والامتحانات والمكتبة التعليمية على منصة تولو',
+    title: `التعليم | ${SITE.name}`,
+    description: `تصفح الكورسات والامتحانات والمكتبة التعليمية على منصة ${SITE.nameAr}`,
     type: 'website',
   },
 };

@@ -9,7 +9,7 @@ import { rpgCommonStyles } from "../constants";
 export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced() {
   const quickLinks = useMemo(() => [
     {
-      href: "/progress",
+      href: "/settings/progress",
       icon: <Map className="h-6 w-6 text-blue-400" />,
       title: "خريطة التقدم (World Map)",
       description: "راقب توسع نفوذك وإنجازاتك في اللعبة",

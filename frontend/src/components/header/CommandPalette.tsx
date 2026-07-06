@@ -226,7 +226,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         label: "الإنجازات",
         description: "عرض إنجازاتك",
         icon: <Award className="h-4 w-4" />,
-        action: () => router.push("/achievements"),
+        action: () => router.push("/settings/achievements"),
         keywords: ["achievements", "إنجازات", "جوائز"],
         category: "إنجازات",
       },

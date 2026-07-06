@@ -128,6 +128,7 @@ export function useAIAssistant({
       const timer = setTimeout(() => setSentimentAlert(null), 10000);
       return () => clearTimeout(timer);
     }
+    return;
   }, [sentimentAlert]);
 
   const startListening = useCallback(() => {

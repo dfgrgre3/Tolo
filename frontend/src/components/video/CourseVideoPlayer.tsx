@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   memo,
@@ -51,7 +51,7 @@ import { InteractiveQuestionOverlay } from "./player/components/InteractiveQuest
 import { ActiveNotePopup } from "./player/components/ActiveNotePopup";
 
 // Hooks
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 import { useYouTubePlayer } from "./player/hooks/useYouTubePlayer";
 import { useKeyboardShortcuts } from "./player/hooks/useKeyboardShortcuts";
 import { useTouchGestures } from "./player/hooks/useTouchGestures";
@@ -63,15 +63,13 @@ import { useFrameCapture } from "./player/hooks/useFrameCapture";
 import { useMediaSession } from "./player/hooks/useMediaSession";
 
 // Store & Types
-import {
-  createDefaultPlayerUiState,
-  useCourseVideoPlayerStore,
-} from "./player/store";
+import { usePlaybackStore } from "./player/stores/playback-store";
+import { useUIStore } from "./player/stores/ui-store";
+import { useSettingsStore } from "./player/stores/settings-store";
 import type {
   CourseVideoPlayerApi,
   CourseVideoPlayerProps,
   PlayerFeedback,
-  PlayerPreferences,
   QualityOption,
   YouTubeRuntimePlayer,
 } from "./player/types";
@@ -112,6 +110,7 @@ export function CourseVideoPlayer({
   thumbnailVttUrl,
   qualitySources = [],
   interactiveQuestions = [],
+  onProgress,
 }: CourseVideoPlayerProps) {
   // --- Refs & Internal State ---
   const [activeVideoUrl, setActiveVideoUrl] = useState(videoUrl);
@@ -133,52 +132,81 @@ export function CourseVideoPlayer({
   const [thumbnailCues, setThumbnailCues] = useState<ReturnType<typeof parseThumbnailVtt>>([]);
   const [youtubePlaybackRates, setYoutubePlaybackRates] = useState<number[]>([]);
 
-  // --- Store State ---
-  const setPlayerState = useCourseVideoPlayerStore((state) => state.setPlayerState);
-  const resetPlayerState = useCourseVideoPlayerStore((state) => state.resetPlayerState);
+  // Stores State selection
+  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
+  const setUIState = useUIStore((s) => s.setUIState);
+  const setSettingsState = useSettingsStore((s) => s.setSettingsState);
   
-  const store = useCourseVideoPlayerStore(useShallow((s) => ({
+  const playbackStore = usePlaybackStore(useShallow((s) => ({
     volume: s.volume,
     isMuted: s.isMuted,
     playbackRate: s.playbackRate,
-    isAmbientMode: s.isAmbientMode,
-    brightness: s.brightness,
-    watermarkIndex: s.watermarkIndex,
-    isFullscreen: s.isFullscreen,
-    selectedSubtitle: s.selectedSubtitle,
     isPlaying: s.isPlaying,
     autoplayCountdown: s.autoplayCountdown,
     isEnded: s.isEnded,
-    qualities: s.qualities,
-    errorMessage: s.errorMessage,
     resumeTime: s.resumeTime,
-    sidebarTab: s.sidebarTab,
-    isSidebarOpen: s.isSidebarOpen,
-    showControls: s.showControls,
     activeQuestionId: s.activeQuestionId,
     answeredQuestionIds: s.answeredQuestionIds,
   })));
 
-  // --- Helpers ---
-  const flashFeedback = useCallback((feedback: NonNullable<PlayerFeedback>) => {
-    setPlayerState({ feedback });
+  const uiStore = useUIStore(useShallow((s) => ({
+    isFullscreen: s.isFullscreen,
+    isMiniPlayer: s.isMiniPlayer,
+    sidebarTab: s.sidebarTab,
+    isSidebarOpen: s.isSidebarOpen,
+    showControls: s.showControls,
+    errorMessage: s.errorMessage,
+    isSettingsOpen: s.isSettingsOpen,
+    isHelpOpen: s.isHelpOpen,
+    isStatsOpen: s.isStatsOpen,
+    isShortcutsOpen: s.isShortcutsOpen,
+  })));
+
+  const settingsStore = useSettingsStore(useShallow((s) => ({
+    isAmbientMode: s.isAmbientMode,
+    brightness: s.brightness,
+    watermarkIndex: s.watermarkIndex,
+    selectedSubtitle: s.selectedSubtitle,
+    subtitleSize: s.subtitleSize,
+    subtitleBgOpacity: s.subtitleBgOpacity,
+    zoomFactor: s.zoomFactor,
+    panOffset: s.panOffset,
+    qualities: s.qualities,
+  })));
+
+  // Combine into a single local `store` object to keep the rest of the code intact
+  const store = useMemo(() => ({
+    ...playbackStore,
+    ...uiStore,
+    ...settingsStore,
+  }), [playbackStore, uiStore, settingsStore]);
+  
+  // Helper to set feedback using UI store
+  const setFeedback = useCallback((feedback: PlayerFeedback | null) => {
+    setUIState({ feedback });
+  }, [setUIState]);
+
+// --- Helpers ---
+  const flashFeedback = useCallback((feedback: PlayerFeedback) => {
+    setFeedback(feedback);
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = window.setTimeout(() => setPlayerState({ feedback: null }), 850);
-  }, [setPlayerState]);
+    feedbackTimeoutRef.current = window.setTimeout(() => setFeedback(null), 850);
+  }, [setFeedback]);
 
   const resetControlsTimeout = useCallback(() => {
-    setPlayerState({ showControls: true });
+    setUIState({ showControls: true });
     if (playerContainerRef.current) playerContainerRef.current.style.cursor = "default";
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
 
     controlsTimeoutRef.current = window.setTimeout(() => {
-      const s = useCourseVideoPlayerStore.getState();
-      if (s.isPlaying && !s.isSettingsOpen && !s.isSidebarOpen && !s.isHelpOpen && !s.isStatsOpen) {
-        setPlayerState({ showControls: false });
+      const isPlaying = usePlaybackStore.getState().isPlaying;
+      const { isSettingsOpen, isSidebarOpen, isHelpOpen, isStatsOpen } = useUIStore.getState();
+      if (isPlaying && !isSettingsOpen && !isSidebarOpen && !isHelpOpen && !isStatsOpen) {
+        setUIState({ showControls: false });
         if (playerContainerRef.current) playerContainerRef.current.style.cursor = "none";
       }
     }, CONTROLS_HIDE_TIMEOUT_MS);
-  }, [setPlayerState]);
+  }, [setUIState]);
 
   // --- Hook: Player Adapter ---
   const getAdapter = usePlayerAdapter({ provider, videoRef, youtubePlayerRuntimeRef });
@@ -200,13 +228,103 @@ export function CourseVideoPlayer({
     storageKey,
     getDuration: () => getAdapter()?.getDuration() ?? 0,
     getCurrentTime: () => getAdapter()?.getCurrentTime() ?? 0,
-    triggerAutoComplete: () => onLessonAutoComplete?.(),
+    triggerAutoComplete: () => onLessonAutoComplete?.(lessonId),
     alreadyCompleted,
   });
 
   // --- Security & Content Protection ---
   const { user } = useAuth();
   const [isRecordingDetected, setIsRecordingDetected] = useState(false);
+
+  // --- Zoom, Pan & Mini-player ---
+  const isPanningRef = useRef(false);
+  const startPanRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const storeState = useSettingsStore.getState();
+    if (storeState.zoomFactor > 1) {
+      isPanningRef.current = true;
+      startPanRef.current = { x: e.clientX - storeState.panOffset.x, y: e.clientY - storeState.panOffset.y };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isPanningRef.current) return;
+    const storeState = useSettingsStore.getState();
+    const newX = e.clientX - startPanRef.current.x;
+    const newY = e.clientY - startPanRef.current.y;
+    const maxPanX = (storeState.zoomFactor - 1) * 350;
+    const maxPanY = (storeState.zoomFactor - 1) * 200;
+    setSettingsState({
+      panOffset: {
+        x: clamp(newX, -maxPanX, maxPanX),
+        y: clamp(newY, -maxPanY, maxPanY)
+      }
+    });
+  }, [setSettingsState]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }, []);
+
+  const handleDoubleClick = useCallback(() => {
+    const storeState = useSettingsStore.getState();
+    if (storeState.zoomFactor > 1) {
+      setSettingsState({ zoomFactor: 1, panOffset: { x: 0, y: 0 } });
+      flashFeedback({ icon: Sparkles, label: "إعادة ضبط الحجم" });
+    } else {
+      setSettingsState({ zoomFactor: 2, panOffset: { x: 0, y: 0 } });
+      flashFeedback({ icon: Sparkles, label: "تكبير 2x" });
+    }
+  }, [flashFeedback, setSettingsState]);
+
+  useEffect(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+    
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const storeState = useSettingsStore.getState();
+        const zoomDelta = e.deltaY > 0 ? -0.15 : 0.15;
+        const nextZoom = clamp(storeState.zoomFactor + zoomDelta, 1, 3);
+        const nextPan = nextZoom === 1 ? { x: 0, y: 0 } : storeState.panOffset;
+        setSettingsState({ zoomFactor: nextZoom, panOffset: nextPan });
+        flashFeedback({ icon: Sparkles, label: `تكبير ${nextZoom.toFixed(1)}x` });
+      }
+    };
+    
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [flashFeedback, setSettingsState]);
+
+  useEffect(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const isPlaying = usePlaybackStore.getState().isPlaying;
+        const isFullscreen = useUIStore.getState().isFullscreen;
+        const shouldFloat = !entry.isIntersecting && isPlaying && !isFullscreen;
+        setUIState({ isMiniPlayer: shouldFloat });
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(container);
+    return () => {
+      observer.unobserve(container);
+    };
+  }, [setUIState]);
   
   const dynamicWatermark = useMemo(() => {
     if (!user) return watermarkText;
@@ -216,7 +334,8 @@ export function CourseVideoPlayer({
   useEffect(() => {
     // Content Protection: Detect blur which often happens when starting a capture tool
     const handleBlur = () => {
-      if (store.isPlaying) setIsRecordingDetected(true);
+      const currentIsPlaying = usePlaybackStore.getState().isPlaying;
+      if (currentIsPlaying) setIsRecordingDetected(true);
     };
     const handleFocus = () => setIsRecordingDetected(false);
     
@@ -266,7 +385,7 @@ export function CourseVideoPlayer({
       window.removeEventListener('dragstart', handleDragStart);
       window.removeEventListener('resize', handleResize);
     };
-  }, [store.isPlaying]);
+  }, []);
 
   // --- Hook: HLS Engine ---
   const hlsRef = useHlsEngine({ activeVideoUrl, provider, videoRef, flashFeedback });
@@ -283,18 +402,20 @@ export function CourseVideoPlayer({
     const duration = adapter.getDuration();
     const buffered = adapter.getBuffered();
 
-    const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = useCourseVideoPlayerStore.getState();
+    const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = usePlaybackStore.getState();
     
     // Interactive Questions Detection
     const currentSecond = Math.floor(nextTime);
     if (interactiveQuestions.length > 0 && !activeQuestionId && currentSecond !== lastCheckedSecondRef.current) {
       const question = interactiveQuestions.find(q => 
-        Math.abs(q.time - nextTime) < 0.8 && !answeredQuestionIds.has(q.id)
+        Math.abs((q.timePosition ?? q.time ?? 0) - nextTime) < 0.8 && !answeredQuestionIds.includes(q.id)
       );
       if (question) {
         lastCheckedSecondRef.current = currentSecond;
         adapter.pause();
-        setPlayerState({ activeQuestionId: question.id, isPlaying: false, showControls: true });
+        setPlaybackState({ activeQuestionId: question.id });
+        setPlaybackState({ isPlaying: false });
+        setUIState({ showControls: true });
         flashFeedback({ icon: HelpCircle, label: "سؤال تفاعلي" });
         return; // Stop sync until answered
       }
@@ -302,15 +423,20 @@ export function CourseVideoPlayer({
 
     if (loopStart !== null && loopEnd !== null && nextTime >= loopEnd) {
       adapter.seekTo(loopStart);
-      setPlayerState({ currentTime: loopStart });
+      setPlaybackState({ currentTime: loopStart });
     } else {
-      setPlayerState({
+      setPlaybackState({
         currentTime: nextTime,
         duration,
         buffered,
       });
     }
-  }, [getAdapter, setPlayerState, interactiveQuestions, flashFeedback]);
+
+    // Call onProgress callback to update parent component
+    if (onProgress) {
+      onProgress(nextTime, duration);
+    }
+  }, [getAdapter, interactiveQuestions, flashFeedback, onProgress]);
 
   const stopPlaybackLoop = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -322,7 +448,7 @@ export function CourseVideoPlayer({
   const runPlaybackLoop = useCallback(() => {
     syncPlaybackSnapshot();
     saveProgress();
-    if (useCourseVideoPlayerStore.getState().isPlaying) {
+    if (usePlaybackStore.getState().isPlaying) {
       animationFrameRef.current = window.requestAnimationFrame(() => runPlaybackLoopRef.current());
     } else {
       animationFrameRef.current = null;
@@ -347,10 +473,10 @@ export function CourseVideoPlayer({
     if (duration <= 0) return;
     const nextTime = clamp(value, 0, duration);
     adapter.seekTo(nextTime);
-    setPlayerState({ currentTime: nextTime, resumeTime: null, isEnded: false });
+    setPlaybackState({ currentTime: nextTime, resumeTime: null, isEnded: false });
     syncPlaybackSnapshot();
     resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout, setPlayerState, syncPlaybackSnapshot]);
+  }, [getAdapter, resetControlsTimeout, syncPlaybackSnapshot]);
 
   const seekBy = useCallback((seconds: number) => {
     const adapter = getAdapter();
@@ -367,7 +493,7 @@ export function CourseVideoPlayer({
     const adapter = getAdapter();
     if (!adapter) return;
     try {
-      if (useCourseVideoPlayerStore.getState().isPlaying) {
+      if (usePlaybackStore.getState().isPlaying) {
         adapter.pause();
         flashFeedback({ icon: Pause, label: "إيقاف مؤقت" });
       } else {
@@ -375,10 +501,10 @@ export function CourseVideoPlayer({
         flashFeedback({ icon: Play, label: "تشغيل" });
       }
     } catch {
-      setPlayerState({ errorMessage: "تعذر تشغيل الفيديو الحالي." });
+      setUIState({ errorMessage: "تعذر تشغيل الفيديو الحالي." });
     }
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout, setPlayerState]);
+  }, [flashFeedback, getAdapter, resetControlsTimeout]);
 
   const toggleMute = useCallback(() => {
     const adapter = getAdapter();
@@ -387,12 +513,12 @@ export function CourseVideoPlayer({
     adapter.setMuted(nextMuted);
     if (!nextMuted && store.volume === 0) {
       adapter.setVolume(0.5);
-      setPlayerState({ volume: 0.5 });
+      setPlaybackState({ volume: 0.5 });
     }
-    setPlayerState({ isMuted: nextMuted });
+    setPlaybackState({ isMuted: nextMuted });
     flashFeedback({ icon: nextMuted ? VolumeX : Volume2, label: nextMuted ? "كتم" : "صوت" });
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout, setPlayerState, store.isMuted, store.volume]);
+  }, [flashFeedback, getAdapter, resetControlsTimeout, store.isMuted, store.volume]);
 
   const handleVolumeChange = useCallback((nextVolume: number) => {
     const adapter = getAdapter();
@@ -400,9 +526,9 @@ export function CourseVideoPlayer({
     const safeVolume = clamp(nextVolume, 0, 1);
     adapter.setVolume(safeVolume);
     adapter.setMuted(safeVolume === 0);
-    setPlayerState({ volume: safeVolume, isMuted: safeVolume === 0 });
+    setPlaybackState({ volume: safeVolume, isMuted: safeVolume === 0 });
     resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout, setPlayerState]);
+  }, [getAdapter, resetControlsTimeout]);
 
   const handlePlaybackRateChange = useCallback((nextRate: number) => {
     const adapter = getAdapter();
@@ -412,10 +538,10 @@ export function CourseVideoPlayer({
       return;
     }
     adapter.setPlaybackRate(nextRate);
-    setPlayerState({ playbackRate: nextRate });
+    setPlaybackState({ playbackRate: nextRate });
     flashFeedback({ icon: Settings2, label: `${nextRate}x` });
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, provider, resetControlsTimeout, setPlayerState, youtubePlaybackRates]);
+  }, [flashFeedback, getAdapter, provider, resetControlsTimeout, youtubePlaybackRates]);
 
   const toggleFullscreen = useCallback(async () => {
     const container = playerContainerRef.current;
@@ -424,10 +550,10 @@ export function CourseVideoPlayer({
       if (document.fullscreenElement) await document.exitFullscreen();
       else await container.requestFullscreen();
     } catch {
-      setPlayerState({ errorMessage: "تعذر تفعيل وضع ملء الشاشة." });
+      setUIState({ errorMessage: "تعذر تفعيل وضع ملء الشاشة." });
     }
     resetControlsTimeout();
-  }, [resetControlsTimeout, setPlayerState]);
+  }, [resetControlsTimeout]);
 
   const togglePip = useCallback(async () => {
     const video = videoRef.current;
@@ -436,28 +562,28 @@ export function CourseVideoPlayer({
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else await video.requestPictureInPicture();
     } catch {
-      setPlayerState({ errorMessage: "وضع النافذة العائمة غير متاح لهذا المتصفح." });
+      setUIState({ errorMessage: "وضع النافذة العائمة غير متاح لهذا المتصفح." });
     }
     resetControlsTimeout();
-  }, [provider, resetControlsTimeout, setPlayerState]);
+  }, [provider, resetControlsTimeout]);
 
   const toggleLoop = useCallback(() => {
-    const { loopStart, loopEnd, currentTime } = useCourseVideoPlayerStore.getState();
+    const { loopStart, loopEnd, currentTime } = usePlaybackStore.getState();
     if (loopStart === null) {
-      setPlayerState({ loopStart: currentTime });
+      setPlaybackState({ loopStart: currentTime });
       flashFeedback({ icon: Repeat, label: "تم تحديد نقطة البداية (A)" });
     } else if (loopEnd === null) {
       if (currentTime <= loopStart) {
         flashFeedback({ icon: Repeat, label: "يجب أن تكون النهاية بعد البداية" });
         return;
       }
-      setPlayerState({ loopEnd: currentTime });
+      setPlaybackState({ loopEnd: currentTime });
       flashFeedback({ icon: Repeat, label: "تم تفعيل التكرار (A-B)" });
     } else {
-      setPlayerState({ loopStart: null, loopEnd: null });
+      setPlaybackState({ loopStart: null, loopEnd: null });
       flashFeedback({ icon: Repeat, label: "إيقاف التكرار" });
     }
-  }, [flashFeedback, setPlayerState]);
+  }, [flashFeedback]);
 
   const applySubtitleSelection = useCallback((subtitleId: string) => {
     if (provider === "youtube" || !videoRef.current) return;
@@ -468,18 +594,18 @@ export function CourseVideoPlayer({
 
   const changeSubtitle = useCallback((id: string) => {
     applySubtitleSelection(id);
-    setPlayerState({ selectedSubtitle: id });
+    setSettingsState({ selectedSubtitle: id });
     flashFeedback({
       icon: Settings2,
       label: id === "off" ? "الترجمة متوقفة" : (subtitleTracks.find(t => t.id === id)?.label ?? "ترجمة")
     });
-  }, [applySubtitleSelection, flashFeedback, setPlayerState, subtitleTracks]);
+  }, [applySubtitleSelection, flashFeedback, subtitleTracks]);
 
   const changeQuality = useCallback((qualityId: number) => {
     const hls = hlsRef.current;
     if (hls) {
       hls.currentLevel = qualityId;
-      setPlayerState({ selectedQuality: qualityId });
+      setSettingsState({ selectedQuality: qualityId });
       flashFeedback({
         icon: Settings2,
         label: qualityId === -1 ? `تلقائي` : `جودة ${qualityId}p`
@@ -492,16 +618,17 @@ export function CourseVideoPlayer({
       time: getAdapter()?.getCurrentTime() ?? 0,
       shouldResume: store.isPlaying
     };
-    setPlayerState({ selectedQuality: qualityId, isLoading: true });
+    setSettingsState({ selectedQuality: qualityId });
+    setPlaybackState({ isLoading: true });
     setActiveVideoUrl(source.src);
     flashFeedback({ icon: Settings2, label: source.label });
-  }, [flashFeedback, getAdapter, hlsRef, qualitySources, setPlayerState, store.isPlaying]);
+  }, [flashFeedback, getAdapter, hlsRef, qualitySources, store.isPlaying]);
 
   // --- Hook Integration: Keyboard & Touch ---
   const handleKeyboardShortcuts = useKeyboardShortcuts({
     togglePlayPause, seekBy, handleSeek, handleVolumeChange, handlePlaybackRateChange: handlePlaybackRateChange,
     toggleMute, toggleFullscreen, togglePip,
-    onToggleTheater, changeSubtitle, toggleLoop, setOpenPanel: (p) => setPlayerState({
+    onToggleTheater, changeSubtitle, toggleLoop, setOpenPanel: (p) => setUIState({
       isSettingsOpen: p === "settings", isHelpOpen: p === "help", isStatsOpen: p === "stats", isSidebarOpen: p === "sidebar"
     }),
     getDuration: () => getAdapter()?.getDuration() ?? 0,
@@ -537,21 +664,28 @@ export function CourseVideoPlayer({
   }, [videoUrl]);
 
   useEffect(() => {
-    resetPlayerState({
-      ...createDefaultPlayerUiState(),
+    const resetPlaybackState = usePlaybackStore.getState().resetPlaybackState;
+    const resetUIState = useUIStore.getState().resetUIState;
+    const resetSettingsState = useSettingsStore.getState().resetSettingsState;
+
+    resetPlaybackState({
       isLoading: true,
       volume: initialPreferences.volume,
       isMuted: initialPreferences.isMuted,
       playbackRate: initialPreferences.playbackRate,
-      isAmbientMode: initialPreferences.isAmbientMode,
-      selectedSubtitle: initialPreferences.selectedSubtitle,
-      brightness: initialPreferences.brightness,
+    });
+    resetUIState({
       isSidebarOpen: initialPreferences.isSidebarOpen ?? false,
       sidebarTab: initialPreferences.sidebarTab ?? "bookmarks",
     });
+    resetSettingsState({
+      isAmbientMode: initialPreferences.isAmbientMode,
+      selectedSubtitle: initialPreferences.selectedSubtitle,
+      brightness: initialPreferences.brightness,
+    });
     setYoutubePlaybackRates([]);
     setNoteDraft("");
-  }, [initialPreferences, resetPlayerState, lessonId]);
+  }, [initialPreferences, lessonId]);
 
   useEffect(() => {
     localStorage.setItem(PLAYER_PREFERENCES_KEY, JSON.stringify({
@@ -575,8 +709,8 @@ export function CourseVideoPlayer({
   }, [thumbnailVttUrl]);
 
   useEffect(() => {
-    const onFullscreen = () => setPlayerState({ isFullscreen: !!document.fullscreenElement });
-    const onPip = () => setPlayerState({ isPip: !!document.pictureInPictureElement });
+    const onFullscreen = () => setUIState({ isFullscreen: !!document.fullscreenElement });
+    const onPip = () => setUIState({ isPip: !!document.pictureInPictureElement });
     document.addEventListener("fullscreenchange", onFullscreen);
     document.addEventListener("enterpictureinpicture", onPip);
     document.addEventListener("leavepictureinpicture", onPip);
@@ -585,14 +719,14 @@ export function CourseVideoPlayer({
       document.removeEventListener("enterpictureinpicture", onPip);
       document.removeEventListener("leavepictureinpicture", onPip);
     };
-  }, [setPlayerState]);
+  }, [setUIState]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setPlayerState((s) => ({ watermarkIndex: (s.watermarkIndex + 1) % WATERMARK_POSITIONS.length }));
+      setSettingsState((s) => ({ watermarkIndex: (s.watermarkIndex + 1) % WATERMARK_POSITIONS.length }));
     }, 12000);
     return () => clearInterval(interval);
-  }, [setPlayerState]);
+  }, [setSettingsState]);
 
   // Video Element Events
   useEffect(() => {
@@ -600,7 +734,7 @@ export function CourseVideoPlayer({
     if (!v || provider === "youtube") return;
 
     const onLoaded = () => {
-      setPlayerState({ isLoading: false, duration: v.duration });
+      setPlaybackState({ isLoading: false, duration: v.duration });
       if (pendingSourceSwitchRef.current) {
         const p = pendingSourceSwitchRef.current;
         pendingSourceSwitchRef.current = null;
@@ -610,10 +744,10 @@ export function CourseVideoPlayer({
         loadResumeData();
       }
     };
-    const onPlay = () => { setPlayerState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); };
-    const onPause = () => { setPlayerState({ isPlaying: false }); stopPlaybackLoop(); saveProgress(true); };
+    const onPlay = () => { setPlaybackState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); };
+    const onPause = () => { setPlaybackState({ isPlaying: false }); stopPlaybackLoop(); saveProgress(true); };
     const onEnded = () => {
-      setPlayerState({ isPlaying: false, isEnded: true, autoplayCountdown: AUTOPLAY_NEXT_SECONDS });
+      setPlaybackState({ isPlaying: false, isEnded: true, autoplayCountdown: AUTOPLAY_NEXT_SECONDS });
       saveProgress(true);
     };
 
@@ -621,8 +755,8 @@ export function CourseVideoPlayer({
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("ended", onEnded);
-    v.addEventListener("waiting", () => setPlayerState({ isLoading: true }));
-    v.addEventListener("playing", () => setPlayerState({ isLoading: false }));
+    v.addEventListener("waiting", () => setPlaybackState({ isLoading: true }));
+    v.addEventListener("playing", () => setPlaybackState({ isLoading: false }));
     
     return () => {
       v.removeEventListener("loadedmetadata", onLoaded);
@@ -630,7 +764,7 @@ export function CourseVideoPlayer({
       v.removeEventListener("pause", onPause);
       v.removeEventListener("ended", onEnded);
     };
-  }, [loadResumeData, provider, saveProgress, setPlayerState, startPlaybackLoop, stopPlaybackLoop]);
+  }, [loadResumeData, provider, saveProgress, setPlaybackState, startPlaybackLoop, stopPlaybackLoop]);
 
   // YouTube Hook Integration
   useYouTubePlayer({
@@ -642,15 +776,15 @@ export function CourseVideoPlayer({
     playbackRate: store.playbackRate,
     playerRef: youtubePlayerRuntimeRef,
     onReady: (p) => {
-      setPlayerState({ isLoading: false, duration: p.getDuration() });
-      setYoutubePlaybackRates(p.getAvailablePlaybackRates() ?? []);
+      setPlaybackState({ isLoading: false, duration: p.getDuration() });
+      setYoutubePlaybackRates(p.getAvailablePlaybackRates?.() ?? []);
       loadResumeData();
     },
     onStateChange: (state, player, api) => {
-      if (state === api.PlayerState.PLAYING) { setPlayerState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); }
-      else if (state === api.PlayerState.PAUSED) { setPlayerState({ isPlaying: false }); stopPlaybackLoop(); saveProgress(true); }
+      if (state === api.PlayerState.PLAYING) { setPlaybackState({ isPlaying: true, isEnded: false }); startPlaybackLoop(); }
+      else if (state === api.PlayerState.PAUSED) { setPlaybackState({ isPlaying: false }); stopPlaybackLoop(); saveProgress(true); }
       else if (state === api.PlayerState.ENDED) {
-        setPlayerState({ isPlaying: false, isEnded: true, autoplayCountdown: AUTOPLAY_NEXT_SECONDS });
+        setPlaybackState({ isPlaying: false, isEnded: true, autoplayCountdown: AUTOPLAY_NEXT_SECONDS });
         saveProgress(true);
       }
     }
@@ -660,13 +794,34 @@ export function CourseVideoPlayer({
   useEffect(() => {
     if (!store.isEnded || !onNextVideo) return;
     if (store.autoplayCountdown <= 0) { onNextVideo(); return; }
-    const t = setTimeout(() => setPlayerState(s => ({ autoplayCountdown: s.autoplayCountdown - 1 })), 1000);
+    const t = setTimeout(() => setPlaybackState(s => ({ autoplayCountdown: s.autoplayCountdown - 1 })), 1000);
     return () => clearTimeout(t);
-  }, [store.autoplayCountdown, store.isEnded, onNextVideo, setPlayerState]);
+  }, [store.autoplayCountdown, store.isEnded, onNextVideo]);
+
+  // Watch Time Tracking Effect
+  useEffect(() => {
+    let intervalId: number | null = null;
+    if (store.isPlaying) {
+      intervalId = window.setInterval(() => {
+        useSettingsStore.getState().incrementWatchSeconds(1);
+      }, 1000);
+    }
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [store.isPlaying]);
 
   // --- Computed Values ---
   const mergedMarkers = useMemo(() => mergeChapterMarkers(bookmarks, chapterMarkers), [bookmarks, chapterMarkers]);
   const sidebarHasContent = mergedMarkers.length > 0 || notes.length > 0 || lessons.length > 0;
+  const subtitleSizeMap = {
+    sm: "14px",
+    md: "18px",
+    lg: "22px",
+    xl: "26px"
+  };
+  const cueFontSize = subtitleSizeMap[store.subtitleSize || "md"];
+  const cueBgColor = `rgba(0, 0, 0, ${store.subtitleBgOpacity ?? 0.75})`;
   const playbackRates = provider === "youtube" && youtubePlaybackRates.length > 0
     ? [...new Set([...youtubePlaybackRates, ...PLAYBACK_RATES])].sort((a, b) => a - b)
     : PLAYBACK_RATES;
@@ -683,16 +838,45 @@ export function CourseVideoPlayer({
       className={cn(
         "group/player relative aspect-video w-full max-h-[70vh] md:max-h-[75vh] lg:max-h-[80vh] select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
         store.isFullscreen && "rounded-none max-h-none",
+        store.isMiniPlayer && "fixed bottom-4 right-4 z-50 w-[340px] h-auto aspect-video max-h-none rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20 animate-in fade-in slide-in-from-bottom-4",
         className
       )}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        .group\\/player video::cue {
+          font-size: ${cueFontSize} !important;
+          background: ${cueBgColor} !important;
+          background-color: ${cueBgColor} !important;
+        }
+      `}} />
+
+      {store.isMiniPlayer && (
+        <button
+          type="button"
+          onClick={() => {
+            getAdapter()?.pause();
+            setUIState({ isMiniPlayer: false });
+          }}
+          className="absolute top-3 right-3 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 hover:scale-105 transition active:scale-95"
+          aria-label="إغلاق الفيديو المصغر"
+        >
+          ✕
+        </button>
+      )}
+
       <RecordingDetectionOverlay isDetected={isRecordingDetected} />
 
       <AmbientBackground videoRef={videoRef} provider={provider} />
       <GestureOverlay mode={gestureActiveMode} value={gestureValue} visible={!!gestureActiveMode} />
-      <SkipIntroButton markers={mergedMarkers} onSkip={handleSeek} />
+      {!store.isMiniPlayer && <SkipIntroButton markers={mergedMarkers} onSkip={handleSeek} />}
 
-      <div className="absolute inset-0" style={{ filter: `brightness(${store.brightness})` }}>
+      <div 
+        className="absolute inset-0 select-none transition-transform duration-75 ease-out" 
+        style={{ 
+          filter: `brightness(${store.brightness})`,
+          transform: `scale(${store.zoomFactor}) translate(${store.panOffset.x / store.zoomFactor}px, ${store.panOffset.y / store.zoomFactor}px)`,
+        }}
+      >
         {provider === "youtube" ? (
           <div ref={youtubeContainerRef} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
         ) : (
@@ -701,65 +885,78 @@ export function CourseVideoPlayer({
           </video>
         )}
       </div>
+
       <button
         aria-label="سطح المشغل"
         type="button"
-        className="absolute inset-0 z-10 bg-transparent"
-        onClick={handleSurfaceTap}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className={cn("absolute inset-0 z-10 bg-transparent", store.zoomFactor > 1 && "cursor-grab active:cursor-grabbing")}
+        onClick={store.zoomFactor > 1 ? undefined : handleSurfaceTap}
+        onTouchStart={store.zoomFactor > 1 ? undefined : handleTouchStart}
+        onTouchMove={store.zoomFactor > 1 ? undefined : handleTouchMove}
+        onTouchEnd={store.zoomFactor > 1 ? undefined : handleTouchEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
       />
 
-      <AnimatePresence>
-        {store.activeQuestionId && (
-          <InteractiveQuestionOverlay
-            question={interactiveQuestions.find(q => q.id === store.activeQuestionId)!}
-            onAnswer={(isCorrect) => {
-              if (isCorrect) {
-                const nextAnswered = new Set(store.answeredQuestionIds);
-                nextAnswered.add(store.activeQuestionId!);
-                setPlayerState({ answeredQuestionIds: nextAnswered });
-              }
-            }}
-            onClose={() => {
-              setPlayerState({ activeQuestionId: null });
-              getAdapter()?.play();
-            }}
-          />
-        )}
+<AnimatePresence>
+        {!store.isMiniPlayer && store.activeQuestionId && (() => {
+          const question = interactiveQuestions.find(q => q.id === store.activeQuestionId);
+          if (!question) return null;
+          return (
+            <InteractiveQuestionOverlay
+              question={question}
+              onAnswer={(isCorrect) => {
+                if (isCorrect) {
+                  const nextAnswered = [...store.answeredQuestionIds, store.activeQuestionId!];
+                  setPlaybackState({ answeredQuestionIds: nextAnswered });
+                }
+              }}
+              onClose={() => {
+                setPlaybackState({ activeQuestionId: null });
+                getAdapter()?.play();
+              }}
+            />
+          );
+        })()}
       </AnimatePresence>
 
-      <ActiveNotePopup notes={notes} />
+      {!store.isMiniPlayer && <ActiveNotePopup notes={notes} />}
 
       <AnimatedWatermark
         text={dynamicWatermark}
         positionClass={WATERMARK_POSITIONS[store.watermarkIndex]}
       />
 
-      <PlayerHeader
-        provider={provider}
-        lessonTitle={lessonTitle}
-        alreadyCompleted={alreadyCompleted}
-        markers={mergedMarkers}
-        onMarkComplete={() => onLessonAutoComplete?.()}
-      />
+      {!store.isMiniPlayer && (
+        <PlayerHeader
+          provider={provider}
+          lessonTitle={lessonTitle}
+          alreadyCompleted={alreadyCompleted}
+          markers={mergedMarkers}
+          onMarkComplete={() => onLessonAutoComplete?.(lessonId)}
+        />
+      )}
 
-      <PlayerOverlays
-        onAcceptResume={() => {
-          if (store.resumeTime === null) return;
-          handleSeek(store.resumeTime);
-          setPlayerState({ resumeTime: null });
-          getAdapter()?.play();
-        }}
-        onDismissResume={() => setPlayerState({ resumeTime: null })}
-        onCancelAutoplay={() => setPlayerState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
-        onPlayNextNow={onNextVideo}
-        onRetry={() => {
-          setPlayerState({ errorMessage: null, isLoading: true });
-          setActiveVideoUrl(videoUrl);
-        }}
-      />
+      {!store.isMiniPlayer && (
+        <PlayerOverlays
+          onAcceptResume={() => {
+            if (store.resumeTime === null) return;
+            handleSeek(store.resumeTime);
+            setPlaybackState({ resumeTime: null });
+            getAdapter()?.play();
+          }}
+          onDismissResume={() => setPlaybackState({ resumeTime: null })}
+          onCancelAutoplay={() => setPlaybackState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
+          onPlayNextNow={onNextVideo}
+          onRetry={() => {
+            setUIState({ errorMessage: null });
+            setPlaybackState({ isLoading: true });
+            setActiveVideoUrl(videoUrl);
+          }}
+        />
+      )}
 
       <PlayerControls
         markers={mergedMarkers}
@@ -773,63 +970,57 @@ export function CourseVideoPlayer({
         onTogglePlayPause={togglePlayPause}
         onToggleMute={toggleMute}
         onVolumeChange={handleVolumeChange}
-        onOpenHelp={() => setPlayerState({ isHelpOpen: true })}
+        onOpenHelp={() => setUIState({ isHelpOpen: true })}
         onToggleTheater={() => onToggleTheater?.()}
         onTogglePip={togglePip}
-        onToggleSidebar={() => setPlayerState(s => ({ isSidebarOpen: !s.isSidebarOpen }))}
+        onToggleSidebar={() => setUIState(s => ({ isSidebarOpen: !s.isSidebarOpen }))}
         onToggleFullscreen={toggleFullscreen}
-        onToggleSettings={() => setPlayerState(s => ({ isSettingsOpen: !s.isSettingsOpen, isStatsOpen: false }))}
+        onToggleSettings={() => setUIState(s => ({ isSettingsOpen: !s.isSettingsOpen, isStatsOpen: false }))}
         onToggleLoop={toggleLoop}
         onCaptureFrame={captureFrame}
+        interactiveQuestions={interactiveQuestions}
       />
 
-      <PlayerPanels
-        qualities={store.qualities}
-        playbackRates={playbackRates}
-        subtitleTracks={subtitleTracks}
-        audioTracks={audioTracks}
-        lessons={lessons}
-        lessonId={lessonId}
-        bookmarks={mergedMarkers}
-        notes={notes}
-        noteDraft={noteDraft}
-        selectedSubtitleLabel={store.selectedSubtitle === "off" ? "بدون ترجمة" : (subtitleTracks.find(t => t.id === store.selectedSubtitle)?.label ?? "ترجمة")}
-        canCopyLink={typeof navigator !== "undefined" && !!navigator.clipboard}
-        isNotesSyncing={isNotesSyncing}
-        allowAutoQuality={shouldUseHls(activeVideoUrl, provider)}
-        onCloseSettings={() => setPlayerState({ isSettingsOpen: false })}
-        onChangeQuality={changeQuality}
-        onChangePlaybackRate={handlePlaybackRateChange}
-        onChangeSubtitle={changeSubtitle}
-        onToggleAmbient={() => {
-          const next = !store.isAmbientMode;
-          setPlayerState({ isAmbientMode: next });
-          flashFeedback({ icon: Sparkles, label: next ? "تفعيل الإضاءة" : "إيقاف الإضاءة" });
-        }}
-        onChangeBrightness={b => setPlayerState({ brightness: clamp(b, 0.6, 1.3) })}
-        onRestartPlayback={() => { handleSeek(0); getAdapter()?.play(); flashFeedback({ icon: Play, label: "إعادة التشغيل" }); }}
-        onOpenStats={() => setPlayerState({ isStatsOpen: true, isSettingsOpen: false })}
-        onCopyLessonLink={async () => {
-          try {
-            await navigator.clipboard.writeText(window.location.href);
-            flashFeedback({ icon: Settings2, label: "تم نسخ الرابط" });
-          } catch {
-            setPlayerState({ errorMessage: "تعذر نسخ رابط الدرس." });
-          }
-        }}
-        onCloseStats={() => setPlayerState({ isStatsOpen: false })}
-        onCloseHelp={() => setPlayerState({ isHelpOpen: false })}
-        onCloseSidebar={() => setPlayerState({ isSidebarOpen: false })}
-        onToggleSidebarTab={t => setPlayerState({ sidebarTab: t })}
-        onNoteDraftChange={setNoteDraft}
-        onAddNoteAtCurrentTime={addNoteAtCurrentTime}
-        onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(useCourseVideoPlayerStore.getState().currentTime)} `)}
-        onRemoveNote={removeNote}
-        onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
-        onLessonChange={onLessonChange}
-      />
+      {!store.isMiniPlayer && (
+        <PlayerPanels
+          qualities={store.qualities}
+          playbackRates={playbackRates}
+          subtitleTracks={subtitleTracks}
+          audioTracks={audioTracks}
+          lessons={lessons}
+          lessonId={lessonId}
+          bookmarks={mergedMarkers}
+          notes={notes}
+          noteDraft={noteDraft}
+          selectedSubtitleLabel={store.selectedSubtitle === "off" ? "بدون ترجمة" : (subtitleTracks.find(t => t.id === store.selectedSubtitle)?.label ?? "ترجمة")}
+          isNotesSyncing={isNotesSyncing}
+          allowAutoQuality={shouldUseHls(activeVideoUrl, provider)}
+          onCloseSettings={() => setUIState({ isSettingsOpen: false })}
+          onChangeQuality={changeQuality}
+          onChangePlaybackRate={handlePlaybackRateChange}
+          onChangeSubtitle={changeSubtitle}
+          onToggleAmbient={() => {
+            const next = !store.isAmbientMode;
+            setSettingsState({ isAmbientMode: next });
+            flashFeedback({ icon: Sparkles, label: next ? "تفعيل الإضاءة" : "إيقاف الإضاءة" });
+          }}
+          onChangeBrightness={b => setSettingsState({ brightness: clamp(b, 0.6, 1.3) })}
+          onOpenStats={() => setUIState({ isStatsOpen: true, isSettingsOpen: false })}
+          onCloseStats={() => setUIState({ isStatsOpen: false })}
+          onCloseHelp={() => setUIState({ isHelpOpen: false })}
+          onCloseSidebar={() => setUIState({ isSidebarOpen: false })}
+          onToggleSidebarTab={(t: import("./player/types").SidebarTab) => setUIState({ sidebarTab: t })}
+          onNoteDraftChange={setNoteDraft}
+          onAddNoteAtCurrentTime={addNoteAtCurrentTime}
+          onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(usePlaybackStore.getState().currentTime)} `)}
+          onRemoveNote={removeNote}
+          onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
+          onLessonChange={onLessonChange}
+          onToggleShortcuts={() => setUIState(s => ({ isShortcutsOpen: !s.isShortcutsOpen }))}
+        />
+      )}
 
-      <SidebarHint visible={!sidebarHasContent} />
+      {!store.isMiniPlayer && <SidebarHint visible={!sidebarHasContent} />}
     </div>
   );
 }

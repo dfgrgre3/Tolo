@@ -7,8 +7,7 @@ import { apiClient } from '@/lib/api/api-client';
 // import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
-import { useAuth } from '@/contexts/auth-context';
-import { useAuth as useClerkAuth } from '@clerk/nextjs';
+// Auth imports removed for auth system removal
 
 interface NotificationsResponse {
   notifications: Notification[];
@@ -170,19 +169,14 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, []);
 
   const { socket, isConnected } = useWebSocket();
-  const { isAuthenticated } = useAuth();
-
-  // Wait for Clerk to fully resolve the session before fetching.
-  // isAuthenticated alone is not enough — the JWT token may not be
-  // available yet, which causes a 401 → redirect → infinite reload loop.
-  const { isLoaded: isClerkLoaded } = useClerkAuth();
+  const isAuthenticated = true;
 
   // Use a stable ref so the polling interval always reads the latest auth state
   // without being re-created on every render.
-  const isAuthReadyRef = useRef(false);
+  const isAuthReadyRef = useRef(true);
   useEffect(() => {
-    isAuthReadyRef.current = isAuthenticated && isClerkLoaded;
-  }, [isAuthenticated, isClerkLoaded]);
+    isAuthReadyRef.current = true;
+  }, []);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -217,12 +211,6 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isConnected]);
 
   useEffect(() => {
-    // Only fetch after Clerk has fully resolved the session AND isAuthenticated is true.
-    // isAuthenticated can become true before the JWT token is ready (Clerk's internal
-    // state initializes in two steps). Calling the API before the token is ready
-    // results in a 401 → window.location.href redirect → full page reload → infinite loop.
-    if (!isAuthenticated || !isClerkLoaded) return;
-
     fetchNotifications(true);
 
     // Poll conservatively as a fallback for WebSocket.
@@ -235,7 +223,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [fetchNotifications, isAuthenticated, isClerkLoaded]);
+  }, [fetchNotifications]);
 
   const value = useMemo(() => ({
     notifications,

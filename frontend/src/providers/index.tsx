@@ -1,7 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useMemo } from 'react';
-import { AuthProvider } from '@/contexts/auth-context';
+import React, { Suspense, useState } from 'react';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import { SettingsProvider } from '@/contexts/settings-context';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
@@ -79,24 +78,22 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
               <QueryClientProvider client={queryClient}>
                 <ReactQueryPersistence />
                 <OfflineSyncManager />
-                <AuthProvider initialAuthHint={initialAuthHint}>
-                  <GlobalSettingsApplier>
-                    <WebSocketProvider>
-                      <NotificationsProvider>
-                        <TooltipProvider>
-                          <LazyMotion features={domAnimation}>
-                            <TimerBootstrap />
-                            <PerformanceProvider key="performance-provider">
-                              {children}
-                            </PerformanceProvider>
-                            <Footer key="footer-static" />
-                          </LazyMotion>
-                          <Toaster richColors closeButton position="top-center" />
-                        </TooltipProvider>
-                      </NotificationsProvider>
-                    </WebSocketProvider>
-                  </GlobalSettingsApplier>
-                </AuthProvider>
+                <GlobalSettingsApplier>
+                  <WebSocketProvider>
+                    <NotificationsProvider>
+                      <TooltipProvider>
+                        <LazyMotion features={domAnimation}>
+                          <TimerBootstrap />
+                          <PerformanceProvider key="performance-provider">
+                            {children}
+                          </PerformanceProvider>
+                          <Footer key="footer-static" />
+                        </LazyMotion>
+                        <Toaster richColors closeButton position="top-center" />
+                      </TooltipProvider>
+                    </NotificationsProvider>
+                  </WebSocketProvider>
+                </GlobalSettingsApplier>
               </QueryClientProvider>
             </ClientLayoutProvider>
           </EfficiencyProvider>

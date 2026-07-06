@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 
 function EmptySidebarState({ icon: Icon, label }: any) {
   return (
-    <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] p-6 text-center">
-      <Icon className="mx-auto h-10 w-10 text-white/25" />
-      <p className="mt-4 text-sm font-bold text-white/75">{label}</p>
+    <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.05] p-6 text-center">
+      <Icon className="mx-auto h-12 w-12 text-white/35" />
+      <p className="mt-4 text-base font-bold text-white/85">{label}</p>
     </div>
   );
 }
@@ -22,13 +22,17 @@ function BookmarksTab({ bookmarks, onJumpToTime }: any) {
   return (
     <div className="space-y-3">
       {bookmarks.map((bookmark: any) => (
-        <button key={`${bookmark.time}-${bookmark.label}`} type="button" onClick={() => onJumpToTime(bookmark.time)}
-          className="flex w-full items-start justify-between gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 text-right transition hover:bg-white/10">
+        <button 
+          key={`${bookmark.time}-${bookmark.label}`} 
+          type="button" 
+          onClick={() => onJumpToTime(bookmark.time)}
+          className="flex w-full items-start justify-between gap-3 rounded-[24px] border border-white/15 bg-white/8 px-4 py-3.5 active:bg-white/15 text-right transition hover:bg-white/12"
+        >
           <div className="min-w-0">
-            <p className="line-clamp-2 text-sm font-black text-white">{bookmark.label}</p>
-            <p className="mt-1 text-xs text-white/50">انتقال إلى {formatDuration(bookmark.time)}</p>
+            <p className="line-clamp-2 text-base font-black text-white">{bookmark.label}</p>
+            <p className="mt-1.5 text-sm text-white/60">انتقال إلى {formatDuration(bookmark.time)}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-200">{formatDuration(bookmark.time)}</span>
+          <span className="shrink-0 rounded-full bg-blue-500/20 px-3.5 py-1.5 text-sm font-bold text-blue-200">{formatDuration(bookmark.time)}</span>
         </button>
       ))}
     </div>
@@ -38,21 +42,31 @@ function BookmarksTab({ bookmarks, onJumpToTime }: any) {
 function NotesTab({ noteDraft, onNoteDraftChange, isNotesSyncing, onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote, onJumpToTime }: any) {
   return (
     <div className="space-y-4">
-      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="block text-xs font-bold uppercase tracking-[0.2em] text-white/35">أضف ملاحظة عند الوقت الحالي</label>
-          <span className="text-xs font-bold text-white/40">{isNotesSyncing ? "جارٍ المزامنة..." : "مزامنة سحابية"}</span>
+      <div className="rounded-[28px] border border-white/15 bg-white/[0.05] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <label className="block text-sm font-bold uppercase tracking-[0.2em] text-white/45">أضف ملاحظة عند الوقت الحالي</label>
+          <span className="text-sm font-bold text-white/50">{isNotesSyncing ? "جارٍ المزامنة..." : "مزامنة سحابية"}</span>
         </div>
-        <textarea value={noteDraft} onChange={(event) => onNoteDraftChange(event.target.value)}
+        <textarea 
+          value={noteDraft} 
+          onChange={(event) => onNoteDraftChange(event.target.value)}
           placeholder="اكتب فكرة مهمة أو سؤالًا للمراجعة..."
-          className="min-h-[110px] w-full rounded-[22px] border border-white/10 bg-black/30 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-blue-400/30" />
-        <div className="mt-3 flex items-center gap-2">
-          <button type="button" onClick={onAddNoteAtCurrentTime} disabled={!noteDraft.trim()}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50">
-            <Clock3 className="h-4 w-4" /> حفظ عند {formatDuration(currentTime)}
+          className="min-h-[120px] w-full rounded-[22px] border border-white/15 bg-black/40 px-4 py-3.5 text-base leading-7 text-white outline-none transition placeholder:text-white/40 focus:border-blue-400/40" 
+        />
+        <div className="mt-3.5 flex items-center gap-2.5">
+          <button 
+            type="button" 
+            onClick={onAddNoteAtCurrentTime} 
+            disabled={!noteDraft.trim()}
+            className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-2xl bg-blue-500 px-4 py-3.5 text-base font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+          >
+            <Clock3 className="h-5 w-5" /> حفظ عند {formatDuration(currentTime)}
           </button>
-          <button type="button" onClick={onInsertTimestamp}
-            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white">
+          <button 
+            type="button" 
+            onClick={onInsertTimestamp}
+            className="rounded-2xl border border-white/15 bg-white/8 px-4 py-3.5 text-base font-bold text-white/85 transition hover:bg-white/12 active:scale-95"
+          >
             طابع زمني
           </button>
         </div>
@@ -60,15 +74,24 @@ function NotesTab({ noteDraft, onNoteDraftChange, isNotesSyncing, onAddNoteAtCur
       {notes.length > 0 ? (
         <div className="space-y-3">
           {notes.map((note: any) => (
-            <div key={note.id} className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => onJumpToTime(note.time)}
-                  className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-200 transition hover:bg-amber-500/20">
+            <div key={note.id} className="rounded-[24px] border border-white/15 bg-white/8 p-4">
+              <div className="flex items-center justify-between gap-2.5">
+                <button 
+                  type="button" 
+                  onClick={() => onJumpToTime(note.time)}
+                  className="rounded-full bg-amber-500/20 px-3.5 py-1.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/30"
+                >
                   {formatDuration(note.time)}
                 </button>
-                <button type="button" onClick={() => onRemoveNote(note.id)} className="text-xs font-bold text-white/40 transition hover:text-white/75">حذف</button>
+                <button 
+                  type="button" 
+                  onClick={() => onRemoveNote(note.id)} 
+                  className="text-sm font-bold text-white/50 transition hover:text-white/85"
+                >
+                  حذف
+                </button>
               </div>
-              <p className="mt-3 text-sm leading-7 text-white/80">{note.text}</p>
+              <p className="mt-3 text-base leading-7 text-white/90">{note.text}</p>
             </div>
           ))}
         </div>
@@ -88,18 +111,32 @@ function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
       {lessons.map((lesson: any, index: number) => {
         const isActive = lesson.id === lessonId;
         return (
-          <button key={lesson.id} type="button" onClick={() => onLessonChange?.(lesson.id)}
-            className={cn("flex w-full items-center gap-3 rounded-[24px] border p-4 text-right transition",
-              isActive ? "border-blue-400/30 bg-blue-500/10" : "border-white/10 bg-white/5 hover:bg-white/10")}>
-            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xs font-black",
-              lesson.completed ? "bg-emerald-500 text-white" : isActive ? "bg-blue-500 text-white" : "bg-white/10 text-white/65")}>
-              {lesson.completed ? <Check className="h-4 w-4" /> : index + 1}
+          <button 
+            key={lesson.id} 
+            type="button" 
+            onClick={() => onLessonChange?.(lesson.id)}
+            className={cn(
+              "flex w-full items-center gap-3.5 rounded-[24px] border p-4 text-right transition active:scale-95",
+              isActive 
+                ? "border-blue-400/40 bg-blue-500/15 scale-100" 
+                : "border-white/15 bg-white/8 hover:bg-white/12 scale-100"
+            )}
+          >
+            <div className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-black transition-transform",
+              lesson.completed 
+                ? "bg-emerald-500 text-white" 
+                : isActive 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-white/15 text-white/75"
+            )}>
+              {lesson.completed ? <Check className="h-4.5 w-4.5" /> : index + 1}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-white">{lesson.title}</p>
-              <p className="mt-1 text-xs text-white/50">{formatDuration(lesson.duration)}</p>
+              <p className="truncate text-base font-black text-white">{lesson.title}</p>
+              <p className="mt-1.5 text-sm text-white/55">{formatDuration(lesson.duration)}</p>
             </div>
-            {isActive ? <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-950">الحالي</span> : null}
+            {isActive ? <span className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-slate-950">الحالي</span> : null}
           </button>
         );
       })}
@@ -113,42 +150,75 @@ export function SidebarPanel({
   onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote,
   lessons, lessonId, onLessonChange, onCloseSidebar,
 }: any) {
-  let initialAnim: any = { x: 360, opacity: 0 };
-  let animateAnim: any = { x: 0, opacity: 1 };
-  let exitAnim: any = { x: 360, opacity: 0 };
-  let transitionAnim: any = undefined;
-  let bgClass = "backdrop-blur-2xl";
-
-  if (isEfficiencyMode) {
-    initialAnim = { opacity: 0 };
-    animateAnim = { opacity: 1 };
-    exitAnim = { opacity: 0 };
-    transitionAnim = { duration: 0 };
-    bgClass = "";
-  }
-
+  // Mobile: slide up from bottom, full width
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  
   return (
     <AnimatePresence>
       {isSidebarOpen ? (
         <m.aside
-          initial={initialAnim} animate={animateAnim} exit={exitAnim} transition={transitionAnim}
-          className={cn("absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[360px] flex-col border-r border-white/10 bg-slate-950/92 p-4 shadow-2xl", bgClass)}>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-lg font-black text-white">لوحة الدراسة</p>
-              <p className="text-xs text-white/50">نقاط زمنية وملاحظات وانتقال بين الدروس</p>
+          initial={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}
+          animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
+          exit={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className={cn(
+            "fixed inset-0 z-30 flex h-full w-full flex-col bg-slate-950", // Mobile full screen
+            "sm:absolute sm:bottom-0 sm:right-0 sm:top-0 sm:max-w-[360px] sm:border-r sm:border-white/10 sm:bg-slate-950/92 sm:p-4 sm:shadow-2xl sm:h-auto sm:w-auto sm:rounded-t-3xl", // Desktop
+            isMobile ? "" : "rounded-t-3xl sm:rounded-t-none" // Mobile has no rounded top
+          )}
+        >
+          {/* Mobile drag handle */}
+          {isMobile && (
+            <div className="flex justify-center py-3">
+              <div className="h-1.5 w-12 rounded-full bg-white/25" />
             </div>
-            <button type="button" onClick={onCloseSidebar}
-              className="rounded-full p-2 text-white/40 transition hover:bg-white/10 hover:text-white" aria-label="إغلاق اللوحة الجانبية">
-              <ChevronRight className="h-5 w-5" />
+          )}
+          
+          <div className="mb-4 flex items-center justify-between px-4 sm:px-0">
+            <div>
+              <p className="text-xl font-black text-white sm:text-lg">لوحة الدراسة</p>
+              <p className="text-sm text-white/55 sm:text-xs">نقاط زمنية وملاحظات وانتقال بين الدروس</p>
+            </div>
+            <button 
+              type="button" 
+              onClick={onCloseSidebar}
+              className="rounded-full p-2.5 text-white/50 transition hover:bg-white/10 hover:text-white sm:p-2" 
+              aria-label="إغلاق اللوحة الجانبية"
+            >
+              <ChevronRight className="h-6 w-6 sm:h-5 sm:w-5" />
             </button>
           </div>
-          <div className="mb-4 flex gap-2 rounded-[24px] bg-white/5 p-1">
-            <SidebarTabButton active={sidebarTab === "bookmarks"} icon={Bookmark} label="المعالم" onClick={() => onToggleSidebarTab("bookmarks")} />
-            <SidebarTabButton active={sidebarTab === "notes"} icon={MessageSquare} label="ملاحظات" onClick={() => onToggleSidebarTab("notes")} />
-            <SidebarTabButton active={sidebarTab === "lessons"} icon={ListVideo} label="دروس" onClick={() => onToggleSidebarTab("lessons")} />
+          
+          {/* Tab buttons - larger on mobile */}
+          <div className="mb-4 mx-4 flex gap-2.5 rounded-[24px] bg-white/10 p-1.5 sm:mx-0 sm:mb-4 sm:gap-2 sm:rounded-[24px] sm:bg-white/5 sm:p-1">
+            <SidebarTabButton 
+              active={sidebarTab === "bookmarks"} 
+              icon={Bookmark} 
+              label="المعالم" 
+              onClick={() => onToggleSidebarTab("bookmarks")} 
+              className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
+            />
+            <SidebarTabButton 
+              active={sidebarTab === "notes"} 
+              icon={MessageSquare} 
+              label="ملاحظات" 
+              onClick={() => onToggleSidebarTab("notes")} 
+              className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
+            />
+            <SidebarTabButton 
+              active={sidebarTab === "lessons"} 
+              icon={ListVideo} 
+              label="دروس" 
+              onClick={() => onToggleSidebarTab("lessons")} 
+              className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
+            />
           </div>
-          <div className="flex-1 overflow-y-auto pr-1">
+          
+          {/* Content - with extra padding on mobile for thumb access */}
+          <div className={cn(
+            "flex-1 overflow-y-auto",
+            isMobile ? "px-4 pb-32" : "pr-1 sm:px-0"
+          )}>
             {sidebarTab === "bookmarks" ? <BookmarksTab bookmarks={bookmarks} onJumpToTime={onJumpToTime} /> : null}
             {sidebarTab === "notes" ? (
               <NotesTab noteDraft={noteDraft} onNoteDraftChange={onNoteDraftChange} isNotesSyncing={isNotesSyncing}
@@ -157,6 +227,9 @@ export function SidebarPanel({
             ) : null}
             {sidebarTab === "lessons" ? <LessonsTab lessons={lessons} lessonId={lessonId} onLessonChange={onLessonChange} /> : null}
           </div>
+          
+          {/* Mobile: Safe area padding for iPhone notch/home indicator */}
+          {isMobile && <div className="h-8" />}
         </m.aside>
       ) : null}
     </AnimatePresence>

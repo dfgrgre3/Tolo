@@ -11,7 +11,7 @@ const quickLinks = [
   {
     title: "خريطة التقدم",
     description: "راقب توسع نفوذك وإنجازاتك في عالمك الدراسي",
-    href: "/progress",
+    href: "/settings/progress",
     icon: BarChart3,
     color: "text-blue-400",
     bgColor: "bg-blue-400/10",
@@ -38,7 +38,7 @@ const quickLinks = [
   {
     title: "لوحة الشرف",
     description: "الألقاب، الأوسمة، وترتيبك بين المحاربين",
-    href: "/achievements",
+    href: "/settings/achievements",
     icon: Trophy,
     color: "text-purple-400",
     bgColor: "bg-purple-400/10",

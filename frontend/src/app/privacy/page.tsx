@@ -19,14 +19,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { PrintButton } from "./PrintButton";
+import { SITE, CONTACT } from "@shared/site-config";
 
 export const metadata: Metadata = {
-  title: "سياسة الخصوصية والشروط | TOLO",
+  title: `سياسة الخصوصية والشروط | ${SITE.name}`,
   description:
-    "سياسة الخصوصية الكاملة لمنصة TOLO التعليمية. تعرّف على كيفية جمع وحماية ومعالجة بياناتك الشخصية وحقوقك كاملاً.",
+    `سياسة الخصوصية الكاملة لمنصة ${SITE.name} التعليمية. تعرّف على كيفية جمع وحماية ومعالجة بياناتك الشخصية وحقوقك كاملاً.`,
   keywords: [
     "سياسة الخصوصية",
-    "TOLO",
+    SITE.name,
     "حماية البيانات",
     "الخصوصية",
     "شروط الاستخدام",
@@ -34,9 +35,9 @@ export const metadata: Metadata = {
     "التعليم عبر الإنترنت",
   ],
   openGraph: {
-    title: "سياسة الخصوصية والشروط | TOLO",
+    title: `سياسة الخصوصية والشروط | ${SITE.name}`,
     description:
-      "سياسة الخصوصية الكاملة لمنصة TOLO التعليمية. تعرّف على كيفية جمع وحماية ومعالجة بياناتك الشخصية.",
+      `سياسة الخصوصية الكاملة لمنصة ${SITE.name} التعليمية. تعرّف على كيفية جمع وحماية ومعالجة بياناتك الشخصية.`,
     type: "website",
     locale: "ar_EG",
   },
@@ -502,8 +503,8 @@ export default function PrivacyPage() {
               مقيماً في المنطقة الاقتصادية الأوروبية (EEA) أو المملكة المتحدة، لديك حقوق
               إضافية بموجب اللائحة العامة لحماية البيانات (GDPR). يمكنك التواصل مع مسؤول
               حماية البيانات لدينا على{" "}
-              <a href="mailto:dpo@tolo.com" className="text-primary underline">
-                dpo@tolo.com
+              <a href={`mailto:${CONTACT.dpoEmail}`} className="text-primary underline">
+                {CONTACT.dpoEmail}
               </a>{" "}
               لممارسة حقوقك.
             </div>
@@ -513,7 +514,7 @@ export default function PrivacyPage() {
         {/* ========== FOOTER NOTE ========== */}
         <div className="mt-12 text-center text-xs sm:text-sm text-muted-foreground border-t border-border pt-8">
           <p className="font-bold">
-            © {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.
+            © {new Date().getFullYear()} {SITE.name}. جميع الحقوق محفوظة.
           </p>
           <p className="mt-1">
             آخر تحديث: {currentDate} | سياسة الخصوصية هذه منسجمة مع{" "}

@@ -5,6 +5,7 @@ import { m } from "framer-motion";
 import { Shield, Sword, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SITE } from "@shared/site-config";
 
 interface HeroSectionProps {
   shouldReduceMotion: boolean;
@@ -22,7 +23,7 @@ export function HeroSection({ shouldReduceMotion, neonTextClass, goldTextClass }
         className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-sm">
         
          <Shield className="h-5 w-5" />
-         <span>TOLO: عصر جديد في التعلم</span>
+         <span>{SITE.name}: عصر جديد في التعلم</span>
        </m.div>
 
        <m.h1

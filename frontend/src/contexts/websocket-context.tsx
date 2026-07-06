@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import type { ErrorInfo } from 'react';
-import { useAuth as useClerkAuth } from '@clerk/nextjs';
-import { useAuth } from './auth-context';
 import { useWebSocketStore } from './websocket-store';
 
 type WebSocketContextType = {
@@ -19,8 +17,8 @@ const WebSocketContext = createContext<WebSocketContextType>({
 // Error boundary component to catch any WebSocket-related errors
 class WebSocketErrorBoundary extends React.Component<
   {children: React.ReactNode;},
-  {hasError: boolean;}>
-{
+  {hasError: boolean;}
+> {
   constructor(props: {children: React.ReactNode;}) {
     super(props);
     this.state = { hasError: false };
@@ -81,21 +79,13 @@ function shouldDisableWebSocket(): boolean {
 }
 
 export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
-  const { user } = useAuth();
-  const { getToken, isLoaded } = useClerkAuth();
-  const currentUserId = userId || user?.id;
+  const currentUserId = userId || "";
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
   const [websocketEnabled, setWebsocketEnabled] = React.useState(() => {
     if (typeof window === "undefined") return true;
     return !shouldDisableWebSocket();
   });
-
-  // Store getToken in a ref to avoid re-triggering effects on every render.
-  // getToken reference changes on every Clerk render which would cause
-  // infinite reconnection loops if included in dependency arrays.
-  const getTokenRef = React.useRef(getToken);
-  React.useEffect(() => { getTokenRef.current = getToken; });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -109,11 +99,8 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       setWebsocketEnabled(!isDisabled);
       if (isDisabled) {
         disconnect();
-      } else if (currentUserId && isLoaded) {
-        const token = await getTokenRef.current();
-        if (token) {
-          connect(currentUserId, token);
-        }
+      } else if (currentUserId) {
+        connect(currentUserId, "");
       }
     });
 
@@ -124,32 +111,21 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
 
     return () => observer.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, connect, disconnect, isLoaded]);
+  }, [currentUserId, connect, disconnect]);
 
   useEffect(() => {
-    if (!isLoaded) return;
-
     if (!websocketEnabled || !currentUserId) {
       disconnect();
       return;
     }
 
-    const establishConnection = async () => {
-      const token = await getTokenRef.current();
-      if (token) {
-        connect(currentUserId, token);
-      } else {
-        disconnect();
-      }
-    };
-
-    establishConnection();
+    connect(currentUserId, "");
 
     return () => {
       disconnect();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, websocketEnabled, connect, disconnect, isLoaded]);
+  }, [currentUserId, websocketEnabled, connect, disconnect]);
 
   const socket = useWebSocketStore((state) => state.socket);
   const isConnected = useWebSocketStore((state) => state.isConnected);

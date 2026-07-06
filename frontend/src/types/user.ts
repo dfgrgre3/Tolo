@@ -1,49 +1,118 @@
 import { UserRole, UserStatus } from './enums';
 
+/**
+ * User type — fully synced with backend `internal/models/user.go`
+ * Last sync: 2026-06-29
+ */
 export interface User {
-    id: string;
-    email: string;
-    name?: string | null;
-    username?: string | null;
-    avatar?: string | null;
-    role: UserRole;
-    status: UserStatus;
-    phone?: string | null;
-    phoneVerified: boolean;
-    emailVerified: boolean;
-    createdAt: Date | string;
-    updatedAt: Date | string;
-    lastLogin?: Date | string | null;
-    twoFactorEnabled: boolean;
+  // Core identity
+  id: string;
+  email: string;
+  name?: string | null;
+  username?: string | null;
+  avatar?: string | null;
+  role: UserRole;
+  status: UserStatus;
 
-    // Billing & Subscriptions
-    balance: number;
-    aiCredits: number;
-    examCredits: number;
-    activeSubscriptionId?: string | null;
-    subscriptionExpiresAt?: Date | string | null;
+  // Contact & verification
+  phone?: string | null;
+  phoneVerified: boolean;
+  emailVerified: boolean;
+  alternativePhone?: string | null;
 
-    // Access Control
-    permissions: string[];
+  // Profile
+  country?: string | null;
+  gradeLevel?: string | null;
+  educationType?: string | null;
+  section?: string | null;
+  bio?: string | null;
+  dateOfBirth?: string | null;
 
-    // Gamification (core)
-    totalXP: number;
-    level: number;
+  // Study preferences
+  wakeUpTime?: string | null;
+  sleepTime?: string | null;
+  focusStrategy: string;   // 'POMODORO' | 'FLOWTIME' | 'TIMEBOXING'
+  studyGoal?: string | null;
+  interestedSubjects: string[];
+  subjectsTaught?: string[];
+  classesTaught?: string[];
+  experienceYears?: string | null;
 
-    // Gamification (stats)
-    currentStreak: number;
-    longestStreak: number;
-    totalStudyTime: number;
-    tasksCompleted: number;
-    examsPassed: number;
+  // Notifications
+  emailNotifications: boolean;
+  smsNotifications: boolean;
 
-    // Multi-layer XP system
-    studyXP: number;
-    taskXP: number;
-    examXP: number;
-    challengeXP: number;
-    questXP: number;
-    seasonXP: number;
+  // Billing & Subscriptions
+  balance: number;
+  aiCredits: number;
+  examCredits: number;
+  additionalAiCredits?: number;
+  additionalExamCredits?: number;
+  activeSubscriptionId?: string | null;
+  subscriptionExpiresAt?: string | null;
 
-    [key: string]: unknown;
+  // Access Control
+  permissions: string[];
+
+  // Gamification (core)
+  totalXP: number;
+  level: number;
+
+  // Gamification (stats)
+  currentStreak: number;
+  longestStreak: number;
+  totalStudyTime: number;
+  tasksCompleted: number;
+  examsPassed: number;
+
+  // Multi-layer XP system
+  studyXP: number;
+  taskXP: number;
+  examXP: number;
+  challengeXP: number;
+  questXP: number;
+  seasonXP: number;
+
+  // Security
+  twoFactorEnabled: boolean;
+  biometricEnabled?: boolean;
+  googleId?: string | null;
+  githubId?: string | null;
+  referralCode?: string | null;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  lastLogin?: string | null;
+
+  [key: string]: unknown;
+}
+
+/** Minimal user object returned in nested relations (e.g. CourseReview.user) */
+export interface UserSummary {
+  id: string;
+  name?: string | null;
+  username?: string | null;
+  avatar?: string | null;
+  role: UserRole;
+}
+
+/** Profile update payload — PATCH /api/auth/profile */
+export interface UpdateProfilePayload {
+  name?: string;
+  username?: string;
+  phone?: string;
+  country?: string;
+  gradeLevel?: string;
+  educationType?: string;
+  section?: string;
+  bio?: string;
+  dateOfBirth?: string;
+  wakeUpTime?: string;
+  sleepTime?: string;
+  focusStrategy?: string;
+  studyGoal?: string;
+  interestedSubjects?: string[];
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
 }

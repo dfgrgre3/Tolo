@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import * as React from 'react';
 import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

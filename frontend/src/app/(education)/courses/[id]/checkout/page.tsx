@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { m } from "framer-motion";
@@ -19,10 +20,7 @@ import {
   Zap,
   Info } from
 "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-context";
-
-interface CourseCheckoutInfo {
+import { toast } from "sonner";interface CourseCheckoutInfo {
   id: string;
   name: string;
   nameAr?: string;

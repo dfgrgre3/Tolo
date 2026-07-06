@@ -3,6 +3,7 @@ import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import nextPlugin from "@next/eslint-plugin-next";
 
 export default [
   {
@@ -22,6 +23,7 @@ export default [
       "**/*.py",
       "next-env.d.ts",
       "eslint-report.json",
+      "public/**",
     ],
   },
   js.configs.recommended,
@@ -164,6 +166,7 @@ export default [
       react,
       "react-hooks": reactHooks,
       "@typescript-eslint": typescriptEslint,
+      "@next/next": nextPlugin,
     },
     settings: {
       react: {
@@ -173,6 +176,7 @@ export default [
     rules: {
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
+      ...nextPlugin.configs.recommended.rules,
       // Keep these as warnings while we incrementally refactor hydration patterns.
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/exhaustive-deps": "warn",

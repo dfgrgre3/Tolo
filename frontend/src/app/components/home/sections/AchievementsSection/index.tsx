@@ -83,7 +83,7 @@ export const AchievementsSection = memo(function AchievementsSection({
         </div>
 
         <div className="text-center">
-          <Link href="/achievements">
+          <Link href="/settings/achievements">
             <Button size="lg" variant="ghost" className="group text-gray-300 hover:text-white hover:bg-white/10">
               <span>عرض سجل الأوسمة الكامل</span>
               <ArrowRight className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:-translate-x-1" />

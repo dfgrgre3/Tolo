@@ -6,18 +6,18 @@ export const navLinkStyles = cva("relative", {
       desktop: "h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest group/btn hover:bg-white/5",
       mobile: "flex items-center gap-3 p-3.5 rounded-xl border border-transparent",
       search: "flex items-center gap-3 p-3 rounded-xl border",
-      mega: "relative flex items-center gap-2.5 rounded-xl overflow-hidden hover:bg-gradient-to-r hover:from-primary/12 hover:via-primary/8 hover:to-primary/6 border border-border/30 hover:border-primary/40 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+      mega: "relative flex items-center gap-3 rounded-2xl overflow-hidden bg-card/40 hover:bg-gradient-to-r hover:from-primary/15 hover:via-primary/8 hover:to-primary/4 border border-border/30 hover:border-primary/40 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group/item",
     },
     active: { true: "", false: "" },
   },
   compoundVariants: [
-    { variant: "desktop", active: true, className: "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.1)]" },
+    { variant: "desktop", active: true, className: "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_hsl(var(--primary)_/_0.12)]" },
     { variant: "desktop", active: false, className: "text-gray-400 border border-transparent hover:text-primary" },
     { variant: "mobile", active: true, className: "bg-primary/10 text-primary font-bold shadow-sm border-primary/10" },
     { variant: "mobile", active: false, className: "hover:bg-muted font-medium text-foreground/80 hover:text-foreground" },
     { variant: "search", active: true, className: "bg-primary/10 text-primary border-primary/20" },
     { variant: "search", active: false, className: "bg-muted/40 border-transparent hover:bg-muted" },
-    { variant: "mega", active: true, className: "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/25" },
+    { variant: "mega", active: true, className: "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/20" },
   ],
 });
 
@@ -33,7 +33,7 @@ export const navIconStyles = cva("", {
     compact: { true: "", false: "" },
   },
   compoundVariants: [
-    { variant: "desktop", active: true, className: "text-primary filter drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" },
+    { variant: "desktop", active: true, className: "text-primary filter drop-shadow-[0_0_8px_hsl(var(--primary)_/_0.8)]" },
     { variant: "mega", active: true, className: "text-primary" },
     { variant: "mega", compact: true, className: "h-3 w-3" },
     { variant: "mega", compact: false, className: "h-3.5 w-3.5" },
@@ -83,7 +83,7 @@ export const navIconWrapStyles = cva("flex items-center justify-center rounded-l
     variant: {
       mobile: "w-8 h-8",
       search: "w-8 h-8 bg-background text-muted-foreground",
-      mega: "relative rounded-xl flex-shrink-0 z-10 bg-gradient-to-br from-accent/60 via-accent/40 to-accent/30 group-hover/item:from-primary/25 group-hover/item:via-primary/18 group-hover/item:to-primary/12 shadow-md border border-border/20 group-hover/item:border-primary/30",
+      mega: "relative rounded-xl flex-shrink-0 z-10 bg-gradient-to-br from-accent/70 via-accent/50 to-accent/40 group-hover/item:from-primary/25 group-hover/item:via-primary/18 group-hover/item:to-primary/12 shadow-md border border-border/20 group-hover/item:border-primary/30",
       desktop: "",
     },
     active: { true: "", false: "" },
@@ -101,14 +101,14 @@ export const navIconWrapStyles = cva("flex items-center justify-center rounded-l
 
 export const navLayoutStyles = {
   megaItemGlow: "absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 opacity-0 group-hover/item:opacity-100 blur-xl",
-  megaItemActiveBar: "absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-primary/80 to-primary/60 rounded-l-full",
+  megaItemActiveBar: "absolute start-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-primary/80 to-primary/60 rounded-e-full",
 };
 
 export const categoryStyles = {
-  card: cva("relative group/category border backdrop-blur-sm overflow-hidden", {
+  card: cva("relative group/category border backdrop-blur-md overflow-hidden transition-all duration-300", {
     variants: {
-      active: { true: "bg-primary/10 border-primary/20 shadow-lg shadow-primary/5", false: "bg-muted/30 border-border/50 hover:bg-muted/40" },
-      compact: { true: "p-3.5 rounded-xl", false: "p-5 rounded-2xl" },
+      active: { true: "bg-gradient-to-b from-primary/15 via-primary/10 to-transparent border-primary/30 shadow-xl shadow-primary/5", false: "bg-card/40 hover:bg-card/50 border-border/40 hover:border-primary/25 shadow-sm hover:shadow-md hover:shadow-primary/2" },
+      compact: { true: "p-4 rounded-2xl", false: "p-6 rounded-3xl" },
     },
     defaultVariants: { active: false, compact: false },
   }),
@@ -134,14 +134,14 @@ export const categoryStyles = {
 
 export const triggerStyles = cva("relative flex items-center gap-3", {
   variants: {
-    variant: { header: "hover:bg-white/5 hover:text-primary", menu: "hover:bg-primary/10 hover:text-primary" },
+    variant: { header: "hover:bg-white/10 hover:text-primary", menu: "hover:bg-primary/15 hover:text-primary" },
     size: { header: "px-4 py-2.5", menu: "px-4 py-2.5" },
-    open: { true: "text-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]", false: "" },
+    open: { true: "text-primary shadow-[0_0_25px_hsl(var(--primary)_/_0.5)]", false: "" },
   },
   compoundVariants: [
-    { variant: "header", open: true, className: "bg-primary/20 border-primary/40" },
+    { variant: "header", open: true, className: "bg-primary/25 border-primary/50 shadow-lg shadow-primary/25" },
     { variant: "header", open: false, className: "border border-transparent" },
-    { variant: "menu", open: true, className: "bg-primary/15 border-primary/40" },
+    { variant: "menu", open: true, className: "bg-primary/20 border-primary/50" },
     { variant: "menu", open: false, className: "border border-transparent" },
   ],
   defaultVariants: { open: false, size: "header" },

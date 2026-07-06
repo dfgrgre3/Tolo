@@ -176,7 +176,7 @@ export const LightImg = React.memo(function LightImg({
       loading={loading ?? (effectiveMode === "performance" ? "eager" : "lazy")}
       decoding={decoding}
       // @ts-expect-error - fetchPriority not yet in React types in all versions
-      fetchpriority={fetchPriority}
+      fetchPriority={fetchPriority}
       style={{
         contentVisibility: "auto",
         containIntrinsicSize: "300px 200px",

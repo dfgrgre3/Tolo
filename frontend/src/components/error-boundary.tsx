@@ -6,6 +6,7 @@ import { errorService as errorManager } from '@/lib/logging/error-service';
 import ErrorPage, { ErrorType } from './error-pages';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
+import { CONTACT } from '@shared/site-config';
 
 // Precise helper to detect React/Next.js hydration mismatch errors
 function checkIsHydrationError(message: string): boolean {
@@ -215,7 +216,7 @@ class ErrorBoundary extends Component<Props, State> {
     // Full traces are recorded server-side via the error logging service.
     const subject = `Error Report: ${this.state.errorId}`;
     const body = `Error ID: ${this.state.errorId}\n\nPlease describe what you were doing when this error occurred.`;
-    window.open(`mailto:support@tolo.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   renderComponentVariant() {

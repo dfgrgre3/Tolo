@@ -66,10 +66,14 @@ const SocialFeaturesSection = dynamic(
   () => import('./sections/SocialFeaturesSection').then((mod) => mod.SocialFeaturesSection),
   { loading: () => <LoadingFallback /> }
 );
+const RecommendedForYouSection = dynamic(
+  () => import('./sections/RecommendedForYouSection').then((mod) => mod.RecommendedForYouSection),
+  { loading: () => <LoadingFallback /> }
+);
 
 interface UserHomeProps {
   user: User;
-  summary: ProgressSummary | null;
+  summary?: ProgressSummary | null;
   performanceMetrics?: PerformanceMetric[];
   metricsLoading?: boolean;
 }
@@ -91,7 +95,7 @@ const itemVariants: any = {
   }
 };
 
-export function UserHome({ user, summary, performanceMetrics, metricsLoading }: UserHomeProps) {
+export function UserHome({ user, summary = null, performanceMetrics = [], metricsLoading = false }: UserHomeProps) {
   const [isMounted, setIsMounted] = useState(false);
   const isEfficiencyMode = useEfficiencyMode();
 
@@ -231,16 +235,23 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
             <AchievementsSection />
          </m.div>
          
-         <SectionDivider label="مركز الاستخبارات" />
+          <SectionDivider label="موصى به لك" icon={Sparkles} />
 
-         {/* Intelligence & Recommendations */}
-         <m.div variants={itemVariants} className="flex flex-col gap-12 w-full">
+          {/* Recommended For You */}
+          <m.div variants={itemVariants} className="w-full">
+            <RecommendedForYouSection />
+          </m.div>
+
+          <SectionDivider label="مركز الاستخبارات" />
+
+          {/* Intelligence & Recommendations */}
+          <m.div variants={itemVariants} className="flex flex-col gap-12 w-full">
             <IntelligentRecommendationsSection />
             <ProgressPredictionsSection />
             <TipsSection />
             <SocialFeaturesSection />
             <LiveActivityFeedSection />
-         </m.div>
+          </m.div>
 
       </div>
 

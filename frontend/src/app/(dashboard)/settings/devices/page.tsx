@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import { useAuth } from "@/hooks/use-auth";
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { m, AnimatePresence } from "framer-motion";
 import {
@@ -18,10 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-import { ar } from 'date-fns/locale';
-import { useAuth } from '@/contexts/auth-context';
-
-type SessionApiRecord = {
+import { ar } from 'date-fns/locale';type SessionApiRecord = {
   id: string;
   userAgent: string;
   ip: string;
@@ -198,7 +196,7 @@ export default function DevicesPage() {
 
   const handleRevokeAll = async () => {
     setShowRevokeAllConfirm(false);
-    await logout(true);
+    await logout();
   };
 
   const handleToggleTrust = async (deviceId: string, currentStatus: boolean) => {

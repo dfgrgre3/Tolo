@@ -1,4 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 
@@ -6,7 +10,14 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig = {
   turbopack: {
-    root: process.cwd(),
+    // Monorepo root so Turbopack can resolve files outside the frontend app
+    // (e.g. `d:\thanawy\shared\src` via the @shared/* alias).
+    root: path.resolve(__dirname, '..'),
+    // Aliases declared only in `webpack()` are ignored by Turbopack,
+    // so we must mirror them here for the @shared/* path to resolve.
+    resolveAlias: {
+      '@shared': path.resolve(__dirname, '../shared/src'),
+    },
   },
   // ─── Basics ────────────────────────────────────────────────────────────────
   reactStrictMode: true,
@@ -20,16 +31,26 @@ const nextConfig = {
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
-      { protocol: 'https', hostname: '**.supabase.co' },
-      { protocol: 'https', hostname: '**.supabase.in' },
-      { protocol: 'https', hostname: 'img.clerk.com' },
-      { protocol: 'https', hostname: 'i.ytimg.com' },
-      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
-      { protocol: 'https', hostname: 'api.dicebear.com' },
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
+      { protocol: 'https', hostname: '**.supabase.in', pathname: '/storage/v1/object/public/**' },
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/vi/**' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'api.dicebear.com', pathname: '/**' },
     ],
   },
 
-  outputFileTracingRoot: process.cwd(),
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  serverExternalPackages: [
+    '@prisma/client',
+    'ioredis',
+    '@bufbuild/protobuf',
+    '@connectrpc/connect',
+  ],
+
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
   // ─── Experimental ──────────────────────────────────────────────────────────
   experimental: {
     // Tree-shake heavy packages — avoids importing the full library
@@ -100,6 +121,47 @@ const nextConfig = {
             key: 'Vary',
             value: 'Accept-Encoding',
           },
+          {
+            // Strict CSP. Sentry + Vercel Insights + Supabase + Cloudflare R2 origins whitelisted.
+            // 'unsafe-inline' / 'unsafe-eval' retained for Next.js framework runtime.
+            // Tighten further by switching to nonce-based CSP when ready.
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https:",
+              "media-src 'self' blob: https://*.supabase.co https://*.cloudflarestream.com https://*.youtube.com",
+              "connect-src 'self' https: wss:",
+              "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self' https://*.paymob.com",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
+            ].join('; '),
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(self), payment=(self "https://*.paymob.com")',
+          },
         ],
       },
     ];
@@ -137,21 +199,17 @@ const nextConfig = {
   // ─── Redirects ─────────────────────────────────────────────────────────────
   // (add here if needed)
 
-  // ─── Rewrites ──────────────────────────────────────────────────────────────
-  async rewrites() {
-    return [
-      {
-        source: '/__clerk/:path*',
-        destination: '/clerk-proxy/:path*',
-      },
-    ];
-  },
-
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {
+    // @shared alias → ../shared/src
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@shared': path.resolve(__dirname, '../shared/src'),
+    };
+
     // Fallback for Node.js built-in modules used in client-side bundles
     if (!isServer) {
-      config.resolve = config.resolve || {};
       config.resolve.fallback = {
         ...config.resolve.fallback,
         async_hooks: false,   // Prevent webpack from resolving async_hooks on the client

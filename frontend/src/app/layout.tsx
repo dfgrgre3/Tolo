@@ -14,9 +14,9 @@ import {
   ConditionalSpeedInsights,
 } from '@/components/layout/ConditionalAnalytics';
 import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
-import { ClerkWithNonce } from '@/components/layout/ClerkWithNonce';
 import { headers } from 'next/headers';
 import Script from 'next/script';
+import { SITE } from '@shared/site-config';
 
 const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
@@ -31,23 +31,23 @@ const alexandria = Alexandria({
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: { default: 'Tolo - منصة تعليمية تفاعلية', template: '%s | Tolo' },
-  description: 'منصة تعليمية تفاعلية للثانوية العامة - كورسات، امتحانات، ومدرسين',
+  title: { default: `${SITE.name} - ${SITE.description}`, template: `%s | ${SITE.name}` },
+  description: SITE.description,
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
+    icon: SITE.favicon,
+    shortcut: SITE.favicon,
   },
   openGraph: {
-    title: 'Tolo - منصة تعليمية تفاعلية',
-    description: 'منصة تعليمية تفاعلية للثانوية العامة',
+    title: `${SITE.name} - ${SITE.description}`,
+    description: SITE.description,
     type: 'website',
-    locale: 'ar_AR',
-    siteName: 'Tolo',
+    locale: SITE.locale,
+    siteName: SITE.name,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tolo - منصة تعليمية تفاعلية',
-    description: 'منصة تعليمية تفاعلية للثانوية العامة',
+    title: `${SITE.name} - ${SITE.description}`,
+    description: SITE.description,
   },
   robots: { index: true, follow: true },
 };
@@ -79,8 +79,6 @@ export default async function RootLayout({
       <head>
         {/* ── Preconnect to external origins ─────────────────────────────── */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Preconnect to Clerk's frontend API infrastructure (proxied via /__clerk) */}
-        <link rel="preconnect" href="https://frontend-api.clerk.services" crossOrigin="anonymous" />
 
         {/* Centralized performance detection script */}
         <script id="perf-detect" src="/perf-detect.js" defer nonce={nonce} suppressHydrationWarning />
@@ -94,31 +92,29 @@ export default async function RootLayout({
         <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
       </head>
       <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
-        <ClerkWithNonce>
-          <div suppressHydrationWarning>
-            <SWRegistration />
-            <PostHogProvider>
-              <PostHogPageView />
-              <ThemeProvider
-                attribute="class"
-                defaultTheme="light"
-                enableSystem={false}
-                disableTransitionOnChange
-                storageKey="tolo-theme"
-              >
-                <GlobalProviders>
-                  <FPSMonitor />
-                  <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
-                    <Header />
-                  </Suspense>
-                  {children}
-                </GlobalProviders>
-              </ThemeProvider>
-            </PostHogProvider>
-            <ConditionalAnalytics />
-            <ConditionalSpeedInsights />
-          </div>
-        </ClerkWithNonce>
+        <div suppressHydrationWarning>
+          <SWRegistration />
+          <PostHogProvider>
+            <PostHogPageView />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+              disableTransitionOnChange
+              storageKey="tolo-theme"
+            >
+              <GlobalProviders>
+                <FPSMonitor />
+                <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+                  <Header />
+                </Suspense>
+                {children}
+              </GlobalProviders>
+            </ThemeProvider>
+          </PostHogProvider>
+          <ConditionalAnalytics />
+          <ConditionalSpeedInsights />
+        </div>
       </body>
     </html>
   );

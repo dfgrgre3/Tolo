@@ -52,23 +52,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
     // Toggle between performance and lite (lightweight shortcut)
     setMode(isEfficiencyMode ? "performance" : "lite");
   };
-  const [isSearchOpen, setIsSearchOpen] = useState(isOpen || false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Sync isSearchOpen state with isOpen prop
-  useEffect(() => {
-    setIsSearchOpen(isOpen || false);
-    if (onOpenChange) {
-      onOpenChange(isSearchOpen);
-    }
-  }, [isOpen, onOpenChange]);
-
-  // Notify parent when search open state changes
-  useEffect(() => {
-    if (onOpenChange) {
-      onOpenChange(isSearchOpen);
-    }
-  }, [isSearchOpen, onOpenChange]);
 
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
@@ -197,8 +181,9 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 	}, []);
 
 	const updateRecentSearches = useCallback((query: string) => {
-		if (query && !recentSearches.includes(query)) {
-			const updated = [query, ...recentSearches.slice(0, 4)];
+		if (query) {
+			const filtered = recentSearches.filter((item) => item !== query);
+			const updated = [query, ...filtered.slice(0, 4)];
 			setRecentSearches(updated);
 			try {
 				safeSetItem("header_recent_searches", updated);
@@ -207,6 +192,25 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			}
 		}
 	}, [recentSearches]);
+
+	const clearRecentSearch = useCallback((searchToClear: string) => {
+		const updated = recentSearches.filter((s) => s !== searchToClear);
+		setRecentSearches(updated);
+		try {
+			safeSetItem("header_recent_searches", updated);
+		} catch (error) {
+			logger.debug("Error clearing recent search:", error);
+		}
+	}, [recentSearches]);
+
+	const clearAllRecentSearches = useCallback(() => {
+		setRecentSearches([]);
+		try {
+			safeSetItem("header_recent_searches", []);
+		} catch (error) {
+			logger.debug("Error clearing all recent searches:", error);
+		}
+	}, []);
 
 	const handleSearchError = useCallback((error: unknown, query: string, scope: string) => {
 		const errorMessage = error instanceof Error 
@@ -336,33 +340,12 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 
 
-	// Focus search input when opened
-
-	useEffect(() => {
-
-		if (!mounted || !isSearchOpen || !searchInputRef.current) return;
-
-		
-
-		const timer = setTimeout(() => {
-
-			searchInputRef.current?.focus();
-
-		}, 100);
-
-		
-
-		return () => clearTimeout(timer);
-
-	}, [isSearchOpen, mounted]);
 
 
 
 	const handleSearchResultClick = useCallback((result: SearchResult) => {
 
 		router.push(result.url);
-
-		setIsSearchOpen(false);
 
 		setSearchQuery("");
 
@@ -378,7 +361,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 	useEffect(() => {
 
-		if (!mounted || !isSearchOpen) return;
+		if (!mounted) return;
 
 
 
@@ -430,8 +413,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 			if (e.key === "Escape") {
 
-				setIsSearchOpen(false);
-
 				setSearchQuery("");
 
 				setSearchResults([]);
@@ -448,7 +429,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 		return () => window.removeEventListener("keydown", handleKeyDown);
 
-	}, [mounted, isSearchOpen, searchResults, selectedResultIndex, handleSearchResultClick]);
+	}, [mounted, searchResults, selectedResultIndex, handleSearchResultClick]);
 
 
 
@@ -466,7 +447,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 				e.preventDefault();
 
-				setIsSearchOpen(true);
+				searchInputRef.current?.focus();
 
 			}
 
@@ -478,7 +459,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 		return () => window.removeEventListener("keydown", handleKeyDown);
 
-	}, [mounted, isSearchOpen, isMobile]);
+	}, [mounted, isMobile]);
 
 
 
@@ -536,7 +517,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 
 	if (isMobile) {
-		return isSearchOpen ? (
+		return (
 			<form onSubmit={handleSearch} className="mb-4 space-y-3">
 	
 				<div className="flex gap-2">
@@ -587,8 +568,14 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 				<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="mobile" />
 	
 				{/* Mobile Recent Searches */}
-				{searchQuery.trim().length === 0 && recentSearches.length > 0 && (
-					<RecentSearches searches={recentSearches} onSearchClick={handleRecentSearchClick} variant="mobile" />
+				{recentSearches.length > 0 && (
+					<RecentSearches
+						searches={recentSearches}
+						onSearchClick={handleRecentSearchClick}
+						onClearSearch={clearRecentSearch}
+						onClearAll={clearAllRecentSearches}
+						variant="mobile"
+					/>
 				)}
 	
 				{/* Mobile Search Results */}
@@ -609,210 +596,70 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 				)}
 	
 			</form>
-		) : null;
+		);
 	}
 
 
 	return (
 
-		<AnimatePresence>
+		<m.form
 
-			{isSearchOpen ? (
+			onSubmit={handleSearch}
+			className="flex items-center gap-3 relative"
+		>
 
-				<m.form
+			<m.div
 
-					initial={{ height: 0, opacity: 0 }}
- 
-					animate={{ height: "auto", opacity: 1 }}
- 
-					exit={{ height: 0, opacity: 0 }}
-					transition={{ duration: 0.25, ease: "easeInOut" }}
-					onSubmit={handleSearch}
-					className="flex items-center gap-2 absolute top-full left-0 right-0 bg-background/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none p-2 md:p-0 rounded-xl md:rounded-none shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:shadow-none z-[100] md:z-auto border border-border/50 md:border-transparent"
-				>
+				className="relative w-full"
 
-					<m.div
+			>
 
-						initial={{ scale: 0.9 }}
+				<div className="relative group/search-input">
+					<Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50 group-focus-within/search-input:text-primary group-focus-within/search-input:scale-105 transition-all duration-300 pointer-events-none" />
 
-						animate={{ scale: 1 }}
+					<Input
+						ref={searchInputRef}
+						type="text"
+						placeholder="ابحث عن دورات، مدرسين، مواد..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						onFocus={() => setShowSearchSuggestions(true)}
+						className="w-full h-12 pr-11 pl-20 transition-all duration-300 focus:ring-4 focus:ring-primary/10 focus:border-primary/50 bg-background/90 dark:bg-background/90 backdrop-blur-xl border-border/50 dark:border-border/60 text-base rounded-2xl shadow-inner focus:shadow-md focus:bg-background"
+						onBlur={() => {
 
-						className="relative"
+							setTimeout(() => {
 
-					>
+								setShowSearchSuggestions(false);
 
-						<div className="relative">
+								setSelectedResultIndex(-1);
 
-							<Input
-								ref={searchInputRef}
-								type="text"
-								placeholder="بحث..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								onFocus={() => setShowSearchSuggestions(searchQuery.trim().length > 0 && searchResults.length > 0)}
-								className="w-full md:w-80 h-10 md:h-10 pr-24 pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary/30 dark:focus:ring-primary/50 focus:border-primary/50 dark:focus:border-primary/70 bg-background/90 dark:bg-background/95 backdrop-blur-sm border-border/50 dark:border-border/70 text-base md:text-sm"
-								onBlur={() => {
+							}, 200);
 
-									setTimeout(() => {
+						}}
 
-										setShowSearchSuggestions(false);
+						onKeyDown={(e) => {
 
-										setSelectedResultIndex(-1);
+							if (e.key === "Escape") {
 
-										if (!searchQuery) {
+								setSearchQuery("");
 
-											setIsSearchOpen(false);
+								setSearchResults([]);
 
-										}
+								setSelectedResultIndex(-1);
 
-									}, 200);
+							}
 
-								}}
+						}}
 
-								onKeyDown={(e) => {
+					/>
 
-									if (e.key === "Escape") {
+					<span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/50 text-[10px] text-muted-foreground/70 pointer-events-none">
 
-										setIsSearchOpen(false);
+						<Command className="h-3 w-3" />
 
-										setSearchQuery("");
+						<span className="hidden lg:inline font-semibold">K</span>
 
-										setSearchResults([]);
-
-										setSelectedResultIndex(-1);
-
-									}
-
-								}}
-
-							/>
-
-							<span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground pointer-events-none">
-
-								<Command className="h-3 w-3" />
-
-								<span className="hidden lg:inline">K</span>
-
-							</span>
-
-							<Button
-
-								type="button"
-
-								size="icon"
-
-								variant="ghost"
-
-								onClick={(e) => {
-
-									e.preventDefault();
-
-									handleVoiceSearch();
-
-								}}
-
-								className={cn(
-
-									"absolute left-8 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-primary/10 hover:text-primary transition-all",
-
-									isVoiceSearchActive && "text-primary animate-pulse"
-
-								)}
-
-								title="البحث الصوتي"
-
-							>
-
-								<Mic className="h-3.5 w-3.5" />
-
-							</Button>
-
-						</div>
-
-						
-
-						{/* Search Scope Filters */}
-
-						{searchQuery.trim().length > 0 && (
-							<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="desktop" />
-						)}
-
-						{/* Instant Search Results Dropdown */}
-
-						<AnimatePresence>
-
-							{(showSearchSuggestions || (searchQuery.trim().length === 0 && recentSearches.length > 0)) && (
-
-								<m.div
-
-									initial={{ opacity: 0, y: -10, scale: 0.95 }}
-
-									animate={{ opacity: 1, y: 0, scale: 1 }}
-
-									exit={{ opacity: 0, y: -10, scale: 0.95 }}
-
-									transition={{ duration: 0.2, ease: "easeOut" }}
-
-									className={cn(
-
-										"absolute top-full left-0 right-0 bg-background dark:bg-background border border-border dark:border-border/80 rounded-lg shadow-xl dark:shadow-2xl z-50 max-h-96 overflow-y-auto backdrop-blur-sm dark:backdrop-blur-md",
-
-										searchQuery.trim().length > 0 ? "mt-14" : "mt-2"
-
-									)}
-
-								>
-
-									{/* Recent Searches */}
-
-									{searchQuery.trim().length === 0 && recentSearches.length > 0 && (
-										<RecentSearches searches={recentSearches} onSearchClick={handleRecentSearchClick} variant="desktop" />
-									)}
-
-									{/* Loading State */}
-
-									{isSearching && <SearchLoadingState />}
-
-									{/* Search Results */}
-
-									{!isSearching && searchResults.length > 0 && (
-
-										<div className="py-1">
-
-											{searchResults.map((result, index) => (
-												<DesktopSearchResultItem
-													key={result.id}
-													result={result}
-													index={index}
-													isSelected={selectedResultIndex === index}
-													onSelect={setSelectedResultIndex}
-													onClick={handleSearchResultClick}
-												/>
-											))}
-
-										</div>
-
-									)}
-
-									{/* No Results */}
-
-									{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
-										<SearchNoResults />
-									)}
-
-								</m.div>
-
-							)}
-
-						</AnimatePresence>
-
-					</m.div>
-
-					<Button type="submit" size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary transition-all duration-300 shadow-sm">
-
-						<Search className="h-4 w-4" />
-
-					</Button>
+					</span>
 
 					<Button
 
@@ -822,58 +669,151 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 						variant="ghost"
 
-						onClick={() => {
+						onClick={(e) => {
 
-							setIsSearchOpen(false);
+							e.preventDefault();
 
-							setSearchQuery("");
-
-							setSearchResults([]);
-
-							setSearchScope("all");
+							handleVoiceSearch();
 
 						}}
 
-						className="hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
+						className={cn(
+
+							"absolute left-9 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all rounded-xl",
+
+							isVoiceSearchActive && "text-primary animate-pulse"
+
+						)}
+
+						title="البحث الصوتي"
 
 					>
 
-						<X className="h-4 w-4" />
+						<Mic className="h-4 w-4" />
 
 					</Button>
 
-				</m.form>
+				</div>
 
-			) : (
+				
 
-				<m.div
+				{/* Search Scope Filters */}
 
-					whileHover={{ scale: 1.05 }}
+				{searchQuery.trim().length > 0 && (
+					<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="desktop" />
+				)}
 
-					whileTap={{ scale: 0.95 }}
+				{/* Instant Search Results Dropdown */}
+
+				<AnimatePresence>
+
+					{showSearchSuggestions && (
+
+						<m.div
+
+							initial={{ opacity: 0, y: -10, scale: 0.95 }}
+
+							animate={{ opacity: 1, y: 0, scale: 1 }}
+
+							exit={{ opacity: 0, y: -10, scale: 0.95 }}
+
+							transition={{ duration: 0.2, ease: "easeOut" }}
+
+							className={cn(
+
+								"absolute top-full left-0 right-0 bg-background/95 dark:bg-background border border-border/60 dark:border-border/80 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto backdrop-blur-md",
+
+								searchQuery.trim().length > 0 ? "mt-14" : "mt-2"
+
+							)}
+
+						>
+
+							{/* Recent Searches */}
+							{recentSearches.length > 0 && (
+								<RecentSearches
+									searches={recentSearches}
+									onSearchClick={handleRecentSearchClick}
+									onClearSearch={clearRecentSearch}
+									onClearAll={clearAllRecentSearches}
+									variant="desktop"
+								/>
+							)}
+
+							{/* Loading State */}
+
+							{isSearching && <SearchLoadingState />}
+
+							{/* Search Results */}
+
+							{!isSearching && searchResults.length > 0 && (
+
+								<div className="py-1">
+
+									{searchResults.map((result, index) => (
+										<DesktopSearchResultItem
+											key={result.id}
+											result={result}
+											index={index}
+											isSelected={selectedResultIndex === index}
+											onSelect={setSelectedResultIndex}
+											onClick={handleSearchResultClick}
+										/>
+									))}
+
+								</div>
+
+							)}
+
+							{/* No Results */}
+
+							{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
+								<SearchNoResults />
+							)}
+
+						</m.div>
+
+					)}
+
+				</AnimatePresence>
+
+			</m.div>
+
+			<Button type="submit" size="icon" variant="ghost" className="hover:bg-primary/15 hover:text-primary transition-all duration-300 shadow-md h-12 w-12 rounded-2xl bg-primary/10 hover:bg-primary/20">
+
+				<Search className="h-5 w-5" />
+
+			</Button>
+
+			{searchQuery && (
+				<Button
+
+					type="button"
+
+					size="icon"
+
+					variant="ghost"
+
+					onClick={() => {
+
+						setSearchQuery("");
+
+						setSearchResults([]);
+
+						setSearchScope("all");
+
+					}}
+
+					className="hover:bg-destructive/15 hover:text-destructive transition-all duration-300 h-12 w-12 rounded-2xl"
 
 				>
 
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => setIsSearchOpen(true)}
-						className="flex hover:bg-primary/10 hover:text-primary transition-all duration-300 relative group h-9 w-9 md:h-10 md:w-10 rounded-full md:rounded-md"
-						title="بحث (Ctrl+K / Cmd+K)"
-					>
-						<Search className="h-5 w-5 md:h-4 md:w-4" />
-						<span className="absolute -top-1 -right-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/80 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-							<Command className="h-2.5 w-2.5" />
-							<span className="hidden lg:inline">K</span>
-						</span>
+					<X className="h-5 w-5" />
 
-					</Button>
-
-				</m.div>
-
+				</Button>
 			)}
 
-		</AnimatePresence>
+		</m.form>
 
 	);
 

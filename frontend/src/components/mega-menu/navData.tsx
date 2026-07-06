@@ -62,17 +62,6 @@ const coursesMegaMenu: MegaMenuCategory[] = [
     ],
   },
   {
-    title: "النتائج والتقدير",
-    items: [
-      { href: "/progress", label: "مستوى التقدم", icon: TrendingUp, description: "متابعة نسبة إنجازك للمناهج التعليمية" },
-      { href: "/achievements", label: "الإنجازات والأوسمة", icon: Award, description: "الأوسمة والنقاط التي حصدتها خلال تعلمك" },
-      { href: "/certificates", label: "الشهادات", icon: Trophy, description: "عرض وتحميل شهادات إتمام الدورات" },
-    ],
-  },
-];
-
-const scheduleMegaMenu: MegaMenuCategory[] = [
-  {
     title: "تنظيم الوقت",
     items: [
       { href: "/schedule", label: "جدول المحاضرات", icon: Calendar, description: "جدول الحصص المباشرة والدروس الأسبوعية" },
@@ -102,9 +91,6 @@ const libraryMegaMenu: MegaMenuCategory[] = [
       { href: "/tips", label: "نصائح يومية", icon: Lightbulb, description: "نصائح وتوجيهات عملية للتفوق الدراسي" },
     ],
   },
-];
-
-const analyticsMegaMenu: MegaMenuCategory[] = [
   {
     title: "لوحة التحكم والأداء",
     items: [
@@ -134,6 +120,33 @@ const competitionMegaMenu: MegaMenuCategory[] = [
   },
 ];
 
+const schoolsMegaMenu: MegaMenuCategory[] = [
+  {
+    title: "المرحلة الابتدائية",
+    items: [
+      { href: "/schools/primary/4", label: "الصف الرابع الابتدائي", icon: GraduationCap, description: "مناهج ومواد الصف الرابع الابتدائي" },
+      { href: "/schools/primary/5", label: "الصف الخامس الابتدائي", icon: GraduationCap, description: "مناهج ومواد الصف الخامس الابتدائي" },
+      { href: "/schools/primary/6", label: "الصف السادس الابتدائي", icon: GraduationCap, description: "مناهج ومواد الصف السادس الابتدائي" },
+    ],
+  },
+  {
+    title: "المرحلة الإعدادية",
+    items: [
+      { href: "/schools/middle/1", label: "الصف الأول الإعدادي", icon: GraduationCap, description: "مناهج ومواد الصف الأول الإعدادي" },
+      { href: "/schools/middle/2", label: "الصف الثاني الإعدادي", icon: GraduationCap, description: "مناهج ومواد الصف الثاني الإعدادي" },
+      { href: "/schools/middle/3", label: "الصف الثالث الإعدادي", icon: GraduationCap, description: "مناهج ومواد الصف الثالث الإعدادي" },
+    ],
+  },
+  {
+    title: "المرحلة الثانوية",
+    items: [
+      { href: "/schools/secondary/1", label: "الصف الأول الثانوي", icon: GraduationCap, description: "مناهج ومواد الصف الأول الثانوي" },
+      { href: "/schools/secondary/2", label: "الصف الثاني الثانوي", icon: GraduationCap, description: "مناهج ومواد الصف الثاني الثانوي" },
+      { href: "/schools/secondary/3", label: "الصف الثالث الثانوي", icon: GraduationCap, description: "مناهج ومواد الصف الثالث الثانوي" },
+    ],
+  },
+];
+
 export const moreMegaMenu: MegaMenuCategory[] = [
   {
     title: "الحساب والاشتراك",
@@ -159,10 +172,12 @@ export const moreMegaMenu: MegaMenuCategory[] = [
 export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/", label: "الرئيسية", icon: Home, description: "العودة إلى الصفحة الرئيسية" },
   { href: "/courses", label: "الدورات", icon: BookOpen, description: "استكشف الدورات التعليمية", badge: "جديد", megaMenu: coursesMegaMenu },
-  { href: "/schedule", label: "الجدول", icon: Calendar, description: "متابعة المواعيد والمهام", megaMenu: scheduleMegaMenu },
   { href: "/library", label: "المكتبة", icon: Library, description: "مصادر تعليمية متنوعة", megaMenu: libraryMegaMenu },
-  { href: "/analytics", label: "التحليلات", icon: BarChart3, description: "متابعة دقيقة لمستواك", megaMenu: analyticsMegaMenu },
-  { href: "/leaderboard", label: "التحديات", icon: Gamepad2, description: "لوحة الترتيب والمنافسات", megaMenu: competitionMegaMenu },
   { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI" },
+  { href: "/leaderboard", label: "التحديات", icon: Gamepad2, description: "لوحة الترتيب والمنافسات", megaMenu: competitionMegaMenu },
   { href: "/settings", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
+];
+
+export const headerNavItems: NavItemWithMegaMenu[] = [
+  { href: "/schools", label: "مدارس", icon: GraduationCap, description: "المراحل التعليمية من ابتدائي إلى ثانوي", megaMenu: schoolsMegaMenu },
 ];

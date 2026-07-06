@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 // Default Vercel Function maxDuration is 10s on Hobby, 60s on Pro, 900s on
 // Enterprise. Bumping to 30s gives us enough headroom for:
-//   cold start (1-3s) + Clerk middleware (0.5s) + Go backend (1-5s)
+//   cold start (1-3s) + Go backend (1-5s)
 //   + the extra round-trip to vercel.app (1-3s when same region).
 // 30s is well within the Pro plan limit.
 export const maxDuration = 30;
@@ -95,16 +95,21 @@ function getBackendUrl(): string {
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
 
+  // Only accept the Authorization header. Tokens in URL query parameters are
+  // a leakage risk: they end up in proxy logs, browser history, server access
+  // logs and analytics tools. They are intentionally NOT supported here.
   let auth = request.headers.get('authorization');
   if (!auth) {
-    try {
-      const url = new URL(request.url);
-      const token = url.searchParams.get('token');
-      if (token) {
-        auth = `Bearer ${token}`;
+    // Fallback: parse from Cookie header (Bearer-style token set as a cookie).
+    // This is safer than URL params because cookies are not logged in URLs.
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = /(?:^|;\s*)(?:access_token|auth_token|bearer_token)=([^;]+)/.exec(cookieHeader);
+    if (match && match[1]) {
+      try {
+        auth = `Bearer ${decodeURIComponent(match[1])}`;
+      } catch {
+        auth = `Bearer ${match[1]}`;
       }
-    } catch {
-      // Ignore URL parsing errors
     }
   }
 
@@ -112,15 +117,10 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
 
   const cookie = request.headers.get('cookie');
   if (cookie) {
-    // Filter out Clerk cookies to avoid conflicts and header bloat
-    const cleanedCookies = cookie
-      .split(';')
-      .map(c => c.trim())
-      .filter(c => !c.startsWith('__clerk') && !c.startsWith('__client') && !c.startsWith('__session'))
-      .join('; ');
-    if (cleanedCookies) {
-      headers['Cookie'] = cleanedCookies;
-    }
+    // Forward cookies unmodified. Do NOT filter out __session because
+    // the backend Auth middleware treats __session as a valid auth token
+    // when the Authorization header is missing.
+    headers['Cookie'] = cookie;
   }
 
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
@@ -133,6 +133,10 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   // Forward content type
   const ct = request.headers.get('content-type');
   if (ct) headers['Content-Type'] = ct;
+
+  // Forward User-Agent
+  const ua = request.headers.get('user-agent');
+  if (ua) headers['User-Agent'] = ua;
 
   // Tell the backend NOT to compress its response.
   // The proxy reads the body as an ArrayBuffer (Node fetch auto-decompresses),
@@ -256,10 +260,10 @@ function handleErrorResponse(response: Response, errorText: string) {
 
 async function handleProxy(
   request: NextRequest,
-  props: { params: Promise<{ path: string[] }> }
+  props: { params: Promise<any> }
 ) {
   const params = await props.params;
-  const path = params.path.join('/');
+  const path = (params.path as string[]).join('/');
 
   // Bypass media/storage files to avoid memory buffering proxy overhead and redirect directly to Supabase CDN
   if (params.path[0] === 'storage') {

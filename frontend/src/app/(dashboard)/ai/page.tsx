@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -27,10 +28,7 @@ import StudyPlanner from './features/StudyPlanner';
 import LessonSummarizer from './features/LessonSummarizer';
 import EssayGrader from './features/EssayGrader';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/contexts/auth-context';
-
-const STYLES = {
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
   card: "rpg-card h-full p-8 transition-all",
   neonText: "rpg-neon-text font-black",

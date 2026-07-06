@@ -1,14 +1,12 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Award, Download, Share2, Printer, CheckCircle2, ShieldCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-context";
-
-export default function CertificatePage() {
+import { toast } from "sonner";export default function CertificatePage() {
   const params = useParams();
   const { fetchWithAuth } = useAuth();
   const [cert, setCert] = useState<any>(null);

@@ -31,7 +31,7 @@ export const RecentAchievementsCard = ({ loading, recentAchievements }: RecentAc
             <Award className="h-5 w-5 text-purple-500" />
             <span>إنجازات حديثة</span>
           </CardTitle>
-          <Link href="/achievements">
+          <Link href="/settings/achievements">
             <Button variant="link" size="sm">
               عرض الكل
               <ArrowRight className="h-4 w-4 mr-1" />

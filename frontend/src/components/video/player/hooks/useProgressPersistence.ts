@@ -4,7 +4,7 @@ import {
   PROGRESS_SAVE_INTERVAL_MS,
   MIN_RESUME_TIME_SECONDS,
 } from "../constants";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
 import { clamp } from "../utils";
 import type { StoredVideoProgress } from "../types";
 
@@ -34,7 +34,7 @@ export function useProgressPersistence({
   triggerAutoComplete,
   alreadyCompleted,
 }: ProgressPersistenceOptions) {
-  const { setPlayerState } = useCourseVideoPlayerStore();
+  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
   const lastSaveTimeRef = useRef(0);
   const autoCompleteTriggeredRef = useRef(alreadyCompleted);
   const sessionStartTimeRef = useRef(Date.now());
@@ -46,7 +46,7 @@ export function useProgressPersistence({
 
   // Track active time when player is playing
   useEffect(() => {
-    const unsubscribe = useCourseVideoPlayerStore.subscribe(
+    const unsubscribe = usePlaybackStore.subscribe(
       (state, prevState) => {
         const isPlaying = state.isPlaying;
         const prevIsPlaying = prevState?.isPlaying;
@@ -67,7 +67,7 @@ export function useProgressPersistence({
     (positionSeconds: number, percent: number) => {
       if (!Number.isFinite(positionSeconds)) return;
 
-      const isPlaying = useCourseVideoPlayerStore.getState().isPlaying;
+      const isPlaying = usePlaybackStore.getState().isPlaying;
       let currentSessionTime = 0;
       if (isPlaying) {
         currentSessionTime = (Date.now() - sessionStartTimeRef.current) / 1000;
@@ -173,9 +173,9 @@ export function useProgressPersistence({
       resumeCandidate > MIN_RESUME_TIME_SECONDS &&
       resumeCandidate < duration - MIN_RESUME_TIME_SECONDS
     ) {
-      setPlayerState({ resumeTime: resumeCandidate });
+      setPlaybackState({ resumeTime: resumeCandidate });
     }
-  }, [getDuration, lessonId, setPlayerState, storageKey]);
+  }, [getDuration, lessonId, setPlaybackState, storageKey]);
 
   useEffect(() => {
     const onPageHide = () => saveProgress(true);

@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -25,9 +26,7 @@ import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { apiClient } from '@/lib/api/api-client';
-import { logger } from '@/lib/logger';
-import { useAuth } from "@/contexts/auth-context";
-import { useWebSocket } from "@/contexts/websocket-context";
+import { logger } from '@/lib/logger';import { useWebSocket } from "@/contexts/websocket-context";
 
 interface ActivityItem {
   id: string;

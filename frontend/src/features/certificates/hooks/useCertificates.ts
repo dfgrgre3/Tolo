@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
 import { MyCourse } from "../types";
 
 export function useCertificates() {
-  const { user, isLoading: authLoading, fetchWithAuth } = useAuth();
+  const user = { id: "mock-user" };
+  const authLoading = false;
+  const fetchWithAuth = async (url: string, options?: RequestInit) => {
+    return fetch(url, options);
+  };
   const router = useRouter();
 
   const [courses, setCourses] = useState<MyCourse[]>([]);

@@ -3,6 +3,7 @@
 import React from "react";
 import { m } from "framer-motion";
 import { Crown, Star, Zap, Target, Shield, Users } from "lucide-react";
+import { SITE } from "@shared/site-config";
 
 interface RoyalRankSectionProps {
   mounted: boolean;
@@ -26,7 +27,7 @@ export function RoyalRankSection({ mounted, shouldReduceMotion, goldTextClass }:
             من <span className="text-gray-500">مقاتل مبتدئ</span> <br /> إلى <span className={goldTextClass}>قائد جيش</span>
           </h2>
           <p className="text-xl text-gray-400 font-medium max-w-xl leading-relaxed">
-            كل دقيقة مذاكرة هي نقطة خبرة (XP). كل اختبار تجتازه يقربك من المركز الأول في لوحة الشرف الملكية في عالم TOLO.
+            كل دقيقة مذاكرة هي نقطة خبرة (XP). كل اختبار تجتازه يقربك من المركز الأول في لوحة الشرف الملكية في عالم {SITE.name}.
           </p>
           <div className="flex flex-wrap gap-8 pt-6">
             <div className="space-y-1">

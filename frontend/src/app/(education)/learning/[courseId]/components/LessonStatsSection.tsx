@@ -35,9 +35,9 @@ export function LessonStatsSection({
     },
     {
       label: "مرفقات الدرس",
-      value: activeLesson.attachments.length.toLocaleString("ar-EG"),
+      value: (activeLesson?.attachments || []).length.toLocaleString("ar-EG"),
       helper:
-        activeLesson.attachments.length > 0
+        (activeLesson?.attachments || []).length > 0
           ? "جاهزة للتحميل"
           : "لا توجد مرفقات",
       tone: "text-emerald-500 bg-emerald-500/10",

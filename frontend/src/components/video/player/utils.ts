@@ -183,9 +183,9 @@ export function parseCloudTimelineNotes(content: string) {
         time,
         text: match[2]!,
         createdAt: Date.now() + index,
-      } satisfies TimelineNote;
+      } as TimelineNote;
     })
-    .filter((note): note is TimelineNote => note !== null);
+    .filter((note) => note !== null) as TimelineNote[];
 
   return { freeformContent, notes };
 }
@@ -282,9 +282,9 @@ export function parseThumbnailVtt(
         y,
         width,
         height,
-      } satisfies ThumbnailCue;
+      } as ThumbnailCue;
     })
-    .filter((cue): cue is ThumbnailCue => cue !== null);
+    .filter((cue) => cue !== null) as ThumbnailCue[];
 }
 
 export function getThumbnailCueAtTime(cues: ThumbnailCue[], time: number) {

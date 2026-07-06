@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,10 +13,9 @@ import { Input } from "@/components/ui/input";
 import { mainNavItemsWithMegaMenu } from "@/components/mega-menu/navData";
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras, type MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink, HeaderMenuTrigger } from "@/components/navigation";
+import { SITE } from '@shared/site-config';
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
-import { useTheme } from "@/providers/theme-provider";
-import { useAuth } from "@/contexts/auth-context";
-import { LogIn, UserPlus, LogOut } from "lucide-react";
+import { useTheme } from "@/providers/theme-provider";import { LogIn, UserPlus, LogOut } from "lucide-react";
 // Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
 const buildLoginUrl = (redirect?: string) => {
   return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
@@ -187,12 +187,12 @@ export function HeaderMobileMenuEnhanced({
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
                   <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white border border-primary/20 shadow-lg shadow-primary/20">
-                    <Image src="/logo-tolo.jpg" alt="TOLO" width={36} height={36} sizes="36px" className="h-full w-full object-cover" />
+                    <Image src={SITE.logo} alt={SITE.name} width={36} height={36} sizes="36px" className="h-full w-full object-cover" />
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <h2 className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-l from-foreground to-foreground/70">TOLO</h2>
-                  <span className="text-[10px] text-muted-foreground font-medium">المستقبل يبدأ هنا</span>
+                  <h2 className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-l from-foreground to-foreground/70">{SITE.name}</h2>
+                  <span className="text-[10px] text-muted-foreground font-medium">{SITE.tagline}</span>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={closeMobileMenu} className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors duration-300 h-9 w-9">

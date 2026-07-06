@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Map, Compass, Shield, Sword, Star, Zap, Trophy, BookOpen, Brain, Target } from "lucide-react";
 import Link from "next/link";
+import { SITE } from "@shared/site-config";
 
 export const metadata: Metadata = {
-  title: "مسارات التعلم | TOLO",
-  description: "اختر مسار تعلمك في مملكة TOLO. من مبتدئ إلى بطل — طريقك للتفوق يبدأ هنا.",
+  title: `مسارات التعلم | ${SITE.name}`,
+  description: `اختر مسار تعلمك في مملكة ${SITE.name}. من مبتدئ إلى بطل — طريقك للتفوق يبدأ هنا.`,
 };
 
 const pathways = [

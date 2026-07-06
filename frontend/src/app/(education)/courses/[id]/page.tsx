@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import CourseDetailClient from "./CourseDetailClient";
+import { SITE } from "@shared/site-config";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!res.ok) {
       return {
-        title: "كورس غير موجود | Tolo",
+        title: `كورس غير موجود | ${SITE.name}`,
         description: "تفاصيل الدورة التعليمية المطلوبة غير متوفرة حالياً."
       };
     }
@@ -27,13 +28,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!subject) {
       return {
-        title: "كورس غير موجود | Tolo",
+        title: `كورس غير موجود | ${SITE.name}`,
         description: "تفاصيل الدورة التعليمية المطلوبة غير متوفرة حالياً."
       };
     }
 
-    const title = `${subject.nameAr || subject.name} - كورس تفاعلي | Tolo`;
-    const description = subject.description || "ابدأ في تعلم هذا الكورس التفاعلي على منصة Tolo التعليمية.";
+    const title = `${subject.nameAr || subject.name} - كورس تفاعلي | ${SITE.name}`;
+    const description = subject.description || `ابدأ في تعلم هذا الكورس التفاعلي على منصة ${SITE.name} التعليمية.`;
     const imageUrl = subject.thumbnailUrl || "/favicon.svg";
 
     return {
@@ -62,8 +63,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating dynamic metadata:", error);
     return {
-      title: "تفاصيل الكورس | Tolo",
-      description: "منصة Tolo التعليمية للثانوية العامة"
+      title: `تفاصيل الكورس | ${SITE.name}`,
+      description: `منصة ${SITE.name} التعليمية للثانوية العامة`
     };
   }
 }
@@ -85,12 +86,12 @@ export default async function Page({ params }: Props) {
           "@context": "https://schema.org",
           "@type": "Course",
           "name": subject.nameAr || subject.name,
-          "description": subject.description || "كورس تفاعلي على منصة Tolo التعليمية.",
+          "description": subject.description || `كورس تفاعلي على منصة ${SITE.name} التعليمية.`,
           "image": subject.thumbnailUrl || "/favicon.svg",
           "provider": {
             "@type": "Organization",
-            "name": "Tolo",
-            "sameAs": "https://tolo.app"
+            "name": SITE.name,
+            "sameAs": SITE.url
           },
           "offers": {
             "@type": "Offer",

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 
 const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
 
@@ -60,14 +60,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
   }
 
-  const { userId, getToken } = await auth();
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
+  const accessToken = cookieStore.get("access_token")?.value;
   if (!userId) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  const token = await getToken();
   const me = await fetch(`${BACKEND_URL}/api/auth/me`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     cache: "no-store",
   });
   if (!me.ok) {

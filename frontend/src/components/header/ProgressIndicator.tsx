@@ -1,13 +1,12 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { BookOpen, Clock, Award } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
-import { requestCache } from "@/lib/api/request-cache";
+import { BookOpen, Clock, Award } from "lucide-react";import { requestCache } from "@/lib/api/request-cache";
 import { logger } from "@/lib/logger";
 
 interface ProgressData {
@@ -124,7 +123,7 @@ function ProgressIndicator() {
 
   const shouldShow = useMemo(() => {
     if (!mounted) return false;
-    const showPages = ["/", "/courses", "/analytics", "/achievements"];
+    const showPages = ["/", "/courses", "/analytics", "/settings/achievements"];
     return showPages.some((page) => pathname?.startsWith(page));
   }, [pathname, mounted]);
 

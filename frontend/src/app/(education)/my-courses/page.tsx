@@ -25,7 +25,7 @@ import {
 
   Target } from
 "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +128,7 @@ export default function MyCoursesPage() {
       filtered = filtered.filter(
         (c) =>
         c.title.toLowerCase().includes(term) ||
-        c.instructor.toLowerCase().includes(term)
+        (c.instructor || "").toLowerCase().includes(term)
       );
     }
 
@@ -426,9 +426,9 @@ export default function MyCoursesPage() {
                         </Link>
                         <div className="flex items-center gap-2">
                           <div className="h-5 w-5 rounded-md bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary">
-                            {course.instructor.charAt(0)}
+                            {(course.instructor || "م").charAt(0)}
                           </div>
-                          <span className="text-xs text-gray-500">{course.instructor}</span>
+                          <span className="text-xs text-gray-500">{course.instructor || "المنصة التعليمية"}</span>
                         </div>
                       </div>
 
@@ -483,7 +483,7 @@ export default function MyCoursesPage() {
                           variant="outline"
                           size="icon"
                           className="h-10 w-10 rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
-                          onClick={() => router.push(`/certificates/${course.certificate!.id}`)}
+                          onClick={() => router.push(`/settings/certificates/${course.certificate!.id}`)}
                           title="عرض الشهادة">
                           <Award className="h-4 w-4" />
                         </Button>

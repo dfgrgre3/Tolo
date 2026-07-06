@@ -26,7 +26,7 @@ export const TipsSection = memo(function TipsSection() {
 			title: "تحليل القدرات (Level Up)",
 			description: "راجع إحصائياتك بانتظام لتحديد نقاط الضعف وتقويتها قبل خوض المعارك الكبرى.",
 			icon: <BarChart3 className="h-6 w-6 text-blue-400" />,
-			href: "/progress",
+			href: "/settings/progress",
 			action: "تحليل الأداء",
 			color: "from-blue-500/10 to-transparent border-blue-500/20"
 		}

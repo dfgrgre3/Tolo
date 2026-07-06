@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState, useCallback } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { BookOpen, Search, Sparkles, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,19 +30,17 @@ export default function CoursesPage() {
 
   const deferredSearch = useDeferredValue(searchQuery);
 
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Save search queries to localStorage for dashboard suggestions
-  const debouncedSaveSearch = useCallback(
-    (() => {
-      let timeout: ReturnType<typeof setTimeout>;
-      return (query: string) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          if (query.trim()) addSearchQuery(query);
-        }, 1000);
-      };
-    })(),
-    []
-  );
+  const debouncedSaveSearch = useCallback((query: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      if (query.trim()) addSearchQuery(query);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     const loadCourses = async () => {

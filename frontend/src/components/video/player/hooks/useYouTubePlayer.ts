@@ -130,7 +130,7 @@ export function useYouTubePlayer({
                 player.unMute();
               }
 
-              const availableRates = player.getAvailablePlaybackRates();
+              const availableRates = player.getAvailablePlaybackRates?.() ?? [];
               if (availableRates.includes(playbackRate)) {
                 player.setPlaybackRate(playbackRate);
               }
@@ -181,7 +181,7 @@ export function useYouTubePlayer({
     const player = playerRef.current;
     if (!player || !isReadyRef.current) return;
 
-    const availableRates = player.getAvailablePlaybackRates();
+    const availableRates = player.getAvailablePlaybackRates?.() ?? [];
     if (availableRates.includes(playbackRate)) {
       player.setPlaybackRate(playbackRate);
     }

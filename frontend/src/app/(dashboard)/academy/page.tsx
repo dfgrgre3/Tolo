@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useEffect, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -26,9 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
-import { Badge } from "../../../components/ui/badge";
-import { useAuth } from "../../../contexts/auth-context";
-import { useGamification } from "@/hooks/use-gamification";
+import { Badge } from "../../../components/ui/badge";import { useGamification } from "@/hooks/use-gamification";
 import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {

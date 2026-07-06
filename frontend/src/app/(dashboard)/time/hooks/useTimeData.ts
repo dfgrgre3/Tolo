@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from "@/hooks/use-auth";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { errorService as errorManager } from '@/lib/logging/error-service';
-import { useAuth } from "@/contexts/auth-context";
-import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
+import { errorService as errorManager } from '@/lib/logging/error-service';import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
 
 import { logger } from '@/lib/logger';

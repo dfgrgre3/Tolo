@@ -1,8 +1,12 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { Sparkles } from "lucide-react";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useSettingsStore } from "../stores/settings-store";
+import { useUIStore } from "../stores/ui-store";
 import { shouldUseHls } from "../utils";
 import type { PlayerFeedback, VideoProvider } from "../types";
+import type Hls from "hls.js";
+
 
 type HlsEngineOptions = {
   activeVideoUrl: string;
@@ -30,8 +34,10 @@ export function useHlsEngine({
   videoRef,
   flashFeedback,
 }: HlsEngineOptions) {
-  const { setPlayerState } = useCourseVideoPlayerStore();
-  const hlsRef = useRef<any>(null);
+  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
+  const setSettingsState = useSettingsStore((s) => s.setSettingsState);
+  const setUIState = useUIStore((s) => s.setUIState);
+  const hlsRef = useRef<Hls | null>(null);
   const hlsRetryTimeoutRef = useRef<number | null>(null);
   const hlsRetryStateRef = useRef({ network: 0, media: 0 });
 
@@ -83,15 +89,15 @@ export function useHlsEngine({
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setPlayerState({
+          setSettingsState({
             qualities: parseQualities(hls.levels),
-            currentAutoQuality: hls.levels[hls.currentLevel]?.height ?? null,
-            isLoading: false,
+            currentAutoQuality: hls.levels[hls.startLevel]?.height ?? null,
           });
+          setPlaybackState({ isLoading: false });
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-          setPlayerState({
+          setSettingsState({
             currentAutoQuality: hls.levels[data.level]?.height ?? null,
           });
         });
@@ -103,7 +109,7 @@ export function useHlsEngine({
           const lowerQuality = () => {
             if (hls.currentLevel > 0) {
               hls.currentLevel = hls.currentLevel - 1;
-              setPlayerState({ selectedQuality: hls.currentLevel });
+              setSettingsState({ selectedQuality: hls.currentLevel });
             }
           };
 
@@ -136,10 +142,10 @@ export function useHlsEngine({
           }
 
           hls.destroy();
-          setPlayerState({
+          setUIState({
             errorMessage: "تعذر تشغيل البث الحالي بعد عدة محاولات.",
-            isLoading: false,
           });
+          setPlaybackState({ isLoading: false });
         });
       } catch (err) {
         console.error("Failed to load HLS engine dynamically:", err);
@@ -159,7 +165,7 @@ export function useHlsEngine({
         clearTimeout(hlsRetryTimeoutRef.current);
       }
     };
-  }, [activeVideoUrl, flashFeedback, provider, setPlayerState, videoRef]);
+  }, [activeVideoUrl, flashFeedback, provider, setPlaybackState, setSettingsState, setUIState, videoRef]);
 
   return hlsRef;
 }

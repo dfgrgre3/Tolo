@@ -10,7 +10,7 @@ import { HeaderNavLink } from "@/components/navigation";
 
 interface HeaderNavigationProps {
   openMegaMenu: string | null;
-  setOpenMegaMenu: (key: string | null) => void;
+  setOpenMegaMenu: React.Dispatch<React.SetStateAction<string | null>>;
   isActiveRoute: (href: string) => boolean;
   mounted: boolean;
   user?: User | null;
@@ -49,14 +49,14 @@ export function HeaderNavigation({
               {isHovered && (
                 <m.div
                   layoutId="nav-hover-pill"
-                  className="absolute inset-0 bg-primary/8 dark:bg-primary/10 rounded-[1.25rem] border border-primary/20 pointer-events-none z-0"
+                  className="absolute inset-0 bg-primary/10 dark:bg-primary/15 rounded-[1.25rem] border border-primary/30 shadow-lg shadow-primary/10 pointer-events-none z-0"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{
                     type: "spring",
-                    stiffness: 350,
-                    damping: 28,
+                    stiffness: 400,
+                    damping: 25,
                   }}
                 />
               )}
@@ -75,7 +75,7 @@ export function HeaderNavigation({
                   className={cn(
                     "relative h-11 px-6 flex items-center gap-3 transition-all duration-300 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest",
                     isActive ? "bg-primary/10 text-primary border border-primary/20" : "text-gray-400 border border-transparent hover:text-primary",
-                    isOpen && "bg-primary/20 text-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] border-primary/40"
+                    isOpen && "bg-primary/20 text-primary shadow-[0_0_20px_hsl(var(--primary)_/_0.3)] border-primary/40"
                   )}
                 />
               ) : (
@@ -93,7 +93,7 @@ export function HeaderNavigation({
             {item.badge && mounted && (
               <div className="absolute -top-1 -right-1 pointer-events-none z-20">
                 <div className="absolute inset-0 bg-primary/20 blur-sm rounded-full animate-ping" />
-                <span className="relative h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_rgba(var(--primary),0.5)]">
+                <span className="relative h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
                   {item.badge}
                 </span>
               </div>

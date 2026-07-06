@@ -1,18 +1,18 @@
 
 "use client"
 
+import { useAuth } from "@/hooks/use-auth";
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "@/providers/theme-provider"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/auth-context"
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client"
 import { logger } from "@/lib/logger"
 import { toggleThemeWithTransition } from "@/lib/utils"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
   const { setTheme, theme } = useTheme()
-  const { user, fetchWithAuth } = useAuth()
+  const { user } = useAuth()
  
   const handleToggle = async (e?: React.MouseEvent) => {
     const nextTheme = theme === "light" ? "dark" : "light"

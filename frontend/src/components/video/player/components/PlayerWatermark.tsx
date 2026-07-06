@@ -1,11 +1,11 @@
   "use client";
 
 import { useShallow } from "zustand/react/shallow";
-import { useCourseVideoPlayerStore } from "../store";
+import { useSettingsStore } from "../stores/settings-store";
 import { WATERMARK_POSITIONS } from "../constants";
 
 export function PlayerWatermark({ text }: { text: string }) {
-  const watermarkIndex = useCourseVideoPlayerStore((state) => state.watermarkIndex);
+  const watermarkIndex = useSettingsStore((state) => state.watermarkIndex);
   const position = WATERMARK_POSITIONS[watermarkIndex] || WATERMARK_POSITIONS[0];
 
   return (

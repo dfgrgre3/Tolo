@@ -107,6 +107,7 @@ const ScrollRestoration = () => {
 				}
 			};
 		}
+		return;
 	}, [storageKey]);
 
 	return null;

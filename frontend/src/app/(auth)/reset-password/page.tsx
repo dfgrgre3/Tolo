@@ -1,237 +1,163 @@
-'use client';
+"use client";
 
-import { useState, Suspense, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Loader2, AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react';
-import { m, AnimatePresence } from "framer-motion";
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
-import { errorService } from '@/lib/logging/error-service';
+import React, { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, KeyRound, AlertCircle, CheckCircle, Lock } from "lucide-react";
+import Link from "next/link";
 
-const createResetPasswordSchema = (isClerkFlow: boolean) => z.object({
-  code: isClerkFlow ? z.string().length(6, 'رمز التحقق يجب أن يكون 6 أرقام') : z.string().optional(),
-  password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
-    .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد')
-    .regex(/[a-z]/, 'يجب أن تحتوي على حرف صغير واحد')
-    .regex(/\d/, 'يجب أن تحتوي على رقم واحد')
-    .regex(/[^A-Za-z\d]/, 'يجب أن تحتوي على رمز خاص واحد'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "كلمتا المرور غير متطابقتين",
-  path: ["confirmPassword"],
-});
-
-type ResetPasswordValues = {
-  code?: string;
-  password: string;
-  confirmPassword: string;
-};
-
-function ResetPasswordForm() {
-  const { resetPassword } = useAuth();
+export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-  const email = searchParams.get('email');
-  
-  const isClerkFlow = !!email;
-  const schema = useMemo(() => createResetPasswordSchema(isClerkFlow), [isClerkFlow]);
+  const token = searchParams.get("token");
 
-  const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(!token ? "رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية." : null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ResetPasswordValues>({
-    resolver: zodResolver(schema),
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setError("يرجى ملء جميع الحقول");
+      return;
+    }
 
-  const onSubmit = async (data: ResetPasswordValues) => {
-    if (!token && !email) {
-      toast.error('رابط غير صالح');
-      setStatus({ type: 'error', message: 'رابط إعادة التعيين غير صالح أو مفقود.' });
+    if (newPassword.length < 8) {
+      setError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("كلمتا المرور غير متطابقتين");
       return;
     }
 
     setIsLoading(true);
-    setStatus(null);
+    setError(null);
+    setSuccess(null);
 
     try {
-      const result = isClerkFlow
-        ? await resetPassword(data.password, undefined, data.code, email)
-        : await resetPassword(token!, data.password);
-
-      if (result.success) {
-        toast.success('تمت إعادة تعيين كلمة المرور بنجاح');
-        setStatus({
-          type: 'success',
-          message: 'تمت إعادة تعيين كلمة المرور بنجاح! جاري تحويلك لصفحة الدخول...',
-        });
-        setTimeout(() => router.push('/login'), 2000);
-      } else {
-        toast.error(result.error || 'فشل إعادة التعيين');
-        setStatus({
-          type: 'error',
-          message: result.error || 'فشل في إعادة تعيين كلمة المرور.',
-        });
-      }
-    } catch (error) {
-      errorService.logError(error, {
-        source: 'ResetPasswordPage',
-        severity: 'medium',
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token, newPassword }),
       });
-      toast.error('حدث خطأ في الشبكة');
-    }
 
-    setIsLoading(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "فشل إعادة تعيين كلمة المرور");
+      }
+
+      setSuccess("تم تعيين كلمة المرور بنجاح. سيتم تحويلك لصفحة تسجيل الدخول...");
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ غير متوقع");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (!token && !email) {
-    return (
-      <m.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2.5rem] text-red-600 dark:text-red-400 text-center backdrop-blur-xl"
-      >
-        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
-        <h3 className="text-xl font-black mb-2">رابط غير صالح</h3>
-        <p className="text-sm font-medium">يبدو أن رابط إعادة تعيين كلمة المرور قد انتهى أو أنه غير صحيح.</p>
-        <Button 
-          variant="outline"
-          onClick={() => router.push('/forgot-password')}
-          className="mt-6 border-red-500/20 hover:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl"
-        >
-          طلب رابط جديد
-        </Button>
-      </m.div>
-    );
-  }
-
   return (
-    <div className="w-full flex items-center justify-center p-4 selection:bg-primary/30 z-10" dir="rtl">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-border bg-card/40 p-8 md:p-12 backdrop-blur-2xl shadow-2xl transition-colors duration-300"
-      >
-        <div className="mb-10 text-center space-y-4">
-           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
-              <ShieldCheck className="w-8 h-8 text-primary shadow-xl" />
-           </div>
-           <h2 className="text-3xl font-black text-foreground tracking-tight">تجديد <span className="text-primary">الهوية</span></h2>
-           <p className="text-muted-foreground text-sm font-medium">أدخل شيفرة الدخول الجديدة والآمنة لحسابك.</p>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {status && (
-            <m.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className={`mb-8 p-4 rounded-2xl flex items-start gap-3 border ${
-                status.type === 'error' 
-                  ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' 
-                  : 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-              }`}
-            >
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-500" />
-              <p className="text-xs font-bold leading-relaxed">{status.message}</p>
-            </m.div>
-          )}
-        </AnimatePresence>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {isClerkFlow && (
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">رمز التحقق (6 أرقام)</span>
-              <div className="relative group">
-                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <input
-                  {...register('code')}
-                  type="text"
-                  maxLength={6}
-                  className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm text-center tracking-[0.5em]"
-                  placeholder="000000"
-                />
+    <div className="w-full flex items-center justify-center py-6">
+      <div className="w-full max-w-[460px] mx-auto">
+        <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl transition-all duration-300">
+          <CardHeader className="space-y-2 text-center pb-6">
+            <div className="flex justify-center mb-3">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <KeyRound className="h-6 w-6" />
               </div>
-              {errors.code && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.code.message}</p>}
             </div>
-          )}
-
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">الشيفرة الجديدة</span>
-            <div className="relative group">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input
-                {...register('password')}
-                type={showPassword ? 'text' : 'password'}
-                className="w-full h-14 pr-12 pl-12 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm"
-                placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {errors.password && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.password.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">تأكيد الشيفرة</span>
-            <div className="relative group">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input
-                {...register('confirmPassword')}
-                type={showPassword ? 'text' : 'password'}
-                className="w-full h-14 pr-12 pl-6 bg-muted/40 border border-border rounded-2xl focus:border-primary/50 transition-all outline-none text-foreground font-bold text-sm"
-                placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
-              />
-            </div>
-            {errors.confirmPassword && <p className="text-[10px] font-black text-destructive uppercase mr-1">{errors.confirmPassword.message}</p>}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading || status?.type === 'success'}
-            className="w-full h-14 rounded-2xl bg-primary text-black font-black text-md relative group overflow-hidden shadow-lg shadow-primary/20"
-          >
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <span className="uppercase tracking-widest">تحديث الشيفرة</span>
-                <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
+            <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50">تعيين كلمة المرور</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400">أدخل كلمة المرور الجديدة لحسابك</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="grid gap-5">
+              {error && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle className="font-semibold mr-2">خطأ</AlertTitle>
+                  <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <AlertTitle className="font-semibold mr-2">تم التحديث</AlertTitle>
+                  <AlertDescription dir="rtl" className="mr-2">{success}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="grid gap-2">
+                <Label htmlFor="newPassword" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كلمة المرور الجديدة</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={isLoading || !token}
+                    dir="ltr"
+                    className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                  />
+                </div>
               </div>
-            )}
-          </Button>
-        </form>
-
-        <div className="mt-8 pt-6 border-t border-border flex items-center justify-between opacity-40">
-          <Sparkles size={12} className="text-primary" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Security Encryption Active</span>
-          <Sparkles size={12} className="text-primary" />
-        </div>
-      </m.div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">تأكيد كلمة المرور</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={isLoading || !token}
+                    dir="ltr"
+                    className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4 pt-4">
+              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0" disabled={isLoading || !token || !!success}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري التحديث...
+                  </>
+                ) : (
+                  "تعيين كلمة المرور الجديدة"
+                )}
+              </Button>
+              <div className="text-sm text-center text-slate-500 dark:text-slate-400 font-medium">
+                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4 transition-colors">
+                  العودة لتسجيل الدخول
+                </Link>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
-  );
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 text-primary animate-spin" /></div>}>
-      <ResetPasswordForm />
-    </Suspense>
   );
 }

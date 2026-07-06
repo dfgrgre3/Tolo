@@ -1,10 +1,11 @@
-﻿'use client';
+'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SecurityLogs from './SecurityLogs';
 import AdvancedProtection from './AdvancedProtection';
 import PasswordManagement from './PasswordManagement';
-import { Shield, Key, AlertTriangle, Globe } from "lucide-react";
+import ActiveSessions from './ActiveSessions';
+import { Shield, Key, AlertTriangle, Globe, Monitor } from "lucide-react";
 
 interface SecurityTabProps {
   userId: string | null;
@@ -15,8 +16,8 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">يجب تسجيل الدخول لعرض إعدادات الأمان</p>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -32,7 +33,11 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
       </div>
 
       <Tabs defaultValue="sessions" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            الأجهزة النشطة
+          </TabsTrigger>
           <TabsTrigger value="logs" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             السجلات
@@ -47,6 +52,10 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="sessions" className="space-y-6 mt-6">
+          <ActiveSessions />
+        </TabsContent>
+
         <TabsContent value="logs" className="space-y-6 mt-6">
           <SecurityLogs userId={userId} />
         </TabsContent>
@@ -59,6 +68,6 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
           <PasswordManagement _userId={userId} />
         </TabsContent>
       </Tabs>
-    </div>);
-
+    </div>
+  );
 }

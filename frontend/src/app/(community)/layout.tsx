@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import React from 'react';
+import { SITE } from '@shared/site-config';
 
 export const metadata: Metadata = {
-  title: 'المجتمع | Tolo',
-  description: 'المنتدى، المدونة، الفعاليات، والإعلانات على منصة تولو التعليمية',
+  title: `المجتمع | ${SITE.name}`,
+  description: `المنتدى، المدونة، الفعاليات، والإعلانات على منصة ${SITE.nameAr} التعليمية`,
   openGraph: {
-    title: 'المجتمع | Tolo',
-    description: 'تواصل مع زملائك في المجتمع التعليمي على منصة تولو',
+    title: `المجتمع | ${SITE.name}`,
+    description: `تواصل مع زملائك في المجتمع التعليمي على منصة ${SITE.nameAr}`,
     type: 'website',
   },
 };

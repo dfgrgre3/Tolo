@@ -12,6 +12,7 @@ import { useEfficiencyMode } from "@/hooks/use-efficiency-mode";
 import { HeroSection } from "./landing-sections/HeroSection";
 import { HighlightCardsSection } from "./landing-sections/HighlightCardsSection";
 import { RoyalRankSection } from "./landing-sections/RoyalRankSection";
+import { PopularCoursesSection } from "./landing-sections/PopularCoursesSection";
 import { ArsenalFeaturesSection } from "./landing-sections/ArsenalFeaturesSection";
 import { CallToActionSection } from "./landing-sections/CallToActionSection";
 import { LandingFooter } from "./landing-sections/LandingFooter";
@@ -88,6 +89,9 @@ export default function LandingPage() {
             shouldReduceMotion={shouldReduceMotion}
             goldTextClass={STYLES.goldText}
           />
+
+          {/* Popular Courses Section */}
+          <PopularCoursesSection shouldReduceMotion={shouldReduceMotion} />
 
           {/* All Arsenal Features */}
           <ArsenalFeaturesSection

@@ -42,17 +42,17 @@ export default function GrpcDemoPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {course.title}
+                      {course.name}
                     </h2>
                     <p className="text-sm text-indigo-500 font-medium mb-2">
-                      Instructor: {course.teacherName || 'Unknown'}
+                      Instructor: {course.instructorName || 'Unknown'}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400">
                       {course.description || 'No description provided.'}
                     </p>
                   </div>
                   <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full uppercase tracking-wider">
-                    gRPC
+                    REST
                   </span>
                 </div>
               </div>

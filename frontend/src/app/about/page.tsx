@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Shield, Star, Zap, Users, Crown, Target, Heart, Compass } from "lucide-react";
 import Link from "next/link";
+import { SITE } from "@shared/site-config";
 
 export const metadata: Metadata = {
-  title: "عن TOLO | مملكة التعلم",
-  description: "تعرّف على قصة TOLO — المنصة التي تحوّل دراستك إلى مغامرة ملحمية. مهمتنا، رؤيتنا، وفريقنا.",
+  title: `عن ${SITE.name} | مملكة التعلم`,
+  description: `تعرّف على قصة ${SITE.name} — المنصة التي تحوّل دراستك إلى مغامرة ملحمية. مهمتنا، رؤيتنا، وفريقنا.`,
 };
 
 const values = [
@@ -68,7 +69,7 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground font-medium max-w-3xl mx-auto leading-relaxed">
-            TOLO وُلدت من إيمان راسخ: أن الدراسة يجب أن تكون مغامرة لا مجرد واجب.
+            {SITE.name} وُلدت من إيمان راسخ: أن الدراسة يجب أن تكون مغامرة لا مجرد واجب.
             نحن نبني عالماً يجعل كل طالب بطلاً في قصته الخاصة.
           </p>
         </div>
@@ -89,7 +90,7 @@ export default function AboutPage() {
                   وعلم النفس السلوكي لنبني منصة تجعل التعلم إدماناً إيجابياً.
                 </p>
                 <p>
-                  اليوم، TOLO هي بيت لأكثر من 50,000 طالب يحصدون النجاحات
+                  اليوم، {SITE.name} هي بيت لأكثر من 50,000 طالب يحصدون النجاحات
                   ويكسبون نقاط الخبرة في رحلتهم نحو التفوق.
                 </p>
               </div>
@@ -111,7 +112,7 @@ export default function AboutPage() {
         {/* Values */}
         <div className="mb-20">
           <div className="text-center mb-12 space-y-3">
-            <h2 className="text-3xl font-black">قيم مملكة TOLO</h2>
+            <h2 className="text-3xl font-black">قيم مملكة {SITE.name}</h2>
             <p className="text-muted-foreground">المبادئ التي تحكم كل قرار نتخذه</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

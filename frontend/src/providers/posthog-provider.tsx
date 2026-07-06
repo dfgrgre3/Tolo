@@ -3,7 +3,6 @@
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
 
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const hasValidKey = !!posthogKey && posthogKey !== 'phc_placeholder_key_for_dev';
@@ -18,21 +17,21 @@ if (typeof window !== 'undefined' && hasValidKey) {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const { user, isSignedIn, isLoaded } = useUser();
-
   useEffect(() => {
-    if (!isLoaded || !hasValidKey) return;
+    if (!hasValidKey) return;
 
-    if (isSignedIn && user) {
-      posthog.identify(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        fullName: user.fullName,
-        username: user.username,
-      });
-    } else {
+    // Identify user from localStorage if available
+    try {
+      const userId = window.localStorage.getItem('userId');
+      if (userId) {
+        posthog.identify(userId);
+      } else {
+        posthog.reset();
+      }
+    } catch {
       posthog.reset();
     }
-  }, [isLoaded, isSignedIn, user]);
+  }, []);
 
   return <PHProvider client={posthog}>{children}</PHProvider>;
 }

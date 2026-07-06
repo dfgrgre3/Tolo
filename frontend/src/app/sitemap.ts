@@ -1,7 +1,8 @@
 import { type MetadataRoute } from 'next';
+import { SITE } from '@shared/site-config';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://tolo.app';
+  const baseUrl = SITE.url;
 
   const staticRoutes = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 1.0 },
@@ -15,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/library`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.7 },
     { url: `${baseUrl}/resources`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.6 },
     { url: `${baseUrl}/contests`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.6 },
-    { url: `${baseUrl}/certificates`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.4 },
+    { url: `${baseUrl}/settings/certificates`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.4 },
     { url: `${baseUrl}/events`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.5 },
     { url: `${baseUrl}/tips`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.5 },
   ];

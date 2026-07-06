@@ -1,4 +1,41 @@
-import { PERMISSIONS, type Permission } from "@/lib/auth";
+// Auth module removed – use inline permission constants
+export type Permission = string;
+
+type PermissionsMap = {
+  USERS_MANAGE: string; USERS_VIEW: string; TEACHERS_VIEW: string; TEACHERS_MANAGE: string;
+  LIVE_MONITOR_VIEW: string; ANALYTICS_VIEW: string; REPORTS_VIEW: string;
+  SUBJECTS_VIEW: string; SUBJECTS_MANAGE: string; BOOKS_VIEW: string; BOOKS_MANAGE: string;
+  EXAMS_VIEW: string; EXAMS_MANAGE: string; RESOURCES_VIEW: string; RESOURCES_MANAGE: string;
+  AI_MANAGE: string; CHALLENGES_VIEW: string; CHALLENGES_MANAGE: string;
+  ACHIEVEMENTS_VIEW: string; ACHIEVEMENTS_MANAGE: string; REWARDS_VIEW: string; REWARDS_MANAGE: string;
+  SEASONS_VIEW: string; SEASONS_MANAGE: string; MARKETING_VIEW: string; MARKETING_MANAGE: string;
+  AB_TESTING_VIEW: string; ANNOUNCEMENTS_VIEW: string; ANNOUNCEMENTS_MANAGE: string;
+  FORUM_VIEW: string; FORUM_MANAGE: string; BLOG_VIEW: string; BLOG_MANAGE: string;
+  EVENTS_VIEW: string; EVENTS_MANAGE: string; CONTESTS_VIEW: string; CONTESTS_MANAGE: string;
+  SETTINGS_VIEW: string; AUDIT_LOGS_VIEW: string; ADMIN_BYPASS: string; DASHBOARD_VIEW: string;
+};
+
+export const PERMISSIONS: PermissionsMap = {
+  USERS_MANAGE: 'users:manage', USERS_VIEW: 'users:view',
+  TEACHERS_VIEW: 'teachers:view', TEACHERS_MANAGE: 'teachers:manage',
+  LIVE_MONITOR_VIEW: 'live:view', ANALYTICS_VIEW: 'analytics:view',
+  REPORTS_VIEW: 'reports:view', SUBJECTS_VIEW: 'subjects:view', SUBJECTS_MANAGE: 'subjects:manage',
+  BOOKS_VIEW: 'books:view', BOOKS_MANAGE: 'books:manage',
+  EXAMS_VIEW: 'exams:view', EXAMS_MANAGE: 'exams:manage',
+  RESOURCES_VIEW: 'resources:view', RESOURCES_MANAGE: 'resources:manage',
+  AI_MANAGE: 'ai:manage', CHALLENGES_VIEW: 'challenges:view', CHALLENGES_MANAGE: 'challenges:manage',
+  ACHIEVEMENTS_VIEW: 'achievements:view', ACHIEVEMENTS_MANAGE: 'achievements:manage',
+  REWARDS_VIEW: 'rewards:view', REWARDS_MANAGE: 'rewards:manage',
+  SEASONS_VIEW: 'seasons:view', SEASONS_MANAGE: 'seasons:manage',
+  MARKETING_VIEW: 'marketing:view', MARKETING_MANAGE: 'marketing:manage',
+  AB_TESTING_VIEW: 'ab_testing:view', ANNOUNCEMENTS_VIEW: 'announcements:view',
+  ANNOUNCEMENTS_MANAGE: 'announcements:manage', FORUM_VIEW: 'forum:view', FORUM_MANAGE: 'forum:manage',
+  BLOG_VIEW: 'blog:view', BLOG_MANAGE: 'blog:manage',
+  EVENTS_VIEW: 'events:view', EVENTS_MANAGE: 'events:manage',
+  CONTESTS_VIEW: 'contests:view', CONTESTS_MANAGE: 'contests:manage',
+  SETTINGS_VIEW: 'settings:view', AUDIT_LOGS_VIEW: 'audit_logs:view',
+  ADMIN_BYPASS: '*:*', DASHBOARD_VIEW: 'dashboard:view',
+};
 
 /**
  * First matching rule wins. Order: most specific routes before generic `/admin`.

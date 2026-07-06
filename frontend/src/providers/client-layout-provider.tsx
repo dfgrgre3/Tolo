@@ -80,6 +80,7 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
         }
       }
     }
+    return;
   }, [pathname, router]);
 
   // Save current path — but NEVER save auth pages to prevent redirect loops

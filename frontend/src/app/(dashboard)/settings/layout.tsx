@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from "@/hooks/use-auth";
 /**
  * 🎨 Settings Layout - تخطيط صفحات الإعدادات (محدّث بالكامل)
  *
@@ -10,7 +11,7 @@
  * - ربط حقيقي مع بيانات المستخدم من قاعدة البيانات
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { m, AnimatePresence } from "framer-motion";
@@ -32,9 +33,9 @@ import {
   Flame,
   Trophy,
   AlertCircle,
-} from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { useGamification } from '@/hooks/use-gamification';
+  TrendingUp,
+  Award,
+} from 'lucide-react';import { useGamification } from '@/hooks/use-gamification';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -86,6 +87,27 @@ const navItems: NavItem[] = [
     icon: Lock,
     href: '/settings/privacy',
     description: 'خصوصية البيانات والمشاركة',
+  },
+  {
+    id: 'progress',
+    label: 'مستوى التقدم',
+    icon: TrendingUp,
+    href: '/settings/progress',
+    description: 'متابعة نسبة إنجازك للمناهج التعليمية',
+  },
+  {
+    id: 'achievements',
+    label: 'الإنجازات والأوسمة',
+    icon: Award,
+    href: '/settings/achievements',
+    description: 'الأوسمة والنقاط التي حصدتها خلال تعلمك',
+  },
+  {
+    id: 'certificates',
+    label: 'الشهادات',
+    icon: Trophy,
+    href: '/settings/certificates',
+    description: 'عرض وتحميل شهادات إتمام الدورات',
   },
 ];
 
@@ -217,7 +239,7 @@ function SidebarContent({
 
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white text-sm truncate">
-                  {user.name || user.username || user.email.split('@')[0]}
+                  {user.name || user.username || user.email?.split('@')[0] || 'U'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span
@@ -427,14 +449,14 @@ function SidebarContent({
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, isLoading, logout } = useAuth();
   const { userProgress } = useGamification({ userId: user?.id || "" });
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
@@ -442,7 +464,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     } finally {
       setIsLoggingOut(false);
     }
-  };
+  }, [isLoggingOut, logout]);
 
   // Detect mobile
   useEffect(() => {

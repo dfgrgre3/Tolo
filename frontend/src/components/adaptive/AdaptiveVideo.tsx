@@ -124,8 +124,6 @@ export const AdaptiveVideo = React.memo(function AdaptiveVideo({
       <video
         ref={videoRef}
         src={typeof src === "string" ? src : undefined}
-        // @ts-expect-error - sources not a standard prop on video element
-        sources={typeof src === "object" ? src.map((s) => ({ src: s })) : undefined}
         poster={poster}
         controls={showControls}
         preload={isSaver ? "none" : isLite ? "metadata" : "auto"}

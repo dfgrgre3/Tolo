@@ -28,7 +28,7 @@ export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, b
       <span className="font-medium">{label}</span>
       <ChevronDown className={cn("h-4 w-4 transition-all duration-300", isOpen && "rotate-180")} aria-hidden="true" />
       {badge && (
-        <span className="absolute -top-1 -right-1 h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_rgba(var(--primary),0.5)]">
+        <span className="absolute -top-1 -right-1 h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
           {badge}
         </span>
       )}

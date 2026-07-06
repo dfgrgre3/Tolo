@@ -1,44 +1,15 @@
-﻿/**
- * Common API response types
+/**
+ * Common API types — re-exported from responses.ts for backward compatibility.
+ * Do NOT add new type definitions here; add them to responses.ts.
  */
 
 export type DateString = string;
-
-interface ApiSuccessResponse<T = unknown> {
-    success: true;
-    data: T;
-    message?: string;
-}
-
-interface ApiErrorResponse {
-    success: false;
-    error: string;
-    code?: string;
-    details?: Record<string, unknown>;
-    status?: number;
-}
-
-type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
-
-interface PaginationParams {
-    page?: number;
-    limit?: number;
-    sort?: string;
-    order?: 'asc' | 'desc';
-}
-
-interface PaginationMeta {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-}
-
-interface ApiListData<T> {
-    items: T[];
-    pagination: PaginationMeta;
-    [key: string]: unknown;
-}
-
-interface PaginatedResponse<T> extends ApiSuccessResponse<ApiListData<T>> {
-}
+export type {
+  ApiResponse,
+  PaginatedMeta,
+  PaginatedResponse,
+  PaginationParams,
+  SortParams,
+  SearchParams,
+  ApiError,
+} from './responses';

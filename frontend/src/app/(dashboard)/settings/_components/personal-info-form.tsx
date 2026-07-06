@@ -10,11 +10,13 @@ export function PersonalInfoForm({
   profile,
   isEditing,
   hasChanges,
+  validationErrors,
   onInputChange
 }: {
   profile: ProfileData;
   isEditing: boolean;
   hasChanges: boolean;
+  validationErrors: Partial<Record<keyof ProfileData, string>>;
   onInputChange: <K extends keyof ProfileData>(field: K, value: ProfileData[K]) => void;
 }) {
   return (
@@ -47,11 +49,12 @@ export function PersonalInfoForm({
           disabled={!isEditing}
           placeholder="اسم_المستخدم"
           hint="يظهر في ملفك الشخصي العام ولا يمكن أن يحتوي على مسافات"
+          error={validationErrors.username}
         />
 
         <div className="grid sm:grid-cols-2 gap-6">
           <ProfileInput id="email" label="البريد الإلكتروني" icon={Mail} type="email" value={profile.email} disabled={true} hint="لا يمكن تعديل البريد الإلكتروني الأساسي" />
-          <ProfileInput id="phone" label="رقم الهاتف الأساسي" icon={Phone} type="tel" value={profile.phone} onChange={(e) => onInputChange('phone', e.target.value)} disabled={!isEditing} placeholder="01xxxxxxxxx" />
+          <ProfileInput id="phone" label="رقم الهاتف الأساسي" icon={Phone} type="tel" value={profile.phone} onChange={(e) => onInputChange('phone', e.target.value)} disabled={!isEditing} placeholder="01xxxxxxxxx" error={validationErrors.phone} />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6">
@@ -65,6 +68,7 @@ export function PersonalInfoForm({
             disabled={!isEditing}
             placeholder="01xxxxxxxxx"
             hint="رقم هاتف لولي الأمر أو للطوارئ"
+            error={validationErrors.alternativePhone}
           />
           <ProfileInput id="birthDate" label="تاريخ الميلاد" icon={Calendar} type="date" value={profile.birthDate} onChange={(e) => onInputChange('birthDate', e.target.value)} disabled={!isEditing} />
         </div>
@@ -72,10 +76,10 @@ export function PersonalInfoForm({
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-300">الجنس</label>
           <div className="flex gap-3">
-            {[
+            {([
               { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
-              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' },
-            ].map((g) => (
+              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }
+            ] as const).map((g) => (
               <button
                 key={g.value}
                 type="button"

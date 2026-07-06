@@ -1,8 +1,10 @@
-import { Check, Clock3, Shield, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
+import { Check, Clock3, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { providerLabelMap } from "../constants";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useSettingsStore } from "../stores/settings-store";
+import { useUIStore } from "../stores/ui-store";
 import type { BookmarkItem, VideoProvider } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +21,22 @@ export function PlayerHeader({
   markers: BookmarkItem[];
   onMarkComplete: () => void;
 }) {
-  const { currentTime, duration, brightness, playbackRate, showControls } = useCourseVideoPlayerStore(
+  const { currentTime, duration, playbackRate } = usePlaybackStore(
     useShallow((state) => ({
       currentTime: state.currentTime,
       duration: state.duration,
-      brightness: state.brightness,
       playbackRate: state.playbackRate,
+    }))
+  );
+
+  const { brightness } = useSettingsStore(
+    useShallow((state) => ({
+      brightness: state.brightness,
+    }))
+  );
+
+  const { showControls } = useUIStore(
+    useShallow((state) => ({
       showControls: state.showControls,
     }))
   );
@@ -48,85 +60,88 @@ export function PlayerHeader({
     );
   }, [currentTime, markers]);
 
+  // Mobile: smaller badges, centered layout
   return (
     <div className={cn(
-      "pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-16 pt-4 transition-opacity duration-200",
+      "pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/95 via-black/60 to-transparent px-6 pb-28 pt-6 transition-opacity duration-300",
       showControls ? "opacity-100" : "opacity-0"
     )}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/85 backdrop-blur-md">
+      <div className="flex items-start justify-between gap-8">
+        <div className="flex-1 space-y-5 sm:w-auto">
+          {/* Mobile-optimized badges row */}
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:flex-nowrap sm:justify-start sm:gap-4">
+            <span className={cn(
+              "inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-gradient-to-r from-white/15 to-white/10 px-5 py-2.5 text-xs font-bold text-white/95 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all hover:scale-105",
+              "sm:px-4 sm:py-2 sm:text-[11px]"
+            )}>
               {provider === "youtube" ? (
-                <Youtube className="h-3.5 w-3.5 text-red-400" />
+                <Youtube className="h-4 w-4 text-red-400" />
               ) : (
-                <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+                <Sparkles className="h-4 w-4 text-sky-300" />
               )}
               {providerLabelMap[provider]}
             </span>
 
-            <span className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold transition-colors",
-              progressPercent >= 90
-                ? "border-emerald-400/20 bg-emerald-500/15 text-emerald-200"
-                : progressPercent >= 50
-                  ? "border-blue-400/20 bg-blue-500/10 text-blue-200"
-                  : "border-white/10 bg-white/10 text-white/85"
-            )}>
-              <Clock3 className="h-3.5 w-3.5" />
-              {progressPercent}% مشاهدة
-            </span>
-
-            {playbackRate !== 1 ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-[11px] font-bold text-sky-100">
-                <Zap className="h-3.5 w-3.5" />
+            {playbackRate !== 1 && (
+              <span className={cn(
+                "inline-flex items-center gap-2.5 rounded-full border border-sky-400/30 bg-gradient-to-r from-sky-500/15 to-sky-500/5 px-5 py-2.5 text-xs font-bold text-sky-100 shadow-[0_0_15px_rgba(14,165,233,0.2)] transition-all hover:scale-105",
+                "sm:px-4 sm:py-2 sm:text-[11px]"
+              )}>
+                <Zap className="h-4 w-4" />
                 سرعة {playbackRate}x
               </span>
-            ) : null}
+            )}
 
-            {completionReady ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-200">
-                <Check className="h-3.5 w-3.5" />
+            {completionReady && (
+              <span className={cn(
+                "inline-flex items-center gap-2.5 rounded-full border border-emerald-400/20 bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 px-5 py-2.5 text-xs font-bold text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all hover:scale-105",
+                "sm:px-4 sm:py-2 sm:text-[11px]"
+              )}>
+                <Check className="h-4 w-4" />
                 مكتمل
               </span>
-            ) : null}
+            )}
 
-            {brightness !== 1 ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/15 bg-amber-500/10 px-3 py-1 text-[11px] font-bold text-amber-100">
-                <SunMedium className="h-3.5 w-3.5" />
+            {brightness !== 1 && (
+              <span className={cn(
+                "inline-flex items-center gap-2.5 rounded-full border border-amber-400/20 bg-gradient-to-r from-amber-500/15 to-amber-500/5 px-5 py-2.5 text-xs font-bold text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-all hover:scale-105",
+                "sm:px-4 sm:py-2 sm:text-[11px]"
+              )}>
+                <SunMedium className="h-4 w-4" />
                 {Math.round(brightness * 100)}% سطوع
               </span>
-            ) : null}
-
-            <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/15 bg-violet-500/10 px-3 py-1 text-[11px] font-bold text-violet-200">
-              <Shield className="h-3.5 w-3.5" />
-              محمي
-            </span>
+            )}
           </div>
 
-          <div>
-            <h3 className="line-clamp-2 text-lg font-black text-white sm:text-xl">
+          {/* Title - centered on mobile */}
+          <div className="text-center sm:text-right">
+            <h3 className={cn(
+              "line-clamp-2 text-lg font-black text-white sm:text-xl bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg"
+            )}>
               {lessonTitle}
             </h3>
-            <p className="text-xs text-white/60 sm:text-sm">
-              مشغل تعليمي سريع مع استكمال تلقائي، مزامنة تقدم، ولوحة دراسة
-              جانبية.
-            </p>
+            {/* Mobile: Show current marker more prominently */}
             {currentMarker ? (
-              <p className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] font-bold text-white/80 backdrop-blur-md">
-                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <p className={cn(
+                "mt-4 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/15 bg-gradient-to-r from-black/30 to-black/20 px-5 py-2.5 text-xs font-bold text-white/90 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all hover:scale-105",
+                "sm:mt-3 sm:px-4 sm:py-2 sm:text-[11px]"
+              )}>
+                <Sparkles className="h-4 w-4 text-amber-300" />
                 الآن: {currentMarker.label}
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-4">
           {!alreadyCompleted ? (
             <button
               type="button"
               onClick={onMarkComplete}
-              className="hidden rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 py-2 text-xs font-bold text-emerald-200 transition hover:bg-emerald-500/20 sm:inline-flex"
+              className={cn(
+                "rounded-full border border-emerald-400/30 bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 px-6 py-3 text-sm font-bold text-emerald-200 transition-all duration-300 hover:from-emerald-500/20 hover:to-emerald-500/10 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95",
+                "sm:px-5 sm:py-2.5"
+              )}
             >
               تحديد كمكتمل
             </button>

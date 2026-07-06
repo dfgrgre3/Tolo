@@ -1,276 +1,69 @@
-"use client";
+import Link from "next/link";
+import { Metadata } from "next";
+import RegisterForm from "@/components/auth/RegisterForm";
+import { GraduationCap } from "lucide-react";
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { m, AnimatePresence } from "framer-motion";
-import { useAuth } from '@/contexts/auth-context';
-import {
-  LoadingState,
-  RegisterHeader,
-  StepIndicator,
-  RoleStep,
-  PersonalInfoStep,
-  PreferencesStep,
-  RegisterFooter,
-} from './_components';
-import { OTPVerificationStep } from './_components/otp-verification-step';
-
-// ─── Schemas ────────────────────────────────────────────────────────────────
-
-const registerSchema = z.object({
-  role: z.enum(['STUDENT', 'TEACHER'], { required_error: 'يرجى اختيار نوع الحساب' }),
-  username: z
-    .string()
-    .min(3, 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل')
-    .max(30, 'اسم المستخدم لا يتجاوز 30 حرفاً')
-    .regex(/^[a-zA-Z0-9_\u0600-\u06FF]+$/, 'اسم المستخدم يحتوي على أحرف غير مسموح بها'),
-  email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),
-  password: z
-    .string()
-    .min(8, 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل')
-    .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير')
-    .regex(/[0-9]/, 'يجب أن تحتوي على رقم'),
-  confirmPassword: z.string().min(1, 'تأكيد كلمة المرور مطلوب'),
-  phone: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  gradeLevel: z.string().optional(),
-  educationType: z.string().optional(),
-  interestedSubjects: z.array(z.string()).optional(),
-  acceptTerms: z.boolean().refine(v => v === true, { message: 'يجب الموافقة على الشروط والأحكام' }),
-}).refine(d => d.password === d.confirmPassword, {
-  message: 'كلمة المرور وتأكيدها غير متطابقتين',
-  path: ['confirmPassword'],
-});
-
-type RegisterFormValues = z.infer<typeof registerSchema>;
-
-// ─── Validators per step ─────────────────────────────────────────────────────
-
-const STEP_FIELDS: Record<number, (keyof RegisterFormValues)[]> = {
-  1: ['username', 'email', 'password', 'confirmPassword'],
-  2: ['acceptTerms'],
+export const metadata: Metadata = {
+  title: "إنشاء حساب | Tolo",
+  description: "أنشئ حساباً جديداً في منصة Tolo التعليمية للبدء في التعلم واكتساب مهارات جديدة.",
 };
-
-// ─── Main form component ─────────────────────────────────────────────────────
-
-function RegisterForm() {
-  const router = useRouter();
-  const { register: registerUser, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-
-  const [step, setStep] = useState(1);
-  const [errorStatus, setErrorStatus] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [interestedSubjects, setInterestedSubjects] = useState<string[]>([]);
-  const [showOTP, setShowOTP] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
-
-  const {
-    register,
-    handleSubmit,
-    trigger,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: 'STUDENT',
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      phone: '',
-      dateOfBirth: '',
-      gradeLevel: '',
-      educationType: '',
-      interestedSubjects: [],
-      acceptTerms: false,
-    },
-    mode: 'onChange',
-  });
-
-  const passwordValue = watch('password') || '';
-  const roleValue = watch('role') || '';
-  const acceptTerms = watch('acceptTerms') || false;
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthLoading, isAuthenticated, router]);
-
-  const handleNextStep = useCallback(async () => {
-    const fields = STEP_FIELDS[step];
-    if (fields) {
-      const valid = await trigger(fields);
-      if (!valid) return;
-    }
-    setErrorStatus(null);
-    setStep(s => s + 1);
-  }, [step, trigger]);
-
-  const handlePrevStep = useCallback(() => {
-    setErrorStatus(null);
-    setStep(s => s - 1);
-  }, []);
-
-  const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue('phone', e.target.value);
-  }, [setValue]);
-
-  const toggleArrayItem = useCallback((field: 'interestedSubjects', value: string) => {
-    setInterestedSubjects(prev => {
-      const updated = prev.includes(value)
-        ? prev.filter(i => i !== value)
-        : [...prev, value];
-      setValue('interestedSubjects', updated);
-      return updated;
-    });
-  }, [setValue]);
-
-  const onSubmit = async (data: RegisterFormValues) => {
-    setIsSubmitting(true);
-    setErrorStatus(null);
-    try {
-      const result = await registerUser({
-        email: data.email.trim().toLowerCase(),
-        password: data.password,
-        username: data.username,
-        role: data.role,
-        phone: data.phone,
-        dateOfBirth: data.dateOfBirth,
-        gradeLevel: data.gradeLevel,
-        educationType: data.educationType,
-        interestedSubjects: data.interestedSubjects,
-      });
-
-      if (result.success) {
-        if (result.autoLoggedIn) {
-          router.replace('/dashboard');
-        } else {
-          // Email verification required
-          setRegisteredEmail(data.email.trim().toLowerCase());
-          setShowOTP(true);
-        }
-      } else {
-        setErrorStatus(result.error || 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.');
-      }
-    } catch (err: any) {
-      setErrorStatus(err?.message || 'حدث خطأ غير متوقع أثناء إنشاء الحساب.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isAuthLoading && !isSubmitting && !showOTP) {
-    return <LoadingState />;
-  }
-
-  if (showOTP) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 z-10" dir="rtl">
-        <OTPVerificationStep email={registeredEmail} onSuccess={() => router.replace('/dashboard')} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="w-full flex flex-col items-center justify-center py-16 px-4 selection:bg-primary/30 z-10"
-      dir="rtl"
-    >
-      <m.div
-        initial={{ opacity: 0, y: 20, scale: 0.99 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-3xl space-y-10 z-10"
-      >
-        {/* Header */}
-        <RegisterHeader />
-
-        {/* Step Indicator */}
-        <StepIndicator step={step} />
-
-        {/* Card */}
-        <m.div
-          layout
-          className="relative overflow-hidden rounded-[3rem] border border-border bg-card/40 backdrop-blur-3xl shadow-2xl transition-colors duration-300"
-        >
-          <div className="p-8 md:p-14">
-            {/* Global error */}
-            <AnimatePresence>
-              {errorStatus && (
-                <m.div
-                  key="error"
-                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-400 text-center"
-                >
-                  {errorStatus}
-                </m.div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSubmit(onSubmit)} noValidate>
-              <AnimatePresence mode="wait">
-                {step === 1 && (
-                  <PersonalInfoStep
-                    key="step1"
-                    register={register}
-                    errors={errors}
-                    showPassword={showPassword}
-                    setShowPassword={setShowPassword}
-                    showConfirmPassword={showConfirmPassword}
-                    setShowConfirmPassword={setShowConfirmPassword}
-                    handlePhoneChange={handlePhoneChange}
-                    passwordValue={passwordValue}
-                    onNext={handleNextStep}
-                  />
-                )}
-                {step === 2 && (
-                  <PreferencesStep
-                    key="step2"
-                    register={register}
-                    errors={errors}
-                    interestedSubjects={interestedSubjects}
-                    toggleArrayItem={toggleArrayItem}
-                    acceptTerms={acceptTerms}
-                    onBack={handlePrevStep}
-                    isLoading={isSubmitting}
-                  />
-                )}
-              </AnimatePresence>
-            </form>
-          </div>
-        </m.div>
-
-        {/* Clerk CAPTCHA widget — must be outside the overflow-hidden card so Clerk can render it */}
-        <div id="clerk-captcha" className="flex justify-center" />
-
-        {/* Footer */}
-        <RegisterFooter loginUrl="/login" />
-      </m.div>
-    </div>
-  );
-}
 
 export default function RegisterPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center p-12 z-10">
-          <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary z-10" />
+    <div className="w-full min-h-[75vh] grid lg:grid-cols-12 gap-8 items-center justify-center">
+      {/* Visual / Info Left Panel (Desktop only) */}
+      <div className="relative hidden lg:flex lg:col-span-6 xl:col-span-7 h-full min-h-[600px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-10 text-white shadow-2xl border border-slate-800">
+        {/* Soft grid background */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/20 rounded-full blur-[80px]" />
+        
+        {/* Branding header */}
+        <div className="relative z-20 flex items-center gap-2">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center shadow-lg shadow-primary/20">
+            <GraduationCap className="h-6 w-6 text-white" />
+          </div>
+          <Link href="/" className="text-2xl font-black tracking-wider bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:opacity-90 transition-opacity">
+            Tolo
+          </Link>
         </div>
-      }
-    >
-      <RegisterForm />
-    </Suspense>
+
+        {/* Dynamic center info */}
+        <div className="relative z-20 my-auto max-w-lg space-y-6">
+          <h2 className="text-3xl font-black leading-tight text-white/95">
+            ابدأ رحلتك التعليمية معنا اليوم واكتشف طرقاً جديدة للتعلم
+          </h2>
+          <p className="text-slate-400 text-base leading-relaxed">
+            أنشئ حسابك الآن وانضم إلى آلاف الطلاب المتفوقين. اختر دورتك التدريبية المفضلة، تفاعل مع المعلمين، واحصل على شهادات معتمدة تسهم في بناء مستقبلك.
+          </p>
+        </div>
+
+        {/* Info footer */}
+        <div className="relative z-20 mt-auto bg-slate-900/60 backdrop-blur-md p-6 rounded-xl border border-white/5 shadow-xl">
+          <div className="flex gap-6 justify-around text-center">
+            <div>
+              <p className="text-2xl font-black text-primary">+15K</p>
+              <p className="text-xs text-slate-400">طالب نشط</p>
+            </div>
+            <div className="border-r border-slate-800" />
+            <div>
+              <p className="text-2xl font-black text-primary">+200</p>
+              <p className="text-xs text-slate-400">معلم خبير</p>
+            </div>
+            <div className="border-r border-slate-800" />
+            <div>
+              <p className="text-2xl font-black text-primary">+500</p>
+              <p className="text-xs text-slate-400">دورة تعليمية</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form Right Panel */}
+      <div className="lg:col-span-6 xl:col-span-5 w-full flex items-center justify-center py-4">
+        <div className="w-full max-w-[500px] mx-auto">
+          <RegisterForm />
+        </div>
+      </div>
+    </div>
   );
 }

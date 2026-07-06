@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -15,9 +16,8 @@ import {
   HelpCircle,
   ChevronRight,
   Crown } from
-"lucide-react";
-import { useAuth } from "@/contexts/auth-context";
-import { isStaffAdminPanelRole } from "@/lib/auth";
+"lucide-react";const isStaffAdminPanelRole = (role?: string) => role === "ADMIN" || role === "MODERATOR" || role === "SUPER_ADMIN";
+
 import { useTheme } from "@/providers/theme-provider";
 import {
   DropdownMenu,

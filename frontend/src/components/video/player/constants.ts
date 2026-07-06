@@ -4,7 +4,7 @@ export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
 export const SEEK_STEP_SECONDS = 10;
 export const AUTO_COMPLETE_PERCENT = 90;
 export const PROGRESS_SAVE_INTERVAL_MS = 4000;
-export const CONTROLS_HIDE_TIMEOUT_MS = 2800;
+export const CONTROLS_HIDE_TIMEOUT_MS = 3000;
 export const AUTOPLAY_NEXT_SECONDS = 5;
 export const MIN_RESUME_TIME_SECONDS = 5;
 export const PLAYER_PREFERENCES_KEY = "course-video-player-preferences:v4";
@@ -25,12 +25,14 @@ export const DEFAULT_PLAYER_PREFERENCES: PlayerPreferences = {
   isAmbientMode: true,
   selectedSubtitle: "off",
   brightness: 1,
+  isSidebarOpen: false,
+  sidebarTab: "bookmarks",
 };
 
 export const providerLabelMap: Record<VideoProvider, string> = {
   youtube: "YouTube",
   bunny: "Bunny Stream",
   cloudflare: "Cloudflare Stream",
-  html5: "HTML5",
+  html5: "فيديو",
   unknown: "Video",
 };

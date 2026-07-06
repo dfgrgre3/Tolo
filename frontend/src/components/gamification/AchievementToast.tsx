@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -41,6 +41,7 @@ export function AchievementToast({
         return () => clearTimeout(timer);
       }
     }
+    return;
   }, [achievement, autoClose, duration, handleClose]);
 
   if (!achievement) return null;

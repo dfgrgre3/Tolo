@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Clock3 } from "lucide-react";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useUIStore } from "../stores/ui-store";
 import {
   createTimelineNote,
   parseCloudTimelineNotes,
@@ -17,7 +18,8 @@ export function useTimelineNotes({
   lessonId,
   flashFeedback,
 }: TimelineNotesOptions) {
-  const { setPlayerState, currentTime } = useCourseVideoPlayerStore();
+  const currentTime = usePlaybackStore((s) => s.currentTime);
+  const setUIState = useUIStore((s) => s.setUIState);
   const [notes, setNotes] = useState<TimelineNote[]>([]);
   const [noteDraft, setNoteDraft] = useState("");
   const [notesFreeformContent, setNotesFreeformContent] = useState("");
@@ -38,14 +40,14 @@ export function useTimelineNotes({
           throw new Error("Failed to save notes.");
         }
       } catch {
-        setPlayerState({
+        setUIState({
           errorMessage: "تعذر مزامنة الملاحظات السحابية لهذا الدرس.",
         });
       } finally {
         setIsNotesSyncing(false);
       }
     },
-    [lessonId, notesFreeformContent, setPlayerState]
+    [lessonId, notesFreeformContent, setUIState]
   );
 
   const loadCloudNotes = useCallback(async () => {
@@ -61,7 +63,7 @@ export function useTimelineNotes({
       const content = payload?.data?.content ?? "";
       const parsed = parseCloudTimelineNotes(content);
       
-      setNotes(parsed.notes);
+      setNotes(parsed.notes.filter((n): n is TimelineNote => n !== null));
       setNotesFreeformContent(parsed.freeformContent);
     } catch {
       setNotes([]);
@@ -86,9 +88,9 @@ export function useTimelineNotes({
     persistCloudNotes(nextNotes);
     
     setNoteDraft("");
-    setPlayerState({ sidebarTab: "notes", isSidebarOpen: true });
+    setUIState({ sidebarTab: "notes", isSidebarOpen: true });
     flashFeedback({ icon: Clock3, label: "تمت إضافة الملاحظة" });
-  }, [currentTime, flashFeedback, noteDraft, notes, persistCloudNotes, setPlayerState]);
+  }, [currentTime, flashFeedback, noteDraft, notes, persistCloudNotes, setUIState]);
 
   const removeNote = useCallback(
     (noteId: string) => {

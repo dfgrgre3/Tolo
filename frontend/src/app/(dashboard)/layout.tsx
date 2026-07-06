@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import React from 'react';
+import { SITE } from '@shared/site-config';
 
 export const metadata: Metadata = {
-  title: 'لوحة التحكم | Tolo',
+  title: `لوحة التحكم | ${SITE.name}`,
   description: 'لوحة التحكم الرئيسية - تتبع تقدمك الدراسي، المهام، الإنجازات، وجدول المذاكرة',
   openGraph: {
-    title: 'لوحة التحكم | Tolo',
-    description: 'تتبع تقدمك الدراسي على منصة تولو التعليمية',
+    title: `لوحة التحكم | ${SITE.name}`,
+    description: `تتبع تقدمك الدراسي على منصة ${SITE.nameAr} التعليمية`,
     type: 'website',
   },
 };

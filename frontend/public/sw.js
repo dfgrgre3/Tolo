@@ -108,25 +108,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ---------------------------------------------------------------------------
-  // Clerk auth endpoints: bypass Service Worker interception completely.
-  //
-  // Clerk uses /__clerk/ prefixed routes and cookies for session management.
-  // Caching any of these would break auth state and cause stale session errors.
-  // We return early without calling event.respondWith() so the browser
-  // processes these requests natively without SW interception.
-  // ---------------------------------------------------------------------------
-  if (
-    url.pathname.startsWith('/__clerk') ||
-    url.pathname.startsWith('/clerk-proxy') ||
-    url.pathname.startsWith('/__session') ||
-    url.pathname.includes('/clerk/') ||
-    url.searchParams.has('__clerk_') ||
-    request.headers.get('cookie')?.includes('__clerk')
-  ) {
-    return;
-  }
-
   // Don't cache cross-origin requests (except for known CDNs)
   if (url.origin !== self.location.origin) {
     if (

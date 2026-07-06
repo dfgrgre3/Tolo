@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useAuth } from '@/contexts/auth-context';
-import { PageContainer } from "@/components/ui/page-container";
+import { useAuth } from "@/hooks/use-auth";import { PageContainer } from "@/components/ui/page-container";
 import { Button } from "@/components/ui/button";
 import { BarChart3, RefreshCw, Download } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";

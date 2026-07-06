@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Mail, MessageSquare, Phone, MapPin, Clock, Zap, Shield, Send } from "lucide-react";
 import { ContactForm } from "./ContactForm";
+import { SITE, CONTACT } from '@shared/site-config';
 
 export const metadata: Metadata = {
-  title: "تواصل معنا | TOLO",
-  description: "تواصل مع فريق TOLO. نحن هنا للمساعدة 24/7. أرسل لنا استفساراتك ومقترحاتك.",
+  title: `تواصل معنا | ${SITE.name}`,
+  description: `تواصل مع فريق ${SITE.name}. نحن هنا للمساعدة 24/7. أرسل لنا استفساراتك ومقترحاتك.`,
 };
 
 const contactMethods = [
@@ -13,9 +14,9 @@ const contactMethods = [
     color: "text-orange-400",
     bg: "bg-orange-500/10 border-orange-500/20",
     title: "البريد الإلكتروني",
-    value: "support@tolo.app",
+    value: CONTACT.email,
     description: "للاستفسارات العامة والدعم",
-    action: "mailto:support@tolo.app",
+    action: `mailto:${CONTACT.email}`,
     actionLabel: "أرسل بريداً",
   },
   {
@@ -33,9 +34,9 @@ const contactMethods = [
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
     title: "الهاتف",
-    value: "+20 1000 000 000",
+    value: CONTACT.phone,
     description: "من الأحد إلى الخميس 9ص - 5م",
-    action: "tel:+201000000000",
+    action: `tel:${CONTACT.phoneTel}`,
     actionLabel: "اتصل الآن",
   },
 ];
@@ -82,7 +83,7 @@ export default function ContactPage() {
             </span>
           </h1>
           <p className="text-lg text-muted-foreground font-medium max-w-2xl mx-auto">
-            فريق TOLO دائماً بجانبك. سواء كان استفساراً أو مشكلة تقنية أو اقتراحاً – نحن هنا.
+            فريق {SITE.name} دائماً بجانبك. سواء كان استفساراً أو مشكلة تقنية أو اقتراحاً – نحن هنا.
           </p>
         </div>
 

@@ -1,11 +1,10 @@
-"use client";
+﻿"use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import { SafeMarkdown } from '@/components/SafeMarkdown';
-import { useAuth } from '@/contexts/auth-context';
-import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
+import { SafeMarkdown } from '@/components/SafeMarkdown';import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
 
 interface Message {
   role: 'user' | 'assistant';

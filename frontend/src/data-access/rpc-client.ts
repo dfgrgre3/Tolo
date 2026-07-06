@@ -26,20 +26,6 @@ const transport = createConnectTransport({
     const newInit = { ...init };
     const headers = new Headers(newInit.headers);
     if (isBrowser) {
-      if (!headers.has('Authorization')) {
-        const clerk = (window as any).Clerk;
-        if (clerk?.session) {
-          try {
-            const token = await clerk.session.getToken();
-            if (token) {
-              headers.set('Authorization', `Bearer ${token}`);
-            }
-          } catch (e) {
-            console.error('Failed to get Clerk token for RPC request:', e);
-          }
-        }
-      }
-
       // Extract and attach CSRF token if present in cookies
       const cookies = document.cookie.split(';').map(c => c.trim());
       const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
@@ -60,19 +46,7 @@ const transport = createConnectTransport({
         headers.set('X-CSRF-Token', csrfToken);
       }
     } else {
-      if (!headers.has('Authorization')) {
-        try {
-          const { auth } = await import("@clerk/nextjs/server");
-          const { getToken } = await auth();
-          const token = await getToken();
-          if (token) {
-            headers.set('Authorization', `Bearer ${token}`);
-          }
-        } catch (e) {
-          // Ignore safely during static generation/pre-rendering where request context is absent
-          console.warn('Could not retrieve Clerk token for server RPC request:', e);
-        }
-      }
+      // Server-side: rely on cookies forwarded by Next.js
     }
     newInit.headers = headers;
 

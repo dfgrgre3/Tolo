@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { m } from "framer-motion";
@@ -18,7 +18,40 @@ interface MegaMenuGridProps {
 	setCategoryRef: (index: number, el: HTMLDivElement | null) => void;
 }
 
-export function MegaMenuGrid({
+const containerVariants = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: {
+			staggerChildren: 0.04,
+			delayChildren: 0.02,
+		}
+	},
+	exit: {
+		opacity: 0,
+		transition: {
+			staggerChildren: 0.02,
+			staggerDirection: -1,
+		}
+	}
+};
+
+const itemVariants = {
+	hidden: { opacity: 0, y: 12, scale: 0.98 },
+	visible: { 
+		opacity: 1, 
+		y: 0, 
+		scale: 1,
+		transition: { 
+			type: "spring" as const, 
+			stiffness: 140, 
+			damping: 18 
+		} 
+	},
+	exit: { opacity: 0, y: -8, scale: 0.99, transition: { duration: 0.15 } }
+};
+
+export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	categories,
 	gridCols,
 	isCompact,
@@ -32,34 +65,39 @@ export function MegaMenuGrid({
 	return (
 		<m.div
 			key="content"
-			initial={{ opacity: 0, y: 10 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: -10 }}
-			transition={{ duration: 0.3, ease: "easeOut" }}
+			variants={containerVariants}
+			initial="hidden"
+			animate="visible"
+			exit="exit"
 			className={cn(
 				"px-4 md:px-6",
-				isCompact ? 'py-4 md:py-5' : 'py-6 md:py-8'
+				isCompact ? 'py-3 md:py-4' : 'py-4 md:py-5'
 			)}
 		>
 			<div className={cn(
 				"grid",
 				gridCols,
-				isCompact ? 'gap-3 md:gap-4' : 'gap-5 md:gap-6'
+				isCompact ? 'gap-2 md:gap-3' : 'gap-4 md:gap-5'
 			)}>
 				{categories.map((category, categoryIndex) => (
-					<MegaMenuCategory
+					<m.div
 						key={`${category.title}-${categoryIndex}`}
-						ref={(el) => setCategoryRef(categoryIndex, el)}
-						category={category}
-						categoryIndex={categoryIndex}
-						onItemClick={onClose}
-						activeRoute={activeRoute}
-						isCompact={isCompact}
-						searchQuery={searchQuery}
-						focusedItemIndex={focusedCategoryIndex === categoryIndex ? focusedItemIndex : -1}
-					/>
+						variants={itemVariants}
+						className="h-full"
+					>
+						<MegaMenuCategory
+							ref={(el) => setCategoryRef(categoryIndex, el)}
+							category={category}
+							categoryIndex={categoryIndex}
+							onItemClick={onClose}
+							activeRoute={activeRoute}
+							isCompact={isCompact}
+							searchQuery={searchQuery}
+							focusedItemIndex={focusedCategoryIndex === categoryIndex ? focusedItemIndex : -1}
+						/>
+					</m.div>
 				))}
 			</div>
 		</m.div>
 	);
-}
+});

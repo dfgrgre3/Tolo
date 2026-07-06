@@ -11,15 +11,16 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
 
 import { logger } from '@/lib/logger';
 
 export function useGlobalSettings() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
+  const isLoading = !user;
   const settingsLoadedRef = useRef(false);
   const prevUserIdRef = useRef<string | null>(null);
 

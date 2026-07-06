@@ -1,11 +1,13 @@
 'use client';
 
 import { useShallow } from "zustand/react/shallow";
-import { useCourseVideoPlayerStore } from "../store";
+import { usePlaybackStore } from "../stores/playback-store";
+import { useUIStore } from "../stores/ui-store";
+import { useSettingsStore } from "../stores/settings-store";
 import type {
   AudioTrack,
   BookmarkItem,
-  Lesson,
+  LessonInfo,
   QualityOption,
   SubtitleTrack,
   TimelineNote,
@@ -28,7 +30,6 @@ export function PlayerPanels({
   notes,
   noteDraft,
   selectedSubtitleLabel,
-  canCopyLink,
   isNotesSyncing,
   allowAutoQuality,
   onCloseSettings,
@@ -37,9 +38,7 @@ export function PlayerPanels({
   onChangeSubtitle,
   onToggleAmbient,
   onChangeBrightness,
-  onRestartPlayback,
   onOpenStats,
-  onCopyLessonLink,
   onCloseStats,
   onCloseHelp,
   onCloseSidebar,
@@ -50,18 +49,18 @@ export function PlayerPanels({
   onRemoveNote,
   onJumpToTime,
   onLessonChange,
+  onToggleShortcuts,
 }: {
   qualities: QualityOption[];
   playbackRates: number[];
   subtitleTracks: SubtitleTrack[];
   audioTracks: AudioTrack[];
-  lessons: Lesson[];
+  lessons: LessonInfo[];
   lessonId: string;
   bookmarks: BookmarkItem[];
   notes: TimelineNote[];
   noteDraft: string;
   selectedSubtitleLabel: string;
-  canCopyLink: boolean;
   isNotesSyncing: boolean;
   allowAutoQuality: boolean;
   onCloseSettings: () => void;
@@ -70,9 +69,7 @@ export function PlayerPanels({
   onChangeSubtitle: (subtitleId: string) => void;
   onToggleAmbient: () => void;
   onChangeBrightness: (brightness: number) => void;
-  onRestartPlayback: () => void;
   onOpenStats: () => void;
-  onCopyLessonLink: () => void;
   onCloseStats: () => void;
   onCloseHelp: () => void;
   onCloseSidebar: () => void;
@@ -83,38 +80,53 @@ export function PlayerPanels({
   onRemoveNote: (noteId: string) => void;
   onJumpToTime: (seconds: number) => void;
   onLessonChange?: (lessonId: string) => void;
+  onToggleShortcuts: () => void;
 }) {
   const {
     isSettingsOpen,
     isStatsOpen,
     isHelpOpen,
+    isShortcutsOpen,
     isSidebarOpen,
     sidebarTab,
-    selectedQuality,
-    currentAutoQuality,
-    playbackRate,
-    selectedSubtitle,
-    isAmbientMode,
-    brightness,
-    currentTime,
-    buffered,
-    watchSeconds,
-  } = useCourseVideoPlayerStore(
+  } = useUIStore(
     useShallow((state) => ({
       isSettingsOpen: state.isSettingsOpen,
       isStatsOpen: state.isStatsOpen,
       isHelpOpen: state.isHelpOpen,
+      isShortcutsOpen: state.isShortcutsOpen,
       isSidebarOpen: state.isSidebarOpen,
       sidebarTab: state.sidebarTab,
+    }))
+  );
+
+  const {
+    selectedQuality,
+    selectedSubtitle,
+    isAmbientMode,
+    brightness,
+    currentAutoQuality,
+    watchSeconds,
+  } = useSettingsStore(
+    useShallow((state) => ({
       selectedQuality: state.selectedQuality,
-      currentAutoQuality: state.currentAutoQuality,
-      playbackRate: state.playbackRate,
       selectedSubtitle: state.selectedSubtitle,
       isAmbientMode: state.isAmbientMode,
       brightness: state.brightness,
+      currentAutoQuality: state.currentAutoQuality,
+      watchSeconds: state.watchSeconds,
+    }))
+  );
+
+  const {
+    playbackRate,
+    currentTime,
+    buffered,
+  } = usePlaybackStore(
+    useShallow((state) => ({
+      playbackRate: state.playbackRate,
       currentTime: state.currentTime,
       buffered: state.buffered,
-      watchSeconds: state.watchSeconds,
     }))
   );
 
@@ -181,11 +193,11 @@ export function PlayerPanels({
         onChangeBrightness={onChangeBrightness}
         isAmbientMode={isAmbientMode}
         onToggleAmbient={onToggleAmbient}
-        onRestartPlayback={onRestartPlayback}
         onOpenStats={onOpenStats}
-        canCopyLink={canCopyLink}
-        onCopyLessonLink={onCopyLessonLink}
         onCloseSettings={onCloseSettings}
+        shortcuts={shortcuts}
+        isShortcutsOpen={isShortcutsOpen}
+        onToggleShortcuts={onToggleShortcuts}
       />
 
       <StatsPanel
