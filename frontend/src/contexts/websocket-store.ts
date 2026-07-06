@@ -72,7 +72,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
       ws.onerror = () => {
         clearTimeout(connectionTimeout);
-        try { ws.close(); } catch {}
+        try { ws.close(); } catch { /* ignore */ }
       };
     } catch (error) {
       logger.debug("WebSocket connection attempt failed", error);
@@ -90,7 +90,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       socket.onopen = null;
       socket.onmessage = null;
       socket.onclose = null;
-      try { socket.close(); } catch {}
+      try { socket.close(); } catch { /* ignore */ }
     }
     set({ socket: null, isConnected: false, token: null });
   },

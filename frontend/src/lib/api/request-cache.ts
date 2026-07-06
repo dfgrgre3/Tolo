@@ -61,7 +61,12 @@ class RequestCacheManager {
     // Check if the request explicitly bypasses cache
     if (options?.headers) {
       const headers = new Headers(options.headers);
-      if (headers.get("Cache-Control") === "no-cache" || headers.get("Pragma") === "no-cache") {
+      if (
+        headers.get("Cache-Control") === "no-cache" ||
+        headers.get("Pragma") === "no-cache" ||
+        headers.get("X-Bypass-Cache") === "true" ||
+        headers.get("x-bypass-cache") === "true"
+      ) {
         return "";
       }
     }

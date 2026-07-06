@@ -71,8 +71,8 @@ export function useLazyComponent<T extends React.ComponentType<any>>(
     if (Component) return;
     setIsLoading(true);
     try {
-      const module = await importFn();
-      setComponent(() => module.default);
+      const loadedModule = await importFn();
+      setComponent(() => loadedModule.default);
     } finally {
       setIsLoading(false);
     }
