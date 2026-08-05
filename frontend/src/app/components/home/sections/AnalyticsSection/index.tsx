@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { safeFetch, getSafeUserId } from '@/lib/safe-client-utils';
+import { safeFetch } from '@/lib/safe-client-utils';
 import { logger } from '@/lib/logger';
-import StatusMessage from '@/app/(dashboard)/analytics/components/StatusMessage';
+import { useAuth } from '@/hooks/use-auth';
 import { rpgCommonStyles } from "../../constants";
 import { Sword, Scroll, Clock, Target, RefreshCw } from "lucide-react";
 import { DailyProgressChart } from "./DailyProgressChart";
@@ -19,93 +19,76 @@ type AnalyticsData = {
 
 const PATH_OPTIONS = ['الكل', 'البرمجة', 'التصميم'];
 
-const fetchAnalyticsData = async (path: string): Promise<AnalyticsData> => {
-  const userId = getSafeUserId();
+const fetchAnalyticsData = async (path: string, userId: string | null, signal?: AbortSignal): Promise<AnalyticsData> => {
+  const { data, error } = await safeFetch<AnalyticsData>(
+    `/api/analytics/weekly${userId ? `?userId=${userId}` : ''}${path !== 'الكل' ? `&path=${encodeURIComponent(path)}` : ''}`,
+    signal ? { signal } : undefined
+  );
 
-  try {
-    const { data, error } = await safeFetch<AnalyticsData>(
-      `/api/analytics/weekly${userId ? `?userId=${userId}` : ''}${path !== 'الكل' ? `&path=${encodeURIComponent(path)}` : ''}`
-    );
-
-    if (error || !data) {
-      const { data: summaryData } = await safeFetch<{
-        totalMinutes: number;
-        averageFocus: number;
-        tasksCompleted: number;
-        streakDays: number;
-      }>(
-        `/api/progress/summary${userId ? `?userId=${userId}` : ''}`
-      );
-
-      if (summaryData) {
-        const progressRate = Math.min(100, Math.round(
-          summaryData.tasksCompleted / 10 * 20 +
-          summaryData.streakDays / 30 * 30 +
-          summaryData.averageFocus / 100 * 50
-        ));
-
-        const dailyProgress = Array.from({ length: 7 }, (_, i) => ({
-          day: `Lvl ${i + 1}`,
-          progress: Math.min(100, Math.max(0, progressRate + (i % 3 === 0 ? 5 : -2)))
-        }));
-
-        return {
-          progressRate,
-          skillsAcquired: Math.floor(summaryData.tasksCompleted / 2),
-          studyHours: Math.floor(summaryData.totalMinutes / 60),
-          dailyProgress,
-          lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        };
-      }
-
-      return {
-        progressRate: 0,
-        skillsAcquired: 0,
-        studyHours: 0,
-        dailyProgress: Array.from({ length: 7 }, (_, i) => ({
-          day: `Lvl ${i + 1}`,
-          progress: 0
-        })),
-        lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      };
-    }
-
-    return {
-      progressRate: data.progressRate,
-      skillsAcquired: data.skillsAcquired,
-      studyHours: data.studyHours,
-      dailyProgress: data.dailyProgress,
-      lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
-  } catch (err) {
-    logger.error('Error fetching analytics data:', err);
-    throw new Error("فشل جلب سجل المعارك بسبب خطأ في الخادم.");
+  // Don't throw error if request was aborted
+  if (error && error.name === 'AbortError') {
+    throw error;
   }
+
+  if (error || !data) {
+    logger.error('Failed to fetch analytics data:', error);
+    throw new Error(error?.message || "فشل جلب سجل المعارك بسبب خطأ في الخادم.");
+  }
+
+  return {
+    progressRate: data.progressRate,
+    skillsAcquired: data.skillsAcquired,
+    studyHours: data.studyHours,
+    dailyProgress: data.dailyProgress,
+    lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  };
 };
 
 function AnalyticsSectionComponent() {
+  const { user, isAuthenticated } = useAuth();
   const [data, setData] = React.useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [pathFilter, setPathFilter] = React.useState('الكل');
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  const userId = isAuthenticated && user?.id ? user.id : null;
 
   const loadData = React.useCallback(async (path: string) => {
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedData = await fetchAnalyticsData(path);
-      setData(fetchedData);
+      const fetchedData = await fetchAnalyticsData(path, userId, controller.signal);
+      if (!controller.signal.aborted) {
+        setData(fetchedData);
+      }
     } catch (err) {
+      // Don't log or show error if request was aborted (expected behavior)
+      if (controller.signal.aborted || (err instanceof Error && err.name === 'AbortError')) return;
       logger.error("Failed to fetch analytics data:", err);
       setError((err instanceof Error ? err.message : String(err)) || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  }, []);
+  }, [userId]);
 
   React.useEffect(() => {
     loadData(pathFilter);
-  }, [loadData, pathFilter]);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [pathFilter, userId]);
 
   let cardContent;
   if (isLoading && !data) {
@@ -124,7 +107,22 @@ function AnalyticsSectionComponent() {
       </div>
     );
   } else if (error) {
-    cardContent = <StatusMessage text={error} isError={true} />;
+    cardContent = (
+      <div className="text-center py-12 flex flex-col items-center">
+        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+          <Target className="h-10 w-10 text-red-400" />
+        </div>
+        <p className="text-xl font-bold text-gray-500 mb-2">تعذر تحميل البيانات</p>
+        <p className="text-sm text-gray-600 mb-6">{error}</p>
+        <button
+          onClick={() => loadData(pathFilter)}
+          className="px-8 py-3 bg-primary text-primary-foreground rounded-xl text-base font-bold hover:bg-primary/90 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] inline-flex items-center gap-2 transform hover:scale-105"
+        >
+          <RefreshCw className="h-5 w-5" />
+          إعادة المحاولة
+        </button>
+      </div>
+    );
   } else {
     cardContent = (
       <div key={pathFilter + data?.lastUpdate || 'initial-content'}>

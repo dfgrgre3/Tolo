@@ -184,6 +184,9 @@ function clearRedirectCount(): void {
 class ApiClient {
     private isRefreshing = false;
     private refreshSubscribers: ((success: boolean) => void)[] = [];
+    /** In-flight CSRF bootstrap request — shared across concurrent callers to avoid duplicate fetches */
+    private csrfBootstrapPromise: Promise<void> | null = null;
+    private lastCsrfToken: string | null = null;
 
     private subscribeTokenRefresh(cb: (success: boolean) => void) {
         this.refreshSubscribers.push(cb);
@@ -192,6 +195,59 @@ class ApiClient {
     private onRefreshed(success: boolean) {
         this.refreshSubscribers.forEach((cb) => cb(success));
         this.refreshSubscribers = [];
+    }
+
+    /**
+     * Ensures the _csrf cookie exists by fetching GET /api/auth/csrf when it is absent.
+     * Multiple simultaneous callers share the same in-flight request (single-flight pattern).
+     *
+     * This solves the bootstrap problem: on first load (or after cookie expiry) the browser
+     * has no _csrf cookie, so any POST/PUT/PATCH/DELETE would fail with
+     * "CSRF token validation failed" until a GET request triggered ensureCSRFToken on the backend.
+     */
+    private async ensureCsrfToken(forceRefresh = false): Promise<void> {
+        if (typeof window === 'undefined') return;
+        if (!forceRefresh && this.getCookie('_csrf')) return;
+
+        const existingCookie = this.getCookie('_csrf');
+        if (!forceRefresh && existingCookie) {
+            this.lastCsrfToken = existingCookie;
+            return;
+        }
+
+        if (!this.csrfBootstrapPromise) {
+            this.csrfBootstrapPromise = fetch('/api/auth/csrf', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store',
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`CSRF bootstrap failed with status ${response.status}`);
+                    }
+                    const token = response.headers.get('X-CSRF-Token');
+                    if (token) {
+                        this.lastCsrfToken = token;
+                    }
+                })
+                .finally(() => { this.csrfBootstrapPromise = null; });
+        }
+
+        return this.csrfBootstrapPromise;
+    }
+
+    private getCookie(name: string): string | null {
+        if (typeof document === 'undefined') return null;
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            const c = ca[i];
+            if (!c) continue;
+            let trimmed = c;
+            while (trimmed.charAt(0) === ' ') trimmed = trimmed.substring(1);
+            if (trimmed.indexOf(nameEQ) === 0) return trimmed.substring(nameEQ.length);
+        }
+        return null;
     }
 
     private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
@@ -219,31 +275,22 @@ class ApiClient {
 
         const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
 
+        // For state-changing requests in the browser: guarantee the CSRF cookie exists first,
+        // then inject it as the X-CSRF-Token header (Double Submit Cookie pattern).
+        if (typeof window !== 'undefined' && isWriteMethod) {
+            await this.ensureCsrfToken();
+            const csrfToken = this.getCookie('_csrf');
+            if (csrfToken) {
+                this.lastCsrfToken = csrfToken;
+                headers.set('X-CSRF-Token', csrfToken);
+            } else if (this.lastCsrfToken) {
+                headers.set('X-CSRF-Token', this.lastCsrfToken);
+            }
+        }
+
         // Auto-generate Idempotency-Key for write requests (idempotency middleware)
         if (isWriteMethod && !headers.has('Idempotency-Key')) {
             headers.set('Idempotency-Key', crypto.randomUUID());
-        }
-
-        // Attach CSRF token for write requests in browser environment
-        if (isWriteMethod && typeof window !== 'undefined' && !headers.has('X-CSRF-Token')) {
-            const cookies = window.document.cookie.split(';').map(c => c.trim());
-            const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
-            let csrfToken: string | undefined;
-            for (const name of csrfNames) {
-                const entry = cookies.find(c => c.startsWith(name + '='));
-                if (entry) {
-                    const value = entry.split('=')[1] || '';
-                    try {
-                        csrfToken = decodeURIComponent(value);
-                    } catch {
-                        csrfToken = value;
-                    }
-                    break;
-                }
-            }
-            if (csrfToken) {
-                headers.set('X-CSRF-Token', csrfToken);
-            }
         }
 
         return headers;
@@ -261,6 +308,17 @@ class ApiClient {
 
     private canRetryMethod(method: string): boolean {
         return RETRYABLE_METHODS.includes(method.toUpperCase());
+    }
+
+    private async isCsrfValidationFailure(response: Response): Promise<boolean> {
+        if (response.status !== 403) return false;
+        try {
+            const body = await response.clone().json().catch(() => null) as { error?: string; message?: string } | null;
+            const message = body?.error || body?.message || '';
+            return message.toLowerCase().includes('csrf');
+        } catch {
+            return false;
+        }
     }
 
     private isRetryableError(error: unknown, retryCount: number, retries: number, method: string): boolean {
@@ -306,6 +364,14 @@ class ApiClient {
                 timer.stop();
                 clearTimeout(id);
 
+                // Handle CSRF validation failure - force refresh token and retry once
+                if (await this.isCsrfValidationFailure(response) && retryCount < 1) {
+                    await this.ensureCsrfToken(true);
+                    await sleep(100); // Small delay to ensure cookie is set
+                    retryCount++;
+                    continue;
+                }
+
                 if (response.status === 401 && retryCount < 1) {
                     const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
                     
@@ -328,12 +394,19 @@ class ApiClient {
                             this.isRefreshing = true;
                             try {
                                 const refreshUrl = normalizeEndpoint('/auth/refresh');
+                                const refreshHeaders: Record<string, string> = {
+                                    'Content-Type': 'application/json'
+                                };
+                                if (typeof window !== 'undefined') {
+                                    const csrfToken = this.getCookie('_csrf');
+                                    if (csrfToken) {
+                                        refreshHeaders['X-CSRF-Token'] = csrfToken;
+                                    }
+                                }
                                 const refreshRes = await fetch(refreshUrl, {
                                     method: 'POST',
                                     credentials: 'include',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    }
+                                    headers: refreshHeaders
                                 });
 
                                 if (refreshRes.ok) {

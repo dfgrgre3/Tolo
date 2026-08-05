@@ -15,8 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { m, AnimatePresence } from "framer-motion";
-
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
 import { errorService as errorManager } from "@/lib/logging/error-service";
@@ -118,7 +116,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 			}
 
-			
 
 			const storedScope = safeGetItem("header_search_scope", { fallback: "all" });
 
@@ -144,7 +141,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 	}, [mounted]);
 
-	
+
 
 	// Save search scope preference when it changes
 
@@ -171,7 +168,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			results,
 			timestamp: Date.now(),
 		});
-		
+
 		if (searchCacheRef.current.size > 50) {
 			const firstKey = searchCacheRef.current.keys().next().value;
 			if (firstKey) {
@@ -213,10 +210,10 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 	}, []);
 
 	const handleSearchError = useCallback((error: unknown, query: string, scope: string) => {
-		const errorMessage = error instanceof Error 
-			? error.message 
+		const errorMessage = error instanceof Error
+			? error.message
 			: "فشل في جلب نتائج البحث";
-		
+
 		errorManager.handleError(
 			error instanceof Error ? error : new Error(errorMessage),
 			{
@@ -242,7 +239,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 				duration: 5000
 			}
 		);
-		
+
 		setSearchResults([]);
 		setShowSearchSuggestions(false);
 	}, []);
@@ -259,7 +256,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 		const cacheKey = `${query}_${scope}`;
 		const cached = searchCacheRef.current.get(cacheKey);
-		
+
 		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
 			setSearchResults(cached.results);
 			setShowSearchSuggestions(cached.results.length > 0);
@@ -275,17 +272,17 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			if (response.ok) {
 				const data = await response.json();
 				const results = data.results || [];
-				
+
 				updateSearchCache(cacheKey, results);
-				
+
 				setSearchResults(results);
 				setShowSearchSuggestions(results.length > 0);
-				
+
 				// Pre-cache for service worker
 				if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 					preCacheSearch(query, scope).catch(() => {});
 				}
-				
+
 				updateRecentSearches(query);
 			} else {
 				setSearchResults([]);
@@ -334,12 +331,8 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 		debouncedSearch(searchQuery, searchScope);
 
-		 
 
 	}, [searchQuery, searchScope, mounted]);
-
-
-
 
 
 
@@ -364,7 +357,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 		if (!mounted) return;
 
 
-
 		const handleKeyDown = (e: KeyboardEvent) => {
 
 			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -375,7 +367,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 					if (e.key === "ArrowDown") {
 
-						setSelectedResultIndex((prev) => 
+						setSelectedResultIndex((prev) =>
 
 							prev < searchResults.length - 1 ? prev + 1 : 0
 
@@ -383,7 +375,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 					} else {
 
-						setSelectedResultIndex((prev) => 
+						setSelectedResultIndex((prev) =>
 
 							prev > 0 ? prev - 1 : searchResults.length - 1
 
@@ -398,7 +390,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			}
 
 
-
 			if (e.key === "Enter" && selectedResultIndex >= 0 && searchResults[selectedResultIndex]) {
 
 				e.preventDefault();
@@ -408,7 +399,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 				return;
 
 			}
-
 
 
 			if (e.key === "Escape") {
@@ -422,7 +412,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			}
 
 		};
-
 
 
 		window.addEventListener("keydown", handleKeyDown);
@@ -440,7 +429,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 		if (!mounted || isMobile) return;
 
 
-
 		const handleKeyDown = (e: KeyboardEvent) => {
 
 			if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -452,7 +440,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 			}
 
 		};
-
 
 
 		window.addEventListener("keydown", handleKeyDown);
@@ -480,6 +467,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 	}, [handleSearchResultClick, searchQuery, searchResults, selectedResultIndex]);
 
 
+
 	const handleRecentSearchClick = useCallback((search: string) => {
 
 		setSearchQuery(search);
@@ -501,7 +489,6 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 		}
 
 
-
 		setIsVoiceSearchActive(true);
 
 		setTimeout(() => {
@@ -519,7 +506,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 	if (isMobile) {
 		return (
 			<form onSubmit={handleSearch} className="mb-4 space-y-3">
-	
+
 				<div className="flex gap-2">
 					<Button
 						type="button"
@@ -540,7 +527,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 							placeholder="بحث..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							className="flex-1 pr-10 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/40 transition-all bg-background dark:bg-background border-border dark:border-border/70 text-base"
+							className="flex-1 pr-10 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/40 bg-background dark:bg-background border-border dark:border-border/70 text-base"
 						/>
 						<Button
 							type="button"
@@ -552,7 +539,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 							}}
 							className={cn(
 								"absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 touch-manipulation",
-								isVoiceSearchActive && "text-primary animate-pulse"
+								isVoiceSearchActive && "text-primary"
 							)}
 							title="البحث الصوتي"
 						>
@@ -563,10 +550,10 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 						<Search className="h-4 w-4" />
 					</Button>
 				</div>
-	
+
 				{/* Mobile Search Scope Filters */}
 				<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="mobile" />
-	
+
 				{/* Mobile Recent Searches */}
 				{recentSearches.length > 0 && (
 					<RecentSearches
@@ -577,7 +564,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 						variant="mobile"
 					/>
 				)}
-	
+
 				{/* Mobile Search Results */}
 				{searchQuery.trim().length > 0 && (
 					<div className="space-y-2 max-h-64 overflow-y-auto -webkit-overflow-scrolling: touch">
@@ -594,7 +581,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 						)}
 					</div>
 				)}
-	
+
 			</form>
 		);
 	}
@@ -602,20 +589,17 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 	return (
 
-		<m.form
-
+		<form
 			onSubmit={handleSearch}
 			className="flex items-center gap-3 relative"
 		>
 
-			<m.div
-
+			<div
 				className="relative w-full"
-
 			>
 
 				<div className="relative group/search-input">
-					<Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50 group-focus-within/search-input:text-primary group-focus-within/search-input:scale-105 transition-all duration-300 pointer-events-none" />
+					<Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50 group-focus-within/search-input:text-primary pointer-events-none" />
 
 					<Input
 						ref={searchInputRef}
@@ -624,7 +608,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						onFocus={() => setShowSearchSuggestions(true)}
-						className="w-full h-12 pr-11 pl-20 transition-all duration-300 focus:ring-4 focus:ring-primary/10 focus:border-primary/50 bg-background/90 dark:bg-background/90 backdrop-blur-xl border-border/50 dark:border-border/60 text-base rounded-2xl shadow-inner focus:shadow-md focus:bg-background"
+						className="w-full h-12 pr-11 pl-20 focus:ring-4 focus:ring-primary/10 focus:border-primary/50 bg-background/90 dark:bg-background/90 border-border/50 dark:border-border/60 text-base rounded-2xl shadow-inner focus:shadow-md focus:bg-background"
 						onBlur={() => {
 
 							setTimeout(() => {
@@ -679,9 +663,9 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 						className={cn(
 
-							"absolute left-9 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all rounded-xl",
+							"absolute left-9 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary rounded-xl",
 
-							isVoiceSearchActive && "text-primary animate-pulse"
+							isVoiceSearchActive && "text-primary"
 
 						)}
 
@@ -695,91 +679,67 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 				</div>
 
-				
 
 				{/* Search Scope Filters */}
-
 				{searchQuery.trim().length > 0 && (
 					<SearchScopeFilters searchScope={searchScope} onScopeChange={setSearchScope} variant="desktop" />
 				)}
 
 				{/* Instant Search Results Dropdown */}
+				{showSearchSuggestions && (
+					<div
+						className={cn(
+							"absolute top-full left-0 right-0 bg-background/95 dark:bg-background border border-border/60 dark:border-border/80 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto backdrop-blur-md",
+							searchQuery.trim().length > 0 ? "mt-14" : "mt-2"
+						)}
+					>
 
-				<AnimatePresence>
+						{/* Recent Searches */}
+						{recentSearches.length > 0 && (
+							<RecentSearches
+								searches={recentSearches}
+								onSearchClick={handleRecentSearchClick}
+								onClearSearch={clearRecentSearch}
+								onClearAll={clearAllRecentSearches}
+								variant="desktop"
+							/>
+						)}
 
-					{showSearchSuggestions && (
+						{/* Loading State */}
 
-						<m.div
+						{isSearching && <SearchLoadingState />}
 
-							initial={{ opacity: 0, y: -10, scale: 0.95 }}
+						{/* Search Results */}
 
-							animate={{ opacity: 1, y: 0, scale: 1 }}
+						{!isSearching && searchResults.length > 0 && (
 
-							exit={{ opacity: 0, y: -10, scale: 0.95 }}
+							<div className="py-1">
+								{searchResults.map((result, index) => (
+									<DesktopSearchResultItem
+										key={result.id}
+										result={result}
+										index={index}
+										isSelected={selectedResultIndex === index}
+										onSelect={setSelectedResultIndex}
+										onClick={handleSearchResultClick}
+									/>
+								))}
+							</div>
 
-							transition={{ duration: 0.2, ease: "easeOut" }}
+						)}
 
-							className={cn(
+						{/* No Results */}
 
-								"absolute top-full left-0 right-0 bg-background/95 dark:bg-background border border-border/60 dark:border-border/80 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto backdrop-blur-md",
+						{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
+							<SearchNoResults />
+						)}
 
-								searchQuery.trim().length > 0 ? "mt-14" : "mt-2"
+					</div>
+				)}
 
-							)}
+			</div>
 
-						>
-
-							{/* Recent Searches */}
-							{recentSearches.length > 0 && (
-								<RecentSearches
-									searches={recentSearches}
-									onSearchClick={handleRecentSearchClick}
-									onClearSearch={clearRecentSearch}
-									onClearAll={clearAllRecentSearches}
-									variant="desktop"
-								/>
-							)}
-
-							{/* Loading State */}
-
-							{isSearching && <SearchLoadingState />}
-
-							{/* Search Results */}
-
-							{!isSearching && searchResults.length > 0 && (
-
-								<div className="py-1">
-
-									{searchResults.map((result, index) => (
-										<DesktopSearchResultItem
-											key={result.id}
-											result={result}
-											index={index}
-											isSelected={selectedResultIndex === index}
-											onSelect={setSelectedResultIndex}
-											onClick={handleSearchResultClick}
-										/>
-									))}
-
-								</div>
-
-							)}
-
-							{/* No Results */}
-
-							{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
-								<SearchNoResults />
-							)}
-
-						</m.div>
-
-					)}
-
-				</AnimatePresence>
-
-			</m.div>
-
-			<Button type="submit" size="icon" variant="ghost" className="hover:bg-primary/15 hover:text-primary transition-all duration-300 shadow-md h-12 w-12 rounded-2xl bg-primary/10 hover:bg-primary/20">
+			<Button type="submit" size="icon" variant="ghost" className="hover:bg-primary/15 hover:text-primary shadow-md h-12 w-12 rounded-2xl bg-primary/10 hover:bg-primary/20">
 
 				<Search className="h-5 w-5" />
 
@@ -804,7 +764,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 
 					}}
 
-					className="hover:bg-destructive/15 hover:text-destructive transition-all duration-300 h-12 w-12 rounded-2xl"
+					className="hover:bg-destructive/15 hover:text-destructive h-12 w-12 rounded-2xl"
 
 				>
 
@@ -813,8 +773,7 @@ export function HeaderSearch({ isMobile = false, isOpen = false, onOpenChange }:
 				</Button>
 			)}
 
-		</m.form>
+		</form>
 
 	);
-
 }

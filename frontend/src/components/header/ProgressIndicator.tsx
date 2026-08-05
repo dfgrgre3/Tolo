@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
-import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BookOpen, Clock, Award } from "lucide-react";import { requestCache } from "@/lib/api/request-cache";
 import { logger } from "@/lib/logger";
@@ -130,34 +129,27 @@ function ProgressIndicator() {
   if (!shouldShow || !isVisible || progressData.length === 0) return null;
 
   return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/50 backdrop-blur-sm"
-      >
-        {progressData.slice(0, 2).map((item, index) => {
-          const percentage = item.max > 0 ? Math.min((item.value / item.max) * 100, 100) : 0;
-          return (
-            <div key={index} className="flex items-center gap-2 min-w-[120px]">
-              <div className={cn("p-1.5 rounded-md", item.color, "text-white")}>
-                {item.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-foreground truncate">{item.label}</span>
-                  <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                    {Math.round(percentage)}%
-                  </span>
-                </div>
-                <Progress value={percentage} className="h-1.5" />
-              </div>
+    <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/50 backdrop-blur-sm">
+      {progressData.slice(0, 2).map((item, index) => {
+        const percentage = item.max > 0 ? Math.min((item.value / item.max) * 100, 100) : 0;
+        return (
+          <div key={index} className="flex items-center gap-2 min-w-[120px]">
+            <div className={cn("p-1.5 rounded-md", item.color, "text-white")}>
+              {item.icon}
             </div>
-          );
-        })}
-      </m.div>
-    </AnimatePresence>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-foreground truncate">{item.label}</span>
+                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                  {Math.round(percentage)}%
+                </span>
+              </div>
+              <Progress value={percentage} className="h-1.5" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

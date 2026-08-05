@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="w-full flex items-center justify-center py-6">
       <div className="w-full max-w-[460px] mx-auto">
-        <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl transition-all duration-300">
+        <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
           <CardHeader className="space-y-2 text-center pb-6">
             <div className="flex justify-center mb-3">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -93,13 +93,13 @@ export default function ForgotPasswordPage() {
                     required
                     disabled={isLoading}
                     dir="ltr"
-                    className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                    className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
                   />
                 </div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4 pt-4">
-              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0" disabled={isLoading || !!success}>
+              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !!success}>
                 {isLoading ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                 )}
               </Button>
               <div className="text-sm text-center text-slate-500 dark:text-slate-400 font-medium">
-                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4 transition-colors">
+                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
                   العودة لتسجيل الدخول
                 </Link>
               </div>

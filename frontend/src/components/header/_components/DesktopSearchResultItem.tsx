@@ -28,18 +28,17 @@ export const DesktopSearchResultItem = ({
 			type="button"
 			onClick={() => onClick(result)}
 			onMouseEnter={() => onSelect(index)}
-			className={cn(
-				"w-full text-right px-4 py-3 transition-all duration-150 flex items-center gap-3 border-b border-border/50 dark:border-border/50 last:border-0",
-				isSelected
-					? "bg-primary/10 dark:bg-primary/20 border-r-2 border-r-primary dark:border-r-primary"
-					: "hover:bg-accent/80 dark:hover:bg-accent/60"
-			)}
-		>
-			<div className={cn(
-				"p-2 rounded-lg transition-all duration-150",
-				config.bgClass,
-				isSelected && "scale-110"
-			)}>
+		className={cn(
+			"w-full text-right px-4 py-3 transition-colors flex items-center gap-3 border-b border-border/50 dark:border-border/50 last:border-0",
+			isSelected
+				? "bg-primary/10 dark:bg-primary/20 border-r-2 border-r-primary dark:border-r-primary"
+				: "hover:bg-accent/80 dark:hover:bg-accent/60"
+		)}
+	>
+		<div className={cn(
+			"p-2 rounded-lg",
+			config.bgClass
+		)}>
 				<IconComponent className={cn(
 					"h-4 w-4 transition-colors",
 					config.textClass

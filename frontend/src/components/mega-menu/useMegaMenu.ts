@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';
 import type { User } from "@/types/user";
 import type { MegaMenuCategory } from "./types";
@@ -25,8 +24,15 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
     if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('megaMenuRecentSearches');
-      return saved ? JSON.parse(saved).slice(0, 5) : [];
-    } catch {
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.slice(0, 5);
+    } catch (e) {
+      // Handle corrupted data gracefully
+      if (typeof window !== 'undefined') {
+        try { localStorage.removeItem('megaMenuRecentSearches'); } catch {}
+      }
       return [];
     }
   });
@@ -38,7 +44,11 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
     setRecentSearches(prev => {
       const updated = [query, ...prev.filter(s => s !== query)].slice(0, 5);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('megaMenuRecentSearches', JSON.stringify(updated));
+        try {
+          localStorage.setItem('megaMenuRecentSearches', JSON.stringify(updated));
+        } catch (e) {
+          // Storage full or unavailable - silently ignore
+        }
       }
       return updated;
     });
@@ -47,7 +57,11 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
   const clearRecentSearches = useCallback(() => {
     setRecentSearches([]);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('megaMenuRecentSearches');
+      try {
+        localStorage.removeItem('megaMenuRecentSearches');
+      } catch (e) {
+        // Silently ignore
+      }
     }
   }, []);
 

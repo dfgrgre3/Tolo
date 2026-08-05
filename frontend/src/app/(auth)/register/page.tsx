@@ -22,7 +22,7 @@ export default function RegisterPage() {
           <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center shadow-lg shadow-primary/20">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
-          <Link href="/" className="text-2xl font-black tracking-wider bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:opacity-90 transition-opacity">
+          <Link href="/" className="text-2xl font-black tracking-wider bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:opacity-90">
             Tolo
           </Link>
         </div>
@@ -38,7 +38,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Info footer */}
-        <div className="relative z-20 mt-auto bg-slate-900/60 backdrop-blur-md p-6 rounded-xl border border-white/5 shadow-xl">
+        <div className="relative z-20 mt-auto bg-slate-900/60 p-6 rounded-xl border border-white/5 shadow-xl">
           <div className="flex gap-6 justify-around text-center">
             <div>
               <p className="text-2xl font-black text-primary">+15K</p>

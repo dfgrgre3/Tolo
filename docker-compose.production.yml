@@ -61,6 +61,9 @@ services:
 
   frontend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME_FRONTEND:-thanawy/thanawy-app}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
     restart: unless-stopped
     stop_grace_period: 60s
     networks:

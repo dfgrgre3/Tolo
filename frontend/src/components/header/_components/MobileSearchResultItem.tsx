@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { getResultConfig } from "./search-config";
 import type { SearchResult } from "./search-types";
@@ -13,21 +12,19 @@ interface MobileSearchResultItemProps {
 export const MobileSearchResultItem = ({ result, onClick }: MobileSearchResultItemProps) => {
 	const config = getResultConfig(result.type);
 	const IconComponent = config.icon;
-	
+
 	return (
-		<m.button
-			initial={{ opacity: 0, x: 10 }}
-			animate={{ opacity: 1, x: 0 }}
+		<button
 			type="button"
 			onClick={() => onClick(result)}
-			className="w-full text-right px-3 py-3 rounded-lg hover:bg-accent dark:hover:bg-accent/80 transition-all duration-150 flex items-center gap-2.5 border border-border/50 dark:border-border/50 active:scale-95 touch-manipulation"
+			className="w-full text-right px-3 py-3 rounded-lg hover:bg-accent dark:hover:bg-accent/80 transition-colors flex items-center gap-2.5 border border-border/50 dark:border-border/50 touch-manipulation"
 		>
 			<div className={cn(
-				"p-2 rounded-lg transition-all duration-150",
+				"p-2 rounded-lg",
 				config.bgClass
 			)}>
 				<IconComponent className={cn(
-					"h-4 w-4 transition-colors",
+					"h-4 w-4",
 					config.textClass
 				)} />
 			</div>
@@ -44,6 +41,6 @@ export const MobileSearchResultItem = ({ result, onClick }: MobileSearchResultIt
 					</span>
 				)}
 			</div>
-		</m.button>
+		</button>
 	);
 };

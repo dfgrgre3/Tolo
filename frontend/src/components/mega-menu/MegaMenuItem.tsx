@@ -14,9 +14,13 @@ interface MegaMenuItemProps {
   isFocused?: boolean;
 }
 
+function escapeRegexSpecialChars(str: string): string {
+  return str.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
-  const escapedQuery = query.replace(/[\\-^$*+?.()|[\\]{}]/g, '\\$&').replace(/\//g, '\\/');
+  const escapedQuery = escapeRegexSpecialChars(query);
   const regex = new RegExp(`(${escapedQuery})`, 'gi');
   const parts = text.split(regex);
   return (

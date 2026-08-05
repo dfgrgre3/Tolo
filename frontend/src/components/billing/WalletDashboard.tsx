@@ -369,19 +369,19 @@ export default function WalletDashboard() {
                         <AreaChart data={chartData}>
                           <defs>
                             <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.5} />
-                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <Tooltip
-                        contentStyle={{ backgroundColor: '#07080f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: '#fff', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
-                        itemStyle={{ color: '#fff', fontWeight: '900' }}
-                        cursor={{ stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5' }} />
-                      
+                        contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '20px', color: 'hsl(var(--popover-foreground))', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: '900' }}
+                        cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '5 5' }} />
+
                           <Area
                         type="monotone"
                         dataKey="balance"
-                        stroke="#8b5cf6"
+                        stroke="hsl(var(--primary))"
                         strokeWidth={6}
                         fillOpacity={1}
                         fill="url(#colorBalance)"

@@ -22,7 +22,6 @@ import {
   Star,
   Mic,
 } from "lucide-react";
-import { m } from "framer-motion";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -369,7 +368,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
 
     const selectedElement = listRef.current.children[selectedIndex] as HTMLElement | undefined;
-    selectedElement?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    selectedElement?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
   return (
@@ -396,9 +395,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-8 w-8 rounded-full transition-all duration-300",
+                    "h-8 w-8 rounded-full",
                     isListening
-                      ? "bg-red-500/10 text-red-500 animate-pulse"
+                      ? "bg-red-500/10 text-red-500"
                       : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
                   )}
                   onClick={toggleListening}
@@ -442,16 +441,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         const isSelected = globalIndex === selectedIndex;
 
                         return (
-                          <m.button
+                          <button
                             key={command.id}
                             onClick={() => handleSelect(command)}
                             className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right transition-all",
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right",
                               "hover:bg-accent focus:bg-accent focus:outline-none",
                               isSelected && "bg-accent ring-2 ring-primary/20"
                             )}
-                            whileHover={{ x: -2 }}
-                            whileTap={{ scale: 0.98 }}
                           >
                             <div
                               className={cn(
@@ -489,7 +486,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                             ) : null}
 
                             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                          </m.button>
+                          </button>
                         );
                       })}
                     </div>

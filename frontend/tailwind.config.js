@@ -26,9 +26,11 @@ export default {
         'screen-3xl': '1920px',
       },
       fontFamily: {
-        sans: ['var(--font-alexandria)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
-        alexandria: ['var(--font-alexandria)', 'sans-serif'],
-        jakarta: ['var(--font-sans)', 'sans-serif'],
+        sans: ['var(--font-cairo)', 'system-ui', 'sans-serif'],
+        cairo: ['var(--font-cairo)', 'sans-serif'],
+        geist: ['var(--font-geist)', 'var(--font-cairo)', 'sans-serif'],
+        // kept for backward-compat with any remaining font-alexandria classes
+        alexandria: ['var(--font-cairo)', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border) / <alpha-value>)',

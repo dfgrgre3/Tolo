@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useMemo, useState, useEffect } from "react";
-import { AnimatePresence, MotionConfig, m } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { logger } from '@/lib/logger';
@@ -16,12 +15,10 @@ import { MegaMenuGrid } from "./MegaMenuGrid";
 import { FeaturedPromo } from "./FeaturedPromo";
 
 const AiSuggestionsLoader = () => (
-	<m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center py-8 gap-3">
-		<m.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-			<Loader2 className="h-5 w-5 text-primary" />
-		</m.div>
+	<div className="flex items-center justify-center py-8 gap-3">
+		<Loader2 className="h-5 w-5 text-primary animate-spin" />
 		<span className="text-sm text-muted-foreground">جاري تحميل التوصيات الذكية...</span>
-	</m.div>
+	</div>
 );
 
 const AiSuggestions = dynamic(
@@ -72,10 +69,20 @@ export const MegaMenuContent = React.memo(function MegaMenuContent({ categories,
 	const [isMobile, setIsMobile] = useState(false);
 
 	useEffect(() => {
-		const checkMobile = () => setIsMobile(window.innerWidth < 768);
-		checkMobile();
-		window.addEventListener("resize", checkMobile);
-		return () => window.removeEventListener("resize", checkMobile);
+		if (typeof window === 'undefined') return;
+
+		const MEDIA_QUERY = '(max-width: 767px)';
+		const mediaQuery = window.matchMedia(MEDIA_QUERY);
+
+		const handleChange = () => setIsMobile(mediaQuery.matches);
+
+		// Set initial value
+		setIsMobile(mediaQuery.matches);
+
+		// Use matchMedia with change listener instead of resize event
+		mediaQuery.addEventListener('change', handleChange);
+
+		return () => mediaQuery.removeEventListener('change', handleChange);
 	}, []);
 
 	const menuHeight = useMemo(() => {
@@ -91,34 +98,32 @@ export const MegaMenuContent = React.memo(function MegaMenuContent({ categories,
 	if (!isOpen) return null;
 
   return (
-    <MotionConfig reducedMotion="user">
-      <>
-        <MegaMenuContainer menuWidth={menuWidth}>
-          <MegaMenuHeader
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            isSearchFocused={isSearchFocused}
-            setIsSearchFocused={setIsSearchFocused}
-            onClose={onClose}
-            user={user}
-            notificationCount={notificationCount}
-            recentSearches={recentSearches}
-            onClearRecent={clearRecentSearches}
-            totalItems={totalItems}
-            hasSearchResults={!!hasSearchResults}
-          />
+    <>
+      <MegaMenuContainer menuWidth={menuWidth}>
+        <MegaMenuHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          onClose={onClose}
+          user={user}
+          notificationCount={notificationCount}
+          recentSearches={recentSearches}
+          onClearRecent={clearRecentSearches}
+          totalItems={totalItems}
+          hasSearchResults={!!hasSearchResults}
+        />
 
-          <div className={cn(
-            "relative overflow-y-auto",
-            "scrollbar-thin scrollbar-thumb-primary/30 scrollbar-thumb-rounded-full",
-            "scrollbar-track-transparent hover:scrollbar-thumb-primary/40",
-            "-webkit-overflow-scrolling: touch",
-            menuHeight
-          )}>
-						<AnimatePresence mode="wait">
-							{hasNoResults ? (
-								<MegaMenuEmptyState searchQuery={searchQuery} onClose={onClose} />
-							) : (
+        <div className={cn(
+          "relative overflow-y-auto",
+          "scrollbar-thin scrollbar-thumb-primary/30 scrollbar-thumb-rounded-full",
+          "scrollbar-track-transparent hover:scrollbar-thumb-primary/40",
+          "-webkit-overflow-scrolling: touch",
+          menuHeight
+        )}>
+					{hasNoResults ? (
+						<MegaMenuEmptyState searchQuery={searchQuery} onClose={onClose} />
+					) : (
             <div className={cn("flex flex-col", !searchQuery && "lg:flex-row gap-4 p-1 sm:p-1.5 md:p-2")}>
               <div className="flex-1 relative">
                 <MegaMenuGrid
@@ -146,15 +151,13 @@ export const MegaMenuContent = React.memo(function MegaMenuContent({ categories,
                 </div>
               )}
             </div>
-							)}
-						</AnimatePresence>
-					</div>
-
-					{!searchQuery && (
-						<MegaMenuFooter categoriesCount={categories.length} totalItems={totalItems} />
 					)}
-				</MegaMenuContainer>
-			</>
-		</MotionConfig>
+				</div>
+
+				{!searchQuery && (
+					<MegaMenuFooter categoriesCount={categories.length} totalItems={totalItems} />
+				)}
+			</MegaMenuContainer>
+		</>
 	);
 });

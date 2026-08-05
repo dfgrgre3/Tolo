@@ -84,10 +84,10 @@ export default function MfaPage() {
   return (
     <div className="container relative min-h-[80vh] flex items-center justify-center">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[460px] p-4">
-        <Card className="w-full border-none shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+        <Card className="w-full border-none shadow-2xl bg-white dark:bg-slate-900">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-2 text-primary">
-              <ShieldCheck className="h-10 w-10 animate-pulse" />
+              <ShieldCheck className="h-10 w-10" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">المصادقة الثنائية (2FA)</CardTitle>
             <CardDescription>قم بتأمين حسابك عبر ربطه بتطبيق Google Authenticator</CardDescription>

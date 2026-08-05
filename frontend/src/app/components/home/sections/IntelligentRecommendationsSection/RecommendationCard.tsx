@@ -136,12 +136,20 @@ export const RecommendationCard = ({ recommendation, index }: RecommendationCard
             </div>
           </div>
 
-          <Link href={recommendation.actionUrl} className="block mt-2">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-xl transition-all duration-300 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95">
-              <span>بدء التنفيذ</span>
-              <ArrowRight className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            </Button>
-          </Link>
+          {recommendation.actionUrl ? (
+            <Link href={recommendation.actionUrl} className="block mt-2">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-xl transition-all duration-300 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95">
+                <span>بدء التنفيذ</span>
+                <ArrowRight className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          ) : (
+            <div className="block mt-2 opacity-50 cursor-not-allowed">
+              <Button className="w-full bg-muted text-muted-foreground font-bold h-11 rounded-xl cursor-not-allowed" disabled>
+                <span>غير متاح حالياً</span>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </m.div>

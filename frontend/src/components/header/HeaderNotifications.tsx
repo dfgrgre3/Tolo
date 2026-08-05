@@ -11,7 +11,6 @@ import {
   VolumeX } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
-import { m, AnimatePresence } from "framer-motion";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { cn } from "@/lib/utils";
 
@@ -89,113 +88,103 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 
   return (
     <div className="relative" ref={notificationRef}>
-			<m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-				<Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-          data-notification-trigger
-          className="relative hover:bg-primary/10 dark:hover:bg-primary/15 hover:text-primary transition-all duration-300 group h-9 w-9 sm:h-10 sm:w-10 rounded-full">
-          
-					<Bell className="h-5 w-5 sm:h-4 sm:w-4 transition-transform group-hover:rotate-12" />
-					{notificationCount > 0 &&
-          <m.span
-            initial={false}
-            animate={{ scale: 1 }}
-            style={{ transform: "none" }}
-            className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-destructive via-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold shadow-lg ring-2 ring-background">
-            
-							{notificationCount > 9 ? "9+" : notificationCount}
-						</m.span>
-          }
-				</Button>
-			</m.div>
+			<Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+        data-notification-trigger
+        className="relative hover:bg-primary/10 dark:hover:bg-primary/15 hover:text-primary h-9 w-9 sm:h-10 sm:w-10 rounded-full">
 
-			<AnimatePresence>
-				{isNotificationOpen &&
-        <m.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className="absolute left-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-background border border-border rounded-lg shadow-xl z-50 max-h-[32rem] overflow-hidden flex flex-col">
-          
-						{/* Header */}
-						<div className="p-4 border-b border-border flex items-center justify-between">
-							<div className="flex items-center gap-2">
-								<h3 className="font-semibold text-sm">الإشعارات</h3>
-								{notificationCount > 0 &&
+				<Bell className="h-5 w-5 sm:h-4 sm:w-4" />
+				{notificationCount > 0 &&
+        <span
+          className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-destructive via-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold shadow-lg ring-2 ring-background">
+
+					{notificationCount > 9 ? "9+" : notificationCount}
+				</span>
+        }
+			</Button>
+
+			{isNotificationOpen &&
+      <div
+        className="absolute left-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-background border border-border rounded-lg shadow-xl z-50 max-h-[32rem] overflow-hidden flex flex-col">
+
+					{/* Header */}
+					<div className="p-4 border-b border-border flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<h3 className="font-semibold text-sm">الإشعارات</h3>
+							{notificationCount > 0 &&
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-										{notificationCount}
-									</span>
+								{notificationCount}
+							</span>
               }
-							</div>
-							<div className="flex items-center gap-1">
-								<Button
+						</div>
+						<div className="flex items-center gap-1">
+							<Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSound}
                 className="h-8 w-8"
                 title={soundEnabled ? "تعطيل الصوت" : "تفعيل الصوت"}>
-                
-									{soundEnabled ?
+
+								{soundEnabled ?
                 <Volume2 className="h-4 w-4" /> :
 
                 <VolumeX className="h-4 w-4" />
                 }
-								</Button>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button variant="ghost" size="icon" className="h-8 w-8">
-											<MoreVertical className="h-4 w-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end">
-										<DropdownMenuItem onClick={handleMarkAllRead}>
-											<Check className="h-4 w-4 mr-2" />
-											تحديد الكل كمقروء
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem asChild>
-											<Link href="/notifications">
-												<Settings className="h-4 w-4 mr-2" />
-												إعدادات الإشعارات
-											</Link>
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</div>
+							</Button>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="ghost" size="icon" className="h-8 w-8">
+										<MoreVertical className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem onClick={handleMarkAllRead}>
+										<Check className="h-4 w-4 mr-2" />
+										تحديد الكل كمقروء
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem asChild>
+										<Link href="/notifications">
+											<Settings className="h-4 w-4 mr-2" />
+											إعدادات الإشعارات
+										</Link>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
+					</div>
 
-						{/* Filter Tabs */}
-						<div className="px-4 py-2 border-b border-border flex items-center gap-2 overflow-x-auto">
-							<button
+					{/* Filter Tabs */}
+					<div className="px-4 py-2 border-b border-border flex items-center gap-2 overflow-x-auto">
+						<button
               onClick={() => setFilter("all")}
               className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+                "px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap",
                 filter === "all" ?
                 "bg-primary text-primary-foreground" :
                 "hover:bg-accent text-muted-foreground"
               )}>
-              
-								الكل
-							</button>
-							<button
+
+							الكل
+						</button>
+						<button
               onClick={() => setFilter("unread")}
               className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+                "px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap",
                 filter === "unread" ?
                 "bg-primary text-primary-foreground" :
                 "hover:bg-accent text-muted-foreground"
               )}>
-              
-								غير المقروء
-							</button>
-						</div>
 
-						{/* Notifications List */}
-						<div className="flex-1 overflow-y-auto" style={{ maxHeight: "24rem" }}>
-							{filteredNotifications.length > 0 ?
+							غير المقروء
+						</button>
+					</div>
+
+					{/* Notifications List */}
+					<div className="flex-1 overflow-y-auto" style={{ maxHeight: "24rem" }}>
+						{filteredNotifications.length > 0 ?
             <VirtualList
               items={filteredNotifications}
               itemHeight={100}
@@ -207,30 +196,30 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
                 notification={notification as Notification}
                 markAsRead={handleMarkAsRead} />
 
+
               }
               overscan={2} /> :
 
 
             <div className="p-8 text-center text-muted-foreground">
-									<Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-									<p className="text-sm">لا توجد إشعارات</p>
-								</div>
+								<Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+								<p className="text-sm">لا توجد إشعارات</p>
+							</div>
             }
-						</div>
+					</div>
 
-						{/* Footer */}
-						<div className="p-3 border-t border-border">
-							<Link
+					{/* Footer */}
+					<div className="p-3 border-t border-border">
+						<Link
               href="/notifications"
               onClick={() => setIsNotificationOpen(false)}
               className="block text-center text-xs text-primary hover:underline">
-              
-								عرض جميع الإشعارات
-							</Link>
-						</div>
-					</m.div>
-        }
-			</AnimatePresence>
+
+							عرض جميع الإشعارات
+						</Link>
+					</div>
+				</div>
+      }
 		</div>);
 
 }

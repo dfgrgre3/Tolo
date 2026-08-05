@@ -1,7 +1,6 @@
 "use client";
 
 import React, { memo, useMemo } from "react";
-import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 
@@ -37,7 +36,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
   isDaily = false,
 }: ReadingProgressBarProps) {
   const { scrollProgress } = useStickyHeader({ enableProgress: !isDaily && value === undefined });
-  
+
   // Use provided value, or scroll progress
   const currentProgress = value !== undefined ? value : scrollProgress;
 
@@ -86,50 +85,26 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
         style={{ height: `${height}px` }}
       >
         {/* Progress bar */}
-        {animate ? (
-          <m.div
-            className={cn(
-              "h-full origin-left relative",
-              gradientClass,
-              isDaily ? "shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-            )}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: currentProgress / 100 }}
-            transition={{
-              type: "spring",
-              stiffness: 100,
-              damping: 20,
-              mass: 0.5,
-            }}
-          >
-            {/* Glow effect at the end of the bar */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-full bg-white/40 blur-sm rounded-full" />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-[150%] bg-primary blur-[2px] rounded-full shadow-[0_0_10px_var(--primary)]" />
-          </m.div>
-        ) : (
-          <div
-            className={cn(
-              "h-full origin-left transition-transform duration-150 ease-out",
-              gradientClass,
-              "shadow-md shadow-primary/30 dark:shadow-primary/40"
-            )}
-            style={{ transform: `scaleX(${currentProgress / 100})` }}
-          />
-        )}
+        <div
+          className={cn(
+            "h-full origin-left",
+            gradientClass,
+            isDaily ? "shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+          )}
+          style={{ transform: `scaleX(${currentProgress / 100})` }}
+        />
       </div>
 
       {/* Optional percentage indicator */}
       {showPercentage && currentProgress > 0 && (
-        <m.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <div
           className={cn(
             "absolute left-2 text-[10px] font-black text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg border border-primary/20",
             position === "top" ? "top-full mt-2" : "bottom-full mb-2"
           )}
         >
           {displayProgress}%
-        </m.div>
+        </div>
       )}
     </div>
   );
@@ -147,10 +122,7 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
   if (displayProgress === 0) return null;
 
   return (
-    <m.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
+    <div
       className={cn(
         "flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium",
         className
@@ -167,7 +139,7 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
           strokeWidth="2"
           strokeOpacity="0.2"
         />
-        <m.circle
+        <circle
           cx="10"
           cy="10"
           r="8"
@@ -176,19 +148,11 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
           strokeWidth="2"
           strokeLinecap="round"
           strokeDasharray={50.265}
-          initial={{ strokeDashoffset: 50.265 }}
-          animate={{
-            strokeDashoffset: 50.265 - (scrollProgress / 100) * 50.265,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 100,
-            damping: 20,
-          }}
+          strokeDashoffset={50.265 - (scrollProgress / 100) * 50.265}
         />
       </svg>
       <span>{displayProgress}%</span>
-    </m.div>
+    </div>
   );
 });
 

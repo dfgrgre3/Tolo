@@ -6,7 +6,7 @@ export const navLinkStyles = cva("relative", {
       desktop: "h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest group/btn hover:bg-white/5",
       mobile: "flex items-center gap-3 p-3.5 rounded-xl border border-transparent",
       search: "flex items-center gap-3 p-3 rounded-xl border",
-      mega: "relative flex items-center gap-3 rounded-2xl overflow-hidden bg-card/40 hover:bg-gradient-to-r hover:from-primary/15 hover:via-primary/8 hover:to-primary/4 border border-border/30 hover:border-primary/40 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group/item",
+      mega: "relative flex items-center gap-3 rounded-2xl overflow-hidden bg-card/40 hover:bg-gradient-to-r hover:from-primary/15 hover:via-primary/8 hover:to-primary/4 border border-border/30 hover:border-primary/40 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 hover:shadow-lg hover:shadow-primary/5 group/item",
     },
     active: { true: "", false: "" },
   },
@@ -105,7 +105,7 @@ export const navLayoutStyles = {
 };
 
 export const categoryStyles = {
-  card: cva("relative group/category border backdrop-blur-md overflow-hidden transition-all duration-300", {
+  card: cva("relative group/category border backdrop-blur-md overflow-hidden", {
     variants: {
       active: { true: "bg-gradient-to-b from-primary/15 via-primary/10 to-transparent border-primary/30 shadow-xl shadow-primary/5", false: "bg-card/40 hover:bg-card/50 border-border/40 hover:border-primary/25 shadow-sm hover:shadow-md hover:shadow-primary/2" },
       compact: { true: "p-4 rounded-2xl", false: "p-6 rounded-3xl" },

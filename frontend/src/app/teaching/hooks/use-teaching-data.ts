@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 // ==========================================
-// TYPES DEFINITIONS
+// TYPES DEFINITIONS (matching backend response)
 // ==========================================
 
 export interface InstructorStats {
@@ -34,6 +35,21 @@ export interface ActivityLog {
   rating?: number;
 }
 
+export interface Lesson {
+  id: string;
+  title: string;
+  duration: string;
+  type: "video" | "pdf" | "quiz" | "assignment";
+  url?: string;
+  isPreview?: boolean;
+}
+
+export interface Chapter {
+  id: string;
+  title: string;
+  lessons: Lesson[];
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -50,21 +66,6 @@ export interface Course {
   chapters: Chapter[];
 }
 
-export interface Chapter {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-export interface Lesson {
-  id: string;
-  title: string;
-  duration: string;
-  type: "video" | "pdf" | "quiz" | "assignment";
-  url?: string;
-  isPreview?: boolean;
-}
-
 export interface Student {
   id: string;
   name: string;
@@ -79,6 +80,13 @@ export interface Student {
   joinDate: string;
 }
 
+export interface ReviewReply {
+  id: string;
+  author: string;
+  text: string;
+  date: string;
+}
+
 export interface Review {
   id: string;
   studentName: string;
@@ -87,12 +95,7 @@ export interface Review {
   rating: number;
   comment: string;
   date: string;
-  replies: {
-    id: string;
-    author: string;
-    text: string;
-    date: string;
-  }[];
+  replies: ReviewReply[];
 }
 
 export interface Message {
@@ -118,7 +121,7 @@ export interface Conversation {
 export interface CalendarEvent {
   id: string;
   title: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   time: string;
   type: "class" | "exam" | "meeting" | "deadline";
   duration: string;
@@ -143,347 +146,374 @@ export interface Transaction {
 }
 
 // ==========================================
-// MOCK DATA INITIALIZATION
+// API RESPONSE TYPES
 // ==========================================
 
-const mockStats: InstructorStats = {
-  totalCourses: 12,
-  publishedCourses: 8,
-  draftCourses: 4,
-  totalStudents: 1420,
-  enrollmentsCount: 1840,
-  totalRevenue: 12450,
-  monthlyRevenue: 3420,
-  completionRate: 74,
-  averageRating: 4.8,
-  totalHours: 320,
-  certificatesIssued: 450,
-  unreadMessages: 3,
-  pendingReviews: 5,
-};
+interface TeachingStatsResponse extends InstructorStats {}
 
-const mockActivities: ActivityLog[] = [
-  { id: "1", type: "enrollment", studentName: "أحمد علي", courseTitle: "أساسيات لغة TypeScript للمبتدئين", messageAr: "سجل أحمد علي في كورس أساسيات لغة TypeScript للمبتدئين", messageEn: "Ahmed Ali enrolled in TypeScript Basics", time: "قبل 5 دقائق" },
-  { id: "2", type: "review", studentName: "محمد عمر", courseTitle: "تطوير واجهات المستخدم باستخدام React", rating: 5, messageAr: "أضاف محمد عمر تقييماً بـ 5 نجوم لكورس React", messageEn: "Mohamed Omar rated React Course 5 stars", time: "قبل ساعة" },
-  { id: "3", type: "submission", studentName: "سارة خالد", courseTitle: "تصميم واجهات الويب باستخدام Tailwind CSS", messageAr: "سلمت سارة خالد الواجب الأول لكورس Tailwind CSS", messageEn: "Sara Khaled submitted Assignment 1 for Tailwind CSS", time: "قبل ساعتين" },
-  { id: "4", type: "enrollment", studentName: "هدى محمود", courseTitle: "أساسيات لغة TypeScript للمبتدئين", messageAr: "سجلت هدى محمود في كورس أساسيات لغة TypeScript", messageEn: "Hoda Mahmoud enrolled in TypeScript Basics", time: "قبل 4 ساعات" }
-];
+interface CoursesListResponse {
+  courses: Course[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
-const mockCourses: Course[] = [
-  {
-    id: "1",
-    title: "أساسيات لغة TypeScript للمبتدئين",
-    description: "تعلم أساسيات لغة TypeScript وكيفية دمجها مع بيئة عمل JavaScript لتطوير تطبيقات خالية من الأخطاء.",
-    thumbnail: "https://images.unsplash.com/photo-1516116211223-5c359a36298a?w=500&auto=format&fit=crop&q=60",
-    status: "published",
-    studentsCount: 450,
-    lessonsCount: 15,
-    rating: 4.8,
-    price: 49,
-    duration: "12 ساعة",
-    category: "البرمجة والتطوير",
-    createdDate: "2026-01-10",
-    chapters: [
-      {
-        id: "c1",
-        title: "المقدمة والتهيئة",
-        lessons: [
-          { id: "l1", title: "مقدمة عن الدورة والمدرب", duration: "10 دقائق", type: "video", isPreview: true },
-          { id: "l2", title: "تثبيت الأدوات وتهيئة بيئة العمل", duration: "15 دقيقة", type: "video" }
-        ]
-      },
-      {
-        id: "c2",
-        title: "أساسيات الأنواع (Types)",
-        lessons: [
-          { id: "l3", title: "فهم الأنواع الأساسية Primitive Types", duration: "20 دقيقة", type: "video" },
-          { id: "l4", title: "اختبار سريع: الأنواع الأساسية", duration: "10 دقائق", type: "quiz" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "2",
-    title: "تطوير واجهات المستخدم باستخدام React",
-    description: "احترف بناء مكونات تفاعلية وواجهات مستخدم متطورة باستخدام React 19 والأنماط الحديثة.",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&auto=format&fit=crop&q=60",
-    status: "published",
-    studentsCount: 620,
-    lessonsCount: 22,
-    rating: 4.9,
-    price: 89,
-    duration: "24 ساعة",
-    category: "البرمجة والتطوير",
-    createdDate: "2026-02-15",
-    chapters: []
-  },
-  {
-    id: "3",
-    title: "تصميم واجهات الويب باستخدام Tailwind CSS",
-    description: "طوّر واجهات ويب متجاوبة وجذابة بأسلوب حديث وسرعة فائقة باستخدام إطار العمل Tailwind CSS.",
-    thumbnail: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=500&auto=format&fit=crop&q=60",
-    status: "draft",
-    studentsCount: 0,
-    lessonsCount: 8,
-    rating: 0,
-    price: 29,
-    duration: "6 ساعات",
-    category: "التصميم والواجهات",
-    createdDate: "2026-06-01",
-    chapters: []
-  }
-];
+interface ActivitiesResponse {
+  activities: ActivityLog[];
+}
 
-const mockStudents: Student[] = [
-  {
-    id: "s1",
-    name: "أحمد علي",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed",
-    email: "ahmed.ali@example.com",
-    courseProgress: [
-      { courseId: "1", courseTitle: "أساسيات لغة TypeScript للمبتدئين", progressPercent: 80, lastActive: "قبل 5 دقائق" },
-      { courseId: "2", courseTitle: "تطوير واجهات المستخدم باستخدام React", progressPercent: 45, lastActive: "أمس" }
-    ],
-    joinDate: "2026-02-01"
-  },
-  {
-    id: "s2",
-    name: "سارة خالد",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara",
-    email: "sara.khaled@example.com",
-    courseProgress: [
-      { courseId: "1", courseTitle: "أساسيات لغة TypeScript للمبتدئين", progressPercent: 100, lastActive: "قبل ساعتين" }
-    ],
-    joinDate: "2026-03-10"
-  },
-  {
-    id: "s3",
-    name: "محمد عمر",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mohamed",
-    email: "mohamed.omar@example.com",
-    courseProgress: [
-      { courseId: "2", courseTitle: "تطوير واجهات المستخدم باستخدام React", progressPercent: 12, lastActive: "قبل ساعة" }
-    ],
-    joinDate: "2026-04-12"
-  }
-];
+interface NotificationsResponse {
+  notifications: NotificationItem[];
+}
 
-const mockReviews: Review[] = [
-  {
-    id: "r1",
-    studentName: "محمد عمر",
-    studentAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mohamed",
-    courseTitle: "تطوير واجهات المستخدم باستخدام React",
-    rating: 5,
-    comment: "الشرح ممتاز ومبسط جداً، الكورس يغطي مفاهيم حديثة ساعدتني كثيراً في عملي.",
-    date: "2026-06-25",
-    replies: [
-      { id: "rep1", author: "المدرب", text: "شكراً لك يا محمد، هذا يسعدني جداً! تمنياتي لك بالتوفيق الدائم.", date: "2026-06-26" }
-    ]
-  },
-  {
-    id: "r2",
-    studentName: "سارة خالد",
-    studentAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara",
-    courseTitle: "أساسيات لغة TypeScript للمبتدئين",
-    rating: 4,
-    comment: "الدورة مفيدة والتمارين ممتازة، ولكن تمنيت لو كان هناك شرح إضافي لـ Generics بشكل أعمق.",
-    date: "2026-06-20",
-    replies: []
-  }
-];
+interface StudentsResponse {
+  students: Student[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
-const mockConversations: Conversation[] = [
-  {
-    id: "c1",
-    participantName: "أحمد علي",
-    participantAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed",
-    lastMessage: "هل يمكنك شرح الجزء الخاص بـ generic interfaces مرة أخرى؟",
-    time: "قبل 15 دقيقة",
-    unreadCount: 1,
-    messages: [
-      { id: "m1", senderId: "s1", senderName: "أحمد علي", senderAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed", text: "مرحباً يا أستاذ، واجهت مشكلة في فهم الـ Generics.", time: "10:30 ص", isMe: false },
-      { id: "m2", senderId: "me", senderName: "المدرب", senderAvatar: "", text: "أهلاً بك يا أحمد، ما هي النقطة غير الواضحة تحديداً؟", time: "10:32 ص", isMe: true },
-      { id: "m3", senderId: "s1", senderName: "أحمد علي", senderAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed", text: "هل يمكنك شرح الجزء الخاص بـ generic interfaces مرة أخرى؟", time: "10:45 ص", isMe: false }
-    ]
-  },
-  {
-    id: "c2",
-    participantName: "سارة خالد",
-    participantAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara",
-    lastMessage: "شكراً جزيلاً لك، تم حل المشكلة بعد مراجعة الكود.",
-    time: "قبل ساعتين",
-    unreadCount: 0,
-    messages: [
-      { id: "m4", senderId: "s2", senderName: "سارة خالد", senderAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara", text: "مرحباً أستاذ، كود الـ React لا يعمل ويظهر خطأ في الـ state.", time: "أمس", isMe: false },
-      { id: "m5", senderId: "me", senderName: "المدرب", senderAvatar: "", text: "تأكدي من تصدير المكون بشكل صحيح وتمرير الـ initial state.", time: "أمس", isMe: true },
-      { id: "m6", senderId: "s2", senderName: "سارة خالد", senderAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara", text: "شكراً جزيلاً لك، تم حل المشكلة بعد مراجعة الكود.", time: "9:00 ص", isMe: false }
-    ]
-  }
-];
+interface ReviewsResponse {
+  reviews: Review[];
+}
 
-const mockEvents: CalendarEvent[] = [
-  { id: "e1", title: "بث مباشر: مراجعة مشروع React والرد على الأسئلة", date: new Date().toISOString().split("T")[0]!, time: "18:00", type: "class", duration: "ساعة ونصف" },
-  { id: "e2", title: "تسليم مشروع TypeScript النهائي", date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0]!, time: "23:59", type: "deadline", duration: "" },
-  { id: "e3", title: "اجتماع مع إدارة المنصة لمناقشة الخطة الجديدة", date: new Date(Date.now() + 86400000 * 4).toISOString().split("T")[0]!, time: "14:00", type: "meeting", duration: "ساعة واحدة" }
-];
-
-const mockNotifications: NotificationItem[] = [
-  { id: "n1", title: "تقييم جديد", body: "ترك الطالب محمد عمر تقييماً بـ 5 نجوم في كورس React", time: "قبل ساعة", read: false, type: "review" },
-  { id: "n2", title: "تسجيل جديد", body: "سجل أحمد علي في كورس أساسيات TypeScript", time: "قبل 15 دقيقة", read: false, type: "course" },
-  { id: "n3", title: "تسلم الدفعة الشهرية", body: "تم إرسال أرباح شهر يونيو إلى حسابك المصرفي بنجاح", time: "أمس", read: true, type: "payment" }
-];
-
-const mockTransactions: Transaction[] = [
-  { id: "t1", amount: 49, date: "2026-07-04", status: "completed", type: "sale", courseTitle: "أساسيات لغة TypeScript للمبتدئين" },
-  { id: "t2", amount: 89, date: "2026-07-03", status: "completed", type: "sale", courseTitle: "تطوير واجهات المستخدم باستخدام React" },
-  { id: "t3", amount: 3200, date: "2026-07-01", status: "completed", type: "payout" },
-  { id: "t4", amount: 89, date: "2026-06-29", status: "completed", type: "sale", courseTitle: "تطوير واجهات المستخدم باستخدام React" }
-];
+interface ApiSuccessResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+}
 
 // ==========================================
-// CENTRALIZED STATE MANAGER FOR INTERACTIVE DEMO
+// useTeachingData HOOK
 // ==========================================
 
 export function useTeachingData() {
   const queryClient = useQueryClient();
 
-  // In-memory states to allow adding objects/updating state without real API database
-  const [courses, setCourses] = useState<Course[]>(mockCourses);
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(mockEvents);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(mockNotifications);
-  const [reviews, setReviews] = useState<Review[]>(mockReviews);
-
-  const getStats = useQuery<InstructorStats>({
-    queryKey: ["instructor-stats"],
-    queryFn: async () => mockStats,
+  // ── Stats ──────────────────────────────────────────
+  const statsQuery = useQuery<TeachingStatsResponse>({
+    queryKey: ["teaching", "stats"],
+    queryFn: () =>
+      apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
+    retry: 1,
+    staleTime: 60 * 1000,
   });
 
-  const getActivities = useQuery<ActivityLog[]>({
-    queryKey: ["instructor-activities"],
-    queryFn: async () => mockActivities,
+  const stats = statsQuery.data ?? {
+    totalCourses: 0,
+    publishedCourses: 0,
+    draftCourses: 0,
+    totalStudents: 0,
+    enrollmentsCount: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    completionRate: 0,
+    averageRating: 0,
+    totalHours: 0,
+    certificatesIssued: 0,
+    unreadMessages: 0,
+    pendingReviews: 0,
+  };
+
+  // ── Activities ─────────────────────────────────────
+  const activitiesQuery = useQuery<ActivitiesResponse>({
+    queryKey: ["teaching", "activities"],
+    queryFn: () =>
+      apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
+    retry: 1,
+    staleTime: 30 * 1000,
   });
+
+  const activities = activitiesQuery.data?.activities ?? [];
+
+  // ── Courses ────────────────────────────────────────
+  const coursesQuery = useQuery<CoursesListResponse>({
+    queryKey: ["teaching", "courses"],
+    queryFn: () =>
+      apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
+    retry: 1,
+    staleTime: 30 * 1000,
+  });
+
+  const courses = coursesQuery.data?.courses ?? [];
 
   // Course mutations
-  const createCourse = useCallback((newCourse: Partial<Course>) => {
-    const course: Course = {
-      id: String(courses.length + 1),
-      title: newCourse.title || "كورس جديد بدون عنوان",
-      description: newCourse.description || "",
-      thumbnail: newCourse.thumbnail || "https://images.unsplash.com/photo-1516116211223-5c359a36298a?w=500&auto=format&fit=crop&q=60",
-      status: newCourse.status || "draft",
-      studentsCount: 0,
-      lessonsCount: 0,
-      rating: 0,
-      price: newCourse.price || 0,
-      duration: "0 ساعة",
-      category: newCourse.category || "عام",
-      createdDate: new Date().toISOString().split("T")[0]!,
-      chapters: newCourse.chapters || [],
-    };
-    setCourses((prev) => [course, ...prev]);
-    return course;
-  }, [courses]);
+  const createCourse = useMutation({
+    mutationFn: (newCourse: Partial<Course>) => {
+      // Transform frontend Course format to backend CreateCourse format
+      const body: Record<string, unknown> = {
+        title: newCourse.title,
+        description: newCourse.description,
+        thumbnail: newCourse.thumbnail,
+        price: newCourse.price ?? 0,
+        status: newCourse.status ?? "draft",
+        level: "INTERMEDIATE",
+        language: "ar",
+        chapters: (newCourse.chapters ?? []).map((ch) => ({
+          title: ch.title,
+          lessons: ch.lessons.map((l) => ({
+            title: l.title,
+            duration: l.duration,
+            type: l.type,
+            url: l.url ?? "",
+            isPreview: l.isPreview ?? false,
+          })),
+        })),
+      };
+      return apiClient.post<{ course: Course }>(
+        apiRoutes.teaching.courses.create,
+        body
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "stats"] });
+    },
+  });
 
-  const updateCourse = useCallback((id: string, updated: Partial<Course>) => {
-    setCourses((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updated } : c))
-    );
-  }, []);
+  const updateCourse = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Course>;
+    }) => {
+      const body: Record<string, unknown> = {};
+      if (data.title !== undefined) body.title = data.title;
+      if (data.description !== undefined) body.description = data.description;
+      if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
+      if (data.price !== undefined) body.price = data.price;
+      if (data.status !== undefined) body.status = data.status;
+      return apiClient.patch<ApiSuccessResponse>(
+        apiRoutes.teaching.courses.byId(id),
+        body
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "stats"] });
+    },
+  });
 
-  const deleteCourse = useCallback((id: string) => {
-    setCourses((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+  const deleteCourse = useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete<{ deleted: boolean }>(
+        apiRoutes.teaching.courses.byId(id)
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "stats"] });
+    },
+  });
 
-  // Messaging mutations
-  const sendMessage = useCallback((convId: string, text: string) => {
-    const newMessage: Message = {
-      id: String(Date.now()),
-      senderId: "me",
-      senderName: "المدرب",
-      senderAvatar: "",
-      text,
-      time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
-      isMe: true,
-    };
+  // ── All Students (across all courses) ──────────────────
+  const allStudentsQuery = useQuery<StudentsResponse>({
+    queryKey: ["teaching", "students"],
+    queryFn: () =>
+      apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
+    retry: 1,
+    staleTime: 30 * 1000,
+  });
 
-    setConversations((prev) =>
-      prev.map((c) => {
-        if (c.id === convId) {
-          return {
-            ...c,
-            lastMessage: text,
-            time: "الآن",
-            messages: [...c.messages, newMessage],
-          };
-        }
-        return c;
-      })
-    );
-  }, []);
+  const allStudents = allStudentsQuery.data?.students ?? [];
 
-  // Calendar mutations
-  const addCalendarEvent = useCallback((event: Omit<CalendarEvent, "id">) => {
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: String(calendarEvents.length + 1),
-    };
-    setCalendarEvents((prev) => [...prev, newEvent]);
-  }, [calendarEvents]);
+  // ── All Reviews (across all courses) ───────────────────
+  const allReviewsQuery = useQuery<ReviewsResponse>({
+    queryKey: ["teaching", "reviews"],
+    queryFn: () =>
+      apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
+    retry: 1,
+    staleTime: 30 * 1000,
+  });
 
-  // Review mutations
-  const replyToReview = useCallback((reviewId: string, replyText: string) => {
-    const newReply = {
-      id: String(Date.now()),
-      author: "المدرب",
-      text: replyText,
-      date: new Date().toISOString().split("T")[0]!,
-    };
+  const allReviews = allReviewsQuery.data?.reviews ?? [];
 
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === reviewId) {
-          return {
-            ...r,
-            replies: [...r.replies, newReply],
-          };
-        }
-        return r;
-      })
-    );
-  }, []);
+  // Course-specific queries (used when drilling into a specific course)
+  const getStudentsForCourse = (courseId: string) =>
+    useQuery<StudentsResponse>({
+      queryKey: ["teaching", "course", courseId, "students"],
+      queryFn: () =>
+        apiClient.get<StudentsResponse>(
+          apiRoutes.teaching.courses.students(courseId)
+        ),
+      enabled: !!courseId,
+      retry: 1,
+    });
 
-  // Notification mutations
-  const markNotificationRead = useCallback((notifId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
-    );
-  }, []);
+  const getReviewsForCourse = (courseId: string) =>
+    useQuery<ReviewsResponse>({
+      queryKey: ["teaching", "course", courseId, "reviews"],
+      queryFn: () =>
+        apiClient.get<ReviewsResponse>(
+          apiRoutes.teaching.courses.reviews(courseId)
+        ),
+      enabled: !!courseId,
+      retry: 1,
+    });
 
-  const markAllNotificationsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+  const replyToReview = useMutation({
+    mutationFn: ({ reviewId, text }: { reviewId: string; text: string }) => {
+      return apiClient.post<{ reply: ReviewReply }>(
+        apiRoutes.teaching.reviews.reply(reviewId),
+        { text }
+      );
+    },
+    onSuccess: () => {
+      // Invalidate all review queries
+      queryClient.invalidateQueries({
+        queryKey: ["teaching", "course"],
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key.length >= 3 &&
+            key[1] === "course" &&
+            key[3] === "reviews"
+          );
+        },
+      });
+    },
+  });
+
+  // ── Notifications ────────────────────────────────────
+  const notificationsQuery = useQuery<NotificationsResponse>({
+    queryKey: ["teaching", "notifications"],
+    queryFn: () =>
+      apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
+    retry: 1,
+    staleTime: 30 * 1000,
+  });
+
+  const notifications = notificationsQuery.data?.notifications ?? [];
+
+  const markNotificationRead = useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post<{ marked: boolean }>(
+        apiRoutes.teaching.notifications.markRead(id),
+        {}
+      ),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
+      const prev = queryClient.getQueryData<NotificationsResponse>([
+        "teaching",
+        "notifications",
+      ]);
+      if (prev) {
+        queryClient.setQueryData<NotificationsResponse>(
+          ["teaching", "notifications"],
+          {
+            ...prev,
+            notifications: prev.notifications.map((n) =>
+              n.id === id ? { ...n, read: true } : n
+            ),
+          }
+        );
+      }
+      return { prev };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(["teaching", "notifications"], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["teaching", "notifications"],
+      });
+    },
+  });
+
+  const markAllNotificationsRead = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ marked: boolean }>(
+        apiRoutes.teaching.notifications.markAllRead,
+        {}
+      ),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
+      const prev = queryClient.getQueryData<NotificationsResponse>([
+        "teaching",
+        "notifications",
+      ]);
+      if (prev) {
+        queryClient.setQueryData<NotificationsResponse>(
+          ["teaching", "notifications"],
+          {
+            ...prev,
+            notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+          }
+        );
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(["teaching", "notifications"], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["teaching", "notifications"],
+      });
+    },
+  });
+
+  // ── Conversations (placeholder - chat not yet implemented) ──
+  const conversations: Conversation[] = [];
+  const sendMessage = (_convId: string, _text: string) => {
+    // TODO: Implement when chat API is available
+  };
+
+  // ── Calendar Events (placeholder - calendar not yet implemented) ──
+  const calendarEvents: CalendarEvent[] = [];
+  const addCalendarEvent = (_event: Omit<CalendarEvent, "id">) => {
+    // TODO: Implement when calendar API is available
+  };
+
+  // ── Transactions (placeholder - earnings API not yet implemented) ──
+  const transactions: Transaction[] = [];
+  // TODO: Implement when transactions API is available
 
   return {
-    stats: getStats.data || mockStats,
-    isStatsLoading: getStats.isLoading,
-    activities: getActivities.data || mockActivities,
-    isActivitiesLoading: getActivities.isLoading,
+    stats,
+    isStatsLoading: statsQuery.isLoading,
+    activities,
+    isActivitiesLoading: activitiesQuery.isLoading,
     courses,
-    createCourse,
-    updateCourse,
-    deleteCourse,
-    students: mockStudents,
-    reviews,
-    replyToReview,
+    isCoursesLoading: coursesQuery.isLoading,
+    createCourse: createCourse.mutate,
+    createCourseAsync: createCourse.mutateAsync,
+    isCreatingCourse: createCourse.isPending,
+    updateCourse: updateCourse.mutate,
+    updateCourseAsync: updateCourse.mutateAsync,
+    isUpdatingCourse: updateCourse.isPending,
+    deleteCourse: deleteCourse.mutate,
+    isDeletingCourse: deleteCourse.isPending,
+    students: allStudents,
+    isStudentsLoading: allStudentsQuery.isLoading,
+    getStudentsForCourse,
+    reviews: allReviews,
+    isReviewsLoading: allReviewsQuery.isLoading,
+    getReviewsForCourse,
+    replyToReview: (id: string, text: string) =>
+      replyToReview.mutate({ reviewId: id, text }),
+    replyToReviewAsync: (id: string, text: string) =>
+      replyToReview.mutateAsync({ reviewId: id, text }),
+    isReplyingToReview: replyToReview.isPending,
     conversations,
-    sendMessage,
     calendarEvents,
     addCalendarEvent,
     notifications,
-    markNotificationRead,
-    markAllNotificationsRead,
-    transactions: mockTransactions,
+    isNotificationsLoading: notificationsQuery.isLoading,
+    markNotificationRead: markNotificationRead.mutate,
+    markAllNotificationsRead: markAllNotificationsRead.mutate,
+    transactions,
   };
 }

@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { m, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { apiClient } from '@/lib/api/api-client';
 import { logger } from '@/lib/logger';import { useWebSocket } from "@/contexts/websocket-context";
@@ -48,12 +47,12 @@ export function ActivityWidget() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const { socket, isConnected } = useWebSocket();
-  
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const getIcon = (type: string) => {
@@ -193,18 +192,16 @@ export function ActivityWidget() {
           size="icon"
           className="relative h-9 w-9 hover:bg-primary/10 dark:hover:bg-primary/15"
           aria-label="النشاط الأخير">
-          
+
 					<Activity className="h-4 w-4" />
 					{unreadCount > 0 &&
-          <m.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+          <span
             className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 border-2 border-background flex items-center justify-center">
-            
-							<span className="text-[10px] font-bold text-white">
-								{unreadCount > 9 ? "9+" : unreadCount}
-							</span>
-						</m.span>
+
+						<span className="text-[10px] font-bold text-white">
+							{unreadCount > 9 ? "9+" : unreadCount}
+						</span>
+					</span>
           }
 				</Button>
 			</DropdownMenuTrigger>
@@ -223,98 +220,89 @@ export function ActivityWidget() {
             size="sm"
             className="h-7 text-xs"
             onClick={markAllAsRead}>
-            
-							تحديد الكل كمقروء
-						</Button>
+
+						تحديد الكل كمقروء
+					</Button>
           }
 				</div>
 
 				<div className="max-h-[400px] overflow-y-auto">
 					{recentActivities.length === 0 ?
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-							<Activity className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-							<p className="text-sm font-medium text-foreground mb-1">لا يوجد نشاط</p>
-							<p className="text-xs text-muted-foreground">سيظهر نشاطك هنا</p>
-						</div> :
+						<Activity className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+						<p className="text-sm font-medium text-foreground mb-1">لا يوجد نشاط</p>
+						<p className="text-xs text-muted-foreground">سيظهر نشاطك هنا</p>
+					</div> :
 
           <div className="p-2 space-y-1">
-							<AnimatePresence>
-								{recentActivities.map((activity, index) =>
-              <m.div
-                key={activity.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ delay: index * 0.05 }}>
-                
-										<DropdownMenuItem
-                  onClick={() => {
-                    markAsRead(activity.id);
-                    activity.action?.();
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg cursor-pointer",
-                    "hover:bg-accent transition-colors",
-                    !activity.read && "bg-primary/5 border-r-2 border-primary"
-                  )}>
-                  
-											<div
-                    className={cn(
-                      "flex items-center justify-center h-8 w-8 rounded-lg shrink-0",
-                      activity.color,
-                      "text-white"
-                    )}>
-                    
-												{activity.icon}
-											</div>
-											<div className="flex-1 min-w-0 text-right">
-												<div className="flex items-center justify-between gap-2 mb-1">
-													<p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
-													{!activity.read &&
+						{recentActivities.map((activity) =>
+            <DropdownMenuItem
+              key={activity.id}
+              onClick={() => {
+                markAsRead(activity.id);
+                activity.action?.();
+                setIsOpen(false);
+              }}
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg cursor-pointer",
+                "hover:bg-accent",
+                !activity.read && "bg-primary/5 border-r-2 border-primary"
+              )}>
+
+								<div
+                className={cn(
+                  "flex items-center justify-center h-8 w-8 rounded-lg shrink-0",
+                  activity.color,
+                  "text-white"
+                )}>
+
+									{activity.icon}
+								</div>
+								<div className="flex-1 min-w-0 text-right">
+									<div className="flex items-center justify-between gap-2 mb-1">
+										<p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
+										{!activity.read &&
                       <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
                       }
-												</div>
-												{activity.description &&
-                    <p className="text-xs text-muted-foreground mb-1 line-clamp-2">
-														{activity.description}
-													</p>
-                    }
-												<div className="flex items-center gap-1 text-xs text-muted-foreground">
-													<Clock className="h-3 w-3" />
-													<span>
-														{formatDistanceToNow(activity.timestamp, {
-                          addSuffix: true
-                        })}
-													</span>
-												</div>
-											</div>
-											<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-										</DropdownMenuItem>
-									</m.div>
-              )}
-							</AnimatePresence>
-						</div>
+									</div>
+									{activity.description &&
+                  <p className="text-xs text-muted-foreground mb-1 line-clamp-2">
+											{activity.description}
+										</p>
+                  }
+									<div className="flex items-center gap-1 text-xs text-muted-foreground">
+										<Clock className="h-3 w-3" />
+										<span>
+											{formatDistanceToNow(activity.timestamp, {
+                        addSuffix: true
+                      })}
+										</span>
+									</div>
+								</div>
+								<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+							</DropdownMenuItem>
+            )}
+					</div>
           }
 				</div>
 
 				{recentActivities.length > 0 &&
         <>
-						<DropdownMenuSeparator />
-						<div className="p-2">
-							<Button
+					<DropdownMenuSeparator />
+					<div className="p-2">
+						<Button
               variant="ghost"
               className="w-full justify-center text-xs"
               onClick={() => {
                 setIsOpen(false);
                 router.push("/activities");
               }}>
-              
-								عرض الكل
-								<ChevronRight className="h-3 w-3 mr-1" />
-							</Button>
-						</div>
-					</>
+
+							عرض الكل
+							<ChevronRight className="h-3 w-3 mr-1" />
+						</Button>
+					</div>
+				</>
         }
 			</DropdownMenuContent>
 		</DropdownMenu>);

@@ -35,7 +35,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
-import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
@@ -88,20 +87,19 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-primary/10 p-0 hover:border-primary/30 transition-all overflow-hidden touch-manipulation group"
+          className="relative h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-primary/10 p-0 hover:border-primary/30 overflow-hidden touch-manipulation group"
           aria-label="قائمة المستخدم">
-          
+
           <Avatar className="h-full w-full">
             <AvatarImage src={user.avatar || undefined} alt={user.name || user.email} />
             <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/5 text-primary font-bold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <m.span
+          <span
             className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 2, repeat: Infinity }} />
-          
+          />
+
           <div className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         </Button>
       </DropdownMenuTrigger>
@@ -143,10 +141,11 @@ export function UserMenu() {
         <DropdownMenuGroup>
 
 
+
           {isStaffAdminPanelRole(user.role) && (
           <Link href="/admin">
               <DropdownMenuItem className="cursor-pointer gap-2.5 py-2.5 font-bold text-red-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-manipulation">
-                <Shield className="h-4 w-4 animate-pulse text-red-500" />
+                <Shield className="h-4 w-4 text-red-500" />
                 <span>لوحة الإدارة</span>
                 <ChevronRight className="h-3.5 w-3.5 ml-auto" />
               </DropdownMenuItem>
@@ -216,7 +215,7 @@ export function UserMenu() {
           <DropdownMenuItem
             className="cursor-pointer gap-2.5 py-2.5 touch-manipulation"
             onClick={(e) => toggleTheme(e)}>
-            
+
             {theme === "dark" ?
             <Sun className="h-4 w-4 text-primary" /> :
 
@@ -250,21 +249,10 @@ export function UserMenu() {
           )}
           onClick={handleLogout}
           disabled={isLoggingOut}>
-          
-          {isLoggingOut ?
-          <m.div
-            className="h-4 w-4"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-            
-              <LogOut className="h-4 w-4" />
-            </m.div> :
 
           <LogOut className="h-4 w-4" />
-          }
           <span>{isLoggingOut ? "جاري تسجيل الخروج..." : "تسجيل الخروج"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>);
-
 }

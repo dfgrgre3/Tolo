@@ -136,9 +136,9 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
         };
     }, [handleScroll, updateState]);
 
-    // CSS classes based on state
+    // CSS classes based on state - NO transitions for instant, smooth feel
     const headerClasses = {
-        base: "sticky top-0 z-50 w-full transition-all duration-300 ease-out",
+        base: "sticky top-0 z-50 w-full",
         scrolled: state.isScrolled ? "backdrop-blur-xl bg-background/80 border-b border-border/50" : "bg-transparent",
         shrunk: state.isShrunk ? "py-2" : "py-4",
         hidden: state.isHidden ? "-translate-y-full" : "translate-y-0",

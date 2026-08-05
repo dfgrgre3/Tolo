@@ -1,36 +1,108 @@
+"use client";
+
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useEffect, useState, type ReactNode } from "react";
 import { m } from "framer-motion";
 import { Lightbulb, Zap, Calendar, BarChart3, ArrowRight } from "lucide-react";
+import { safeFetch } from "@/lib/safe-client-utils";
+import { logger } from "@/lib/logger";
+import { useAuth } from "@/hooks/use-auth";
 import { rpgCommonStyles } from "../constants";
 
+interface Tip {
+	title: string;
+	description: string;
+	icon: ReactNode;
+	href: string;
+	action: string;
+	color: string;
+}
+
+interface ApiTip {
+	id: string;
+	title: string;
+	description: string;
+	icon: string;
+	href: string;
+	action: string;
+	color: string;
+}
+
+// Maps a backend icon key to its lucide icon component.
+const TIP_ICONS: Record<string, ReactNode> = {
+	focus: <Zap className="h-6 w-6 text-yellow-400" />,
+	planning: <Calendar className="h-6 w-6 text-emerald-400" />,
+	analysis: <BarChart3 className="h-6 w-6 text-blue-400" />,
+};
+
+const FALLBACK_TIPS: Tip[] = [
+	{
+		title: "تقنية التركيز (Mana Regen)",
+		description: "استخدم تقنية بومودورو: 25 دقيقة من العمل المركز تليها 5 دقائق لاستعادة طاقتك الذهنية.",
+		icon: <Zap className="h-6 w-6 text-yellow-400" />,
+		href: "/time",
+		action: "بدء المؤقت",
+		color: "from-yellow-500/10 to-transparent border-yellow-500/20"
+	},
+	{
+		title: "تكتيك الأسبوع (Strategy)",
+		description: "خطط لمهامك (Quests) مسبقاً. تنظيم الوقت يمنحك أفضلية استراتيجية على منافسيك.",
+		icon: <Calendar className="h-6 w-6 text-emerald-400" />,
+		href: "/schedule",
+		action: "تجهيز الخطة",
+		color: "from-emerald-500/10 to-transparent border-emerald-500/20"
+	},
+	{
+		title: "تحليل القدرات (Level Up)",
+		description: "راجع إحصائياتك بانتظام لتحديد نقاط الضعف وتقويتها قبل خوض المعارك الكبرى.",
+		icon: <BarChart3 className="h-6 w-6 text-blue-400" />,
+		href: "/settings/progress",
+		action: "تحليل الأداء",
+		color: "from-blue-500/10 to-transparent border-blue-500/20"
+	}
+];
+
 export const TipsSection = memo(function TipsSection() {
-	const tips = [
-		{
-			title: "تقنية التركيز (Mana Regen)",
-			description: "استخدم تقنية بومودورو: 25 دقيقة من العمل المركز تليها 5 دقائق لاستعادة طاقتك الذهنية.",
-			icon: <Zap className="h-6 w-6 text-yellow-400" />,
-			href: "/time",
-			action: "بدء المؤقت",
-			color: "from-yellow-500/10 to-transparent border-yellow-500/20"
-		},
-		{
-			title: "تكتيك الأسبوع (Strategy)",
-			description: "خطط لمهامك (Quests) مسبقاً. تنظيم الوقت يمنحك أفضلية استراتيجية على منافسيك.",
-			icon: <Calendar className="h-6 w-6 text-emerald-400" />,
-			href: "/schedule",
-			action: "تجهيز الخطة",
-			color: "from-emerald-500/10 to-transparent border-emerald-500/20"
-		},
-		{
-			title: "تحليل القدرات (Level Up)",
-			description: "راجع إحصائياتك بانتظام لتحديد نقاط الضعف وتقويتها قبل خوض المعارك الكبرى.",
-			icon: <BarChart3 className="h-6 w-6 text-blue-400" />,
-			href: "/settings/progress",
-			action: "تحليل الأداء",
-			color: "from-blue-500/10 to-transparent border-blue-500/20"
-		}
-	];
+	const { user, isAuthenticated } = useAuth();
+	const [tips, setTips] = useState<Tip[]>(FALLBACK_TIPS);
+
+	useEffect(() => {
+		const fetchTips = async () => {
+			if (!isAuthenticated || !user?.id) return; // Keep fallback tips for anonymous visitors.
+
+			try {
+				const { data, error } = await safeFetch<unknown>(
+					`/api/tips?userId=${user.id}`,
+					undefined,
+					null
+				);
+				if (error || !data) return;
+
+				// Backend may wrap responses in `{ success, data: {...} }`.
+				const src = (data && typeof data === "object" && "data" in (data as Record<string, unknown>))
+					? (data as { data: { tips?: ApiTip[] } }).data
+					: (data as { tips?: ApiTip[] });
+
+				const apiTips = src?.tips ?? [];
+				if (apiTips.length === 0) return;
+
+				setTips(
+					apiTips.map((t) => ({
+						title: t.title,
+						description: t.description,
+						icon: TIP_ICONS[t.icon] ?? <Lightbulb className="h-6 w-6 text-amber-400" />,
+						href: t.href,
+						action: t.action,
+						color: t.color,
+					}))
+				);
+			} catch (err) {
+				logger.error("Error fetching tips:", err);
+			}
+		};
+
+		fetchTips();
+	}, []);
 
 	return (
 		<section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-16 shadow-2xl relative overflow-hidden group/section`} aria-labelledby="tips-heading">

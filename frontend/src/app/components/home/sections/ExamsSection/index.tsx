@@ -56,7 +56,10 @@ const ExamsSectionComponent = () => {
           throw new Error(examsError.message || "Failed to fetch exams");
         }
 
-        const exams = Array.isArray(examsData?.exams) ? examsData.exams : [];
+        // Backend wraps some responses in `{ success, data: {...} }`.
+        // Tolerate both the wrapped and the flat shape.
+        const examsSrc = (examsData as { data?: ExamsResponse } | null)?.data ?? examsData;
+        const exams = Array.isArray(examsSrc?.exams) ? examsSrc.exams : [];
 
         if (exams.length === 0) {
           setSubjects([]);

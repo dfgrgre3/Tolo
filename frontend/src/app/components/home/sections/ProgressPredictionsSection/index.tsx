@@ -2,9 +2,10 @@
 
 import { useState, useEffect, memo } from "react";
 import { m } from "framer-motion";
-import { safeFetch, getSafeUserId } from "@/lib/safe-client-utils";
+import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
 import { TrendingUp } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { rpgCommonStyles } from "../../constants";
 import { PredictionCard } from "./PredictionCard";
 import { PredictionInfoBanner } from "./PredictionInfoBanner";
@@ -22,12 +23,13 @@ interface Prediction {
 }
 
 export const ProgressPredictionsSection = memo(function ProgressPredictionsSection() {
+  const { user, isAuthenticated } = useAuth();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPredictions = async () => {
-      const userId = getSafeUserId();
+      const userId = isAuthenticated && user?.id ? user.id : null;
 
       try {
         const { data, error } = await safeFetch<{predictions: Prediction[];}>(

@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X, LogIn, UserPlus } from "lucide-react";
 import { TimeTrackerHeaderWidget } from "./TimeTrackerHeaderWidget";
-import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -14,7 +13,7 @@ import { HeaderLogo } from "./HeaderLogo";
 import { HeaderSearch } from "./HeaderSearch";
 import { HeaderNavigation } from "./HeaderNavigation";
 import { HeaderNotifications } from "./HeaderNotifications";
-import { HeaderBreadcrumbs } from "./HeaderBreadcrumbs";
+
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
 import { headerNavItems } from "@/components/mega-menu/navData";
@@ -66,7 +65,6 @@ const ReadingProgressBar = dynamic(
 const MemoizedHeaderLogo = memo(HeaderLogo);
 const MemoizedHeaderSearch = memo(HeaderSearch);
 const MemoizedHeaderNavigation = memo(HeaderNavigation);
-const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
 import { useLoginUrl, useHeaderClasses, useContainerHeight, useHeaderWidgets, HEADER_PREFERENCES } from "./useHeaderOptimizations";
 
@@ -75,17 +73,6 @@ export default function Header() {
   const searchParams = useSearchParams();
   const isEfficiencyMode = useEfficiencyMode();
   const loginUrl = useLoginUrl();
-
-  const shouldReduceMotion = useSyncExternalStore(
-    (callback) => {
-      if (typeof window === "undefined") return () => {};
-      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-      mql.addEventListener('change', callback);
-      return () => mql.removeEventListener('change', callback);
-    },
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    () => false
-  );
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -114,7 +101,7 @@ export default function Header() {
         document.documentElement.style.setProperty('--header-height', `${height}px`);
       }
     };
-    
+
     updateHeight();
     const observer = new ResizeObserver(updateHeight);
     observer.observe(headerRef.current);
@@ -146,20 +133,20 @@ export default function Header() {
     <>
       <ImpersonationBanner />
       {widgets.progress && (
-        <ReadingProgressBar position="top" height={1} animate={!shouldReduceMotion} />
+        <ReadingProgressBar position="top" height={1} />
       )}
 
       <header ref={headerRef} className={headerClasses} role="banner" aria-label="رأس الصفحة الرئيسي">
         <div className="container mx-auto px-2 sm:px-3 md:px-4 lg:px-6 max-w-full">
-          <div className={cn("flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 transition-all", containerHeight)}>
+          <div className={cn("flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6", containerHeight)}>
             {/* Left side: Logo and teaching links */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
               <MemoizedHeaderLogo />
               <div className="hidden lg:flex items-center gap-2">
-                <Link href="/teach" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/5">
+                <Link href="/teach" className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5">
                   التدريس على Tolo
                 </Link>
-                <Link href="/careers" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/5">
+                <Link href="/careers" className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5">
                   وظائف Tolo
                 </Link>
               </div>
@@ -173,11 +160,9 @@ export default function Header() {
             {/* Right side: Schools, Plans, and widgets */}
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0" role="toolbar" aria-label="أدوات الرأس">
               {isShrunk && widgets.progress && (
-                <AnimatePresence>
-                  <m.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="hidden xl:flex">
-                    <ProgressIndicator />
-                  </m.div>
-                </AnimatePresence>
+                <div className="hidden xl:flex">
+                  <ProgressIndicator />
+                </div>
               )}
 
               {/* Schools with megamenu */}
@@ -193,14 +178,15 @@ export default function Header() {
                       activeRoute={isActiveRoute}
                       label={item.label}
                       user={user as any}
-                      className="relative h-11 px-4 flex items-center gap-2 transition-all duration-300 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5"
+                      zIndex={50}
+                      className="relative h-11 px-4 flex items-center gap-2 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5"
                     />
                   );
                 })()}
               </div>
 
               {/* Plans link */}
-              <Link href="/plans" className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary transition-all rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5">
+              <Link href="/plans" className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5">
                 الخطط
               </Link>
 
@@ -244,21 +230,21 @@ export default function Header() {
               {mounted && (
                 <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
                   {isLoading ? (
-                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 animate-pulse" />
+                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10" />
                   ) : user ? (
                     <UserMenu />
                   ) : (
                     <div className="flex items-center gap-1 sm:gap-1.5">
                       <Link href={loginUrl}>
-                        <Button variant="ghost" size="sm" className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-2 sm:px-3 lg:px-4">
+                        <Button variant="ghost" size="sm" className="gap-1.5 hover:bg-primary/10 text-sm font-semibold px-2 sm:px-3 lg:px-4">
                           <LogIn className="h-4 w-4" />
                           <span className="hidden sm:inline">تسجيل الدخول</span>
                         </Button>
                       </Link>
                       <Link href="/register" className="hidden sm:block">
-                        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-3 sm:px-4 lg:px-6 hover:scale-105 active:scale-95 group relative overflow-hidden">
-                          <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]" />
-                          <UserPlus className="h-4 w-4 transition-transform group-hover:rotate-12 relative z-10" />
+                        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 font-bold px-3 sm:px-4 lg:px-6 group relative overflow-hidden">
+                          <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-full transition-transform duration-500 skew-x-[-20deg]" />
+                          <UserPlus className="h-4 w-4 relative z-10" />
                           <span className="relative z-10 font-bold hidden md:inline">إنشاء حساب</span>
                         </Button>
                       </Link>
@@ -277,17 +263,11 @@ export default function Header() {
                 aria-controls="mobile-menu"
                 data-mobile-menu-trigger
               >
-                <AnimatePresence>
-                  {isMobileMenuOpen ? (
-                    <m.div key="close" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                      <X className="h-5 w-5" aria-hidden="true" />
-                    </m.div>
-                  ) : (
-                    <m.div key="menu" initial={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={shouldReduceMotion || isEfficiencyMode ? undefined : { rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                      <Menu className="h-5 w-5" aria-hidden="true" />
-                    </m.div>
-                  )}
-                </AnimatePresence>
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <Menu className="h-5 w-5" aria-hidden="true" />
+                )}
               </Button>
             </div>
           </div>
@@ -305,8 +285,6 @@ export default function Header() {
 
         </div>
 
-        {!isShrunk && <MemoizedHeaderBreadcrumbs />}
-        
         {/* Premium bottom glow border line */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent pointer-events-none" />
       </header>

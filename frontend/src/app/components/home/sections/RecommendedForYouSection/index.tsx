@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, memo, useCallback } from "react";
+import { useState, useEffect, memo, useCallback, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { Sparkles, Target, BookOpen, History, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Target, BookOpen, History, Loader2, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { rpgCommonStyles } from "../../constants";
 import { RecommendedCourseCard } from "./RecommendedCourseCard";
@@ -37,223 +37,102 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
   const [activeTab, setActiveTab] = useState<"recommended" | "history">("recommended");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchRecommendedCourses = useCallback(async (pageNum: number = 1) => {
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error: fetchError } = await safeFetch<{
-        courses: RecommendedCourse[];
-        searchHistory: SearchHistoryItem[];
-        totalPages: number;
-        page: number;
+        recommendations: RecommendedCourse[];
+        searchHistory?: SearchHistoryItem[];
+        totalPages?: number;
+        page?: number;
+        message?: string;
       }>(
-        `/api/recommendations/courses?page=${pageNum}`,
-        undefined,
+        `/api/ai/recommendations?page=${pageNum}&limit=8`,
+        { signal: controller.signal },
         null
       );
 
+      // Ignore response if request was aborted or component unmounted
+      if (controller.signal.aborted || !isMountedRef.current) return;
+
       if (fetchError || !data) {
+        // Ignore abort errors
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          logger.debug("Fetch aborted as expected");
+          return;
+        }
         logger.warn("Failed to fetch recommended courses:", fetchError);
-        
-        // Fallback: use localStorage search history for local recommendations
-        const localHistory = getLocalSearchHistory();
-        setSearchHistory(localHistory);
-        
-        // Generate mock recommendations based on search history
-        const mockCourses = generateMockRecommendations(localHistory);
-        setCourses(mockCourses);
-        setTotalPages(1);
-        setError(null);
+        setError("فشل في تحميل التوصيات. يرجى المحاولة مرة أخرى.");
+        setCourses([]);
         return;
       }
 
-      setCourses(data.courses || []);
+      // Transform backend data to frontend format
+      const transformedCourses = (data.recommendations || []).map((rec: any) => ({
+        id: rec.id,
+        title: rec.title,
+        description: rec.description || rec.desc || "",
+        category: rec.category || "عام",
+        subject: rec.subject || rec.title,
+        rating: rec.rating || 4.5,
+        studentsCount: rec.studentsCount || 0,
+        duration: rec.duration || "غير محدد",
+        level: rec.level || "متوسط",
+        image: rec.image,
+        matchReason: rec.matchReason || "موصى به لك",
+        matchScore: rec.matchScore || 80,
+      }));
+
+      setCourses(transformedCourses);
       setSearchHistory(data.searchHistory || []);
       setTotalPages(data.totalPages || 1);
       setPage(data.page || 1);
       setError(null);
     } catch (err) {
-      logger.error("Error fetching recommended courses:", err);
+      if (controller.signal.aborted || !isMountedRef.current) return;
       
-      // Fallback to local
-      const localHistory = getLocalSearchHistory();
-      setSearchHistory(localHistory);
-      const mockCourses = generateMockRecommendations(localHistory);
-      setCourses(mockCourses);
-      setError(null);
+      // Ignore abort errors that are expected (user navigation, component unmount, etc.)
+      if (err instanceof Error && err.name === 'AbortError') {
+        logger.debug("Request aborted as expected");
+        return;
+      }
+      
+      logger.error("Error fetching recommended courses:", err);
+      setError("حدث خطأ أثناء تحميل التوصيات");
+      setCourses([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted && isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchRecommendedCourses(page);
-  }, [fetchRecommendedCourses, page]);
-
-  const getLocalSearchHistory = (): SearchHistoryItem[] => {
-    try {
-      const stored = typeof window !== "undefined" 
-        ? localStorage.getItem("recent_searches") 
-        : null;
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          return parsed.map((q: string) => ({
-            query: q,
-            timestamp: new Date().toISOString(),
-          }));
-        }
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    } catch {
-      // Ignore parse errors
-    }
-    return [];
-  };
-
-  const generateMockRecommendations = (history: SearchHistoryItem[]): RecommendedCourse[] => {
-    const allCourses: RecommendedCourse[] = [
-      {
-        id: "math-1",
-        title: "الرياضيات التطبيقية - التفاضل والتكامل",
-        description: "دورة شاملة في التفاضل والتكامل تشمل النهايات، المشتقات، والتكاملات مع تطبيقات عملية",
-        category: "الرياضيات",
-        subject: "الرياضيات",
-        rating: 4.8,
-        studentsCount: 1250,
-        duration: "20 ساعة",
-        level: "متوسط",
-        matchReason: "بناءً على بحثك السابق عن 'الرياضيات'",
-        matchScore: 95,
-      },
-      {
-        id: "math-2",
-        title: "الجبر الخطي - أساسيات المصفوفات",
-        description: "تعلم أساسيات الجبر الخطي، المصفوفات، المحددات، وحل المعادلات الخطية",
-        category: "الرياضيات",
-        subject: "الرياضيات",
-        rating: 4.6,
-        studentsCount: 890,
-        duration: "15 ساعة",
-        level: "مبتدئ",
-        matchReason: "مستوى مناسب بناءً على تقدمك",
-        matchScore: 88,
-      },
-      {
-        id: "physics-1",
-        title: "الفيزياء - الميكانيكا الكلاسيكية",
-        description: "دراسة القوانين الأساسية للميكانيكا: قوانين نيوتن، الشغل والطاقة، والحركة الدائرية",
-        category: "الفيزياء",
-        subject: "الفيزياء",
-        rating: 4.7,
-        studentsCount: 980,
-        duration: "25 ساعة",
-        level: "متقدم",
-        matchReason: "بناءً على بحثك السابق عن 'الفيزياء'",
-        matchScore: 92,
-      },
-      {
-        id: "chem-1",
-        title: "الكيمياء العضوية - المركبات الهيدروكربونية",
-        description: "شرح مفصل للمركبات العضوية، التفاعلات الكيميائية، وآليات التفاعل",
-        category: "الكيمياء",
-        subject: "الكيمياء",
-        rating: 4.5,
-        studentsCount: 760,
-        duration: "18 ساعة",
-        level: "متوسط",
-        matchReason: "بناءً على بحثك عن 'الكيمياء' ومواد ذات صلة",
-        matchScore: 85,
-      },
-      {
-        id: "eng-1",
-        title: "اللغة الإنجليزية - قواعد ومفردات متقدمة",
-        description: "دورة متكاملة لتطوير مهارات اللغة الإنجليزية: قواعد، مفردات، قراءة، وكتابة",
-        category: "اللغة الإنجليزية",
-        subject: "اللغة الإنجليزية",
-        rating: 4.9,
-        studentsCount: 2100,
-        duration: "30 ساعة",
-        level: "متوسط",
-        matchReason: "الأكثر شهرة في هذا التصنيف",
-        matchScore: 90,
-      },
-      {
-        id: "arabic-1",
-        title: "النحو العربي - قواعد الإعراب الكامل",
-        description: "تعلم قواعد النحو العربي والإعراب من الأساس إلى الاحتراف مع تمارين تفاعلية",
-        category: "اللغة العربية",
-        subject: "اللغة العربية",
-        rating: 4.4,
-        studentsCount: 650,
-        duration: "22 ساعة",
-        level: "مبتدئ",
-        matchReason: "بناءً على اهتماماتك المسجلة",
-        matchScore: 78,
-      },
-      {
-        id: "biology-1",
-        title: "الأحياء - الخلية والوراثة",
-        description: "دراسة تركيب الخلية، وظائفها، وعلم الوراثة الجزيئي بشكل مبسط وشامل",
-        category: "الأحياء",
-        subject: "الأحياء",
-        rating: 4.6,
-        studentsCount: 820,
-        duration: "16 ساعة",
-        level: "متوسط",
-        matchReason: "موصى به من طلاب مثلك",
-        matchScore: 82,
-      },
-      {
-        id: "history-1",
-        title: "التاريخ - الحضارات القديمة",
-        description: "رحلة عبر الحضارات القديمة: الفرعونية، الإغريقية، الرومانية، والإسلامية",
-        category: "التاريخ",
-        subject: "التاريخ",
-        rating: 4.3,
-        studentsCount: 540,
-        duration: "14 ساعة",
-        level: "مبتدئ",
-        matchReason: "بناءً على بحثك السابق",
-        matchScore: 75,
-      },
-    ];
-
-    // إذا كان هناك سجل بحث، قم بترتيب النتائج حسب الصلة
-    if (history.length > 0) {
-      const searchTerms = history.map(h => h.query.toLowerCase());
-      
-      const scored = allCourses.map(course => {
-        let score = course.matchScore;
-        searchTerms.forEach(term => {
-          if (course.title.toLowerCase().includes(term) || 
-              course.subject.toLowerCase().includes(term) ||
-              course.category.toLowerCase().includes(term)) {
-            score += 10;
-          }
-        });
-        return { ...course, matchScore: Math.min(score, 100) };
-      });
-
-      return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, 8);
-    }
-
-    return allCourses.sort((a, b) => b.matchScore - a.matchScore).slice(0, 6);
-  };
+    };
+  }, [page]);
 
   const handleRefresh = () => {
     setPage(1);
     fetchRecommendedCourses(1);
-  };
-
-  const clearHistory = () => {
-    try {
-      localStorage.removeItem("recent_searches");
-      setSearchHistory([]);
-    } catch {
-      // Ignore
-    }
   };
 
   return (
@@ -420,16 +299,6 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                   <h3 className="text-lg font-bold text-white">
                     سجل البحث الخاص بك
                   </h3>
-                  {searchHistory.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearHistory}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl"
-                    >
-                      مسح السجل
-                    </Button>
-                  )}
                 </div>
 
                 {searchHistory.length === 0 ? (
@@ -488,8 +357,5 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
     </section>
   );
 });
-
-// Import Search icon for empty state
-import { Search } from "lucide-react";
 
 export default RecommendedForYouSection;

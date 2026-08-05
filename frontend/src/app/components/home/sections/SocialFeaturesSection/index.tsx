@@ -4,9 +4,10 @@ import { useState, useEffect, memo } from "react";
 import { m } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { safeFetch, getSafeUserId } from "@/lib/safe-client-utils";
+import { safeFetch } from "@/lib/safe-client-utils";
 import { Users, Share2, Award } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/hooks/use-auth";
 import { LeaderboardCard } from "./LeaderboardCard";
 import { RecentAchievementsCard } from "./RecentAchievementsCard";
 
@@ -29,13 +30,14 @@ interface Achievement {
 }
 
 export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
+  const { user, isAuthenticated } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [recentAchievements, setRecentAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      const userId = getSafeUserId();
+      const userId = isAuthenticated && user?.id ? user.id : null;
 
       try {
         // Fetch leaderboard
@@ -48,8 +50,9 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           null
         );
 
-        if (!leaderError && leaderData?.leaderboard) {
-          const transformedLeaderboard: LeaderboardEntry[] = leaderData.leaderboard.map((entry, index) => ({
+        const leaderSrc = (leaderData as { data?: typeof leaderData } | null)?.data ?? leaderData;
+        if (!leaderError && leaderSrc?.leaderboard) {
+          const transformedLeaderboard: LeaderboardEntry[] = leaderSrc.leaderboard.map((entry, index) => ({
             rank: entry.rank || index + 1,
             name: entry.name || "مستخدم",
             score: entry.totalXP || 0,
@@ -78,8 +81,9 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           null
         );
 
-        if (!achievementsError && achievementsData?.achievements) {
-          const transformedAchievements: Achievement[] = achievementsData.achievements.slice(0, 3).map((ach) => ({
+        const achievementsSrc = (achievementsData as { data?: typeof achievementsData } | null)?.data ?? achievementsData;
+        if (!achievementsError && achievementsSrc?.achievements) {
+          const transformedAchievements: Achievement[] = achievementsSrc.achievements.slice(0, 3).map((ach) => ({
             id: ach.id,
             title: ach.title,
             description: ach.description,

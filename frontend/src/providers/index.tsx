@@ -17,7 +17,6 @@ import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 import { EfficiencyProvider } from '@/hooks/use-efficiency';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
-import Footer from '@/components/Footer';
 import { isCriticalError } from '@/lib/error-utils';
 
 function makeQueryClient() {
@@ -89,7 +88,6 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                           <PerformanceProvider key="performance-provider">
                             {children}
                           </PerformanceProvider>
-                          <Footer key="footer-static" />
                         </LazyMotion>
                         <Toaster richColors closeButton position="top-center" />
                       </TooltipProvider>

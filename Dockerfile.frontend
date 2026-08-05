@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1
+
+# ==============================================================================
+# Frontend Dockerfile (Next.js 16 monorepo with npm workspaces)
+# Build context MUST be the monorepo root (d:\thanawy) so the workspace
+# packages (frontend + shared) and the root lockfile are available.
+# ==============================================================================
+
+# ─── Stage 1: install dependencies ───────────────────────────────────────────
+FROM node:22-alpine AS deps
+WORKDIR /app
+
+# Copy only manifests first to maximise Docker layer caching. Dependencies are
+# only reinstalled when a package.json or the lockfile changes.
+COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/
+COPY shared/package.json ./shared/
+
+# Deterministic install from the lockfile (includes all workspaces).
+RUN npm ci
+
+# ─── Stage 2: build the Next.js standalone output ─────────────────────────────
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# Reuse the entire installed workspace tree (root node_modules + any
+# per-workspace node_modules + hoisting symlinks). Copying the whole /app
+# is robust regardless of how npm decides to hoist workspace dependencies.
+COPY --from=deps /app ./
+
+# Copy the monorepo sources over the manifests.
+COPY shared/ ./shared/
+COPY frontend/ ./frontend/
+
+# Sentry source-map upload and telemetry are opt-in. Skipping keeps builds
+# reproducible and avoids requiring secrets at build time.
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Build with extra heap head-room (mirrors the local build script).
+RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build --prefix frontend
+
+# ─── Stage 3: minimal runtime image ───────────────────────────────────────────
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# wget is used by the compose healthcheck.
+RUN apk add --no-cache wget
+
+# Run as a non-root user for security.
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# The standalone output bundles the minimal server + only the node_modules that
+# are actually used at runtime. outputFileTracingRoot points at the monorepo
+# root, so the traced server lives under .next/standalone/frontend.
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/static ./frontend/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/public ./frontend/public
+
+USER nextjs
+
+EXPOSE 3000
+
+# server.js is emitted by Next.js standalone at the traced frontend path.
+CMD ["node", "frontend/server.js"]

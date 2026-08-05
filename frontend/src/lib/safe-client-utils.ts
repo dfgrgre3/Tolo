@@ -363,6 +363,28 @@ export async function safeFetch<T = unknown>(
 
     const newOptions = { ...options };
 
+    // Attach CSRF token for write requests in browser environment
+    const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(newOptions.method || 'GET');
+    if (isWriteMethod && typeof window !== 'undefined') {
+      const headers = new Headers(newOptions.headers);
+      if (!headers.has('X-CSRF-Token')) {
+        const cookies = window.document.cookie.split(';').map(c => c.trim());
+        const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
+        let csrfToken: string | undefined;
+        for (const name of csrfNames) {
+          const entry = cookies.find(c => c.startsWith(name + '='));
+          if (entry) {
+            csrfToken = entry.split('=')[1];
+            break;
+          }
+        }
+        if (csrfToken) {
+          headers.set('X-CSRF-Token', csrfToken);
+          newOptions.headers = headers;
+        }
+      }
+    }
+
     let response = await fetchFn(finalUrl, newOptions);
 
     if (shouldAttemptTokenRefresh(url, response)) {
@@ -412,12 +434,29 @@ async function refreshAuthSession(): Promise<boolean> {
   refreshInProgress = (async () => {
     try {
       lastRefreshAttempt = Date.now();
+      
+      // Build headers with CSRF token
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Attach CSRF token for the refresh request
+      if (typeof window !== 'undefined') {
+        const cookies = window.document.cookie.split(';').map(c => c.trim());
+        const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
+        for (const name of csrfNames) {
+          const entry = cookies.find(c => c.startsWith(name + '='));
+          if (entry) {
+            headers['X-CSRF-Token'] = entry.split('=')[1];
+            break;
+          }
+        }
+      }
+      
       const response = await fetch(buildFinalUrl(AUTH_REFRESH_ENDPOINT), {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
       return response.ok;
     } catch {

@@ -46,7 +46,9 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           return;
         }
 
-        setRecommendations(data.recommendations || []);
+        // Backend wraps this response in `{ success, data: { recommendations } }`.
+        const recSrc = (data as { data?: { recommendations?: Recommendation[] } }).data ?? data;
+        setRecommendations(recSrc.recommendations || []);
         setError(null);
       } catch (err) {
         logger.error("Error fetching recommendations:", err);

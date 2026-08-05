@@ -25,8 +25,6 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { m, AnimatePresence } from "framer-motion";
-// import removed
 
 interface QuickAction {
   id: string;
@@ -150,22 +148,16 @@ export function QuickActions() {
             "bg-gradient-to-br from-primary to-primary/80",
             "hover:from-primary/90 hover:to-primary/70",
             "shadow-md hover:shadow-lg dark:shadow-primary/20 dark:hover:shadow-primary/30",
-            "transition-all duration-300",
             "group"
           )}
           aria-label="إجراءات سريعة"
           title="إجراءات سريعة (Ctrl+Shift+N)">
-          
-					<m.div
-            animate={{ rotate: isOpen ? 45 : 0 }}
-            transition={{ duration: 0.2 }}>
-            
-						<Zap className="h-4 w-4 text-primary-foreground" />
-					</m.div>
+
+					<Zap className={cn("h-4 w-4 text-primary-foreground transition-transform", isOpen && "rotate-45")} />
 					{availableActions.length > 0 &&
           <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-yellow-500 border-2 border-background flex items-center justify-center">
-							<span className="text-[8px] font-bold text-background">{availableActions.length}</span>
-						</span>
+						<span className="text-[8px] font-bold text-background">{availableActions.length}</span>
+					</span>
           }
 				</Button>
 			</DropdownMenuTrigger>
@@ -173,51 +165,40 @@ export function QuickActions() {
         align="end"
         className="w-80 p-2"
         sideOffset={8}>
-        
+
 				<DropdownMenuLabel className="px-3 py-2 flex items-center gap-2">
 					<Zap className="h-4 w-4 text-primary" />
 					<span>إجراءات سريعة</span>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<div className="grid grid-cols-1 gap-1 p-1">
-					<AnimatePresence>
-						{availableActions.map((action, index) =>
-            <m.div
-              key={action.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ delay: index * 0.05 }}>
-              
-								<DropdownMenuItem
-                onClick={action.action}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg cursor-pointer",
-                  "hover:bg-accent transition-colors",
-                  "group/item"
-                )}>
-                
-									<div
-                  className={cn(
-                    "flex items-center justify-center h-10 w-10 rounded-lg shrink-0",
-                    "transition-transform duration-200",
-                    "group-hover/item:scale-110",
-                    action.color
-                  )}>
-                  
-										<div className="text-white">{action.icon}</div>
-									</div>
-									<div className="flex-1 min-w-0 text-right">
-										<div className="text-sm font-medium text-foreground">{action.label}</div>
-										{action.description &&
-                  <div className="text-xs text-muted-foreground mt-0.5">{action.description}</div>
-                  }
-									</div>
-									<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-								</DropdownMenuItem>
-							</m.div>
-            )}
-					</AnimatePresence>
+					{availableActions.map((action) =>
+          <DropdownMenuItem
+            key={action.id}
+            onClick={action.action}
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-lg cursor-pointer",
+              "hover:bg-accent",
+              "group/item"
+            )}>
+
+							<div
+              className={cn(
+                "flex items-center justify-center h-10 w-10 rounded-lg shrink-0",
+                action.color
+              )}>
+
+								<div className="text-white">{action.icon}</div>
+							</div>
+							<div className="flex-1 min-w-0 text-right">
+								<div className="text-sm font-medium text-foreground">{action.label}</div>
+								{action.description &&
+                <div className="text-xs text-muted-foreground mt-0.5">{action.description}</div>
+                }
+							</div>
+							<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+						</DropdownMenuItem>
+          )}
 				</div>
 				<DropdownMenuSeparator />
 				<div className="px-3 py-2 text-xs text-muted-foreground text-center">
@@ -225,5 +206,4 @@ export function QuickActions() {
 				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>);
-
 }
