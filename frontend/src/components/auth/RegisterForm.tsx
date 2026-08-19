@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, UserPlus, AlertCircle, User, Mail, Lock, Gift, Users, Phone } from "lucide-react";
 import Link from "next/link";
+import { apiClient } from "@/lib/api/api-client";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -40,37 +41,22 @@ export default function RegisterForm() {
     setError(null);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          password,
-          username,
-          phone,
-          role,
-          referralCode: referralCode || undefined,
-        }),
+      // apiClient routes /api/auth/register → Next.js proxy → Go backend.
+      // It also attaches CSRF + idempotency headers and unwraps the envelope.
+      await apiClient.post("/auth/register", {
+        firstName,
+        lastName,
+        email,
+        password,
+        username,
+        phone,
+        role,
+        referralCode: referralCode || undefined,
       });
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل إنشاء الحساب");
-      }
 
       router.push("/login?registered=true");
     } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع أثناء إنشاء الحساب");
+      setError(err?.message || "حدث خطأ غير متوقع أثناء إنشاء الحساب");
     } finally {
       setIsLoading(false);
     }

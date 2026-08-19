@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Download } from "lucide-react";
 import Link from "next/link";
+import { apiClient } from "@/lib/api/api-client";
 
 export default function MfaPage() {
   const [step, setStep] = useState<"init" | "verify" | "backup">("init");
@@ -23,20 +24,14 @@ export default function MfaPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/mfa/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: "totp" }),
+      const responseData = await apiClient.post<any>("/auth/mfa/setup", {
+        method: "totp",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل تهيئة المصادقة الثنائية");
-
-      const responseData = data.data || data;
       setSecret(responseData.secret);
       setQrCodeUrl(responseData.qrCodeUrl || "");
       setStep("verify");
     } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
+      setError(err?.message || "فشل تهيئة المصادقة الثنائية");
     } finally {
       setIsLoading(false);
     }
@@ -52,15 +47,10 @@ export default function MfaPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/mfa/enable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل التحقق");
-
-      const responseData = data.data || data;
+      const responseData = await apiClient.post<{ backupCodes?: string[] }>(
+        "/auth/mfa/enable",
+        { code }
+      );
       setBackupCodes(responseData.backupCodes || []);
       setSuccess("تم تفعيل المصادقة الثنائية بنجاح!");
       setStep("backup");

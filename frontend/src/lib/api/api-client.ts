@@ -182,20 +182,9 @@ function clearRedirectCount(): void {
 }
 
 class ApiClient {
-    private isRefreshing = false;
-    private refreshSubscribers: ((success: boolean) => void)[] = [];
     /** In-flight CSRF bootstrap request — shared across concurrent callers to avoid duplicate fetches */
     private csrfBootstrapPromise: Promise<void> | null = null;
     private lastCsrfToken: string | null = null;
-
-    private subscribeTokenRefresh(cb: (success: boolean) => void) {
-        this.refreshSubscribers.push(cb);
-    }
-
-    private onRefreshed(success: boolean) {
-        this.refreshSubscribers.forEach((cb) => cb(success));
-        this.refreshSubscribers = [];
-    }
 
     /**
      * Ensures the _csrf cookie exists by fetching GET /api/auth/csrf when it is absent.
@@ -296,9 +285,6 @@ class ApiClient {
         return headers;
     }
 
-    private resetAuthStore(): void {
-        // No-op - auth store removed
-    }
 
     private logNetworkError(error: unknown, endpoint: string): void {
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
@@ -372,75 +358,28 @@ class ApiClient {
                     continue;
                 }
 
-                if (response.status === 401 && retryCount < 1) {
+                if (response.status === 401) {
                     const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
-                    
-                    if (!isAuthEndpoint) {
-                        if (this.isRefreshing) {
-                            try {
-                                const success = await new Promise<boolean>((resolve) => {
-                                    this.subscribeTokenRefresh((refreshed) => {
-                                        resolve(refreshed);
-                                    });
-                                });
-                                if (success) {
-                                    retryCount++;
-                                    continue;
-                                }
-                            } catch {
-                                // fallback to redirect
-                            }
+
+                    // Token rotation is handled exclusively by the Edge Middleware on every
+                    // request. If the middleware could not refresh (refresh_token missing or
+                    // expired), it already redirected to /login. If we still get a 401 here
+                    // it means the backend rejected the call for another reason, or the
+                    // middleware was bypassed (API route called directly from the browser).
+                    // In either case, attempting another /auth/refresh from the client would
+                    // create a race condition (two concurrent refresh calls invalidate the
+                    // refresh_token). Simply redirect to login instead.
+                    if (!isAuthEndpoint && typeof window !== 'undefined') {
+                        if (detectRedirectLoop()) {
+                            console.error(
+                                'API redirect loop detected — stopping automatic redirects. ' +
+                                'The user may need to log in manually.'
+                            );
+                            clearRedirectCount();
                         } else {
-                            this.isRefreshing = true;
-                            try {
-                                const refreshUrl = normalizeEndpoint('/auth/refresh');
-                                const refreshHeaders: Record<string, string> = {
-                                    'Content-Type': 'application/json'
-                                };
-                                if (typeof window !== 'undefined') {
-                                    const csrfToken = this.getCookie('_csrf');
-                                    if (csrfToken) {
-                                        refreshHeaders['X-CSRF-Token'] = csrfToken;
-                                    }
-                                }
-                                const refreshRes = await fetch(refreshUrl, {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                    headers: refreshHeaders
-                                });
-
-                                if (refreshRes.ok) {
-                                    this.isRefreshing = false;
-                                    this.onRefreshed(true);
-                                    retryCount++;
-                                    continue;
-                                }
-                            } catch (err) {
-                                console.error('Error during token refresh:', err);
-                            }
-                            this.isRefreshing = false;
-                            this.onRefreshed(false);
-                        }
-                    }
-
-                    if (detectRedirectLoop()) {
-                        // Check for redirect loop first — if we've already redirected
-                        // multiple times in a short window, break the cycle.
-                        console.error(
-                            'API redirect loop detected! Multiple 401 redirects occurred in a short window. ' +
-                            'Stopping automatic redirects to prevent infinite page reloads. ' +
-                            'The user may need to manually log in again.'
-                        );
-                        // Clear the counter so future manual attempts can work
-                        clearRedirectCount();
-                        // Reset auth store but do NOT redirect
-                        this.resetAuthStore();
-                    } else {
-                        this.resetAuthStore();
-                        if (typeof window !== 'undefined') {
                             const currentPath = window.location.pathname;
-                            const isAlreadyOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/admin-login' || currentPath === '/verify-email';
-                            if (!isAlreadyOnAuthPage && !isAuthEndpoint) {
+                            const isAlreadyOnAuthPage = ['/login', '/register', '/admin-login', '/verify-email'].includes(currentPath);
+                            if (!isAlreadyOnAuthPage) {
                                 recordRedirect();
                                 window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
                             }

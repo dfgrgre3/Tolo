@@ -75,7 +75,9 @@ export async function middleware(request: NextRequest) {
   // Add pathname to headers for conditional rendering in layouts
   requestHeaders.set('x-pathname', pathname);
 
-  const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/courses'];
+  // كتالوج الكورسات صفحة تصفّح عامة يصل إليها الزائر من صفحة الهبوط،
+  // والحماية الفعلية تُطبَّق على صفحات التعلّم والشراء لا على التصفّح.
+  const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/learning'];
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
 
   const guestRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];

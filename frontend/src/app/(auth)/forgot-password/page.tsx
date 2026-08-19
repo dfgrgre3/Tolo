@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, KeyRound, AlertCircle, CheckCircle, Mail } from "lucide-react";
 import Link from "next/link";
+import { forgotPassword } from "@/services/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -26,27 +27,12 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
+    await forgotPassword(email.trim());
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل إرسال رمز الاستعادة");
-      }
-
-      setSuccess("إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رابط لإعادة تعيين كلمة المرور.");
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
-    } finally {
-      setIsLoading(false);
-    }
+    // Regardless of success/failure we show the same neutral message to avoid
+    // leaking whether an email is registered (account-enumeration protection).
+    setSuccess("إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رابط لإعادة تعيين كلمة المرور.");
+    setIsLoading(false);
   };
 
   return (

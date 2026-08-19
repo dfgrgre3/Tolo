@@ -208,16 +208,6 @@ function copyResponseHeaders(response: Response, defaultCacheControl?: string): 
     }
   });
 
-  if (response.headers.has('set-cookie')) {
-    const setCookieHeaders = typeof (response.headers as any).getSetCookie === 'function'
-      ? (response.headers as any).getSetCookie()
-      : [response.headers.get('set-cookie')].filter(Boolean) as string[];
-
-    setCookieHeaders.forEach((cookieVal: string) => {
-      responseHeaders.append('Set-Cookie', cookieVal);
-    });
-  }
-
   if (!responseHeaders.has('content-type')) {
     responseHeaders.set('content-type', response.headers.get('content-type') || 'application/json');
   }
@@ -227,6 +217,59 @@ function copyResponseHeaders(response: Response, defaultCacheControl?: string): 
   }
 
   return responseHeaders;
+}
+
+function applyCookies(fromResponse: Response, toResponse: NextResponse) {
+  if (fromResponse.headers.has('set-cookie')) {
+    const setCookieHeaders = typeof (fromResponse.headers as any).getSetCookie === 'function'
+      ? (fromResponse.headers as any).getSetCookie()
+      : [fromResponse.headers.get('set-cookie')].filter(Boolean) as string[];
+
+    setCookieHeaders.forEach((cookieVal: string) => {
+      const parts = cookieVal.split(';');
+      const nameValue = parts[0];
+      if (nameValue) {
+        const eqIdx = nameValue.indexOf('=');
+        if (eqIdx > 0) {
+          const name = nameValue.substring(0, eqIdx).trim();
+          const value = nameValue.substring(eqIdx + 1).trim();
+          
+          const options: any = {};
+          parts.slice(1).forEach((attrStr) => {
+            const eqIdxAttr = attrStr.indexOf('=');
+            let attrName = '';
+            let attrVal = '';
+            if (eqIdxAttr > 0) {
+              attrName = attrStr.substring(0, eqIdxAttr).trim();
+              attrVal = attrStr.substring(eqIdxAttr + 1).trim();
+            } else {
+              attrName = attrStr.trim();
+            }
+            const lowerName = attrName.toLowerCase();
+            if (lowerName === 'path') {
+              options.path = attrVal;
+            } else if (lowerName === 'domain') {
+              options.domain = attrVal;
+            } else if (lowerName === 'max-age') {
+              options.maxAge = parseInt(attrVal, 10);
+            } else if (lowerName === 'expires') {
+              options.expires = new Date(attrVal);
+            } else if (lowerName === 'httponly') {
+              options.httpOnly = true;
+            } else if (lowerName === 'secure') {
+              options.secure = true;
+            } else if (lowerName === 'samesite') {
+              const lowerVal = attrVal.toLowerCase();
+              if (lowerVal === 'lax' || lowerVal === 'strict' || lowerVal === 'none') {
+                options.sameSite = lowerVal;
+              }
+            }
+          });
+          toResponse.cookies.set(name, value, options);
+        }
+      }
+    });
+  }
 }
 
 function handleErrorResponse(response: Response, errorText: string) {
@@ -255,10 +298,14 @@ function handleErrorResponse(response: Response, errorText: string) {
 
   const responseHeaders = copyResponseHeaders(response);
 
-  return NextResponse.json(errorData, {
+  const nextResponse = NextResponse.json(errorData, {
     status: response.status,
     headers: responseHeaders
   });
+
+  applyCookies(response, nextResponse);
+
+  return nextResponse;
 }
 
 // =============================================================================
@@ -375,10 +422,14 @@ async function handleProxy(
     const responseHeaders = copyResponseHeaders(response, 'no-store');
 
     // Pass the ReadableStream directly to support streaming and avoid in-memory buffering.
-    return new NextResponse(response.body, {
+    const nextResponse = new NextResponse(response.body, {
       status: response.status,
       headers: responseHeaders,
     });
+
+    applyCookies(response, nextResponse);
+
+    return nextResponse;
   } catch (error: unknown) {
     const errObj = error as Record<string, unknown> | null;
     const errName = (errObj && typeof errObj.name === 'string') ? errObj.name : '';

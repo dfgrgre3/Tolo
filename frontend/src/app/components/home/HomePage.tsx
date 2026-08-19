@@ -1,38 +1,39 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { User } from '@/types/user';
 import { useAuth } from '@/hooks/use-auth';
-import LandingPage from './LandingPage';
-import { UserHome } from './UserHome';
+import GuestHome from './guest/GuestHome';
+import { UserHomeSkeleton } from './dashboard/shared/UserHomeSkeleton';
+
+// الزائر غير المسجّل لا يحتاج لوحة التحكم إطلاقًا. تحميلها عند الطلب فقط
+// يمنع تصريف/تنزيل أقسام اللوحة الـ14 وشجرتها في أول فتح للصفحة الرئيسية.
+const UserHome = dynamic(() => import('./dashboard/UserHome').then((m) => ({ default: m.UserHome })), {
+  ssr: false,
+  loading: () => <UserHomeSkeleton />,
+});
 
 interface HomePageProps {
   user?: User;
+  /** تلميح من السيرفر بوجود جلسة، لتحديد ما يُعرض دون وميض بين الصفحتين. */
+  hasSession?: boolean;
 }
 
-export default function HomePage({ user }: HomePageProps) {
+export default function HomePage({ user, hasSession }: HomePageProps) {
   const { user: authUser, isLoading } = useAuth();
-  
+
   // Use the passed user prop or fall back to auth context
   const currentUser = user || (authUser as User | null);
 
-  // Show loading state while checking authentication
-  if (isLoading && !currentUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-gray-400 font-medium">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show landing page for non-authenticated users
+  // للزائر تُعرض صفحة الهبوط فورًا. أما صاحب الجلسة فيرى هيكل اللوحة
+  // أثناء جلب بياناته، فلا يحدث وميض بين الصفحتين.
   if (!currentUser) {
-    return <LandingPage />;
+    if (hasSession && isLoading) {
+      return <UserHomeSkeleton />;
+    }
+    return <GuestHome />;
   }
 
-  // Show personalized home for authenticated users
   return <UserHome user={currentUser} />;
 }

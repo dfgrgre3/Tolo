@@ -11,9 +11,10 @@ interface HeaderMenuTriggerProps {
   onClick: () => void;
   className?: string;
   badge?: string;
+  ariaControls?: string;
 }
 
-export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge }: HeaderMenuTriggerProps) {
+export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge, ariaControls }: HeaderMenuTriggerProps) {
   return (
     <Button
       type="button"
@@ -21,7 +22,7 @@ export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, b
       onClick={onClick}
       className={cn(triggerStyles({ variant: "header", open: isOpen, size: "header" }), className)}
       aria-expanded={isOpen}
-      aria-haspopup="dialog"
+      aria-haspopup={'dialog'} aria-controls={ariaControls}
       aria-label={`${label} - ${isOpen ? "مفتوح" : "مغلق"}`}
     >
       <span className="font-medium">{label}</span>

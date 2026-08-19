@@ -205,7 +205,11 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+// Sentry يضيف طبقة instrumentation ثقيلة على كل وحدة أثناء التصريف.
+// في وضع التطوير لا فائدة منها، وتكلفتها في زمن التصريف كبيرة.
+export default isDev
+  ? nextConfig
+  : withSentryConfig(nextConfig, {
   org: "tolo",
   project: "frontend",
   silent: !process.env.CI,

@@ -9,7 +9,6 @@ interface MegaMenuGridProps {
 	categories: CategoryType[];
 	gridCols: string;
 	isCompact: boolean;
-	searchQuery: string;
 	focusedCategoryIndex: number;
 	focusedItemIndex: number;
 	onClose: () => void;
@@ -21,7 +20,6 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	categories,
 	gridCols,
 	isCompact,
-	searchQuery,
 	focusedCategoryIndex,
 	focusedItemIndex,
 	onClose,
@@ -31,30 +29,23 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	return (
 		<div
 			className={cn(
-				"px-4 md:px-6",
-				isCompact ? 'py-3 md:py-4' : 'py-4 md:py-5'
-			)}
-		>
-			<div className={cn(
 				"grid",
 				gridCols,
-				isCompact ? 'gap-2 md:gap-3' : 'gap-4 md:gap-5'
-			)}>
-				{categories.map((category, categoryIndex) => (
-					<div key={`${category.title}-${categoryIndex}`} className="h-full">
-						<MegaMenuCategory
-							ref={(el) => setCategoryRef(categoryIndex, el)}
-							category={category}
-							categoryIndex={categoryIndex}
-							onItemClick={onClose}
-							activeRoute={activeRoute}
-							isCompact={isCompact}
-							searchQuery={searchQuery}
-							focusedItemIndex={focusedCategoryIndex === categoryIndex ? focusedItemIndex : -1}
-						/>
-					</div>
-				))}
-			</div>
+				isCompact ? "gap-x-8 gap-y-6" : "gap-x-10 gap-y-8"
+			)}
+		>
+			{categories.map((category, categoryIndex) => (
+				<MegaMenuCategory
+					key={`${category.title}-${categoryIndex}`}
+					ref={(el) => setCategoryRef(categoryIndex, el)}
+					category={category}
+					categoryIndex={categoryIndex}
+					onItemClick={onClose}
+					activeRoute={activeRoute}
+					isCompact={isCompact}
+					focusedItemIndex={focusedCategoryIndex === categoryIndex ? focusedItemIndex : -1}
+				/>
+			))}
 		</div>
 	);
 });

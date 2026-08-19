@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, KeyRound, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import Link from "next/link";
+import { resetPassword } from "@/services/auth";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -23,6 +24,10 @@ function ResetPasswordContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setError("رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية.");
+      return;
+    }
     if (!newPassword || !confirmPassword) {
       setError("يرجى ملء جميع الحقول");
       return;
@@ -42,30 +47,19 @@ function ResetPasswordContent() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token, newPassword }),
-      });
+    const result = await resetPassword(token, newPassword);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل إعادة تعيين كلمة المرور");
-      }
-
-      setSuccess("تم تعيين كلمة المرور بنجاح. سيتم تحويلك لصفحة تسجيل الدخول...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 3000);
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
-    } finally {
+    if (!result.success) {
+      setError(result.error || "فشل إعادة تعيين كلمة المرور");
       setIsLoading(false);
+      return;
     }
+
+    setSuccess("تم تعيين كلمة المرور بنجاح. سيتم تحويلك لصفحة تسجيل الدخول...");
+    setTimeout(() => {
+      router.push("/login");
+    }, 3000);
+    setIsLoading(false);
   };
 
   return (

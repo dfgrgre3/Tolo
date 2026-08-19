@@ -6,7 +6,6 @@ export const navLinkStyles = cva("relative", {
       desktop: "h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest group/btn hover:bg-white/5",
       mobile: "flex items-center gap-3 p-3.5 rounded-xl border border-transparent",
       search: "flex items-center gap-3 p-3 rounded-xl border",
-      mega: "relative flex items-center gap-3 rounded-2xl overflow-hidden bg-card/40 hover:bg-gradient-to-r hover:from-primary/15 hover:via-primary/8 hover:to-primary/4 border border-border/30 hover:border-primary/40 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 hover:shadow-lg hover:shadow-primary/5 group/item",
     },
     active: { true: "", false: "" },
   },
@@ -17,7 +16,6 @@ export const navLinkStyles = cva("relative", {
     { variant: "mobile", active: false, className: "hover:bg-muted font-medium text-foreground/80 hover:text-foreground" },
     { variant: "search", active: true, className: "bg-primary/10 text-primary border-primary/20" },
     { variant: "search", active: false, className: "bg-muted/40 border-transparent hover:bg-muted" },
-    { variant: "mega", active: true, className: "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/20" },
   ],
 });
 
@@ -27,18 +25,13 @@ export const navIconStyles = cva("", {
       desktop: "text-muted-foreground group-hover/btn:text-primary opacity-30 group-hover/btn:opacity-100",
       mobile: "",
       search: "",
-      mega: "text-muted-foreground block group-hover/item:text-primary",
     },
     active: { true: "", false: "" },
-    compact: { true: "", false: "" },
   },
   compoundVariants: [
     { variant: "desktop", active: true, className: "text-primary filter drop-shadow-[0_0_8px_hsl(var(--primary)_/_0.8)]" },
-    { variant: "mega", active: true, className: "text-primary" },
-    { variant: "mega", compact: true, className: "h-3 w-3" },
-    { variant: "mega", compact: false, className: "h-3.5 w-3.5" },
   ],
-  defaultVariants: { active: false, compact: false },
+  defaultVariants: { active: false },
 });
 
 export const navTextStyles = cva("", {
@@ -47,18 +40,13 @@ export const navTextStyles = cva("", {
       desktop: "relative z-10 group-hover/btn:rpg-neon-text",
       mobile: "flex-1 text-[15px]",
       search: "text-sm font-semibold truncate",
-      mega: "font-semibold leading-tight group-hover/item:text-primary",
     },
     active: { true: "", false: "" },
-    compact: { true: "", false: "" },
   },
   compoundVariants: [
     { variant: "desktop", active: true, className: "text-primary" },
-    { variant: "mega", active: true, className: "text-primary" },
-    { variant: "mega", compact: true, className: "text-xs md:text-sm" },
-    { variant: "mega", compact: false, className: "text-sm md:text-base" },
   ],
-  defaultVariants: { active: false, compact: false },
+  defaultVariants: { active: false },
 });
 
 export const navBadgeStyles = cva("rounded-full font-bold whitespace-nowrap", {
@@ -67,15 +55,8 @@ export const navBadgeStyles = cva("rounded-full font-bold whitespace-nowrap", {
       desktop: "absolute -top-1 -right-1 bg-amber-500 text-black text-[9px] font-black italic flex items-center justify-center border border-black",
       mobile: "px-2 py-0.5 text-[10px] bg-gradient-to-r from-primary to-primary/80 text-white shadow-sm shadow-primary/20",
       search: "px-1.5 py-0.5 text-[10px] rounded-full bg-primary/15 text-primary font-bold",
-      mega: "bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-md shadow-primary/30",
     },
-    compact: { true: "", false: "" },
   },
-  compoundVariants: [
-    { variant: "mega", compact: true, className: "text-[10px] px-1.5 py-0.5" },
-    { variant: "mega", compact: false, className: "text-xs px-2 py-1" },
-  ],
-  defaultVariants: { compact: false },
 });
 
 export const navIconWrapStyles = cva("flex items-center justify-center rounded-lg", {
@@ -83,54 +64,16 @@ export const navIconWrapStyles = cva("flex items-center justify-center rounded-l
     variant: {
       mobile: "w-8 h-8",
       search: "w-8 h-8 bg-background text-muted-foreground",
-      mega: "relative rounded-xl flex-shrink-0 z-10 bg-gradient-to-br from-accent/70 via-accent/50 to-accent/40 group-hover/item:from-primary/25 group-hover/item:via-primary/18 group-hover/item:to-primary/12 shadow-md border border-border/20 group-hover/item:border-primary/30",
       desktop: "",
     },
     active: { true: "", false: "" },
-    compact: { true: "", false: "" },
   },
   compoundVariants: [
     { variant: "mobile", active: true, className: "bg-primary/20 text-primary" },
     { variant: "mobile", active: false, className: "bg-muted text-muted-foreground" },
-    { variant: "mega", active: true, className: "from-primary/35 via-primary/25 to-primary/18 shadow-lg border-primary/40" },
-    { variant: "mega", compact: true, className: "p-1.5" },
-    { variant: "mega", compact: false, className: "p-2" },
   ],
-  defaultVariants: { active: false, compact: false },
+  defaultVariants: { active: false },
 });
-
-export const navLayoutStyles = {
-  megaItemGlow: "absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 opacity-0 group-hover/item:opacity-100 blur-xl",
-  megaItemActiveBar: "absolute start-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-primary/80 to-primary/60 rounded-e-full",
-};
-
-export const categoryStyles = {
-  card: cva("relative group/category border backdrop-blur-md overflow-hidden", {
-    variants: {
-      active: { true: "bg-gradient-to-b from-primary/15 via-primary/10 to-transparent border-primary/30 shadow-xl shadow-primary/5", false: "bg-card/40 hover:bg-card/50 border-border/40 hover:border-primary/25 shadow-sm hover:shadow-md hover:shadow-primary/2" },
-      compact: { true: "p-4 rounded-2xl", false: "p-6 rounded-3xl" },
-    },
-    defaultVariants: { active: false, compact: false },
-  }),
-  header: cva("relative flex items-center gap-3", {
-    variants: { compact: { true: "mb-3", false: "mb-5" } },
-    defaultVariants: { compact: false },
-  }),
-  iconWrap: cva("flex items-center justify-center rounded-xl bg-primary/15 text-primary shadow-inner shadow-white/5", {
-    variants: { compact: { true: "w-8 h-8", false: "w-10 h-10" } },
-    defaultVariants: { compact: false },
-  }),
-  title: cva("font-bold text-foreground leading-none tracking-tight group-hover/category:text-primary", {
-    variants: { compact: { true: "text-sm", false: "text-base" } },
-    defaultVariants: { compact: false },
-  }),
-  count: cva("text-[10px] sm:text-xs font-black rounded-lg px-2 py-0.5 tabular-nums border", {
-    variants: {
-      state: { priority: "bg-primary text-black border-black/10 shadow-sm", search: "bg-primary/20 text-primary border-primary/20", neutral: "bg-background/80 text-muted-foreground border-border/50" },
-    },
-    defaultVariants: { state: "neutral" },
-  }),
-};
 
 export const triggerStyles = cva("relative flex items-center gap-3", {
   variants: {
@@ -146,4 +89,3 @@ export const triggerStyles = cva("relative flex items-center gap-3", {
   ],
   defaultVariants: { open: false, size: "header" },
 });
-

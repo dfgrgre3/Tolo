@@ -446,8 +446,9 @@ async function refreshAuthSession(): Promise<boolean> {
         const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
         for (const name of csrfNames) {
           const entry = cookies.find(c => c.startsWith(name + '='));
-          if (entry) {
-            headers['X-CSRF-Token'] = entry.split('=')[1];
+          const value = entry?.split('=')[1];
+          if (value) {
+            headers['X-CSRF-Token'] = value;
             break;
           }
         }

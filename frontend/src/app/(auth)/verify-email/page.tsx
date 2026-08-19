@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { verifyEmail, resendVerification } from "@/services/auth";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -29,30 +30,19 @@ export default function VerifyEmailPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const res = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code }),
-      });
+    const result = await verifyEmail(code);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "رمز التحقق غير صحيح أو منتهي الصلاحية");
-      }
-
-      setSuccess("تم تأكيد بريدك الإلكتروني بنجاح! سيتم تحويلك للوحة التحكم...");
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 3000);
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
-    } finally {
+    if (!result.success) {
+      setError(result.error || "رمز التحقق غير صحيح أو منتهي الصلاحية");
       setIsLoading(false);
+      return;
     }
+
+    setSuccess("تم تأكيد بريدك الإلكتروني بنجاح! سيتم تحويلك للوحة التحكم...");
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 3000);
+    setIsLoading(false);
   };
 
   const handleResend = async () => {
@@ -60,27 +50,14 @@ export default function VerifyEmailPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const res = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
+    const result = await resendVerification();
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل إعادة إرسال الرمز");
-      }
-
+    if (!result.success) {
+      setError(result.error || "فشل إعادة إرسال الرمز");
+    } else {
       setSuccess("تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.");
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
-    } finally {
-      setIsResending(false);
     }
+    setIsResending(false);
   };
 
   return (

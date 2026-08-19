@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Chrome, Github, KeyRound, Mail, Lock } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Chrome, Apple, KeyRound, Mail, Lock } from "lucide-react";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { useAuthContext } from "@/contexts/auth-context";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshUser } = useAuthContext();
   const registered = searchParams.get("registered") === "true";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,6 +47,25 @@ export default function LoginForm() {
     }
   }, []);
 
+  const getSafeRedirect = () => {
+    const redirect = searchParams.get("redirect");
+    return redirect?.startsWith("/") && !redirect.startsWith("//")
+      ? redirect
+      : "/dashboard";
+  };
+
+  const completeLogin = async () => {
+    const refreshed = await refreshUser();
+    if (!refreshed) {
+      throw new Error("تعذر تحميل بيانات المستخدم بعد تسجيل الدخول");
+    }
+    router.push(getSafeRedirect());
+    router.refresh();
+  };
+
+  const getErrorMessage = (err: unknown, fallback: string) =>
+    err instanceof ApiError || err instanceof Error ? err.message : fallback;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -59,32 +81,13 @@ export default function LoginForm() {
       : "Unknown Device";
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          rememberMe,
-          deviceName,
-          fingerprint,
-        }),
+      const responseData = await apiClient.post<any>("/auth/login", {
+        email,
+        password,
+        rememberMe,
+        deviceName,
+        fingerprint,
       });
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل تسجيل الدخول");
-      }
-
-      const responseData = data.data || data;
 
       if (responseData.mfaRequired) {
         setMfaRequired(true);
@@ -93,10 +96,9 @@ export default function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع أثناء تسجيل الدخول");
+      await completeLogin();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "حدث خطأ غير متوقع أثناء تسجيل الدخول"));
     } finally {
       setIsLoading(false);
     }
@@ -113,36 +115,28 @@ export default function LoginForm() {
     setError(null);
 
     try {
-      const res = await fetch("/api/auth/mfa/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ticket: mfaTicket, code: mfaCode }),
-      });
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "رمز التحقق غير صحيح");
-      }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "فشل التحقق من الهوية");
+      await apiClient.post("/auth/mfa/verify", { ticket: mfaTicket, code: mfaCode });
+      await completeLogin();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "فشل التحقق من الهوية"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/auth/social/${provider}`;
+  const handleSocialLogin = async (provider: "google" | "apple") => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { redirectUrl } = await apiClient.get<{ redirectUrl: string }>(`/auth/social/${provider}`);
+      if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+        throw new Error("رابط تسجيل الدخول الاجتماعي غير صالح");
+      }
+      window.location.assign(redirectUrl);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "تعذر بدء تسجيل الدخول الاجتماعي"));
+      setIsLoading(false);
+    }
   };
 
   if (mfaRequired) {
@@ -313,11 +307,11 @@ export default function LoginForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("github")}
+              onClick={() => handleSocialLogin("apple")}
               disabled={isLoading}
               className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50"
             >
-              <Github className="ml-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> GitHub
+              <Apple className="ml-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> Apple
             </Button>
           </div>
         </CardContent>
@@ -337,6 +331,14 @@ export default function LoginForm() {
             ليس لديك حساب؟{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
               إنشاء حساب جديد
+            </Link>
+          </div>
+          <div className="text-center">
+            <Link
+              href="/admin-login"
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-primary font-semibold transition-colors"
+            >
+              دخول الموظفين والمسؤولين
             </Link>
           </div>
         </CardFooter>

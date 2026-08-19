@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Zap,
 
@@ -39,7 +40,7 @@ interface QuickAction {
 
 export function QuickActions() {
   const router = useRouter();
-  const user: any = null;
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 

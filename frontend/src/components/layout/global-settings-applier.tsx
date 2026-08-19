@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * GlobalSettingsApplier - Component يطبق إعدادات المستخدم على كامل التطبيق
@@ -7,7 +7,7 @@
  * فور تسجيل الدخول أو تطبيقها من الكاش المحلي.
  */
 
-import { useGlobalSettings } from '@/hooks';
+import { useGlobalSettings } from '@/hooks/use-global-settings';
 
 export default function GlobalSettingsApplier({ children }: { children: React.ReactNode }) {
   useGlobalSettings();

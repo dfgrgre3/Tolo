@@ -18,11 +18,10 @@ export function MegaMenuBackdrop({ onClose, zIndex, isOpen }: MegaMenuBackdropPr
     <div
       data-mega-menu-backdrop
       className={cn(
-        "fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm",
-        "transition-opacity duration-200 ease-out",
-        isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        "fixed left-0 right-0 bottom-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm",
+        isOpen ? "opacity-100 pointer-events-auto" : "hidden"
       )}
-      style={{ zIndex }}
+      style={{ zIndex, top: "var(--header-bottom, var(--header-height, 64px))" }}
       onClick={onClose}
       aria-hidden="true"
     />

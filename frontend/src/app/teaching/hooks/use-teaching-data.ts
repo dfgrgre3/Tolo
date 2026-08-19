@@ -508,6 +508,7 @@ export function useTeachingData() {
       replyToReview.mutateAsync({ reviewId: id, text }),
     isReplyingToReview: replyToReview.isPending,
     conversations,
+    sendMessage,
     calendarEvents,
     addCalendarEvent,
     notifications,

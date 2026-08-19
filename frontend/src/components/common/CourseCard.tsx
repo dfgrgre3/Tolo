@@ -11,7 +11,8 @@ export interface CourseCardProps {
   categoryName?: string;
   instructorName?: string;
   instructorAvatar?: string;
-  ratingAvg?: number;
+  /** Average rating, or null/undefined when the course has none yet. */
+  ratingAvg?: number | null;
   reviewsCount?: number;
   studentsCount?: number;
   duration?: string;
@@ -27,10 +28,10 @@ export function CourseCard({
   categoryName = 'عام',
   instructorName = 'مدرّب الكورس',
   instructorAvatar,
-  ratingAvg = 4.8,
+  ratingAvg,
   reviewsCount = 0,
   studentsCount = 0,
-  duration = '12 ساعة',
+  duration,
   level = 'جميع المستويات',
   price,
   discountPrice,
@@ -92,21 +93,27 @@ export function CourseCard({
 
         {/* Rating & Stats */}
         <div className="flex items-center justify-between text-xs text-muted-foreground border-y border-border/60 py-2.5 mb-3 mt-auto">
-          <div className="flex items-center gap-1 text-[#F59E0B] font-bold">
-            <Star className="h-3.5 w-3.5 fill-[#F59E0B]" />
-            <span>{ratingAvg.toFixed(1)}</span>
-            <span className="text-muted-foreground font-normal">({reviewsCount})</span>
-          </div>
+          {typeof ratingAvg === 'number' ? (
+            <div className="flex items-center gap-1 text-[#F59E0B] font-bold">
+              <Star className="h-3.5 w-3.5 fill-[#F59E0B]" />
+              <span>{ratingAvg.toFixed(1)}</span>
+              <span className="text-muted-foreground font-normal">({reviewsCount})</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground font-normal">لا يوجد تقييم بعد</span>
+          )}
 
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
               <span>{studentsCount}</span>
             </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{duration}</span>
-            </span>
+            {duration && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{duration}</span>
+              </span>
+            )}
           </div>
         </div>
 

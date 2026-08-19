@@ -47,9 +47,6 @@ export const useHeaderWidgets = (isEfficiencyMode: boolean) => {
   return useMemo(() => ({
     progress: HEADER_PREFERENCES.showProgress && !isEfficiencyMode,
     suggestions: HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode,
-    activity: HEADER_PREFERENCES.showActivity && !isEfficiencyMode,
-    quickActions: !isEfficiencyMode,
-    contextualHelp: !isEfficiencyMode,
   }), [isEfficiencyMode]);
 };
 
