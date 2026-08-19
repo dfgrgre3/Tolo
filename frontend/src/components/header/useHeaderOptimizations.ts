@@ -29,7 +29,7 @@ export const useLoginUrl = () => {
 export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: any) => {
   return useMemo(() => {
     return cn(
-      "sticky top-0 z-50 w-full transition-all duration-300 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
+      "sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
       isScrolled ? "shadow-lg shadow-black/5 border-primary/25 bg-background/90" : "border-border/40",
       mounted && user && !isScrolled && "border-primary/15"
     );
@@ -47,9 +47,6 @@ export const useHeaderWidgets = (isEfficiencyMode: boolean) => {
   return useMemo(() => ({
     progress: HEADER_PREFERENCES.showProgress && !isEfficiencyMode,
     suggestions: HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode,
-    activity: HEADER_PREFERENCES.showActivity && !isEfficiencyMode,
-    quickActions: !isEfficiencyMode,
-    contextualHelp: !isEfficiencyMode,
   }), [isEfficiencyMode]);
 };
 

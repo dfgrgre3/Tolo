@@ -1,36 +1,20 @@
+﻿"use client"
 
-"use client"
-
-import { useAuth } from "@/hooks/use-auth";
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "@/providers/theme-provider"
 import { Button } from "@/components/ui/button"
-import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client"
-import { logger } from "@/lib/logger"
-import { toggleThemeWithTransition } from "@/lib/utils"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
   const { setTheme, theme } = useTheme()
-  const { user } = useAuth()
  
-  const handleToggle = async (e?: React.MouseEvent) => {
+  const handleToggle = () => {
     const nextTheme = theme === "light" ? "dark" : "light"
     
     if (onToggle) {
       onToggle()
     } else {
-      toggleThemeWithTransition(nextTheme, setTheme, e)
-      
-      if (user?.id) {
-        try {
-          await saveSettingsPreferences({
-            appearance: { theme: nextTheme }
-          })
-        } catch (error) {
-          logger.error("Failed to sync theme preference:", error)
-        }
-      }
+      setTheme(nextTheme)
     }
   }
 
@@ -40,12 +24,14 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
     <Button
       variant="ghost"
       size="icon"
-      onClick={(e) => handleToggle(e)}
+      onClick={handleToggle}
     >
-      <Sun className={`h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "-rotate-90 scale-0" : "rotate-0 scale-100"}`} />
-      <Moon className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
+      {isDark ? (
+        <Moon className="h-[1.2rem] w-[1.2rem]" />
+      ) : (
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+      )}
       <span className="sr-only">تبديل المظهر</span>
     </Button>
   )
 }
-

@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/api-client";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
 import { logger } from '@/lib/logger';
@@ -92,6 +93,74 @@ interface Addon {
   value: number;
 }
 
+/**
+ * Normalize the billing-summary payload into the shape expected by this page.
+ *
+ * The backend may return the summary directly or wrapped in an envelope
+ * ({ success, data }). It also may omit some of the newer fields (stats,
+ * paymentHistory, additional credits) seen by older clients. This helper
+ * unwraps the envelope and fills stable defaults so the page never crashes
+ * on a missing field (e.g. Summary.balance being undefined).
+ */
+function normalizeBillingSummary(value: unknown): BillingSummary {
+  const unwrapped =
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "data" in value &&
+    (value as { success?: boolean; data?: unknown }).data !== undefined
+      ? (value as { data: unknown }).data
+      : value;
+
+  const raw = (unwrapped ?? {}) as Partial<BillingSummary> &
+    Record<string, unknown>;
+
+  const stats = raw.stats ?? {};
+  const active = (raw.activeSubscription ?? null) as
+    | ActiveSubscription
+    | null;
+
+  return {
+    name: typeof raw.name === "string" ? raw.name : "",
+    email: typeof raw.email === "string" ? raw.email : "",
+    balance: typeof raw.balance === "number" ? raw.balance : 0,
+    additionalAiCredits:
+      typeof raw.additionalAiCredits === "number"
+        ? raw.additionalAiCredits
+        : 0,
+    additionalExamCredits:
+      typeof raw.additionalExamCredits === "number"
+        ? raw.additionalExamCredits
+        : 0,
+    activeSubscription: active,
+    paymentHistory: Array.isArray(raw.paymentHistory)
+      ? raw.paymentHistory
+      : [],
+    stats: {
+      totalSpent:
+        typeof (stats as { totalSpent?: unknown }).totalSpent === "number"
+          ? (stats as { totalSpent: number }).totalSpent
+          : 0,
+      paymentCount:
+        typeof (stats as { paymentCount?: unknown }).paymentCount === "number"
+          ? (stats as { paymentCount: number }).paymentCount
+          : 0,
+      successCount:
+        typeof (stats as { successCount?: unknown }).successCount === "number"
+          ? (stats as { successCount: number }).successCount
+          : 0,
+      pendingCount:
+        typeof (stats as { pendingCount?: unknown }).pendingCount === "number"
+          ? (stats as { pendingCount: number }).pendingCount
+          : 0,
+      failedCount:
+        typeof (stats as { failedCount?: unknown }).failedCount === "number"
+          ? (stats as { failedCount: number }).failedCount
+          : 0,
+    },
+  };
+}
+
 export default function SubscriptionPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -102,25 +171,39 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [summaryRes, addonsRes] = await Promise.all([
-          fetch('/api/users/billing-summary'),
-          fetch('/api/subscriptions/addons')
+        const [, summaryData, addonsData] = await Promise.allSettled([
+          Promise.resolve(),
+          apiClient.get<BillingSummary>('/api/users/billing-summary'),
+          apiClient.get<unknown>('/api/subscriptions/addons'),
         ]);
 
-        if (!summaryRes.ok) {
-          if (summaryRes.status === 401) {
+        // Billing summary
+        if (summaryData.status === 'fulfilled') {
+          setSummary(normalizeBillingSummary(summaryData.value));
+        } else {
+          const err =
+            summaryData.reason instanceof ApiError ? summaryData.reason : null;
+          if (err?.status === 401) {
             setError("unauthorized");
           } else {
-            setError(`failed_fetch_${summaryRes.status}`);
+            setError(
+              `failed_fetch_${err?.status ?? 'unknown'}`
+            );
           }
-        } else {
-          const data = await summaryRes.json();
-          setSummary(data);
         }
 
-        if (addonsRes.ok) {
-          const data = await addonsRes.json();
-          setAddons(data.addons || []);
+        // Addons — backend may return { data }, { addons } or a bare array.
+        if (addonsData.status === 'fulfilled') {
+          const raw = addonsData.value as
+            | { addons?: Addon[]; data?: unknown }
+            | Addon[]
+            | null
+            | undefined;
+          const payload = (raw as { data?: unknown })?.data ?? raw;
+          const list = Array.isArray(payload)
+            ? payload
+            : (payload as { addons?: Addon[] })?.addons ?? [];
+          setAddons(list);
         }
       } catch (err: unknown) {
         logger.error(err instanceof Error ? err.message : String(err));
@@ -135,22 +218,17 @@ export default function SubscriptionPage() {
   const handlePurchaseAddon = async (addonId: string) => {
     setPurchasing(addonId);
     try {
-      const res = await fetch('/api/subscriptions/addons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addonId })
-      });
-
-      if (res.ok) {
-        toast.success("تمت عملية الشراء بنجاح!");
-        const summaryRes = await fetch('/api/users/billing-summary');
-        if (summaryRes.ok) setSummary(await summaryRes.json());
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "فشلت عملية الشراء");
-      }
+      await apiClient.post('/api/subscriptions/addons', { addonId });
+      toast.success("تمت عملية الشراء بنجاح!");
+      const updated = await apiClient.get<BillingSummary>('/api/users/billing-summary');
+      setSummary(normalizeBillingSummary(updated));
     } catch (err: unknown) {
-      toast.error("حدث خطأ غير متوقع");
+      const apiErr = err instanceof ApiError ? err : null;
+      const msg =
+        (apiErr?.data as { error?: string } | undefined)?.error ||
+        apiErr?.message ||
+        "فشلت عملية الشراء";
+      toast.error(msg);
       logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setPurchasing(null);
@@ -159,7 +237,7 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary border-r-2" />
       </div>
     );

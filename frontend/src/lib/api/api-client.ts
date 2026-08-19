@@ -182,16 +182,61 @@ function clearRedirectCount(): void {
 }
 
 class ApiClient {
-    private isRefreshing = false;
-    private refreshSubscribers: ((success: boolean) => void)[] = [];
+    /** In-flight CSRF bootstrap request — shared across concurrent callers to avoid duplicate fetches */
+    private csrfBootstrapPromise: Promise<void> | null = null;
+    private lastCsrfToken: string | null = null;
 
-    private subscribeTokenRefresh(cb: (success: boolean) => void) {
-        this.refreshSubscribers.push(cb);
+    /**
+     * Ensures the _csrf cookie exists by fetching GET /api/auth/csrf when it is absent.
+     * Multiple simultaneous callers share the same in-flight request (single-flight pattern).
+     *
+     * This solves the bootstrap problem: on first load (or after cookie expiry) the browser
+     * has no _csrf cookie, so any POST/PUT/PATCH/DELETE would fail with
+     * "CSRF token validation failed" until a GET request triggered ensureCSRFToken on the backend.
+     */
+    private async ensureCsrfToken(forceRefresh = false): Promise<void> {
+        if (typeof window === 'undefined') return;
+        if (!forceRefresh && this.getCookie('_csrf')) return;
+
+        const existingCookie = this.getCookie('_csrf');
+        if (!forceRefresh && existingCookie) {
+            this.lastCsrfToken = existingCookie;
+            return;
+        }
+
+        if (!this.csrfBootstrapPromise) {
+            this.csrfBootstrapPromise = fetch('/api/auth/csrf', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store',
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`CSRF bootstrap failed with status ${response.status}`);
+                    }
+                    const token = response.headers.get('X-CSRF-Token');
+                    if (token) {
+                        this.lastCsrfToken = token;
+                    }
+                })
+                .finally(() => { this.csrfBootstrapPromise = null; });
+        }
+
+        return this.csrfBootstrapPromise;
     }
 
-    private onRefreshed(success: boolean) {
-        this.refreshSubscribers.forEach((cb) => cb(success));
-        this.refreshSubscribers = [];
+    private getCookie(name: string): string | null {
+        if (typeof document === 'undefined') return null;
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            const c = ca[i];
+            if (!c) continue;
+            let trimmed = c;
+            while (trimmed.charAt(0) === ' ') trimmed = trimmed.substring(1);
+            if (trimmed.indexOf(nameEQ) === 0) return trimmed.substring(nameEQ.length);
+        }
+        return null;
     }
 
     private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
@@ -219,39 +264,27 @@ class ApiClient {
 
         const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
 
+        // For state-changing requests in the browser: guarantee the CSRF cookie exists first,
+        // then inject it as the X-CSRF-Token header (Double Submit Cookie pattern).
+        if (typeof window !== 'undefined' && isWriteMethod) {
+            await this.ensureCsrfToken();
+            const csrfToken = this.getCookie('_csrf');
+            if (csrfToken) {
+                this.lastCsrfToken = csrfToken;
+                headers.set('X-CSRF-Token', csrfToken);
+            } else if (this.lastCsrfToken) {
+                headers.set('X-CSRF-Token', this.lastCsrfToken);
+            }
+        }
+
         // Auto-generate Idempotency-Key for write requests (idempotency middleware)
         if (isWriteMethod && !headers.has('Idempotency-Key')) {
             headers.set('Idempotency-Key', crypto.randomUUID());
         }
 
-        // Attach CSRF token for write requests in browser environment
-        if (isWriteMethod && typeof window !== 'undefined' && !headers.has('X-CSRF-Token')) {
-            const cookies = window.document.cookie.split(';').map(c => c.trim());
-            const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
-            let csrfToken: string | undefined;
-            for (const name of csrfNames) {
-                const entry = cookies.find(c => c.startsWith(name + '='));
-                if (entry) {
-                    const value = entry.split('=')[1] || '';
-                    try {
-                        csrfToken = decodeURIComponent(value);
-                    } catch {
-                        csrfToken = value;
-                    }
-                    break;
-                }
-            }
-            if (csrfToken) {
-                headers.set('X-CSRF-Token', csrfToken);
-            }
-        }
-
         return headers;
     }
 
-    private resetAuthStore(): void {
-        // No-op - auth store removed
-    }
 
     private logNetworkError(error: unknown, endpoint: string): void {
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
@@ -261,6 +294,17 @@ class ApiClient {
 
     private canRetryMethod(method: string): boolean {
         return RETRYABLE_METHODS.includes(method.toUpperCase());
+    }
+
+    private async isCsrfValidationFailure(response: Response): Promise<boolean> {
+        if (response.status !== 403) return false;
+        try {
+            const body = await response.clone().json().catch(() => null) as { error?: string; message?: string } | null;
+            const message = body?.error || body?.message || '';
+            return message.toLowerCase().includes('csrf');
+        } catch {
+            return false;
+        }
     }
 
     private isRetryableError(error: unknown, retryCount: number, retries: number, method: string): boolean {
@@ -306,68 +350,36 @@ class ApiClient {
                 timer.stop();
                 clearTimeout(id);
 
-                if (response.status === 401 && retryCount < 1) {
+                // Handle CSRF validation failure - force refresh token and retry once
+                if (await this.isCsrfValidationFailure(response) && retryCount < 1) {
+                    await this.ensureCsrfToken(true);
+                    await sleep(100); // Small delay to ensure cookie is set
+                    retryCount++;
+                    continue;
+                }
+
+                if (response.status === 401) {
                     const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
-                    
-                    if (!isAuthEndpoint) {
-                        if (this.isRefreshing) {
-                            try {
-                                const success = await new Promise<boolean>((resolve) => {
-                                    this.subscribeTokenRefresh((refreshed) => {
-                                        resolve(refreshed);
-                                    });
-                                });
-                                if (success) {
-                                    retryCount++;
-                                    continue;
-                                }
-                            } catch {
-                                // fallback to redirect
-                            }
+
+                    // Token rotation is handled exclusively by the Edge Middleware on every
+                    // request. If the middleware could not refresh (refresh_token missing or
+                    // expired), it already redirected to /login. If we still get a 401 here
+                    // it means the backend rejected the call for another reason, or the
+                    // middleware was bypassed (API route called directly from the browser).
+                    // In either case, attempting another /auth/refresh from the client would
+                    // create a race condition (two concurrent refresh calls invalidate the
+                    // refresh_token). Simply redirect to login instead.
+                    if (!isAuthEndpoint && typeof window !== 'undefined') {
+                        if (detectRedirectLoop()) {
+                            console.error(
+                                'API redirect loop detected — stopping automatic redirects. ' +
+                                'The user may need to log in manually.'
+                            );
+                            clearRedirectCount();
                         } else {
-                            this.isRefreshing = true;
-                            try {
-                                const refreshUrl = normalizeEndpoint('/auth/refresh');
-                                const refreshRes = await fetch(refreshUrl, {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    }
-                                });
-
-                                if (refreshRes.ok) {
-                                    this.isRefreshing = false;
-                                    this.onRefreshed(true);
-                                    retryCount++;
-                                    continue;
-                                }
-                            } catch (err) {
-                                console.error('Error during token refresh:', err);
-                            }
-                            this.isRefreshing = false;
-                            this.onRefreshed(false);
-                        }
-                    }
-
-                    if (detectRedirectLoop()) {
-                        // Check for redirect loop first — if we've already redirected
-                        // multiple times in a short window, break the cycle.
-                        console.error(
-                            'API redirect loop detected! Multiple 401 redirects occurred in a short window. ' +
-                            'Stopping automatic redirects to prevent infinite page reloads. ' +
-                            'The user may need to manually log in again.'
-                        );
-                        // Clear the counter so future manual attempts can work
-                        clearRedirectCount();
-                        // Reset auth store but do NOT redirect
-                        this.resetAuthStore();
-                    } else {
-                        this.resetAuthStore();
-                        if (typeof window !== 'undefined') {
                             const currentPath = window.location.pathname;
-                            const isAlreadyOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/admin-login' || currentPath === '/verify-email';
-                            if (!isAlreadyOnAuthPage && !isAuthEndpoint) {
+                            const isAlreadyOnAuthPage = ['/login', '/register', '/admin-login', '/verify-email'].includes(currentPath);
+                            if (!isAlreadyOnAuthPage) {
                                 recordRedirect();
                                 window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
                             }

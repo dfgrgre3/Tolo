@@ -3,6 +3,7 @@
 import React, { Suspense, useState } from 'react';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import { SettingsProvider } from '@/contexts/settings-context';
+import { AuthProvider } from '@/contexts/auth-context';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
 import { NotificationsProvider } from '@/providers/notifications-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,7 +18,6 @@ import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 import { EfficiencyProvider } from '@/hooks/use-efficiency';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
-import Footer from '@/components/Footer';
 import { isCriticalError } from '@/lib/error-utils';
 
 function makeQueryClient() {
@@ -74,31 +74,32 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
     <ErrorBoundary variant="global">
       <Suspense fallback={null}>
         <SettingsProvider>
-          <EfficiencyProvider>
-            <ClientLayoutProvider>
-              <QueryClientProvider client={queryClient}>
-                <ReactQueryPersistence />
-                <OfflineSyncManager />
-                <GlobalSettingsApplier>
-                  <WebSocketProvider>
-                    <NotificationsProvider>
-                      <TooltipProvider>
-                        <LazyMotion features={domAnimation}>
-                          <TimerBootstrap />
-                          <TimeCoordinatorProvider />
-                          <PerformanceProvider key="performance-provider">
-                            {children}
-                          </PerformanceProvider>
-                          <Footer key="footer-static" />
-                        </LazyMotion>
-                        <Toaster richColors closeButton position="top-center" />
-                      </TooltipProvider>
-                    </NotificationsProvider>
-                  </WebSocketProvider>
-                </GlobalSettingsApplier>
-              </QueryClientProvider>
-            </ClientLayoutProvider>
-          </EfficiencyProvider>
+          <AuthProvider>
+            <EfficiencyProvider>
+              <ClientLayoutProvider>
+                <QueryClientProvider client={queryClient}>
+                  <ReactQueryPersistence />
+                  <OfflineSyncManager />
+                  <GlobalSettingsApplier>
+                    <WebSocketProvider>
+                      <NotificationsProvider>
+                        <TooltipProvider>
+                          <LazyMotion features={domAnimation}>
+                            <TimerBootstrap />
+                            <TimeCoordinatorProvider />
+                            <PerformanceProvider key="performance-provider">
+                              {children}
+                            </PerformanceProvider>
+                          </LazyMotion>
+                          <Toaster richColors closeButton position="top-center" />
+                        </TooltipProvider>
+                      </NotificationsProvider>
+                    </WebSocketProvider>
+                  </GlobalSettingsApplier>
+                </QueryClientProvider>
+              </ClientLayoutProvider>
+            </EfficiencyProvider>
+          </AuthProvider>
         </SettingsProvider>
       </Suspense>
     </ErrorBoundary>

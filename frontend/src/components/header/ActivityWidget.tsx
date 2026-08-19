@@ -1,321 +1,332 @@
 ﻿"use client";
 
-import { useAuth } from "@/hooks/use-auth";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
-  Bell,
-  MessageSquare,
-  Heart,
-  Star,
-  TrendingUp,
-  Clock,
-  ChevronRight } from
-"lucide-react";
+	Activity,
+	Bell,
+	MessageSquare,
+	Heart,
+	Star,
+	TrendingUp,
+	Clock,
+	ChevronLeft
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { m, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { apiClient } from '@/lib/api/api-client';
-import { logger } from '@/lib/logger';import { useWebSocket } from "@/contexts/websocket-context";
+import { apiClient } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
+import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/contexts/websocket-context";
 
-interface ActivityItem {
-  id: string;
-  type: "notification" | "message" | "like" | "achievement" | "progress";
-  title: string;
-  description?: string;
-  timestamp: Date;
-  read: boolean;
-  icon: React.ReactNode;
-  color: string;
-  url?: string;
-  action?: () => void;
+// ─── Types ───────────────────────────────────────────────────────
+
+type ActivityType = "notification" | "message" | "like" | "achievement" | "progress";
+
+interface RawActivity {
+	id: string;
+	type: ActivityType;
+	title: string;
+	description?: string;
+	timestamp: string;
+	read?: boolean;
+	url?: string;
 }
 
+interface ActivityItem {
+	id: string;
+	type: ActivityType;
+	title: string;
+	description?: string;
+	timestamp: Date;
+	read: boolean;
+	icon: LucideIcon;
+	color: string;
+	url?: string;
+}
+
+// ─── Constants ───────────────────────────────────────────────────
+
+const ACTIVITY_CONFIG: Record<ActivityType, { icon: LucideIcon; color: string }> = {
+	notification: { icon: Bell, color: "bg-blue-500" },
+	message: { icon: MessageSquare, color: "bg-green-500" },
+	like: { icon: Heart, color: "bg-red-500" },
+	achievement: { icon: Star, color: "bg-yellow-500" },
+	progress: { icon: TrendingUp, color: "bg-purple-500" }
+};
+
+const DEFAULT_CONFIG = { icon: Activity, color: "bg-gray-500" };
+
+const POLL_INTERVAL_MS = 300_000;
+const MAX_VISIBLE_ACTIVITIES = 5;
+const WS_REFRESH_TYPES = new Set(["notification", "refresh_notifications", "activity_refresh"]);
+
+// ─── Helpers ─────────────────────────────────────────────────────
+
+const getActivityConfig = (type: string) =>
+	ACTIVITY_CONFIG[type as ActivityType] ?? DEFAULT_CONFIG;
+
+const mapRawToActivity = (item: RawActivity): ActivityItem => {
+	const config = getActivityConfig(item.type);
+	return {
+		id: item.id,
+		type: item.type,
+		title: item.title,
+		description: item.description,
+		timestamp: new Date(item.timestamp),
+		read: item.read ?? false,
+		icon: config.icon,
+		color: config.color,
+		url: item.url
+	};
+};
+
+// ─── Component ───────────────────────────────────────────────────
+
 export function ActivityWidget() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
-  const { socket, isConnected } = useWebSocket();
-  
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+	const router = useRouter();
+	const { user } = useAuth();
+	const { socket, isConnected } = useWebSocket();
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "notification":
-        return <Bell className="h-4 w-4" />;
-      case "message":
-        return <MessageSquare className="h-4 w-4" />;
-      case "like":
-        return <Heart className="h-4 w-4" />;
-      case "achievement":
-        return <Star className="h-4 w-4" />;
-      case "progress":
-        return <TrendingUp className="h-4 w-4" />;
-      default:
-        return <Activity className="h-4 w-4" />;
-    }
-  };
+	const [activities, setActivities] = useState<ActivityItem[]>([]);
+	const [unreadCount, setUnreadCount] = useState(0);
+	const [isOpen, setIsOpen] = useState(false);
+	const [mounted, setMounted] = useState(false);
 
-  const getColor = (type: string) => {
-    switch (type) {
-      case "notification":
-        return "bg-blue-500";
-      case "message":
-        return "bg-green-500";
-      case "like":
-        return "bg-red-500";
-      case "achievement":
-        return "bg-yellow-500";
-      case "progress":
-        return "bg-purple-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    if (!mounted || !user?.id) return;
+	// Hydration guard
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
-    const mapActivityItem = (item: any): ActivityItem => ({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      description: item.description,
-      timestamp: new Date(item.timestamp),
-      read: item.read || false,
-      icon: getIcon(item.type),
-      color: getColor(item.type),
-      action: () => {
-        if (item.url) {
-          router.push(item.url);
-        }
-      }
-    });
+	// Fetch activities
+	const fetchActivities = useCallback(async () => {
+		try {
+			const data = await apiClient.get<RawActivity[] | { activities: RawActivity[] }>(
+				"/activities/recent?limit=10"
+			);
+			const rawList = Array.isArray(data) ? data : (data?.activities ?? []);
+			const items = rawList.map(mapRawToActivity);
 
-    const fetchActivities = async () => {
-      try {
-        const data = await apiClient.get<any>("/activities/recent?limit=10");
-        const rawActivities = Array.isArray(data) ? data : (data?.activities || []);
-        const items: ActivityItem[] = rawActivities.map(mapActivityItem);
-        setActivities(items);
-        setUnreadCount(items.filter((item) => !item.read).length);
-      } catch (error) {
-        logger.debug("Failed to fetch activities:", error);
-      }
-    };
+			setActivities(items);
+			setUnreadCount(items.filter((a) => !a.read).length);
+		} catch (error) {
+			logger.debug("Failed to fetch activities:", error);
+		}
+	}, []);
 
-    fetchActivities();
+	// Polling + WebSocket subscription
+	useEffect(() => {
+		if (!mounted || !user?.id) return;
 
-    const intervalTime = isConnected ? null : 300000;
-    if (intervalTime) {
-      intervalRef.current = setInterval(fetchActivities, intervalTime);
-    }
+		fetchActivities();
 
-    let handleWsMessage: ((event: MessageEvent) => void) | null = null;
-    if (socket) {
-      handleWsMessage = (event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (
-            data.type === "notification" ||
-            data.type === "refresh_notifications" ||
-            data.type === "activity_refresh"
-          ) {
-            fetchActivities();
-          }
-        } catch (error) {
-          // ignore
-        }
-      };
-      socket.addEventListener("message", handleWsMessage);
-    }
+		// Poll only when WebSocket is disconnected
+		if (!isConnected) {
+			intervalRef.current = setInterval(fetchActivities, POLL_INTERVAL_MS);
+		}
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      if (socket && handleWsMessage) {
-        socket.removeEventListener("message", handleWsMessage);
-      }
-    };
-  }, [mounted, user?.id, isConnected, socket, router]);
+		// WebSocket listener
+		const handleWsMessage = (event: MessageEvent) => {
+			try {
+				const data = JSON.parse(event.data as string);
+				if (WS_REFRESH_TYPES.has(data.type)) {
+					fetchActivities();
+				}
+			} catch {
+				// Ignore malformed messages
+			}
+		};
 
-  const markAsRead = async (id: string) => {
-    try {
-      await apiClient.post<any>(`/activities/${id}/read`, {});
-      setActivities((prev) =>
-      prev.map((item) => item.id === id ? { ...item, read: true } : item)
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      logger.debug("Failed to mark as read:", error);
-    }
-  };
+		if (socket) {
+			socket.addEventListener("message", handleWsMessage);
+		}
 
-  const markAllAsRead = async () => {
-    try {
-      await apiClient.post<any>("/activities/read-all", {});
-      setActivities((prev) => prev.map((item) => ({ ...item, read: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      logger.debug("Failed to mark all as read:", error);
-    }
-  };
+		return () => {
+			if (intervalRef.current) clearInterval(intervalRef.current);
+			if (socket) socket.removeEventListener("message", handleWsMessage);
+		};
+	}, [mounted, user?.id, isConnected, socket, fetchActivities]);
 
-  if (!mounted || !user) {
-    return null;
-  }
+	// Mark single as read
+	const markAsRead = useCallback(async (id: string) => {
+		try {
+			await apiClient.post(`/activities/${id}/read`, {});
+			setActivities((prev) =>
+				prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+			);
+			setUnreadCount((prev) => Math.max(0, prev - 1));
+		} catch (error) {
+			logger.debug("Failed to mark as read:", error);
+		}
+	}, []);
 
-  const recentActivities = activities.slice(0, 5);
+	// Mark all as read
+	const markAllAsRead = useCallback(async () => {
+		try {
+			await apiClient.post("/activities/read-all", {});
+			setActivities((prev) => prev.map((item) => ({ ...item, read: true })));
+			setUnreadCount(0);
+		} catch (error) {
+			logger.debug("Failed to mark all as read:", error);
+		}
+	}, []);
 
-  return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+	// Navigate helper
+	const navigateTo = useCallback(
+		(url: string) => {
+			setIsOpen(false);
+			router.push(url);
+		},
+		[router]
+	);
+
+	// ─── Render guards ────────────────────────────────────────────
+
+	if (!mounted || !user) return null;
+
+	const recentActivities = activities.slice(0, MAX_VISIBLE_ACTIVITIES);
+	const hasUnread = unreadCount > 0;
+
+	// ─── Render ───────────────────────────────────────────────────
+
+	return (
+		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger asChild>
 				<Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9 hover:bg-primary/10 dark:hover:bg-primary/15"
-          aria-label="النشاط الأخير">
-          
-					<Activity className="h-4 w-4" />
-					{unreadCount > 0 &&
-          <m.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 border-2 border-background flex items-center justify-center">
-            
+					variant="ghost"
+					size="icon"
+					className="relative h-9 w-9 hover:bg-primary/10 dark:hover:bg-primary/15"
+					aria-label={`النشاط الأخير${hasUnread ? `، ${unreadCount} غير مقروء` : ""}`}
+				>
+					<Activity className="h-4 w-4" aria-hidden="true" />
+					{hasUnread && (
+						<span
+							className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 border-2 border-background flex items-center justify-center"
+							aria-hidden="true"
+						>
 							<span className="text-[10px] font-bold text-white">
 								{unreadCount > 9 ? "9+" : unreadCount}
 							</span>
-						</m.span>
-          }
+						</span>
+					)}
 				</Button>
 			</DropdownMenuTrigger>
+
 			<DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
-				<div className="flex items-center justify-between px-4 py-3 border-b">
+				{/* Header */}
+				<div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
 					<DropdownMenuLabel className="flex items-center gap-2 p-0">
-						<Activity className="h-4 w-4 text-primary" />
+						<Activity className="h-4 w-4 text-primary" aria-hidden="true" />
 						<span>النشاط الأخير</span>
-						{unreadCount > 0 &&
-            <span className="text-xs font-normal text-muted-foreground">({unreadCount} جديد)</span>
-            }
+						{hasUnread && (
+							<span className="text-xs font-normal text-muted-foreground">
+								({unreadCount} جديد)
+							</span>
+						)}
 					</DropdownMenuLabel>
-					{unreadCount > 0 &&
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={markAllAsRead}>
-            
+
+					{hasUnread && (
+						<Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead}>
 							تحديد الكل كمقروء
 						</Button>
-          }
+					)}
 				</div>
 
+				{/* List */}
 				<div className="max-h-[400px] overflow-y-auto">
-					{recentActivities.length === 0 ?
-          <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-							<Activity className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+					{recentActivities.length === 0 ? (
+						<div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+							<Activity className="h-12 w-12 text-muted-foreground mb-4 opacity-50" aria-hidden="true" />
 							<p className="text-sm font-medium text-foreground mb-1">لا يوجد نشاط</p>
 							<p className="text-xs text-muted-foreground">سيظهر نشاطك هنا</p>
-						</div> :
-
-          <div className="p-2 space-y-1">
-							<AnimatePresence>
-								{recentActivities.map((activity, index) =>
-              <m.div
-                key={activity.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ delay: index * 0.05 }}>
-                
-										<DropdownMenuItem
-                  onClick={() => {
-                    markAsRead(activity.id);
-                    activity.action?.();
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg cursor-pointer",
-                    "hover:bg-accent transition-colors",
-                    !activity.read && "bg-primary/5 border-r-2 border-primary"
-                  )}>
-                  
-											<div
-                    className={cn(
-                      "flex items-center justify-center h-8 w-8 rounded-lg shrink-0",
-                      activity.color,
-                      "text-white"
-                    )}>
-                    
-												{activity.icon}
-											</div>
-											<div className="flex-1 min-w-0 text-right">
-												<div className="flex items-center justify-between gap-2 mb-1">
-													<p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
-													{!activity.read &&
-                      <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                      }
-												</div>
-												{activity.description &&
-                    <p className="text-xs text-muted-foreground mb-1 line-clamp-2">
-														{activity.description}
-													</p>
-                    }
-												<div className="flex items-center gap-1 text-xs text-muted-foreground">
-													<Clock className="h-3 w-3" />
-													<span>
-														{formatDistanceToNow(activity.timestamp, {
-                          addSuffix: true
-                        })}
-													</span>
-												</div>
-											</div>
-											<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-										</DropdownMenuItem>
-									</m.div>
-              )}
-							</AnimatePresence>
 						</div>
-          }
+					) : (
+						<div className="p-2 space-y-1">
+							{recentActivities.map((activity) => {
+								const Icon = activity.icon;
+								return (
+									<DropdownMenuItem
+										key={activity.id}
+										onClick={() => {
+											markAsRead(activity.id);
+											if (activity.url) navigateTo(activity.url);
+										}}
+										className={cn(
+											"flex items-start gap-3 p-3 rounded-lg cursor-pointer outline-none focus-visible:bg-accent",
+											!activity.read && "bg-primary/5 border-r-2 border-primary"
+										)}
+									>
+										<div
+											className={cn(
+												"flex items-center justify-center h-8 w-8 rounded-lg shrink-0 text-white",
+												activity.color
+											)}
+										>
+											<Icon className="h-4 w-4" aria-hidden="true" />
+										</div>
+
+										<div className="flex-1 min-w-0 text-right">
+											<div className="flex items-center justify-between gap-2 mb-1">
+												<p className="text-sm font-medium text-foreground truncate">
+													{activity.title}
+												</p>
+												{!activity.read && (
+													<span
+														className="h-2 w-2 rounded-full bg-primary shrink-0"
+														aria-label="غير مقروء"
+													/>
+												)}
+											</div>
+
+											{activity.description && (
+												<p className="text-xs text-muted-foreground mb-1 line-clamp-2">
+													{activity.description}
+												</p>
+											)}
+
+											<div className="flex items-center gap-1 text-xs text-muted-foreground">
+												<Clock className="h-3 w-3" aria-hidden="true" />
+												<span>
+													{formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+												</span>
+											</div>
+										</div>
+									</DropdownMenuItem>
+								);
+							})}
+						</div>
+					)}
 				</div>
 
-				{recentActivities.length > 0 &&
-        <>
+				{/* Footer */}
+				{recentActivities.length > 0 && (
+					<>
 						<DropdownMenuSeparator />
 						<div className="p-2">
 							<Button
-              variant="ghost"
-              className="w-full justify-center text-xs"
-              onClick={() => {
-                setIsOpen(false);
-                router.push("/activities");
-              }}>
-              
+								variant="ghost"
+								className="w-full justify-center text-xs"
+								onClick={() => navigateTo("/activities")}
+							>
 								عرض الكل
-								<ChevronRight className="h-3 w-3 mr-1" />
+								<ChevronLeft className="h-3 w-3 mr-1" aria-hidden="true" />
 							</Button>
 						</div>
 					</>
-        }
+				)}
 			</DropdownMenuContent>
-		</DropdownMenu>);
+		</DropdownMenu>
+	);
 }

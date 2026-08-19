@@ -1,5 +1,6 @@
-# Dependencies
+# Dependencies (match at any depth, including workspace packages)
 node_modules
+**/node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -9,10 +10,20 @@ yarn-error.log*
 coverage
 .nyc_output
 
-# Next.js
+# Next.js build output (match at any depth)
 .next/
+**/.next
 out/
+**/out
 build
+
+# Git & CI
+.git
+.github
+
+# Docker
+Dockerfile*
+docker-compose*.yml
 
 # Production
 dist

@@ -1,10 +1,7 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from '@/lib/api/api-client';
-import { logger } from '@/lib/logger';
 import type { User } from "@/types/user";
 import type { MegaMenuCategory } from "./types";
-import { useNotificationsContext } from "@/providers/notifications-provider";
 
 interface UseMegaMenuProps {
   categories: MegaMenuCategory[];
@@ -13,128 +10,90 @@ interface UseMegaMenuProps {
   user?: User | null;
 }
 
-export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuProps) {
+export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const { unreadCount: notificationCount } = useNotificationsContext();
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(-1);
   const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = localStorage.getItem('megaMenuRecentSearches');
-      return saved ? JSON.parse(saved).slice(0, 5) : [];
-    } catch {
-      return [];
+
+  useEffect(() => {
+    if (isOpen) {
+      setFocusedCategoryIndex(categories.length > 0 ? 0 : -1);
+      setFocusedItemIndex(categories[0]?.items.length ? 0 : -1);
+    } else {
+      setFocusedCategoryIndex(-1);
+      setFocusedItemIndex(-1);
     }
-  });
-
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const saveRecentSearch = useCallback((query: string) => {
-    if (!query.trim() || query.length < 2) return;
-    setRecentSearches(prev => {
-      const updated = [query, ...prev.filter(s => s !== query)].slice(0, 5);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('megaMenuRecentSearches', JSON.stringify(updated));
-      }
-      return updated;
-    });
-  }, []);
-
-  const clearRecentSearches = useCallback(() => {
-    setRecentSearches([]);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('megaMenuRecentSearches');
-    }
-  }, []);
-
-  const filteredCategories = useMemo(() => {
-    if (!debouncedQuery.trim()) {
-      // Return original order when no search - no unnecessary sorting
-      return categories;
-    }
-    const query = debouncedQuery.toLowerCase().trim();
-    return categories
-      .map(category => ({
-        ...category,
-        items: category.items.filter(item =>
-          item.label.toLowerCase().includes(query) ||
-          item.description?.toLowerCase().includes(query) ||
-          item.href.toLowerCase().includes(query)
-        )
-      }))
-      .filter(category => category.items.length > 0);
-  }, [categories, debouncedQuery]);
+  }, [isOpen, categories.length, categories[0]?.items.length]);
 
   const handleArrowDown = useCallback(() => {
     if (focusedCategoryIndex === -1) {
       setFocusedCategoryIndex(0);
       setFocusedItemIndex(0);
-    } else {
-      const currentCategory = filteredCategories[focusedCategoryIndex];
-      if (currentCategory && focusedItemIndex < currentCategory.items.length - 1) {
-        setFocusedItemIndex(prev => prev + 1);
-      } else if (focusedCategoryIndex < filteredCategories.length - 1) {
-        setFocusedCategoryIndex(prev => prev + 1);
-        setFocusedItemIndex(0);
-      }
+      return;
     }
-  }, [focusedCategoryIndex, focusedItemIndex, filteredCategories]);
+    const currentCategory = categories[focusedCategoryIndex];
+    if (currentCategory && focusedItemIndex < currentCategory.items.length - 1) {
+      setFocusedItemIndex(prev => prev + 1);
+    } else if (focusedCategoryIndex < categories.length - 1) {
+      setFocusedCategoryIndex(prev => prev + 1);
+      setFocusedItemIndex(0);
+    }
+  }, [focusedCategoryIndex, focusedItemIndex, categories]);
 
   const handleArrowUp = useCallback(() => {
     if (focusedItemIndex > 0) {
       setFocusedItemIndex(prev => prev - 1);
     } else if (focusedCategoryIndex > 0) {
-      const prevCategory = filteredCategories[focusedCategoryIndex - 1];
+      const prevCategory = categories[focusedCategoryIndex - 1];
       setFocusedCategoryIndex(prev => prev - 1);
       setFocusedItemIndex(prevCategory ? prevCategory.items.length - 1 : 0);
     }
-  }, [focusedCategoryIndex, focusedItemIndex, filteredCategories]);
+  }, [focusedCategoryIndex, focusedItemIndex, categories]);
 
   const handleArrowRight = useCallback(() => {
-    if (focusedCategoryIndex < filteredCategories.length - 1) {
-      setFocusedCategoryIndex(prev => prev + 1);
-      setFocusedItemIndex(0);
-    }
-  }, [focusedCategoryIndex, filteredCategories.length]);
-
-  const handleArrowLeft = useCallback(() => {
-    if (focusedCategoryIndex > 0) {
-      setFocusedCategoryIndex(prev => prev - 1);
-      setFocusedItemIndex(0);
-    }
-  }, [focusedCategoryIndex]);
-
-  const handleEnter = useCallback(() => {
-    if (focusedCategoryIndex >= 0 && focusedItemIndex >= 0) {
-      const currentCategory = filteredCategories[focusedCategoryIndex];
-      const currentItem = currentCategory?.items[focusedItemIndex];
-      if (currentItem) {
-        saveRecentSearch(searchQuery);
-        onClose();
-        router.push(currentItem.href);
-      }
-    }
-  }, [focusedCategoryIndex, focusedItemIndex, filteredCategories, searchQuery, saveRecentSearch, onClose, router]);
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onClose();
-      return;
-    }
-    if (isSearchFocused) {
-      if (e.key === "ArrowDown" && filteredCategories.length > 0) {
-        e.preventDefault();
-        setIsSearchFocused(false);
-        setFocusedCategoryIndex(0);
+    const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+    if (isRtl) {
+      if (focusedCategoryIndex > 0) {
+        setFocusedCategoryIndex(prev => prev - 1);
         setFocusedItemIndex(0);
       }
-      return;
+    } else {
+      if (focusedCategoryIndex < categories.length - 1) {
+        setFocusedCategoryIndex(prev => prev + 1);
+        setFocusedItemIndex(0);
+      }
     }
+  }, [focusedCategoryIndex, categories.length]);
+
+  const handleArrowLeft = useCallback(() => {
+    const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+    if (isRtl) {
+      if (focusedCategoryIndex < categories.length - 1) {
+        setFocusedCategoryIndex(prev => prev + 1);
+        setFocusedItemIndex(0);
+      }
+    } else {
+      if (focusedCategoryIndex > 0) {
+        setFocusedCategoryIndex(prev => prev - 1);
+        setFocusedItemIndex(0);
+      }
+    }
+  }, [focusedCategoryIndex, categories.length]);
+
+  const handleEnter = useCallback(() => {
+    if (focusedCategoryIndex < 0 || focusedItemIndex < 0) return;
+    const currentItem = categories[focusedCategoryIndex]?.items[focusedItemIndex];
+    if (currentItem) {
+      onClose();
+      router.push(currentItem.href);
+    }
+  }, [focusedCategoryIndex, focusedItemIndex, categories, onClose, router]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     switch (e.key) {
+      case "Escape":
+        onClose();
+        break;
       case "ArrowDown":
         e.preventDefault();
         handleArrowDown();
@@ -155,7 +114,7 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
         handleEnter();
         break;
     }
-  }, [onClose, isSearchFocused, filteredCategories.length, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
+  }, [onClose, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -163,32 +122,5 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, handleKeyDown]);
 
-  const updateSearchQuery = useCallback((query: string) => {
-    setSearchQuery(query);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      setFocusedCategoryIndex(-1);
-      setFocusedItemIndex(-1);
-      setDebouncedQuery(query);
-    }, 150);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    };
-  }, []);
-
-  return {
-    searchQuery,
-    setSearchQuery: updateSearchQuery,
-    isSearchFocused,
-    setIsSearchFocused,
-    notificationCount,
-    focusedCategoryIndex,
-    focusedItemIndex,
-    recentSearches,
-    clearRecentSearches,
-    filteredCategories,
-  };
+  return { focusedCategoryIndex, focusedItemIndex };
 }

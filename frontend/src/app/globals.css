@@ -1,98 +1,134 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+/*
+ * scrollbar-gutter: stable — يضمن بقاء مساحة شريط التمرير محجوزة دائمًا
+ * حتى عند تطبيق overflow: hidden (مثل الموبايل منيو).
+ * هذا يمنع Layout Shift الناتج عن اختفاء/ظهور scrollbar.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Header interactions are immediate by design. */
+[data-header-root],
+[data-header-root] *,
+[data-header-root] *::before,
+[data-header-root] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 @layer base {
   :root {
-    /* Studio Light - Clean, High Contrast, Minimalist */
-    --background: 210 20% 98.4%;
-    --foreground: 224 71.4% 4.1%;
+    /* Tolo Logo Brand Identity — Navy Blue + Orange */
+    --background: 210 40% 98%;
+    --foreground: 222 65% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 222 65% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover-foreground: 222 65% 15%;
 
-    --primary: 26 100% 50%;
+    /* Orange Primary — Logo circle color (#f97316) */
+    --primary: 26 95% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 234 66% 96%;
-    --secondary-foreground: 234 66% 15%;
+    --secondary: 218 30% 93%;
+    --secondary-foreground: 218 62% 20%;
 
-    --muted: 234 10% 95%;
-    --muted-foreground: 234 10% 40%;
+    --muted: 218 25% 94%;
+    --muted-foreground: 218 20% 45%;
 
-    --accent: 26 100% 50%;
+    /* Navy Blue Accent — Logo T color (#1A3A6B) */
+    --accent: 218 62% 26%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 234 20% 90%;
-    --input: 234 20% 90%;
-    --ring: 26 100% 50%;
+    --border: 218 25% 88%;
+    --input: 218 25% 88%;
+    --ring: 26 91% 54%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
     /* Charts */
-    --chart-1: 262 83% 58%;
-    --chart-2: 199 89% 48%;
+    --chart-1: 26 95% 55%;
+    --chart-2: 218 62% 26%;
     --chart-3: 160 84% 39%;
     --chart-4: 47 93% 58%;
     --chart-5: 0 72% 51%;
 
+    /* Brand & accent tokens — Logo orange (#f97316) */
+    --brand: 26 95% 55%;
+    --gold: 26 91% 54%;
+    --gold-foreground: 0 0% 100%;
+    --surface: 218 25% 96%;
+    --surface-foreground: 218 62% 15%;
+
     /* Sidebar */
-    --sidebar: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 262.1 83.3% 57.8%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar: 218 40% 97%;
+    --sidebar-foreground: 218 62% 20%;
+    --sidebar-primary: 218 62% 26%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 25% 92%;
+    --sidebar-accent-foreground: 218 62% 20%;
+    --sidebar-border: 218 25% 88%;
+    --sidebar-ring: 26 91% 54%;
 
     color-scheme: light;
   }
 
   .dark {
-    /* Cosmic Dark - Deep, Immersive, Glassy */
-    --background: 234 66% 8%;
-    --foreground: 210 20% 98%;
+    /* Tolo Dark Mode — Navy Deep + Orange Glow */
+    --background: 218 55% 7%;
+    --foreground: 210 20% 96%;
 
-    --card: 234 66% 10%;
-    --card-foreground: 210 20% 98%;
+    --card: 218 55% 9%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 234 66% 12%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 218 55% 11%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 26 100% 50%;
+    /* Orange Primary lighter in dark — still logo-inspired */
+    --primary: 26 95% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 234 40% 15%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 218 40% 15%;
+    --secondary-foreground: 210 20% 96%;
 
-    --muted: 234 40% 12%;
-    --muted-foreground: 234 10% 70%;
+    --muted: 218 35% 13%;
+    --muted-foreground: 218 15% 65%;
 
-    --accent: 26 100% 50%;
+    /* Navy Blue Accent stays darker in dark */
+    --accent: 218 62% 26%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 234 40% 20%;
-    --input: 234 40% 20%;
-    --ring: 26 100% 50%;
+    --border: 218 40% 18%;
+    --input: 218 40% 18%;
+    --ring: 26 91% 54%;
 
     /* Sidebar Dark */
-    --sidebar: 240 5.9% 4%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 263.4 70% 60%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 3.7% 12%;
-    --sidebar-accent-foreground: 240 4.8% 98%;
-    --sidebar-border: 240 3.7% 14%;
-    --sidebar-ring: 263.4 70% 60%;
+    --sidebar: 218 55% 6%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 26 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 40% 13%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 218 40% 16%;
+    --sidebar-ring: 26 91% 54%;
+
+    /* Brand & accent tokens (dark) */
+    --brand: 26 95% 55%;
+    --gold: 26 95% 55%;
+    --gold-foreground: 218 55% 7%;
+    --surface: 218 40% 13%;
+    --surface-foreground: 210 20% 96%;
 
     color-scheme: dark;
   }
@@ -103,7 +139,7 @@
 
   html {
     @apply bg-background text-foreground scroll-smooth;
-    font-family: var(--font-alexandria), var(--font-sans), system-ui, sans-serif;
+    font-family: var(--font-cairo), system-ui, sans-serif;
     scroll-padding-top: var(--header-height, 5rem);
   }
 
@@ -501,84 +537,6 @@
 
 /* Responsive images: force smaller sizes in ultra-lite */
 .ultra-lite-mode [data-lazy-image] {}
-
-/* =========================================================
-   Performance: Lightweight CSS animations (replaces framer-motion)
-   These keep visual fidelity while removing the heavy JS runtime
-   ========================================================= */
-@keyframes certificate-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.certificate-fade-in {
-  animation: certificate-fade-in 0.6s ease-out both;
-  will-change: opacity, transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .certificate-fade-in {
-    animation: none;
-  }
-}
-
-@keyframes progress-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.progress-fade-up {
-  animation: progress-fade-up 0.5s ease-out both;
-  will-change: opacity, transform;
-}
-
-@keyframes progress-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.progress-fade-in {
-  animation: progress-fade-in 0.4s ease-out both;
-}
-
-@keyframes progress-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.progress-pop {
-  animation: progress-pop 0.4s ease-out both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .progress-fade-up,
-  .progress-fade-in,
-  .progress-pop {
-    animation: none;
-  }
-}
 
 @keyframes progress-width-grow {
   from {

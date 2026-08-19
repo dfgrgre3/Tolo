@@ -1,32 +1,43 @@
 import type { Metadata } from 'next';
-import { Alexandria } from 'next/font/google';
+import { Cairo } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
-import { PostHogProvider } from '@/providers/posthog-provider';
-import PostHogPageView from '@/components/posthog-pageview';
 import './globals.css';
 import './ultra-lite.css';
-import Header from '@/components/header/Header';
 import React, { Suspense } from 'react';
 import { ThemeProvider } from '@/providers/theme-provider';
 import {
   ConditionalAnalytics,
   ConditionalSpeedInsights,
 } from '@/components/layout/ConditionalAnalytics';
-import { FPSMonitor } from '@/components/adaptive/AdaptiveLoading';
 import { headers } from 'next/headers';
 import Script from 'next/script';
 import { SITE } from '@thanawy/shared/site-config';
 
-const alexandria = Alexandria({
+// Dynamic imports for non-critical components to reduce initial bundle size
+const Header = React.lazy(() => import('@/components/header/Header').then(mod => ({ default: mod.default })));
+import Footer from '@/components/Footer';
+
+const cairo = Cairo({
   subsets: ['arabic', 'latin'],
-  variable: '--font-alexandria',
+  variable: '--font-cairo',
   display: 'swap',
   preload: true,
-  weight: ['400', '700'],          // reduced from 3 weights to 2 — saves ~15KB
+  weight: ['400', '500', '600', '700', '900'],
   adjustFontFallback: true,
   fallback: ['system-ui', 'sans-serif'],
 });
+
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+  display: 'swap',
+  preload: false,
+});
+
+// إزالة force-dynamic لتمكين Static Generation للصفحات الثابتة وتحسين الأداء
+// الصفحات الديناميكية تحدد force-dynamic بنفسها عند الحاجة
 
 export const metadata: Metadata = {
   title: { default: `${SITE.name} - ${SITE.description}`, template: `%s | ${SITE.name}` },
@@ -89,27 +100,26 @@ export default async function RootLayout({
         {/* Hydration attribute cleanup */}
         <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
       </head>
-      <body className={`${alexandria.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${cairo.variable} ${geist.variable} font-sans`} suppressHydrationWarning>
         <div suppressHydrationWarning>
           <SWRegistration />
-          <PostHogProvider>
-            <PostHogPageView />
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem={false}
-              disableTransitionOnChange
-              storageKey="tolo-theme"
-            >
-              <GlobalProviders>
-                <FPSMonitor />
-                <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
-                  <Header />
-                </Suspense>
-                {children}
-              </GlobalProviders>
-            </ThemeProvider>
-          </PostHogProvider>
+
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+            storageKey="tolo-theme"
+          >
+            <GlobalProviders>
+              <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+                <Header />
+              </Suspense>
+              {children}
+              <Footer nonce={nonce} />
+            </GlobalProviders>
+          </ThemeProvider>
+
           <ConditionalAnalytics />
           <ConditionalSpeedInsights />
         </div>

@@ -295,7 +295,7 @@ export default function TeachingPage() {
 
   const handleSaveCourse = (courseData: Partial<Course>) => {
     if (editingCourse) {
-      updateCourse(editingCourse.id, courseData);
+      updateCourse({ id: editingCourse.id, data: courseData });
     } else {
       createCourse(courseData);
     }

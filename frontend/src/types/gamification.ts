@@ -47,6 +47,14 @@ export interface UserProgress {
   challengeXP?: number;
   questXP?: number;
   seasonXP?: number;
+  /** Cumulative XP at which the current level started. */
+  currentLevelXP?: number;
+  /** Cumulative XP required to reach the next level. */
+  nextLevelXP?: number;
+  /** XP earned since entering the current level. */
+  xpIntoLevel?: number;
+  /** XP still needed to reach the next level. */
+  xpToNextLevel?: number;
 }
 
 export interface LeaderboardEntry {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,10 +38,14 @@ interface NavigationPage {
 export function SmartNavigationSuggestions() {
   const router = useRouter();
   const _pathname = usePathname();
-  const user: any = null;
-  const mounted = true;
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [suggestions, setSuggestions] = useState<NavigationSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load navigation history
   useEffect(() => {

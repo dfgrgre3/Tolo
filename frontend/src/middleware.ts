@@ -45,13 +45,13 @@ function applyCsp(response: NextResponse, nonce: string) {
   const isProduction = process.env.NODE_ENV === 'production';
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'${isProduction ? '' : " 'unsafe-eval'"} https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com`,
+    `script-src 'self' 'nonce-${nonce}'${isProduction ? '' : " 'unsafe-eval'"} https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https:",
-    "media-src 'self' blob: https://*.supabase.co https://*.cloudflarestream.com https://*.youtube.com",
-    "connect-src 'self' https: wss:",
-    "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com",
+    "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
+    "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
+    "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
+    "connect-src 'self' http://localhost:8082 https: wss: https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
+    "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self' https://*.paymob.com",
@@ -72,8 +72,12 @@ export async function middleware(request: NextRequest) {
   if (nonce) {
     requestHeaders.set('x-nonce', nonce);
   }
+  // Add pathname to headers for conditional rendering in layouts
+  requestHeaders.set('x-pathname', pathname);
 
-  const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/courses'];
+  // كتالوج الكورسات صفحة تصفّح عامة يصل إليها الزائر من صفحة الهبوط،
+  // والحماية الفعلية تُطبَّق على صفحات التعلّم والشراء لا على التصفّح.
+  const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/learning'];
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
 
   const guestRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];

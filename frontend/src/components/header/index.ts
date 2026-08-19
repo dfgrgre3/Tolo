@@ -2,7 +2,7 @@ export { HeaderLogo } from "./HeaderLogo";
 export { default } from "./Header";
 
 export { HeaderSearch } from "./HeaderSearch";
-export { HeaderNavigation } from "./HeaderNavigation";
+export { default as HeaderNavigation } from "./HeaderNavigation";
 
 export { HeaderMobileMenuEnhanced } from "./HeaderMobileMenuEnhanced";
 export { useMegaMenuState } from "./useMegaMenuState";

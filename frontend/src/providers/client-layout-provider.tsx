@@ -46,39 +46,18 @@ export default function ClientLayoutProvider({ children }: {children: React.Reac
   const fullPath = search ? `${pathname}?${search}` : pathname;
 
   // Restore last visited path if landing on the home page
+  // DISABLED: This feature was causing navigation loops where users would get stuck
+  // on the same page when trying to navigate. The automatic redirect was interfering
+  // with normal client-side navigation.
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
 
-      // Only restore if we're at the root AND we haven't already restored in this tab session.
-      // The RESTORE_GUARD_KEY prevents the loop:
-      //   1. Middleware redirects authenticated user from /login → /
-      //   2. ClientLayoutProvider would restore /dashboard → middleware sees user → redirects again...
-      // By setting the guard after the first restore, we break the cycle.
-      if (pathname === '/') {
-        const alreadyRestored = sessionStorage.getItem(RESTORE_GUARD_KEY);
-        if (alreadyRestored) return;
-
-        const lastVisited = safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'session' }) ||
-          safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
-
-        // Do NOT restore to auth pages (that would create a loop with middleware auth checks)
-        const isAuthPath = lastVisited && AUTH_PATHS.some(p => lastVisited.startsWith(p));
-
-        if (lastVisited && lastVisited !== '/' && !isAuthPath) {
-          sessionStorage.setItem(RESTORE_GUARD_KEY, '1');
-          const timer = setTimeout(() => {
-            router.push(lastVisited);
-            toast.info('جاري استعادة جلستك السابقة...', {
-              description: 'تمت إعادتك إلى آخر مكان كنت فيه.',
-              duration: 3000
-            });
-          }, 150);
-          return () => clearTimeout(timer);
-        }
-      }
+      // Auto-restore disabled to prevent navigation loops
+      // Users can manually navigate to their desired page
+      return;
     }
     return;
   }, [pathname, router]);

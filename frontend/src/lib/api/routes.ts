@@ -291,6 +291,36 @@ export const apiRoutes = {
   },
 
   // ──────────────────────────────────────────
+  // Teaching Dashboard (protected_routes.go)
+  // ──────────────────────────────────────────
+  teaching: {
+    dashboard: {
+      stats: '/api/teaching/dashboard/stats',
+    },
+    courses: {
+      list: '/api/teaching/courses',
+      create: '/api/teaching/courses',
+      byId: (id: string) => `/api/teaching/courses/${id}`,
+      students: (id: string) => `/api/teaching/courses/${id}/students`,
+      reviews: (id: string) => `/api/teaching/courses/${id}/reviews`,
+    },
+    students: {
+      all: '/api/teaching/students',
+    },
+    reviews: {
+      all: '/api/teaching/reviews',
+      reply: (id: string) => `/api/teaching/reviews/${id}/reply`,
+    },
+    activities: '/api/teaching/activities',
+    notifications: {
+      list: '/api/teaching/notifications',
+      markRead: (id: string) => `/api/teaching/notifications/${id}/read`,
+      markAllRead: '/api/teaching/notifications/read-all',
+    },
+    apply: '/api/teaching/apply',
+  },
+
+  // ──────────────────────────────────────────
   // Blog  (public_routes.go)
   // ──────────────────────────────────────────
   blog: {
@@ -329,6 +359,14 @@ export const apiRoutes = {
   // Events Ingest  (protected_routes.go)
   // ──────────────────────────────────────────
   eventsIngest: '/api/events/ingest',
+
+  // ──────────────────────────────────────────
+  // Navigation / Mega Menu
+  // ──────────────────────────────────────────
+  navigation: {
+    menu: '/api/navigation/menu',
+    main: '/api/navigation/main',
+  },
 
   // ──────────────────────────────────────────
   // Admin  (admin_routes.go)

@@ -113,7 +113,7 @@ function ExamsPageContent() {
       if (!userId) return;
       const fetchResults = async () => {
          const { data } = await safeFetch<ExamResult[]>(`/api/exams/results?userId=${userId}`, undefined, []);
-         if (data) setResults(data);
+         setResults(Array.isArray(data) ? data : []);
       };
       fetchResults();
    }, [userId]);

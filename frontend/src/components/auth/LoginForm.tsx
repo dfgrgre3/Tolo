@@ -1,18 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ShieldCheck, AlertCircle, Chrome, Github, KeyRound, Mail, Lock } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Chrome, Apple, KeyRound, Mail, Lock } from "lucide-react";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { useAuthContext } from "@/contexts/auth-context";
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUser } = useAuthContext();
+  const registered = searchParams.get("registered") === "true";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -42,6 +47,25 @@ export default function LoginForm() {
     }
   }, []);
 
+  const getSafeRedirect = () => {
+    const redirect = searchParams.get("redirect");
+    return redirect?.startsWith("/") && !redirect.startsWith("//")
+      ? redirect
+      : "/dashboard";
+  };
+
+  const completeLogin = async () => {
+    const refreshed = await refreshUser();
+    if (!refreshed) {
+      throw new Error("تعذر تحميل بيانات المستخدم بعد تسجيل الدخول");
+    }
+    router.push(getSafeRedirect());
+    router.refresh();
+  };
+
+  const getErrorMessage = (err: unknown, fallback: string) =>
+    err instanceof ApiError || err instanceof Error ? err.message : fallback;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -57,32 +81,13 @@ export default function LoginForm() {
       : "Unknown Device";
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          rememberMe,
-          deviceName,
-          fingerprint,
-        }),
+      const responseData = await apiClient.post<any>("/auth/login", {
+        email,
+        password,
+        rememberMe,
+        deviceName,
+        fingerprint,
       });
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "فشل تسجيل الدخول");
-      }
-
-      const responseData = data.data || data;
 
       if (responseData.mfaRequired) {
         setMfaRequired(true);
@@ -91,10 +96,9 @@ export default function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع أثناء تسجيل الدخول");
+      await completeLogin();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "حدث خطأ غير متوقع أثناء تسجيل الدخول"));
     } finally {
       setIsLoading(false);
     }
@@ -111,45 +115,37 @@ export default function LoginForm() {
     setError(null);
 
     try {
-      const res = await fetch("/api/auth/mfa/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ticket: mfaTicket, code: mfaCode }),
-      });
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "رمز التحقق غير صحيح");
-      }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "فشل التحقق من الهوية");
+      await apiClient.post("/auth/mfa/verify", { ticket: mfaTicket, code: mfaCode });
+      await completeLogin();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "فشل التحقق من الهوية"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/auth/social/${provider}`;
+  const handleSocialLogin = async (provider: "google" | "apple") => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { redirectUrl } = await apiClient.get<{ redirectUrl: string }>(`/auth/social/${provider}`);
+      if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+        throw new Error("رابط تسجيل الدخول الاجتماعي غير صالح");
+      }
+      window.location.assign(redirectUrl);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "تعذر بدء تسجيل الدخول الاجتماعي"));
+      setIsLoading(false);
+    }
   };
 
   if (mfaRequired) {
     return (
-      <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl transition-all duration-300">
+      <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-3">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <ShieldCheck className="h-6 w-6 animate-bounce" />
+              <ShieldCheck className="h-6 w-6" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">التحقق ثنائي العامل</CardTitle>
@@ -176,12 +172,12 @@ export default function LoginForm() {
                 disabled={isLoading}
                 dir="ltr"
                 maxLength={9}
-                className="bg-white/60 dark:bg-slate-950/40 text-center tracking-widest text-lg font-bold border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                className="bg-white dark:bg-slate-950 text-center tracking-widest text-lg font-bold border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pt-6">
-            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
@@ -201,7 +197,7 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl transition-all duration-300">
+    <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
       <CardHeader className="space-y-2 text-center pb-6">
         <div className="flex justify-center mb-3">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -220,7 +216,14 @@ export default function LoginForm() {
               <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
             </Alert>
           )}
-          
+          {registered && !error && (
+            <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertTitle className="font-semibold mr-2">تم إنشاء الحساب</AlertTitle>
+              <AlertDescription dir="rtl" className="mr-2">تم إنشاء حسابك بنجاح. سجّل الدخول للمتابعة.</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-2">
             <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
             <div className="relative">
@@ -236,7 +239,7 @@ export default function LoginForm() {
                 required
                 disabled={isLoading}
                 dir="ltr"
-                className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
           </div>
@@ -246,7 +249,7 @@ export default function LoginForm() {
               <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كلمة المرور</Label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                className="text-xs text-primary hover:text-primary/80 font-medium"
               >
                 نسيت كلمة المرور؟
               </Link>
@@ -264,7 +267,7 @@ export default function LoginForm() {
                 required
                 disabled={isLoading}
                 dir="ltr"
-                className="bg-white/60 dark:bg-slate-950/40 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
           </div>
@@ -277,7 +280,7 @@ export default function LoginForm() {
               disabled={isLoading}
               className="border-slate-300 dark:border-slate-700 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
-            <Label htmlFor="rememberMe" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer font-medium hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+            <Label htmlFor="rememberMe" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer font-medium hover:text-slate-700 dark:hover:text-slate-300">
               تذكرني على هذا الجهاز
             </Label>
           </div>
@@ -297,24 +300,24 @@ export default function LoginForm() {
               variant="outline"
               onClick={() => handleSocialLogin("google")}
               disabled={isLoading}
-              className="bg-white/60 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50"
             >
               <Chrome className="ml-2 h-4 w-4 text-red-500" /> Google
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("github")}
+              onClick={() => handleSocialLogin("apple")}
               disabled={isLoading}
-              className="bg-white/60 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50"
             >
-              <Github className="ml-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> GitHub
+              <Apple className="ml-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> Apple
             </Button>
           </div>
         </CardContent>
-        
+
         <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
@@ -326,8 +329,16 @@ export default function LoginForm() {
           </Button>
           <div className="text-sm text-center text-slate-500 dark:text-slate-400">
             ليس لديك حساب؟{" "}
-            <Link href="/register" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4 transition-colors">
+            <Link href="/register" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
               إنشاء حساب جديد
+            </Link>
+          </div>
+          <div className="text-center">
+            <Link
+              href="/admin-login"
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-primary font-semibold transition-colors"
+            >
+              دخول الموظفين والمسؤولين
             </Link>
           </div>
         </CardFooter>

@@ -14,6 +14,9 @@ const nextConfig = {
     root: path.resolve(__dirname, '..'),
   },
   // ─── Basics ────────────────────────────────────────────────────────────────
+  // 'standalone' يُخرج خادماً مستقلاً (.next/standalone) يحوي فقط الاعتمادات
+  // اللازمة لوقت التشغيل — يجعل صورة Docker صغيرة وسريعة الإقلاع.
+  output: 'standalone',
   reactStrictMode: true,
   compress: true,           // gzip/brotli at the Next.js edge
   poweredByHeader: false,   // remove X-Powered-By header (minor security + bytes)
@@ -148,17 +151,17 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               // Only load scripts from known-safe origins
-              "script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com https://*.sentry.io",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com",
               // Styles: self + Google Fonts + inline (required by Tailwind/CSS-in-JS)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Fonts from Google Fonts CDN only
-              "font-src 'self' data: https://fonts.gstatic.com",
+              // Fonts from Google Fonts CDN + Perplexity CDN
+              "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
               // Images: self + Supabase CDN + YouTube thumbnails + Google avatars + DiceBear
               "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
               // Iframes: YouTube embeds only
               "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
               // API, Supabase realtime, Sentry, Vercel Analytics
-              "connect-src 'self' wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://o*.ingest.sentry.io",
+              "connect-src 'self' http://localhost:8082 wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
               // Video/audio: self + Supabase storage + Bunny + Cloudflare Stream
               "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com",
               // Service worker and Web Workers
@@ -202,7 +205,11 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+// Sentry يضيف طبقة instrumentation ثقيلة على كل وحدة أثناء التصريف.
+// في وضع التطوير لا فائدة منها، وتكلفتها في زمن التصريف كبيرة.
+export default isDev
+  ? nextConfig
+  : withSentryConfig(nextConfig, {
   org: "tolo",
   project: "frontend",
   silent: !process.env.CI,

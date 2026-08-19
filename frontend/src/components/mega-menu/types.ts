@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
 	href: string;
@@ -13,6 +13,8 @@ export interface MegaMenuCategory {
 	items: NavItem[];
 	isPriority?: boolean;
 	priorityLabel?: string;
+	id?: string;
+	slug?: string;
 }
 
 import type { User } from "@/types/user";
@@ -23,5 +25,29 @@ export interface MegaMenuProps {
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
 	user?: User | null;
+}
+
+// Backend API response types
+export interface BackendNavItem {
+	id: string;
+	href: string;
+	label: string;
+	description?: string;
+	icon?: string;
+	badge?: string;
+}
+
+export interface BackendNavCategory {
+	id: string;
+	title: string;
+	slug: string;
+	items: BackendNavItem[];
+	isPriority?: boolean;
+	priorityLabel?: string;
+}
+
+export interface BackendNavMenu {
+	categories: BackendNavCategory[];
+	updatedAt: string;
 }
 

@@ -91,17 +91,31 @@ export function useGamification({
   }, [query.achievements]);
 
   const getUserLevelProgress = useCallback(() => {
-    if (!query.userProgress) return { currentLevel: 1, currentLevelXP: 0, nextLevelXP: 100 };
+    const progress = query.userProgress;
+    if (!progress) {
+      return {
+        currentLevel: 1,
+        currentLevelXP: 0,
+        nextLevelXP: 0,
+        xpIntoLevel: 0,
+        xpToNextLevel: 0,
+        progressPercentage: 0
+      };
+    }
 
-    const currentLevel = query.userProgress.level;
-    const currentLevelXP = query.userProgress.totalXP;
-    const nextLevelXP = currentLevel * 100;
+    // Thresholds are computed by the backend; the client only renders them.
+    const currentLevelXP = progress.currentLevelXP ?? 0;
+    const nextLevelXP = progress.nextLevelXP ?? 0;
+    const xpIntoLevel = progress.xpIntoLevel ?? 0;
+    const levelSpan = nextLevelXP - currentLevelXP;
 
     return {
-      currentLevel,
+      currentLevel: progress.level,
       currentLevelXP,
       nextLevelXP,
-      progressPercentage: Math.min((currentLevelXP / nextLevelXP) * 100, 100)
+      xpIntoLevel,
+      xpToNextLevel: progress.xpToNextLevel ?? 0,
+      progressPercentage: levelSpan > 0 ? Math.min((xpIntoLevel / levelSpan) * 100, 100) : 0
     };
   }, [query.userProgress]);
 

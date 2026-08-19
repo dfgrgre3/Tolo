@@ -4,10 +4,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { type Notification } from '@/types/notification';
 import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
-// import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
+
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthContext } from '@/contexts/auth-context';
 
 interface NotificationsResponse {
   notifications: Notification[];
@@ -169,14 +169,15 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, []);
 
   const { socket, isConnected } = useWebSocket();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
 
   // Use a stable ref so the polling interval always reads the latest auth state
   // without being re-created on every render.
   const isAuthReadyRef = useRef(false);
   useEffect(() => {
-    isAuthReadyRef.current = isAuthenticated;
-  }, [isAuthenticated]);
+    // Auth is "ready" once the initial loading resolves and the user is authenticated.
+    isAuthReadyRef.current = !isAuthLoading && isAuthenticated;
+  }, [isAuthLoading, isAuthenticated]);
 
   useEffect(() => {
     if (!socket || !isConnected || !isAuthenticated) return;
@@ -211,7 +212,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isConnected]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // Only fetch notifications for authenticated users.
+    if (!isAuthenticated || isAuthLoading) return;
 
     fetchNotifications(true);
 
@@ -225,7 +227,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [isAuthenticated, fetchNotifications]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchNotifications, isAuthenticated, isAuthLoading]);
 
   const value = useMemo(() => ({
     notifications,

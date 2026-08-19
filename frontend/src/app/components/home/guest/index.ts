@@ -1,0 +1,13 @@
+export { default as GuestHome } from './GuestHome';
+export { HeroSection } from './sections/HeroSection';
+export { WhyUsSection } from './sections/WhyUsSection';
+export { CategoriesSection } from './sections/CategoriesSection';
+export { CoursesSection } from './sections/CoursesSection';
+export { HowItWorksSection } from './sections/HowItWorksSection';
+export { InstructorsSection } from './sections/InstructorsSection';
+export { AchievementStrip, StatsStrip } from './sections/StatsStrip';
+export { BlogSection } from './sections/BlogSection';
+export { InstructorCtaSection } from './sections/InstructorCtaSection';
+export { NewsletterSection } from './sections/NewsletterSection';
+export * from './api';
+export * from './types';
