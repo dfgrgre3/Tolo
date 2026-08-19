@@ -7,7 +7,7 @@ import { apiClient } from '@/lib/api/api-client';
 // import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
-// Auth imports removed for auth system removal
+import { useAuth } from '@/hooks/use-auth';
 
 interface NotificationsResponse {
   notifications: Notification[];
@@ -169,17 +169,17 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, []);
 
   const { socket, isConnected } = useWebSocket();
-  const isAuthenticated = true;
+  const { isAuthenticated } = useAuth();
 
   // Use a stable ref so the polling interval always reads the latest auth state
   // without being re-created on every render.
-  const isAuthReadyRef = useRef(true);
+  const isAuthReadyRef = useRef(false);
   useEffect(() => {
-    isAuthReadyRef.current = true;
-  }, []);
+    isAuthReadyRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !isConnected || !isAuthenticated) return;
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -203,7 +203,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, isConnected, fetchNotifications]);
+  }, [socket, isConnected, isAuthenticated, fetchNotifications]);
 
   const isConnectedRef = useRef(isConnected);
   useEffect(() => {
@@ -211,6 +211,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isConnected]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     fetchNotifications(true);
 
     // Poll conservatively as a fallback for WebSocket.
@@ -223,7 +225,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       clearInterval(pollInterval);
     };
-  }, [fetchNotifications]);
+  }, [isAuthenticated, fetchNotifications]);
 
   const value = useMemo(() => ({
     notifications,

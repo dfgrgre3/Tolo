@@ -28,8 +28,6 @@ const alexandria = Alexandria({
   fallback: ['system-ui', 'sans-serif'],
 });
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: { default: `${SITE.name} - ${SITE.description}`, template: `%s | ${SITE.name}` },
   description: SITE.description,
