@@ -180,7 +180,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isAuthLoading, isAuthenticated]);
 
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !isConnected || !isAuthenticated) return;
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -204,7 +204,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, isConnected, fetchNotifications]);
+  }, [socket, isConnected, isAuthenticated, fetchNotifications]);
 
   const isConnectedRef = useRef(isConnected);
   useEffect(() => {
