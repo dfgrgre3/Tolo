@@ -48,11 +48,13 @@ export async function fetchInstructors(): Promise<Instructor[]> {
 
 export async function fetchBlogPosts(): Promise<BlogPost[]> {
   const { data, error } = await safeFetch<
-    { posts?: BlogPost[]; data?: BlogPost[]; items?: BlogPost[] } | BlogPost[]
+    | { posts?: BlogPost[]; items?: BlogPost[]; data?: { posts?: BlogPost[]; items?: BlogPost[] } | BlogPost[] }
+    | BlogPost[]
   >('/api/blog?limit=4&published=true', undefined, null);
   if (error || !data) return [];
   if (Array.isArray(data)) return data;
-  return data.posts || data.data || data.items || [];
+  if (Array.isArray(data.data)) return data.data;
+  return data.posts || data.items || data.data?.posts || data.data?.items || [];
 }
 
 /**

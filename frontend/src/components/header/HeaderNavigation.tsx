@@ -46,10 +46,11 @@ export function HeaderNavigation({
                   onOpen={() => setOpenMegaMenu(item.href)}
                   activeRoute={isActiveRoute}
                   label={item.label}
+                  badge={item.badge}
                   user={user}
                   className={cn(
-                    "relative h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest",
-                    isActiveRoute(item.href) ? "bg-primary/10 text-primary border border-primary/20" : "text-gray-400 border border-transparent hover:text-primary",
+                    "relative h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black text-[13px] tracking-normal transition-colors duration-200",
+                    isActiveRoute(item.href) ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground border border-transparent hover:text-primary hover:bg-primary/5",
                     openMegaMenu === item.href && "bg-primary/20 text-primary shadow-[0_0_20px_hsl(var(--primary)_/_0.3)] border-primary/40"
                   )}
                 />
@@ -63,14 +64,6 @@ export function HeaderNavigation({
                 />
               )}
             </div>
-
-            {item.badge && mounted && (
-              <div className="absolute -top-1 -right-1 pointer-events-none z-20">
-                <span className="relative h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
-                  {item.badge}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}

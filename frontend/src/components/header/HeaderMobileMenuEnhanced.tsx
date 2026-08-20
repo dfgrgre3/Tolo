@@ -53,6 +53,7 @@ export function HeaderMobileMenuEnhanced({
 	const { theme, setTheme } = useTheme();
 	const { user, logout, isLoading } = useAuth();
 
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
 	const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -99,6 +100,49 @@ export function HeaderMobileMenuEnhanced({
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [closeMobileMenu, isMobileMenuOpen, mounted]);
+
+	// ── Focus trap & initial focus ────────────────────────────────
+
+	useEffect(() => {
+		if (!isMobileMenuOpen || !mobileMenuRef.current) return;
+
+		// Move focus to close button when menu opens
+		setTimeout(() => closeButtonRef.current?.focus(), 50);
+
+		const panel = mobileMenuRef.current;
+		const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				closeMobileMenu();
+				return;
+			}
+			if (e.key !== "Tab") return;
+
+			const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+				(el) => el.offsetParent !== null
+			);
+			if (focusable.length === 0) return;
+
+			const first = focusable[0]!;
+			const last = focusable[focusable.length - 1]!;
+
+			if (e.shiftKey) {
+				if (document.activeElement === first) {
+					e.preventDefault();
+					last.focus();
+				}
+			} else {
+				if (document.activeElement === last) {
+					e.preventDefault();
+					first.focus();
+				}
+			}
+		};
+
+		panel.addEventListener("keydown", handleKeyDown);
+		return () => panel.removeEventListener("keydown", handleKeyDown);
+	}, [isMobileMenuOpen, closeMobileMenu]);
 
 	// ── Toggle mega menu section ──────────────────────────────────
 
@@ -199,12 +243,13 @@ export function HeaderMobileMenuEnhanced({
 			{/* Menu Panel */}
 			<div
 				ref={mobileMenuRef}
+				id="mobile-menu"
 				data-header-root
 				role="dialog"
 				aria-modal="true"
 				aria-label="قائمة التنقل"
 				className={cn(
-					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 transition-transform duration-300 ease-out",
+					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 transition-transform duration-300 ease-out pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
 					isMobileMenuOpen ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"
 				)}
 			>
@@ -233,6 +278,7 @@ export function HeaderMobileMenuEnhanced({
 						</div>
 					</div>
 					<Button
+						ref={closeButtonRef}
 						variant="ghost"
 						size="icon"
 						onClick={closeMobileMenu}

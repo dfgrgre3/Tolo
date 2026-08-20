@@ -26,14 +26,16 @@ export const useLoginUrl = () => {
   }, [pathname, searchParams]);
 };
 
-export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: any) => {
+export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: any, isHidden = false) => {
   return useMemo(() => {
     return cn(
       "sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
+      "transition-transform duration-300 ease-in-out will-change-transform",
+      isHidden ? "-translate-y-full" : "translate-y-0",
       isScrolled ? "shadow-lg shadow-black/5 border-primary/25 bg-background/90" : "border-border/40",
       mounted && user && !isScrolled && "border-primary/15"
     );
-  }, [isScrolled, mounted, user]);
+  }, [isScrolled, mounted, user, isHidden]);
 };
 
 export const useContainerHeight = (isShrunk: boolean) => {

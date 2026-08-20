@@ -33,6 +33,17 @@ export interface AuthLoginResult {
   error?: string | null;
 }
 
+// API Response Types
+export interface AuthMeResponse {
+  user: AuthUser;
+}
+
+export interface LoginResponse {
+  mfaRequired?: boolean;
+  ticket?: string | null;
+  userId?: string | null;
+}
+
 // ─── Types (re-exported for convenience) ────────────────────────────────────
 
 export interface AuthUser {
@@ -75,9 +86,13 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: () => Promise<void>;
-  register: () => Promise<void>;
+  /** Redirect to login page (for protected routes) */
+  redirectToLogin: () => Promise<void>;
+  /** Redirect to registration page */
+  redirectToRegister: () => Promise<void>;
+  /** Logout and clear session */
   logout: () => Promise<void>;
+  /** Refresh current user data from server */
   refreshUser: () => Promise<boolean>;
   /** Sign in with email/password. Returns whether MFA is required. */
   adminLogin: (
@@ -90,6 +105,7 @@ interface AuthContextValue extends AuthState {
     userId: string,
     code: string
   ) => Promise<AuthLoginResult>;
+  /** Fetch with authentication headers (for external APIs) */
   fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
@@ -119,11 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchUser = async () => {
       try {
-        const data = await apiClient.get<any>("/auth/me", {
+        const data = await apiClient.get<AuthMeResponse>("/auth/me", {
           signal: controller.signal,
         });
 
-        const userData: AuthUser = data?.user || data;
+        const userData: AuthUser = data?.user;
         setState({
           user: userData,
           isLoading: false,
@@ -151,13 +167,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async () => {
+  const redirectToLogin = useCallback(async () => {
     window.location.href = "/login";
   }, []);
 
-  const register = useCallback(async () => {
+  const redirectToRegister = useCallback(async () => {
     window.location.href = "/register";
   }, []);
+
+  // Deprecated aliases for backward compatibility - use redirectToLogin/redirectToRegister instead
+  const login = redirectToLogin;
+  const register = redirectToRegister;
 
   const logout = useCallback(async () => {
     try {
@@ -179,8 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const data = await apiClient.get<any>("/auth/me");
-      const userData: AuthUser = data?.user || data;
+      const data = await apiClient.get<AuthMeResponse>("/auth/me");
+      const userData: AuthUser = data?.user;
       setState({
         user: userData,
         isLoading: false,
@@ -218,11 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? `${navigator.platform} (${navigator.language})`
             : "Unknown Device";
 
-        const data = await apiClient.post<{
-          mfaRequired?: boolean;
-          ticket?: string | null;
-          userId?: string | null;
-        }>(apiRoutes.auth.login, {
+        const data = await apiClient.post<LoginResponse>(apiRoutes.auth.login, {
           identifier,
           password,
           rememberMe: remember,
@@ -284,13 +300,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextValue = {
     ...state,
-    login,
-    register,
+    redirectToLogin,
+    redirectToRegister,
     logout,
     adminLogin,
     verify2FA,
     refreshUser,
     fetchWithAuth,
+    // Deprecated aliases for backward compatibility
+    login: redirectToLogin,
+    register: redirectToRegister,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

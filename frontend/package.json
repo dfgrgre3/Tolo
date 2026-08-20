@@ -20,6 +20,7 @@
         "check:errors:fix": "eslint . --fix && npm run type-check && npm test",
         "test": "vitest run",
         "test:watch": "vitest",
+        "test:ci": "vitest run --reporter=verbose",
         "test:e2e": "playwright test"
     },
     "dependencies": {

@@ -361,14 +361,18 @@ class ApiClient {
                 if (response.status === 401) {
                     const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh');
 
-                    // Token rotation is handled exclusively by the Edge Middleware on every
-                    // request. If the middleware could not refresh (refresh_token missing or
-                    // expired), it already redirected to /login. If we still get a 401 here
-                    // it means the backend rejected the call for another reason, or the
-                    // middleware was bypassed (API route called directly from the browser).
-                    // In either case, attempting another /auth/refresh from the client would
-                    // create a race condition (two concurrent refresh calls invalidate the
-                    // refresh_token). Simply redirect to login instead.
+                    // IMPORTANT: Token refresh is handled EXCLUSIVELY by the Edge Middleware (middleware.ts)
+                    // The middleware checks token expiration on every request and performs silent rotation
+                    // before the request reaches this client code. This single source of truth prevents
+                    // race conditions and duplicate refresh attempts.
+                    //
+                    // If we receive a 401 here, it means:
+                    // 1. The middleware already attempted refresh and failed (no valid refresh_token)
+                    // 2. The backend rejected the request for other reasons (permissions, etc.)
+                    // 3. The request bypassed middleware (direct API call from browser)
+                    //
+                    // In all cases, the correct action is to redirect to login rather than attempt
+                    // another refresh, which would create race conditions with the middleware.
                     if (!isAuthEndpoint && typeof window !== 'undefined') {
                         if (detectRedirectLoop()) {
                             console.error(

@@ -96,7 +96,7 @@ export default function Header() {
 
 	const headerRef = useRef<HTMLElement>(null);
 
-	const { isScrolled, isShrunk } = useStickyHeader({
+	const { isScrolled, isShrunk, isHidden } = useStickyHeader({
 		shrinkThreshold: 80,
 		hideThreshold: 300,
 		showOnScrollUp: true,
@@ -190,7 +190,7 @@ export default function Header() {
 		fetchNavData();
 	}, [mounted]);
 
-	const headerClasses = useHeaderClasses(isScrolled, mounted, user);
+	const headerClasses = useHeaderClasses(isScrolled, mounted, user, isHidden);
 	const containerHeight = useContainerHeight(isShrunk);
 	const widgets = useHeaderWidgets(isEfficiencyMode);
 
@@ -317,7 +317,6 @@ export default function Header() {
 						{/* ── Right: Widgets & Actions ───────────────────── */}
 						<div
 							className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0"
-							role="toolbar"
 							aria-label="أدوات الرأس"
 						>
 							{isShrunk && widgets.progress && (
@@ -373,6 +372,8 @@ export default function Header() {
 									<div
 										className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 animate-pulse"
 										role="status"
+										aria-live="polite"
+										aria-busy="true"
 										aria-label="جاري التحميل"
 									/>
 								) : user ? (

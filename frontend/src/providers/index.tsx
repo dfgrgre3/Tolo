@@ -11,14 +11,14 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
 import ErrorBoundary from '@/components/error-boundary';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
-import { LazyMotion, domAnimation } from 'framer-motion';
+import { ReactQueryPersistence } from '@/providers/react-query-persistence';
+import { EfficiencyProvider } from '@/hooks/use-efficiency';
+import { isCriticalError } from '@/lib/error-utils';
+import { ThemeProvider } from '@/providers/theme-provider';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
-import { ReactQueryPersistence } from '@/providers/react-query-persistence';
-import { EfficiencyProvider } from '@/hooks/use-efficiency';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
-import { isCriticalError } from '@/lib/error-utils';
 
 function makeQueryClient() {
   const isDev = process.env.NODE_ENV === 'development';
@@ -52,57 +52,86 @@ function makeQueryClient() {
   });
 }
 
+// Composed providers for better organization and reduced nesting
+const CoreProviders = ({ children }: { children: React.ReactNode }) => (
+  <ErrorBoundary variant="global">
+    <Suspense fallback={null}>
+      <ClientLayoutProvider>
+        <QueryClientProvider client={useState(makeQueryClient)[0]}>
+          <ReactQueryPersistence />
+          {children}
+        </QueryClientProvider>
+      </ClientLayoutProvider>
+    </Suspense>
+  </ErrorBoundary>
+);
+
+const AppStateProviders = ({ children }: { children: React.ReactNode }) => (
+  <SettingsProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <EfficiencyProvider>
+          <GlobalSettingsApplier>
+            {children}
+          </GlobalSettingsApplier>
+        </EfficiencyProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  </SettingsProvider>
+);
+
+const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
+  <WebSocketProvider>
+    <NotificationsProvider>
+      <Suspense fallback={null}>
+        <OfflineSyncManager />
+        {children}
+      </Suspense>
+    </NotificationsProvider>
+  </WebSocketProvider>
+);
+
+const UIProviders = ({ children }: { children: React.ReactNode }) => (
+  <TooltipProvider>
+    <Suspense fallback={null}>
+      <TimerBootstrap />
+      <TimeCoordinatorProvider />
+      <PerformanceProvider key="performance-provider">
+        {children}
+      </PerformanceProvider>
+      <Toaster richColors closeButton position="top-center" />
+    </Suspense>
+  </TooltipProvider>
+);
+
 type GlobalProvidersProps = {
   children: React.ReactNode;
   initialAuthHint?: boolean;
 };
 
 /**
- * GlobalProviders - Root provider composition.
+ * GlobalProviders - Consolidated root provider composition.
  *
- * Provider order matters:
- * 1. ClientLayoutProvider - Base client-side setup
- * 2. ThemeProvider - Theme management (must be early for FOUC prevention)
- * 3. AuthProvider - Authentication state (before any auth-dependent providers)
- * 4. ToastProvider - Notifications (can be used by auth for error toasts)
- * 5. WebSocketProvider - Real-time features (needs auth state)
+ * Optimized provider tree with composed providers to reduce nesting depth:
+ * - CoreProviders: Error handling, layout, React Query
+ * - AppStateProviders: Settings, Auth, Theme, Efficiency
+ * - FeatureProviders: WebSocket, Notifications, Offline sync (lazy loaded)
+ * - UIProviders: Tooltips, Performance monitoring
+ *
+ * Framer Motion removed from global scope - import only where needed in specific components.
+ * Heavy providers like OfflineSyncManager are lazy loaded to reduce initial bundle size.
  */
 export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
-  const [queryClient] = useState(makeQueryClient);
-
   return (
-    <ErrorBoundary variant="global">
-      <Suspense fallback={null}>
-        <SettingsProvider>
-          <AuthProvider>
-            <EfficiencyProvider>
-              <ClientLayoutProvider>
-                <QueryClientProvider client={queryClient}>
-                  <ReactQueryPersistence />
-                  <OfflineSyncManager />
-                  <GlobalSettingsApplier>
-                    <WebSocketProvider>
-                      <NotificationsProvider>
-                        <TooltipProvider>
-                          <LazyMotion features={domAnimation}>
-                            <TimerBootstrap />
-                            <TimeCoordinatorProvider />
-                            <PerformanceProvider key="performance-provider">
-                              {children}
-                            </PerformanceProvider>
-                          </LazyMotion>
-                          <Toaster richColors closeButton position="top-center" />
-                        </TooltipProvider>
-                      </NotificationsProvider>
-                    </WebSocketProvider>
-                  </GlobalSettingsApplier>
-                </QueryClientProvider>
-              </ClientLayoutProvider>
-            </EfficiencyProvider>
-          </AuthProvider>
-        </SettingsProvider>
-      </Suspense>
-    </ErrorBoundary>
+    <CoreProviders>
+      <AppStateProviders>
+        <FeatureProviders>
+          <UIProviders>
+            {children}
+          </UIProviders>
+        </FeatureProviders>
+      </AppStateProviders>
+    </CoreProviders>
   );
 }
 

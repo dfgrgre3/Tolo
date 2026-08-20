@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Chrome, Apple, KeyRound, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/api-client";
-import { useAuthContext } from "@/contexts/auth-context";
+import { useAuthContext, type LoginResponse } from "@/contexts/auth-context";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -81,7 +81,7 @@ export default function LoginForm() {
       : "Unknown Device";
 
     try {
-      const responseData = await apiClient.post<any>("/auth/login", {
+      const responseData = await apiClient.post<LoginResponse>("/auth/login", {
         email,
         password,
         rememberMe,

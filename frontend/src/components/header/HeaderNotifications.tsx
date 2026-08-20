@@ -33,6 +33,9 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 	const [isOpen, setIsOpen] = useState(false);
 	const [filter, setFilter] = useState<NotificationFilter>("all");
 	const notificationRef = useRef<HTMLDivElement>(null);
+	const panelRef = useRef<HTMLDivElement>(null);
+	const allTabRef = useRef<HTMLButtonElement>(null);
+	const unreadTabRef = useRef<HTMLButtonElement>(null);
 
 	const {
 		unreadCount,
@@ -92,6 +95,30 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [isOpen, mounted, closePanel]);
 
+	// ── Close on Escape ───────────────────────────────────────────
+
+	useEffect(() => {
+		if (!isOpen) return;
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") closePanel();
+		};
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [isOpen, closePanel]);
+
+	// ── Tab keyboard navigation ───────────────────────────────────
+
+	const handleTabKeyDown = useCallback((e: React.KeyboardEvent, current: NotificationFilter) => {
+		if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+			e.preventDefault();
+			const next = current === "all" ? "unread" : "all";
+			setFilter(next);
+			setTimeout(() => {
+				(next === "all" ? allTabRef : unreadTabRef).current?.focus();
+			}, 0);
+		}
+	}, []);
+
 	// ── Early return ──────────────────────────────────────────────
 
 	if (!mounted || !user) return null;
@@ -127,8 +154,8 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 			{/* Notifications Panel */}
 			{isOpen && (
 				<div
-					role="dialog"
-					aria-modal="false"
+					ref={panelRef}
+					role="region"
 					aria-label="لوحة الإشعارات"
 					className="absolute left-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-background border border-border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
 				>
@@ -188,10 +215,15 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 					{/* Filter Tabs */}
 					<div className="px-4 py-2 border-b border-border flex items-center gap-2" role="tablist" aria-label="تصفية الإشعارات">
 						<button
+							ref={allTabRef}
 							type="button"
 							role="tab"
+							id="notif-tab-all"
 							aria-selected={filter === "all"}
+							aria-controls="notif-panel-all"
+							tabIndex={filter === "all" ? 0 : -1}
 							onClick={() => setFilter("all")}
+							onKeyDown={(e) => handleTabKeyDown(e, "all")}
 							className={cn(
 								"px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
 								filter === "all"
@@ -202,10 +234,15 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 							الكل
 						</button>
 						<button
+							ref={unreadTabRef}
 							type="button"
 							role="tab"
+							id="notif-tab-unread"
 							aria-selected={filter === "unread"}
+							aria-controls="notif-panel-unread"
+							tabIndex={filter === "unread" ? 0 : -1}
 							onClick={() => setFilter("unread")}
+							onKeyDown={(e) => handleTabKeyDown(e, "unread")}
 							className={cn(
 								"px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
 								filter === "unread"
@@ -218,7 +255,13 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 					</div>
 
 					{/* Notifications List */}
-					<div className="flex-1 overflow-y-auto" style={{ maxHeight: "24rem" }}>
+					<div
+						id={filter === "all" ? "notif-panel-all" : "notif-panel-unread"}
+						role="tabpanel"
+						aria-labelledby={filter === "all" ? "notif-tab-all" : "notif-tab-unread"}
+						className="flex-1 overflow-y-auto"
+						style={{ maxHeight: "24rem" }}
+					>
 						{filteredNotifications.length > 0 ? (
 							<VirtualList
 								items={filteredNotifications}
@@ -235,7 +278,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 								overscan={2}
 							/>
 						) : (
-							<div className="p-8 text-center text-muted-foreground" role="status">
+							<div className="p-8 text-center text-muted-foreground" role="status" aria-live="polite">
 								<Bell className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
 								<p className="text-sm">لا توجد إشعارات</p>
 							</div>

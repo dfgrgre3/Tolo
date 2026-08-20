@@ -495,6 +495,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 					<Input
 						ref={inputRef}
+						id="header-search-input"
 						type="search"
 						placeholder="ابحث عن دورات، مدرسين، مواد..."
 						value={searchQuery}
@@ -516,6 +517,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						aria-label="بحث في الموقع"
 						aria-expanded={showSuggestions}
 						aria-controls="search-results-panel"
+						aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
 						role="combobox"
 						aria-autocomplete="list"
 					/>

@@ -45,7 +45,8 @@ function applyCsp(response: NextResponse, nonce: string) {
   const isProduction = process.env.NODE_ENV === 'production';
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'${isProduction ? '' : " 'unsafe-eval'"} https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
+    // TODO: Remove 'unsafe-inline' once all inline scripts use nonce-based CSP
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
     "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
@@ -57,12 +58,26 @@ function applyCsp(response: NextResponse, nonce: string) {
     "form-action 'self' https://*.paymob.com",
     "object-src 'none'",
     "upgrade-insecure-requests",
+    // Add CSP reporting for security monitoring and detection of violations
+    "report-uri /api/csp-report",
+    "report-to csp-endpoint",
   ].join('; ');
+  
+  // Add Report-To header for CSP reporting to detect violations
+  response.headers.set('Report-To', JSON.stringify({
+    group: "csp-endpoint",
+    max_age: 10886400,
+    endpoints: [{
+      url: "/api/csp-report",
+      priority: 1
+    }]
+  }));
+  
   response.headers.set('Content-Security-Policy', cspHeader);
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Generate nonce and request headers for document requests (non-API)
@@ -191,6 +206,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // 3. Verify Decoded JWT payload and Role Authorization
+    // This applies to both page routes and API routes to ensure server-side authorization
     if (!payload || !payload.role || !ALLOWED_STUDENT_ROLES.includes(payload.role)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Access Denied: Insufficient Permissions" }, { status: 403 });
@@ -204,11 +220,33 @@ export async function middleware(request: NextRequest) {
       return redirectRes;
     }
 
-    // 4. Admin layout guards
+    // 4. Admin layout guards - applies to both pages and API routes under /admin
     if (pathname.startsWith('/admin')) {
       const allowedAdminRoles = ["ADMIN", "SUPER_ADMIN", "MODERATOR"];
       if (!allowedAdminRoles.includes(payload.role)) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json({ error: "Access Denied: Admin privileges required" }, { status: 403 });
+        }
         return NextResponse.redirect(new URL('/access-denied', request.url));
+      }
+    }
+
+    // 5. Additional API route-specific authorization checks
+    if (pathname.startsWith("/api/")) {
+      // Teacher-only endpoints
+      if (pathname.startsWith("/api/teaching/") || pathname.startsWith("/api/courses/create")) {
+        const teacherRoles = ["TEACHER", "ADMIN", "SUPER_ADMIN"];
+        if (!teacherRoles.includes(payload.role!)) {
+          return NextResponse.json({ error: "Access Denied: Teacher privileges required" }, { status: 403 });
+        }
+      }
+
+      // Student-only endpoints
+      if (pathname.startsWith("/api/student/") || pathname.startsWith("/api/exams/submit")) {
+        const studentRoles = ["STUDENT", "ADMIN", "SUPER_ADMIN"];
+        if (!studentRoles.includes(payload.role!)) {
+          return NextResponse.json({ error: "Access Denied: Student access required" }, { status: 403 });
+        }
       }
     }
 

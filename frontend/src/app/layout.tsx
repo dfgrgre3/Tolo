@@ -102,6 +102,14 @@ export default async function RootLayout({
       </head>
       <body className={`${cairo.variable} ${geist.variable} font-sans`} suppressHydrationWarning>
         <div suppressHydrationWarning>
+          {/* Skip to main content - WCAG 2.1 AA */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[200] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-bold focus:shadow-lg focus:outline-none"
+          >
+            تخطى إلى المحتوى الرئيسي
+          </a>
+
           <SWRegistration />
 
           <ThemeProvider
@@ -112,10 +120,12 @@ export default async function RootLayout({
             storageKey="tolo-theme"
           >
             <GlobalProviders>
-              <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+              <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" aria-hidden="true" />}>
                 <Header />
               </Suspense>
-              {children}
+              <main id="main-content" tabIndex={-1}>
+                {children}
+              </main>
               <Footer nonce={nonce} />
             </GlobalProviders>
           </ThemeProvider>
