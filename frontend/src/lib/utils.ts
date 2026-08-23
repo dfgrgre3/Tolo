@@ -22,11 +22,12 @@ export function formatDate(date: Date | string | null | undefined): string {
       return 'تاريخ غير صحيح';
     }
 
-    return dateObj.toLocaleDateString("ar-SA", {
+    return new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
+      calendar: "gregory",
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
+    }).format(dateObj);
   } catch (_error) {
     return 'تاريخ غير صحيح';
   }
@@ -49,13 +50,15 @@ export function formatDateTime(date: Date | string | null | undefined): string {
       return 'تاريخ غير صحيح';
     }
 
-    return dateObj.toLocaleDateString("ar-SA", {
+    return new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
+      calendar: "gregory",
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+      hourCycle: "h23",
+    }).format(dateObj);
   } catch (_error) {
     return 'تاريخ غير صحيح';
   }
@@ -219,14 +222,26 @@ export function formatNumber(number: number | string | null | undefined, decimal
 
 export function formatCurrency(amount: number | string | null | undefined, currency = "EGP"): string {
   const formatted = formatNumber(amount);
-  return `${formatted} ${currency}`;
+  const currencyLabels: Record<string, string> = {
+    EGP: "ج.م",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+  };
+  const label = currencyLabels[currency.toUpperCase()] ?? currency;
+  return `${formatted} ${label}`;
 }
 
 export function formatPercentage(value: number | string | null | undefined, decimals = 1): string {
   if (value === null || value === undefined) return "0%";
   const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return "0%";
-  return `${num.toFixed(decimals)}%`;
+  if (!Number.isFinite(num)) return "0%";
+
+  // API values are commonly fractions (0.8567), while some callers provide
+  // an already-scaled percentage (85.67). Support both representations.
+  const percentage = Math.abs(num) <= 1 ? num * 100 : num;
+  const formatted = percentage.toFixed(decimals).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+  return `${formatted}%`;
 }
 
 /**

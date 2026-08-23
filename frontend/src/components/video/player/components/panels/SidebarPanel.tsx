@@ -1,8 +1,9 @@
 'use client';
 
 import { AnimatePresence, m } from "framer-motion";
-import { Bookmark, Check, ChevronRight, Clock3, ListVideo, MessageSquare } from "lucide-react";
+import { Bookmark, Check, ChevronRight, Clock3, ListVideo, MessageSquare, Search, FileText } from "lucide-react";
 import { formatDuration } from "../../utils";
+import type { TranscriptCue } from "../../types";
 import { SidebarTabButton } from "../SidebarTabButton";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +103,69 @@ function NotesTab({ noteDraft, onNoteDraftChange, isNotesSyncing, onAddNoteAtCur
   );
 }
 
+function TranscriptTab({
+  hasTranscript,
+  cues,
+  query,
+  onQueryChange,
+  onJumpToTime,
+  currentTime,
+}: {
+  hasTranscript: boolean;
+  cues: TranscriptCue[];
+  query: string;
+  onQueryChange: (value: string) => void;
+  onJumpToTime: (time: number) => void;
+  currentTime: number;
+}) {
+  if (!hasTranscript) {
+    return <EmptySidebarState icon={FileText} label="لا يوجد نص مكتوب متاح لهذا الدرس بعد." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="pointer-events-none absolute right-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-white/40" />
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="ابحث داخل نص الفيديو..."
+          className="w-full rounded-[22px] border border-white/15 bg-black/40 py-3.5 pr-11 pl-4 text-base text-white outline-none transition placeholder:text-white/40 focus:border-blue-400/40"
+        />
+      </div>
+
+      {cues.length === 0 ? (
+        <EmptySidebarState icon={Search} label="لا توجد نتائج مطابقة لبحثك." />
+      ) : (
+        <div className="space-y-2">
+          {cues.map((cue) => {
+            const isActive = currentTime >= cue.start && currentTime < cue.end;
+            return (
+              <button
+                key={cue.id}
+                type="button"
+                onClick={() => onJumpToTime(cue.start)}
+                className={cn(
+                  "flex w-full items-start gap-3 rounded-[20px] border px-4 py-3 text-right transition",
+                  isActive
+                    ? "border-blue-400/40 bg-blue-500/15"
+                    : "border-white/10 bg-white/5 hover:bg-white/10"
+                )}
+              >
+                <span className="mt-0.5 shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white/70">
+                  {formatDuration(cue.start)}
+                </span>
+                <p className="text-sm leading-6 text-white/90">{cue.text}</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
   if (lessons.length === 0) {
     return <EmptySidebarState icon={ListVideo} label="لا توجد قائمة دروس مرتبطة بهذا المشغل." />;
@@ -148,6 +212,7 @@ export function SidebarPanel({
   isSidebarOpen, isEfficiencyMode, sidebarTab, onToggleSidebarTab,
   bookmarks, onJumpToTime, noteDraft, onNoteDraftChange, isNotesSyncing,
   onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote,
+  hasTranscript, transcriptCues, transcriptQuery, onTranscriptQueryChange,
   lessons, lessonId, onLessonChange, onCloseSidebar,
 }: any) {
   // Mobile: slide up from bottom, full width
@@ -205,11 +270,18 @@ export function SidebarPanel({
               onClick={() => onToggleSidebarTab("notes")} 
               className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
             />
-            <SidebarTabButton 
-              active={sidebarTab === "lessons"} 
-              icon={ListVideo} 
-              label="دروس" 
-              onClick={() => onToggleSidebarTab("lessons")} 
+            <SidebarTabButton
+              active={sidebarTab === "lessons"}
+              icon={ListVideo}
+              label="دروس"
+              onClick={() => onToggleSidebarTab("lessons")}
+              className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
+            />
+            <SidebarTabButton
+              active={sidebarTab === "transcript"}
+              icon={FileText}
+              label="النص"
+              onClick={() => onToggleSidebarTab("transcript")}
               className="flex-1 py-2.5 text-sm sm:flex-auto sm:py-0 sm:text-xs"
             />
           </div>
@@ -226,6 +298,16 @@ export function SidebarPanel({
                 currentTime={currentTime} notes={notes} onRemoveNote={onRemoveNote} onJumpToTime={onJumpToTime} />
             ) : null}
             {sidebarTab === "lessons" ? <LessonsTab lessons={lessons} lessonId={lessonId} onLessonChange={onLessonChange} /> : null}
+            {sidebarTab === "transcript" ? (
+              <TranscriptTab
+                hasTranscript={hasTranscript}
+                cues={transcriptCues}
+                query={transcriptQuery}
+                onQueryChange={onTranscriptQueryChange}
+                onJumpToTime={onJumpToTime}
+                currentTime={currentTime}
+              />
+            ) : null}
           </div>
           
           {/* Mobile: Safe area padding for iPhone notch/home indicator */}

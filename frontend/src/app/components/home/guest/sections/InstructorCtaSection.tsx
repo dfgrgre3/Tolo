@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { GraduationCap, CheckCircle2, ArrowLeft, Users, Award } from 'lucide-react';
 import type { PlatformStats } from '../types';
 
@@ -14,6 +15,8 @@ interface InstructorCtaSectionProps {
 }
 
 export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
+  const router = useRouter();
+
   return (
     <section className="py-16 bg-gradient-to-l from-[#0F766E] to-[#1e3a5f] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,13 +46,13 @@ export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
                 </div>
               ))}
             </div>
-            <Link
-              href="/teach"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#F59E0B] hover:bg-[#D97706] text-white font-black text-sm rounded-xl shadow-xl shadow-[#F59E0B]/30"
+            <button
+              onClick={() => router.push('/teach')}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#F59E0B] hover:bg-[#D97706] text-white font-black text-sm rounded-xl shadow-xl shadow-[#F59E0B]/30 transition-colors"
             >
               ابدأ التدريس الآن
               <ArrowLeft className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
 
           {stats && (

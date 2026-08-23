@@ -10,8 +10,8 @@ interface BlogSectionProps {
 
 export function BlogSkeleton() {
   return (
-    <div className=" bg-white border border-[#E2E8F0] rounded-[12px] overflow-hidden">
-      <div className="aspect-video bg-slate-200" />
+    <div className="bg-white border border-[#E2E8F0] rounded-[12px] overflow-hidden">
+      <div className="relative aspect-video bg-slate-200" />
       <div className="p-4 space-y-2">
         <div className="h-3 w-16 bg-slate-100 rounded" />
         <div className="h-4 w-full bg-slate-200 rounded" />
@@ -73,11 +73,11 @@ export function BlogSection({ posts, loading }: BlogSectionProps) {
           <p className="text-sm text-[#64748B] font-bold">لا توجد مقالات منشورة حالياً.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {featuredPost && (
             <Link
               href={`/blog/${featuredPost.slug}`}
-              className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-[12px] overflow-hidden hover:border-[#0F766E] hover:shadow-lg group flex flex-col"
+              className="md:col-span-12 lg:col-span-7 bg-white border border-[#E2E8F0] rounded-[12px] overflow-hidden hover:border-[#0F766E] hover:shadow-lg group flex flex-col animate-fade-in-up"
             >
               <div className="relative aspect-video bg-slate-200">
                 {coverOf(featuredPost) ? (
@@ -113,7 +113,7 @@ export function BlogSection({ posts, loading }: BlogSectionProps) {
             </Link>
           )}
 
-          <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="md:col-span-12 lg:col-span-5 flex flex-col gap-4">
             {sidePosts.map((post) => (
               <Link
                 key={post.id}

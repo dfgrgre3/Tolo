@@ -3,8 +3,22 @@
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AudioTrack } from "../../types";
 
-export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, onCloseStats }: any) {
+interface StatItem {
+  label: string;
+  value: string;
+}
+
+interface StatsPanelProps {
+  isStatsOpen: boolean;
+  isEfficiencyMode?: boolean;
+  statsItems: StatItem[];
+  audioTracks: AudioTrack[];
+  onCloseStats: () => void;
+}
+
+export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, onCloseStats }: StatsPanelProps) {
   return (
     <AnimatePresence>
       {isStatsOpen ? (
@@ -28,7 +42,7 @@ export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTra
               </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {statsItems.map((item: any) => (
+              {statsItems.map((item) => (
                 <div key={item.label} className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">{item.label}</p>
                   <p className="mt-2 text-lg font-black text-white">{item.value}</p>
@@ -39,7 +53,7 @@ export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTra
               <div className="mt-4 rounded-[24px] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">مسارات صوتية متاحة</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {audioTracks.map((track: any) => (
+                  {audioTracks.map((track) => (
                     <span key={track.id} className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/75">
                       {track.label} {track.language.toUpperCase()}
                     </span>

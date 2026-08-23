@@ -1,6 +1,6 @@
 "use client";
 
-import { useMySessions } from "@/hooks/use-session-management";
+import { useMySessions } from "@/hooks/use-my-sessions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Monitor, Smartphone, Globe, Shield, AlertTriangle } from "lucide-react";

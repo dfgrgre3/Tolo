@@ -20,9 +20,6 @@ import { cn } from "@/lib/utils";
 // Double-tap for speed control (mobile-focused)
 const DOUBLE_TAP_THRESHOLD_MS = 300;
 
-// Simple random function for heatmap
-const getRandomFloat = () => Math.random();
-
 export const ProgressRail = memo(function ProgressRail({
   duration,
   buffered,
@@ -58,6 +55,18 @@ export const ProgressRail = memo(function ProgressRail({
   const safeProgressPercent = clamp(progressPercent, 0, 100);
   const safeBufferedPercent = clamp(bufferedPercent, 0, 100);
 
+  // Chapters are markers with a labeled end range (segments). Sorted so we
+  // can find "the chapter currently playing" and its neighbours' boundaries.
+  const chapters = useMemo(
+    () => markers.filter((m) => m.endTime && m.endTime > m.time).sort((a, b) => a.time - b.time),
+    [markers]
+  );
+
+  const activeChapter = useMemo(() => {
+    if (chapters.length === 0) return null;
+    return chapters.find((c) => currentTime >= c.time && currentTime < (c.endTime ?? duration)) ?? null;
+  }, [chapters, currentTime, duration]);
+
   // Loop region visualization
   const loopRegion = useMemo(() => {
     if (loopStart === null || duration <= 0) return null;
@@ -66,19 +75,6 @@ export const ProgressRail = memo(function ProgressRail({
     const endPercent = (loopEnd / duration) * 100;
     return { start: startPercent, width: endPercent - startPercent, pending: false };
   }, [loopStart, loopEnd, duration]);
-
-  // Pseudo-random heatmap data for engagement visualization
-  const heatmapData = useMemo(() => {
-    if (duration <= 0) return [];
-    const points = 40;
-    const data = [];
-    for (let i = 0; i < points; i++) {
-      const base = Math.sin(i / 2) * 15 + 20;
-      const noise = getRandomFloat() * 10;
-      data.push(Math.max(5, base + noise));
-    }
-    return data;
-  }, [duration]);
 
   // Mobile-friendly preview - larger touch area
   const updatePreview = useCallback(
@@ -219,6 +215,15 @@ export const ProgressRail = memo(function ProgressRail({
 
   return (
     <div className="space-y-4">
+      {/* Current chapter label — stays visible above the rail (Netflix/YouTube style),
+          not just on hover, so viewers always know which segment they're in. */}
+      {activeChapter && (
+        <div className="flex items-center gap-2 px-1">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+          <span className="truncate text-[12px] font-bold text-white/70">{activeChapter.label}</span>
+        </div>
+      )}
+
       <div
         ref={railRef}
         role="slider"
@@ -384,6 +389,20 @@ export const ProgressRail = memo(function ProgressRail({
               />
             );
           })}
+
+          {/* Chapter boundary ticks — thin separators between consecutive
+              chapter segments so divisions are visible without hovering. */}
+          {chapters.length > 1 &&
+            chapters.slice(1).map((chapter) => {
+              const left = duration > 0 ? (chapter.time / duration) * 100 : 0;
+              return (
+                <div
+                  key={`chapter-tick-${chapter.time}`}
+                  className="absolute inset-y-0 z-10 w-px bg-black/40"
+                  style={{ left: `${left}%` }}
+                />
+              );
+            })}
 
           {/* Progress Thumb - larger on mobile */}
           <div

@@ -43,7 +43,7 @@ interface UseKeyPressOptions {
   enabled?: boolean;
 }
 
-function useKeyPress(
+export function useKeyPress(
 targetKey: string,
 handler: (event: KeyboardEvent) => void,
 options: UseKeyPressOptions = {})
@@ -111,7 +111,7 @@ options: UseKeyPressOptions = {})
  * }
  * ```
  */
-function useMultiKeyPress(targetKeys: string[]): Set<string> {
+export function useMultiKeyPress(targetKeys: string[]): Set<string> {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -162,7 +162,7 @@ function useMultiKeyPress(targetKeys: string[]): Set<string> {
  * }
  * ```
  */
-function useKeyboardShortcuts(
+export function useKeyboardShortcuts(
 shortcuts: Record<string, (event: KeyboardEvent) => void>)
 : void {
   const parseShortcut = useCallback((shortcut: string) => {

@@ -60,6 +60,8 @@ import { usePlayerAdapter } from "./player/hooks/usePlayerAdapter";
 import { useTimelineNotes } from "./player/hooks/useTimelineNotes";
 import { useFrameCapture } from "./player/hooks/useFrameCapture";
 import { useMediaSession } from "./player/hooks/useMediaSession";
+import { useCastSession } from "./player/hooks/useCastSession";
+import { useTranscript } from "./player/hooks/useTranscript";
 
 // Store & Types
 import { usePlaybackStore } from "./player/stores/playback-store";
@@ -222,6 +224,8 @@ export function CourseVideoPlayer({
     addNoteAtCurrentTime,
     removeNote,
   } = useTimelineNotes({ lessonId, flashFeedback });
+
+  const { hasTranscript, cues: transcriptCues, query: transcriptQuery, setQuery: setTranscriptQuery } = useTranscript({ lessonId });
 
   // --- Hook: Progress & Persistence ---
   const storageKey = useMemo(() => `course-video-progress:${courseId}:${lessonId}`, [courseId, lessonId]);
@@ -591,6 +595,23 @@ export function CourseVideoPlayer({
     resetControlsTimeout();
   }, [provider, resetControlsTimeout]);
 
+  // AirPlay (Safari/iOS/macOS only — WebKit exposes this non-standard method
+  // on the media element; other browsers simply don't have it, so we guard).
+  const canUseAirPlay = useMemo(() => {
+    if (typeof window === "undefined" || provider === "youtube") return false;
+    return typeof (window as { WebKitPlaybackTargetAvailabilityEvent?: unknown }).WebKitPlaybackTargetAvailabilityEvent !== "undefined";
+  }, [provider]);
+
+  const openAirPlayPicker = useCallback(() => {
+    const video = videoRef.current as (HTMLVideoElement & { webkitShowPlaybackTargetPicker?: () => void }) | null;
+    if (!video?.webkitShowPlaybackTargetPicker) {
+      setUIState({ errorMessage: "AirPlay غير متاح على هذا المتصفح." });
+      return;
+    }
+    video.webkitShowPlaybackTargetPicker();
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
+
   const toggleLoop = useCallback(() => {
     const { loopStart, loopEnd, currentTime } = usePlaybackStore.getState();
     if (loopStart === null) {
@@ -669,7 +690,7 @@ export function CourseVideoPlayer({
     gestureActiveMode,
     gestureValue,
   } = useTouchGestures({
-    togglePlayPause, seekBy, handleVolumeChange, flashFeedback, resetControlsTimeout
+    togglePlayPause, seekBy, handleVolumeChange, resetControlsTimeout
   });
 
   // --- Hook: MediaSession API (OS-level media controls) ---
@@ -683,6 +704,16 @@ export function CourseVideoPlayer({
     onSeekBackward: () => seekBy(-10),
     onNextTrack: onNextVideo,
   });
+
+  const { canCast, isCasting, startCasting, stopCasting } = useCastSession({
+    videoUrl: activeVideoUrl,
+    title: lessonTitle,
+    getCurrentTime: () => getAdapter()?.getCurrentTime() ?? 0,
+  });
+  const toggleCasting = useCallback(() => {
+    if (isCasting) stopCasting();
+    else startCasting();
+  }, [isCasting, startCasting, stopCasting]);
 
   // --- Sync & Lifecycle Effects ---
   // FIX: The old `useEffect(() => setActiveVideoUrl(videoUrl), [videoUrl])` caused a classic
@@ -758,12 +789,15 @@ export function CourseVideoPlayer({
     };
   }, [setUIState]);
 
+  // Only rotate the watermark while the video is actually playing — no point
+  // ticking this timer while paused or before playback has started.
   useEffect(() => {
+    if (!store.isPlaying) return;
     const interval = setInterval(() => {
       setSettingsState((s) => ({ watermarkIndex: (s.watermarkIndex + 1) % WATERMARK_POSITIONS.length }));
     }, 12000);
     return () => clearInterval(interval);
-  }, [setSettingsState]);
+  }, [setSettingsState, store.isPlaying]);
 
   // Video Element Events
   useEffect(() => {
@@ -788,18 +822,23 @@ export function CourseVideoPlayer({
       saveProgress(true);
     };
 
+    const onWaiting = () => setPlaybackState({ isLoading: true });
+    const onPlaying = () => setPlaybackState({ isLoading: false });
+
     v.addEventListener("loadedmetadata", onLoaded);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("ended", onEnded);
-    v.addEventListener("waiting", () => setPlaybackState({ isLoading: true }));
-    v.addEventListener("playing", () => setPlaybackState({ isLoading: false }));
-    
+    v.addEventListener("waiting", onWaiting);
+    v.addEventListener("playing", onPlaying);
+
     return () => {
       v.removeEventListener("loadedmetadata", onLoaded);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("ended", onEnded);
+      v.removeEventListener("waiting", onWaiting);
+      v.removeEventListener("playing", onPlaying);
     };
   }, [loadResumeData, provider, saveProgress, setPlaybackState, startPlaybackLoop, stopPlaybackLoop]);
 
@@ -920,7 +959,7 @@ export function CourseVideoPlayer({
         {provider === "youtube" ? (
           <div ref={youtubeContainerRef} data-youtube-container className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
         ) : (
-          <video ref={videoRef} className="h-full w-full object-contain" playsInline preload="metadata">
+          <video ref={videoRef} className="h-full w-full object-contain" playsInline preload="metadata" x-webkit-airplay="allow">
             {subtitleTracks.map(t => <track key={t.id} kind="subtitles" label={t.label} srcLang={t.language} src={t.src} />)}
           </video>
         )}
@@ -1006,6 +1045,11 @@ export function CourseVideoPlayer({
         sidebarHasContent={sidebarHasContent}
         isTheaterMode={isTheaterMode}
         canUsePip={provider !== "youtube" && typeof document !== "undefined" && !!document.pictureInPictureEnabled}
+        canUseAirPlay={canUseAirPlay}
+        onOpenAirPlay={openAirPlayPicker}
+        canCast={canCast}
+        isCasting={isCasting}
+        onToggleCast={toggleCasting}
         onSeek={handleSeek}
         onSeekBy={seekBy}
         onTogglePlayPause={togglePlayPause}
@@ -1057,6 +1101,10 @@ export function CourseVideoPlayer({
           onRemoveNote={removeNote}
           onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
           onLessonChange={onLessonChange}
+          hasTranscript={hasTranscript}
+          transcriptCues={transcriptCues}
+          transcriptQuery={transcriptQuery}
+          onTranscriptQueryChange={setTranscriptQuery}
           onToggleShortcuts={() => setUIState(s => ({ isShortcutsOpen: !s.isShortcutsOpen }))}
         />
       )}

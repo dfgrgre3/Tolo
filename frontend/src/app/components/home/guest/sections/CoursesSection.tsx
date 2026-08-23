@@ -39,8 +39,9 @@ export function CoursesSection({
 
           <div
             role="tablist"
-            aria-label="ترتيب الكورسات"
+            aria-label="ترتيب الكورسات - اختر طريقة العرض"
             className="flex items-center bg-[#F8FAFC] border border-[#E2E8F0] p-1 rounded-[8px] self-start"
+            aria-orientation="horizontal"
           >
             {TABS.map(({ key, label, icon: Icon }) => (
               <button
@@ -48,15 +49,17 @@ export function CoursesSection({
                 type="button"
                 role="tab"
                 aria-selected={selectedTab === key}
+                aria-controls={`courses-panel-${key}`}
                 onClick={() => onTabChange(key)}
-                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-[6px] ${
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-[6px] transition-all focus:outline-none focus:ring-2 focus:ring-[#0F766E]/50 ${
                   selectedTab === key
-                    ? 'bg-[#0F766E] text-white'
-                    : 'text-[#64748B] hover:text-[#1E293B]'
+                    ? 'bg-[#0F766E] text-white shadow-sm'
+                    : 'text-[#64748B] hover:text-[#1E293B] hover:bg-white/50'
                 }`}
+                title={label}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>{label}</span>
               </button>
             ))}
           </div>

@@ -1,81 +1,17 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-// Pure TypeScript JWT decoder for Next.js Edge runtime compatibility
-interface JwtPayload {
-  userId?: string;
-  role?: string;
-  email?: string;
-  exp?: number;
-}
-
-function decodeJwt(token: string): JwtPayload | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    
-    const base64Url = parts[1]!;
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    
-    return JSON.parse(jsonPayload);
-  } catch (_e) {
-    return null;
-  }
-}
-
-const ALLOWED_STUDENT_ROLES = ["STUDENT", "TEACHER", "PARENT", "SUPPORT", "ADMIN", "SUPER_ADMIN", "MODERATOR"];
-
-function generateNonce(): string {
-  const arr = new Uint8Array(16);
-  crypto.getRandomValues(arr);
-  let binary = "";
-  for (let i = 0; i < arr.length; i++) {
-    binary += String.fromCharCode(arr[i]!);
-  }
-  return btoa(binary);
-}
-
-function applyCsp(response: NextResponse, nonce: string) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const cspHeader = [
-    "default-src 'self'",
-    // TODO: Remove 'unsafe-inline' once all inline scripts use nonce-based CSP
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
-    "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
-    "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
-    "connect-src 'self' http://localhost:8082 https: wss: https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
-    "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self' https://*.paymob.com",
-    "object-src 'none'",
-    "upgrade-insecure-requests",
-    // Add CSP reporting for security monitoring and detection of violations
-    "report-uri /api/csp-report",
-    "report-to csp-endpoint",
-  ].join('; ');
-  
-  // Add Report-To header for CSP reporting to detect violations
-  response.headers.set('Report-To', JSON.stringify({
-    group: "csp-endpoint",
-    max_age: 10886400,
-    endpoints: [{
-      url: "/api/csp-report",
-      priority: 1
-    }]
-  }));
-  
-  response.headers.set('Content-Security-Policy', cspHeader);
-  return response;
-}
+import { NextResponse, type NextRequest } from 'next/server';
+import { generateNonce, applyCsp } from '@/lib/security/csp';
+import { verifyAccessToken, attemptTokenRefresh } from '@/lib/auth/jwt-edge';
+import {
+  ALLOWED_AUTHENTICATED_ROLES,
+  ADMIN_PANEL_ROLES,
+  TEACHER_ENDPOINT_ROLES,
+  STUDENT_ENDPOINT_ROLES,
+  isAdminRoute,
+  isProtectedRoute,
+  isGuestRoute,
+  isPublicApiEndpoint,
+  hasRole,
+} from '@/lib/auth/route-guards';
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -90,32 +26,67 @@ export async function proxy(request: NextRequest) {
   // Add pathname to headers for conditional rendering in layouts
   requestHeaders.set('x-pathname', pathname);
 
-  // كتالوج الكورسات صفحة تصفّح عامة يصل إليها الزائر من صفحة الهبوط،
-  // والحماية الفعلية تُطبَّق على صفحات التعلّم والشراء لا على التصفّح.
-  const protectedRoutes = ['/dashboard', '/admin', '/settings', '/profile', '/learning'];
-  const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
-
-  const guestRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
-  const isGuestRoute = guestRoutes.some((route) => pathname.startsWith(route));
+  const isProtected = isProtectedRoute(pathname);
+  const isGuest = isGuestRoute(pathname);
 
   const accessToken = request.cookies.get('access_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
 
   // 1. Guest Redirect logic: If authenticated, redirect away from guest auth pages
-  if (isGuestRoute && (accessToken || refreshToken)) {
-    try {
-      let payload = accessToken ? decodeJwt(accessToken) : null;
-      const isValidAccess = payload && payload.exp && (payload.exp * 1000 > Date.now());
-      if (isValidAccess || refreshToken) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
-    } catch {
-      // Allow them to access guest pages if decoding fails
+  if (isGuest && (accessToken || refreshToken)) {
+    const payload = accessToken ? await verifyAccessToken(accessToken) : null;
+    const isValidAccess = !!(payload && payload.exp && payload.exp * 1000 > Date.now());
+    if (isValidAccess || refreshToken) {
+      const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/dashboard';
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
   }
 
+  // 2. Token refresh logic for API requests
+  // This handles token refresh for ALL API requests, not just protected routes
+  // This ensures that guest pages can still make authenticated API calls
+  const isApiRequest = pathname.startsWith('/api/');
+  const isPublicEndpoint = isPublicApiEndpoint(pathname);
+
+  let payload: Awaited<ReturnType<typeof verifyAccessToken>> = null;
+  let refreshCookies: string[] = [];
+  let refreshAttempted = false;
+
+  if (isApiRequest && accessToken && !isPublicEndpoint) {
+    payload = await verifyAccessToken(accessToken);
+    const isExpired = !payload || !payload.exp || (payload.exp * 1000 - 10000 < Date.now());
+
+    if (isExpired && refreshToken) {
+      const result = await attemptTokenRefresh(refreshToken, request);
+      payload = result.payload;
+      refreshCookies = result.cookies;
+      refreshAttempted = true;
+    }
+  } else if (isApiRequest && !accessToken && refreshToken && !isPublicEndpoint) {
+    const result = await attemptTokenRefresh(refreshToken, request);
+    payload = result.payload;
+    refreshCookies = result.cookies;
+    refreshAttempted = true;
+  }
+
+  // If we successfully refreshed and got cookies, return the response with updated cookies
+  if (refreshAttempted && refreshCookies.length > 0) {
+    const nextResponse = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+
+    for (const cookie of refreshCookies) {
+      nextResponse.headers.append("Set-Cookie", cookie);
+    }
+
+    return nonce ? applyCsp(nextResponse, nonce) : nextResponse;
+  }
+
+  // 3. Protected route handling
   if (isProtected) {
-    // 2. Check for token presence
+    // Check for token presence
     if (!accessToken && !refreshToken) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -125,105 +96,57 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    let payload: JwtPayload | null = null;
-    let shouldRefresh = false;
-
-    if (accessToken) {
-      payload = decodeJwt(accessToken);
-      if (payload && payload.exp) {
-        // Check if access token is expired (with 10-second clock skew buffer)
-        const isExpired = payload.exp * 1000 - 10000 < Date.now();
-        if (isExpired) {
-          shouldRefresh = true;
-        }
-      } else {
-        shouldRefresh = true;
-      }
-    } else {
-      shouldRefresh = true;
+    // Decode payload if not already done
+    if (!payload && accessToken) {
+      payload = await verifyAccessToken(accessToken);
     }
 
-    // 2. Perform silent token rotation if needed and refresh token is present
-    let nextResponse = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-    if (shouldRefresh && refreshToken) {
-      let backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
-      backendUrl = backendUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
-      
-      const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "";
-      const userAgent = request.headers.get("user-agent") || "";
-      
-      try {
-        const headers: Record<string, string> = {
-          "Cookie": `refresh_token=${refreshToken}`,
-          "Content-Type": "application/json",
-        };
-        if (clientIp) {
-          headers["X-Forwarded-For"] = clientIp;
-        }
-        if (userAgent) {
-          headers["User-Agent"] = userAgent;
-        }
+    // Check if token is expired and we haven't tried refresh yet
+    const isExpired = !payload || !payload.exp || (payload.exp * 1000 - 10000 < Date.now());
+    if (isExpired && refreshToken && !refreshAttempted) {
+      const result = await attemptTokenRefresh(refreshToken, request);
+      payload = result.payload;
+      refreshCookies = result.cookies;
 
-        const refreshRes = await fetch(`${backendUrl}/api/auth/refresh`, {
-          method: "POST",
-          headers,
-        });
+      if (refreshCookies.length === 0) {
+        // Refresh failed, redirect to login
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        loginUrl.searchParams.set('error', 'session_expired');
+        const redirectRes = NextResponse.redirect(loginUrl);
+        redirectRes.cookies.delete('access_token');
+        redirectRes.cookies.delete('refresh_token');
+        return redirectRes;
+      }
 
-        if (refreshRes.ok) {
-          // Parse cookies from backend refresh response and forward them to the client
-          const setCookies = refreshRes.headers.getSetCookie();
-          if (setCookies && setCookies.length > 0) {
-            for (const cookie of setCookies) {
-              nextResponse.headers.append("Set-Cookie", cookie);
-            }
-
-            // Also parse new access token to verify claims
-            const data = await refreshRes.json();
-            if (data?.data?.accessToken) {
-              payload = decodeJwt(data.data.accessToken);
-            }
-          }
-        } else {
-          // If refresh fails, clear invalid tokens and redirect to login
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('redirect', pathname);
-          loginUrl.searchParams.set('error', 'session_expired');
-          const redirectRes = NextResponse.redirect(loginUrl);
-          redirectRes.cookies.delete('access_token');
-          redirectRes.cookies.delete('refresh_token');
-          return redirectRes;
-        }
-      } catch (_err) {
-        // Network error during refresh, allow request to fail gracefully in UI or return error
-        if (pathname.startsWith("/api/")) {
-          return NextResponse.json({ error: "Service unavailable during session verification" }, { status: 503 });
-        }
+      // If refresh failed (no verified payload despite rotated cookies), redirect to login
+      if (!payload) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        loginUrl.searchParams.set('error', 'session_expired');
+        const redirectRes = NextResponse.redirect(loginUrl);
+        redirectRes.cookies.delete('access_token');
+        redirectRes.cookies.delete('refresh_token');
+        return redirectRes;
       }
     }
 
-    // 3. Verify Decoded JWT payload and Role Authorization
-    // This applies to both page routes and API routes to ensure server-side authorization
-    if (!payload || !payload.role || !ALLOWED_STUDENT_ROLES.includes(payload.role)) {
+    // Verify the (signature-verified) JWT payload and role authorization
+    if (!hasRole(payload?.role, ALLOWED_AUTHENTICATED_ROLES)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Access Denied: Insufficient Permissions" }, { status: 403 });
       }
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('error', 'insufficient_permissions');
       const redirectRes = NextResponse.redirect(loginUrl);
-      // Clear cookies to prevent redirect loops
       redirectRes.cookies.delete('access_token');
       redirectRes.cookies.delete('refresh_token');
       return redirectRes;
     }
 
-    // 4. Admin layout guards - applies to both pages and API routes under /admin
-    if (pathname.startsWith('/admin')) {
-      const allowedAdminRoles = ["ADMIN", "SUPER_ADMIN", "MODERATOR"];
-      if (!allowedAdminRoles.includes(payload.role)) {
+    // Admin layout guards
+    if (isAdminRoute(pathname)) {
+      if (!hasRole(payload!.role, ADMIN_PANEL_ROLES)) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Access Denied: Admin privileges required" }, { status: 403 });
         }
@@ -231,26 +154,37 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // 5. Additional API route-specific authorization checks
+    // Additional API route-specific authorization checks
     if (pathname.startsWith("/api/")) {
       // Teacher-only endpoints
       if (pathname.startsWith("/api/teaching/") || pathname.startsWith("/api/courses/create")) {
-        const teacherRoles = ["TEACHER", "ADMIN", "SUPER_ADMIN"];
-        if (!teacherRoles.includes(payload.role!)) {
+        if (!hasRole(payload!.role, TEACHER_ENDPOINT_ROLES)) {
           return NextResponse.json({ error: "Access Denied: Teacher privileges required" }, { status: 403 });
         }
       }
 
       // Student-only endpoints
       if (pathname.startsWith("/api/student/") || pathname.startsWith("/api/exams/submit")) {
-        const studentRoles = ["STUDENT", "ADMIN", "SUPER_ADMIN"];
-        if (!studentRoles.includes(payload.role!)) {
+        if (!hasRole(payload!.role, STUDENT_ENDPOINT_ROLES)) {
           return NextResponse.json({ error: "Access Denied: Student access required" }, { status: 403 });
         }
       }
     }
 
     // Return the response containing updated set-cookie headers (if rotated successfully)
+    const nextResponse = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+
+    // Add refresh cookies if we have them from protected route refresh
+    if (refreshCookies.length > 0) {
+      for (const cookie of refreshCookies) {
+        nextResponse.headers.append("Set-Cookie", cookie);
+      }
+    }
+
     return nonce ? applyCsp(nextResponse, nonce) : nextResponse;
   }
 

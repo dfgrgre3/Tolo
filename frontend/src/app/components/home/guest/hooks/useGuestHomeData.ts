@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchBlogPosts, fetchCategories, fetchCourses, fetchInstructors, fetchStats } from '../api';
+import { fetchHomeBatch, fetchCourses } from '../api';
 import type { CourseSort } from '../api';
-import type { BlogPost, Category, CourseItem, Instructor, PlatformStats } from '../types';
+import type { Category, CourseItem, Instructor, PlatformStats, BlogPost } from '../types';
 
 export function useGuestHomeData() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,25 +13,29 @@ export function useGuestHomeData() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [selectedTab, setSelectedTab] = useState<CourseSort>('popular');
   const [loadedTab, setLoadedTab] = useState<CourseSort | null>(null);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [loadingInstructors, setLoadingInstructors] = useState(true);
-  const [loadingBlog, setLoadingBlog] = useState(true);
+  const [loadingData, setLoadingData] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingInstructors, setLoadingInstructors] = useState(false);
+  const [loadingBlog, setLoadingBlog] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadingCategories(true);
+    setLoadingInstructors(true);
+    setLoadingBlog(true);
 
-    Promise.all([fetchCategories(), fetchStats(), fetchInstructors(), fetchBlogPosts()]).then(
-      ([nextCategories, nextStats, nextInstructors, nextPosts]) => {
-        if (cancelled) return;
-        setCategories(nextCategories);
-        setStats(nextStats);
-        setInstructors(nextInstructors);
-        setBlogPosts(nextPosts);
-        setLoadingCategories(false);
-        setLoadingInstructors(false);
-        setLoadingBlog(false);
-      }
-    );
+    fetchHomeBatch().then(({ categories, stats, instructors, blogPosts }) => {
+      if (cancelled) return;
+      setCategories(categories);
+      setStats(stats);
+      setInstructors(instructors);
+      setBlogPosts(blogPosts);
+      setLoadingData(false);
+      setLoadingCategories(false);
+      setLoadingInstructors(false);
+      setLoadingBlog(false);
+    });
 
     return () => {
       cancelled = true;
@@ -40,10 +44,12 @@ export function useGuestHomeData() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoadingCourses(true);
     fetchCourses(selectedTab).then((nextCourses) => {
       if (cancelled) return;
       setCourses(nextCourses);
       setLoadedTab(selectedTab);
+      setLoadingCourses(false);
     });
 
     return () => {
@@ -59,9 +65,10 @@ export function useGuestHomeData() {
     stats,
     selectedTab,
     setSelectedTab,
+    loadingData,
+    loadingCourses,
     loadingCategories,
     loadingInstructors,
     loadingBlog,
-    loadingCourses: loadedTab !== selectedTab,
   };
 }

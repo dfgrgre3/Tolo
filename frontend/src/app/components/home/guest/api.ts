@@ -33,7 +33,13 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchCourses(sort: CourseSort): Promise<CourseItem[]> {
   const url = `/api/subjects?isPublished=true&isActive=true&limit=8&sort=${SORT_FIELDS[sort]}&order=desc`;
   const { data, error } = await safeFetch<ApiSubjectsResponse>(url, undefined, null);
-  if (error || !data) return [];
+  if (error || !data) {
+    // Log authentication errors for debugging but return empty array
+    if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+      console.log('[Guest API] Subjects endpoint requires authentication, returning empty array');
+    }
+    return [];
+  }
   return data.items || data.courses || data.subjects || data.data || [];
 }
 
@@ -73,4 +79,26 @@ export async function fetchStats(): Promise<PlatformStats | null> {
     instructors: totalTeachers,
     enrollments: totalEnrollments,
   };
+}
+
+/** All home data fetched in a single batch call. */
+export interface HomeDataBatch {
+  categories: Category[];
+  stats: PlatformStats | null;
+  instructors: Instructor[];
+  blogPosts: BlogPost[];
+}
+
+/**
+ * Fetches all home page data in parallel requests.
+ * Uses individual endpoints since the batch endpoint is not available on the backend.
+ */
+export async function fetchHomeBatch(): Promise<HomeDataBatch> {
+  const [categories, stats, instructors, blogPosts] = await Promise.all([
+    fetchCategories(),
+    fetchStats(),
+    fetchInstructors(),
+    fetchBlogPosts()
+  ]);
+  return { categories, stats, instructors, blogPosts };
 }

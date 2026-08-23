@@ -387,12 +387,11 @@ export async function safeFetch<T = unknown>(
 
     let response = await fetchFn(finalUrl, newOptions);
 
-    if (shouldAttemptTokenRefresh(url, response)) {
-      const refreshed = await refreshAuthSession();
-      if (refreshed) {
-        response = await fetchWithTimeout(finalUrl, newOptions);
-      }
-    }
+    // Token refresh is handled EXCLUSIVELY by the Edge middleware (src/proxy.ts)
+    // It checks access-token expiry on every matched request and performs silent rotation
+    // before the request reaches this client. This prevents race conditions and duplicate
+    // refresh attempts. A 401 arriving here means the middleware already tried to refresh
+    // and failed, or the backend rejected the request for another reason.
 
     const data = await safeJsonParse<T>(response, fallback);
 
@@ -405,69 +404,6 @@ export async function safeFetch<T = unknown>(
     const normalizedError = normalizeFetchCatchError(_error, options);
     return { data: null, error: normalizedError, response: null };
   }
-}
-
-// ==================== Refresh Auth ====================
-
-const AUTH_REFRESH_ENDPOINT = '/api/auth/refresh';
-const REFRESH_COOLDOWN = 5_000; // 5 seconds
-
-let lastRefreshAttempt = 0;
-let refreshInProgress: Promise<boolean> | null = null;
-
-function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
-  if (response.status !== 401) return false;
-  if (url.includes('/auth/login') || url.includes('/auth/refresh')) return false;
-  return true;
-}
-
-async function refreshAuthSession(): Promise<boolean> {
-  const now = Date.now();
-  if (now - lastRefreshAttempt < REFRESH_COOLDOWN) {
-    return false;
-  }
-
-  if (refreshInProgress) {
-    return refreshInProgress;
-  }
-
-  refreshInProgress = (async () => {
-    try {
-      lastRefreshAttempt = Date.now();
-      
-      // Build headers with CSRF token
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Attach CSRF token for the refresh request
-      if (typeof window !== 'undefined') {
-        const cookies = window.document.cookie.split(';').map(c => c.trim());
-        const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
-        for (const name of csrfNames) {
-          const entry = cookies.find(c => c.startsWith(name + '='));
-          const value = entry?.split('=')[1];
-          if (value) {
-            headers['X-CSRF-Token'] = value;
-            break;
-          }
-        }
-      }
-      
-      const response = await fetch(buildFinalUrl(AUTH_REFRESH_ENDPOINT), {
-        method: 'POST',
-        credentials: 'include',
-        headers,
-      });
-      return response.ok;
-    } catch {
-      return false;
-    } finally {
-      refreshInProgress = null;
-    }
-  })();
-
-  return refreshInProgress;
 }
 
 // ==================== Safe State Management ====================

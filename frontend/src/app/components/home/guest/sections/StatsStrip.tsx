@@ -41,13 +41,14 @@ export function StatsStrip({ stats }: StatsStripProps) {
 
 /** Dark variant of the same counters, used lower on the page. */
 export function AchievementStrip({ stats }: StatsStripProps) {
-  if (!stats) return null;
+  // Fallback to placeholder values when stats are not available
+  const displayStats = stats || { courses: 0, students: 0, instructors: 0, enrollments: 0 };
 
   const items = [
-    { value: stats.students, label: 'طالب مسجّل', icon: Users },
-    { value: stats.courses, label: 'كورس متاح', icon: BookOpen },
-    { value: stats.instructors, label: 'مدرب', icon: GraduationCap },
-    { value: stats.enrollments, label: 'عملية تسجيل', icon: Award },
+    { value: displayStats.students, label: 'طالب مسجّل', icon: Users },
+    { value: displayStats.courses, label: 'كورس متاح', icon: BookOpen },
+    { value: displayStats.instructors, label: 'مدرب', icon: GraduationCap },
+    { value: displayStats.enrollments, label: 'عملية تسجيل', icon: Award },
   ];
 
   return (
@@ -55,7 +56,7 @@ export function AchievementStrip({ stats }: StatsStripProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {items.map(({ value, label, icon: Icon }) => (
-            <div key={label} className="flex flex-col items-center">
+            <div key={label} className="flex flex-col items-center animate-fade-in-up">
               <Icon className="h-8 w-8 text-[#F59E0B] mb-3" />
               <div className="text-3xl sm:text-4xl font-black text-white mb-1">
                 {value.toLocaleString('ar-EG')}

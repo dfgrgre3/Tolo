@@ -8,7 +8,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, ShieldCheck, AlertCircle, CheckCircle, Download } from "lucide-react";
 import Link from "next/link";
-import { apiClient } from "@/lib/api/api-client";
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+
+interface MfaSetupResponse {
+  secret: string;
+  qrCodeUrl?: string;
+}
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof ApiError || err instanceof Error ? err.message : fallback;
+}
 
 export default function MfaPage() {
   const [step, setStep] = useState<"init" | "verify" | "backup">("init");
@@ -24,14 +34,14 @@ export default function MfaPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const responseData = await apiClient.post<any>("/auth/mfa/setup", {
+      const responseData = await apiClient.post<MfaSetupResponse>(apiRoutes.auth.mfa.setup, {
         method: "totp",
       });
       setSecret(responseData.secret);
       setQrCodeUrl(responseData.qrCodeUrl || "");
       setStep("verify");
-    } catch (err: any) {
-      setError(err?.message || "فشل تهيئة المصادقة الثنائية");
+    } catch (err: unknown) {
+      setError(toErrorMessage(err, "فشل تهيئة المصادقة الثنائية"));
     } finally {
       setIsLoading(false);
     }
@@ -48,14 +58,14 @@ export default function MfaPage() {
     setError(null);
     try {
       const responseData = await apiClient.post<{ backupCodes?: string[] }>(
-        "/auth/mfa/enable",
+        apiRoutes.auth.mfa.enable,
         { code }
       );
       setBackupCodes(responseData.backupCodes || []);
       setSuccess("تم تفعيل المصادقة الثنائية بنجاح!");
       setStep("backup");
-    } catch (err: any) {
-      setError(err.message || "فشل التحقق");
+    } catch (err: unknown) {
+      setError(toErrorMessage(err, "فشل التحقق"));
     } finally {
       setIsLoading(false);
     }

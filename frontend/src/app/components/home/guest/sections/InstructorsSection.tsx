@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Users } from 'lucide-react';
 import type { Instructor } from '../types';
@@ -11,7 +11,7 @@ interface InstructorsSectionProps {
 /** A single placeholder card shown while instructors load. */
 export function InstructorSkeleton() {
   return (
-    <div className=" flex flex-col items-center p-4 bg-white border border-[#E2E8F0] rounded-[12px]">
+    <div className="flex flex-col items-center p-4 bg-white border border-[#E2E8F0] rounded-[12px]">
       <div className="h-16 w-16 rounded-full bg-slate-200 mb-3" />
       <div className="h-3 w-20 bg-slate-200 rounded mb-2" />
       <div className="h-2 w-16 bg-slate-100 rounded" />
@@ -20,6 +20,8 @@ export function InstructorSkeleton() {
 }
 
 export function InstructorsSection({ instructors, loading }: InstructorsSectionProps) {
+  const router = useRouter();
+
   return (
     <section className="py-16 bg-white border-y border-[#E2E8F0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,16 +32,16 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
               نخبة من المتخصصين لنقل خبراتهم إليك مباشرة
             </p>
           </div>
-          <Link
-            href="/instructors"
-            className="flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59]"
+          <button
+            onClick={() => router.push('/instructors')}
+            className="flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] transition-colors"
           >
             عرض الكل <ChevronLeft className="h-4 w-4" />
-          </Link>
+          </button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <InstructorSkeleton key={i} />
             ))}
@@ -49,7 +51,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
             لا يوجد مدربون متاحون حالياً.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {instructors.map((ins) => {
               const name =
                 ins.name || `${ins.firstName || ''} ${ins.lastName || ''}`.trim() || 'مدرب';
@@ -57,10 +59,10 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
               const initial = name.charAt(0);
 
               return (
-                <Link
+                <button
                   key={ins.id}
-                  href={`/instructors/${ins.id}`}
-                  className="bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] p-4 rounded-[12px] text-center flex flex-col items-center hover:shadow-md group"
+                  onClick={() => router.push(`/instructors/${ins.id}`)}
+                  className="bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] p-4 rounded-[12px] text-center flex flex-col items-center hover:shadow-md group transition-colors"
                 >
                   <div className="relative h-16 w-16 rounded-full overflow-hidden mb-3 ring-2 ring-[#E2E8F0] group-hover:ring-[#0F766E]">
                     {avatar ? (
@@ -85,7 +87,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
                       {ins.studentsCount.toLocaleString('ar-EG')} طالب
                     </div>
                   )}
-                </Link>
+                </button>
               );
             })}
           </div>

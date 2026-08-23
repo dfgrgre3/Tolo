@@ -99,6 +99,45 @@ export default async function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         {/* Hydration attribute cleanup */}
         <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
+
+        {/* Structured Data (Schema.org) */}
+        <script
+          id="structured-data"
+          type="application/ld+json"
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'EducationalOrganization',
+              name: SITE.name,
+              description: SITE.description,
+              url: SITE.url,
+              logo: `${SITE.url}/logo.png`,
+              sameAs: [],
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'EGP',
+                eligibilityCriteria: {
+                  '@type': 'EducationalOccupationalCredential',
+                  credentialCategory: 'certificate',
+                },
+              },
+             hasCourse: [
+                {
+                  '@type': 'Course',
+                  name: 'دورات تدريبية احترافية',
+                  description: 'مجموعة واسعة من الدورات التدريبية المتنوعة',
+                  provider: {
+                    '@type': 'Organization',
+                    name: SITE.name,
+                  },
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className={`${cairo.variable} ${geist.variable} font-sans`} suppressHydrationWarning>
         <div suppressHydrationWarning>

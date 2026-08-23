@@ -15,6 +15,7 @@ import {
   Volume2,
   VolumeX,
   Gauge,
+  Cast,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { usePlaybackStore } from "../stores/playback-store";
@@ -28,7 +29,17 @@ import { useEfficiencyMode } from "@/hooks";
 import { useCallback, useRef, type WheelEvent } from "react";
 
 
-const VolumeControl = ({ isMuted, volume, onToggleMute, onVolumeChange }: any) => {
+const VolumeControl = ({
+  isMuted,
+  volume,
+  onToggleMute,
+  onVolumeChange,
+}: {
+  isMuted: boolean;
+  volume: number;
+  onToggleMute: () => void;
+  onVolumeChange: (volume: number) => void;
+}) => {
   const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   return (
     <div className="group/volume flex items-center">
@@ -48,7 +59,17 @@ const VolumeControl = ({ isMuted, volume, onToggleMute, onVolumeChange }: any) =
   );
 };
 
-const PlaybackInfo = ({ duration, playbackRate, currentTime, isMobile = false }: any) => {
+const PlaybackInfo = ({
+  duration,
+  playbackRate,
+  currentTime,
+  isMobile = false,
+}: {
+  duration: number;
+  playbackRate: number;
+  currentTime: number;
+  isMobile?: boolean;
+}) => {
   const hasCustomRate = playbackRate !== 1;
   
   if (!isMobile) {
@@ -85,6 +106,8 @@ const PlaybackInfo = ({ duration, playbackRate, currentTime, isMobile = false }:
 
 export function PlayerControls({
   markers, thumbnails, notes = [], sidebarHasContent, isTheaterMode, canUsePip,
+  canUseAirPlay = false, onOpenAirPlay,
+  canCast = false, isCasting = false, onToggleCast,
   onSeek, onSeekBy, onTogglePlayPause, onToggleMute, onVolumeChange, onOpenHelp,
   onToggleTheater, onTogglePip, onToggleSidebar, onToggleFullscreen, onToggleSettings,
   onToggleLoop, onCaptureFrame, interactiveQuestions = [],
@@ -95,6 +118,11 @@ export function PlayerControls({
   sidebarHasContent: boolean;
   isTheaterMode: boolean;
   canUsePip: boolean;
+  canUseAirPlay?: boolean;
+  onOpenAirPlay?: () => void;
+  canCast?: boolean;
+  isCasting?: boolean;
+  onToggleCast?: () => void;
   onSeek: (value: number) => void;
   onSeekBy: (seconds: number) => void;
   onTogglePlayPause: () => void;
@@ -179,11 +207,17 @@ export function PlayerControls({
 
         {/* Bottom row: Action buttons - larger touch targets on mobile */}
         <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-between">
-          <PlaybackInfo duration={duration} playbackRate={playbackRate} />
+          <PlaybackInfo duration={duration} playbackRate={playbackRate} currentTime={currentTime} />
           <div className="flex items-center gap-2 sm:gap-1.5">
             <IconButton icon={Keyboard} label="اختصارات لوحة المفاتيح" onClick={onOpenHelp} className="h-12 w-12 sm:h-11 sm:w-11" />
             <IconButton icon={Monitor} label="الوضع المسرحي" active={isTheaterMode} onClick={onToggleTheater} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
             <IconButton icon={PictureInPicture2} label="نافذة عائمة" active={isPip} disabled={!canUsePip} onClick={onTogglePip} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
+            {canUseAirPlay && (
+              <IconButton icon={Cast} label="بث AirPlay" onClick={() => onOpenAirPlay?.()} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
+            )}
+            {canCast && (
+              <IconButton icon={Cast} label={isCasting ? "إيقاف البث إلى Chromecast" : "البث إلى Chromecast"} active={isCasting} onClick={() => onToggleCast?.()} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
+            )}
             <IconButton icon={sidebarHasContent ? ListVideo : FileText} label={isSidebarOpen ? "إغلاق اللوحة الجانبية" : "فتح اللوحة الجانبية"} active={isSidebarOpen} onClick={onToggleSidebar} className="h-12 w-12 sm:h-11 sm:w-11" />
             <IconButton icon={isFullscreen ? Minimize : Maximize} label={isFullscreen ? "الخروج من وضع ملء الشاشة" : "ملء الشاشة"} onClick={onToggleFullscreen} className="h-12 w-12 sm:h-11 sm:w-11" />
             <IconButton icon={Settings2} label={isSettingsOpen ? "إغلاق الإعدادات" : "الإعدادات"} active={isSettingsOpen} onClick={onToggleSettings} className="h-12 w-12 sm:h-11 sm:w-11" />

@@ -11,69 +11,176 @@ import {
   Type,
   Maximize2,
   ChevronLeft,
-  Volume2,
-  Clock,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, type ComponentType } from "react";
 import type { QualityOption, SubtitleTrack } from "../../types";
 import { useSettingsStore } from "../../stores/settings-store";
+import { Check } from "lucide-react";
 
-function QualitySettings({ qualities, allowAutoQuality, selectedQuality, onChangeQuality }: any) {
-  if (qualities.length === 0) return null;
-  const currentLabel = selectedQuality === -1 ? "تلقائي" : qualities.find((q: any) => q.id === selectedQuality)?.label || "يدوي";
+// Shared row shell used by every settings entry — keeps the gradient/hover/
+// active styling in one place instead of duplicated per-setting.
+function SettingsRow({
+  icon: Icon,
+  label,
+  value,
+  onClick,
+  isToggle = false,
+  isActive = false,
+  iconGradient = "from-emerald-500/20 to-teal-500/20",
+  iconRing = "ring-emerald-500/20 group-hover:ring-emerald-500/40",
+  iconColor = "text-emerald-300",
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value?: string;
+  onClick: () => void;
+  isToggle?: boolean;
+  isActive?: boolean;
+  iconGradient?: string;
+  iconRing?: string;
+  iconColor?: string;
+}) {
   return (
-    <button 
-      type="button" 
-      onClick={() => onChangeQuality(selectedQuality === -1 && qualities[0] ? qualities[0].id : -1)}
+    <button
+      type="button"
+      onClick={onClick}
       className="group flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] px-5 py-4.5 text-sm font-bold text-white/90 transition-all duration-300 hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:scale-[1.02] active:scale-[0.98] border border-white/5 hover:border-white/10 sm:py-4"
     >
       <span className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-2 ring-1 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all">
-          <Monitor className="h-4 w-4 text-blue-300" />
+        <div className={cn("rounded-xl bg-gradient-to-br p-2 ring-1 transition-all", iconGradient, iconRing)}>
+          <Icon className={cn("h-4 w-4", iconColor)} />
         </div>
-        <span className="text-white/90 group-hover:text-white transition-colors">الجودة</span>
+        <span className="text-white/90 group-hover:text-white transition-colors">{label}</span>
       </span>
-      <div className="flex items-center gap-2">
-        <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/70 group-hover:bg-white/10 group-hover:text-white transition-all">{currentLabel}</span>
-        <ChevronLeft className="h-4 w-4 text-white/30 group-hover:text-white/60 transition-colors" />
-      </div>
+      {isToggle ? (
+        isActive ? <ToggleRight className="h-6 w-6 text-emerald-400" /> : <ToggleLeft className="h-6 w-6 text-white/40" />
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/70 group-hover:bg-white/10 group-hover:text-white transition-all">{value}</span>
+          <ChevronLeft className="h-4 w-4 text-white/30 group-hover:text-white/60 transition-colors" />
+        </div>
+      )}
     </button>
   );
 }
 
-function SpeedSettings({ playbackRates, playbackRate, onChangePlaybackRate }: any) {
+function QualitySettings({
+  qualities,
+  allowAutoQuality,
+  selectedQuality,
+  onChangeQuality,
+}: {
+  qualities: QualityOption[];
+  allowAutoQuality: boolean;
+  selectedQuality: number;
+  onChangeQuality: (id: number) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  if (qualities.length === 0) return null;
+  const currentLabel = selectedQuality === -1 ? "تلقائي" : qualities.find((q) => q.id === selectedQuality)?.label || "يدوي";
+
   return (
-    <button 
-      type="button" 
+    <div className="space-y-2">
+      <SettingsRow
+        icon={Monitor}
+        label="الجودة"
+        value={currentLabel}
+        onClick={() => setIsOpen((open) => !open)}
+        iconGradient="from-blue-500/20 to-cyan-500/20"
+        iconRing="ring-blue-500/20 group-hover:ring-blue-500/40"
+        iconColor="text-blue-300"
+      />
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <m.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-1.5 rounded-2xl border border-white/5 bg-black/20 p-2">
+              {allowAutoQuality && (
+                <button
+                  type="button"
+                  onClick={() => { onChangeQuality(-1); setIsOpen(false); }}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
+                    selectedQuality === -1 ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  <span>تلقائي</span>
+                  {selectedQuality === -1 && <Check className="h-4 w-4" />}
+                </button>
+              )}
+              {qualities.map((quality) => (
+                <button
+                  key={quality.id}
+                  type="button"
+                  onClick={() => { onChangeQuality(quality.id); setIsOpen(false); }}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
+                    selectedQuality === quality.id ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  <span>{quality.label}</span>
+                  {selectedQuality === quality.id && <Check className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SpeedSettings({
+  playbackRates,
+  playbackRate,
+  onChangePlaybackRate,
+}: {
+  playbackRates: number[];
+  playbackRate: number;
+  onChangePlaybackRate: (rate: number) => void;
+}) {
+  return (
+    <SettingsRow
+      icon={Zap}
+      label="سرعة التشغيل"
+      value={`${playbackRate}x`}
       onClick={() => {
         const currentIndex = playbackRates.indexOf(playbackRate);
         const nextIndex = (currentIndex + 1) % playbackRates.length;
-        onChangePlaybackRate(playbackRates[nextIndex]);
+        const nextRate = playbackRates[nextIndex];
+        if (nextRate !== undefined) onChangePlaybackRate(nextRate);
       }}
-      className="group flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] px-5 py-4.5 text-sm font-bold text-white/90 transition-all duration-300 hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:scale-[1.02] active:scale-[0.98] border border-white/5 hover:border-white/10 sm:py-4"
-    >
-      <span className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-2 ring-1 ring-amber-500/20 group-hover:ring-amber-500/40 transition-all">
-          <Zap className="h-4 w-4 text-amber-300" />
-        </div>
-        <span className="text-white/90 group-hover:text-white transition-colors">سرعة التشغيل</span>
-      </span>
-      <div className="flex items-center gap-2">
-        <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/70 group-hover:bg-white/10 group-hover:text-white transition-all">{playbackRate}x</span>
-        <ChevronLeft className="h-4 w-4 text-white/30 group-hover:text-white/60 transition-colors" />
-      </div>
-    </button>
+      iconGradient="from-amber-500/20 to-orange-500/20"
+      iconRing="ring-amber-500/20 group-hover:ring-amber-500/40"
+      iconColor="text-amber-300"
+    />
   );
 }
 
-function SubtitleSettings({ subtitleTracks, selectedSubtitle, onChangeSubtitle }: any) {
+function SubtitleSettings({
+  subtitleTracks,
+  selectedSubtitle,
+  onChangeSubtitle,
+}: {
+  subtitleTracks: SubtitleTrack[];
+  selectedSubtitle: string;
+  onChangeSubtitle: (id: string) => void;
+}) {
   if (subtitleTracks.length === 0) return null;
-  const currentLabel = selectedSubtitle === "off" ? "بدون ترجمة" : subtitleTracks.find((t: any) => t.id === selectedSubtitle)?.label || "بدون ترجمة";
+  const currentLabel = selectedSubtitle === "off" ? "بدون ترجمة" : subtitleTracks.find((t) => t.id === selectedSubtitle)?.label || "بدون ترجمة";
   return (
-    <button 
-      type="button" 
+    <SettingsRow
+      icon={Type}
+      label="الترجمة"
+      value={currentLabel}
       onClick={() => {
         if (selectedSubtitle === "off" && subtitleTracks[0]) {
           onChangeSubtitle(subtitleTracks[0].id);
@@ -81,47 +188,43 @@ function SubtitleSettings({ subtitleTracks, selectedSubtitle, onChangeSubtitle }
           onChangeSubtitle("off");
         }
       }}
-      className="group flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] px-5 py-4.5 text-sm font-bold text-white/90 transition-all duration-300 hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:scale-[1.02] active:scale-[0.98] border border-white/5 hover:border-white/10 sm:py-4"
-    >
-      <span className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-2 ring-1 ring-purple-500/20 group-hover:ring-purple-500/40 transition-all">
-          <Type className="h-4 w-4 text-purple-300" />
-        </div>
-        <span className="text-white/90 group-hover:text-white transition-colors">الترجمة</span>
-      </span>
-      <div className="flex items-center gap-2">
-        <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/70 group-hover:bg-white/10 group-hover:text-white transition-all">{currentLabel}</span>
-        <ChevronLeft className="h-4 w-4 text-white/30 group-hover:text-white/60 transition-colors" />
-      </div>
-    </button>
+      iconGradient="from-purple-500/20 to-pink-500/20"
+      iconRing="ring-purple-500/20 group-hover:ring-purple-500/40"
+      iconColor="text-purple-300"
+    />
   );
 }
 
-function SettingsRow({ icon: Icon, label, value, onClick, isToggle = false, isActive = false }: any) {
-  return (
-    <button type="button" onClick={onClick}
-      className="group flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] px-5 py-4.5 text-sm font-bold text-white/90 transition-all duration-300 hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:scale-[1.02] active:scale-[0.98] border border-white/5 hover:border-white/10 sm:py-4">
-      <span className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-2 ring-1 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all">
-          <Icon className="h-4 w-4 text-emerald-300" />
-        </div>
-        <span className="text-white/90 group-hover:text-white transition-colors">{label}</span>
-      </span>
-      {isToggle ? (
-        isActive ? <ToggleRight className="h-6 w-6 text-emerald-400" /> : <ToggleLeft className="h-6 w-6 text-white/40" />
-      ) : (
-        <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/70 group-hover:bg-white/10 group-hover:text-white transition-all">{value}</span>
-      )}
-    </button>
-  );
+interface SettingsPanelProps {
+  isSettingsOpen: boolean;
+  isEfficiencyMode?: boolean;
+  qualities: QualityOption[];
+  allowAutoQuality: boolean;
+  selectedQuality: number;
+  onChangeQuality: (id: number) => void;
+  playbackRates: number[];
+  playbackRate: number;
+  onChangePlaybackRate: (rate: number) => void;
+  subtitleTracks: SubtitleTrack[];
+  selectedSubtitle: string;
+  onChangeSubtitle: (id: string) => void;
+  brightness: number;
+  onChangeBrightness: (value: number) => void;
+  isAmbientMode: boolean;
+  onToggleAmbient: () => void;
+  onOpenStats: () => void;
+  onCloseSettings: () => void;
+  shortcuts: [string, string][];
+  isShortcutsOpen: boolean;
+  onToggleShortcuts: () => void;
 }
 
 export function SettingsPanel({
-  isSettingsOpen, isEfficiencyMode, qualities, allowAutoQuality, selectedQuality, onChangeQuality,
+  isSettingsOpen, qualities, allowAutoQuality, selectedQuality, onChangeQuality,
   playbackRates, playbackRate, onChangePlaybackRate, subtitleTracks, selectedSubtitle, onChangeSubtitle,
   brightness, onChangeBrightness, isAmbientMode, onToggleAmbient, onOpenStats,
   onCloseSettings, shortcuts, isShortcutsOpen, onToggleShortcuts,
-}: any) {
+}: SettingsPanelProps) {
   const { zoomFactor, subtitleSize, subtitleBgOpacity, setSettingsState } = useSettingsStore();
 
   // Mobile: full-screen slide-up panel
@@ -370,7 +473,7 @@ export function SettingsPanel({
                   </div>
                   <div className="max-h-[60vh] overflow-y-auto pr-1">
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {shortcuts.map(([shortcut, description]: any, index: number) => (
+                      {shortcuts.map(([shortcut, description], index) => (
                         <m.div
                           key={shortcut}
                           initial={{ opacity: 0, x: -10 }}

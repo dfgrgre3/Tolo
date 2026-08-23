@@ -148,7 +148,8 @@ export function useProgressPersistence({
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const payload = await response.json();
+        const data = payload?.data ?? payload ?? {};
         const serverPosition =
           typeof data.lastWatchedPosition === "number" ? data.lastWatchedPosition : (typeof data.lastVideoPosition === "number" ? data.lastVideoPosition : null);
         const serverUpdatedAt = data.updatedAt

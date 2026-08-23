@@ -8,9 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, AlertCircle, User, Mail, Lock, Gift, Users, Phone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, UserPlus, AlertCircle, User, Mail, Lock, Gift, Phone } from "lucide-react";
 import Link from "next/link";
-import { apiClient } from "@/lib/api/api-client";
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof ApiError || err instanceof Error ? err.message : fallback;
+}
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -18,16 +24,18 @@ export default function RegisterForm() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("STUDENT");
   const [referralCode, setReferralCode] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !email || !password || !username || !phone) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !username || !phone) {
       setError("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
@@ -37,13 +45,23 @@ export default function RegisterForm() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      setError("كلمتا المرور غير متطابقتين");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError("يجب الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
       // apiClient routes /api/auth/register → Next.js proxy → Go backend.
       // It also attaches CSRF + idempotency headers and unwraps the envelope.
-      await apiClient.post("/auth/register", {
+      await apiClient.post(apiRoutes.auth.register, {
         firstName,
         lastName,
         email,
@@ -55,8 +73,8 @@ export default function RegisterForm() {
       });
 
       router.push("/login?registered=true");
-    } catch (err: any) {
-      setError(err?.message || "حدث خطأ غير متوقع أثناء إنشاء الحساب");
+    } catch (err: unknown) {
+      setError(toErrorMessage(err, "حدث خطأ غير متوقع أثناء إنشاء الحساب"));
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +178,26 @@ export default function RegisterForm() {
             </div>
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">تأكيد كلمة المرور</Label>
+            <div className="relative">
+              <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                <Lock className="h-4 w-4" />
+              </span>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                dir="ltr"
+                className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="username" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">اسم المستخدم</Label>
@@ -210,6 +248,11 @@ export default function RegisterForm() {
                   <SelectItem value="TEACHER" className="text-right justify-end font-medium">معلم</SelectItem>
                 </SelectContent>
               </Select>
+              {role === "TEACHER" && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  قد تتم مراجعة حساب المعلم قبل تفعيل بعض الصلاحيات.
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="referralCode" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كود الإحالة (اختياري)</Label>
@@ -228,10 +271,30 @@ export default function RegisterForm() {
               </div>
             </div>
           </div>
+
+          <div className="flex items-start space-x-2 space-x-reverse">
+            <Checkbox
+              id="agreedToTerms"
+              checked={agreedToTerms}
+              onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+              disabled={isLoading}
+              className="mt-0.5 border-slate-300 dark:border-slate-700 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+            <Label htmlFor="agreedToTerms" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer font-medium leading-relaxed">
+              أوافق على{" "}
+              <Link href="/terms" target="_blank" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
+                الشروط والأحكام
+              </Link>{" "}
+              و{" "}
+              <Link href="/privacy" target="_blank" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
+                سياسة الخصوصية
+              </Link>
+            </Label>
+          </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !agreedToTerms}>
             {isLoading ? (
               <>
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />

@@ -9,6 +9,7 @@ import type {
   PlayerPreferences,
   ThumbnailCue,
   TimelineNote,
+  TranscriptCue,
   VideoProvider,
 } from "./types";
 
@@ -285,6 +286,58 @@ export function parseThumbnailVtt(
       } as ThumbnailCue;
     })
     .filter((cue) => cue !== null) as ThumbnailCue[];
+}
+
+// Parses either SRT ("00:01:02,500") or VTT ("00:01:02.500") timestamps,
+// keeping sub-second precision (unlike parseVttTimestamp above, which is
+// only used for whole-second thumbnail cue alignment).
+function parseTranscriptTimestamp(value: string): number | null {
+  const match = /^(\d{2}):(\d{2}):(\d{2})[.,](\d{1,3})$/.exec(value.trim());
+  if (!match) return null;
+  const [, h, m, s, ms] = match;
+  return (
+    Number(h) * 3600 +
+    Number(m) * 60 +
+    Number(s) +
+    Number((ms ?? "0").padEnd(3, "0")) / 1000
+  );
+}
+
+/**
+ * Parses an SRT or VTT transcript file into timed cues. Accepts both
+ * formats since the admin upload endpoint stores whichever the instructor
+ * provides — the two only differ in header, index-line, and ms separator.
+ */
+export function parseTranscript(content: string): TranscriptCue[] {
+  const body = content.trim().startsWith("WEBVTT")
+    ? content.replace(/^WEBVTT.*?\r?\n/, "")
+    : content;
+
+  return body
+    .split(/\r?\n\r?\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block, index) => {
+      const lines = block.split(/\r?\n/);
+      const timeLineIndex = lines.findIndex((line) => line.includes("-->"));
+      if (timeLineIndex === -1) return null;
+
+      const timeLine = lines[timeLineIndex]!;
+      const [rawStart, rawEnd] = timeLine.split("-->").map((part) => part.trim());
+      const start = parseTranscriptTimestamp((rawStart ?? "").split(" ")[0] ?? "");
+      const end = parseTranscriptTimestamp((rawEnd ?? "").split(" ")[0] ?? "");
+      if (start === null || end === null) return null;
+
+      const text = lines
+        .slice(timeLineIndex + 1)
+        .join(" ")
+        .replace(/<[^>]+>/g, "") // strip VTT inline styling tags
+        .trim();
+      if (!text) return null;
+
+      return { id: `cue-${index}-${start}`, start, end, text } as TranscriptCue;
+    })
+    .filter((cue): cue is TranscriptCue => cue !== null);
 }
 
 export function getThumbnailCueAtTime(cues: ThumbnailCue[], time: number) {

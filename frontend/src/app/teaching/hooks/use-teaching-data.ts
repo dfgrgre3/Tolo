@@ -335,28 +335,16 @@ export function useTeachingData() {
 
   const allReviews = allReviewsQuery.data?.reviews ?? [];
 
-  // Course-specific queries (used when drilling into a specific course)
+  // Course-specific filtering helpers (pure functions, no hooks)
   const getStudentsForCourse = (courseId: string) =>
-    useQuery<StudentsResponse>({
-      queryKey: ["teaching", "course", courseId, "students"],
-      queryFn: () =>
-        apiClient.get<StudentsResponse>(
-          apiRoutes.teaching.courses.students(courseId)
-        ),
-      enabled: !!courseId,
-      retry: 1,
-    });
+    allStudents.filter((s: Student) =>
+      s.courseProgress?.some((p) => p.courseId === courseId)
+    );
 
   const getReviewsForCourse = (courseId: string) =>
-    useQuery<ReviewsResponse>({
-      queryKey: ["teaching", "course", courseId, "reviews"],
-      queryFn: () =>
-        apiClient.get<ReviewsResponse>(
-          apiRoutes.teaching.courses.reviews(courseId)
-        ),
-      enabled: !!courseId,
-      retry: 1,
-    });
+    allReviews.filter(
+      (r: Review) => (r as unknown as { courseId?: string }).courseId === courseId
+    );
 
   const replyToReview = useMutation({
     mutationFn: ({ reviewId, text }: { reviewId: string; text: string }) => {

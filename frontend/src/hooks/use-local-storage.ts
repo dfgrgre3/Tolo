@@ -6,7 +6,7 @@ import { useSafeLocalStorage } from '@/lib/safe-client-utils';
  * Hook for local storage with automatic synchronization and safety checks.
  * Delegates to the industrial-strength useSafeLocalStorage in safe-client-utils.
  */
-function useLocalStorage<T>(
+export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void, boolean] {
@@ -19,7 +19,7 @@ function useLocalStorage<T>(
 /**
  * Alias for the same hook, often used for reading only.
  */
-function useLocalStorageValue<T>(key: string, initialValue: T): T {
+export function useLocalStorageValue<T>(key: string, initialValue: T): T {
   const [value] = useSafeLocalStorage<T>(key, { fallback: initialValue });
   return value ?? initialValue;
 }

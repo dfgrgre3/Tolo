@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 
 interface MegaMenuComponentProps extends MegaMenuProps {
   label: string;
+  badge?: string;
   className?: string;
   onOpen?: () => void;
   /** z-index للقائمة والخلفية - يمرر من Parent. افتراضي 50 ليتوافق مع z-50 في tailwind */

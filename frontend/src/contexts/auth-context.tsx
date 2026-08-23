@@ -16,12 +16,14 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useRef,
+  useMemo,
   useState,
 } from "react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { requestCache } from "@/lib/api/request-cache";
 import { apiRoutes } from "@/lib/api/routes";
+import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
+import { login as loginRequest, verifyMfa } from "@/services/auth/login-service";
 
 /**
  * Result of an explicit credential-based login (admin or normal).
@@ -29,6 +31,10 @@ import { apiRoutes } from "@/lib/api/routes";
 export interface AuthLoginResult {
   success: boolean;
   requires2FA?: boolean;
+  /**
+   * Opaque MFA challenge handle to pass to `verify2FA`. Named `userId` for
+   * backward compatibility with existing call sites.
+   */
   userId?: string | null;
   error?: string | null;
 }
@@ -36,12 +42,6 @@ export interface AuthLoginResult {
 // API Response Types
 export interface AuthMeResponse {
   user: AuthUser;
-}
-
-export interface LoginResponse {
-  mfaRequired?: boolean;
-  ticket?: string | null;
-  userId?: string | null;
 }
 
 // ─── Types (re-exported for convenience) ────────────────────────────────────
@@ -107,11 +107,45 @@ interface AuthContextValue extends AuthState {
   ) => Promise<AuthLoginResult>;
   /** Fetch with authentication headers (for external APIs) */
   fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  /** @deprecated Use redirectToLogin instead */
+  login: () => Promise<void>;
+  /** @deprecated Use redirectToRegister instead */
+  register: () => Promise<void>;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+/** Signed-out state — shared so every failure path resets identically. */
+const GUEST_STATE: AuthState = {
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  error: null,
+};
+
+/**
+ * Builds the `/auth/me` URL with cache-busting query params.
+ *
+ * WHY: `requestCache` memoizes GET responses for 5 minutes, including the 401
+ * a guest receives. Without busting it, a user who loaded the page while signed
+ * out would keep reading that cached 401 for 5 minutes after signing in — the
+ * login would appear to succeed and then immediately fail.
+ */
+function buildMeUrl(): string {
+  return `${apiRoutes.auth.me}?refresh=true&_t=${Date.now()}`;
+}
+
+/** Maps a failed `/auth/me` into guest state, distinguishing 401 from a real fault. */
+function guestStateFromError(err: unknown): AuthState {
+  const is401 = err instanceof ApiError && err.status === 401;
+  return {
+    ...GUEST_STATE,
+    // A 401 is the expected answer for a guest, not an error worth surfacing.
+    error: is401 ? null : "تعذر الاتصال بالخادم. تحقّق من اتصالك بالإنترنت.",
+  };
+}
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
@@ -122,26 +156,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     error: null,
   });
-  const fetchRef = useRef<AbortController | null>(null);
 
   // Fetch current user exactly once on mount
   useEffect(() => {
-    if (fetchRef.current) {
-      fetchRef.current.abort();
-    }
-
     const controller = new AbortController();
-    fetchRef.current = controller;
 
     const fetchUser = async () => {
       try {
-        const data = await apiClient.get<AuthMeResponse>("/auth/me", {
+        const data = await apiClient.get<AuthMeResponse>(buildMeUrl(), {
           signal: controller.signal,
         });
 
-        const userData: AuthUser = data?.user;
+        // A 200 with no user object means the backend contract broke; treating
+        // it as authenticated would leave `user` null behind an auth guard.
+        if (!data?.user) {
+          setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
+          return;
+        }
+
         setState({
-          user: userData,
+          user: data.user,
           isLoading: false,
           isAuthenticated: true,
           error: null,
@@ -150,13 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
-        const is401 = err instanceof ApiError && err.status === 401;
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          error: is401 ? null : "Network error",
-        });
+        setState(guestStateFromError(err));
       }
     };
 
@@ -175,56 +203,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/register";
   }, []);
 
-  // Deprecated aliases for backward compatibility - use redirectToLogin/redirectToRegister instead
-  const login = redirectToLogin;
-  const register = redirectToRegister;
-
   const logout = useCallback(async () => {
     try {
-      await apiClient.post<void>('/auth/logout', {});
+      await apiClient.post<void>(apiRoutes.auth.logout, {});
     } catch {
-      // Ignore errors
+      // A failed logout call must not trap the user in a signed-in UI — the
+      // local state is cleared and we navigate away regardless.
     }
     // Drop any cached authenticated data (e.g. /auth/me with its 5-min TTL) so
     // the next authenticated fetch reflects the logged-out state immediately.
     requestCache.clear();
-    setState({
-      user: null,
-      isLoading: false,
-      isAuthenticated: false,
-      error: null,
-    });
+    setState(GUEST_STATE);
     window.location.href = "/login";
   }, []);
 
   const refreshUser = useCallback(async () => {
     try {
-      const data = await apiClient.get<AuthMeResponse>("/auth/me");
-      const userData: AuthUser = data?.user;
+      requestCache.clear();
+      const data = await apiClient.get<AuthMeResponse>(buildMeUrl());
+
+      if (!data?.user) {
+        setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
+        return false;
+      }
+
       setState({
-        user: userData,
+        user: data.user,
         isLoading: false,
         isAuthenticated: true,
         error: null,
       });
       return true;
     } catch (err: unknown) {
-      const is401 = err instanceof ApiError && err.status === 401;
-      setState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-        error: is401 ? null : "Network error",
-      });
+      setState(guestStateFromError(err));
       return false;
     }
   }, []);
 
   /**
    * Sign in with email/password (used by both the normal and the admin login
-   * flows). Routes through the backend `/auth/login` endpoint; when the account
-   * has 2FA enabled the backend responds with `mfaRequired` and the caller
-   * should then call `verify2FA`.
+   * flows). Delegates to the shared login service so this path and `LoginForm`
+   * send an identical payload. When the account has MFA enabled the result
+   * carries `requires2FA` plus the challenge handle for `verify2FA`.
    */
   const adminLogin = useCallback(
     async (
@@ -232,60 +252,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string,
       remember: boolean = false
     ): Promise<AuthLoginResult> => {
-      try {
-        const deviceName =
-          typeof window !== "undefined"
-            ? `${navigator.platform} (${navigator.language})`
-            : "Unknown Device";
+      const result = await loginRequest({
+        identifier,
+        password,
+        rememberMe: remember,
+        fingerprint: getDeviceFingerprint(),
+      });
 
-        const data = await apiClient.post<LoginResponse>(apiRoutes.auth.login, {
-          identifier,
-          password,
-          rememberMe: remember,
-          deviceName,
-        });
-
-        if (data?.mfaRequired) {
-          return {
-            success: false,
-            requires2FA: true,
-            userId: data.userId ?? null,
-          };
-        }
-
-        await refreshUser();
-        return { success: true };
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError || err instanceof Error
-            ? err.message
-            : "فشل تسجيل الدخول";
-        return { success: false, error: message };
+      if (result.requiresMfa) {
+        return { success: false, requires2FA: true, userId: result.challenge };
       }
+
+      if (!result.success) {
+        return { success: false, error: result.error ?? "فشل تسجيل الدخول" };
+      }
+
+      // The session cookie is set; load the user so guards see the new role.
+      const refreshed = await refreshUser();
+      return refreshed
+        ? { success: true }
+        : { success: false, error: "تعذر تحميل بيانات المستخدم بعد تسجيل الدخول" };
     },
     [refreshUser]
   );
 
   /**
-   * Completes a 2FA challenge started by `adminLogin`. The backend validates the
-   * code and issues the session, then we refresh the current user.
+   * Completes an MFA challenge started by `adminLogin`. `challenge` is the
+   * opaque handle returned as `userId` in that call's result.
    */
   const verify2FA = useCallback(
-    async (userId: string, code: string): Promise<AuthLoginResult> => {
-      try {
-        await apiClient.post(apiRoutes.auth.mfa.verify, {
-          userId,
-          code,
-        });
-        await refreshUser();
-        return { success: true };
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError || err instanceof Error
-            ? err.message
-            : "فشل التحقق من الرمز";
-        return { success: false, error: message };
+    async (challenge: string, code: string): Promise<AuthLoginResult> => {
+      const result = await verifyMfa(challenge, code);
+
+      if (!result.success) {
+        return { success: false, error: result.error ?? "فشل التحقق من الرمز" };
       }
+
+      const refreshed = await refreshUser();
+      return refreshed
+        ? { success: true }
+        : { success: false, error: "تعذر تحميل بيانات المستخدم بعد التحقق" };
     },
     [refreshUser]
   );
@@ -298,19 +304,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const value: AuthContextValue = {
-    ...state,
-    redirectToLogin,
-    redirectToRegister,
-    logout,
-    adminLogin,
-    verify2FA,
-    refreshUser,
-    fetchWithAuth,
-    // Deprecated aliases for backward compatibility
-    login: redirectToLogin,
-    register: redirectToRegister,
-  };
+  // Memoized so consumers only re-render when auth state actually changes.
+  // Without this, every AuthProvider render hands down a fresh object and
+  // re-renders every `useAuth()` call site in the tree.
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      ...state,
+      redirectToLogin,
+      redirectToRegister,
+      logout,
+      adminLogin,
+      verify2FA,
+      refreshUser,
+      fetchWithAuth,
+      // Deprecated aliases for backward compatibility
+      login: redirectToLogin,
+      register: redirectToRegister,
+    }),
+    [
+      state,
+      redirectToLogin,
+      redirectToRegister,
+      logout,
+      adminLogin,
+      verify2FA,
+      refreshUser,
+      fetchWithAuth,
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

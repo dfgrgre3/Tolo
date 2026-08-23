@@ -44,6 +44,9 @@ export const apiRoutes = {
       setup: '/api/auth/mfa/setup',
       enable: '/api/auth/mfa/enable',
       disable: '/api/auth/mfa/disable',
+      // The single MFA challenge endpoint. A second alias ('/api/auth/2fa/verify')
+      // used to live here and was never called; having two spellings for one
+      // operation is how the login/MFA contract drifted apart in the first place.
       verify: '/api/auth/mfa/verify',
     },
     social: {
@@ -53,7 +56,6 @@ export const apiRoutes = {
       unlink: '/api/auth/social/unlink',
       accounts: '/api/auth/social/accounts',
     },
-    verify2FA: '/api/auth/2fa/verify',
     magicLink: {
       request: '/api/auth/magic-link/request',
       verify: '/api/auth/magic-link/verify',

@@ -10,7 +10,8 @@ export default defineConfig({
       "node_modules/**",
       "src/__tests__/e2e/**",
     ],
-    pool: "threads",
+    pool: "forks",
+    maxWorkers: 1,
     // Setup test environment with locale for Arabic tests
     setupFiles: ['./vitest.setup.ts'],
   },

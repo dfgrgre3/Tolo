@@ -155,7 +155,15 @@ export interface InteractiveQuestion {
 }
 
 // تبويب اللوحة الجانبية
-export type SidebarTab = "notes" | "qna" | "resources" | "ai" | "bookmarks" | "lessons";
+export type SidebarTab = "notes" | "qna" | "resources" | "ai" | "bookmarks" | "lessons" | "transcript";
+
+// سطر واحد من نص الفيديو (transcript) — مستخرج من ملف SRT/VTT
+export interface TranscriptCue {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
+}
 
 // مسار ترجمة
 export interface SubtitleTrack {

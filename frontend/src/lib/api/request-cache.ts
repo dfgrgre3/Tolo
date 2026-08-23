@@ -23,14 +23,24 @@ class RequestCacheManager {
   private defaultTTL = 5000;
 
   // Custom TTLs for specific high-frequency endpoints
+  // NOTE: Reduced auth TTLs to prevent stale state after login/logout.
+  // The ?refresh=true query parameter still bypasses this cache entirely.
   private customTTLs: Record<string, number> = {
-    "/api/auth/me": 300000,                   // 5 minutes - core auth data rarely changes
-    "/api/auth/refresh": 300000,              // 5 minutes
+    "/api/auth/me": 0,                        // NO cache - auth state must always reflect current session
+    "/api/auth/refresh": 0,                   // NO cache
+    "/api/auth/login": 0,                     // NO cache - login always hits backend
+    "/api/auth/logout": 0,                    // NO cache - logout always hits backend
+    "/api/auth/profile": 0,                   // NO cache
     "/api/settings": 300000,                  // 5 minutes - app settings rarely change
     "/api/settings/preferences": 600000,      // 10 minutes - user preferences rarely change
     "/api/ai/recommendations": 30000,         // 30 seconds
-    "/api/categories": 60000,                 // 1 minute
-    "/api/courses": 15000,                    // 15 seconds
+    "/api/categories": 300000,                // 5 minutes - categories rarely change
+    "/api/courses": 60000,                    // 1 minute - course listings change occasionally
+    "/api/subjects": 60000,                   // 1 minute - subjects same as courses
+    "/api/teachers": 300000,                  // 5 minutes - teachers rarely change
+    "/api/blog": 300000,                      // 5 minutes - blog posts change occasionally
+    "/api/homepage": 300000,                  // 5 minutes - homepage stats rarely change
+    "/api/navigation/menu": 300000,           // 5 minutes - navigation rarely changes
     "/api/exams": 15000,                      // 15 seconds
     "/api/notifications": 300000,             // 5 minutes - fallback polling only
     "/api/activities/recent": 300000,         // 5 minutes - fallback polling only
@@ -72,7 +82,7 @@ class RequestCacheManager {
     }
 
     // Ignore URLs explicitly requesting fresh/forced data
-    if (url.includes("force=true") || url.includes("refresh=true")) {
+    if (url.includes("force=true") || url.includes("refresh=true") || url.includes("_t=")) {
       return "";
     }
 

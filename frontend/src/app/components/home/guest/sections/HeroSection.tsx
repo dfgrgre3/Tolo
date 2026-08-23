@@ -40,7 +40,7 @@ export function HeroSection({ categories, featuredCourse, stats }: HeroSectionPr
 
   return (
     <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-10 pb-20">
-      <div className="absolute inset-0 bg-[url('/images/grid.svg')] opacity-5" />
+      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#F59E0B]/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-300/10 rounded-full blur-[100px]" />
 
@@ -116,7 +116,9 @@ export function HeroSection({ categories, featuredCourse, stats }: HeroSectionPr
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
-                  <Link href={`/courses/${featuredCourse.slug}`} className="block relative aspect-video bg-slate-200">
+                  <Link href={featuredCourse.slug ? `/courses/${featuredCourse.slug}` : '#'} className="block relative aspect-video bg-slate-200" onClick={(e) => {
+                    if (!featuredCourse.slug) e.preventDefault();
+                  }}>
                     {heroThumb ? (
                       <Image
                         src={heroThumb}
@@ -187,7 +189,10 @@ export function HeroSection({ categories, featuredCourse, stats }: HeroSectionPr
                     </div>
 
                     <Link
-                      href={`/courses/${featuredCourse.slug}`}
+                      href={featuredCourse.slug ? `/courses/${featuredCourse.slug}` : '#'}
+                      onClick={(e) => {
+                        if (!featuredCourse.slug) e.preventDefault();
+                      }}
                       className="w-full py-3 bg-[#0F766E] hover:bg-[#115E59] text-white font-bold text-sm rounded-xl text-center flex items-center justify-center gap-2"
                     >
                       <Play className="h-4 w-4" />

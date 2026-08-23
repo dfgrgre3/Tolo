@@ -50,31 +50,40 @@ export function useTimelineNotes({
     [lessonId, notesFreeformContent, setUIState]
   );
 
-  const loadCloudNotes = useCallback(async () => {
-    let isCancelled = false;
-    setIsNotesSyncing(true);
-    try {
-      const response = await fetch(`/api/courses/lessons/${lessonId}/notes`, {
-        cache: "no-store",
-      });
-      if (!response.ok) return;
+  const loadCloudNotes = useCallback(
+    async (isCancelled: () => boolean) => {
+      setIsNotesSyncing(true);
+      try {
+        const response = await fetch(`/api/courses/lessons/${lessonId}/notes`, {
+          cache: "no-store",
+        });
+        if (isCancelled()) return;
+        if (!response.ok) return;
 
-      const payload = await response.json();
-      const content = payload?.data?.content ?? "";
-      const parsed = parseCloudTimelineNotes(content);
-      
-      setNotes(parsed.notes.filter((n): n is TimelineNote => n !== null));
-      setNotesFreeformContent(parsed.freeformContent);
-    } catch {
-      setNotes([]);
-      setNotesFreeformContent("");
-    } finally {
-      setIsNotesSyncing(false);
-    }
-  }, [lessonId]);
+        const payload = await response.json();
+        const content = payload?.data?.content ?? "";
+        const parsed = parseCloudTimelineNotes(content);
+
+        if (isCancelled()) return;
+        setNotes(parsed.notes.filter((n): n is TimelineNote => n !== null));
+        setNotesFreeformContent(parsed.freeformContent);
+      } catch {
+        if (isCancelled()) return;
+        setNotes([]);
+        setNotesFreeformContent("");
+      } finally {
+        if (!isCancelled()) setIsNotesSyncing(false);
+      }
+    },
+    [lessonId]
+  );
 
   useEffect(() => {
-    loadCloudNotes();
+    let cancelled = false;
+    loadCloudNotes(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [loadCloudNotes]);
 
   const addNoteAtCurrentTime = useCallback(() => {

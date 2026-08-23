@@ -12,6 +12,7 @@ import type {
   QualityOption,
   SubtitleTrack,
   TimelineNote,
+  TranscriptCue,
 } from "../types";
 import { formatWatchTime } from "../utils";
 import { useEfficiencyMode } from "@/hooks";
@@ -58,6 +59,10 @@ export function PlayerPanels({
   onJumpToTime,
   onLessonChange,
   onToggleShortcuts,
+  hasTranscript,
+  transcriptCues,
+  transcriptQuery,
+  onTranscriptQueryChange,
 }: {
   qualities: QualityOption[];
   playbackRates: number[];
@@ -81,7 +86,7 @@ export function PlayerPanels({
   onCloseStats: () => void;
   onCloseHelp: () => void;
   onCloseSidebar: () => void;
-  onToggleSidebarTab: (tab: "bookmarks" | "notes" | "lessons") => void;
+  onToggleSidebarTab: (tab: "bookmarks" | "notes" | "lessons" | "transcript") => void;
   onNoteDraftChange: (value: string) => void;
   onAddNoteAtCurrentTime: () => void;
   onInsertTimestamp: () => void;
@@ -89,6 +94,10 @@ export function PlayerPanels({
   onJumpToTime: (seconds: number) => void;
   onLessonChange?: (lessonId: string) => void;
   onToggleShortcuts: () => void;
+  hasTranscript: boolean;
+  transcriptCues: TranscriptCue[];
+  transcriptQuery: string;
+  onTranscriptQueryChange: (value: string) => void;
 }) {
   const {
     isSettingsOpen,
@@ -266,6 +275,10 @@ export function PlayerPanels({
           currentTime={currentTime}
           notes={notes}
           onRemoveNote={onRemoveNote}
+          hasTranscript={hasTranscript}
+          transcriptCues={transcriptCues}
+          transcriptQuery={transcriptQuery}
+          onTranscriptQueryChange={onTranscriptQueryChange}
           lessons={lessons}
           lessonId={lessonId}
           onLessonChange={onLessonChange}

@@ -4,8 +4,6 @@ import { usePlaybackStore } from "../stores/playback-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { useUIStore } from "../stores/ui-store";
 import { clamp } from "../utils";
-import { Volume2, SunMedium, FastForward } from "lucide-react";
-import type { PlayerFeedback } from "../types";
 
 type TouchGestureState = {
   mode: "volume" | "brightness" | "seek" | "speed" | null;
@@ -19,7 +17,6 @@ type TouchGesturesOptions = {
   togglePlayPause: () => | Promise<void>;
   seekBy: (seconds: number) => void;
   handleVolumeChange: (volume: number) => void;
-  flashFeedback: (feedback: NonNullable<PlayerFeedback>) => void;
   resetControlsTimeout: () => void;
 };
 
@@ -27,7 +24,6 @@ export function useTouchGestures({
   togglePlayPause,
   seekBy,
   handleVolumeChange,
-  flashFeedback,
   resetControlsTimeout,
 }: TouchGesturesOptions) {
   const volume = usePlaybackStore((s) => s.volume);
@@ -117,7 +113,7 @@ export function useTouchGestures({
         setGestureValue("2");
       }, 500);
     },
-    [brightness, flashFeedback, seekBy, setPlaybackState, volume, playbackRate]
+    [brightness, seekBy, setPlaybackState, volume, playbackRate]
   );
 
   const handleTouchMove = useCallback(
