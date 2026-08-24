@@ -69,7 +69,10 @@ export default function TeachingPage() {
     markNotificationRead,
     markAllNotificationsRead,
     transactions,
-  } = useTeachingData();
+  } = useTeachingData(activeTab);
+
+  const [applyName, setApplyName] = useState(user?.name || "");
+  const [applyFormEmail, setApplyFormEmail] = useState(user?.email || "");
 
   // 1. Loading State
   if (isLoading) {
@@ -86,16 +89,16 @@ export default function TeachingPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: user?.name || "مقدم الطلب",
-            email: user?.email || "user@tolo.edu",
+            name: applyName || user?.name || "مقدم الطلب",
+            email: applyFormEmail || user?.email || "",
             experience: applyExperience,
             bio: applyBio,
           }),
         });
         if (response.ok) {
           const data = await response.json();
-          setApplyCode(data.code);
-          setApplyEmail(data.email);
+          setApplyCode(data.code || `TOLO-TCHR-${Math.floor(100000 + Math.random() * 900000)}`);
+          setApplyEmail(data.email || applyFormEmail || user?.email || "");
           setApplySuccess(true);
         }
       } catch (err) {
@@ -105,15 +108,23 @@ export default function TeachingPage() {
       }
     };
 
-    const handleLookupSubmit = (e: React.FormEvent) => {
+    const handleLookupSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       const codeTrimmed = lookupCode.trim().toUpperCase();
-      if (codeTrimmed.startsWith("TOLO-TCHR-") && codeTrimmed.length > 10) {
-        setLookupStatus("pending");
-        setLookupMessage("طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة. سيتم إرسال رسالة بريد إلكتروني تفعيلية لك فور الموافقة على الطلب وتعديل رتبة حسابك.");
-      } else {
+      if (!codeTrimmed) return;
+      try {
+        const response = await fetch(`/api/teaching/apply/status?code=${encodeURIComponent(codeTrimmed)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setLookupStatus(data.status || "pending");
+          setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
+        } else {
+          setLookupStatus("error");
+          setLookupMessage("كود الطلب غير صحيح أو تعذر العثور على الطلب.");
+        }
+      } catch (err) {
         setLookupStatus("error");
-        setLookupMessage("كود الطلب غير صحيح. يرجى التأكد من كتابة الكود بشكل مطابق للصيغة المرسلة لك (TOLO-TCHR-XXXX).");
+        setLookupMessage("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
       }
     };
 
@@ -151,7 +162,11 @@ export default function TeachingPage() {
               <div className="space-y-3 text-xs font-semibold">
                 <div className="space-y-1">
                   <label className="text-slate-500">الاسم الكامل</label>
-                  <Input required defaultValue={user?.name || ""} placeholder="مثال: أحمد محمد علي" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
+                  <Input required value={applyName} onChange={(e) => setApplyName(e.target.value)} placeholder="مثال: أحمد محمد علي" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">البريد الإلكتروني للتواصل</label>
+                  <Input required type="email" value={applyFormEmail} onChange={(e) => setApplyFormEmail(e.target.value)} placeholder="example@tolo.edu" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">سنوات الخبرة</label>
@@ -315,6 +330,8 @@ export default function TeachingPage() {
             stats={stats}
             activities={activities}
             onCreateCourse={handleCreateCourseClick}
+            onScheduleSession={() => setActiveTab("calendar")}
+            onSendAnnouncement={() => setActiveTab("messages")}
             user={user}
           />
         );

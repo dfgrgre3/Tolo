@@ -123,7 +123,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
   };
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
+    <section className={`${rpgCommonStyles.glassPanel} !bg-black/60 px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5" />
       <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none" />
       
@@ -140,7 +140,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
               موصى به لك
             </h2>
           </div>
-          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+          <p className="text-gray-200 max-w-2xl mx-auto text-lg leading-relaxed">
             دورات مختارة خصيصاً لك بناءً على سجل بحثك واهتماماتك الدراسية
           </p>
         </div>
@@ -154,7 +154,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
             className={`rounded-xl px-6 ${
               activeTab === "recommended"
                 ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                : "border-white/10 text-gray-300 hover:bg-white/10"
+                : "border-white/10 text-gray-200 hover:bg-white/10"
             }`}
           >
             <Sparkles className="h-4 w-4 ml-2" />
@@ -167,7 +167,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
             className={`rounded-xl px-6 ${
               activeTab === "history"
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)]"
-                : "border-white/10 text-gray-300 hover:bg-white/10"
+                : "border-white/10 text-gray-200 hover:bg-white/10"
             }`}
           >
             <History className="h-4 w-4 ml-2" />
@@ -183,7 +183,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
               size="sm"
               onClick={handleRefresh}
               disabled={loading}
-              className="text-gray-400 hover:text-white hover:bg-white/5 rounded-xl"
+              className="text-gray-200 hover:text-white hover:bg-white/10 rounded-xl"
             >
               <RefreshCw className={`h-4 w-4 ml-1 ${loading ? '' : ''}`} />
               تحديث
@@ -206,9 +206,9 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                   <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
                     <Target className="h-10 w-10 text-gray-600" />
                   </div>
-                  <p className="text-xl font-bold text-gray-500 mb-2">تعذر تحميل التوصيات</p>
-                  <p className="text-sm text-gray-600 mb-6">حاول مرة أخرى لاحقاً</p>
-                  <Button onClick={handleRefresh} variant="outline" className="border-white/10 hover:bg-white/10 text-gray-300 rounded-xl px-8">
+                  <p className="text-xl font-bold text-gray-300 mb-2">تعذر تحميل التوصيات</p>
+                  <p className="text-sm text-gray-400 mb-6">حاول مرة أخرى لاحقاً</p>
+                  <Button onClick={handleRefresh} variant="outline" className="border-white/10 hover:bg-white/10 text-gray-200 rounded-xl px-8">
                     إعادة المحاولة
                   </Button>
                 </div>
@@ -217,8 +217,8 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                   <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
                     <Search className="h-10 w-10 text-gray-600" />
                   </div>
-                  <p className="text-xl font-bold text-gray-500 mb-2">لا توجد توصيات حتى الآن</p>
-                  <p className="text-sm text-gray-600">ابحث عن دورات لنقدم لك توصيات مخصصة</p>
+                  <p className="text-xl font-bold text-gray-300 mb-2">لا توجد توصيات حتى الآن</p>
+                  <p className="text-sm text-gray-400">ابحث عن دورات لنقدم لك توصيات مخصصة</p>
                 </div>
               ) : (
                 <>
@@ -247,7 +247,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                         <ChevronRight className="h-4 w-4 ml-1" />
                         السابق
                       </Button>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-300">
                         صفحة {page} من {totalPages}
                       </span>
                       <Button
@@ -255,7 +255,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                         size="sm"
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                         disabled={page >= totalPages}
-                        className="border-white/10 text-gray-300 hover:bg-white/10 rounded-xl"
+                        className="border-white/10 text-gray-200 hover:bg-white/10 rounded-xl"
                       >
                         التالي
                         <ChevronLeft className="h-4 w-4 mr-1" />
@@ -281,8 +281,8 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
                       <History className="h-8 w-8 text-gray-600" />
                     </div>
-                    <p className="text-gray-500 font-bold">لا يوجد سجل بحث</p>
-                    <p className="text-sm text-gray-600 mt-2">ابحث عن دورات لتظهر هنا</p>
+                    <p className="text-gray-300 font-bold">لا يوجد سجل بحث</p>
+                    <p className="text-sm text-gray-400 mt-2">ابحث عن دورات لتظهر هنا</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -296,7 +296,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
                         </div>
                         <div className="flex-1">
                           <p className="text-white font-medium">{item.query}</p>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-300 mt-1">
                             {new Date(item.timestamp).toLocaleDateString("ar-EG", {
                               year: "numeric",
                               month: "long",

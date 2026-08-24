@@ -42,6 +42,8 @@ export interface Lesson {
   type: "video" | "pdf" | "quiz" | "assignment";
   url?: string;
   isPreview?: boolean;
+  description?: string;
+  attachmentName?: string;
 }
 
 export interface Chapter {
@@ -149,11 +151,11 @@ export interface Transaction {
 // API RESPONSE TYPES
 // ==========================================
 
-interface TeachingStatsResponse extends InstructorStats {}
+export interface TeachingStatsResponse extends InstructorStats {}
 
-interface CoursesListResponse {
+export interface CoursesListResponse {
   courses: Course[];
-  pagination: {
+  pagination?: {
     page: number;
     limit: number;
     total: number;
@@ -161,17 +163,17 @@ interface CoursesListResponse {
   };
 }
 
-interface ActivitiesResponse {
+export interface ActivitiesResponse {
   activities: ActivityLog[];
 }
 
-interface NotificationsResponse {
+export interface NotificationsResponse {
   notifications: NotificationItem[];
 }
 
-interface StudentsResponse {
+export interface StudentsResponse {
   students: Student[];
-  pagination: {
+  pagination?: {
     page: number;
     limit: number;
     total: number;
@@ -179,66 +181,80 @@ interface StudentsResponse {
   };
 }
 
-interface ReviewsResponse {
+export interface ReviewsResponse {
   reviews: Review[];
 }
 
-interface ApiSuccessResponse {
+export interface ApiSuccessResponse {
   success: boolean;
   data?: Record<string, unknown>;
   error?: string;
 }
 
+const EMPTY_STATS: InstructorStats = {
+  totalCourses: 0,
+  publishedCourses: 0,
+  draftCourses: 0,
+  totalStudents: 0,
+  enrollmentsCount: 0,
+  totalRevenue: 0,
+  monthlyRevenue: 0,
+  completionRate: 0,
+  averageRating: 0,
+  totalHours: 0,
+  certificatesIssued: 0,
+  unreadMessages: 0,
+  pendingReviews: 0,
+};
+
 // ==========================================
-// useTeachingData HOOK
+// useTeachingData HOOK (100% Pure API Integration)
 // ==========================================
 
-export function useTeachingData() {
+export function useTeachingData(activeTab: string = "dashboard") {
   const queryClient = useQueryClient();
 
+  // Cache configuration
+  const STALE_TIME = 5 * 60 * 1000;  // 5 minutes
+  const GC_TIME = 10 * 60 * 1000;    // 10 minutes
+
   // ── Stats ──────────────────────────────────────────
+  // Stats: always enabled (needed in header + dashboard)
   const statsQuery = useQuery<TeachingStatsResponse>({
     queryKey: ["teaching", "stats"],
-    queryFn: () =>
-      apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
+    queryFn: () => apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
     retry: 1,
-    staleTime: 60 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
-  const stats = statsQuery.data ?? {
-    totalCourses: 0,
-    publishedCourses: 0,
-    draftCourses: 0,
-    totalStudents: 0,
-    enrollmentsCount: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    completionRate: 0,
-    averageRating: 0,
-    totalHours: 0,
-    certificatesIssued: 0,
-    unreadMessages: 0,
-    pendingReviews: 0,
-  };
+  const stats = statsQuery.data ?? EMPTY_STATS;
 
   // ── Activities ─────────────────────────────────────
+  // Activities: only when dashboard tab is active
   const activitiesQuery = useQuery<ActivitiesResponse>({
     queryKey: ["teaching", "activities"],
-    queryFn: () =>
-      apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
+    queryFn: () => apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
+    enabled: activeTab === "dashboard",
     retry: 1,
-    staleTime: 30 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const activities = activitiesQuery.data?.activities ?? [];
 
   // ── Courses ────────────────────────────────────────
+  // Courses: when dashboard or courses tab is active
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
-    queryFn: () =>
-      apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
+    queryFn: () => apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
+    enabled: activeTab === "dashboard" || activeTab === "courses",
     retry: 1,
-    staleTime: 30 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const courses = coursesQuery.data?.courses ?? [];
@@ -246,7 +262,6 @@ export function useTeachingData() {
   // Course mutations
   const createCourse = useMutation({
     mutationFn: (newCourse: Partial<Course>) => {
-      // Transform frontend Course format to backend CreateCourse format
       const body: Record<string, unknown> = {
         title: newCourse.title,
         description: newCourse.description,
@@ -255,9 +270,9 @@ export function useTeachingData() {
         status: newCourse.status ?? "draft",
         level: "INTERMEDIATE",
         language: "ar",
-        chapters: (newCourse.chapters ?? []).map((ch) => ({
+        chapters: (newCourse.chapters ?? []).map((ch: Chapter) => ({
           title: ch.title,
-          lessons: ch.lessons.map((l) => ({
+          lessons: ch.lessons.map((l: Lesson) => ({
             title: l.title,
             duration: l.duration,
             type: l.type,
@@ -266,10 +281,7 @@ export function useTeachingData() {
           })),
         })),
       };
-      return apiClient.post<{ course: Course }>(
-        apiRoutes.teaching.courses.create,
-        body
-      );
+      return apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -278,23 +290,14 @@ export function useTeachingData() {
   });
 
   const updateCourse = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<Course>;
-    }) => {
+    mutationFn: ({ id, data }: { id: string; data: Partial<Course> }) => {
       const body: Record<string, unknown> = {};
       if (data.title !== undefined) body.title = data.title;
       if (data.description !== undefined) body.description = data.description;
       if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
       if (data.price !== undefined) body.price = data.price;
       if (data.status !== undefined) body.status = data.status;
-      return apiClient.patch<ApiSuccessResponse>(
-        apiRoutes.teaching.courses.byId(id),
-        body
-      );
+      return apiClient.patch<ApiSuccessResponse>(apiRoutes.teaching.courses.byId(id), body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -303,10 +306,7 @@ export function useTeachingData() {
   });
 
   const deleteCourse = useMutation({
-    mutationFn: (id: string) =>
-      apiClient.delete<{ deleted: boolean }>(
-        apiRoutes.teaching.courses.byId(id)
-      ),
+    mutationFn: (id: string) => apiClient.delete<{ deleted: boolean }>(apiRoutes.teaching.courses.byId(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
       queryClient.invalidateQueries({ queryKey: ["teaching", "stats"] });
@@ -314,31 +314,36 @@ export function useTeachingData() {
   });
 
   // ── All Students (across all courses) ──────────────────
+  // Students: only when students tab is active
   const allStudentsQuery = useQuery<StudentsResponse>({
     queryKey: ["teaching", "students"],
-    queryFn: () =>
-      apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
+    queryFn: () => apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
+    enabled: activeTab === "students",
     retry: 1,
-    staleTime: 30 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const allStudents = allStudentsQuery.data?.students ?? [];
 
   // ── All Reviews (across all courses) ───────────────────
+  // Reviews: only when reviews tab is active
   const allReviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ["teaching", "reviews"],
-    queryFn: () =>
-      apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
+    queryFn: () => apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
+    enabled: activeTab === "reviews",
     retry: 1,
-    staleTime: 30 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const allReviews = allReviewsQuery.data?.reviews ?? [];
 
-  // Course-specific filtering helpers (pure functions, no hooks)
   const getStudentsForCourse = (courseId: string) =>
     allStudents.filter((s: Student) =>
-      s.courseProgress?.some((p) => p.courseId === courseId)
+      s.courseProgress?.some((p: { courseId: string }) => p.courseId === courseId)
     );
 
   const getReviewsForCourse = (courseId: string) =>
@@ -347,62 +352,40 @@ export function useTeachingData() {
     );
 
   const replyToReview = useMutation({
-    mutationFn: ({ reviewId, text }: { reviewId: string; text: string }) => {
-      return apiClient.post<{ reply: ReviewReply }>(
+    mutationFn: ({ reviewId, text }: { reviewId: string; text: string }) =>
+      apiClient.post<{ reply: ReviewReply }>(
         apiRoutes.teaching.reviews.reply(reviewId),
         { text }
-      );
-    },
+      ),
     onSuccess: () => {
-      // Invalidate all review queries
-      queryClient.invalidateQueries({
-        queryKey: ["teaching", "course"],
-        predicate: (query) => {
-          const key = query.queryKey;
-          return (
-            Array.isArray(key) &&
-            key.length >= 3 &&
-            key[1] === "course" &&
-            key[3] === "reviews"
-          );
-        },
-      });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "reviews"] });
     },
   });
 
   // ── Notifications ────────────────────────────────────
+  // Notifications: always enabled (needed in header)
   const notificationsQuery = useQuery<NotificationsResponse>({
     queryKey: ["teaching", "notifications"],
-    queryFn: () =>
-      apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
+    queryFn: () => apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
     retry: 1,
-    staleTime: 30 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const notifications = notificationsQuery.data?.notifications ?? [];
 
   const markNotificationRead = useMutation({
     mutationFn: (id: string) =>
-      apiClient.post<{ marked: boolean }>(
-        apiRoutes.teaching.notifications.markRead(id),
-        {}
-      ),
+      apiClient.post<{ marked: boolean }>(apiRoutes.teaching.notifications.markRead(id), {}),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
-      const prev = queryClient.getQueryData<NotificationsResponse>([
-        "teaching",
-        "notifications",
-      ]);
+      const prev = queryClient.getQueryData<NotificationsResponse>(["teaching", "notifications"]);
       if (prev) {
-        queryClient.setQueryData<NotificationsResponse>(
-          ["teaching", "notifications"],
-          {
-            ...prev,
-            notifications: prev.notifications.map((n) =>
-              n.id === id ? { ...n, read: true } : n
-            ),
-          }
-        );
+        queryClient.setQueryData<NotificationsResponse>(["teaching", "notifications"], {
+          ...prev,
+          notifications: prev.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+        });
       }
       return { prev };
     },
@@ -412,32 +395,21 @@ export function useTeachingData() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["teaching", "notifications"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "notifications"] });
     },
   });
 
   const markAllNotificationsRead = useMutation({
     mutationFn: () =>
-      apiClient.post<{ marked: boolean }>(
-        apiRoutes.teaching.notifications.markAllRead,
-        {}
-      ),
+      apiClient.post<{ marked: boolean }>(apiRoutes.teaching.notifications.markAllRead, {}),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
-      const prev = queryClient.getQueryData<NotificationsResponse>([
-        "teaching",
-        "notifications",
-      ]);
+      const prev = queryClient.getQueryData<NotificationsResponse>(["teaching", "notifications"]);
       if (prev) {
-        queryClient.setQueryData<NotificationsResponse>(
-          ["teaching", "notifications"],
-          {
-            ...prev,
-            notifications: prev.notifications.map((n) => ({ ...n, read: true })),
-          }
-        );
+        queryClient.setQueryData<NotificationsResponse>(["teaching", "notifications"], {
+          ...prev,
+          notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+        });
       }
       return { prev };
     },
@@ -447,27 +419,109 @@ export function useTeachingData() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["teaching", "notifications"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["teaching", "notifications"] });
     },
   });
 
-  // ── Conversations (placeholder - chat not yet implemented) ──
-  const conversations: Conversation[] = [];
-  const sendMessage = (_convId: string, _text: string) => {
-    // TODO: Implement when chat API is available
-  };
+  // ── Messaging / Conversations ───────────────────────
+  // Conversations: only when messages tab is active
+  const conversationsQuery = useQuery<{ conversations: Conversation[] }>({
+    queryKey: ["teaching", "conversations"],
+    queryFn: () => apiClient.get<{ conversations: Conversation[] }>("/api/teaching/conversations"),
+    enabled: activeTab === "messages",
+    retry: 1,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
+  });
 
-  // ── Calendar Events (placeholder - calendar not yet implemented) ──
-  const calendarEvents: CalendarEvent[] = [];
-  const addCalendarEvent = (_event: Omit<CalendarEvent, "id">) => {
-    // TODO: Implement when calendar API is available
-  };
+  const conversations = conversationsQuery.data?.conversations ?? [];
 
-  // ── Transactions (placeholder - earnings API not yet implemented) ──
-  const transactions: Transaction[] = [];
-  // TODO: Implement when transactions API is available
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ convId, text }: { convId: string; text: string }) =>
+      apiClient.post<{ message: Message }>(`/api/teaching/conversations/${convId}/messages`, { text }),
+    onMutate: async ({ convId, text }) => {
+      await queryClient.cancelQueries({ queryKey: ["teaching", "conversations"] });
+      const prev = queryClient.getQueryData<{ conversations: Conversation[] }>(["teaching", "conversations"]);
+      if (prev) {
+        const newMsg: Message = {
+          id: `msg-${Date.now()}`,
+          senderId: "me",
+          senderName: "أنا",
+          senderAvatar: "",
+          text,
+          time: "الآن",
+          isMe: true,
+        };
+        queryClient.setQueryData<{ conversations: Conversation[] }>(["teaching", "conversations"], {
+          conversations: prev.conversations.map((c) =>
+            c.id === convId
+              ? { ...c, lastMessage: text, time: "الآن", messages: [...c.messages, newMsg] }
+              : c
+          ),
+        });
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(["teaching", "conversations"], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching", "conversations"] });
+    },
+  });
+
+  // ── Calendar Events ──────────────────────────────────
+  // Calendar: only when calendar tab is active
+  const calendarEventsQuery = useQuery<{ events: CalendarEvent[] }>({
+    queryKey: ["teaching", "calendar"],
+    queryFn: () => apiClient.get<{ events: CalendarEvent[] }>("/api/teaching/calendar"),
+    enabled: activeTab === "calendar",
+    retry: 1,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
+  });
+
+  const calendarEvents = calendarEventsQuery.data?.events ?? [];
+
+  const addCalendarEventMutation = useMutation({
+    mutationFn: (event: Omit<CalendarEvent, "id">) =>
+      apiClient.post<{ event: CalendarEvent }>("/api/teaching/calendar", event),
+    onMutate: async (newEvent) => {
+      await queryClient.cancelQueries({ queryKey: ["teaching", "calendar"] });
+      const prev = queryClient.getQueryData<{ events: CalendarEvent[] }>(["teaching", "calendar"]);
+      const created: CalendarEvent = { ...newEvent, id: `evt-${Date.now()}` };
+      queryClient.setQueryData<{ events: CalendarEvent[] }>(["teaching", "calendar"], {
+        events: [...(prev?.events ?? []), created],
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(["teaching", "calendar"], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching", "calendar"] });
+    },
+  });
+
+  // ── Transactions & Earnings ──────────────────────────
+  // Transactions: only when earnings tab is active
+  const transactionsQuery = useQuery<{ transactions: Transaction[] }>({
+    queryKey: ["teaching", "transactions"],
+    queryFn: () => apiClient.get<{ transactions: Transaction[] }>("/api/teaching/transactions"),
+    enabled: activeTab === "earnings",
+    retry: 1,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
+  });
+
+  const transactions = transactionsQuery.data?.transactions ?? [];
 
   return {
     stats,
@@ -490,15 +544,13 @@ export function useTeachingData() {
     reviews: allReviews,
     isReviewsLoading: allReviewsQuery.isLoading,
     getReviewsForCourse,
-    replyToReview: (id: string, text: string) =>
-      replyToReview.mutate({ reviewId: id, text }),
-    replyToReviewAsync: (id: string, text: string) =>
-      replyToReview.mutateAsync({ reviewId: id, text }),
+    replyToReview: (id: string, text: string) => replyToReview.mutate({ reviewId: id, text }),
+    replyToReviewAsync: (id: string, text: string) => replyToReview.mutateAsync({ reviewId: id, text }),
     isReplyingToReview: replyToReview.isPending,
     conversations,
-    sendMessage,
+    sendMessage: (convId: string, text: string) => sendMessageMutation.mutate({ convId, text }),
     calendarEvents,
-    addCalendarEvent,
+    addCalendarEvent: (event: Omit<CalendarEvent, "id">) => addCalendarEventMutation.mutate(event),
     notifications,
     isNotificationsLoading: notificationsQuery.isLoading,
     markNotificationRead: markNotificationRead.mutate,

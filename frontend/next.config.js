@@ -18,6 +18,7 @@ const nextConfig = {
   // اللازمة لوقت التشغيل — يجعل صورة Docker صغيرة وسريعة الإقلاع.
   output: 'standalone',
   reactStrictMode: true,
+  productionBrowserSourceMaps: true,
   compress: true,           // gzip/brotli at the Next.js edge
   poweredByHeader: false,   // remove X-Powered-By header (minor security + bytes)
   transpilePackages: ["@thanawy/shared"],
@@ -161,7 +162,7 @@ const nextConfig = {
               // Iframes: YouTube embeds only
               "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
               // API, Supabase realtime, Sentry, Vercel Analytics
-              "connect-src 'self' http://localhost:8082 wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
+              "connect-src 'self' http://localhost:8082 ws://localhost:8082 ws: wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
               // Video/audio: self + Supabase storage + Bunny + Cloudflare Stream
               "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com",
               // Service worker and Web Workers

@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useAuth } from "@/hooks/use-auth";
 /**
  * صفحة إعدادات الخصوصية - Privacy Settings
- * 
+ *
  * إعدادات الخصوصية مع:
  * - خصوصية الملف الشخصي
  * - إدارة البيانات
@@ -13,17 +13,15 @@ import { useAuth } from "@/hooks/use-auth";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Lock,
   Eye,
   Users,
   Shield,
   Download,
-  Trash2,
   History,
   AlertTriangle,
-  Loader2,
   Check,
   ChevronDown,
   FileText,
@@ -32,7 +30,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { SettingsHeader, SettingsCard, SettingsToggle } from '@/app/(dashboard)/settings/components';import { useSettingsSync } from '@/hooks/use-settings-sync';
+import { SettingsHeader, SettingsCard, SettingsToggle, DeleteAccountDialog } from '@/app/(dashboard)/settings/components';
+import { useSettingsSync } from '@/hooks/use-settings-sync';
 import {
   DEFAULT_PRIVACY_SETTINGS,
   type PrivacySettingsPreference,
@@ -41,18 +40,24 @@ import {
   fetchSettingsPreferences,
   saveSettingsPreferences,
 } from '@/app/(dashboard)/settings/preferences-client';
+import apiClient, { ApiError } from '@/lib/api/api-client';
+import { PageContainer } from '@/components/ui/page-container';
 
 import { LoadingState } from '../_components/loading-state';
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError || err instanceof Error) return err.message || fallback;
+  return fallback;
+}
+
 export default function PrivacySettingsPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { applySettingsFromPreferences } = useSettingsSync();
   const [settings, setSettings] = useState<PrivacySettingsPreference>({ ...DEFAULT_PRIVACY_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
@@ -101,8 +106,7 @@ export default function PrivacySettingsPage() {
       toast.success('تم حفظ إعدادات الخصوصية');
       setHasChanges(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ الإعدادات';
-      toast.error(message);
+      toast.error(errorMessage(error, 'حدث خطأ أثناء حفظ الإعدادات'));
     } finally {
       setIsSaving(false);
     }
@@ -110,19 +114,9 @@ export default function PrivacySettingsPage() {
 
   const handleDownloadData = async () => {
     try {
-      const response = await fetch('/api/settings/privacy/actions', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'export-data' }),
+      const payload = await apiClient.post<{ exportData: unknown }>('/api/settings/privacy/actions', {
+        action: 'export-data',
       });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: 'Failed to export data' }));
-        throw new Error(payload.error || 'Failed to export data');
-      }
-
-      const payload = (await response.json()) as { exportData: unknown };
       const blob = new Blob([JSON.stringify(payload.exportData, null, 2)], {
         type: 'application/json',
       });
@@ -135,60 +129,40 @@ export default function PrivacySettingsPage() {
 
       toast.success('تم تجهيز نسخة من بياناتك وتحميلها');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء تنزيل البيانات';
-      toast.error(message);
+      toast.error(errorMessage(error, 'حدث خطأ أثناء تنزيل البيانات'));
     }
   };
 
   const handleClearHistory = async () => {
     try {
-      const response = await fetch('/api/settings/privacy/actions', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear-history' }),
+      const payload = await apiClient.post<{ deletedCount?: number }>('/api/settings/privacy/actions', {
+        action: 'clear-history',
       });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: 'Failed to clear history' }));
-        throw new Error(payload.error || 'Failed to clear history');
-      }
-
-      const payload = (await response.json()) as { deletedCount?: number };
       const deletedCount = payload.deletedCount ?? 0;
       toast.success(`تم حذف ${deletedCount} سجل من نشاط الأمان`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء مسح السجل';
-      toast.error(message);
+      toast.error(errorMessage(error, 'حدث خطأ أثناء مسح السجل'));
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user?.id) {
-      toast.error('لا يمكن حذف الحساب الآن');
-      return;
-    }
-
+  // Delete account — shared flow with settings/security/page.tsx via DeleteAccountDialog,
+  // calling the real self-service DELETE /api/auth/account route (not the
+  // nonexistent /api/users/:id this page previously called).
+  const handleDeleteAccount = async (password: string) => {
     setIsDeletingAccount(true);
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
+      await apiClient.delete('/api/auth/account', {
+        body: JSON.stringify({ password, confirmation: 'DELETE' }),
       });
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: 'Failed to delete account' }));
-        throw new Error(payload.error || 'Failed to delete account');
-      }
-
-      toast.success('تم حذف الحساب بنجاح');
-      setShowDeleteConfirm(false);
+      toast.success('تم حذف حسابك بنجاح');
+      localStorage.clear();
+      sessionStorage.clear();
       await logout();
-      router.refresh();
+      router.push('/');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء حذف الحساب';
-      toast.error(message);
+      toast.error(errorMessage(error, 'حدث خطأ أثناء حذف الحساب'));
     } finally {
       setIsDeletingAccount(false);
     }
@@ -199,7 +173,7 @@ export default function PrivacySettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <PageContainer size="lg" spacing="none" className="space-y-8">
       {/* Header */}
       <SettingsHeader
         icon={Lock}
@@ -220,14 +194,14 @@ export default function PrivacySettingsPage() {
 
       {/* Profile Visibility */}
       <SettingsCard>
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Eye className="h-5 w-5 text-indigo-400" />
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Eye className="h-5 w-5 text-primary" />
             ظهور الملف الشخصي
           </h3>
-          <p className="text-xs text-slate-400 mt-1">من يمكنه رؤية ملفك الشخصي</p>
+          <p className="text-xs text-muted-foreground mt-1">من يمكنه رؤية ملفك الشخصي</p>
         </div>
-        
+
         <div className="p-6">
           <div className="grid grid-cols-3 gap-4">
             {[
@@ -237,7 +211,7 @@ export default function PrivacySettingsPage() {
             ].map((option) => {
               const Icon = option.icon;
               const isSelected = settings.profileVisibility === option.value;
-              
+
               return (
                 <m.button
                   key={option.value}
@@ -247,25 +221,25 @@ export default function PrivacySettingsPage() {
                   className={cn(
                     'relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all',
                     isSelected
-                      ? 'bg-indigo-500/20 border-indigo-500/50'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                      ? 'bg-primary/15 border-primary/50'
+                      : 'bg-muted/30 border-border hover:bg-accent/50'
                   )}
                 >
                   <div className={cn(
                     'flex h-12 w-12 items-center justify-center rounded-xl',
-                    isSelected ? 'bg-indigo-500/30' : 'bg-white/10'
+                    isSelected ? 'bg-primary/25' : 'bg-muted'
                   )}>
-                    <Icon className={cn('h-6 w-6', isSelected ? 'text-indigo-400' : 'text-slate-400')} />
+                    <Icon className={cn('h-6 w-6', isSelected ? 'text-primary' : 'text-muted-foreground')} />
                   </div>
-                  
-                  <span className={cn('font-medium', isSelected ? 'text-white' : 'text-slate-300')}>
+
+                  <span className={cn('font-medium', isSelected ? 'text-foreground' : 'text-muted-foreground')}>
                     {option.label}
                   </span>
-                  <span className="text-xs text-slate-500 text-center">{option.description}</span>
-                  
+                  <span className="text-xs text-muted-foreground text-center">{option.description}</span>
+
                   {isSelected && (
                     <div className="absolute top-2 left-2">
-                      <Check className="h-5 w-5 text-indigo-400" />
+                      <Check className="h-5 w-5 text-primary" />
                     </div>
                   )}
                 </m.button>
@@ -277,14 +251,14 @@ export default function PrivacySettingsPage() {
 
       {/* Activity Visibility */}
       <SettingsCard delay={0.1}>
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <History className="h-5 w-5 text-indigo-400" />
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
             إظهار النشاط
           </h3>
-          <p className="text-xs text-slate-400 mt-1">التحكم في ما يراه الآخرون عنك</p>
+          <p className="text-xs text-muted-foreground mt-1">التحكم في ما يراه الآخرون عنك</p>
         </div>
-        
+
         <div className="p-4 space-y-2">
           <SettingsToggle
             icon={Eye}
@@ -293,7 +267,7 @@ export default function PrivacySettingsPage() {
             enabled={settings.showOnlineStatus}
             onToggle={(v) => updateSetting('showOnlineStatus', v)}
           />
-          
+
           <SettingsToggle
             icon={History}
             title="آخر ظهور"
@@ -301,7 +275,7 @@ export default function PrivacySettingsPage() {
             enabled={settings.showLastSeen ?? false}
             onToggle={(v) => updateSetting('showLastSeen', v)}
           />
-          
+
           <SettingsToggle
             icon={Eye}
             title="التقدم الدراسي"
@@ -309,7 +283,7 @@ export default function PrivacySettingsPage() {
             enabled={settings.showProgress}
             onToggle={(v) => updateSetting('showProgress', v)}
           />
-          
+
           <SettingsToggle
             icon={Shield}
             title="الإنجازات"
@@ -323,19 +297,19 @@ export default function PrivacySettingsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden"
+        className="rounded-2xl bg-card/60 border border-border overflow-hidden"
       >
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Users className="h-5 w-5 text-indigo-400" />
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
             التواصل
           </h3>
-          <p className="text-xs text-slate-400 mt-1">من يمكنه التواصل معك</p>
+          <p className="text-xs text-muted-foreground mt-1">من يمكنه التواصل معك</p>
         </div>
-        
+
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white">من يمكنه مراسلتك</label>
+            <label className="text-sm font-medium text-foreground">من يمكنه مراسلتك</label>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { value: 'everyone', label: 'الجميع' },
@@ -343,7 +317,7 @@ export default function PrivacySettingsPage() {
                 { value: 'none', label: 'لا أحد' },
               ].map((option) => {
                 const isSelected = settings.allowMessages === option.value;
-                
+
                 return (
                   <button
                     key={option.value}
@@ -351,8 +325,8 @@ export default function PrivacySettingsPage() {
                     className={cn(
                       'p-3 rounded-xl border transition-all text-center',
                       isSelected
-                        ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
-                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        ? 'bg-primary/15 border-primary/50 text-foreground'
+                        : 'bg-muted/30 border-border text-muted-foreground hover:bg-accent/50'
                     )}
                   >
                     {option.label}
@@ -361,7 +335,7 @@ export default function PrivacySettingsPage() {
               })}
             </div>
           </div>
-          
+
           <SettingsToggle
             icon={Users}
             title="طلبات الصداقة"
@@ -374,14 +348,14 @@ export default function PrivacySettingsPage() {
 
       {/* Data & Analytics */}
       <SettingsCard delay={0.3}>
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <FileText className="h-5 w-5 text-indigo-400" />
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
             البيانات والتحليلات
           </h3>
-          <p className="text-xs text-slate-400 mt-1">إدارة كيفية استخدام بياناتك</p>
+          <p className="text-xs text-muted-foreground mt-1">إدارة كيفية استخدام بياناتك</p>
         </div>
-        
+
         <div className="p-4 space-y-2">
           <SettingsToggle
             icon={FileText}
@@ -390,7 +364,7 @@ export default function PrivacySettingsPage() {
             enabled={settings.dataCollection ?? false}
             onToggle={(v) => updateSetting('dataCollection', v)}
           />
-          
+
           <SettingsToggle
             icon={Shield}
             title="التخصيص"
@@ -398,7 +372,7 @@ export default function PrivacySettingsPage() {
             enabled={settings.personalization ?? false}
             onToggle={(v) => updateSetting('personalization', v)}
           />
-          
+
           <SettingsToggle
             icon={History}
             title="التحليلات"
@@ -411,152 +385,72 @@ export default function PrivacySettingsPage() {
 
       {/* Data Management */}
       <SettingsCard delay={0.4}>
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Download className="h-5 w-5 text-indigo-400" />
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Download className="h-5 w-5 text-primary" />
             إدارة البيانات
           </h3>
-          <p className="text-xs text-slate-400 mt-1">تنزيل أو حذف بياناتك</p>
+          <p className="text-xs text-muted-foreground mt-1">تنزيل أو حذف بياناتك</p>
         </div>
-        
+
         <div className="p-4 space-y-4">
           <button
             onClick={handleDownloadData}
-            className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            className="w-full flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/20">
-                <Download className="h-5 w-5 text-indigo-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15">
+                <Download className="h-5 w-5 text-primary" />
               </div>
               <div className="text-right">
-                <p className="font-medium text-white">تنزيل بياناتي</p>
-                <p className="text-xs text-slate-400">احصل على نسخة من جميع بياناتك</p>
+                <p className="font-medium text-foreground">تنزيل بياناتي</p>
+                <p className="text-xs text-muted-foreground">احصل على نسخة من جميع بياناتك</p>
               </div>
             </div>
-            <ChevronDown className="h-5 w-5 text-slate-400" />
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
           </button>
-          
+
           <button
             onClick={handleClearHistory}
-            className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            className="w-full flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/20">
-                <History className="h-5 w-5 text-orange-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/15">
+                <History className="h-5 w-5 text-orange-500" />
               </div>
               <div className="text-right">
-                <p className="font-medium text-white">مسح سجل النشاط</p>
-                <p className="text-xs text-slate-400">حذف سجل البحث والتصفح</p>
+                <p className="font-medium text-foreground">مسح سجل النشاط</p>
+                <p className="text-xs text-muted-foreground">حذف سجل البحث والتصفح</p>
               </div>
             </div>
-            <ChevronDown className="h-5 w-5 text-slate-400" />
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
       </SettingsCard>
 
       {/* Danger Zone */}
-      <SettingsCard delay={0.5} className="bg-red-500/10 border-red-500/30">
-        <div className="p-4 border-b border-red-500/30">
-          <h3 className="font-semibold text-red-400 flex items-center gap-2">
+      <SettingsCard delay={0.5} className="bg-destructive/10 border-destructive/30">
+        <div className="p-4 border-b border-destructive/30">
+          <h3 className="font-semibold text-destructive flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             منطقة الخطر
           </h3>
-          <p className="text-xs text-red-400/80 mt-1">إجراءات لا يمكن التراجع عنها</p>
+          <p className="text-xs text-destructive/80 mt-1">إجراءات لا يمكن التراجع عنها</p>
         </div>
-        
-        <div className="p-4">
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/20">
-                <UserX className="h-5 w-5 text-red-400" />
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-red-400">حذف الحساب نهائياً</p>
-                <p className="text-xs text-red-400/70">سيتم حذف جميع بياناتك بشكل نهائي</p>
-              </div>
+
+        <div className="p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/15">
+              <UserX className="h-5 w-5 text-destructive" />
             </div>
-            <Trash2 className="h-5 w-5 text-red-400" />
-          </button>
+            <div className="text-right">
+              <p className="font-medium text-destructive">حذف الحساب نهائياً</p>
+              <p className="text-xs text-destructive/70">سيتم حذف جميع بياناتك بشكل نهائي</p>
+            </div>
+          </div>
+          <DeleteAccountDialog onConfirm={handleDeleteAccount} isDeleting={isDeletingAccount} requirePassword />
         </div>
       </SettingsCard>
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <>
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            />
-            <m.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-red-500/30 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/20">
-                    <AlertTriangle className="h-6 w-6 text-red-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">تأكيد حذف الحساب</h3>
-                    <p className="text-sm text-slate-400">هذا الإجراء لا يمكن التراجع عنه</p>
-                  </div>
-                </div>
-                
-                <p className="text-slate-300 mb-6">
-                  سيتم حذف جميع بياناتك بشكل نهائي، بما في ذلك:
-                </p>
-                
-                <ul className="space-y-2 mb-6 text-sm text-slate-400">
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    جميع الدورات والتقدم المحرز
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    الإنجازات والشارات
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    المحادثات والرسائل
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    إعدادات الحساب
-                  </li>
-                </ul>
-                
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 p-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={isDeletingAccount}
-                    className="flex-1 p-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isDeletingAccount ? 'جاري الحذف...' : 'حذف الحساب'}
-                  </button>
-                </div>
-              </div>
-            </m.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+    </PageContainer>
   );
 }
-
-
-

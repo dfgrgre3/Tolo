@@ -2,7 +2,8 @@ import { type MetadataRoute } from 'next';
 import { SITE } from '@thanawy/shared/site-config';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = SITE.url;
+  // NEXT_PUBLIC_BASE_URL = http://localhost:3000 in dev, production URL in prod
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || SITE.url;
 
   return {
     rules: [

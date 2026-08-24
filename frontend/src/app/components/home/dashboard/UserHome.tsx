@@ -26,6 +26,7 @@ import {
   StatusIndicatorsSection,
   TipsSection,
 } from './sections/registry';
+import { LazySection } from '@/components/layout/LazySection';
 
 interface UserHomeProps {
   user: User;
@@ -43,6 +44,7 @@ export function UserHome({ user }: UserHomeProps) {
 
       <AmbientBackground />
 
+      {/* ── Above the fold: always eager ─────────────────────────────── */}
       <div>
         <DashboardHeader
           user={user}
@@ -57,43 +59,68 @@ export function UserHome({ user }: UserHomeProps) {
           <QuickLinksSectionEnhanced />
         </div>
 
+        {/* ── Performance metrics — second viewport, lazy ───────────── */}
         <SectionDivider label="مؤشرات الأداء" />
 
-        <div className="w-full space-y-12">
+        <LazySection
+          className="w-full space-y-12"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[520px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
           <PerformanceDashboardSection />
           <AnalyticsSection />
-        </div>
+        </LazySection>
 
+        {/* ── Course path — third viewport, lazy ───────────────────── */}
         <SectionDivider label="مساري التعليمي" />
 
-        <div className="w-full space-y-12">
+        <LazySection
+          className="w-full space-y-12"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[480px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
           <CoursesProgressSection />
           <ExamsSection />
           <AchievementsSection />
-        </div>
+        </LazySection>
 
+        {/* ── Recommendations — further down, lazy ─────────────────── */}
         <SectionDivider label="موصى به لك" icon={Sparkles} />
 
-        <div className="w-full">
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[320px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
           <RecommendedForYouSection />
-        </div>
+        </LazySection>
 
+        {/* ── Analytics / tips — deeper page, lazy ─────────────────── */}
         <SectionDivider label="تحليلات وتوصيات" />
 
-        <div className="flex flex-col gap-12 w-full">
+        <LazySection
+          className="flex flex-col gap-12 w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[600px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
           <IntelligentRecommendationsSection />
           <ProgressPredictionsSection />
           <TipsSection />
           <SocialFeaturesSection />
           <LiveActivityFeedSection />
-        </div>
+        </LazySection>
 
+        {/* ── System status — bottom of page, lazy ─────────────────── */}
         <SectionDivider label="حالة النظام" />
 
-        <div className="flex flex-col gap-12 w-full">
+        <LazySection
+          className="flex flex-col gap-12 w-full"
+          rootMargin="300px"
+          skeleton={<div className="w-full h-[280px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
           <StatusIndicatorsSection />
           <FeaturesSection />
-        </div>
+        </LazySection>
 
       </div>
 

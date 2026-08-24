@@ -2,15 +2,12 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldCheck, AlertCircle, Lock, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { isStaffAdminPanelRole } from "@/lib/auth/admin-panel-roles";
 import { sanitizeRedirectPath } from "@/services/auth/navigation";
+import AdminLoginCredentialsStep from "@/components/auth/AdminLoginCredentialsStep";
+import AdminMfaStep from "@/components/auth/AdminMfaStep";
 
 export default function AdminLoginPage() {
   return (
@@ -26,6 +23,12 @@ export default function AdminLoginPage() {
   );
 }
 
+/**
+ * AdminLoginContent — orchestrates the two-step staff sign-in flow
+ * (credentials, then an optional MFA challenge). Presentation lives in
+ * `AdminLoginCredentialsStep` / `AdminMfaStep` (mirrors the LoginForm /
+ * LoginCredentialsStep / MfaVerifyStep split).
+ */
 function AdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -111,167 +114,31 @@ function AdminLoginContent() {
     // Success handled by the useEffect above.
     setIsSubmitting(false);
   };
-return (
+
+  return (
     <div className="w-full flex items-center justify-center py-8">
       <div className="w-full max-w-[460px] mx-auto">
         {requires2FA ? (
-          <form
+          <AdminMfaStep
+            code={twoFactorCode}
+            onCodeChange={setTwoFactorCode}
+            errorStatus={errorStatus}
+            isSubmitting={isSubmitting}
             onSubmit={handleVerify2FA}
-            className="w-full rounded-3xl border border-red-500/20 bg-slate-900 p-8 shadow-2xl"
-          >
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center p-5 rounded-3xl bg-red-500/10 mb-6 border border-red-500/20">
-                <ShieldCheck className="h-10 w-10 text-red-500" />
-              </div>
-              <h3 className="text-2xl font-black text-white mb-2">تأكيد أمني إضافي</h3>
-              <p className="text-slate-400 font-medium">أدخل رمز الأمان من تطبيق المصادقة (2FA)</p>
-            </div>
-
-            {errorStatus && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="mr-2 font-semibold">خطأ</AlertTitle>
-                <AlertDescription dir="rtl" className="mr-2">{errorStatus}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-4">
-              <Input
-                type="text"
-                maxLength={6}
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ""))}
-                autoFocus
-                dir="ltr"
-                placeholder="000000"
-                className="w-full text-center tracking-[0.6em] text-2xl font-black rounded-2xl border border-white/10 bg-white/5 py-6 text-white placeholder:text-slate-600"
-              />
-              <Button
-                type="submit"
-                disabled={isSubmitting || twoFactorCode.length < 6}
-                className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black shadow-xl shadow-red-500/20 disabled:opacity-60"
-              >
-                {isSubmitting ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : "تحقق وفتح الصلاحيات"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setRequires2FA(false)}
-                className="w-full text-slate-500 hover:text-white"
-              >
-                إلغاء والمحاولة مرة أخرى
-              </Button>
-            </div>
-          </form>
+            onCancel={() => setRequires2FA(false)}
+          />
         ) : (
-<form
+          <AdminLoginCredentialsStep
+            identifier={identifier}
+            onIdentifierChange={setIdentifier}
+            password={password}
+            onPasswordChange={setPassword}
+            showPassword={showPassword}
+            onToggleShowPassword={() => setShowPassword((s) => !s)}
+            errorStatus={errorStatus}
+            isSubmitting={isSubmitting}
             onSubmit={handleSubmit}
-            className="w-full rounded-3xl border border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-8 shadow-2xl"
-          >
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center p-4 rounded-3xl bg-red-500/10 border border-red-500/20 mb-5">
-                <ShieldCheck className="h-10 w-10 text-red-500" />
-              </div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white">لوحة التحكم</h2>
-              <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium">
-                تسجيل دخول الموظفين والمسؤولين فقط
-              </p>
-            </div>
-
-            {errorStatus && (
-              <Alert variant="destructive" className="mb-6 bg-red-500/10 border-red-500/30">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="mr-2 font-semibold">خطأ</AlertTitle>
-                <AlertDescription dir="rtl" className="mr-2">{errorStatus}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-5">
-              <div className="grid gap-2">
-                <Label htmlFor="admin-email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                  البريد الإلكتروني
-                </Label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
-                    <Mail className="h-4 w-4" />
-                  </span>
-                  <Input
-                    id="admin-email"
-                    type="email"
-                    placeholder="admin@tolo.app"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                    dir="ltr"
-                    className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="admin-password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                  كلمة المرور
-                </Label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
-                    <Lock className="h-4 w-4" />
-                  </span>
-                  <Input
-                    id="admin-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                    dir="ltr"
-                    className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((s) => !s)}
-                    className="absolute inset-y-0 left-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold"
-                    aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                  >
-                    {showPassword ? "إخفاء" : "إظهار"}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black shadow-xl shadow-red-500/25 disabled:opacity-70"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري التحقق...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="ml-2 h-4 w-4" />
-                    تسجيل الدخول
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800 pt-5">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4 rotate-180" />
-                العودة لصفحة الطلاب
-              </Link>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600">
-                Staff Only
-              </span>
-            </div>
-          </form>
+          />
         )}
       </div>
     </div>

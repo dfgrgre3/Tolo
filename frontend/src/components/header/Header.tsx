@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, memo } from "react";
+import React, { useState, useEffect, useCallback, useRef, memo, startTransition } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -119,75 +119,99 @@ export default function Header() {
 	useEffect(() => {
 		if (!mounted) return;
 
+		// ── Session cache: nav data rarely changes — reuse within a session ──
+		const NAV_CACHE_KEY = 'tolo:navMenu';
+		const NAV_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+		const applyNavData = (categories: any[]) => {
+			const categoriesBySlug = categories.reduce((acc, cat) => {
+				acc[cat.slug] = {
+					title: cat.title,
+					slug: cat.slug,
+					isPriority: cat.isPriority,
+					priorityLabel: cat.priorityLabel,
+					items: (cat.items || []).map((item: any) => ({
+						href: item.href,
+						label: item.label,
+						description: item.description,
+						icon: getLucideIcon(item.icon),
+						badge: item.badge
+					}))
+				};
+				return acc;
+			}, {} as Record<string, any>);
+
+			const updatedMainNav = mainNavItemsWithMegaMenu.map((item) => {
+				if (!item.megaMenu) return item;
+				let targetSlugs: string[] = [];
+				if (item.href === "/courses") {
+					targetSlugs = ["study", "exams", "time_management", "goals"];
+				} else if (item.href === "/library") {
+					targetSlugs = ["digital_library", "awareness", "dashboard"];
+				} else if (item.href === "/leaderboard") {
+					targetSlugs = ["leaderboard", "community"];
+				} else if (item.href === "/settings") {
+					targetSlugs = ["subscription", "settings"];
+				}
+				const newMegaMenu = targetSlugs
+					.map((slug) => categoriesBySlug[slug])
+					.filter(Boolean);
+				return { ...item, megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu };
+			});
+
+			const updatedHeaderNav = fallbackHeaderNavItems.map((item) => {
+				if (!item.megaMenu) return item;
+				let targetSlugs: string[] = [];
+				if (item.href === "/schools") {
+					targetSlugs = ["primary", "middle", "high_school"];
+				}
+				const newMegaMenu = targetSlugs
+					.map((slug) => categoriesBySlug[slug])
+					.filter(Boolean);
+				return { ...item, megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu };
+			});
+
+			// Non-urgent state update — won't block the current render
+			startTransition(() => {
+				setDynamicMainNav(updatedMainNav);
+				setDynamicHeaderNav(updatedHeaderNav);
+			});
+		};
+
 		const fetchNavData = async () => {
+			// 1. Serve from session cache if still fresh
+			try {
+				const cached = sessionStorage.getItem(NAV_CACHE_KEY);
+				if (cached) {
+					const { ts, categories } = JSON.parse(cached);
+					if (Date.now() - ts < NAV_CACHE_TTL) {
+						applyNavData(categories);
+						return; // cache hit — skip the network request entirely
+					}
+				}
+			} catch { /* sessionStorage unavailable (private mode) — continue to fetch */ }
+
+			// 2. Network fetch — non-critical, runs after initial render
 			try {
 				const response = await apiClient.get<{ categories: any[] }>("/navigation/menu");
 				if (response && response.categories) {
-					const categoriesBySlug = response.categories.reduce((acc, cat) => {
-						acc[cat.slug] = {
-							title: cat.title,
-							slug: cat.slug,
-							isPriority: cat.isPriority,
-							priorityLabel: cat.priorityLabel,
-							items: (cat.items || []).map((item: any) => ({
-								href: item.href,
-								label: item.label,
-								description: item.description,
-								icon: getLucideIcon(item.icon),
-								badge: item.badge
-							}))
-						};
-						return acc;
-					}, {} as Record<string, any>);
-
-					const updatedMainNav = mainNavItemsWithMegaMenu.map((item) => {
-						if (!item.megaMenu) return item;
-						let targetSlugs: string[] = [];
-						if (item.href === "/courses") {
-							targetSlugs = ["study", "exams", "time_management", "goals"];
-						} else if (item.href === "/library") {
-							targetSlugs = ["digital_library", "awareness", "dashboard"];
-						} else if (item.href === "/leaderboard") {
-							targetSlugs = ["leaderboard", "community"];
-						} else if (item.href === "/settings") {
-							targetSlugs = ["subscription", "settings"];
-						}
-
-						const newMegaMenu = targetSlugs
-							.map((slug) => categoriesBySlug[slug])
-							.filter(Boolean);
-
-						return {
-							...item,
-							megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu
-						};
-					});
-
-					const updatedHeaderNav = fallbackHeaderNavItems.map((item) => {
-						if (!item.megaMenu) return item;
-						let targetSlugs: string[] = [];
-						if (item.href === "/schools") {
-							targetSlugs = ["primary", "middle", "high_school"];
-						}
-						const newMegaMenu = targetSlugs
-							.map((slug) => categoriesBySlug[slug])
-							.filter(Boolean);
-
-						return {
-							...item,
-							megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu
-						};
-					});
-
-					setDynamicMainNav(updatedMainNav);
-					setDynamicHeaderNav(updatedHeaderNav);
+					try {
+						sessionStorage.setItem(
+							NAV_CACHE_KEY,
+							JSON.stringify({ ts: Date.now(), categories: response.categories })
+						);
+					} catch { /* storage full or unavailable */ }
+					applyNavData(response.categories);
 				}
 			} catch (err) {
 				console.warn("Failed to fetch dynamic navigation menu from backend:", err);
 			}
 		};
 
-		fetchNavData();
+		// Defer to after first paint so the nav fetch doesn't contend with
+		// rendering the initial shell (header visible instantly with fallback data).
+		const timeout = setTimeout(fetchNavData, 0);
+		return () => clearTimeout(timeout);
 	}, [mounted]);
 
 	const headerClasses = useHeaderClasses(isScrolled, mounted, user, isHidden);
@@ -204,35 +228,40 @@ export default function Header() {
 
 		let lastHeight = -1;
 		let lastBottom = -1;
+		let rafId = 0;
 
+		// Wrap getBoundingClientRect in rAF to batch the layout read AFTER paint,
+		// preventing a forced synchronous reflow (Lighthouse: "Forced reflow 42 ms").
 		const updateMetrics = () => {
-			const element = headerRef.current;
-			if (!element) return;
+			cancelAnimationFrame(rafId);
+			rafId = requestAnimationFrame(() => {
+				const element = headerRef.current;
+				if (!element) return;
 
-			const rect = element.getBoundingClientRect();
-			const height = Math.round(rect.height);
-			const bottom = Math.max(0, Math.round(rect.bottom));
+				const rect = element.getBoundingClientRect();
+				const height = Math.round(rect.height);
+				const bottom = Math.max(0, Math.round(rect.bottom));
 
-			if (height !== lastHeight) {
-				lastHeight = height;
-				document.documentElement.style.setProperty("--header-height", `${height}px`);
-			}
-			if (bottom !== lastBottom) {
-				lastBottom = bottom;
-				document.documentElement.style.setProperty("--header-bottom", `${bottom}px`);
-			}
+				if (height !== lastHeight) {
+					lastHeight = height;
+					document.documentElement.style.setProperty("--header-height", `${height}px`);
+				}
+				if (bottom !== lastBottom) {
+					lastBottom = bottom;
+					document.documentElement.style.setProperty("--header-bottom", `${bottom}px`);
+				}
+			});
 		};
 
 		updateMetrics();
 
 		const observer = new ResizeObserver(updateMetrics);
 		observer.observe(headerRef.current);
-		window.addEventListener("scroll", updateMetrics, { passive: true });
-		window.addEventListener("resize", updateMetrics);
+		window.addEventListener("resize", updateMetrics, { passive: true });
 
 		return () => {
+			cancelAnimationFrame(rafId);
 			observer.disconnect();
-			window.removeEventListener("scroll", updateMetrics);
 			window.removeEventListener("resize", updateMetrics);
 		};
 	}, [mounted]);

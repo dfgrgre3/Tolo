@@ -24,6 +24,7 @@ import { requestCache } from "@/lib/api/request-cache";
 import { apiRoutes } from "@/lib/api/routes";
 import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login as loginRequest, verifyMfa } from "@/services/auth/login-service";
+import { setUserId, clearUserId } from "@/lib/user-utils";
 
 /**
  * Result of an explicit credential-based login (admin or normal).
@@ -174,6 +175,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        if (data.user.id) {
+          setUserId(data.user.id);
+        }
+
         setState({
           user: data.user,
           isLoading: false,
@@ -213,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Drop any cached authenticated data (e.g. /auth/me with its 5-min TTL) so
     // the next authenticated fetch reflects the logged-out state immediately.
     requestCache.clear();
+    clearUserId();
     setState(GUEST_STATE);
     window.location.href = "/login";
   }, []);
@@ -225,6 +231,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!data?.user) {
         setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
         return false;
+      }
+
+      if (data.user.id) {
+        setUserId(data.user.id);
       }
 
       setState({

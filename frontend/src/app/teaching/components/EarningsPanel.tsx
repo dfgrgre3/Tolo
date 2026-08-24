@@ -16,8 +16,15 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
-  const totalEarnings = 12450;
-  const availableBalance = 3420;
+  const totalEarnings = transactions
+    .filter((tr) => tr.type === "sale")
+    .reduce((sum, tr) => sum + tr.amount, 0);
+
+  const totalPayouts = transactions
+    .filter((tr) => tr.type === "payout")
+    .reduce((sum, tr) => sum + tr.amount, 0);
+
+  const availableBalance = Math.max(0, totalEarnings - totalPayouts);
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +37,28 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
     }, 2000);
   };
 
+  const handleExportCSV = () => {
+    if (!transactions.length) return;
+    const headers = ["ID", "Type", "Course/Description", "Date", "Status", "Amount"];
+    const rows = transactions.map((t) => [
+      t.id,
+      t.type,
+      `"${t.courseTitle || (t.type === "payout" ? "Withdrawal" : "Sale")}"`,
+      t.date,
+      t.status,
+      t.amount,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `teaching_transactions_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Header */}
@@ -38,10 +67,16 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
           <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 font-sans">إدارة الأرباح والمستحقات</h3>
           <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">تفاصيل المبيعات وسحوبات الأرباح المصرفية</p>
         </div>
-        <Button onClick={() => setShowWithdrawModal(true)} className="bg-primary hover:bg-primary/95 text-white flex items-center gap-1.5 rounded-xl">
-          <ArrowDownCircle className="w-4 h-4" />
-          طلب سحب أرباح
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleExportCSV} variant="outline" className="flex items-center gap-1.5 rounded-xl text-xs">
+            <Download className="w-4 h-4" />
+            تصدير تقرير CSV
+          </Button>
+          <Button onClick={() => setShowWithdrawModal(true)} className="bg-primary hover:bg-primary/95 text-white flex items-center gap-1.5 rounded-xl text-xs">
+            <ArrowDownCircle className="w-4 h-4" />
+            طلب سحب أرباح
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -84,7 +119,7 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
               <div className="text-center p-6 space-y-3">
                 <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-100">تم تسجيل طلب السحب بنجاح</p>
-                <p className="text-[10px] text-slate-450">سيتم معالجة الطلب وتحويله إلى حسابك البنكي خلال 48 ساعة.</p>
+                <p className="text-[10px] text-slate-450">سيتم معالجة الطلب وتحويله إلى حسابك خلال 24 - 48 ساعة.</p>
               </div>
             ) : (
               <form onSubmit={handleWithdraw} className="space-y-4 text-xs font-semibold">
@@ -103,16 +138,18 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">طريقة التحويل</label>
-                  <select className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-card text-slate-700 dark:text-slate-200 p-2 text-right focus:outline-none">
+                  <label className="text-slate-500">طريقة التحويل والسحب</label>
+                  <select className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-card text-slate-700 dark:text-slate-200 p-2 text-right focus:outline-none text-xs">
                     <option value="bank">الحساب البنكي الرئيسي (نهاية الرقم *5820)</option>
+                    <option value="instapay">انستا باي (InstaPay)</option>
+                    <option value="vodafone">فودافون كاش (Vodafone Cash)</option>
                     <option value="paypal">حساب PayPal الرئيسي</option>
                   </select>
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" className="flex-1 bg-primary text-white rounded-xl">تأكيد طلب السحب</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowWithdrawModal(false)} className="rounded-xl">إلغاء</Button>
+                  <Button type="submit" className="flex-1 bg-primary text-white rounded-xl text-xs">تأكيد طلب السحب</Button>
+                  <Button type="button" variant="outline" onClick={() => setShowWithdrawModal(false)} className="rounded-xl text-xs">إلغاء</Button>
                 </div>
               </form>
             )}
@@ -124,7 +161,7 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
       <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card overflow-hidden">
         <CardHeader className="border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-100">سجل المعاملات والتحويلات المالية</CardTitle>
-          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg text-slate-400">
+          <Button onClick={handleExportCSV} variant="ghost" size="icon" className="w-8 h-8 rounded-lg text-slate-400" title="تصدير ملف CSV">
             <Download className="w-4 h-4" />
           </Button>
         </CardHeader>

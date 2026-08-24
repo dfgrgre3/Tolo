@@ -32,12 +32,24 @@ interface NotificationsContextType {
   toggleSound: () => void;
 }
 
+const defaultNotificationsContext: NotificationsContextType = {
+  notifications: [],
+  unreadCount: 0,
+  isLoading: false,
+  hasMore: false,
+  fetchNotifications: async () => {},
+  markAsRead: async () => {},
+  loadMore: () => {},
+  soundEnabled: true,
+  toggleSound: () => {}
+};
+
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export function useNotificationsContext() {
   const context = useContext(NotificationsContext);
   if (context === undefined) {
-    throw new Error('useNotificationsContext must be used within a NotificationsProvider');
+    return defaultNotificationsContext;
   }
   return context;
 }
@@ -215,7 +227,10 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     // Only fetch notifications for authenticated users.
     if (!isAuthenticated || isAuthLoading) return;
 
-    fetchNotifications(true);
+    // Defer initial fetch to idle time so it doesn't block critical page load / LCP
+    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? window.requestIdleCallback(() => fetchNotifications(true), { timeout: 3000 })
+      : setTimeout(() => fetchNotifications(true), 1500);
 
     // Poll conservatively as a fallback for WebSocket.
     const pollInterval = setInterval(() => {
@@ -225,6 +240,11 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     }, 300000);
 
     return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId as any);
+      }
       clearInterval(pollInterval);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

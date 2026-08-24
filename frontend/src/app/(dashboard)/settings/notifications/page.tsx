@@ -25,7 +25,6 @@ import {
   VolumeX,
   Moon,
   Sun,
-  Loader2,
   Check,
   Settings,
   BookOpen,
@@ -45,6 +44,7 @@ import {
   saveSettingsPreferences,
 } from '@/app/(dashboard)/settings/preferences-client';
 import { LoadingState } from '../_components/loading-state';
+import { PageContainer } from '@/components/ui/page-container';
 
 export default function NotificationsSettingsPage() {
   const [settings, setSettings] = useState<NotificationSettingsPreference>({ ...DEFAULT_NOTIFICATION_SETTINGS });
@@ -115,7 +115,7 @@ export default function NotificationsSettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <PageContainer size="lg" spacing="none" className="space-y-8">
       {/* Header */}
       <SettingsHeader
         icon={Bell}
@@ -138,10 +138,10 @@ export default function NotificationsSettingsPage() {
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 p-6"
+        className="rounded-2xl bg-gradient-to-br from-primary/15 to-accent/15 border border-primary/30 p-6"
       >
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Settings className="h-5 w-5 text-indigo-400" />
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Settings className="h-5 w-5 text-primary" />
           قنوات الإشعارات
         </h3>
         
@@ -152,7 +152,7 @@ export default function NotificationsSettingsPage() {
             description="إشعارات فورية على جهازك"
             enabled={settings.pushEnabled}
             onToggle={(v) => updateSetting('pushEnabled', v)}
-            color="indigo"
+            color="primary"
           />
           <ChannelCard
             icon={Mail}
@@ -160,7 +160,7 @@ export default function NotificationsSettingsPage() {
             description="تلقى الإشعارات عبر البريد"
             enabled={settings.emailEnabled}
             onToggle={(v) => updateSetting('emailEnabled', v)}
-            color="purple"
+            color="accent"
           />
           <ChannelCard
             icon={MessageSquare}
@@ -192,17 +192,17 @@ export default function NotificationsSettingsPage() {
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
           >
-            <label className="text-sm text-slate-400">التذكير قبل</label>
+            <label className="text-sm text-muted-foreground">التذكير قبل</label>
             <select
               value={settings.taskReminderTime}
               onChange={(e) => updateSetting('taskReminderTime', e.target.value)}
-              className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="mt-1 w-full p-2 rounded-lg bg-background border border-input text-foreground text-sm"
             >
-              <option value="15" className="bg-slate-800">15 دقيقة</option>
-              <option value="30" className="bg-slate-800">30 دقيقة</option>
-              <option value="60" className="bg-slate-800">ساعة واحدة</option>
-              <option value="120" className="bg-slate-800">ساعتين</option>
-              <option value="1440" className="bg-slate-800">يوم واحد</option>
+              <option value="15" className="bg-background text-foreground">15 دقيقة</option>
+              <option value="30" className="bg-background text-foreground">30 دقيقة</option>
+              <option value="60" className="bg-background text-foreground">ساعة واحدة</option>
+              <option value="120" className="bg-background text-foreground">ساعتين</option>
+              <option value="1440" className="bg-background text-foreground">يوم واحد</option>
             </select>
           </m.div>
         )}
@@ -243,15 +243,15 @@ export default function NotificationsSettingsPage() {
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
           >
-            <label className="text-sm text-slate-400">التذكير قبل</label>
+            <label className="text-sm text-muted-foreground">التذكير قبل</label>
             <select
               value={settings.examReminderDays}
               onChange={(e) => updateSetting('examReminderDays', Number(e.target.value))}
-              className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="mt-1 w-full p-2 rounded-lg bg-background border border-input text-foreground text-sm"
             >
-              <option value={1} className="bg-slate-800">يوم واحد</option>
-              <option value={3} className="bg-slate-800">3 أيام</option>
-              <option value={7} className="bg-slate-800">أسبوع</option>
+              <option value={1} className="bg-background text-foreground">يوم واحد</option>
+              <option value={3} className="bg-background text-foreground">3 أيام</option>
+              <option value={7} className="bg-background text-foreground">أسبوع</option>
             </select>
           </m.div>
         )}
@@ -351,31 +351,31 @@ export default function NotificationsSettingsPage() {
             className="mr-12 grid grid-cols-2 gap-4"
           >
             <div>
-              <label className="text-sm text-slate-400 flex items-center gap-1">
+              <label className="text-sm text-muted-foreground flex items-center gap-1">
                 <Moon className="h-3 w-3" /> من
               </label>
               <input
                 type="time"
                 value={settings.quietHoursStart}
                 onChange={(e) => updateSetting('quietHoursStart', e.target.value)}
-                className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+                className="mt-1 w-full p-2 rounded-lg bg-background border border-input text-foreground text-sm"
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 flex items-center gap-1">
+              <label className="text-sm text-muted-foreground flex items-center gap-1">
                 <Sun className="h-3 w-3" /> إلى
               </label>
               <input
                 type="time"
                 value={settings.quietHoursEnd}
                 onChange={(e) => updateSetting('quietHoursEnd', e.target.value)}
-                className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+                className="mt-1 w-full p-2 rounded-lg bg-background border border-input text-foreground text-sm"
               />
             </div>
           </m.div>
         )}
       </SettingsSection>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -393,11 +393,11 @@ function ChannelCard({
   description: string;
   enabled: boolean;
   onToggle: (value: boolean) => void;
-  color: 'indigo' | 'purple' | 'pink';
+  color: 'primary' | 'accent' | 'pink';
 }) {
   const colorClasses = {
-    indigo: 'from-indigo-500/20 to-indigo-600/20 border-indigo-500/30',
-    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/30',
+    primary: 'from-primary/20 to-primary/10 border-primary/30',
+    accent: 'from-accent/20 to-accent/10 border-accent/30',
     pink: 'from-pink-500/20 to-pink-600/20 border-pink-500/30',
   };
 
@@ -408,23 +408,23 @@ function ChannelCard({
         'rounded-xl p-4 border transition-all cursor-pointer',
         enabled
           ? `bg-gradient-to-br ${colorClasses[color]}`
-          : 'bg-white/5 border-white/10'
+          : 'bg-muted/30 border-border'
       )}
       onClick={() => onToggle(!enabled)}
     >
       <div className="flex items-start justify-between">
         <div className={cn(
           'flex h-10 w-10 items-center justify-center rounded-lg',
-          enabled ? 'bg-white/20' : 'bg-white/5'
+          enabled ? 'bg-background/40' : 'bg-muted/50'
         )}>
-          <Icon className={cn('h-5 w-5', enabled ? 'text-white' : 'text-slate-400')} />
+          <Icon className={cn('h-5 w-5', enabled ? 'text-foreground' : 'text-muted-foreground')} />
         </div>
         <ToggleSwitch enabled={enabled} onToggle={onToggle} />
       </div>
-      <h4 className={cn('font-medium mt-3', enabled ? 'text-white' : 'text-slate-300')}>
+      <h4 className={cn('font-medium mt-3', enabled ? 'text-foreground' : 'text-muted-foreground')}>
         {title}
       </h4>
-      <p className="text-xs text-slate-400 mt-1">{description}</p>
+      <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </m.div>
   );
 }

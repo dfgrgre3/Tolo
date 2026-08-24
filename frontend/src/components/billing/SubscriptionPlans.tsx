@@ -32,14 +32,50 @@ interface Plan {
   descriptionAr: string;
   features: string[];
   featuresAr: string[];
-  interval: string;
+  interval: string; // "MONTHLY" | "YEARLY" | "FOREVER"
+  groupKey?: string;
   popular?: boolean;
+}
+
+// A plan "tier" groups the interval variants (monthly/yearly rows) an admin
+// linked together via groupKey, so the billing-cycle toggle switches
+// between two real, separately-priced plan records instead of guessing a
+// yearly price client-side.
+interface PlanTier {
+  groupKey: string;
+  monthly: Plan | null;
+  yearly: Plan | null;
+  // Representative plan for display when a tier has only one variant.
+  fallback: Plan;
 }
 
 type BillingCycle = "monthly" | "yearly";
 type PaymentMethod = "card" | "wallet" | "internal_wallet";
 
-const yearlyDiscount = 0.2;
+function groupPlansByTier(plans: Plan[]): PlanTier[] {
+  const groups = new Map<string, Plan[]>();
+  for (const plan of plans) {
+    const key = plan.groupKey || plan.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(plan);
+  }
+  return Array.from(groups.entries()).
+  filter(([, members]) => members.length > 0).
+  map(([groupKey, members]) => ({
+    groupKey,
+    monthly: members.find((p) => p.interval === "MONTHLY") || null,
+    yearly: members.find((p) => p.interval === "YEARLY") || null,
+    fallback: members[0]!
+  }));
+}
+
+// Resolves the plan record to actually display/charge for a tier given the
+// selected billing cycle: the matching-interval variant if the admin set
+// one up, otherwise whichever variant exists (e.g. a lifetime-only plan).
+function planForCycle(tier: PlanTier, cycle: BillingCycle): Plan {
+  if (cycle === "yearly") return tier.yearly || tier.monthly || tier.fallback;
+  return tier.monthly || tier.yearly || tier.fallback;
+}
 
 const paymentOptions: Array<{
   id: PaymentMethod;
@@ -71,13 +107,6 @@ const paymentOptions: Array<{
 }];
 
 
-function getPlanPrice(price: number, cycle: BillingCycle) {
-  if (cycle === "yearly") {
-    return Math.round(price * 12 * (1 - yearlyDiscount));
-  }
-  return price;
-}
-
 export default function SubscriptionPlans() {
   const _router = useRouter();
   const _searchParams = useSearchParams();
@@ -88,7 +117,7 @@ export default function SubscriptionPlans() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [paymentStep, setPaymentStep] = useState<"plans" | "checkout">("plans");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedTierKey, setSelectedTierKey] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState<{
     discountAmount: number;
@@ -111,14 +140,22 @@ export default function SubscriptionPlans() {
     fetchPlans();
   }, []);
 
-  const selectedPlanData = useMemo(
-    () => plans.find((plan) => plan.id === selectedPlan) ?? null,
-    [plans, selectedPlan]
+  const tiers = useMemo(() => groupPlansByTier(plans), [plans]);
+
+  const selectedTier = useMemo(
+    () => tiers.find((t) => t.groupKey === selectedTierKey) ?? null,
+    [tiers, selectedTierKey]
   );
 
-  const basePrice = selectedPlanData ? getPlanPrice(selectedPlanData.price, billingCycle) : 0;
-  const _yearlySavings = selectedPlanData && billingCycle === "yearly" ?
-  selectedPlanData.price * 12 - getPlanPrice(selectedPlanData.price, "yearly") :
+  // The plan actually being purchased for the chosen billing cycle — its
+  // real price, straight from the SubscriptionPlan record, no client math.
+  const selectedPlanData = selectedTier ? planForCycle(selectedTier, billingCycle) : null;
+
+  const basePrice = selectedPlanData?.price ?? 0;
+  const monthlyEquivalentYearly = selectedTier?.monthly ? selectedTier.monthly.price * 12 : null;
+  const yearlySavings =
+  billingCycle === "yearly" && selectedPlanData?.interval === "YEARLY" && monthlyEquivalentYearly ?
+  Math.max(0, monthlyEquivalentYearly - basePrice) :
   0;
   const finalAmount = couponData?.finalAmount ?? basePrice;
 
@@ -140,11 +177,11 @@ export default function SubscriptionPlans() {
   };
 
   const startPayment = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlanData) return;
     setProcessing(true);
     try {
       const data = await apiClient.post<any>("/subscriptions/checkout", {
-        planId: selectedPlan,
+        planId: selectedPlanData.id,
         billingCycle,
         paymentMethod,
         couponCode: couponData ? couponCode.trim().toUpperCase() : undefined
@@ -197,23 +234,24 @@ export default function SubscriptionPlans() {
           <p className="text-gray-400 font-medium text-lg leading-relaxed">استثمر في مستقبلك باختيار الباقة التي تناسب تطلعاتك الأكاديمية.</p>
         </div>
 
+        {tiers.some((t) => t.yearly) &&
         <div className="flex bg-gray-100 dark:bg-[#151729] p-2 rounded-2xl border border-gray-200 dark:border-white/10 relative">
           <button
             onClick={() => setBillingCycle("monthly")}
             className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "monthly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
-            
+
             شهرياً
             {billingCycle === "monthly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
           </button>
           <button
             onClick={() => setBillingCycle("yearly")}
             className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "yearly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
-            
+
             سنوياً
             {billingCycle === "yearly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
-            <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] px-3 py-1 rounded-full font-black shadow-lg shadow-emerald-500/20">وفر 20%</span>
           </button>
         </div>
+        }
       </div>
 
       <AnimatePresence mode="wait">
@@ -224,65 +262,72 @@ export default function SubscriptionPlans() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -30 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-            {plans.map((plan, _idx) =>
-          <m.div
-            key={plan.id}
-            whileHover={{ y: -12, scale: 1.02 }}
-            className={`relative group rounded-[3rem] p-10 border-2 transition-all duration-500 flex flex-col ${plan.popular ? "border-primary bg-gradient-to-b from-primary/10 via-primary/5 to-transparent shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.2)]" : "border-white/5 bg-white/5 hover:border-white/20"}`}>
-            
-                {plan.popular &&
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black py-2 px-6 rounded-full flex items-center gap-2 shadow-xl shadow-primary/40 animate-bounce">
-                    <Sparkles className="w-4 h-4" />
-                    الخيار الأفضل
-                  </div>
-            }
-                
-                <div className="mb-8">
-                  <h3 className="text-3xl font-black text-white mb-3 group-hover:text-primary transition-colors">{plan.nameAr || plan.name}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed font-medium min-h-[40px]">{plan.descriptionAr || plan.description}</p>
-                </div>
 
-                <div className="mb-10 p-6 rounded-3xl bg-white/5 border border-white/10 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
-                  <div className="flex items-baseline gap-2">
-                    <m.span
-                  key={`${plan.id}-${billingCycle}`}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="text-5xl font-black text-white">
-                  
-                      {getPlanPrice(plan.price, billingCycle).toLocaleString()}
-                    </m.span>
-                    <span className="text-gray-400 font-black text-lg">ج.م <span className="text-sm font-bold opacity-50">/ {billingCycle === "monthly" ? "شهر" : "سنة"}</span></span>
-                  </div>
-                  {billingCycle === "yearly" &&
-              <div className="mt-4 flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
-                       <BadgePercent className="w-4 h-4" />
-                       <span className="text-xs font-black tracking-tight">وفرت {(plan.price * 12 - getPlanPrice(plan.price, "yearly")).toLocaleString()} ج.م سنوياً</span>
-                     </div>
-              }
-                </div>
+            {tiers.map((tier) => {
+            const plan = planForCycle(tier, billingCycle);
+            const tierHasYearly = !!tier.yearly;
+            const yearlySaved = billingCycle === "yearly" && tier.monthly && tierHasYearly ?
+            Math.max(0, tier.monthly.price * 12 - plan.price) :
+            0;
+            return (
+              <m.div
+                key={tier.groupKey}
+                whileHover={{ y: -12, scale: 1.02 }}
+                className={`relative group rounded-[3rem] p-10 border-2 transition-all duration-500 flex flex-col ${plan.popular ? "border-primary bg-gradient-to-b from-primary/10 via-primary/5 to-transparent shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.2)]" : "border-white/5 bg-white/5 hover:border-white/20"}`}>
 
-                <div className="space-y-4 mb-12 flex-grow">
-                  {(plan.featuresAr || plan.features || []).map((feature, i) =>
-              <div key={i} className="flex items-start gap-4 text-sm text-gray-300 group/item">
-                      <div className="mt-1 bg-emerald-500/20 p-1 rounded-full group-hover/item:bg-emerald-500 group-hover/item:text-white transition-all">
-                        <Check className="w-3 h-3 text-emerald-500 group-hover/item:text-inherit" />
-                      </div>
-                      <span className="font-medium">{feature}</span>
+                  {plan.popular &&
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black py-2 px-6 rounded-full flex items-center gap-2 shadow-xl shadow-primary/40 animate-bounce">
+                      <Sparkles className="w-4 h-4" />
+                      الخيار الأفضل
                     </div>
-              )}
-                </div>
+              }
 
-                <button
-              onClick={() => {setSelectedPlan(plan.id);setPaymentStep("checkout");}}
-              className={`w-full py-5 rounded-[2rem] font-black text-lg transition-all transform active:scale-95 group/btn flex items-center justify-center gap-3 ${plan.popular ? "bg-primary text-white hover:bg-primary/90 shadow-2xl shadow-primary/30" : "bg-white/10 text-white hover:bg-white/20"}`}>
-              
-                  <span>اختيار هذه الخطة</span>
-                  <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />
-                </button>
-              </m.div>
-          )}
+                  <div className="mb-8">
+                    <h3 className="text-3xl font-black text-white mb-3 group-hover:text-primary transition-colors">{plan.nameAr || plan.name}</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed font-medium min-h-[40px]">{plan.descriptionAr || plan.description}</p>
+                  </div>
+
+                  <div className="mb-10 p-6 rounded-3xl bg-white/5 border border-white/10 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
+                    <div className="flex items-baseline gap-2">
+                      <m.span
+                    key={`${plan.id}-${billingCycle}`}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-5xl font-black text-white">
+
+                        {plan.price.toLocaleString()}
+                      </m.span>
+                      <span className="text-gray-400 font-black text-lg">ج.م <span className="text-sm font-bold opacity-50">/ {plan.interval === "YEARLY" ? "سنة" : plan.interval === "FOREVER" ? "مدى الحياة" : "شهر"}</span></span>
+                    </div>
+                    {yearlySaved > 0 &&
+                <div className="mt-4 flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
+                         <BadgePercent className="w-4 h-4" />
+                         <span className="text-xs font-black tracking-tight">وفرت {yearlySaved.toLocaleString()} ج.م سنوياً</span>
+                       </div>
+                }
+                  </div>
+
+                  <div className="space-y-4 mb-12 flex-grow">
+                    {(plan.featuresAr || plan.features || []).map((feature, i) =>
+                <div key={i} className="flex items-start gap-4 text-sm text-gray-300 group/item">
+                        <div className="mt-1 bg-emerald-500/20 p-1 rounded-full group-hover/item:bg-emerald-500 group-hover/item:text-white transition-all">
+                          <Check className="w-3 h-3 text-emerald-500 group-hover/item:text-inherit" />
+                        </div>
+                        <span className="font-medium">{feature}</span>
+                      </div>
+                )}
+                  </div>
+
+                  <button
+                onClick={() => {setSelectedTierKey(tier.groupKey);setPaymentStep("checkout");}}
+                className={`w-full py-5 rounded-[2rem] font-black text-lg transition-all transform active:scale-95 group/btn flex items-center justify-center gap-3 ${plan.popular ? "bg-primary text-white hover:bg-primary/90 shadow-2xl shadow-primary/30" : "bg-white/10 text-white hover:bg-white/20"}`}>
+
+                    <span>اختيار هذه الخطة</span>
+                    <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />
+                  </button>
+                </m.div>);
+
+          })}
           </m.div> :
 
         <m.div
@@ -371,7 +416,7 @@ export default function SubscriptionPlans() {
                      <div className="flex justify-between items-start mb-6">
                        <div className="space-y-1">
                          <span className="block font-black text-2xl text-white tracking-wide">{selectedPlanData?.nameAr || selectedPlanData?.name}</span>
-                         <span className="text-sm text-primary font-black uppercase tracking-widest">{billingCycle === "monthly" ? "دورة شهرية" : "دورة سنوية"}</span>
+                         <span className="text-sm text-primary font-black uppercase tracking-widest">{selectedPlanData?.interval === "YEARLY" ? "دورة سنوية" : selectedPlanData?.interval === "FOREVER" ? "مدى الحياة" : "دورة شهرية"}</span>
                        </div>
                        <div className="text-left">
                          <span className="text-3xl font-black text-white">{basePrice.toLocaleString()}</span>
@@ -384,6 +429,12 @@ export default function SubscriptionPlans() {
                            <span>السعر الأساسي</span>
                            <span>{basePrice.toLocaleString()} ج.م</span>
                         </div>
+                        {yearlySavings > 0 &&
+                    <div className="flex justify-between items-center text-emerald-400 px-2 bg-emerald-500/5 py-2 rounded-xl border border-emerald-500/10">
+                            <span className="text-sm font-black">وفر الاشتراك السنوي</span>
+                            <span className="font-black">-{yearlySavings.toLocaleString()} ج.م</span>
+                          </div>
+                    }
                         {couponData &&
                     <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center text-emerald-400 px-2 bg-emerald-500/5 py-2 rounded-xl border border-emerald-500/10">
                             <span className="text-sm font-black">خصم الكوبون</span>

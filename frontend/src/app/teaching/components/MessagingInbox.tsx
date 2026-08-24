@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Search, Send, User, Paperclip } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Conversation } from "../hooks/use-teaching-data";
+import { Conversation, Message } from "../hooks/use-teaching-data";
 
 interface MessagingInboxProps {
   conversations: Conversation[];
@@ -14,14 +14,25 @@ interface MessagingInboxProps {
 export default function MessagingInbox({ conversations, onSendMessage }: MessagingInboxProps) {
   const [activeConvId, setActiveConvId] = useState<string>(conversations[0]?.id || "");
   const [search, setSearch] = useState("");
+  const [filterUnread, setFilterUnread] = useState(false);
   const [messageText, setMessageText] = useState("");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
-  const filteredConversations = conversations.filter((c) =>
-    c.participantName.toLowerCase().includes(search.toLowerCase())
-  );
+  const quickReplies = [
+    "أهلاً بك! يسعدني مساعدتك والرد على استفساراتك.",
+    "تم الاطلاع على سؤالك، وستجد الشرح مفصلاً في المحاضرة القادمة.",
+    "أحسنت! إجابة ممتازة ومجهود رائع.",
+    "برجاء مراجعة الملف المرفق في الدرس الثالث للحصول على كافة التفاصيل.",
+  ];
+
+  const filteredConversations = conversations.filter((c) => {
+    const matchesSearch = c.participantName.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (filterUnread) return c.unreadCount > 0;
+    return true;
+  });
 
   const handleSend = () => {
     if (!messageText.trim() || !activeConvId) return;
@@ -34,10 +45,10 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
   }, [activeConv?.messages.length]);
 
   return (
-    <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-card h-[600px] grid grid-cols-1 md:grid-cols-3 text-right" dir="rtl">
+    <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-card h-[620px] grid grid-cols-1 md:grid-cols-3 text-right" dir="rtl">
       {/* Threads List Sidebar */}
       <div className="border-l border-slate-200 dark:border-slate-800 flex flex-col h-full bg-slate-50/10">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-850">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-850 space-y-3">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
             <input
@@ -48,11 +59,30 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
               className="w-full text-right pr-9 pl-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-700 dark:text-slate-200"
             />
           </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilterUnread(false)}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                !filterUnread ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+              }`}
+            >
+              الكل ({conversations.length})
+            </button>
+            <button
+              onClick={() => setFilterUnread(true)}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                filterUnread ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+              }`}
+            >
+              غير مقروءة ({conversations.filter((c) => c.unreadCount > 0).length})
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-850/60 p-2 space-y-1">
           {filteredConversations.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">لا توجد محادثات</div>
+            <div className="p-6 text-center text-xs text-slate-400">لا توجد محادثات مطابقة</div>
           ) : (
             filteredConversations.map((conv) => {
               const isSelected = conv.id === activeConvId;
@@ -109,7 +139,7 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-              {activeConv.messages.map((msg) => (
+              {activeConv.messages.map((msg: Message) => (
                 <div key={msg.id} className={`flex items-end gap-2.5 max-w-[75%] ${msg.isMe ? "mr-auto flex-row-reverse" : ""}`}>
                   {!msg.isMe && (
                     <Avatar className="w-8 h-8 rounded-full">
@@ -132,6 +162,20 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
                 </div>
               ))}
               <div ref={messagesEndRef} />
+            </div>
+
+            {/* Quick Reply Chips */}
+            <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-850 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap">ردود سريعة:</span>
+              {quickReplies.map((reply, i) => (
+                <button
+                  key={i}
+                  onClick={() => setMessageText(reply)}
+                  className="px-2.5 py-1 bg-card hover:bg-slate-100 dark:hover:bg-slate-800 text-[9px] font-medium text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-800 whitespace-nowrap transition-all"
+                >
+                  {reply}
+                </button>
+              ))}
             </div>
 
             {/* Chat Input */}

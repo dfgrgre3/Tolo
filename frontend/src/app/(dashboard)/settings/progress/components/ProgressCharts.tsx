@@ -19,62 +19,71 @@ import {
   Legend
 } from "recharts";
 
-export function SkillRadarChart({ subjectSkills }: { subjectSkills: any[] }) {
+// Chart colors are pulled from the site's real design tokens (--chart-1,
+// --chart-2, --border, --muted-foreground, --popover, ...) instead of
+// hardcoded hex/rgba values, so the charts follow light/dark theme changes
+// instead of assuming a permanently dark background.
+const CHART_PRIMARY = "hsl(var(--chart-1))";
+const CHART_SECONDARY = "hsl(var(--chart-4))";
+const GRID_STROKE = "hsl(var(--border))";
+const AXIS_TICK_FILL = "hsl(var(--muted-foreground))";
+
+export function SkillRadarChart({ subjectSkills }: { subjectSkills: Array<{ subject: string; level: number }> }) {
   return (
     <ResponsiveContainer width="100%" height={400} minWidth={280} minHeight={320}>
       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={subjectSkills}>
-        <PolarGrid stroke="rgba(255,255,255,0.05)" />
-        <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(156,163,175,0.8)', fontSize: 14 }} />
+        <PolarGrid stroke={GRID_STROKE} />
+        <PolarAngleAxis dataKey="subject" tick={{ fill: AXIS_TICK_FILL, fontSize: 14 }} />
         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
         <Radar
           name="مستوى المهارة"
           dataKey="level"
-          stroke="#6366f1"
-          fill="#6366f1"
+          stroke={CHART_PRIMARY}
+          fill={CHART_PRIMARY}
           fillOpacity={0.4}
         />
-        <RechartsTooltip contentStyle={{ background: '#000', border: '1px solid #333' }} />
-        <Legend />
+        <RechartsTooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, color: 'hsl(var(--popover-foreground))' }} />
+        <Legend wrapperStyle={{ color: AXIS_TICK_FILL }} />
       </RadarChart>
     </ResponsiveContainer>
   );
 }
 
-export function ActivityAreaChart({ studyStats, CustomTooltip }: { studyStats: any[], CustomTooltip: React.ComponentType<any> }) {
+export function ActivityAreaChart({ studyStats, CustomTooltip }: { studyStats: Array<{ day: string; minutes: number; target: number }>, CustomTooltip: React.ComponentType<any> }) {
   return (
     <ResponsiveContainer width="100%" height={350} minWidth={280} minHeight={280}>
       <AreaChart data={studyStats}>
         <defs>
           <linearGradient id="colorMin" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+            <stop offset="5%" stopColor={CHART_PRIMARY} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={CHART_PRIMARY} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'gray', fontSize: 12 }} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'gray', fontSize: 12 }} />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_STROKE} />
+        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} />
+        <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} />
         <RechartsTooltip content={<CustomTooltip />} />
-        <Area type="monotone" dataKey="minutes" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorMin)" />
-        <Line type="monotone" dataKey="target" stroke="rgba(245,158,11,0.3)" strokeDasharray="5 5" dot={false} />
+        <Area type="monotone" dataKey="minutes" stroke={CHART_PRIMARY} strokeWidth={3} fillOpacity={1} fill="url(#colorMin)" />
+        <Line type="monotone" dataKey="target" stroke={CHART_SECONDARY} strokeOpacity={0.6} strokeDasharray="5 5" dot={false} />
       </AreaChart>
     </ResponsiveContainer>
   );
 }
 
-export function GrowthLineChart({ progressPath }: { progressPath: any[] }) {
+export function GrowthLineChart({ progressPath }: { progressPath: Array<{ month: string; xp: number }> }) {
   return (
     <ResponsiveContainer width="100%" height={350} minWidth={280} minHeight={280}>
       <LineChart data={progressPath}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'gray', fontSize: 12 }} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'gray', fontSize: 12 }} />
-        <RechartsTooltip />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_STROKE} />
+        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} />
+        <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} />
+        <RechartsTooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, color: 'hsl(var(--popover-foreground))' }} />
         <Line
           type="stepAfter"
           dataKey="xp"
-          stroke="#10b981"
+          stroke="hsl(var(--chart-3))"
           strokeWidth={4}
-          dot={{ fill: '#10b981', r: 6, strokeWidth: 2, stroke: '#000' }}
+          dot={{ fill: 'hsl(var(--chart-3))', r: 6, strokeWidth: 2, stroke: 'hsl(var(--popover))' }}
           activeDot={{ r: 8, strokeWidth: 0 }}
         />
       </LineChart>

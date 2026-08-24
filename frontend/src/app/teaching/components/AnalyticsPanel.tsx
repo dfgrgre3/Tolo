@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/api-client";
 import {
   AreaChart,
   Area,
@@ -13,38 +15,15 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, BookOpen } from "lucide-react";
 
-const revenueData = [
-  { month: "يناير", revenue: 1200 },
-  { month: "فبراير", revenue: 2100 },
-  { month: "مارس", revenue: 1800 },
-  { month: "أبريل", revenue: 3400 },
-  { month: "مايو", revenue: 3100 },
-  { month: "يونيو", revenue: 4500 },
-  { month: "يوليو", revenue: 5200 },
-];
-
-const studentGrowthData = [
-  { month: "يناير", students: 150 },
-  { month: "فبراير", students: 280 },
-  { month: "مارس", students: 420 },
-  { month: "أبريل", students: 510 },
-  { month: "مايو", students: 690 },
-  { month: "يونيو", students: 850 },
-  { month: "يوليو", students: 1100 },
-];
-
-const trafficData = [
-  { name: "البحث المباشر", value: 400 },
-  { name: "وسائل التواصل", value: 300 },
-  { name: "الإحالات", value: 200 },
-  { name: "الحملات الإعلانية", value: 100 },
-];
+interface AnalyticsResponse {
+  revenueData?: { month: string; revenue: number }[];
+  studentGrowthData?: { month: string; students: number }[];
+  trafficData?: { name: string; value: number }[];
+}
 
 const COLORS = ["#f97316", "#3b82f6", "#10b981", "#a855f7"];
 
@@ -54,6 +33,17 @@ export default function AnalyticsPanel() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const { data, isLoading } = useQuery<AnalyticsResponse>({
+    queryKey: ["teaching", "analytics"],
+    queryFn: () => apiClient.get<AnalyticsResponse>("/api/teaching/analytics"),
+    retry: 1,
+    staleTime: 60 * 1000,
+  });
+
+  const revenueData = data?.revenueData ?? [];
+  const studentGrowthData = data?.studentGrowthData ?? [];
+  const trafficData = data?.trafficData ?? [];
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
@@ -69,7 +59,11 @@ export default function AnalyticsPanel() {
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">تحليلات الأرباح الشهرية</CardTitle>
           </CardHeader>
           <CardContent className="h-80 pt-4">
-            {isMounted ? (
+            {!isMounted || isLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
+            ) : revenueData.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">لا توجد بيانات أرباح متوفرة حالياً</div>
+            ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
@@ -85,8 +79,6 @@ export default function AnalyticsPanel() {
                   <Area type="monotone" dataKey="revenue" name="الإيرادات ($)" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#revenueGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
             )}
           </CardContent>
         </Card>
@@ -97,7 +89,11 @@ export default function AnalyticsPanel() {
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">معدل نمو الطلاب</CardTitle>
           </CardHeader>
           <CardContent className="h-80 pt-4">
-            {isMounted ? (
+            {!isMounted || isLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
+            ) : studentGrowthData.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">لا توجد بيانات طلاب متوفرة حالياً</div>
+            ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={studentGrowthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(200,200,200,0.1)" />
@@ -107,8 +103,6 @@ export default function AnalyticsPanel() {
                   <Bar dataKey="students" name="الطلاب الجدد" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
             )}
           </CardContent>
         </Card>
@@ -119,35 +113,39 @@ export default function AnalyticsPanel() {
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">مصادر زيارات الكورسات</CardTitle>
           </CardHeader>
           <CardContent className="h-80 pt-4 flex flex-col md:flex-row items-center justify-around gap-6">
-            <div className="w-full h-60 md:w-1/2">
-              {isMounted ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={trafficData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {trafficData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ direction: "rtl", textAlign: "right", borderRadius: "12px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
-              )}
-            </div>
-            
-            {/* Legend info */}
-            <div className="space-y-3 w-full md:w-1/3">
-              {trafficData.map((data, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs font-semibold">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx] }} />
-                    <span className="text-slate-700 dark:text-slate-300">{data.name}</span>
-                  </div>
-                  <span className="text-slate-500">{data.value} زيارة</span>
+            {!isMounted || isLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
+            ) : trafficData.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">لا توجد بيانات مصادر زيارات متوفرة حالياً</div>
+            ) : (
+              <>
+                <div className="w-full h-60 md:w-1/2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={trafficData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                        {trafficData.map((_entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ direction: "rtl", textAlign: "right", borderRadius: "12px" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+                
+                {/* Legend info */}
+                <div className="space-y-3 w-full md:w-1/3">
+                  {trafficData.map((dataItem, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                        <span className="text-slate-700 dark:text-slate-300">{dataItem.name}</span>
+                      </div>
+                      <span className="text-slate-500">{dataItem.value} زيارة</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

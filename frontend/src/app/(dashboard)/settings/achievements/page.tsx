@@ -13,11 +13,14 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Info, Clock, BookOpen, Star, Target, Zap, Search, Sword, Scroll } from 'lucide-react';
 
 
+// Gamified "achievements hall" visual language, built entirely from real
+// theme tokens (no dead/undefined global classes) so it renders correctly
+// in both light and dark mode instead of always-dark hardcoded colors.
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-6 transition-all",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+  glass: "relative overflow-hidden rounded-[2.5rem] border-2 border-primary/30 bg-card/60 shadow-2xl backdrop-blur-3xl ring-1 ring-primary/10",
+  card: "rounded-3xl border border-border bg-card/60 backdrop-blur-3xl h-full p-6 transition-all",
+  neonText: "font-black bg-gradient-to-l from-primary via-primary to-accent bg-clip-text text-transparent",
+  goldText: "font-black text-amber-500",
 };
 
 export default function AchievementsPage() {
@@ -70,7 +73,7 @@ export default function AchievementsPage() {
   }, [showCelebration, debouncedHideCelebration]);
 
 	return (
-		<div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
+		<div className="min-h-screen bg-background text-foreground overflow-hidden" dir="rtl">
 			{/* --- Ambient Background --- */}
 			<div className="fixed inset-0 pointer-events-none -z-10">
 				<div className="absolute top-0 left-0 w-full h-[600px] bg-primary/10 rounded-b-[100%] blur-[120px] opacity-40" />
@@ -96,7 +99,7 @@ export default function AchievementsPage() {
 						<h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
 							سجل <span className={STYLES.neonText}>الإنجازات الملحمية</span>
 						</h1>
-						<p className="text-lg md:text-xl text-gray-400 font-medium max-w-xl">
+						<p className="text-lg md:text-xl text-muted-foreground font-medium max-w-xl">
 							كل تحدٍ تفوز به هو علامة في تاريخك العسكري. هنا توثيق لكل المعارك التي خضتها والانتصارات التي حققتها.
 						</p>
 					</div>
@@ -104,12 +107,12 @@ export default function AchievementsPage() {
 					{userProgress && (
 						<div className="relative group">
 							 <div className="absolute inset-0 bg-primary/20 blur-[100px] group-hover:bg-primary/40 transition-all duration-700" />
-							 <div className="relative h-48 w-48 rounded-[3rem] bg-black/40 border-2 border-white/10 flex flex-col items-center justify-center p-8 backdrop-blur-3xl shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
-								 <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">المستوى الحالي</p>
+							 <div className="relative h-48 w-48 rounded-[3rem] bg-card/60 border-2 border-border flex flex-col items-center justify-center p-8 backdrop-blur-3xl shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+								 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">المستوى الحالي</p>
 								 <p className={STYLES.neonText + " text-7xl font-black underline decoration-primary/50"}>{userProgress.level}</p>
-								 <div className="flex items-center gap-1.5 mt-3 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+								 <div className="flex items-center gap-1.5 mt-3 px-3 py-1 bg-muted/40 rounded-full border border-border">
 									 <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-									 <span className="text-white font-black text-xs">{userProgress.totalXP.toLocaleString()} XP</span>
+									 <span className="text-foreground font-black text-xs">{userProgress.totalXP.toLocaleString()} XP</span>
 								 </div>
 							 </div>
 						</div>
@@ -128,7 +131,7 @@ export default function AchievementsPage() {
 							</div>
 							<div className="flex-1 space-y-2">
 								<h3 className="font-black text-2xl text-red-500">حدث خطأ في استدعاء الذكريات</h3>
-								<p className="text-gray-400 font-medium">{error}</p>
+								<p className="text-muted-foreground font-medium">{error}</p>
 							</div>
 							<Button variant="destructive" onClick={refetch} className="h-14 px-10 rounded-2xl font-black shadow-lg shadow-red-500/20">
 								إعادة استدعاء
@@ -155,11 +158,11 @@ export default function AchievementsPage() {
 												🎉
 											</div>
 											<div className="space-y-1 text-center md:text-right">
-												<h3 className="text-2xl font-black text-white">يوم عظيم للجمهورية!</h3>
-												<p className="text-gray-400 font-medium">لقد حصلت على أساطير جديدة تليق بمقامك العالي. تفقد سجلاتك الآن!</p>
+												<h3 className="text-2xl font-black text-foreground">يوم عظيم للجمهورية!</h3>
+												<p className="text-muted-foreground font-medium">لقد حصلت على أساطير جديدة تليق بمقامك العالي. تفقد سجلاتك الآن!</p>
 											</div>
 										</div>
-										<Button variant="ghost" onClick={() => setShowCelebration(false)} className="h-12 px-6 rounded-xl hover:bg-white/5 uppercase font-black text-xs tracking-widest text-gray-500">إغلاق التنبيه</Button>
+										<Button variant="ghost" onClick={() => setShowCelebration(false)} className="h-12 px-6 rounded-xl hover:bg-muted/40 uppercase font-black text-xs tracking-widest text-muted-foreground">إغلاق التنبيه</Button>
 									</div>
 								</m.div>
 							)}
@@ -178,7 +181,7 @@ export default function AchievementsPage() {
 							{/* Filters Sidebar */}
 							<aside className="lg:w-80 flex-shrink-0">
 								<div className="sticky top-8 space-y-4">
-									<div className="p-4 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between text-xs font-black uppercase tracking-widest text-gray-400 mb-6">
+									<div className="p-4 bg-muted/40 rounded-3xl border border-border/50 flex items-center justify-between text-xs font-black uppercase tracking-widest text-muted-foreground mb-6">
 										<span>نظام الفلترة</span>
 										<ListFilter className="w-4 h-4" />
 									</div>
@@ -215,7 +218,7 @@ export default function AchievementsPage() {
 
 								{/* All Achievements Inventory */}
 								<div className="space-y-8">
-									<div className="flex items-center justify-between gap-6 border-b border-white/5 pb-8 flex-wrap">
+									<div className="flex items-center justify-between gap-6 border-b border-border/50 pb-8 flex-wrap">
 										<h2 className="text-3xl font-black flex items-center gap-4">
 											<Sword className="h-7 w-7 text-primary" />
 											<span>مخزن المهارات والألقاب</span>
@@ -229,16 +232,16 @@ export default function AchievementsPage() {
 
 									{filteredAchievements.length === 0 ? (
 										<m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={STYLES.glass + " p-20 text-center space-y-8 border-dashed"}>
-											<div className="p-8 bg-white/5 rounded-full inline-flex items-center justify-center border border-white/5">
-												<Search className="w-20 h-20 text-gray-700" />
+											<div className="p-8 bg-muted/40 rounded-full inline-flex items-center justify-center border border-border/50">
+												<Search className="w-20 h-20 text-muted-foreground/60" />
 											</div>
 											<div className="space-y-2">
-												<h3 className="text-3xl font-black text-white">لم نجد أي أثر لهذا الطلب</h3>
-												<p className="text-gray-500 font-medium max-w-lg mx-auto">معايير البحث هذه لم تكشف عن أي إنجازات في السجلات الملكية. جرب استخدام مفاتيح تصفية مختلفة.</p>
+												<h3 className="text-3xl font-black text-foreground">لم نجد أي أثر لهذا الطلب</h3>
+												<p className="text-muted-foreground font-medium max-w-lg mx-auto">معايير البحث هذه لم تكشف عن أي إنجازات في السجلات الملكية. جرب استخدام مفاتيح تصفية مختلفة.</p>
 											</div>
 											<Button
 												onClick={() => setFilters({ search: '', category: 'all', difficulty: 'all', status: 'all' })}
-												className="h-16 px-12 bg-white text-black font-black rounded-2xl hover:bg-gray-200 transition-all shadow-xl"
+												className="h-16 px-12 font-black rounded-2xl shadow-xl"
 											>
 												إعادة تعيين كامل للسجلات
 											</Button>
@@ -262,9 +265,9 @@ export default function AchievementsPage() {
 
 						{/* The Guide: Visual Redesign */}
 						<m.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-							<Card className={STYLES.glass + " p-0 border border-white/5 relative group overflow-hidden"}>
+							<Card className={STYLES.glass + " p-0 border border-border/50 relative group overflow-hidden"}>
 								<div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
-								<CardHeader className="p-10 pb-4 relative z-10 flex flex-col md:flex-row items-center justify-between border-b border-white/5">
+								<CardHeader className="p-10 pb-4 relative z-10 flex flex-col md:flex-row items-center justify-between border-b border-border/50">
 									<div className="space-y-2">
 										<CardTitle className="text-3xl font-black flex items-center gap-4">
 											<div className="p-3 bg-primary/10 rounded-2xl">
@@ -272,9 +275,9 @@ export default function AchievementsPage() {
 											</div>
 											<span>دستور ترقية الرتب العسكرية</span>
 										</CardTitle>
-										<p className="text-gray-400 font-medium mr-16">اتبع المسارات القتالية المعتمدة للحصول على أعلى الألقاب الملكية.</p>
+										<p className="text-muted-foreground font-medium mr-16">اتبع المسارات القتالية المعتمدة للحصول على أعلى الألقاب الملكية.</p>
 									</div>
-									<Button variant="ghost" className="h-12 px-6 rounded-xl hover:bg-white/5 gap-2 font-black text-xs uppercase tracking-[0.2em] text-gray-500 mt-4 md:mt-0">
+									<Button variant="ghost" className="h-12 px-6 rounded-xl hover:bg-muted/40 gap-2 font-black text-xs uppercase tracking-[0.2em] text-muted-foreground mt-4 md:mt-0">
 										<Scroll className="w-5 h-5" />
 										<span>تحميل الدستور</span>
 									</Button>
@@ -310,16 +313,16 @@ export default function AchievementsPage() {
 											<m.div 
 												key={i}
 												whileHover={{ y: -5 }}
-												className={`p-8 rounded-[2rem] bg-gradient-to-b ${item.bg} border border-white/5 backdrop-blur-3xl relative overflow-hidden group/item`}
+												className={`p-8 rounded-[2rem] bg-gradient-to-b ${item.bg} border border-border/50 backdrop-blur-3xl relative overflow-hidden group/item`}
 											>
-												<div className="absolute -top-4 -right-4 p-8 bg-white/5 rounded-full blur-[40px] opacity-20 group-hover/item:opacity-40 transition-opacity" />
-												<div className="p-4 bg-black/40 rounded-3xl w-max mb-6 border border-white/10 shadow-xl">
+												<div className="absolute -top-4 -right-4 p-8 bg-muted/40 rounded-full blur-[40px] opacity-20 group-hover/item:opacity-40 transition-opacity" />
+												<div className="p-4 bg-card/60 rounded-3xl w-max mb-6 border border-border shadow-xl">
 													{item.icon}
 												</div>
-												<h3 className="font-black text-xl mb-6 text-white group-hover/item:text-primary transition-colors">{item.title}</h3>
+												<h3 className="font-black text-xl mb-6 text-foreground group-hover/item:text-primary transition-colors">{item.title}</h3>
 												<ul className="space-y-4">
 													{item.items.map((line, j) => (
-														<li key={j} className="text-sm font-bold text-gray-500 flex items-start gap-4">
+														<li key={j} className="text-sm font-bold text-muted-foreground flex items-start gap-4">
 															<span className="w-2 h-2 rounded-full bg-primary/40 mt-1.5 flex-shrink-0" />
 															<span className="leading-relaxed">{line}</span>
 														</li>

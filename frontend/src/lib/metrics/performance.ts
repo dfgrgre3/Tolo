@@ -71,7 +71,8 @@ class PerformanceMonitor {
    */
   recordMetric(metric: PerformanceMetric) {
     // Log important metrics to ELK/Console
-    if (metric.value > 1500 && metric.unit === 'ms') {
+    const threshold = process.env.NODE_ENV === 'development' ? 5000 : 1500;
+    if (metric.value > threshold && metric.unit === 'ms') {
       logger.warn(`Slow Performance detected: ${metric.name}`, {
         duration: `${metric.value.toFixed(2)}ms`,
         ...metric.tags

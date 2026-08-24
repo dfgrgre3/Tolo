@@ -2,13 +2,14 @@
 
 import { useAuth } from "@/hooks/use-auth";
 /**
- * 🎨 Settings Layout - تخطيط صفحات الإعدادات (محدّث بالكامل)
+ * 🎨 Settings Layout - تخطيط صفحات الإعدادات
  *
- * تصميم متطور مع:
- * - Sidebar متحرك مع معلومات المستخدم
- * - تنقل سلس مع مؤشر نشط
- * - دعم RTL كامل
- * - ربط حقيقي مع بيانات المستخدم من قاعدة البيانات
+ * Sidebar متحرك مع معلومات المستخدم، تنقل سلس مع مؤشر نشط، دعم RTL كامل،
+ * وربط حقيقي مع بيانات المستخدم من قاعدة البيانات.
+ *
+ * يستخدم رموز التصميم الموحدة للموقع (bg-background / bg-card / text-foreground /
+ * text-primary ...) بدلاً من ألوان ثابتة، حتى يستجيب لوضعي الفاتح والداكن
+ * الحقيقيين بدل فرض مظهر داكن دائم.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -35,8 +36,10 @@ import {
   AlertCircle,
   TrendingUp,
   Award,
-} from 'lucide-react';import { useGamification } from '@/hooks/use-gamification';
+} from 'lucide-react';
+import { useGamification } from '@/hooks/use-gamification';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface NavItem {
   id: string;
@@ -64,7 +67,7 @@ const navItems: NavItem[] = [
     href: '/settings/security',
     description: 'حماية حسابك وكلمات المرور',
     badge: 'مهم',
-    badgeColor: 'bg-red-500',
+    badgeColor: 'bg-destructive',
     badgeVariant: 'solid',
   },
   {
@@ -149,7 +152,7 @@ function SidebarContent({
 }: SidebarContentProps) {
   const isAdmin = user.role === 'ADMIN';
   const isTeacher = user.role === 'TEACHER';
-  
+
   const userInitial = user.name
     ? user.name.charAt(0).toUpperCase()
     : user.email?.charAt(0)?.toUpperCase() || 'U';
@@ -165,7 +168,7 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full">
       {/* Sidebar Header */}
-      <div className="p-4 border-b border-white/10">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <AnimatePresence mode="wait">
             {(isSidebarOpen || mobile) && (
@@ -175,12 +178,12 @@ function SidebarContent({
                 exit={{ opacity: 0, x: -10 }}
                 className="flex items-center gap-3"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
-                  <Settings className="h-5 w-5 text-white" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20">
+                  <Settings className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-white">الإعدادات</h2>
-                  <p className="text-xs text-slate-400">تخصيص حسابك</p>
+                  <h2 className="font-bold text-foreground">الإعدادات</h2>
+                  <p className="text-xs text-muted-foreground">تخصيص حسابك</p>
                 </div>
               </m.div>
             )}
@@ -189,12 +192,12 @@ function SidebarContent({
           {!mobile && (
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
             >
               {isSidebarOpen ? (
-                <ChevronRight className="h-5 w-5 text-slate-400" />
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
               ) : (
-                <ChevronLeft className="h-5 w-5 text-slate-400" />
+                <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               )}
             </button>
           )}
@@ -202,9 +205,9 @@ function SidebarContent({
           {mobile && (
             <button
               onClick={onCloseMobile}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
             >
-              <X className="h-5 w-5 text-slate-400" />
+              <X className="h-5 w-5 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -217,12 +220,12 @@ function SidebarContent({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="p-4 border-b border-white/10"
+            className="p-4 border-b border-border"
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-indigo-500/20">
-                  <div className="h-full w-full rounded-[9px] bg-slate-900 overflow-hidden flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary via-primary/70 to-accent p-0.5 shadow-lg shadow-primary/20">
+                  <div className="h-full w-full rounded-[9px] bg-card overflow-hidden flex items-center justify-center">
                     {user.avatar ? (
                       <img
                         src={user.avatar}
@@ -230,35 +233,39 @@ function SidebarContent({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-white font-bold text-sm">{userInitial}</span>
+                      <span className="text-foreground font-bold text-sm">{userInitial}</span>
                     )}
                   </div>
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-400 border-2 border-slate-900" />
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-card" />
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white text-sm truncate">
+                <p className="font-semibold text-foreground text-sm truncate">
                   {user.name || user.username || user.email?.split('@')[0] || 'U'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span
+                  <Badge
+                    variant="outline"
                     className={cn(
-                      'inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider',
+                      'px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider border-0',
                       isAdmin
-                        ? 'bg-amber-500/20 text-amber-400'
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                         : isTeacher
-                          ? 'bg-purple-500/20 text-purple-400'
-                          : 'bg-indigo-500/20 text-indigo-400'
+                          ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                          : 'bg-primary/15 text-primary'
                     )}
                   >
                     {isAdmin ? 'مدير' : isTeacher ? 'مدرس' : 'طالب'}
-                  </span>
+                  </Badge>
                   {!user.emailVerified && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-orange-500/20 text-orange-400">
+                    <Badge
+                      variant="outline"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold bg-orange-500/15 text-orange-600 dark:text-orange-400 border-0"
+                    >
                       <AlertCircle className="h-2.5 w-2.5" />
                       غير مفعّل
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -266,40 +273,40 @@ function SidebarContent({
 
             <div className="mt-3">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-slate-500 font-medium">اكتمال الملف</span>
-                <span className="text-[10px] font-bold text-indigo-400">{profileCompletion}%</span>
+                <span className="text-[10px] text-muted-foreground font-medium">اكتمال الملف</span>
+                <span className="text-[10px] font-bold text-primary">{profileCompletion}%</span>
               </div>
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <m.div
                   initial={{ width: 0 }}
                   animate={{ width: `${profileCompletion}%` }}
                   transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 mt-3">
-              <div className="text-center p-2 rounded-lg bg-white/5">
+              <div className="text-center p-2 rounded-lg bg-muted/50">
                 <div className="flex items-center justify-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-400" />
-                  <span className="text-xs font-bold text-white">{user.totalXP || 0}</span>
+                  <Star className="h-3 w-3 text-yellow-500" />
+                  <span className="text-xs font-bold text-foreground">{user.totalXP || 0}</span>
                 </div>
-                <p className="text-[9px] text-slate-500 mt-0.5">XP</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">XP</p>
               </div>
-              <div className="text-center p-2 rounded-lg bg-white/5">
+              <div className="text-center p-2 rounded-lg bg-muted/50">
                 <div className="flex items-center justify-center gap-1">
-                  <Trophy className="h-3 w-3 text-indigo-400" />
-                  <span className="text-xs font-bold text-white">{user.level || 1}</span>
+                  <Trophy className="h-3 w-3 text-primary" />
+                  <span className="text-xs font-bold text-foreground">{user.level || 1}</span>
                 </div>
-                <p className="text-[9px] text-slate-500 mt-0.5">مستوى</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">مستوى</p>
               </div>
-              <div className="text-center p-2 rounded-lg bg-white/5">
+              <div className="text-center p-2 rounded-lg bg-muted/50">
                 <div className="flex items-center justify-center gap-1">
-                  <Flame className="h-3 w-3 text-orange-400" />
-                  <span className="text-xs font-bold text-white">{user.currentStreak || 0}</span>
+                  <Flame className="h-3 w-3 text-orange-500" />
+                  <span className="text-xs font-bold text-foreground">{user.currentStreak || 0}</span>
                 </div>
-                <p className="text-[9px] text-slate-500 mt-0.5">يوم</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">يوم</p>
               </div>
             </div>
           </m.div>
@@ -320,14 +327,14 @@ function SidebarContent({
               className={cn(
                 'group relative flex items-center gap-3 rounded-xl p-3 transition-all duration-200',
                 isActive
-                  ? 'bg-gradient-to-l from-indigo-500/20 to-purple-500/20 text-white'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-gradient-to-l from-primary/15 to-accent/15 text-foreground'
+                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
               )}
             >
               {isActive && (
                 <m.div
                   layoutId="activeTab"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full bg-gradient-to-b from-indigo-400 to-purple-500"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full bg-gradient-to-b from-primary to-accent"
                 />
               )}
 
@@ -335,8 +342,8 @@ function SidebarContent({
                 className={cn(
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors',
                   isActive
-                    ? 'bg-indigo-500/20 text-indigo-400 shadow-lg shadow-indigo-500/10'
-                    : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'
+                    ? 'bg-primary/15 text-primary shadow-lg shadow-primary/10'
+                    : 'bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -355,7 +362,7 @@ function SidebarContent({
                       {item.badge && (
                         <span
                           className={cn(
-                            'px-1.5 py-0.5 text-[9px] rounded-full text-white font-bold',
+                            'px-1.5 py-0.5 text-[9px] rounded-full text-primary-foreground font-bold',
                             item.badgeColor
                           )}
                         >
@@ -363,7 +370,7 @@ function SidebarContent({
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">{item.description}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{item.description}</p>
                   </m.div>
                 )}
               </AnimatePresence>
@@ -377,10 +384,10 @@ function SidebarContent({
           disabled={isLoggingOut}
           className={cn(
             'w-full group relative flex items-center gap-3 rounded-xl p-3 transition-all duration-200',
-            'text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60'
+            'text-destructive hover:bg-destructive/10 disabled:opacity-60'
           )}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 transition-colors group-hover:bg-red-500/20">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10 transition-colors group-hover:bg-destructive/20">
             {isLoggingOut ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
@@ -395,7 +402,7 @@ function SidebarContent({
                 exit={{ opacity: 0, x: -10 }}
               >
                 <span className="font-medium whitespace-nowrap">تسجيل الخروج</span>
-                <p className="text-xs text-red-400/60 mt-0.5">إنهاء الجلسة الحالية</p>
+                <p className="text-xs text-destructive/70 mt-0.5">إنهاء الجلسة الحالية</p>
               </m.div>
             )}
           </AnimatePresence>
@@ -409,30 +416,30 @@ function SidebarContent({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="p-4 border-t border-white/10"
+            className="p-4 border-t border-border"
           >
             {!user.emailVerified ? (
               <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <AlertCircle className="h-4 w-4 text-orange-400" />
-                  <span className="text-xs font-bold text-orange-300">تفعيل الحساب</span>
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-300">تفعيل الحساب</span>
                 </div>
-                <p className="text-[10px] text-orange-400/70 leading-relaxed">
+                <p className="text-[10px] text-orange-600/70 dark:text-orange-400/70 leading-relaxed">
                   لم يتم تفعيل بريدك الإلكتروني بعد. تحقق من بريدك لتفعيل الحساب.
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-3">
+              <div className="rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
-                  <span className="text-xs font-bold text-white">نصيحة أمنية</span>
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold text-foreground">نصيحة أمنية</span>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                   فعّل التحقق بخطوتين لحماية حسابك بشكل أفضل.
                 </p>
                 <Link
                   href="/settings/security"
-                  className="mt-2 inline-flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors"
                 >
                   الذهاب للأمان
                   <ChevronLeft className="h-3 w-3" />
@@ -450,7 +457,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, isLoading, logout } = useAuth();
@@ -466,16 +472,17 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     }
   }, [isLoggingOut, logout]);
 
-  // Detect mobile
+  // Collapse the desktop sidebar's expanded state when the viewport narrows
+  // below the `lg` breakpoint — the desktop/mobile layout switch itself is
+  // handled purely by CSS (`hidden lg:flex` / `lg:hidden`) below, so there is
+  // no JS-driven remount and no hydration flash.
   useEffect(() => {
-    const checkMobile = () => {
-      const isMobileNow = window.innerWidth < 1024;
-      setIsMobile(isMobileNow);
-      if (isMobileNow) setIsSidebarOpen(false);
+    const checkWidth = () => {
+      if (window.innerWidth < 1024) setIsSidebarOpen(false);
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
   }, []);
 
   // Auth guard with improved stability
@@ -486,7 +493,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     // If no user found after loading, redirect to login
     if (!user) {
       const redirectTarget = pathname || '/settings';
-      
+
       // Prevent infinite redirect if we're already on a path that should be public (though settings shouldn't be)
       if (pathname === '/login' || pathname === '/register') return;
 
@@ -496,15 +503,15 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="h-16 w-16 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
+            <div className="h-16 w-16 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Settings className="h-6 w-6 text-indigo-400" />
+              <Settings className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <p className="text-slate-400 text-sm font-medium">جاري التحميل...</p>
+          <p className="text-muted-foreground text-sm font-medium">جاري التحميل...</p>
         </div>
       </div>
     );
@@ -520,79 +527,61 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   };
 
   const currentItem = getCurrentNavItem();
-  const isTeacher = user.role === 'TEACHER';
-  const isAdmin = user.role === 'ADMIN';
-
-  // User avatar / initials
-  const userInitial = user.name
-    ? user.name.charAt(0).toUpperCase()
-    : user.email?.charAt(0)?.toUpperCase() || 'U';
-
-  const profileCompletion = [
-    user.name,
-    user.email,
-    user.phone,
-    user.school || user.bio,
-    user.avatar,
-  ].filter(Boolean).length * 20; // 0-100
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" dir="rtl">
-      {/* Mobile Header */}
-      {isMobile && (
-        <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
-          <button
-            onClick={() => setIsMobileSidebarOpen(true)}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-          >
-            <Menu className="h-5 w-5 text-white" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-              {currentItem?.icon && <currentItem.icon className="h-4 w-4 text-white" />}
-            </div>
-            <span className="font-semibold text-white">{currentItem?.label || 'الإعدادات'}</span>
+    <div className="min-h-screen bg-background" dir="rtl">
+      {/* Mobile Header — CSS-only responsive (hidden lg:hidden), not JS-conditional,
+          so there is no SSR->client hydration flash of the desktop sidebar on mobile. */}
+      <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between p-4 bg-card/80 backdrop-blur-xl border-b border-border">
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="p-2 rounded-xl bg-accent/50 hover:bg-accent transition-colors"
+        >
+          <Menu className="h-5 w-5 text-foreground" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
+            {currentItem?.icon && <currentItem.icon className="h-4 w-4 text-primary-foreground" />}
           </div>
-          <div className="w-9" />
+          <span className="font-semibold text-foreground">{currentItem?.label || 'الإعدادات'}</span>
         </div>
-      )}
+        <div className="w-9" />
+      </div>
 
       <div className="flex">
-        {/* Desktop Sidebar */}
-        {!isMobile && (
-          <m.aside
-            initial={false}
-            animate={{ width: isSidebarOpen ? 300 : 80 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="sticky top-0 h-screen bg-slate-900/50 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden"
-          >
-            <SidebarContent
-              isSidebarOpen={isSidebarOpen}
-              user={{
-                ...user,
-                name: user.name ?? undefined,
-                username: user.username ?? undefined,
-                avatar: user.avatar ?? undefined,
-                phone: user.phone ?? undefined,
-                school: user.school ?? undefined,
-                bio: user.bio ?? undefined,
-                emailVerified: user.emailVerified ?? undefined,
-                totalXP: userProgress?.totalXP || 0,
-                level: userProgress?.level || 1,
-                currentStreak: userProgress?.currentStreak || 0
-              }}
-              currentItem={currentItem!}
-              onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-              onCloseMobile={() => setIsMobileSidebarOpen(false)}
-              onLogout={handleLogout}
-              isLoggingOut={isLoggingOut}
-            />
-          </m.aside>
-        )}
+        {/* Desktop Sidebar — CSS-only responsive (hidden lg:flex) */}
+        <m.aside
+          initial={false}
+          animate={{ width: isSidebarOpen ? 300 : 80 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="hidden lg:flex sticky top-0 h-screen bg-card/60 backdrop-blur-md border-l border-border flex-col overflow-hidden"
+        >
+          <SidebarContent
+            isSidebarOpen={isSidebarOpen}
+            user={{
+              ...user,
+              name: user.name ?? undefined,
+              username: user.username ?? undefined,
+              avatar: user.avatar ?? undefined,
+              phone: user.phone ?? undefined,
+              school: user.school ?? undefined,
+              bio: user.bio ?? undefined,
+              emailVerified: user.emailVerified ?? undefined,
+              totalXP: userProgress?.totalXP || 0,
+              level: userProgress?.level || 1,
+              currentStreak: userProgress?.currentStreak || 0
+            }}
+            currentItem={currentItem!}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            onCloseMobile={() => setIsMobileSidebarOpen(false)}
+            onLogout={handleLogout}
+            isLoggingOut={isLoggingOut}
+          />
+        </m.aside>
 
         {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
-          {isMobile && isMobileSidebarOpen && (
+          {isMobileSidebarOpen && (
             <>
               <m.div
                 initial={{ opacity: 0 }}
@@ -606,7 +595,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-slate-900 border-l border-white/10 flex flex-col"
+                className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-card border-l border-border flex flex-col"
               >
                 <SidebarContent
                   mobile

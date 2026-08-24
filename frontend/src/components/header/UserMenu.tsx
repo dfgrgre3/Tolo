@@ -467,7 +467,9 @@ export function UserMenu() {
   useEffect(() => {
     if (!mounted || !user?.id) return;
 
-    fetchActivities();
+    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? window.requestIdleCallback(() => fetchActivities(), { timeout: 3000 })
+      : setTimeout(() => fetchActivities(), 1000);
 
     if (!isConnected) {
       activityIntervalRef.current = setInterval(fetchActivities, 300_000);
@@ -487,6 +489,11 @@ export function UserMenu() {
     if (socket) socket.addEventListener("message", handleWsMessage);
 
     return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId as any);
+      }
       if (activityIntervalRef.current) clearInterval(activityIntervalRef.current);
       if (socket) socket.removeEventListener("message", handleWsMessage);
     };

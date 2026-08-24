@@ -78,7 +78,7 @@ export const AchievementCard = memo(({
         {/* ✅ 5. Accessibility: شريط تقدم حقيقي لقرّاء الشاشة */}
         <div className="mt-4 space-y-2 relative z-10">
           <div className="flex justify-between text-xs font-medium">
-            <span className="text-gray-400">{progressLabel}</span>
+            <span className="text-gray-300">{progressLabel}</span>
             <span className="text-primary tabular-nums">{safeProgress}%</span>
           </div>
           

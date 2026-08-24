@@ -122,7 +122,9 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
       }
     };
 
-    fetchActivities();
+    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? window.requestIdleCallback(() => fetchActivities(), { timeout: 2500 })
+      : setTimeout(() => fetchActivities(), 500);
 
     const intervalTime = isConnected ? null : 300000;
     let interval: NodeJS.Timeout | null = null;

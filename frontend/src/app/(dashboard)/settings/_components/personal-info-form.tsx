@@ -21,13 +21,13 @@ export function PersonalInfoForm({
 }) {
   return (
     <SettingsCard delay={0.1}>
-      <div className="p-5 border-b border-white/10 flex items-center justify-between">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <User className="h-5 w-5 text-indigo-400" />
+      <div className="p-5 border-b border-border flex items-center justify-between">
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
           المعلومات الأساسية
         </h3>
         {isEditing && hasChanges && (
-          <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
             <RefreshCw className="h-3 w-3" />
             يوجد تغييرات غير محفوظة
           </span>
@@ -74,11 +74,11 @@ export function PersonalInfoForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-300">الجنس</label>
+          <label className="text-sm font-semibold text-foreground">الجنس</label>
           <div className="flex gap-3">
             {([
-              { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
-              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }
+              { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/15 border-blue-500/50 text-blue-600 dark:text-blue-300' },
+              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/15 border-pink-500/50 text-pink-600 dark:text-pink-300' }
             ] as const).map((g) => (
               <button
                 key={g.value}
@@ -87,7 +87,7 @@ export function PersonalInfoForm({
                 onClick={() => onInputChange('gender', g.value)}
                 className={cn(
                   'flex-1 flex items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all font-semibold',
-                  profile.gender === g.value ? g.activeColor : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
+                  profile.gender === g.value ? g.activeColor : 'bg-muted/30 border-border text-muted-foreground hover:bg-accent/50',
                   !isEditing && 'opacity-60 cursor-not-allowed'
                 )}
               >

@@ -12,10 +12,8 @@ interface AchievementStatsProps {
 }
 
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-6",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+  glass: "relative overflow-hidden rounded-[2rem] border-2 border-primary/30 bg-card/60 shadow-2xl backdrop-blur-3xl ring-1 ring-primary/10",
+  neonText: "font-black bg-gradient-to-l from-primary via-primary to-accent bg-clip-text text-transparent",
 };
 
 export function AchievementStats({ stats, userProgress }: AchievementStatsProps) {
@@ -38,7 +36,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
                 cx="64"
                 cy="64"
                 r={circleRadius}
-                className="stroke-white/5"
+                className="stroke-muted"
                 strokeWidth="10"
                 fill="none" />
               
@@ -58,12 +56,12 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 						</svg>
 						<div className="absolute inset-0 flex flex-col items-center justify-center">
 							<span className={STYLES.neonText + " text-2xl uppercase tracking-tighter"}>{stats.completionPercentage}%</span>
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">تزامن</span>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">تزامن</span>
 						</div>
 					</div>
 					<div className="space-y-1">
-						<h3 className="font-black text-white text-lg">معدل الإتقان الكلي</h3>
-						<p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{stats.earned} من أصل {stats.total} إنجاز مكتسب</p>
+						<h3 className="font-black text-foreground text-lg">معدل الإتقان الكلي</h3>
+						<p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stats.earned} من أصل {stats.total} إنجاز مكتسب</p>
 					</div>
 				</CardContent>
 			</Card>
@@ -75,8 +73,8 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
                 <Zap className="h-6 w-6 fill-amber-500/20" />
              </div>
              <div>
-                <p className="text-3xl font-black text-white">{(userProgress?.totalXP || stats.totalXP).toLocaleString()}</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">القوة القتالية (XP)</p>
+                <p className="text-3xl font-black text-foreground">{(userProgress?.totalXP || stats.totalXP).toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">القوة القتالية (XP)</p>
              </div>
          </div>
 
@@ -85,8 +83,8 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
                 <Trophy className="h-6 w-6 fill-emerald-500/20" />
              </div>
              <div>
-                <p className="text-3xl font-black text-white">{stats.earned}</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">إنجازات مفتوحة</p>
+                <p className="text-3xl font-black text-foreground">{stats.earned}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">إنجازات مفتوحة</p>
              </div>
          </div>
 
@@ -95,24 +93,24 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
                 <Lock className="h-6 w-6 fill-red-500/20" />
              </div>
              <div>
-                <p className="text-3xl font-black text-white">{stats.locked}</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">أسرار مقفلة</p>
+                <p className="text-3xl font-black text-foreground">{stats.locked}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">أسرار مقفلة</p>
              </div>
          </div>
 			</div>
 
 			{/* --- Category Mastery Grid (Spans 2 columns) --- */}
-			<Card className={STYLES.glass + " lg:col-span-2 p-0 border border-white/5"}>
+			<Card className={STYLES.glass + " lg:col-span-2 p-0 border border-border/50"}>
 				<CardHeader className="pb-1 pt-8 px-8 flex-row items-center justify-between">
 					<div className="space-y-1">
-             <CardTitle className="text-xl font-black text-white flex items-center gap-3">
+             <CardTitle className="text-xl font-black text-foreground flex items-center gap-3">
                 <Sparkles className="h-5 w-5 text-primary" />
                 <span>خريطة التخصصات البرمجية</span>
              </CardTitle>
-             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">تحديثات المهارات المكتسبة عبر العوالم</p>
+             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">تحديثات المهارات المكتسبة عبر العوالم</p>
           </div>
-          <div className="p-2 bg-white/5 rounded-xl border border-white/10">
-             <LayoutGrid className="w-5 h-5 text-gray-400" />
+          <div className="p-2 bg-muted/50 rounded-xl border border-border">
+             <LayoutGrid className="w-5 h-5 text-muted-foreground" />
           </div>
 				</CardHeader>
 				<CardContent className="px-8 pb-8 pt-4">
@@ -123,11 +121,11 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.1 }}
-              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-primary/30 transition-all cursor-default group">
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-muted/30 border border-border/50 hover:bg-accent/40 hover:border-primary/30 transition-all cursor-default group">
               
-								<div className="text-4xl mb-3 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform duration-500">{getCategoryIcon(category)}</div>
-								<div className="text-2xl font-black text-white">{count}</div>
-								<div className="text-[9px] font-black text-gray-500 uppercase tracking-tighter mt-1 group-hover:text-primary transition-colors">
+								<div className="text-4xl mb-3 filter drop-shadow-[0_0_10px_rgba(0,0,0,0.1)] group-hover:scale-125 transition-transform duration-500">{getCategoryIcon(category)}</div>
+								<div className="text-2xl font-black text-foreground">{count}</div>
+								<div className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter mt-1 group-hover:text-primary transition-colors">
 									{getCategoryLabel(category)}
 								</div>
 							</m.div>

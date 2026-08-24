@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ensureUser } from '@/lib/user-utils';
 import { Achievement, UserProgress, AchievementFilters, AchievementRarity } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';
 import apiClient from '@/lib/api/api-client';
-
 import { logger } from '@/lib/logger';
 
 interface AchievementsApiResponse {
@@ -44,18 +42,8 @@ export function useAchievements(): UseAchievementsReturn {
 			setLoading(true);
 			setError(null);
 
-			const userId = await ensureUser();
-
-			// If no userId, try to continue with empty data
-			if (!userId || userId.trim() === '') {
-				logger.warn('No user ID available, loading achievements without user progress');
-			}
-
 			// Build query parameters
 			const params = new URLSearchParams();
-			if (userId && userId.trim() !== '') {
-				params.set('userId', userId);
-			}
 			if (filters.category !== 'all') {
 				params.set('category', filters.category);
 			}

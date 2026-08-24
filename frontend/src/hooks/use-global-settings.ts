@@ -172,7 +172,7 @@ export function useGlobalSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // عند تسجيل الدخول: تحميل الإعدادات من الـ server
+  // عند تسجيل الدخول: تحميل الإعدادات من الـ server (Deferred to idle time)
   useEffect(() => {
     if (isLoading || !user?.id) return;
 
@@ -181,8 +181,20 @@ export function useGlobalSettings() {
     if (isNewUser || !settingsLoadedRef.current) {
       prevUserIdRef.current = user.id;
       settingsLoadedRef.current = false;
-      loadAndApplyServerSettings();
+      
+      const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? window.requestIdleCallback(() => loadAndApplyServerSettings(), { timeout: 4000 })
+        : setTimeout(() => loadAndApplyServerSettings(), 1500);
+
+      return () => {
+        if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
+          window.cancelIdleCallback(idleId);
+        } else {
+          clearTimeout(idleId as any);
+        }
+      };
     }
+    return undefined;
   }, [user?.id, isLoading, loadAndApplyServerSettings]);
 
   // عند تسجيل الخروج: إعادة تعيين الإعدادات

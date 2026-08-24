@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ReactNode, memo } from 'react';
 import { m } from "framer-motion";
@@ -28,19 +28,19 @@ export const SettingsSection = memo(function SettingsSection({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       className={cn(
-        'rounded-2xl bg-white/5 border border-white/10 overflow-hidden',
+        'rounded-2xl bg-card/60 border border-border backdrop-blur-md overflow-hidden',
         className
       )}
     >
-      <div className="p-4 border-b border-white/10">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/20">
-            <Icon className="h-5 w-5 text-indigo-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15">
+            <Icon className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-white">{title}</h3>
+            <h3 className="font-semibold text-foreground">{title}</h3>
             {description && (
-              <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
             )}
           </div>
         </div>
@@ -49,4 +49,3 @@ export const SettingsSection = memo(function SettingsSection({
     </m.div>
   );
 });
-

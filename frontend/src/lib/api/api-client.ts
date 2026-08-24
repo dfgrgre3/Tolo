@@ -50,9 +50,9 @@ const isBrowser = typeof window !== 'undefined';
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
 
 const BASE_API_URL = trimTrailingSlashes(
-  isBrowser
-    ? '/api'
-    : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
+    isBrowser
+        ? '/api'
+        : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
 );
 
 function normalizeEndpoint(endpoint: string): string {
@@ -164,7 +164,7 @@ class ApiClient {
     private logNetworkError(error: unknown, endpoint: string): void {
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
             errorManager.handleNetworkError(error, endpoint);
-        }).catch(() => {});
+        }).catch(() => { });
     }
 
     public async fetch(endpoint: string, options: FetchOptions = {}): Promise<Response> {
@@ -294,6 +294,19 @@ class ApiClient {
             ...options,
             method: 'POST',
             body: JSON.stringify(body),
+        });
+    }
+
+    /**
+     * POST a raw FormData body (multipart/form-data) without JSON-stringifying it.
+     * Use this for file uploads — `post()` always calls JSON.stringify on its body,
+     * which turns a FormData instance into "{}" and silently drops the file.
+     */
+    public postForm<T>(endpoint: string, formData: FormData, options?: FetchOptions): Promise<T> {
+        return this.request<T>(endpoint, {
+            ...options,
+            method: 'POST',
+            body: formData,
         });
     }
 

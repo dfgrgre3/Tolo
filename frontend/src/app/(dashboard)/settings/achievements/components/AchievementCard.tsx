@@ -31,10 +31,7 @@ interface AchievementCardProps {
 }
 
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-0 flex flex-col group overflow-hidden transition-all duration-500",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+  card: "rounded-3xl border border-border bg-card/60 backdrop-blur-3xl h-full p-0 flex flex-col group overflow-hidden transition-all duration-500",
 };
 
 export function AchievementCard({ achievement, index = 0 }: AchievementCardProps) {
@@ -66,34 +63,34 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
         <div className={`absolute inset-0 bg-gradient-to-tr ${getRarityGlow()} opacity-0 group-hover:opacity-20 blur-[80px] transition-all duration-700 rounded-full scale-150`} />
         }
 
-				<Card className={`${STYLES.card} ${isEarned ? 'border-white/20' : 'opacity-60 grayscale'}`}>
+				<Card className={`${STYLES.card} ${isEarned ? 'border-primary/30' : 'opacity-60 grayscale'}`}>
            <CardContent className="p-0 flex flex-col h-full">
               {/* Header: The Socket */}
               <div className="relative h-40 flex items-center justify-center overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent" />
-                 
+                 <div className="absolute inset-0 bg-gradient-to-b from-foreground/[0.03] to-transparent" />
+
                  {/* Magical Socket Halo */}
-                 <div className={`h-24 w-24 rounded-full border-2 border-dashed ${isEarned ? 'border-primary/50 animate-[spin_20s_linear_infinite]' : 'border-white/10'}`} />
-                 
+                 <div className={`h-24 w-24 rounded-full border-2 border-dashed ${isEarned ? 'border-primary/50 animate-[spin_20s_linear_infinite]' : 'border-border'}`} />
+
                  <div className={`absolute text-6xl transition-all duration-700 ${isEarned ? 'group-hover:scale-125 z-10' : 'filter blur-sm opacity-20'}`}>
                     {achievement.icon || getCategoryIcon(achievement.category)}
                  </div>
-                 
+
                  {/* Status Badge */}
                  <div className="absolute top-4 right-4 translate-x-1/2 -translate-y-1/2">
                     {isEarned ?
-                <Badge className="bg-amber-500 text-black font-black border-2 border-black rotate-12 shadow-lg">تم الاكتساب</Badge> :
+                <Badge className="bg-amber-500 text-amber-950 font-black border-2 border-amber-950/40 rotate-12 shadow-lg">تم الاكتساب</Badge> :
 
-                <div className="p-2 bg-white/5 rounded-full border border-white/10">
-                          <Lock className="w-4 h-4 text-gray-500" />
+                <div className="p-2 bg-muted/50 rounded-full border border-border">
+                          <Lock className="w-4 h-4 text-muted-foreground" />
                        </div>
                 }
                  </div>
 
                  {/* Secret Indicator */}
                  {achievement.isSecret && !isEarned &&
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
-                       <EyeOff className="w-8 h-8 text-gray-600" />
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm z-20">
+                       <EyeOff className="w-8 h-8 text-muted-foreground" />
                     </div>
               }
               </div>
@@ -101,20 +98,20 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
               {/* Body: Relic Details */}
               <div className="p-6 flex flex-col gap-4 text-right flex-grow" dir="rtl">
                  <div className="space-y-1">
-                    <h3 className={`text-xl font-black transition-all ${isEarned ? 'text-white' : 'text-gray-500 blur-[1px]'}`}>
+                    <h3 className={`text-xl font-black transition-all ${isEarned ? 'text-foreground' : 'text-muted-foreground blur-[1px]'}`}>
                        {achievement.isSecret && !isEarned ? 'إنجاز سري مدفون' : achievement.title}
                     </h3>
                     <div className="flex flex-wrap gap-2 pt-1 transition-opacity">
-                       <Badge variant="outline" className={`${getDifficultyColor(achievement.difficulty)} border-white/10 font-bold uppercase tracking-widest text-[9px] px-2`}>
+                       <Badge variant="outline" className={`${getDifficultyColor(achievement.difficulty)} border-border font-bold uppercase tracking-widest text-[9px] px-2`}>
                           {getDifficultyLabel(achievement.difficulty)}
                        </Badge>
-                       <Badge variant="outline" className={`${getRarityColor(rarity)} border-white/10 font-black uppercase tracking-widest text-[9px] px-2`}>
+                       <Badge variant="outline" className={`${getRarityColor(rarity)} border-border font-black uppercase tracking-widest text-[9px] px-2`}>
                           {getRarityLabel(rarity)}
                        </Badge>
                     </div>
                  </div>
 
-                 <p className={`text-sm leading-relaxed line-clamp-2 ${isEarned ? 'text-gray-400' : 'text-gray-600'}`}>
+                 <p className={`text-sm leading-relaxed line-clamp-2 ${isEarned ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                     {achievement.isSecret && !isEarned ? 'استمر في استكشاف العالم التعليمي لفك تشفير هذه المهارة العظيمة.' : achievement.description}
                  </p>
 
@@ -122,29 +119,29 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
                  {!isEarned && achievement.progress !== undefined && achievement.maxProgress && achievement.maxProgress > 0 &&
               <div className="space-y-1.5 pt-2">
                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-1">
-                          <span className="text-gray-500">معدل الاكتساب</span>
+                          <span className="text-muted-foreground">معدل الاكتساب</span>
                           <span className="text-primary">{achievement.progress} / {achievement.maxProgress}</span>
                        </div>
-                       <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                       <div className="h-1.5 bg-muted rounded-full overflow-hidden border border-border/50">
                           <m.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, achievement.progress / achievement.maxProgress * 100)}%` }}
-                    className="h-full bg-gradient-to-r from-primary to-purple-600" />
-                  
+                    className="h-full bg-gradient-to-r from-primary to-accent" />
+
                        </div>
                     </div>
               }
 
                  {/* Footer: Power Crystal (XP Reward) */}
-                 <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-xl border border-white/10">
+                 <div className="mt-auto pt-4 flex items-center justify-between border-t border-border/50">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border">
                        <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                       <span className="text-sm font-black text-white">{achievement.xpReward}</span>
-                       <span className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">XP</span>
+                       <span className="text-sm font-black text-foreground">{achievement.xpReward}</span>
+                       <span className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5">XP</span>
                     </div>
 
                     {isEarned && achievement.earnedAt &&
-                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                           <Clock className="w-3 h-3" />
                           <span>{formatRelativeTime(achievement.earnedAt)}</span>
                        </div>

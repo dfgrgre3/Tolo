@@ -213,21 +213,18 @@ export const AchievementsSection = memo(function AchievementsSection({
             <p className="text-muted-foreground text-sm mt-1">سجلك الحافل بالانتصارات والأوسمة</p>
           </div>
 
-          {/* ✅ 8. Semantic Stats: استخدام dl/dt/dd لإمكانية الوصول */}
+          {/* ✅ 8. Semantic Stats: Correct markup for definition list elements */}
           <dl className="flex flex-wrap justify-center gap-3">
             {stats.map((stat) => (
-              <div 
-                key={stat.id} 
-                className={`flex items-center gap-3 px-4 py-2 rounded-xl border backdrop-blur-md ${stat.color}`}
+              <div
+                key={stat.id}
+                className={`flex items-center gap-3 px-4 py-2 rounded-xl border backdrop-blur-md !bg-black/60 ${stat.color}`}
               >
-                <div className="shrink-0">{stat.icon}</div>
-                <div className="text-center">
-                  <dt className="text-[10px] text-gray-400 mt-1 sr-only">{stat.label}</dt>
-                  <dd className="text-lg font-bold text-white leading-none" aria-label={`${stat.label}: ${stat.value}`}>
-                    {stat.value}
-                  </dd>
-                  <span className="text-[10px] text-gray-400 mt-1 block md:hidden" aria-hidden="true">{stat.label}</span>
-                </div>
+                <dt className="text-xs text-gray-200 font-medium">{stat.label}</dt>
+                <dd className="flex items-center gap-3 text-lg font-bold text-white leading-none">
+                  <span className="shrink-0" aria-hidden="true">{stat.icon}</span>
+                  <span>{stat.value}</span>
+                </dd>
               </div>
             ))}
           </dl>

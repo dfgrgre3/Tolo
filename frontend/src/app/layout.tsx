@@ -15,8 +15,7 @@ import { headers } from 'next/headers';
 import Script from 'next/script';
 import { SITE } from '@thanawy/shared/site-config';
 
-// Dynamic imports for non-critical components to reduce initial bundle size
-const Header = React.lazy(() => import('@/components/header/Header').then(mod => ({ default: mod.default })));
+import Header from '@/components/header/Header';
 import Footer from '@/components/Footer';
 
 const cairo = Cairo({
@@ -78,19 +77,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Read nonce for html element (required to allow inline scripts under CSP).
-  // Default to empty string to ensure consistent SSR/CSR rendering
+  // Default to undefined to ensure consistent SSR/CSR rendering
   // (avoids hydration mismatch when nonce prop is undefined).
-  const nonce = (await headers()).get('x-nonce') ?? '';
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
     <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
 
       <head>
-        {/* ── Preconnect to external origins ─────────────────────────────── */}
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
         {/* Centralized performance detection script */}
-        <script id="perf-detect" src="/perf-detect.js" defer nonce={nonce} suppressHydrationWarning />
+        <Script src="/perf-detect.js" strategy="afterInteractive" />
 
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <meta name="theme-color" content="#f97316" />
@@ -98,13 +95,12 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
         {/* Hydration attribute cleanup */}
-        <script id="hydration-fix" src="/hydration-fix.js" defer nonce={nonce} suppressHydrationWarning />
+        <Script src="/hydration-fix.js" strategy="afterInteractive" />
 
         {/* Structured Data (Schema.org) */}
         <script
           id="structured-data"
           type="application/ld+json"
-          nonce={nonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
@@ -159,9 +155,7 @@ export default async function RootLayout({
             storageKey="tolo-theme"
           >
             <GlobalProviders>
-              <Suspense key="header-suspense" fallback={<div className="h-16 w-full animate-pulse bg-background" aria-hidden="true" />}>
-                <Header />
-              </Suspense>
+              <Header />
               <main id="main-content" tabIndex={-1}>
                 {children}
               </main>

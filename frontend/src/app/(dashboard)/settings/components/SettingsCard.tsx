@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ReactNode } from 'react';
 import { m } from "framer-motion";
@@ -23,10 +23,10 @@ export function SettingsCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       className={cn(
-        'rounded-2xl border overflow-hidden',
+        'rounded-2xl border overflow-hidden backdrop-blur-md',
         gradient
-          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/30'
-          : 'bg-white/5 border-white/10',
+          ? 'bg-gradient-to-br from-primary/15 to-accent/15 border-primary/30'
+          : 'bg-card/60 border-border',
         className
       )}
     >
@@ -34,4 +34,3 @@ export function SettingsCard({
     </m.div>
   );
 }
-

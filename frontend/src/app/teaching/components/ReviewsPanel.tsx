@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Review } from "../hooks/use-teaching-data";
+import { Review, ReviewReply } from "../hooks/use-teaching-data";
 
 interface ReviewsPanelProps {
   reviews: Review[];
@@ -111,7 +111,7 @@ export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelP
                 {/* Replies Thread */}
                 {review.replies.length > 0 && (
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl space-y-3 border border-slate-100 dark:border-slate-850">
-                    {review.replies.map((rep) => (
+                    {review.replies.map((rep: ReviewReply) => (
                       <div key={rep.id} className="space-y-1">
                         <div className="flex justify-between text-[10px] font-bold text-primary">
                           <span>ردك: {rep.author}</span>
@@ -127,6 +127,27 @@ export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelP
                 <div className="pt-2">
                   {expandedReplyId === review.id ? (
                     <div className="space-y-3">
+                      {/* Canned reply templates */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                        <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">قوالب الرد:</span>
+                        {[
+                          "شكراً جزيلاً لك على هذا التقييم الرائع! يسعدنا جداً إعجابك بالكورس.",
+                          "نشكرك على ملاحظاتك القيمة، وسنعمل على تحسين الدورة باستمرار.",
+                          "سعيد جداً بتقدمك الممتاز في الدورة، بالتوفيق دائماً!",
+                        ].map((tpl, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() =>
+                              setReplyInputs((prev) => ({ ...prev, [review.id]: tpl }))
+                            }
+                            className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[9px] text-slate-600 dark:text-slate-300 rounded-lg whitespace-nowrap"
+                          >
+                            {tpl}
+                          </button>
+                        ))}
+                      </div>
+
                       <Textarea
                         value={replyInputs[review.id] || ""}
                         onChange={(e) =>
@@ -139,7 +160,7 @@ export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelP
                         <Button
                           onClick={() => handleSendReply(review.id)}
                           size="sm"
-                          className="bg-primary text-white flex items-center gap-1.5 rounded-lg"
+                          className="bg-primary text-white flex items-center gap-1.5 rounded-lg text-xs"
                         >
                           <Send className="w-3.5 h-3.5" />
                           إرسال الرد
@@ -148,7 +169,7 @@ export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelP
                           variant="ghost"
                           size="sm"
                           onClick={() => setExpandedReplyId(null)}
-                          className="rounded-lg text-slate-450"
+                          className="rounded-lg text-slate-450 text-xs"
                         >
                           إلغاء
                         </Button>

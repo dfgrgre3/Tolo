@@ -5,7 +5,12 @@ import * as gamificationApi from "@/lib/api/gamification-client";
 import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from "@/types/gamification";
 import { toast } from "sonner";
 
-export function useGamificationQuery(userId: string) {
+export interface GamificationQueryOptions {
+  includeAchievements?: boolean;
+  includeLeaderboard?: boolean;
+}
+
+export function useGamificationQuery(userId: string, options?: GamificationQueryOptions) {
   const queryClient = useQueryClient();
 
   const progressQuery = useQuery({
@@ -21,14 +26,14 @@ export function useGamificationQuery(userId: string) {
   const achievementsQuery = useQuery({
     queryKey: ["gamification", "achievements"],
     queryFn: () => gamificationApi.fetchAchievements(),
-    enabled: !!userId,
+    enabled: !!userId && !!options?.includeAchievements,
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
   const leaderboardQuery = useQuery({
     queryKey: ["gamification", "leaderboard", "global"],
     queryFn: () => gamificationApi.fetchLeaderboard("global", 50),
-    enabled: !!userId,
+    enabled: !!userId && !!options?.includeLeaderboard,
     staleTime: 1000 * 60 * 5,
   });
 

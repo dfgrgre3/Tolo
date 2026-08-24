@@ -27,7 +27,7 @@ export function SectionDivider({ icon: Icon, label }: SectionDividerProps) {
         }
         
         {label &&
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 whitespace-nowrap">
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-400 whitespace-nowrap">
             {label}
           </span>
         }

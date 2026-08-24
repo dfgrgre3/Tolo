@@ -14,25 +14,27 @@ const AUTH_PATHS = ['/login', '/register', '/admin-login', '/verify-email', '/fo
 const RESTORE_GUARD_KEY = 'thanawy:restoredOnce';
 
 function restoreInputState(el: Element, data: any) {
-  if (el instanceof HTMLInputElement) {
-    if (el.type === 'checkbox' || el.type === 'radio') {
-      if (el.checked !== data.checked) {
-        el.checked = data.checked;
-        el.dispatchEvent(new Event('change', { bubbles: true }));
+  requestAnimationFrame(() => {
+    if (el instanceof HTMLInputElement) {
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        if (el.checked !== data.checked) {
+          el.checked = data.checked;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      } else if (el.type !== 'password' && el.type !== 'hidden') {
+        if (el.value !== data.value) {
+          el.value = data.value;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       }
-    } else if (el.type !== 'password' && el.type !== 'hidden') {
+    } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
       if (el.value !== data.value) {
         el.value = data.value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
-  } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
-    if (el.value !== data.value) {
-      el.value = data.value;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  }
+  });
 }
 
 export default function ClientLayoutProvider({ children }: {children: React.ReactNode;}) {

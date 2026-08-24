@@ -23,8 +23,8 @@ export const CategoryFilter = ({ categories, selectedCategory, setSelectedCatego
           onClick={() => setSelectedCategory(category.id)}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border ${
             selectedCategory === category.id
-              ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-105"
-              : "bg-white/5 text-gray-400 border-white/10 hover:border-primary/50 hover:bg-white/10"
+              ? "bg-primary text-black border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-105"
+              : "bg-white/10 text-gray-100 border-white/10 hover:border-primary/50 hover:bg-white/20"
           }`}
         >
           {category.icon}

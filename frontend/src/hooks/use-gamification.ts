@@ -9,14 +9,21 @@ interface UseGamificationOptions {
   userId: string;
   enableNotifications?: boolean;
   enableRealTime?: boolean;
+  includeAchievements?: boolean;
+  includeLeaderboard?: boolean;
 }
 
 export function useGamification({
   userId,
   enableNotifications = true,
-  enableRealTime = true
+  enableRealTime = true,
+  includeAchievements = false,
+  includeLeaderboard = false,
 }: UseGamificationOptions) {
-  const query = useGamificationQuery(userId);
+  const query = useGamificationQuery(userId, {
+    includeAchievements,
+    includeLeaderboard,
+  });
 
   // Maintain local currentAchievement state for notification modals
   const [currentAchievement, setCurrentAchievement] = useState<{

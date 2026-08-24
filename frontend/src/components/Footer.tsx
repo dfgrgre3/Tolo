@@ -289,7 +289,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 								{link.label}
 							</Link>
 						))}
-						<span className="text-muted-foreground/70">الإصدار {APP_VERSION}</span>
+						<span className="text-muted-foreground">الإصدار {APP_VERSION}</span>
 						<button
 							type="button"
 							onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

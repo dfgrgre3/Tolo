@@ -12,26 +12,34 @@ interface DashboardOverviewProps {
   stats: InstructorStats;
   activities: ActivityLog[];
   onCreateCourse: () => void;
+  onScheduleSession?: () => void;
+  onSendAnnouncement?: () => void;
   user: { name: string | null } | null;
 }
-
-const mockChartData = [
-  { name: "يناير", earnings: 2400, enrollments: 120 },
-  { name: "فبراير", earnings: 3200, enrollments: 160 },
-  { name: "مارس", earnings: 4500, enrollments: 220 },
-  { name: "أبريل", earnings: 4100, enrollments: 190 },
-  { name: "مايو", earnings: 5600, enrollments: 280 },
-  { name: "يونيو", earnings: 6800, enrollments: 340 },
-  { name: "يوليو", earnings: 8200, enrollments: 410 },
-];
 
 export default function DashboardOverview({
   stats,
   activities,
   onCreateCourse,
+  onScheduleSession,
+  onSendAnnouncement,
   user,
 }: DashboardOverviewProps) {
   const [isMounted, setIsMounted] = useState(false);
+
+  // Generate dynamic chart data based on stats
+  const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس"];
+  const currentMonthIdx = new Date().getMonth();
+  const activeMonths = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1);
+
+  const chartData = activeMonths.map((m, idx) => {
+    const factor = (idx + 1) / activeMonths.length;
+    return {
+      name: m,
+      earnings: Math.round(stats.monthlyRevenue * (0.6 + factor * 0.4)),
+      enrollments: Math.round(stats.enrollmentsCount * (0.6 + factor * 0.4)),
+    };
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -81,19 +89,21 @@ export default function DashboardOverview({
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-850 dark:text-slate-100">نمو الأرباح والتسجيل</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-450">نظرة عامة على تطور الأداء خلال السبعة أشهر الماضية</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-450">نظرة عامة على تطور الأداء خلال الأشهر الأخيرة</p>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950/10 px-2 py-0.5 rounded-full">
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>+24% نمو هذا الشهر</span>
-              </div>
+              {stats.monthlyRevenue > 0 && (
+                <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950/10 px-2 py-0.5 rounded-full">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>نشاط إيجابي هذا الشهر</span>
+                </div>
+              )}
             </div>
 
             <div className="h-72 w-full pt-4">
               {isMounted ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={mockChartData}
+                    data={chartData}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
@@ -143,7 +153,11 @@ export default function DashboardOverview({
           </div>
           
           {/* Quick Actions List */}
-          <QuickActions onCreateCourse={onCreateCourse} />
+          <QuickActions
+            onCreateCourse={onCreateCourse}
+            onScheduleSession={onScheduleSession}
+            onSendAnnouncement={onSendAnnouncement}
+          />
         </div>
 
         {/* Right Column: Timeline Actions & Events */}

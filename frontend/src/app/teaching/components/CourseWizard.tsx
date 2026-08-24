@@ -21,9 +21,7 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
   const [description, setDescription] = useState(course?.description || "");
   const [category, setCategory] = useState(course?.category || "البرمجة والتطوير");
   const [price, setPrice] = useState(course?.price?.toString() || "0");
-  const [thumbnail, setThumbnail] = useState(
-    course?.thumbnail || "https://images.unsplash.com/photo-1516116211223-5c359a36298a?w=500&auto=format&fit=crop&q=60"
-  );
+  const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
   const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
   const [errorMsg, setErrorMsg] = useState("");

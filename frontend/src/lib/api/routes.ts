@@ -28,6 +28,8 @@ export const apiRoutes = {
     refreshSession: '/api/auth/refresh-session',
     sessions: '/api/auth/sessions',
     revokeSession: (id: string) => `/api/auth/sessions/${id}`,
+    revokeAllSessions: '/api/auth/sessions',
+    securityLogs: '/api/auth/security-logs',
     profile: '/api/auth/profile',
     deleteAccount: '/api/auth/account',
     validateToken: '/api/auth/validate-token',
@@ -172,6 +174,7 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   settings: {
     preferences: '/api/settings/preferences',
+    privacyActions: '/api/settings/privacy/actions',
     system: '/api/settings',
   },
 

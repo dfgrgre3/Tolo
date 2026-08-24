@@ -14,15 +14,15 @@ export const PerformanceDashboardSection = () => {
 
   if (loading) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 flex justify-center`}>
-        <div className=" rounded-full h-8 w-8 border-b-2 border-primary" />
+      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 flex items-center justify-center min-h-[260px]`}>
+        <div className="rounded-full h-8 w-8 border-b-2 border-primary animate-spin" />
       </section>
     );
   }
 
   if (error) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 text-center`}>
+      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 text-center min-h-[260px] flex items-center justify-center`}>
         <p className="text-red-400 font-bold">{error}</p>
       </section>
     );

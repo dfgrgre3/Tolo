@@ -1,58 +1,66 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Award, Download, Share2, Printer, CheckCircle2, ShieldCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";export default function CertificatePage() {
+import { toast } from "sonner";
+import apiClient, { ApiError } from "@/lib/api/api-client";
+import { useAuth } from "@/hooks/use-auth";
+import type { Certificate } from "@/features/certificates/types";
+
+// The route param is the courseId (GET /api/certificates/:courseId is keyed
+// by course, not by certificate id) — see course_handler_certificates.go.
+export default function CertificatePage() {
   const params = useParams();
-  const { fetchWithAuth } = useAuth();
-  const [cert, setCert] = useState<any>(null);
+  const { user } = useAuth();
+  const [cert, setCert] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [qrLoadFailed, setQrLoadFailed] = useState(false);
 
   useEffect(() => {
     const fetchCert = async () => {
       try {
-        // Try hexagonal route first, fallback to legacy
-        const res = await fetchWithAuth(`/api/hex/certificates/${params.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          // API returns { certificate: { certificate: {...}, user: {...}, subject: {...} } }
-          const certData = data.certificate;
-          if (certData) {
-            setCert({
-              id: certData.certificate.id,
-              issuedAt: certData.certificate.issuedAt,
-              user: certData.user,
-              subject: certData.subject,
-            });
-          }
-        } else {
-          toast.error("فشل في تحميل الشهادة");
-        }
+        const data = await apiClient.get<{ certificate: Certificate }>(`/api/certificates/${params.id}`);
+        setCert(data.certificate);
       } catch (error) {
-        console.error("Error fetching cert:", error);
+        const message = error instanceof ApiError || error instanceof Error ? error.message : "فشل في تحميل الشهادة";
+        toast.error(message);
       } finally {
         setLoading(false);
       }
     };
 
     if (params.id) fetchCert();
-  }, [params.id, fetchWithAuth]);
+  }, [params.id]);
 
   const handleDownloadPDF = () => {
-    window.open(`/api/certificates/${params.id}/pdf`, "_blank");
+    if (!cert) return;
+    window.open(cert.pdfUrl, "_blank");
   };
 
   const handlePrint = () => {
     window.print();
   };
 
+  const handleShare = async () => {
+    if (!cert) return;
+    const shareUrl = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "شهادتي", text: `شهادة إتمام دورة: ${cert.courseTitle}`, url: shareUrl });
+      } catch {
+        // user cancelled share sheet — no-op
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("تم نسخ رابط الشهادة");
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B0D14]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
       </div>
     );
@@ -60,10 +68,10 @@ import { toast } from "sonner";export default function CertificatePage() {
 
   if (!cert) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0B0D14] text-white p-4">
-        <Award className="w-16 h-16 text-gray-600 mb-4" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
+        <Award className="w-16 h-16 text-muted-foreground mb-4" />
         <h1 className="text-2xl font-black">الشهادة غير موجودة</h1>
-        <p className="text-gray-400 mt-2">عذراً، لم نتمكن من العثور على سجل لهذه الشهادة.</p>
+        <p className="text-muted-foreground mt-2">عذراً، لم نتمكن من العثور على سجل لهذه الشهادة.</p>
       </div>
     );
   }
@@ -75,38 +83,41 @@ import { toast } from "sonner";export default function CertificatePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0B0D14] text-white py-12 px-4 selection:bg-primary/30" dir="rtl">
+    <div className="min-h-screen bg-background py-12 px-4 selection:bg-primary/30" dir="rtl">
       <div className="max-w-5xl mx-auto space-y-12">
-        
+
         {/* Actions Bar - Hidden on Print */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 print:hidden">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-card/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-border print:hidden">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-2xl bg-primary/15 flex items-center justify-center">
               <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-black">شهادة إتمام معتمدة</h1>
-              <p className="text-xs text-gray-400 font-bold">رقم الشهادة: {cert.id}</p>
+              <h1 className="text-xl font-black text-foreground">شهادة إتمام معتمدة</h1>
+              <p className="text-xs text-muted-foreground font-bold">رقم الشهادة: {cert.certificateNo}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <Button onClick={handleDownloadPDF} className="rounded-xl gap-2 font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
               <Download className="w-4 h-4" />
               تحميل الشهادة الموثقة (PDF)
             </Button>
-            <Button onClick={handlePrint} variant="outline" className="rounded-xl gap-2 font-bold border-white/10 hover:bg-white/5">
+            <Button onClick={handlePrint} variant="outline" className="rounded-xl gap-2 font-bold">
               <Printer className="w-4 h-4" />
               طباعة
             </Button>
-            <Button className="rounded-xl gap-2 font-black bg-primary hover:bg-primary/90 text-white">
+            <Button onClick={handleShare} className="rounded-xl gap-2 font-black">
               <Share2 className="w-4 h-4" />
               مشاركة الإنجاز
             </Button>
           </div>
         </div>
 
-        {/* --- THE CERTIFICATE DESIGN --- */}
+        {/* --- THE CERTIFICATE DESIGN ---
+             Intentionally always a literal white/gold paper look (a diploma
+             stays paper-colored regardless of the viewer's site theme,
+             the same way a printed document would) — not a token-drift bug. */}
         <div
           className="relative bg-white text-[#1a1a1a] p-1 shadow-2xl rounded-sm print:shadow-none print:m-0 certificate-fade-in"
         >
@@ -114,7 +125,7 @@ import { toast } from "sonner";export default function CertificatePage() {
           <div className="border-[16px] border-[#1a1a1a] p-2 relative overflow-hidden">
             {/* Inner Border */}
             <div className="border-[2px] border-[#d4af37] p-12 md:p-24 flex flex-col items-center text-center space-y-12 relative">
-              
+
               {/* Corner Ornaments */}
               <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-[#d4af37]" />
               <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-[#d4af37]" />
@@ -138,12 +149,14 @@ import { toast } from "sonner";export default function CertificatePage() {
               </div>
 
               {/* Recipient */}
-              <div className="space-y-6 relative z-10">
-                <p className="text-xl font-medium text-gray-600">نُشهد بأن الطالب / الطالبة</p>
-                <h3 className="text-4xl md:text-5xl font-black text-[#1a1a1a] underline decoration-[#d4af37] decoration-4 underline-offset-8">
-                  {cert.user.name}
-                </h3>
-              </div>
+              {user?.name && (
+                <div className="space-y-6 relative z-10">
+                  <p className="text-xl font-medium text-gray-600">نُشهد بأن الطالب / الطالبة</p>
+                  <h3 className="text-4xl md:text-5xl font-black text-[#1a1a1a] underline decoration-[#d4af37] decoration-4 underline-offset-8">
+                    {user.name}
+                  </h3>
+                </div>
+              )}
 
               {/* Course Info */}
               <div className="space-y-6 relative z-10 max-w-2xl">
@@ -151,7 +164,7 @@ import { toast } from "sonner";export default function CertificatePage() {
                   قد أكمل بنجاح كافة المتطلبات والدروس التعليمية للدورة التدريبية:
                 </p>
                 <h4 className="text-3xl font-black text-primary">
-                   {cert.subject.nameAr || cert.subject.name}
+                   {cert.courseTitle}
                 </h4>
                 <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-widest">
                   <span className="h-px w-8 bg-gray-300" />
@@ -160,8 +173,8 @@ import { toast } from "sonner";export default function CertificatePage() {
                 </div>
               </div>
 
-              {/* Signatures */}
-              <div className="w-full pt-16 flex flex-col md:flex-row items-end justify-between gap-12 relative z-10">
+              {/* Signature / Seal */}
+              <div className="w-full pt-16 flex flex-col md:flex-row items-end justify-center gap-12 relative z-10">
                 <div className="flex flex-col items-center">
                   <div className="h-16 flex items-end mb-2">
                     <img src="/signatures/director.png" alt="Director Signature" className="h-12 object-contain grayscale opacity-80" onError={(e) => (e.currentTarget.style.display = 'none')} />
@@ -180,22 +193,22 @@ import { toast } from "sonner";export default function CertificatePage() {
                       </div>
                    </div>
                 </div>
-
-                <div className="flex flex-col items-center">
-                  <div className="h-16 flex items-end mb-2">
-                    <p className="font-cursive text-2xl text-gray-600 opacity-80">{cert.subject.instructorName || "مدرس الدورة"}</p>
-                  </div>
-                  <div className="w-48 h-px bg-gray-400 mb-2" />
-                  <p className="text-sm font-bold">محاضر الدورة</p>
-                  <p className="text-[10px] text-gray-400">قسم المواد العلمية</p>
-                </div>
               </div>
 
-              {/* QR Code Placeholder */}
+              {/* QR Code */}
               <div className="absolute bottom-8 right-8 text-center print:bottom-4 print:right-4">
-                 <div className="w-20 h-20 bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] text-gray-400">
-                   QR CODE VERIFICATION
-                 </div>
+                 {cert.qrCodeUrl && !qrLoadFailed ? (
+                   <img
+                     src={cert.qrCodeUrl}
+                     alt="QR verification code"
+                     className="w-20 h-20 border border-gray-200"
+                     onError={() => setQrLoadFailed(true)}
+                   />
+                 ) : (
+                   <div className="w-20 h-20 bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] text-gray-400">
+                     QR CODE VERIFICATION
+                   </div>
+                 )}
                  <p className="text-[8px] mt-1 text-gray-400">تأكد من صحة الشهادة</p>
               </div>
 
@@ -205,31 +218,31 @@ import { toast } from "sonner";export default function CertificatePage() {
 
         {/* Bottom Banner */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
-          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+          <div className="bg-card/60 border border-border p-6 rounded-3xl flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-emerald-500">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold">إتمام الدروس</p>
-              <p className="text-2xl font-black">100%</p>
+              <p className="text-sm font-bold text-foreground">إتمام الدروس</p>
+              <p className="text-2xl font-black text-foreground">100%</p>
             </div>
           </div>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-500">
+          <div className="bg-card/60 border border-border p-6 rounded-3xl flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500/15 flex items-center justify-center text-amber-500">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold">مستوى الكفاءة</p>
-              <p className="text-2xl font-black">خبير</p>
+              <p className="text-sm font-bold text-foreground">شهادة معتمدة</p>
+              <p className="text-2xl font-black text-foreground">موثقة</p>
             </div>
           </div>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
+          <div className="bg-card/60 border border-border p-6 rounded-3xl flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
               <Award className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold">النقاط المكتسبة</p>
-              <p className="text-2xl font-black">+250 XP</p>
+              <p className="text-sm font-bold text-foreground">رقم الشهادة</p>
+              <p className="text-lg font-black text-foreground">{cert.certificateNo}</p>
             </div>
           </div>
         </div>

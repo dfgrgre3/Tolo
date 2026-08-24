@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { memo } from 'react';
 import { LucideIcon } from 'lucide-react';
@@ -27,7 +27,7 @@ export const SettingsToggle = memo(function SettingsToggle({
   return (
     <div
       className={cn(
-        'flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors',
+        'flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors',
         className
       )}
     >
@@ -36,15 +36,15 @@ export const SettingsToggle = memo(function SettingsToggle({
           className={cn(
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors',
             enabled
-              ? 'bg-indigo-500/20 text-indigo-400'
-              : 'bg-white/5 text-slate-400'
+              ? 'bg-primary/15 text-primary'
+              : 'bg-muted text-muted-foreground'
           )}
         >
           <Icon className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-white">{title}</h4>
-          <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+          <h4 className="font-medium text-foreground">{title}</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         </div>
       </div>
       <ToggleSwitch
@@ -56,4 +56,3 @@ export const SettingsToggle = memo(function SettingsToggle({
     </div>
   );
 });
-

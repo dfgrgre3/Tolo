@@ -31,7 +31,7 @@ export function HeaderLogo() {
 					{SITE.name}
 				</span>
 				{SITE.tagline && (
-					<span className="text-[9px] font-black tracking-[0.2em] text-primary whitespace-nowrap mt-0.5 truncate">
+					<span className="text-[9px] font-black tracking-[0.2em] text-orange-700 dark:text-primary whitespace-nowrap mt-0.5 truncate">
 						{SITE.tagline}
 					</span>
 				)}

@@ -1,26 +1,16 @@
-export type MyCourse = {
+// Real certificate shape returned by the backend's user-facing
+// GET /api/certificates and GET /api/certificates/:courseId endpoints
+// (internal/infrastructure/api/handlers/protected/course_handler_certificates.go).
+// courseTitle is enriched server-side so the frontend never needs a second
+// request per certificate.
+export type Certificate = {
   id: string;
-  title: string;
-  description: string;
-  instructor: string;
-  subject: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  duration: number;
-  thumbnailUrl?: string;
-  price: number;
-  rating: number;
-  enrolledCount: number;
-  tags: string[];
-  enrolled: boolean;
-  progress: number;
-  lessonsCount: number;
-  completedLessons: number;
-  totalLessons: number;
-  enrolledAt: string;
-  lastAccessedAt: string;
-  certificate: {
-    id: string;
-    url: string;
-    issuedAt: string;
-  } | null;
+  courseId: string;
+  courseTitle: string;
+  userId: string;
+  certificateNo: string;
+  qrCodeUrl?: string | null;
+  pdfUrl: string;
+  issuedAt: string;
+  createdAt: string;
 };

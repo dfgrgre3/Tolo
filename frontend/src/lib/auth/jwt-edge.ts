@@ -93,8 +93,13 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
 export async function attemptTokenRefresh(
   refreshToken: string,
   request: NextRequest
-): Promise<{ payload: AccessTokenPayload | null; cookies: string[] }> {
-  let backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
+): Promise<{
+  payload: AccessTokenPayload | null;
+  cookies: string[];
+  accessToken?: string;
+  refreshToken?: string;
+}> {
+  let backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8082";
   backendUrl = backendUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
 
   const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "";
@@ -118,18 +123,29 @@ export async function attemptTokenRefresh(
     });
 
     if (refreshRes.ok) {
-      const setCookies = refreshRes.headers.getSetCookie();
-      let payload: AccessTokenPayload | null = null;
+      let setCookies = refreshRes.headers.getSetCookie ? refreshRes.headers.getSetCookie() : [];
+      const data = await refreshRes.json().catch(() => null);
+      const tokenStr = data?.data?.accessToken || data?.accessToken;
+      const newRefreshTokenStr = data?.data?.refreshToken || data?.refreshToken;
 
-      if (setCookies && setCookies.length > 0) {
-        const data = await refreshRes.json().catch(() => null);
-        const tokenStr = data?.data?.accessToken || data?.accessToken;
-        if (tokenStr) {
-          payload = await verifyAccessToken(tokenStr);
-        }
+      let payload: AccessTokenPayload | null = null;
+      if (tokenStr) {
+        payload = await verifyAccessToken(tokenStr);
       }
 
-      return { payload, cookies: setCookies || [] };
+      if ((!setCookies || setCookies.length === 0) && tokenStr) {
+        setCookies = [
+          `access_token=${tokenStr}; Path=/; HttpOnly; SameSite=Lax`,
+          `refresh_token=${newRefreshTokenStr || refreshToken}; Path=/; HttpOnly; SameSite=Lax`,
+        ];
+      }
+
+      return {
+        payload,
+        cookies: setCookies || [],
+        accessToken: tokenStr,
+        refreshToken: newRefreshTokenStr || refreshToken,
+      };
     }
 
     return { payload: null, cookies: [] };

@@ -18,9 +18,9 @@ export function AcademicInfoForm({
 }) {
   return (
     <SettingsCard delay={0.2}>
-      <div className="p-5 border-b border-white/10">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          {isTeacher ? <Briefcase className="h-5 w-5 text-indigo-400" /> : <GraduationCap className="h-5 w-5 text-indigo-400" />}
+      <div className="p-5 border-b border-border">
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          {isTeacher ? <Briefcase className="h-5 w-5 text-primary" /> : <GraduationCap className="h-5 w-5 text-primary" />}
           {isTeacher ? 'المعلومات المهنية' : 'المعلومات الدراسية'}
         </h3>
       </div>
@@ -49,16 +49,16 @@ export function AcademicInfoForm({
           <>
             <ProfileInput id="experienceYears" label="سنوات الخبرة" icon={Hash} value={profile.experienceYears} onChange={(e) => onInputChange('experienceYears', e.target.value)} disabled={!isEditing} placeholder="مثال: 10 سنوات" />
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300">المواد التي تدرّسها</label>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 min-h-[60px] flex flex-wrap gap-2">
+              <label className="text-sm font-semibold text-foreground">المواد التي تدرّسها</label>
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border min-h-[60px] flex flex-wrap gap-2">
                 {profile.subjectsTaught.length > 0 ? (
                   profile.subjectsTaught.map((sub: string, i: number) => (
-                    <span key={i} className="bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30 text-sm text-indigo-300 font-medium">
+                    <span key={i} className="bg-primary/15 px-3 py-1.5 rounded-lg border border-primary/30 text-sm text-primary font-medium">
                       {sub}
                     </span>
                   ))
                 ) : (
-                  <span className="text-slate-500 italic text-sm">لم يتم تحديد مواد بعد</span>
+                  <span className="text-muted-foreground italic text-sm">لم يتم تحديد مواد بعد</span>
                 )}
               </div>
             </div>

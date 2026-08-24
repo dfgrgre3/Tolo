@@ -14,11 +14,11 @@ import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { ReactQueryPersistence } from '@/providers/react-query-persistence';
 import { EfficiencyProvider } from '@/hooks/use-efficiency';
 import { isCriticalError } from '@/lib/error-utils';
-import { ThemeProvider } from '@/providers/theme-provider';
 import { PerformanceProvider } from '@/components/providers/PerformanceProvider';
 import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
+import { useAuth } from '@/hooks/use-auth';
 
 function makeQueryClient() {
   const isDev = process.env.NODE_ENV === 'development';
@@ -69,26 +69,38 @@ const CoreProviders = ({ children }: { children: React.ReactNode }) => (
 const AppStateProviders = ({ children }: { children: React.ReactNode }) => (
   <SettingsProvider>
     <AuthProvider>
-      <ThemeProvider>
-        <EfficiencyProvider>
-          <GlobalSettingsApplier>
-            {children}
-          </GlobalSettingsApplier>
-        </EfficiencyProvider>
-      </ThemeProvider>
+      <EfficiencyProvider>
+        <GlobalSettingsApplier>
+          {children}
+        </GlobalSettingsApplier>
+      </EfficiencyProvider>
     </AuthProvider>
   </SettingsProvider>
 );
 
-const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
-  <WebSocketProvider>
-    <NotificationsProvider>
-      <Suspense fallback={null}>
-        <OfflineSyncManager />
+/**
+ * AuthGatedFeatureProviders — only activates WebSocket and Notifications
+ * after the user is confirmed authenticated, avoiding unnecessary connections
+ * for guest visitors (reduces bundle activation + server load).
+ */
+function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  return (
+    <WebSocketProvider userId={user?.id}>
+      <NotificationsProvider>
         {children}
-      </Suspense>
-    </NotificationsProvider>
-  </WebSocketProvider>
+      </NotificationsProvider>
+    </WebSocketProvider>
+  );
+}
+
+const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
+  <AuthGatedFeatureProviders>
+    <Suspense fallback={null}>
+      <OfflineSyncManager />
+      {children}
+    </Suspense>
+  </AuthGatedFeatureProviders>
 );
 
 const UIProviders = ({ children }: { children: React.ReactNode }) => (

@@ -178,7 +178,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
   }, [updateIndicators]);
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 px-6 md:px-12 py-12 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 !bg-black/70 px-6 md:px-12 py-12 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 mix-blend-overlay" />
       
       <div className="relative z-10">
@@ -188,7 +188,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 drop-shadow-md">
             مؤشرات الحالة
           </h2>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-200 text-lg">
             رصد حالة النظام والاتصال والخدمات في الوقت الفعلي
           </p>
         </div>

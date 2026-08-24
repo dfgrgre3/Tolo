@@ -31,9 +31,9 @@ export function ProfileHero({
       <div className="p-8">
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="relative group">
-            <div className="h-28 w-28 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-xl shadow-indigo-500/30">
-              <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-2 border-slate-900/50">
-                {profile.avatar ? <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" /> : <span className="text-4xl font-black text-white">{userInitial}</span>}
+            <div className="h-28 w-28 rounded-full bg-gradient-to-br from-primary via-primary/70 to-accent p-1 shadow-xl shadow-primary/30">
+              <div className="h-full w-full rounded-full bg-card flex items-center justify-center overflow-hidden border-2 border-card/50">
+                {profile.avatar ? <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" /> : <span className="text-4xl font-black text-foreground">{userInitial}</span>}
               </div>
             </div>
 
@@ -59,20 +59,20 @@ export function ProfileHero({
 
           <div className="text-center md:text-right flex-1 space-y-2">
             <div className="flex flex-col md:flex-row md:items-center gap-3">
-              <h2 className="text-3xl font-black text-white tracking-tight">
+              <h2 className="text-3xl font-black text-foreground tracking-tight">
                 {profile.firstName || profile.lastName ? `${profile.firstName} ${profile.lastName}`.trim() : user.username || 'المستخدم'}
               </h2>
               <span
                 className={cn(
                   'inline-flex w-fit mx-auto md:mx-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider',
-                  isTeacher ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                  isTeacher ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30' : 'bg-primary/15 text-primary border border-primary/30'
                 )}
               >
                 {isTeacher ? '🎓 مدرس' : '📚 طالب'}
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-muted-foreground">
               {profile.email && (
                 <span className="flex items-center gap-1">
                   <Mail className="h-3.5 w-3.5" />
@@ -87,24 +87,24 @@ export function ProfileHero({
               )}
             </div>
 
-            {profile.bio && <p className="text-sm text-slate-400 max-w-lg leading-relaxed">{profile.bio}</p>}
+            {profile.bio && <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">{profile.bio}</p>}
           </div>
 
           <div className="space-y-3 min-w-[200px]">
             <div className="grid grid-cols-3 gap-3">
-              <StatBadge icon={Star} value={user.totalXP || 0} label="نقطة XP" color="text-yellow-400" />
-              <StatBadge icon={Trophy} value={user.level || 1} label="مستوى" color="text-indigo-400" />
-              <StatBadge icon={Flame} value={user.currentStreak || 0} label="تسلسل" color="text-orange-400" />
+              <StatBadge icon={Star} value={user.totalXP || 0} label="نقطة XP" color="text-yellow-500" />
+              <StatBadge icon={Trophy} value={user.level || 1} label="مستوى" color="text-primary" />
+              <StatBadge icon={Flame} value={user.currentStreak || 0} label="تسلسل" color="text-orange-500" />
             </div>
-            
-            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+
+            <div className="rounded-xl bg-muted/30 border border-border p-3">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-slate-500 font-medium">اكتمال الملف</span>
-                <span className="text-[10px] font-bold text-indigo-400">{profileCompletion}%</span>
+                <span className="text-[10px] text-muted-foreground font-medium">اكتمال الملف</span>
+                <span className="text-[10px] font-bold text-primary">{profileCompletion}%</span>
               </div>
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
                   style={{ width: `${profileCompletion}%` }}
                 />
               </div>

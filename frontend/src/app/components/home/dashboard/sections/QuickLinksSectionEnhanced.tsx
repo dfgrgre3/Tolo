@@ -59,7 +59,7 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
           >
               الانتقال السريع
           </h2>
-          <p className="text-gray-400 text-lg font-medium border-r-4 border-yellow-500/30 pr-4">
+          <p className="text-muted-foreground text-lg font-medium border-r-4 border-yellow-500/30 pr-4">
             Fast Travel: الوصول السريع للمناطق الحيوية في عالمك.
           </p>
         </div>
@@ -75,7 +75,7 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
               href={link.href}
               className="group h-full block"
             >
-              <Card className={`h-full ${rpgCommonStyles.card} flex flex-col items-center text-center p-0 border-white/5 bg-black/40 backdrop-blur-2xl hover:border-yellow-500/30 relative overflow-hidden group/card shadow-2xl`}>
+              <Card className={`h-full ${rpgCommonStyles.card} flex flex-col items-center text-center p-0 border-white/5 !bg-black/70 backdrop-blur-2xl hover:border-yellow-500/30 relative overflow-hidden group/card shadow-2xl`}>
                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover/card:opacity-100"></div>
                 
                 {/* Inner Glow */}
@@ -86,14 +86,14 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
                     {link.icon}
                   </div>
                   <h3 className="font-black text-xl mb-3 text-white group-hover/card:text-yellow-400 tracking-tight">{link.title}</h3>
-                  <p className="text-gray-400 text-base flex-grow leading-relaxed mb-8 group-hover/card:text-gray-300">{link.description}</p>
+                  <p className="text-gray-200 text-base flex-grow leading-relaxed mb-8 group-hover/card:text-white">{link.description}</p>
                   
                   <div className="w-full h-px bg-white/5 mb-6"></div>
                   
                   <Button 
                     variant="ghost" 
                     size="lg"
-                    className="w-full py-6 bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-yellow-500/10 hover:border-yellow-500/20 font-black text-sm rounded-2xl flex items-center justify-center gap-3"
+                    className="w-full py-6 bg-white/10 border border-white/10 text-gray-100 hover:text-white hover:bg-yellow-500/20 hover:border-yellow-500/20 font-black text-sm rounded-2xl flex items-center justify-center gap-3"
                   >
                     <span>انتقال فوري</span>
                     <ArrowRight className="w-5 h-5 rtl:rotate-180" />

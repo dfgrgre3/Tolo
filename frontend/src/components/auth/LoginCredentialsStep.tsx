@@ -2,14 +2,12 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, AlertCircle, CheckCircle, KeyRound, Mail, Lock } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import SocialLoginButtons from "./SocialLoginButtons";
+import LoginCredentialsFields from "./LoginCredentialsFields";
 
 interface LoginCredentialsStepProps {
   email: string;
@@ -26,7 +24,10 @@ interface LoginCredentialsStepProps {
   onSocialLogin: (provider: "google" | "apple") => void;
 }
 
-/** First step of `LoginForm` — email/password credentials + social sign-in. */
+/**
+ * First step of `LoginForm` — email/password credentials + social sign-in.
+ * Field inputs live in `LoginCredentialsFields`.
+ */
 export default function LoginCredentialsStep({
   email,
   onEmailChange,
@@ -76,68 +77,15 @@ export default function LoginCredentialsStep({
             </Alert>
           )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
-            <div className="relative">
-              <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
-                <Mail className="h-4 w-4" />
-              </span>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => onEmailChange(e.target.value)}
-                required
-                disabled={isLoading}
-                dir="ltr"
-                className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كلمة المرور</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-primary hover:text-primary/80 font-medium"
-              >
-                نسيت كلمة المرور؟
-              </Link>
-            </div>
-            <div className="relative">
-              <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
-                <Lock className="h-4 w-4" />
-              </span>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => onPasswordChange(e.target.value)}
-                required
-                disabled={isLoading}
-                dir="ltr"
-                className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 space-x-reverse justify-start">
-            <Checkbox
-              id="rememberMe"
-              checked={rememberMe}
-              onCheckedChange={(checked) => onRememberMeChange(!!checked)}
-              disabled={isLoading}
-              className="border-slate-300 dark:border-slate-700 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-            <Label htmlFor="rememberMe" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer font-medium hover:text-slate-700 dark:hover:text-slate-300">
-              تذكرني على هذا الجهاز
-            </Label>
-          </div>
+          <LoginCredentialsFields
+            email={email}
+            onEmailChange={onEmailChange}
+            password={password}
+            onPasswordChange={onPasswordChange}
+            rememberMe={rememberMe}
+            onRememberMeChange={onRememberMeChange}
+            isLoading={isLoading}
+          />
 
           <SocialLoginButtons isLoading={isLoading} onSelect={onSocialLogin} />
         </CardContent>

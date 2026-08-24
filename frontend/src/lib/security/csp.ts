@@ -25,7 +25,7 @@ export function applyCsp(response: NextResponse, nonce: string): NextResponse {
     "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
     "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
     "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
-    "connect-src 'self' http://localhost:8082 https: wss: https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
+    "connect-src 'self' http://localhost:8082 ws://localhost:8082 https: ws: wss: https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
     "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",

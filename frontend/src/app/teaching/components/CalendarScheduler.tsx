@@ -160,8 +160,8 @@ export default function CalendarScheduler({ events, onAddEvent }: CalendarSchedu
             <div className="grid grid-cols-7 gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
               {Array.from({ length: 30 }).map((_, idx) => {
                 const dayNum = idx + 1;
-                // Highlight days with events (simple simulation)
-                const hasEvent = [4, 10, 18, 25].includes(dayNum);
+                const dayStr = dayNum.toString().padStart(2, "0");
+                const hasEvent = events.some((evt) => evt.date?.endsWith(`-${dayStr}`));
                 return (
                   <span
                     key={idx}

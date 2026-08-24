@@ -6,6 +6,9 @@ import { useGamification } from '@/hooks/use-gamification';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingsCard } from './components';
+import { PageContainer } from '@/components/ui/page-container';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 
 import type { ProfileData } from './_components/profile-data';
 import { initialProfile, syncProfileWithUser, calculateProfileCompletion, getFullName } from './_components/profile-data';
@@ -99,17 +102,23 @@ export default function ProfileSettingsPage() {
     setIsUploadingAvatar(true);
 
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setProfile((prev) => ({ ...prev, avatar: event.target?.result as string }));
-        setHasChanges(true);
-        setIsUploadingAvatar(false);
-        toast.success('تمت معاينة الصورة (احفظ التغييرات لاعتمادها)');
-      };
-      reader.readAsDataURL(file);
-    } catch {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('context', 'avatar');
+      formData.append('category', 'image');
+
+      const result = await apiClient.postForm<{ fileUrl: string }>(
+        apiRoutes.upload.single,
+        formData
+      );
+
+      setProfile((prev) => ({ ...prev, avatar: result.fileUrl }));
+      setHasChanges(true);
+      toast.success('تم رفع الصورة بنجاح (احفظ التغييرات لاعتمادها)');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'فشل تحميل الصورة');
+    } finally {
       setIsUploadingAvatar(false);
-      toast.error('فشل تحميل الصورة');
     }
   }, []);
 
@@ -122,33 +131,23 @@ export default function ProfileSettingsPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: fullName,
-          username: profile.username,
-          phone: profile.phone,
-          alternativePhone: profile.alternativePhone,
-          birthDate: profile.birthDate || undefined,
-          gender: profile.gender,
-          country: profile.country,
-          city: profile.city,
-          school: profile.school,
-          gradeLevel: profile.gradeLevel,
-          educationType: profile.educationType,
-          section: profile.section,
-          studyGoal: profile.studyGoal,
-          bio: profile.bio,
-          avatar: profile.avatar
-        })
+      await apiClient.patch(apiRoutes.users.profile, {
+        name: fullName,
+        username: profile.username,
+        phone: profile.phone,
+        alternativePhone: profile.alternativePhone,
+        birthDate: profile.birthDate || undefined,
+        gender: profile.gender,
+        country: profile.country,
+        city: profile.city,
+        school: profile.school,
+        gradeLevel: profile.gradeLevel,
+        educationType: profile.educationType,
+        section: profile.section,
+        studyGoal: profile.studyGoal,
+        bio: profile.bio,
+        avatar: profile.avatar
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'فشل حفظ التغييرات');
-      }
 
       await refreshUser();
       toast.success('تم حفظ التغييرات بنجاح ✓');
@@ -182,8 +181,8 @@ export default function ProfileSettingsPage() {
   const isTeacher = user.role === 'TEACHER';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-10">
-      <ProfileHeader 
+    <PageContainer size="lg" spacing="none" className="space-y-6 pb-10">
+      <ProfileHeader
         isEditing={isEditing} 
         isSaving={isSaving} 
         hasChanges={hasChanges} 
@@ -230,19 +229,24 @@ export default function ProfileSettingsPage() {
       <SecurityLinks />
 
       <SettingsCard delay={0.3}>
-        <div className="p-5 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-400" />
+        <div className="p-5 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
             الأمان والأجهزة النشطة
           </h3>
         </div>
         <div className="p-6">
-          <div className="text-sm text-muted-foreground py-4 text-center">إدارة الجلسات غير متوفرة حالياً</div>
+          <div className="text-sm text-muted-foreground py-4 text-center">
+            لإدارة الجلسات النشطة وكلمة المرور، انتقل إلى{' '}
+            <a href="/settings/security" className="text-primary hover:text-primary/80 underline">
+              صفحة الأمان
+            </a>
+          </div>
         </div>
       </SettingsCard>
 
       <PrivacyInfoPanel />
-    </div>
+    </PageContainer>
   );
 }
 

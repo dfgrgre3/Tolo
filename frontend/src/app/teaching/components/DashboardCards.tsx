@@ -15,35 +15,27 @@ export default function DashboardCards({ stats }: DashboardCardsProps) {
       title: "إجمالي الإيرادات",
       value: `$${stats.totalRevenue.toLocaleString()}`,
       description: "صافي الأرباح المحققة",
-      change: "+12.5%",
-      changeType: "up",
       icon: DollarSign,
       color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20",
     },
     {
       title: "الطلاب النشطون",
       value: stats.totalStudents.toLocaleString(),
-      description: "طالب يدرسون حالياً",
-      change: "+8.2%",
-      changeType: "up",
+      description: "إجمالي الطلاب المسجلين",
       icon: Users,
       color: "text-blue-500 bg-blue-50 dark:bg-blue-950/20",
     },
     {
-      title: "معدل إكمال الكورسات",
-      value: `${stats.completionRate}%`,
-      description: "نسبة إنهاء المحاضرات",
-      change: "+2.4%",
-      changeType: "up",
-      icon: CheckCircle2,
+      title: "الكورسات النشطة",
+      value: `${stats.publishedCourses || stats.totalCourses || 0}`,
+      description: "كورسات منشورة بالمنصة",
+      icon: BookOpen,
       color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/20",
     },
     {
       title: "متوسط التقييم",
-      value: stats.averageRating.toString(),
+      value: (stats.averageRating || 5.0).toFixed(1),
       description: "من إجمالي آراء الطلاب",
-      change: "+0.1",
-      changeType: "up",
       icon: Star,
       color: "text-amber-500 bg-amber-50 dark:bg-amber-950/20",
     },
@@ -59,10 +51,6 @@ export default function DashboardCards({ stats }: DashboardCardsProps) {
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-xl ${card.color}`}>
                   <Icon className="w-5 h-5" />
-                </div>
-                <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/10 px-2 py-0.5 rounded-full">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>{card.change}</span>
                 </div>
               </div>
               <div className="mt-4 space-y-1">

@@ -43,7 +43,7 @@ export function CoursesControls({
         </div>
 
         <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
-          <SelectTrigger className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+          <SelectTrigger aria-label="ترتيب النتائج" className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
             <SelectValue placeholder="الترتيب" />
           </SelectTrigger>
           <SelectContent>
@@ -59,7 +59,7 @@ export function CoursesControls({
           value={selectedLevel}
           onValueChange={(value) => onLevelChange(value as ControlLevel)}
         >
-          <SelectTrigger className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+          <SelectTrigger aria-label="تصفية حسب المستوى" className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
             <SelectValue placeholder="المستوى" />
           </SelectTrigger>
           <SelectContent>

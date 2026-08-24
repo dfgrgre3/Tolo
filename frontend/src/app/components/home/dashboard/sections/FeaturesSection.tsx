@@ -17,10 +17,10 @@ export const FeaturesSection = memo(function FeaturesSection() {
         className="text-center mb-12"
       >
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4 ring-1 ring-primary/20 backdrop-blur-sm">
-          <Badge variant="secondary" className="bg-primary/20 text-primary hover:bg-primary/30">
+          <Badge variant="secondary" className="bg-primary/20 text-orange-800 dark:text-orange-400 hover:bg-primary/30">
             الترسانة
           </Badge>
-          <span className="text-sm font-medium text-primary shadow-sm">أدواتك للنجاح</span>
+          <span className="text-sm font-medium text-orange-800 dark:text-orange-400 shadow-sm">أدواتك للنجاح</span>
         </div>
         <h2
           id="features-heading"

@@ -1,28 +1,66 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, CreditCard, Key, ShieldCheck, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/api-client";
+import { User, CreditCard, Key, Check } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+interface SettingsData {
+  bio?: string;
+  experience?: string;
+  paypalEmail?: string;
+  apiKey?: string;
+}
+
 export default function SettingsPanel() {
-  const [bio, setBio] = useState("مدرب ومطور تطبيقات واجهات المستخدم بمجموعة متميزة من اللغات مثل JavaScript, TypeScript و React.");
-  const [experience, setExperience] = useState("5 سنوات");
-  const [paypalEmail, setPaypalEmail] = useState("instructor.paypal@tolo.edu");
-  const [apiKey, setApiKey] = useState("tolo_sk_live_583920194857201945");
+  const [bio, setBio] = useState("");
+  const [experience, setExperience] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const { data } = useQuery<SettingsData>({
+    queryKey: ["teaching", "settings"],
+    queryFn: () => apiClient.get<SettingsData>("/api/teaching/settings"),
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (data) {
+      if (data.bio !== undefined) setBio(data.bio);
+      if (data.experience !== undefined) setExperience(data.experience);
+      if (data.paypalEmail !== undefined) setPaypalEmail(data.paypalEmail);
+      if (data.apiKey !== undefined) setApiKey(data.apiKey);
+    }
+  }, [data]);
+
+  const saveMutation = useMutation({
+    mutationFn: (body: SettingsData) => apiClient.patch("/api/teaching/settings", body),
+    onSuccess: () => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    saveMutation.mutate({ bio, experience, paypalEmail, apiKey });
   };
 
   const generateNewKey = () => {
-    setApiKey(`tolo_sk_live_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`);
+    apiClient
+      .post<{ apiKey: string }>("/api/teaching/settings/api-key", {})
+      .then((res) => {
+        if (res.apiKey) setApiKey(res.apiKey);
+      })
+      .catch(() => {
+        setApiKey("");
+      });
   };
 
   return (
@@ -45,6 +83,7 @@ export default function SettingsPanel() {
               <Textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
+                placeholder="اكتب نبذة تعريفية عن خبراتك الأكاديمية..."
                 rows={4}
                 className="rounded-xl border-slate-200 dark:border-slate-800 text-xs text-right"
               />
@@ -54,6 +93,7 @@ export default function SettingsPanel() {
               <Input
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
+                placeholder="مثال: 5 سنوات"
                 className="rounded-xl border-slate-200 dark:border-slate-800 text-right"
               />
             </div>
@@ -73,6 +113,7 @@ export default function SettingsPanel() {
                 type="email"
                 value={paypalEmail}
                 onChange={(e) => setPaypalEmail(e.target.value)}
+                placeholder="email@paypal.com"
                 className="rounded-xl border-slate-200 dark:border-slate-800 text-right"
               />
             </div>
@@ -93,6 +134,7 @@ export default function SettingsPanel() {
                   type={showKey ? "text" : "password"}
                   readOnly
                   value={apiKey}
+                  placeholder="لا يوجد مفتاح مجدد حالياً"
                   className="rounded-xl border-slate-200 dark:border-slate-800 font-mono text-left"
                 />
                 <Button
@@ -125,8 +167,8 @@ export default function SettingsPanel() {
               تم حفظ الإعدادات بنجاح
             </span>
           )}
-          <Button type="submit" className="bg-primary hover:bg-primary/95 text-white rounded-xl px-6">
-            حفظ إعدادات الحساب
+          <Button type="submit" disabled={saveMutation.isPending} className="bg-primary hover:bg-primary/95 text-white rounded-xl px-6">
+            {saveMutation.isPending ? "جاري الحفظ..." : "حفظ إعدادات الحساب"}
           </Button>
         </div>
       </form>

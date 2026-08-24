@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import { memo } from 'react';
-import { m } from "framer-motion";
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 interface ToggleSwitchProps {
@@ -14,23 +14,23 @@ interface ToggleSwitchProps {
 }
 
 const sizeClasses = {
-  sm: 'w-9 h-5',
-  md: 'w-11 h-6',
-  lg: 'w-14 h-7',
+  sm: 'h-[18px] w-8',
+  md: '', // matches Switch's own default size
+  lg: 'h-7 w-14',
 };
 
-const thumbSizes = {
-  sm: 'w-3 h-3',
-  md: 'w-4 h-4',
-  lg: 'w-5 h-5',
+const thumbSizeClasses = {
+  sm: '[&>span]:h-3.5 [&>span]:w-3.5',
+  md: '',
+  lg: '[&>span]:h-6 [&>span]:w-6',
 };
 
-const thumbPositions = {
-  sm: { enabled: 'calc(100% - 16px)', disabled: '4px' },
-  md: { enabled: 'calc(100% - 20px)', disabled: '4px' },
-  lg: { enabled: 'calc(100% - 24px)', disabled: '4px' },
-};
-
+/**
+ * Thin wrapper around the real ui/switch.tsx (Radix Switch) that preserves
+ * the enabled/onToggle prop API used across the settings section, so call
+ * sites don't need to change while the visuals now come from the app's
+ * real token-based Switch instead of a hand-rolled indigo/slate toggle.
+ */
 export const ToggleSwitch = memo(function ToggleSwitch({
   enabled,
   onToggle,
@@ -39,40 +39,13 @@ export const ToggleSwitch = memo(function ToggleSwitch({
   className,
   'aria-label': ariaLabel,
 }: ToggleSwitchProps) {
-  const handleClick = () => {
-    if (!disabled) {
-      onToggle(!enabled);
-    }
-  };
-
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-label={ariaLabel}
-      onClick={handleClick}
+    <Switch
+      checked={enabled}
+      onCheckedChange={onToggle}
       disabled={disabled}
-      className={cn(
-        'relative rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-slate-900',
-        enabled ? 'bg-indigo-500' : 'bg-slate-600',
-        disabled && 'opacity-50 cursor-not-allowed',
-        sizeClasses[size],
-        className
-      )}
-    >
-      <m.div
-        layout
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        className={cn(
-          'absolute top-1 rounded-full bg-white shadow-lg',
-          thumbSizes[size]
-        )}
-        style={{
-          left: enabled ? thumbPositions[size].enabled : thumbPositions[size].disabled,
-        }}
-      />
-    </button>
+      aria-label={ariaLabel}
+      className={cn(sizeClasses[size], thumbSizeClasses[size], className)}
+    />
   );
 });
-

@@ -15,13 +15,13 @@ export function StatBadge({
   return (
     <m.div
       whileHover={{ scale: 1.05 }}
-      className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors cursor-default"
+      className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-border transition-colors cursor-default"
     >
       <div className={cn('flex items-center justify-center gap-1.5', color)}>
         <Icon className="h-4 w-4" />
         <span className="text-lg font-black">{value}</span>
       </div>
-      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">{label}</span>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</span>
     </m.div>
   );
 }

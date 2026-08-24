@@ -39,21 +39,24 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
         scrollProgress: 0,
     });
 
+    const docMetricsRef = useRef({ scrollableHeight: 0 });
+
+    const updateMetrics = useCallback(() => {
+        if (typeof document === "undefined") return;
+        const docHeight = document.documentElement.scrollHeight;
+        const winHeight = window.innerHeight;
+        docMetricsRef.current.scrollableHeight = docHeight - winHeight;
+    }, []);
+
+    const calculateProgress = useCallback((currentScrollY: number) => {
+        const scrollableHeight = docMetricsRef.current.scrollableHeight;
+        if (scrollableHeight <= 0) return 0;
+        return Math.min(100, Math.max(0, (currentScrollY / scrollableHeight) * 100));
+    }, []);
+
     const lastScrollY = useRef(0);
     const ticking = useRef(false);
     const frameId = useRef<number | null>(null);
-
-    const calculateProgress = useCallback(() => {
-        if (typeof document === "undefined") return 0;
-
-        const scrollTop = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight;
-        const winHeight = window.innerHeight;
-        const scrollableHeight = docHeight - winHeight;
-
-        if (scrollableHeight <= 0) return 0;
-        return Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100));
-    }, []);
 
     const updateState = useCallback(() => {
         if (typeof window === "undefined") return;
@@ -81,7 +84,7 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
             }
         }
 
-        const scrollProgress = opts.enableProgress ? calculateProgress() : 0;
+        const scrollProgress = opts.enableProgress ? calculateProgress(currentScrollY) : 0;
 
         // Optimization: Only update state if values have changed significantly
         setState(prev => {
@@ -122,19 +125,22 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
     useEffect(() => {
         if (typeof window === "undefined") return;
 
-        // Initial calculation
+        // Initial calculation & metrics update
+        updateMetrics();
         updateState();
 
-        // Add scroll listener with passive option for better performance
+        // Add scroll & resize listeners with passive option for better performance
         window.addEventListener("scroll", handleScroll, { passive: true });
+        window.addEventListener("resize", updateMetrics, { passive: true });
 
         return () => {
             window.removeEventListener("scroll", handleScroll);
+            window.removeEventListener("resize", updateMetrics);
             if (frameId.current) {
                 cancelAnimationFrame(frameId.current);
             }
         };
-    }, [handleScroll, updateState]);
+    }, [handleScroll, updateMetrics, updateState]);
 
     // CSS classes based on state - NO transitions for instant, smooth feel
     const headerClasses = {

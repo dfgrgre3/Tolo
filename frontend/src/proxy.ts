@@ -13,6 +13,36 @@ import {
   hasRole,
 } from '@/lib/auth/route-guards';
 
+function updateCookieHeader(headers: Headers, accessToken?: string, refreshToken?: string) {
+  if (!accessToken && !refreshToken) return;
+
+  const currentCookies = headers.get('cookie') || '';
+  const parsed = new Map<string, string>();
+
+  if (currentCookies) {
+    currentCookies.split(';').forEach((c) => {
+      const parts = c.split('=');
+      const key = parts[0]?.trim();
+      if (key && parts.length >= 2) {
+        parsed.set(key, parts.slice(1).join('=').trim());
+      }
+    });
+  }
+
+  if (accessToken) {
+    parsed.set('access_token', accessToken);
+  }
+  if (refreshToken) {
+    parsed.set('refresh_token', refreshToken);
+  }
+
+  const updatedCookieString = Array.from(parsed.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ');
+
+  headers.set('cookie', updatedCookieString);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -32,13 +62,37 @@ export async function proxy(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
 
+  let refreshCookies: string[] = [];
+
   // 1. Guest Redirect logic: If authenticated, redirect away from guest auth pages
   if (isGuest && (accessToken || refreshToken)) {
-    const payload = accessToken ? await verifyAccessToken(accessToken) : null;
-    const isValidAccess = !!(payload && payload.exp && payload.exp * 1000 > Date.now());
-    if (isValidAccess || refreshToken) {
+    let payload = accessToken ? await verifyAccessToken(accessToken) : null;
+    let isValidAccess = !!(payload && payload.exp && payload.exp * 1000 > Date.now());
+
+    if (!isValidAccess && refreshToken) {
+      const result = await attemptTokenRefresh(refreshToken, request);
+      if (result.payload && result.cookies.length > 0) {
+        payload = result.payload;
+        isValidAccess = true;
+        refreshCookies = result.cookies;
+      }
+    }
+
+    if (isValidAccess) {
       const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/dashboard';
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
+      const redirectRes = NextResponse.redirect(new URL(redirectUrl, request.url));
+      if (refreshCookies.length > 0) {
+        for (const cookie of refreshCookies) {
+          redirectRes.headers.append("Set-Cookie", cookie);
+        }
+      }
+      return nonce ? applyCsp(redirectRes, nonce) : redirectRes;
+    } else {
+      // Clear invalid tokens so user isn't stuck in a redirect loop
+      const nextResponse = NextResponse.next({ request: { headers: requestHeaders } });
+      nextResponse.cookies.delete('access_token');
+      nextResponse.cookies.delete('refresh_token');
+      return nonce ? applyCsp(nextResponse, nonce) : nextResponse;
     }
   }
 
@@ -49,8 +103,9 @@ export async function proxy(request: NextRequest) {
   const isPublicEndpoint = isPublicApiEndpoint(pathname);
 
   let payload: Awaited<ReturnType<typeof verifyAccessToken>> = null;
-  let refreshCookies: string[] = [];
   let refreshAttempted = false;
+  let newAccessToken: string | undefined;
+  let newRefreshToken: string | undefined;
 
   if (isApiRequest && accessToken && !isPublicEndpoint) {
     payload = await verifyAccessToken(accessToken);
@@ -60,17 +115,23 @@ export async function proxy(request: NextRequest) {
       const result = await attemptTokenRefresh(refreshToken, request);
       payload = result.payload;
       refreshCookies = result.cookies;
+      newAccessToken = result.accessToken;
+      newRefreshToken = result.refreshToken;
       refreshAttempted = true;
     }
   } else if (isApiRequest && !accessToken && refreshToken && !isPublicEndpoint) {
     const result = await attemptTokenRefresh(refreshToken, request);
     payload = result.payload;
     refreshCookies = result.cookies;
+    newAccessToken = result.accessToken;
+    newRefreshToken = result.refreshToken;
     refreshAttempted = true;
   }
 
   // If we successfully refreshed and got cookies, return the response with updated cookies
-  if (refreshAttempted && refreshCookies.length > 0) {
+  if (refreshAttempted && refreshCookies.length > 0 && payload) {
+    updateCookieHeader(requestHeaders, newAccessToken, newRefreshToken);
+
     const nextResponse = NextResponse.next({
       request: {
         headers: requestHeaders,
@@ -107,20 +168,12 @@ export async function proxy(request: NextRequest) {
       const result = await attemptTokenRefresh(refreshToken, request);
       payload = result.payload;
       refreshCookies = result.cookies;
+      newAccessToken = result.accessToken;
+      newRefreshToken = result.refreshToken;
+      refreshAttempted = true;
 
-      if (refreshCookies.length === 0) {
+      if (refreshCookies.length === 0 || !payload) {
         // Refresh failed, redirect to login
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
-        loginUrl.searchParams.set('error', 'session_expired');
-        const redirectRes = NextResponse.redirect(loginUrl);
-        redirectRes.cookies.delete('access_token');
-        redirectRes.cookies.delete('refresh_token');
-        return redirectRes;
-      }
-
-      // If refresh failed (no verified payload despite rotated cookies), redirect to login
-      if (!payload) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         loginUrl.searchParams.set('error', 'session_expired');
@@ -146,7 +199,7 @@ export async function proxy(request: NextRequest) {
 
     // Admin layout guards
     if (isAdminRoute(pathname)) {
-      if (!hasRole(payload!.role, ADMIN_PANEL_ROLES)) {
+      if (!hasRole(payload?.role, ADMIN_PANEL_ROLES)) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Access Denied: Admin privileges required" }, { status: 403 });
         }
@@ -158,17 +211,21 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       // Teacher-only endpoints
       if (pathname.startsWith("/api/teaching/") || pathname.startsWith("/api/courses/create")) {
-        if (!hasRole(payload!.role, TEACHER_ENDPOINT_ROLES)) {
+        if (!hasRole(payload?.role, TEACHER_ENDPOINT_ROLES)) {
           return NextResponse.json({ error: "Access Denied: Teacher privileges required" }, { status: 403 });
         }
       }
 
       // Student-only endpoints
       if (pathname.startsWith("/api/student/") || pathname.startsWith("/api/exams/submit")) {
-        if (!hasRole(payload!.role, STUDENT_ENDPOINT_ROLES)) {
+        if (!hasRole(payload?.role, STUDENT_ENDPOINT_ROLES)) {
           return NextResponse.json({ error: "Access Denied: Student access required" }, { status: 403 });
         }
       }
+    }
+
+    if (newAccessToken || newRefreshToken) {
+      updateCookieHeader(requestHeaders, newAccessToken, newRefreshToken);
     }
 
     // Return the response containing updated set-cookie headers (if rotated successfully)

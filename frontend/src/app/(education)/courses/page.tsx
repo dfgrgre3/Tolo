@@ -238,7 +238,7 @@ export default function CoursesPage() {
         <section className="overflow-hidden rounded-[36px] border border-slate-200/80 bg-white/90 px-6 py-8 shadow-[0_30px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-8 lg:px-10 lg:py-10 dark:border-white/10 dark:bg-slate-950/80 dark:shadow-none">
           <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-7">
-              <Badge className="rounded-full border-0 bg-orange-500/10 px-4 py-2 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300">
+              <Badge className="rounded-full border-0 bg-orange-500/10 px-4 py-2 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
                 <Sparkles className="ml-2 h-4 w-4" />
                 منصة دورات تعليمية متكاملة للمرحلة الثانوية
               </Badge>
@@ -311,7 +311,7 @@ export default function CoursesPage() {
         <section className="mt-10 space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-orange-600 dark:text-orange-300">
+              <p className="text-sm font-bold text-orange-700 dark:text-orange-300">
                 استكشاف المواد
               </p>
               <h2 className="text-2xl font-black">تصفّح حسب التخصص</h2>
@@ -374,7 +374,7 @@ export default function CoursesPage() {
         <section className="mt-10">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
                 نتائج البحث
               </p>
               <h2 className="text-3xl font-black">كل الدورات التعليمية</h2>

@@ -43,7 +43,8 @@ export default function LeaderboardPage() {
     refreshData: _refreshData
   } = useGamification({
     userId,
-    enableNotifications: true
+    enableNotifications: true,
+    includeLeaderboard: true,
   });
 
   useEffect(() => {
