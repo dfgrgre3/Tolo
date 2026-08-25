@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { fetchSettingsPreferences, saveSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
+import { fetchSettingsPreferences, saveSettingsPreferences } from '@/lib/settings-preferences';
 import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/user-ui-preferences';
 
 import { logger } from '@/lib/logger';

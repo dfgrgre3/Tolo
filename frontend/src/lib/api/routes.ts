@@ -26,11 +26,6 @@ export const apiRoutes = {
     me: '/api/auth/me',
     refresh: '/api/auth/refresh',
     refreshSession: '/api/auth/refresh-session',
-    sessions: '/api/auth/sessions',
-    revokeSession: (id: string) => `/api/auth/sessions/${id}`,
-    revokeAllSessions: '/api/auth/sessions',
-    securityLogs: '/api/auth/security-logs',
-    profile: '/api/auth/profile',
     deleteAccount: '/api/auth/account',
     validateToken: '/api/auth/validate-token',
     forgotPassword: '/api/auth/forgot-password',
@@ -149,16 +144,6 @@ export const apiRoutes = {
   },
 
   // ──────────────────────────────────────────
-  // Notifications  (protected_routes.go)
-  // ──────────────────────────────────────────
-  notifications: {
-    list: '/api/notifications',
-    unreadCount: '/api/notifications/unread-count',
-    markRead: '/api/notifications/mark-read',
-    enqueue: '/api/notifications/enqueue',
-  },
-
-  // ──────────────────────────────────────────
   // Activities  (protected_routes.go)
   // ──────────────────────────────────────────
   activities: {
@@ -174,7 +159,6 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   settings: {
     preferences: '/api/settings/preferences',
-    privacyActions: '/api/settings/privacy/actions',
     system: '/api/settings',
   },
 
@@ -183,9 +167,8 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   users: {
     guest: '/api/users/guest',
-    profile: '/api/users/profile',
-    updateProfile: '/api/users/profile',
     billingSummary: '/api/users/billing-summary',
+    profile: '/api/users/profile',
   },
 
   // ──────────────────────────────────────────

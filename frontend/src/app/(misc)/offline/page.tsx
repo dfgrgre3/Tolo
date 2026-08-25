@@ -17,7 +17,9 @@ export default function OfflinePage() {
 		}
 
 		// Check if online
-		setIsOnline(navigator.onLine);
+		queueMicrotask(() => {
+			setIsOnline(navigator.onLine);
+		});
 
 		// Listen for online event
 		const handleOnline = () => {

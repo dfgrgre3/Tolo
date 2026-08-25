@@ -4,8 +4,6 @@ import { cookies } from "next/headers";
 import { generateUserPath, validateFileType, validateFileSize, formatFileSize } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
-
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();

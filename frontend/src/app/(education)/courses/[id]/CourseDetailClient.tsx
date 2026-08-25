@@ -7,7 +7,6 @@ import { m, AnimatePresence } from "framer-motion";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import {
-  BookOpen,
   Clock,
   ChevronLeft,
   ChevronRight,
@@ -58,11 +57,13 @@ export default function CourseDetailClient({
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   useEffect(() => {
-    if (authUser?.id) {
-      setUserId(authUser.id);
-    } else if (!authLoading) {
-      ensureUser().then(setUserId);
-    }
+    queueMicrotask(() => {
+      if (authUser?.id) {
+        setUserId(authUser.id);
+      } else if (!authLoading) {
+        ensureUser().then(setUserId);
+      }
+    });
   }, [authUser, authLoading]);
 
   // Sync user-specific progress when user logs in

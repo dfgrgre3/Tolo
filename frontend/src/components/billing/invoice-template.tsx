@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 
 import QRCode from "qrcode";
+import Image from "next/image";
 
 interface InvoiceData {
   paymentId: string;
@@ -42,7 +43,7 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
         <div className="flex gap-6">
             {qrCodeUrl &&
           <div className="border p-1 rounded-lg">
-                    <img src={qrCodeUrl} alt="QR Verification" className="w-20 h-20" />
+                    <Image src={qrCodeUrl} alt="QR Verification" width={80} height={80} className="w-20 h-20" unoptimized />
                 </div>
           }
             <div>
@@ -154,8 +155,8 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
       {/* Footer / Legal info */}
       <div className="mt-20 pt-8 border-t border-gray-100 text-center">
           <div className="flex justify-center gap-12 mb-6 text-[10px] text-gray-500 font-bold grayscale opacity-50">
-               <img src="/pci-logo.png" alt="PCI DSS" className="h-4" />
-               <img src="/paymob-logo.png" alt="Paymob Secured" className="h-4" />
+               <Image src="/pci-logo.png" alt="PCI DSS" width={64} height={16} className="h-4" unoptimized />
+               <Image src="/paymob-logo.png" alt="Paymob Secured" width={64} height={16} className="h-4" unoptimized />
                <p>SECURE TRANSACTION</p>
           </div>
           <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">

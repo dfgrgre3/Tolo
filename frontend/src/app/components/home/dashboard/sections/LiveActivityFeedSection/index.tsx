@@ -122,7 +122,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
       }
     };
 
-    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
+    const _idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
       ? window.requestIdleCallback(() => fetchActivities(), { timeout: 2500 })
       : setTimeout(() => fetchActivities(), 500);
 

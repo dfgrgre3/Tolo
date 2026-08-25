@@ -72,7 +72,6 @@ const nextConfig = {
 
   // ─── HTTP Headers ──────────────────────────────────────────────────────────
   async headers() {
-    const isProduction = process.env.NODE_ENV === 'production';
     const headers = [
       // Public folder assets (fonts, icons, sw.js, manifest, etc.)
       {

@@ -2,10 +2,11 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, CheckCircle2, Play, Pause } from 'lucide-react';
+import { BookOpen, CheckCircle2, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BookProgressData {
@@ -35,7 +36,7 @@ export function BookProgress({ bookId, totalPages, onProgressUpdate }: BookProgr
     const [isReading, setIsReading] = useState(false);
 
     // Fetch progress on mount
-    const fetchProgress = async () => {
+    const fetchProgress = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetchWithAuth(`/api/library/books/${bookId}/progress`);
@@ -47,18 +48,20 @@ export function BookProgress({ bookId, totalPages, onProgressUpdate }: BookProgr
                 setCurrentPage(data.progress.currentPage || 1);
                 setIsReading(data.progress.progress > 0 && !data.progress.isCompleted);
             }
-        } catch (error) {
+        } catch {
             toast.error('فشل في جلب تقدم القراءة');
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchWithAuth, bookId]);
 
     useEffect(() => {
         if (user) {
-            fetchProgress();
+            const fetchId = setTimeout(fetchProgress, 0);
+            return () => clearTimeout(fetchId);
         }
-    }, [user, bookId]);
+        return;
+    }, [user, bookId, fetchProgress]);
 
     const handleStartReading = async () => {
         try {
@@ -117,7 +120,7 @@ export function BookProgress({ bookId, totalPages, onProgressUpdate }: BookProgr
             }
 
             onProgressUpdate?.(updatedData);
-        } catch (error) {
+        } catch {
             toast.error('فشل في تحديث التقدم');
         } finally {
             setUpdating(false);
@@ -298,9 +301,12 @@ export function ContinueReadingSection() {
                 {booksInProgress.map((item) => (
                     <div key={item.id} className="bg-card rounded-xl p-4 border border-border hover:border-primary/50 transition-colors">
                         <div className="flex items-start gap-3">
-                            <img
+                            <Image
                                 src={item.book?.coverUrl || '/file.svg'}
                                 alt={item.book?.title || 'كتاب'}
+                                width={64}
+                                height={80}
+                                unoptimized
                                 className="w-16 h-20 object-cover rounded-lg"
                             />
                             <div className="flex-1">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { GraduationCap, Play, BookmarkCheck, Bookmark, Share2, BookOpen, Clock, Download, Award, MessageSquare, Loader2, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -77,7 +78,7 @@ export function CourseActionCard({
         ) : (
           <>
             {course.thumbnailUrl ? (
-              <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+              <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(min-width: 1024px) 384px, 100vw" className="object-cover transition-transform duration-500 hover:scale-105" unoptimized />
             ) : (
               <div className="flex items-center justify-center h-full">
                 <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-700" />

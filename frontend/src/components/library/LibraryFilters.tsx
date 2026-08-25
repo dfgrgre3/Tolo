@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import { Search, Sparkles, Filter, SlidersHorizontal } from "lucide-react";
 import { Category } from "./types";
 

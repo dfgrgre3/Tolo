@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Video, FileText, CheckCircle, HelpCircle, X } from "lucide-react";
+import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Video, FileText, HelpCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chapter, Lesson } from "../hooks/use-teaching-data";
@@ -102,7 +102,6 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
 }
 
 export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps) {
-  const [activeChapterIndex, setActiveChapterIndex] = useState<number | null>(null);
   const [editingLessonInfo, setEditingLessonInfo] = useState<{ chapterId: string; lesson: Lesson } | null>(null);
 
   const addChapter = () => {

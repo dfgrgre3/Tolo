@@ -5,7 +5,6 @@ import { BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import type { ChartData, SessionStats } from './study-session-types';
-import { formatDuration } from './study-session-types';
 
 interface StudyChartProps {
   chartData: ChartData[];

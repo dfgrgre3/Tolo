@@ -80,6 +80,7 @@ export function useTokenStreamBuffer<T>(
   // Cleanup: flush any buffered tokens before the component unmounts so that
   // partial streaming results are not silently lost.
   useEffect(() => {
+    const buffer = bufferRef.current;
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -88,8 +89,8 @@ export function useTokenStreamBuffer<T>(
       // Flush remaining items synchronously — the component is going away but
       // the parent state update from onBatch may still land in a Suspense
       // boundary that is still mounted.
-      if (bufferRef.current.length > 0) {
-        const remaining = bufferRef.current.splice(0, bufferRef.current.length);
+      if (buffer.length > 0) {
+        const remaining = buffer.splice(0, buffer.length);
         onBatchRef.current(remaining);
       }
     };

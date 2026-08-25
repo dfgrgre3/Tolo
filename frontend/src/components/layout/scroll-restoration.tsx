@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { safeGetItem, safeSetItem, isBrowser, safeWindow, safeDocument } from "@/lib/safe-client-utils";
+import { safeGetItem, safeSetItem, isBrowser, safeWindow } from "@/lib/safe-client-utils";
 
 import { logger } from '@/lib/logger';
 

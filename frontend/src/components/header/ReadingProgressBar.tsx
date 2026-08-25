@@ -30,7 +30,6 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
     via: "via-primary/85",
     to: "to-primary/70 dark:to-primary/60",
   },
-  animate = true,
   value,
   label,
   isDaily = false,

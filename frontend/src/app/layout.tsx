@@ -5,7 +5,7 @@ import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
 import './ultra-lite.css';
-import React, { Suspense } from 'react';
+import React from 'react';
 import { ThemeProvider } from '@/providers/theme-provider';
 import {
   ConditionalAnalytics,

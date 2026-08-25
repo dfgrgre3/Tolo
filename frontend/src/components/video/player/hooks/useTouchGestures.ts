@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
-import { SEEK_STEP_SECONDS, CONTROLS_HIDE_TIMEOUT_MS } from "../constants";
+import { SEEK_STEP_SECONDS } from "../constants";
 import { usePlaybackStore } from "../stores/playback-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { useUIStore } from "../stores/ui-store";
@@ -187,7 +187,7 @@ export function useTouchGestures({
     }
 
     touchGestureRef.current = null;
-  }, []);
+  }, [playbackRate, setPlaybackState]);
 
   return {
     handleSurfaceTap,

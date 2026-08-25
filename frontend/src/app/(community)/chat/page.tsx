@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -73,12 +74,15 @@ function ConversationItem({
     >
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="relative w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             {conversation.avatar ? (
-              <img 
-                src={conversation.avatar} 
-                alt={conversation.name} 
+              <Image
+                src={conversation.avatar}
+                alt={conversation.name}
+                fill
+                sizes="48px"
                 className="w-full h-full rounded-full object-cover"
+                unoptimized
               />
             ) : (
               <span className="text-lg">{conversation.name.charAt(0)}</span>
@@ -117,12 +121,15 @@ function ChatHeader({ user }: { user: User }) {
   return (
     <div className="p-4 border-b flex items-center gap-3">
       <div className="relative">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="relative w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
           {user.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
+            <Image
+              src={user.avatar}
+              alt={user.name}
+              fill
+              sizes="40px"
               className="w-full h-full rounded-full object-cover"
+              unoptimized
             />
           ) : (
             <span className="text-lg">{user.name.charAt(0)}</span>

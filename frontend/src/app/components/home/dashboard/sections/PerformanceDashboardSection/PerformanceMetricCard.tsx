@@ -20,7 +20,7 @@ const METRIC_ICONS: Record<string, React.ReactNode> = {
   examScore: <GraduationCap className="h-4 w-4" />,
 };
 
-export const PerformanceMetricCard = ({ metric, index }: PerformanceMetricCardProps) => {
+export const PerformanceMetricCard = ({ metric, index: _index }: PerformanceMetricCardProps) => {
   const getStatusColor = (status: MetricStatus) => {
     switch (status) {
       case "excellent":

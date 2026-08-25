@@ -15,15 +15,20 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(-1);
   const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
 
+  const categoryCount = categories.length;
+  const firstCategoryItemCount = categories[0]?.items.length ?? 0;
+
   useEffect(() => {
-    if (isOpen) {
-      setFocusedCategoryIndex(categories.length > 0 ? 0 : -1);
-      setFocusedItemIndex(categories[0]?.items.length ? 0 : -1);
-    } else {
-      setFocusedCategoryIndex(-1);
-      setFocusedItemIndex(-1);
-    }
-  }, [isOpen, categories.length, categories[0]?.items.length]);
+    queueMicrotask(() => {
+      if (isOpen) {
+        setFocusedCategoryIndex(categoryCount > 0 ? 0 : -1);
+        setFocusedItemIndex(firstCategoryItemCount > 0 ? 0 : -1);
+      } else {
+        setFocusedCategoryIndex(-1);
+        setFocusedItemIndex(-1);
+      }
+    });
+  }, [isOpen, categoryCount, firstCategoryItemCount]);
 
   const handleArrowDown = useCallback(() => {
     if (focusedCategoryIndex === -1) {

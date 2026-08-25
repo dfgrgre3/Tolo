@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, memo } from "react";
 import { useSettingsStore } from "../stores/settings-store";
-import { usePlaybackStore } from "../stores/playback-store";
 import { useEfficiencyMode } from "@/hooks";
 
 type AmbientBackgroundProps = {
@@ -12,7 +11,6 @@ type AmbientBackgroundProps = {
 
 export const AmbientBackground = memo(({ videoRef, provider }: AmbientBackgroundProps) => {
   const isAmbientMode = useSettingsStore((state) => state.isAmbientMode);
-  const isPlaying = usePlaybackStore((state) => state.isPlaying);
   const isEfficiencyMode = useEfficiencyMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 

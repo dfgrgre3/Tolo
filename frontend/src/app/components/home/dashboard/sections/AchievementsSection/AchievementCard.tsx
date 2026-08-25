@@ -36,7 +36,7 @@ const DEFAULT_COLOR: AchievementColor = "primary";
 
 export const AchievementCard = memo(({ 
   achievement, 
-  index, 
+  index: _index, 
   progressLabel = "التقدم" 
 }: AchievementCardProps) => {
   

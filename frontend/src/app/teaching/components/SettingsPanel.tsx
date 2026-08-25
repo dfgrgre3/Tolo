@@ -31,12 +31,13 @@ export default function SettingsPanel() {
   });
 
   useEffect(() => {
-    if (data) {
+    if (!data) return;
+    queueMicrotask(() => {
       if (data.bio !== undefined) setBio(data.bio);
       if (data.experience !== undefined) setExperience(data.experience);
       if (data.paypalEmail !== undefined) setPaypalEmail(data.paypalEmail);
       if (data.apiKey !== undefined) setApiKey(data.apiKey);
-    }
+    });
   }, [data]);
 
   const saveMutation = useMutation({

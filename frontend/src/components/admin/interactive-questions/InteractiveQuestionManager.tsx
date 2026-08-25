@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,13 +41,7 @@ export function InteractiveQuestionManager({ lessonId, lessonTitle }: Interactiv
   const [explanation, setExplanation] = useState("");
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => {
-    if (lessonId) {
-      loadQuestions();
-    }
-  }, [lessonId]);
-
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     setLoading(true);
     try {
       const data = await apiClient.get<InteractiveQuestion[]>(`/admin/courses/lessons/${lessonId}/interactive-questions`);
@@ -58,7 +52,15 @@ export function InteractiveQuestionManager({ lessonId, lessonTitle }: Interactiv
     } finally {
       setLoading(false);
     }
-  };
+  }, [lessonId]);
+
+  useEffect(() => {
+    if (lessonId) {
+      queueMicrotask(() => {
+        void loadQuestions();
+      });
+    }
+  }, [lessonId, loadQuestions]);
 
   const resetForm = () => {
     setQuestion("");

@@ -47,7 +47,7 @@ interface UseAIAssistantProps {
 
 export function useAIAssistant({
   initialMessage = "مرحباً! أنا مساعدك الذكي في منصة ثناوي. كيف يمكنني مساعدتك اليوم؟",
-  userId,
+  userId: _userId,
 }: UseAIAssistantProps = {}) {
   const [messages, setMessages] = useState<Message[]>([
     {

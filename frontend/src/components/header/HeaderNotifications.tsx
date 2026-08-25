@@ -1,17 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import Link from "next/link";
-import { Bell, Check, MoreVertical, Settings, Volume2, VolumeX } from "lucide-react";
+import { Bell, Check, MoreVertical, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { cn } from "@/lib/utils";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import type { User } from "@/types/user";
 import type { Notification } from "@/types/notification";
@@ -200,13 +198,6 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 										<Check className="h-4 w-4 mr-2" aria-hidden="true" />
 										تحديد الكل كمقروء
 									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem asChild>
-										<Link href="/notifications" onClick={closePanel}>
-											<Settings className="h-4 w-4 mr-2" aria-hidden="true" />
-											إعدادات الإشعارات
-										</Link>
-									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
@@ -283,17 +274,6 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 								<p className="text-sm">لا توجد إشعارات</p>
 							</div>
 						)}
-					</div>
-
-					{/* Footer */}
-					<div className="p-3 border-t border-border">
-						<Link
-							href="/notifications"
-							onClick={closePanel}
-							className="block text-center text-xs text-primary hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
-						>
-							عرض جميع الإشعارات
-						</Link>
 					</div>
 				</div>
 			)}

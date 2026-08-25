@@ -89,10 +89,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
 		title: "حسابك",
 		links: [
 			{ href: "/subscription", label: "الاشتراكات" },
-			{ href: "/billing", label: "الفواتير والمحفظة" },
-			{ href: "/settings", label: "الإعدادات" },
-			{ href: "/notifications", label: "الإشعارات" },
-			{ href: "/settings/certificates", label: "شهاداتي" }
+			{ href: "/billing", label: "الفواتير والمحفظة" }
 		]
 	}
 ];

@@ -115,7 +115,9 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
   }, [userId, processExamsResponse, processGradesResponse, processExamsListResponse]);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      fetchData();
+    });
   }, [userId, fetchData]);
 
   const handleDeleteExamResult = useCallback(async (resultId: string) => {

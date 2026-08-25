@@ -9,7 +9,6 @@ import { trimTrailingSlashes } from "@/lib/utils";
 import { toJson, isMessage } from "@bufbuild/protobuf";
 
 const isBrowser = typeof window !== 'undefined';
-const isProd = process.env.NODE_ENV === 'production';
 const baseUrl = trimTrailingSlashes(
   isBrowser
     ? '/api'
@@ -72,8 +71,8 @@ export const analyticsClient = createClient(AnalyticsService, transport);
 // Helper for caching server-side gRPC requests across different users (SSR Cache Stampede fix)
 let serverCacheWrapper = <T extends (...args: any[]) => Promise<unknown>>(
   fn: T,
-  method: string,
-  schema?: any
+  _method: string,
+  _schema?: any
 ): T => fn;
 
 if (!isBrowser) {
@@ -86,7 +85,7 @@ if (!isBrowser) {
           if (schema && isMessage(arg)) {
             try {
               return toJson(schema, arg);
-            } catch (e) {
+            } catch {
               return arg;
             }
           }
@@ -105,7 +104,7 @@ if (!isBrowser) {
           }
         )();
       }) as typeof serverCacheWrapper;
-  } catch (e) {
+  } catch {
     // Ignore if unstable_cache is not available
   }
 }

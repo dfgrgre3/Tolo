@@ -84,7 +84,9 @@ export default function Reminders({
   const [activeReminders, setActiveReminders] = useState<string[]>([]);
 
   useEffect(() => {
-    setReminders(initialReminders);
+    queueMicrotask(() => {
+      setReminders(initialReminders);
+    });
   }, [initialReminders]);
 
   const calculateStatsInternal = useCallback((remindersList: Reminder[]) => {
@@ -202,7 +204,9 @@ export default function Reminders({
 
   useEffect(() => {
     if (globalThis.window !== undefined && 'Notification' in globalThis) {
-      setNotificationPermission(Notification.permission);
+      queueMicrotask(() => {
+        setNotificationPermission(Notification.permission);
+      });
       if (Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
           setNotificationPermission(permission);

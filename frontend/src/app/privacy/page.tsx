@@ -43,7 +43,6 @@ export const metadata: Metadata = {
   },
 };
 
-const lastUpdated = "يونيو 2026";
 const effectiveDate = "1 يوليو 2026";
 
 const tableOfContents = [

@@ -20,7 +20,6 @@ export function HeaderNavigation({
   openMegaMenu,
   setOpenMegaMenu,
   isActiveRoute,
-  mounted,
   user,
   navItems = mainNavItemsWithMegaMenu,
 }: HeaderNavigationProps) {

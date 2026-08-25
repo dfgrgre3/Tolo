@@ -4,6 +4,7 @@ import React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { Sparkles, Zap, LayoutDashboard, BookOpen, Play, BarChart3, Clock as ClockIcon } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "./clock";
@@ -144,7 +145,7 @@ export function DashboardHero({
               <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                 <div className="relative h-32 w-48 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-2xl">
                   {lastCourse.thumbnailUrl ? (
-                    <img src={lastCourse.thumbnailUrl} alt={lastCourse.title} className="w-full h-full object-cover" />
+                    <Image src={lastCourse.thumbnailUrl} alt={lastCourse.title} fill sizes="192px" className="object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-primary/20 flex items-center justify-center">
                       <BookOpen className="w-12 h-12 text-primary" />

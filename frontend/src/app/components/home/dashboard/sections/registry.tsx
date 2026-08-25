@@ -7,18 +7,8 @@ export const SectionLoadingFallback = () => (
   <div className="w-full h-48 bg-card/20 rounded-[2rem] border border-white/5" />
 );
 
-export const PerformanceDashboardSection = dynamic(
-  () => import("./PerformanceDashboardSection").then((mod) => mod.PerformanceDashboardSection),
-  { loading: () => <SectionLoadingFallback /> }
-);
-
 export const ExamsSection = dynamic(
   () => import("./ExamsSection").then((mod) => mod.ExamsSection),
-  { loading: () => <SectionLoadingFallback /> }
-);
-
-export const AchievementsSection = dynamic(
-  () => import("./AchievementsSection").then((mod) => mod.AchievementsSection),
   { loading: () => <SectionLoadingFallback /> }
 );
 
@@ -39,11 +29,6 @@ export const IntelligentRecommendationsSection = dynamic(
 
 export const LiveActivityFeedSection = dynamic(
   () => import("./LiveActivityFeedSection").then((mod) => mod.LiveActivityFeedSection),
-  { loading: () => <SectionLoadingFallback /> }
-);
-
-export const ProgressPredictionsSection = dynamic(
-  () => import("./ProgressPredictionsSection").then((mod) => mod.ProgressPredictionsSection),
   { loading: () => <SectionLoadingFallback /> }
 );
 
@@ -74,5 +59,31 @@ export const FeaturesSection = dynamic(
 
 export const CoursesProgressSection = dynamic(
   () => import("./CoursesProgressSection").then((mod) => mod.CoursesProgressSection),
+  { loading: () => <SectionLoadingFallback /> }
+);
+
+// Sections moved from GuestHome for authenticated users
+export const BrowseCategoriesSection = dynamic(
+  () => import("./BrowseCategoriesSection").then((mod) => mod.BrowseCategoriesSection),
+  { loading: () => <SectionLoadingFallback /> }
+);
+
+export const ExploreCoursesSection = dynamic(
+  () => import("./ExploreCoursesSection").then((mod) => mod.ExploreCoursesSection),
+  { loading: () => <SectionLoadingFallback /> }
+);
+
+export const TrendingTopicsDashboardSection = dynamic(
+  () => import("./TrendingTopicsDashboardSection").then((mod) => mod.TrendingTopicsDashboardSection),
+  { loading: () => <SectionLoadingFallback /> }
+);
+
+export const SpecializationProgramsSection = dynamic(
+  () => import("./SpecializationProgramsSection").then((mod) => mod.SpecializationProgramsSection),
+  { loading: () => <SectionLoadingFallback /> }
+);
+
+export const LearningPathsDashboardSection = dynamic(
+  () => import("./LearningPathsDashboardSection").then((mod) => mod.LearningPathsDashboardSection),
   { loading: () => <SectionLoadingFallback /> }
 );

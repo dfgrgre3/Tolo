@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, MessageSquare, Phone, MapPin, Clock, Zap, Shield, Send } from "lucide-react";
+import { Mail, MessageSquare, Phone, Clock, Zap, Shield, Send } from "lucide-react";
 import { ContactForm } from "./ContactForm";
 import { SITE, CONTACT } from '@thanawy/shared/site-config';
 

@@ -29,7 +29,9 @@ export function ImpersonationBanner() {
 	// ── Poll for impersonation cookie ─────────────────────────────
 
 	useEffect(() => {
-		setImpersonating(isImpersonating());
+		queueMicrotask(() => {
+			setImpersonating(isImpersonating());
+		});
 
 		const interval = setInterval(() => {
 			setImpersonating(isImpersonating());

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { usePlaybackStore } from "../stores/playback-store";
 import { useUIStore } from "../stores/ui-store";
@@ -117,26 +117,34 @@ export function PlayerPanels({
     }))
   );
 
-  const [settingsOpened, setSettingsOpened] = useState(false);
-  const [statsOpened, setStatsOpened] = useState(false);
-  const [helpOpened, setHelpOpened] = useState(false);
-  const [sidebarOpened, setSidebarOpened] = useState(false);
+  // Latch: once a panel has been opened it stays mounted (keeps lazy chunks and
+  // exit animations alive). Derived during render from the store flags using the
+  // "adjust state when a prop changes" pattern — no effect needed.
+  const [openedPanels, setOpenedPanels] = useState({
+    settings: false,
+    stats: false,
+    help: false,
+    sidebar: false,
+  });
 
-  useEffect(() => {
-    if (isSettingsOpen) setSettingsOpened(true);
-  }, [isSettingsOpen]);
+  let nextOpenedPanels = openedPanels;
+  if (isSettingsOpen && !nextOpenedPanels.settings) {
+    nextOpenedPanels = { ...nextOpenedPanels, settings: true };
+  }
+  if (isStatsOpen && !nextOpenedPanels.stats) {
+    nextOpenedPanels = { ...nextOpenedPanels, stats: true };
+  }
+  if (isHelpOpen && !nextOpenedPanels.help) {
+    nextOpenedPanels = { ...nextOpenedPanels, help: true };
+  }
+  if (isSidebarOpen && !nextOpenedPanels.sidebar) {
+    nextOpenedPanels = { ...nextOpenedPanels, sidebar: true };
+  }
+  if (nextOpenedPanels !== openedPanels) {
+    setOpenedPanels(nextOpenedPanels);
+  }
 
-  useEffect(() => {
-    if (isStatsOpen) setStatsOpened(true);
-  }, [isStatsOpen]);
-
-  useEffect(() => {
-    if (isHelpOpen) setHelpOpened(true);
-  }, [isHelpOpen]);
-
-  useEffect(() => {
-    if (isSidebarOpen) setSidebarOpened(true);
-  }, [isSidebarOpen]);
+  const { settings: settingsOpened, stats: statsOpened, help: helpOpened, sidebar: sidebarOpened } = nextOpenedPanels;
 
   const {
     selectedQuality,

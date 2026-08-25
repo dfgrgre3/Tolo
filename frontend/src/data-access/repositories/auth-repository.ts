@@ -5,7 +5,7 @@ import 'server-only';
  */
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
-import type { User, UpdateProfilePayload } from '@/types/user';
+import type { User } from '@/types/user';
 
 // ────────────────────────────────────────────────────────────
 // Request / Response types
@@ -93,22 +93,9 @@ export const authRepository = {
   resendVerification: () =>
     apiClient.post<void>(apiRoutes.auth.resendVerification, {}),
 
-  /** PATCH /api/auth/profile */
-  updateProfile: (payload: UpdateProfilePayload) =>
-    apiClient.patch<User>(apiRoutes.auth.profile, payload),
-
   /** DELETE /api/auth/account */
   deleteAccount: (password: string) =>
     apiClient.delete<void>(`${apiRoutes.auth.deleteAccount}?password=${encodeURIComponent(password)}`),
-
-  // ── Sessions ──
-  /** GET /api/auth/sessions */
-  getSessions: () =>
-    apiClient.get<unknown[]>(apiRoutes.auth.sessions),
-
-  /** DELETE /api/auth/sessions/:id */
-  revokeSession: (id: string) =>
-    apiClient.delete<void>(apiRoutes.auth.revokeSession(id)),
 
   // ── MFA ──
   /** POST /api/auth/mfa/setup */

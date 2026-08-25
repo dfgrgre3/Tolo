@@ -5,7 +5,7 @@
  * Comprehensive library for safe client-side API access
  */
 
-import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { trimTrailingSlashes } from './utils';
 import { requestCache } from './api/request-cache';
 
@@ -582,7 +582,9 @@ export function useIsMounted(): boolean {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => {
+      setMounted(true);
+    });
     return () => {
       isMounted.current = false;
       setMounted(false);

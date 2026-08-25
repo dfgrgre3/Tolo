@@ -1,20 +1,12 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Map, Calendar, Library, CheckSquare, Zap } from "lucide-react";
+import { ArrowRight, Calendar, Library, CheckSquare, Zap } from "lucide-react";
 import { useMemo, memo } from "react";
 import { rpgCommonStyles } from "../shared/styles";
 
 export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced() {
   const quickLinks = useMemo(() => [
-    {
-      href: "/settings/progress",
-      icon: <Map className="h-6 w-6 text-blue-400" />,
-      title: "خريطة التقدم (World Map)",
-      description: "راقب توسع نفوذك وإنجازاتك في اللعبة",
-      delay: 0.1,
-      color: "bg-blue-500/10 border-blue-500/20"
-    },
     {
       href: "/schedule",
       icon: <Calendar className="h-6 w-6 text-green-400" />,

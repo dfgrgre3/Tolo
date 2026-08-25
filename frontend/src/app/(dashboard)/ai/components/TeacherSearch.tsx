@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { m } from 'framer-motion';
 import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube } from 'lucide-react';
 
@@ -150,9 +151,12 @@ export default function TeacherSearch({
     >
       <div className="flex items-start gap-4">
         {teacher.thumbnail ? (
-          <img
+          <Image
             src={teacher.thumbnail}
             alt={teacher.name}
+            width={64}
+            height={64}
+            unoptimized
             className="w-16 h-16 rounded-xl object-cover border border-white/10"
           />
         ) : (

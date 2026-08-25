@@ -12,7 +12,7 @@ export function useGuestHomeData() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [selectedTab, setSelectedTab] = useState<CourseSort>('popular');
-  const [loadedTab, setLoadedTab] = useState<CourseSort | null>(null);
+  const [, setLoadedTab] = useState<CourseSort | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -21,20 +21,23 @@ export function useGuestHomeData() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingCategories(true);
-    setLoadingInstructors(true);
-    setLoadingBlog(true);
-
-    fetchHomeBatch().then(({ categories, stats, instructors, blogPosts }) => {
+    queueMicrotask(() => {
       if (cancelled) return;
-      setCategories(categories);
-      setStats(stats);
-      setInstructors(instructors);
-      setBlogPosts(blogPosts);
-      setLoadingData(false);
-      setLoadingCategories(false);
-      setLoadingInstructors(false);
-      setLoadingBlog(false);
+      setLoadingCategories(true);
+      setLoadingInstructors(true);
+      setLoadingBlog(true);
+
+      fetchHomeBatch().then(({ categories, stats, instructors, blogPosts }) => {
+        if (cancelled) return;
+        setCategories(categories);
+        setStats(stats);
+        setInstructors(instructors);
+        setBlogPosts(blogPosts);
+        setLoadingData(false);
+        setLoadingCategories(false);
+        setLoadingInstructors(false);
+        setLoadingBlog(false);
+      });
     });
 
     return () => {
@@ -44,12 +47,15 @@ export function useGuestHomeData() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingCourses(true);
-    fetchCourses(selectedTab).then((nextCourses) => {
+    queueMicrotask(() => {
       if (cancelled) return;
-      setCourses(nextCourses);
-      setLoadedTab(selectedTab);
-      setLoadingCourses(false);
+      setLoadingCourses(true);
+      fetchCourses(selectedTab).then((nextCourses) => {
+        if (cancelled) return;
+        setCourses(nextCourses);
+        setLoadedTab(selectedTab);
+        setLoadingCourses(false);
+      });
     });
 
     return () => {

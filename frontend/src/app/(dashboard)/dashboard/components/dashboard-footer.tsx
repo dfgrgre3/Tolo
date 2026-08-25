@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { TrendingUp, Settings, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp } from "lucide-react";
 
 export function DashboardFooter() {
   return (
@@ -18,15 +16,6 @@ export function DashboardFooter() {
           <span>السرعة: 18ms</span>
         </div>
         <span>تحديث الإصدار: V5.1 (Alpha)</span>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        <Button size="icon" variant="ghost" className="h-12 w-12 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl border border-white/5" asChild>
-          <Link href="/settings"><Settings className="w-5 h-5" /></Link>
-        </Button>
-        <Button size="icon" variant="ghost" className="h-12 w-12 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl border border-white/5" asChild>
-          <Link href="/profile"><User className="w-5 h-5" /></Link>
-        </Button>
       </div>
     </div>
   );

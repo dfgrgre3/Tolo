@@ -1,8 +1,6 @@
 import Link from "next/link";
 import {
-  Award,
   BarChart3,
-  Bell,
   Bot,
   BookOpen,
   Calendar,
@@ -10,10 +8,7 @@ import {
   Clock,
   CreditCard,
   GraduationCap,
-  LineChart,
-  Settings,
   Trophy,
-  User,
   Users,
 } from "lucide-react";
 
@@ -21,20 +16,15 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 
 const features = [
   { href: "/dashboard", title: "لوحة التحكم", description: "نظرة سريعة على نشاطك وآخر إنجازاتك.", icon: BarChart3 },
-  { href: "/settings/progress", title: "خريطة التقدم", description: "تابع مستواك والمهارات والمنحنيات الزمنية.", icon: LineChart },
   { href: "/tasks", title: "المهام", description: "نظم واجباتك وأهدافك اليومية والأسبوعية.", icon: CheckSquare },
   { href: "/schedule", title: "الجدول", description: "رتب مواعيد المذاكرة والاختبارات.", icon: Calendar },
-  { href: "/settings/achievements", title: "الإنجازات", description: "الأوسمة والترقيات وسجل المكافآت.", icon: Award },
   { href: "/leaderboard", title: "لوحة الشرف", description: "قارن ترتيبك وتقدمك مع الطلاب.", icon: Trophy },
   { href: "/time", title: "إدارة الوقت", description: "جلسات مذاكرة وتحليلات إنتاجية.", icon: Clock },
   { href: "/ai", title: "المساعد الذكي", description: "مساعدة دراسية وأسئلة مخصصة.", icon: Bot },
   { href: "/courses", title: "الكورسات", description: "استكشف المواد والدروس المتاحة.", icon: BookOpen },
   { href: "/teachers", title: "المدرسون", description: "ابحث عن المدرسين والمحتوى التعليمي.", icon: GraduationCap },
   { href: "/events", title: "الفعاليات", description: "أنشطة ومواعيد مجتمعية مهمة.", icon: Users },
-  { href: "/notifications", title: "الإشعارات", description: "تابع التنبيهات والتحديثات الجديدة.", icon: Bell },
   { href: "/billing", title: "المحفظة والفواتير", description: "إدارة الرصيد والمدفوعات والاشتراك.", icon: CreditCard },
-  { href: "/profile", title: "الملف الشخصي", description: "بياناتك ومستواك ومعلومات الحساب.", icon: User },
-  { href: "/settings", title: "الإعدادات", description: "الأمان والخصوصية وتفضيلات الحساب.", icon: Settings },
 ];
 
 export default function AllFeaturesPage() {

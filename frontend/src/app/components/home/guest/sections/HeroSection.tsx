@@ -22,9 +22,12 @@ interface HeroSectionProps {
   categories: Category[];
   featuredCourse?: CourseItem;
   stats: PlatformStats | null;
+  /** True while categories/featuredCourse/stats are still being fetched. Reserves
+   * layout space via skeletons so those elements popping in don't shift the page. */
+  loading?: boolean;
 }
 
-export function HeroSection({ categories, featuredCourse, stats }: HeroSectionProps) {
+export function HeroSection({ categories, featuredCourse, stats, loading }: HeroSectionProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -83,32 +86,69 @@ export function HeroSection({ categories, featuredCourse, stats }: HeroSectionPr
               </button>
             </form>
 
-            {categories.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
+            {loading ? (
+              <div className="flex flex-wrap items-center gap-2" aria-hidden="true">
                 <span className="text-xs font-bold text-white/60">تصفح المجالات:</span>
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/courses?categoryId=${cat.id}`}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white rounded-full"
-                  >
-                    {cat.name}
-                  </Link>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-[26px] w-20 rounded-full bg-white/10 border border-white/20 animate-pulse"
+                  />
                 ))}
               </div>
+            ) : (
+              categories.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-white/60">تصفح المجالات:</span>
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      href={`/courses?categoryId=${cat.id}`}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white rounded-full"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )
             )}
 
-            {stats && stats.students > 0 && (
-              <div className="flex items-center gap-2 pt-2">
-                <Users className="h-4 w-4 text-[#F59E0B]" />
-                <span className="text-sm text-white/80 font-medium">
-                  {stats.students.toLocaleString('ar-EG')} طالب مسجّل على المنصة
-                </span>
+            {loading ? (
+              <div className="flex items-center gap-2 pt-2" aria-hidden="true">
+                <div className="h-4 w-4 rounded-full bg-white/10 animate-pulse" />
+                <div className="h-4 w-40 rounded bg-white/10 animate-pulse" />
               </div>
+            ) : (
+              stats &&
+              stats.students > 0 && (
+                <div className="flex items-center gap-2 pt-2">
+                  <Users className="h-4 w-4 text-[#F59E0B]" />
+                  <span className="text-sm text-white/80 font-medium">
+                    {stats.students.toLocaleString('ar-EG')} طالب مسجّل على المنصة
+                  </span>
+                </div>
+              )
             )}
           </div>
 
-          {featuredCourse && (
+          {loading ? (
+            <div className="lg:col-span-5" aria-hidden="true">
+              <div className="bg-white/10 rounded-2xl border border-white/20 overflow-hidden animate-pulse">
+                <div className="aspect-video bg-white/10" />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 w-20 rounded bg-white/10" />
+                  <div className="h-4 w-4/5 rounded bg-white/10" />
+                  <div className="h-4 w-2/5 rounded bg-white/10" />
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="h-3 w-16 rounded bg-white/10" />
+                    <div className="h-3 w-16 rounded bg-white/10" />
+                  </div>
+                  <div className="h-11 w-full rounded-xl bg-white/10" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            featuredCourse && (
             <div className="lg:col-span-5">
               <div className="relative">
                 <div className="absolute -top-4 -right-4 z-20 px-4 py-2 bg-[#F59E0B] text-white text-xs font-black rounded-xl shadow-lg shadow-[#F59E0B]/30 flex items-center gap-1">
@@ -202,10 +242,25 @@ export function HeroSection({ categories, featuredCourse, stats }: HeroSectionPr
                 </div>
               </div>
             </div>
+            )
           )}
         </div>
 
-        <StatsStrip stats={stats} />
+        {loading ? (
+          <div
+            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
+            aria-hidden="true"
+          >
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-[122px] rounded-2xl bg-white/10 border border-white/20 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <StatsStrip stats={stats} />
+        )}
       </div>
     </section>
   );

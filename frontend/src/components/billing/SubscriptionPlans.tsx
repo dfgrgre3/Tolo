@@ -21,6 +21,7 @@ import {
 "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { apiClient } from "@/lib/api/api-client";
 
 interface Plan {
@@ -476,9 +477,9 @@ export default function SubscriptionPlans() {
                  </button>
 
                  <div className="mt-8 flex items-center justify-center gap-6 opacity-40">
-                    <img src="/images/payments/paymob.png" alt="Paymob" className="h-6 grayscale hover:grayscale-0 transition-all cursor-crosshair" />
+                    <Image src="/images/payments/paymob.png" alt="Paymob" width={120} height={24} className="h-6 grayscale hover:grayscale-0 transition-all cursor-crosshair" />
                     <div className="w-px h-4 bg-white/20" />
-                    <img src="/images/payments/visa-master.png" alt="Visa Mastercard" className="h-4 grayscale hover:grayscale-0 transition-all cursor-crosshair" />
+                    <Image src="/images/payments/visa-master.png" alt="Visa Mastercard" width={64} height={16} className="h-4 grayscale hover:grayscale-0 transition-all cursor-crosshair" />
                  </div>
 
                  <p className="mt-8 text-center text-[10px] text-gray-500 leading-relaxed font-medium uppercase tracking-widest px-6">

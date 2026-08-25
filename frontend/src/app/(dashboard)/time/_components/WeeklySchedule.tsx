@@ -127,26 +127,19 @@ export default function WeeklySchedule({
   const [defaultDuration, setDefaultDuration] = useState(60); // minutes
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Statistics
-  const [weekStats, setWeekStats] = useState(calculateWeekStats([], currentWeek));
-
   const loadScheduleData = useCallback(() => {
     setTimeBlocks(extractTimeBlocks(schedule?.planJson));
     setHasInitialized(true);
   }, [schedule]);
 
   useEffect(() => {
-    loadScheduleData();
+    queueMicrotask(loadScheduleData);
   }, [loadScheduleData]);
 
   // Memoize week stats calculation
-  const weekStatsMemo = useMemo(() => {
+  const weekStats = useMemo(() => {
     return calculateWeekStats(timeBlocks, currentWeek);
   }, [timeBlocks, currentWeek]);
-
-  useEffect(() => {
-    setWeekStats(weekStatsMemo);
-  }, [weekStatsMemo]);
 
   const saveSchedule = useCallback(async () => {
     if (!userId) return;

@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import React, { useEffect, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import {
   BookOpen,
@@ -227,7 +228,7 @@ export default function GamifiedCoursesDashboard() {
                           {/* Image */}
                           <div className="relative h-20 w-32 rounded-xl overflow-hidden shrink-0 hidden sm:block">
                             {course.thumbnailUrl ?
-                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> :
+                      <Image src={course.thumbnailUrl} alt={course.title} fill sizes="128px" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" unoptimized /> :
 
                       <div className="w-full h-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center">
                                 <BookMarked className="h-6 w-6 text-primary/50" />
@@ -319,9 +320,9 @@ export default function GamifiedCoursesDashboard() {
                     {exploreCourses.length > 0 ?
                   exploreCourses.map((course) =>
                   <div key={course.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-2xl border border-white/5 bg-background/50 hover:bg-muted/40 transition-colors">
-                           <div className="h-24 w-full sm:w-40 rounded-xl overflow-hidden shrink-0">
-                            {course.thumbnailUrl ?
-                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" /> :
+                            <div className="relative h-24 w-full sm:w-40 rounded-xl overflow-hidden shrink-0">
+                             {course.thumbnailUrl ?
+                      <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(max-width: 640px) 100vw, 160px" className="w-full h-full object-cover" unoptimized /> :
 
                       <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
                                 <BookOpen className="h-6 w-6 text-indigo-400" />

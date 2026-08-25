@@ -1,40 +1,7 @@
 "use client";
 
 import * as React from "react";
-import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from '@/lib/logger';
-
-// Skeleton for admin sections loading state
-function AdminSectionSkeleton({
-  title,
-  rows = 5,
-}: {
-  title: string;
-  rows?: number;
-}) {
-  return (
-    <div className="space-y-6 p-6" dir="rtl">
-      <Skeleton className="h-8 w-48" />
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-      <div className="space-y-3">
-        {[...Array(rows)].map((_, i) => (
-          <Skeleton key={i} className="h-12" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ChartSkeleton() {
-  return (
-    <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" />
-  );
-}
 
 // Admin section components (Stubs since admin was separated)
 export const AdminSections = {
@@ -81,7 +48,9 @@ export function useLazyComponent<T extends React.ComponentType<any>>(
   // Preload if requested
   React.useEffect(() => {
     if (options?.preload) {
-      load();
+      queueMicrotask(() => {
+        load();
+      });
     }
   }, [options?.preload, load]);
 

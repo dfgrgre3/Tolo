@@ -15,7 +15,7 @@ interface LessonStatsSectionProps {
 
 export function LessonStatsSection({
   progress,
-  allLessonsCount,
+  allLessonsCount: _allLessonsCount,
   completedLessonsCount,
   activeLesson,
   bookmarksCount,

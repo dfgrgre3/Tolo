@@ -85,8 +85,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     const cached = readSettingsFromStorage();
     if (cached) {
-      setSettings(cached);
-      setLoading(false);
+      queueMicrotask(() => {
+        setSettings(cached);
+        setLoading(false);
+      });
     }
   }, []);
 
@@ -132,7 +134,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    fetchSettings();
+    queueMicrotask(() => {
+      void fetchSettings();
+    });
   }, []);
 
   const isFeatureEnabled = (feature: keyof SystemFeatures) => {

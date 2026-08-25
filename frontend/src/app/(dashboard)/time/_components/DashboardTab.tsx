@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { m } from "framer-motion";
 
 import {
-  Target,
-  CheckCircle2,
   Clock,
   Flame,
   TrendingUp,
@@ -16,15 +14,13 @@ import {
   Zap,
   BookOpen,
   Sword,
-  ShieldAlert,
-  Star } from
+  ShieldAlert } from
 'lucide-react';
 import { formatTime } from '../utils/timeUtils';
 import type { Task, Reminder, StudySession, TimeStats } from '../types';
 import QuickActions from './QuickActions';
 import UpcomingTasksCard from './UpcomingTasksCard';
 import UpcomingRemindersCard from './UpcomingRemindersCard';
-import CircularProgress from './CircularProgress';
 import MasterySystem from './MasterySystem';
 import StudyAdvisor from './StudyAdvisor';
 
@@ -44,7 +40,6 @@ interface DashboardTabProps {
 
 export default function DashboardTab({
   stats,
-  subjects,
   tasks,
   reminders,
   studySessions,

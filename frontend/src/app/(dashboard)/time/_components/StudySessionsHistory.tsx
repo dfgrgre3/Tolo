@@ -11,7 +11,7 @@ import { format, startOfWeek, subMonths, startOfMonth, subDays } from 'date-fns'
 import { ar } from 'date-fns/locale';
 
 import { logger } from '@/lib/logger';
-import type { StudySession, StudySessionsHistoryProps, SessionStats, ChartData } from './_components/study-session-types';
+import type { StudySessionsHistoryProps, SessionStats, ChartData } from './_components/study-session-types';
 import { StudyChart } from './_components/StudyChart';
 import { SessionsListView } from './_components/SessionsListView';
 import { SessionsGridView } from './_components/SessionsGridView';

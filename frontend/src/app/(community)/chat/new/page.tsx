@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -121,9 +122,12 @@ export default function NewChatPage() {
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                         {user.avatar ? (
-                          <img 
-                            src={user.avatar} 
-                            alt={user.name} 
+                          <Image
+                            src={user.avatar}
+                            alt={user.name}
+                            width={48}
+                            height={48}
+                            unoptimized
                             className="w-full h-full rounded-full object-cover"
                           />
                         ) : (

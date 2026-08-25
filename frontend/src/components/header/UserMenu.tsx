@@ -12,9 +12,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import {
-  Settings,
   LogOut,
-  Bell,
   Shield,
   CreditCard,
   Moon,
@@ -22,15 +20,8 @@ import {
   HelpCircle,
   ChevronRight,
   Crown,
-  Lock,
-  KeyRound,
-  UserX,
   Loader2,
   Activity,
-  MessageSquare,
-  Heart,
-  Star,
-  TrendingUp,
   Clock,
 } from "lucide-react";
 
@@ -56,7 +47,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { logger } from "@/lib/logger";
-import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
+import { saveSettingsPreferences } from "@/lib/settings-preferences";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/api-client";
 import { useWebSocket } from "@/contexts/websocket-context";
@@ -121,13 +112,6 @@ const STAFF_ROLES = new Set<string>([
 
 const MENU_LINKS = {
   admin: "/admin",
-  settings: "/settings",
-  notifications: "/notifications",
-  unreadNotifications: "/notifications?filter=unread",
-  notificationSettings: "/settings/notifications",
-  privacy: "/settings/privacy",
-  security: "/settings/security",
-  blockedUsers: "/settings/blocked-users",
   help: "/support",
   subscription: "/subscription",
 } as const;
@@ -456,7 +440,7 @@ export function UserMenu() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
 
     return () => {
       isMountedRef.current = false;
@@ -500,7 +484,9 @@ export function UserMenu() {
   }, [mounted, user?.id, isConnected, socket, fetchActivities]);
 
   useEffect(() => {
-    setOpen(false);
+    queueMicrotask(() => {
+      setOpen(false);
+    });
   }, [pathname]);
 
   const normalizedUser = useMemo(() => normalizeUser(user as unknown), [user]);
@@ -755,78 +741,11 @@ export function UserMenu() {
               </Link>
             </DropdownMenuItem>
           )}
-
-          <DropdownMenuItem
-            asChild
-            className="cursor-pointer gap-2.5 py-2.5 touch-manipulation"
-          >
-            <Link href={MENU_LINKS.settings} prefetch={false}>
-              <Settings
-                className="h-4 w-4 text-primary"
-                aria-hidden="true"
-              />
-              <span>الملف الشخصي</span>
-              <ChevronRight
-                className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
-                aria-hidden="true"
-              />
-            </Link>
-          </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
-              <Bell className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>الإشعارات</span>
-              <ChevronRight
-                className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
-                aria-hidden="true"
-              />
-            </DropdownMenuSubTrigger>
-
-            <DropdownMenuSubContent
-              sideOffset={8}
-              collisionPadding={8}
-              className="w-56"
-            >
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link href={MENU_LINKS.notifications} prefetch={false}>
-                  جميع الإشعارات
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link
-                  href={MENU_LINKS.unreadNotifications}
-                  prefetch={false}
-                >
-                  إشعارات غير مقروءة
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link
-                  href={MENU_LINKS.notificationSettings}
-                  prefetch={false}
-                >
-                  إعدادات الإشعارات
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
           {/* ─── النشاط الأخير ─────────────────────────────────── */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
@@ -903,62 +822,6 @@ export function UserMenu() {
                   </DropdownMenuItem>
                 </>
               )}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
-              <Lock className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>الخصوصية والأمان</span>
-              <ChevronRight
-                className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
-                aria-hidden="true"
-              />
-            </DropdownMenuSubTrigger>
-
-            <DropdownMenuSubContent
-              sideOffset={8}
-              collisionPadding={8}
-              className="w-56"
-            >
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link href={MENU_LINKS.privacy} prefetch={false}>
-                  <Lock
-                    className="h-3.5 w-3.5 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span>إعدادات الخصوصية</span>
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link href={MENU_LINKS.security} prefetch={false}>
-                  <KeyRound
-                    className="h-3.5 w-3.5 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span>الأمان</span>
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                asChild
-                className="cursor-pointer gap-2.5 py-2 touch-manipulation"
-              >
-                <Link href={MENU_LINKS.blockedUsers} prefetch={false}>
-                  <UserX
-                    className="h-3.5 w-3.5 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span>حظر المستخدمين</span>
-                </Link>
-              </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         </DropdownMenuGroup>

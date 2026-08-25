@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +46,7 @@ export default function MfaSetupVerifyStep({
         </div>
         {qrCodeUrl && (
           <div className="flex justify-center p-3 bg-white rounded-lg border border-slate-200 dark:border-slate-800 max-w-[200px] mx-auto">
-            <img src={qrCodeUrl} alt="MFA QR Code" className="w-full h-auto" />
+            <Image src={qrCodeUrl} alt="MFA QR Code" width={200} height={200} priority unoptimized className="w-full h-auto" />
           </div>
         )}
         <div className="text-center mt-2 text-xs">

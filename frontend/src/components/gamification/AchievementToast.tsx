@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { m, AnimatePresence } from "framer-motion";
 
 interface AchievementToastProps {
@@ -24,14 +24,14 @@ export function AchievementToast({
 }: AchievementToastProps) {
   const [isVisible, setIsVisible] = useState(false);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsVisible(false);
     setTimeout(onClose, 300);
-  };
+  }, [onClose]);
 
   useEffect(() => {
     if (achievement) {
-      setIsVisible(true);
+      queueMicrotask(() => setIsVisible(true));
 
       if (autoClose) {
         const timer = setTimeout(() => {

@@ -5,7 +5,7 @@ import 'server-only';
  */
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
-import type { Subject, Topic, SubTopic, CourseReview } from '@/types/subject';
+import type { Subject, Topic, CourseReview } from '@/types/subject';
 import type { PaginatedResponse, SearchParams } from '@/types/api/responses';
 
 // ────────────────────────────────────────────────────────────

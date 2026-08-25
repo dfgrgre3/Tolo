@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     console.log('[Web Vitals Metric]:', data);
 
     return NextResponse.json({ status: 'success' }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 }

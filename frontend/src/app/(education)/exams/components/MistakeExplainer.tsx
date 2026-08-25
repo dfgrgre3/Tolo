@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Brain, Loader2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,7 +20,7 @@ export default function MistakeExplainer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchExplanation = async () => {
+  const fetchExplanation = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -42,11 +42,13 @@ export default function MistakeExplainer({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [questionId, userAnswer]);
 
   React.useEffect(() => {
-    fetchExplanation();
-  }, [questionId, userAnswer]);
+    queueMicrotask(() => {
+      void fetchExplanation();
+    });
+  }, [fetchExplanation]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

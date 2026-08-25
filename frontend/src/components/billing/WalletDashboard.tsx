@@ -251,7 +251,9 @@ export default function WalletDashboard() {
   };
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      fetchData();
+    });
   }, []);
 
   const handleDeposit = async (amount: number) => {

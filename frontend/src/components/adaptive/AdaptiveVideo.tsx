@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useEfficiency as useEfficiencyCapabilities } from "@/hooks/use-efficiency";
 import { useUltraLiteMode } from "@/hooks/use-efficiency-mode";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ export const AdaptiveVideo = React.memo(function AdaptiveVideo({
 }: AdaptiveVideoProps) {
   const { effectiveMode, capabilities } = useEfficiencyCapabilities();
   const isUltraLite = useUltraLiteMode();
-  const [showControls, setShowControls] = useState(controls);
+  const [showControls] = useState(controls);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const isSaver = effectiveMode === "saver" || effectiveMode === "ultra-lite" || forceLowQuality;
@@ -88,13 +89,16 @@ export const AdaptiveVideo = React.memo(function AdaptiveVideo({
         data-adaptive-video="poster-only"
       >
         {/* Static poster with a play icon overlay */}
-        <img
+        <Image
           src={poster}
           alt=""
+          width={1280}
+          height={720}
+          sizes="100vw"
           className={cn("w-full h-full object-cover", className)}
-          loading="lazy"
           decoding="async"
           style={{ filter: isUltraLite ? "none" : undefined }}
+          unoptimized
         />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center">
@@ -154,7 +158,6 @@ export const LazyVideo = React.memo(function LazyVideo({
   ...rest
 }: AdaptiveVideoProps & { rootMargin?: string }) {
   const { effectiveMode } = useEfficiencyCapabilities();
-  const isUltraLite = useUltraLiteMode();
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -195,12 +198,15 @@ export const LazyVideo = React.memo(function LazyVideo({
           {...rest}
         />
       ) : poster ? (
-        <img
+        <Image
           src={poster}
           alt=""
+          width={1280}
+          height={720}
+          sizes="100vw"
           className={cn("w-full h-full object-cover", className)}
-          loading="lazy"
           decoding="async"
+          unoptimized
         />
       ) : (
         <div
@@ -230,7 +236,6 @@ export const ThumbnailPlay = React.memo(function ThumbnailPlay({
   className?: string;
   onPlay?: () => void;
 }) {
-  const { effectiveMode } = useEfficiencyCapabilities();
   const isUltraLite = useUltraLiteMode();
   const [playing, setPlaying] = useState(false);
 
@@ -268,13 +273,16 @@ export const ThumbnailPlay = React.memo(function ThumbnailPlay({
       style={{ contain: "layout style paint" }}
     >
       {poster ? (
-        <img
+        <Image
           src={poster}
           alt=""
-          loading="lazy"
+          width={1280}
+          height={720}
+          sizes="100vw"
           decoding="async"
           className="w-full h-full object-cover"
           style={{ filter: isUltraLite ? "none" : undefined }}
+          unoptimized
         />
       ) : (
         <div className="bg-muted w-full h-full" style={{ minHeight: "200px" }} />

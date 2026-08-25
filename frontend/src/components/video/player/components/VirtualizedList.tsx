@@ -3,7 +3,7 @@
  * @module video/player/components/VirtualizedList
  */
 
-import { useRef, useEffect, useCallback, useMemo, useState } from "react";
+import { useRef, useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface VirtualizedListProps<T> {

@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { createServer } from "http";
-import { parse } from "url";
 
 const API_BASE = "http://localhost:8082/api";
 

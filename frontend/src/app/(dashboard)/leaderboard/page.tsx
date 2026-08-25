@@ -55,7 +55,7 @@ export default function LeaderboardPage() {
   }, []);
 
   const userRank = getUserRank();
-  const safeLeaderboard = Array.isArray(leaderboard) ? leaderboard : [];
+  const safeLeaderboard = useMemo(() => (Array.isArray(leaderboard) ? leaderboard : []), [leaderboard]);
   const memoizedSafeLeaderboard = useMemo(() => safeLeaderboard, [safeLeaderboard]);
 
   const topThree = useMemo(() => memoizedSafeLeaderboard.slice(0, 3), [memoizedSafeLeaderboard]);

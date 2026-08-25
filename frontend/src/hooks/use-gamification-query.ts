@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as gamificationApi from "@/lib/api/gamification-client";
-import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from "@/types/gamification";
+import { UserProgress, CustomGoal } from "@/types/gamification";
 import { toast } from "sonner";
 
 export interface GamificationQueryOptions {

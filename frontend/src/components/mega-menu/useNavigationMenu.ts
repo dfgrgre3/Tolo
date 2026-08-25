@@ -124,7 +124,9 @@ export function useNavigationMenu() {
   }, []);
 
   useEffect(() => {
-    fetchNavigation();
+    queueMicrotask(() => {
+      fetchNavigation();
+    });
   }, [fetchNavigation]);
 
   return {

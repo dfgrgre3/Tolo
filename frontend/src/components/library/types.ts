@@ -34,10 +34,3 @@ export type Category = {
   icon: string;
   color?: string;
 };
-
-type LibraryStats = {
-  totalBooks: number;
-  totalDownloads: number;
-  totalViews: number;
-  topContributor: string;
-};

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import NextImage from "next/image";
 import { Upload, Loader2, AlertCircle, CheckCircle, X, FileIcon, Image, Video, Music, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUpload, type UseUploadOptions } from "@/hooks/use-upload";
@@ -47,7 +48,7 @@ export function UploadZone({
   const [isDragActive, setIsDragActive] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const { upload, uploadMultiple, isUploading, progress, reset, cancel } = useUpload({
+  const { upload, uploadMultiple, isUploading, progress, cancel } = useUpload({
     bucket,
     folder,
     allowedTypes,
@@ -341,10 +342,13 @@ export function UploadZone({
               <div className="flex-shrink-0">{getFileIcon(fileItem.file)}</div>
 
               {fileItem.preview && fileItem.status !== "error" && (
-                <img
+                <NextImage
                   src={fileItem.preview}
                   alt={fileItem.file.name}
+                  width={48}
+                  height={48}
                   className="h-12 w-12 rounded object-cover"
+                  unoptimized
                 />
               )}
 
@@ -412,7 +416,7 @@ export function SingleFileUpload({
   folder,
   allowedTypes = [],
   maxSize = 10 * 1024 * 1024,
-  value,
+  value: _value,
   onChange,
   placeholder = "No file selected",
   className,
@@ -477,7 +481,7 @@ export function SingleFileUpload({
         >
           <div className="flex items-center gap-3">
             {preview && isImageFile({ type: "image/*" } as File) ? (
-              <img src={preview} alt="Preview" className="h-12 w-12 rounded object-cover" />
+              <NextImage src={preview} alt="Preview" width={48} height={48} className="h-12 w-12 rounded object-cover" unoptimized />
             ) : (
               <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
                 <Upload className="h-6 w-6 text-muted-foreground" />

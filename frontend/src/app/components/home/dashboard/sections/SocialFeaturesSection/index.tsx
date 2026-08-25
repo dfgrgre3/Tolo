@@ -2,12 +2,11 @@
 
 import { useState, useEffect, memo } from "react";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { Users, Award } from "lucide-react";
+import { Users } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/use-auth";
 import { rpgCommonStyles } from "../../shared/styles";
 import { LeaderboardCard } from "./LeaderboardCard";
-import { RecentAchievementsCard } from "./RecentAchievementsCard";
 
 interface LeaderboardEntry {
   rank: number;
@@ -17,20 +16,9 @@ interface LeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  unlockedAt?: Date;
-  progress?: number;
-  total?: number;
-}
-
 export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
   const { user, isAuthenticated } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [recentAchievements, setRecentAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +26,6 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
     let cancelled = false;
     setLoading(true);
     setLeaderboard([]);
-    setRecentAchievements([]);
 
     const fetchData = async () => {
       try {
@@ -67,45 +54,10 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
         } else {
           setLeaderboard([]);
         }
-
-        // Fetch achievements
-        const { data: achievementsData, error: achievementsError } = await safeFetch<{
-          achievements: Array<{
-            id: string;
-            title: string;
-            description: string;
-            progress?: number;
-            total?: number;
-            unlockedAt?: string;
-          }>;
-        }>(
-          `/api/gamification/achievements${userId ? `?userId=${userId}` : ''}`,
-          undefined,
-          null
-        );
-        if (cancelled) return;
-
-        const achievementsSrc = (achievementsData as { data?: typeof achievementsData } | null)?.data ?? achievementsData;
-        if (!achievementsError && achievementsSrc?.achievements) {
-          const transformedAchievements: Achievement[] = achievementsSrc.achievements.slice(0, 3).map((ach) => ({
-            id: ach.id,
-            title: ach.title,
-            description: ach.description,
-            icon: <Award className="h-6 w-6" />,
-            unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt) : undefined,
-            progress: ach.progress,
-            total: ach.total
-          }));
-
-          setRecentAchievements(transformedAchievements);
-        } else {
-          setRecentAchievements([]);
-        }
       } catch (error) {
         if (!cancelled) {
           logger.error("Error fetching social data:", error);
           setLeaderboard([]);
-          setRecentAchievements([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -123,34 +75,23 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10" />
 
       <div className="relative z-10">
-        <div
-          className="mb-8 text-center"
-        >
+        <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 p-3">
               <Users className="h-6 w-6 text-white" />
             </div>
             <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.goldText}`}>
-              المتصدرون وإنجازاتك
+              لوحة المتصدرين
             </h2>
           </div>
           <p className="text-gray-400 text-lg">
-            ترتيب أعلى الطلاب في نقاط الخبرة، وآخر ما فتحته من إنجازات
+            ترتيب أعلى الطلاب في نقاط الخبرة
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Leaderboard Card */}
-          <div
-          >
-            <LeaderboardCard loading={loading} leaderboard={leaderboard} />
-          </div>
-
-          {/* Recent Achievements Card */}
-          <div
-          >
-            <RecentAchievementsCard loading={loading} recentAchievements={recentAchievements} />
-          </div>
+        {/* Leaderboard Card */}
+        <div>
+          <LeaderboardCard loading={loading} leaderboard={leaderboard} />
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 const AvatarContext = React.createContext<{
@@ -32,10 +33,14 @@ const Avatar = React.forwardRef<
 })
 Avatar.displayName = "Avatar"
 
+type AvatarImageProps = Omit<React.ComponentPropsWithoutRef<typeof Image>, "src"> & {
+  src?: React.ComponentPropsWithoutRef<typeof Image>["src"]
+}
+
 const AvatarImage = React.forwardRef<
   HTMLImageElement,
-  React.ImgHTMLAttributes<HTMLImageElement>
->(({ className, src, ...props }, ref) => {
+  AvatarImageProps
+>(({ className, src, alt = "", ...props }, ref) => {
   const { status, setStatus } = React.useContext(AvatarContext)
 
   React.useEffect(() => {
@@ -51,9 +56,13 @@ const AvatarImage = React.forwardRef<
   }
 
   return (
-    <img
+    <Image
       ref={ref}
       src={src}
+      alt={alt}
+      fill
+      priority
+      unoptimized
       className={cn("aspect-square h-full w-full object-cover", className)}
       onLoad={() => setStatus("loaded")}
       onError={() => setStatus("error")}

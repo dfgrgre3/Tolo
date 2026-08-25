@@ -8,7 +8,7 @@ beforeAll(() => {
     // This helps format-utils.test.ts run consistently
     try {
       new Intl.DateTimeFormat('ar-EG');
-    } catch (e) {
+    } catch {
       console.warn('Arabic locale not supported, some tests may fail');
     }
   }

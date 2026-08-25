@@ -37,7 +37,7 @@ export function useProgressPersistence({
   const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
   const lastSaveTimeRef = useRef(0);
   const autoCompleteTriggeredRef = useRef(alreadyCompleted);
-  const sessionStartTimeRef = useRef(Date.now());
+  const sessionStartTimeRef = useRef(0);
   const accumulatedTimeRef = useRef(0);
 
   useEffect(() => {
@@ -46,6 +46,11 @@ export function useProgressPersistence({
 
   // Track active time when player is playing
   useEffect(() => {
+    // Initialize session start after mount (Date.now() must not run during render)
+    if (sessionStartTimeRef.current === 0) {
+      sessionStartTimeRef.current = Date.now();
+    }
+
     const unsubscribe = usePlaybackStore.subscribe(
       (state, prevState) => {
         const isPlaying = state.isPlaying;

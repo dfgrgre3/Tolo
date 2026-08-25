@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
@@ -224,7 +225,7 @@ export default function BlogPage() {
               
                      <div className="relative aspect-[16/10] overflow-hidden">
                         {post.coverImageUrl ?
-                <img src={post.coverImageUrl} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" /> :
+                <Image src={post.coverImageUrl} alt={post.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" unoptimized /> :
 
                 <div className="w-full h-full bg-gradient-to-br from-primary/10 via-black to-black border-b border-white/5 flex items-center justify-center">
                              <Scroll className="w-16 h-16 text-primary/10 group-hover:scale-125 transition-transform" />

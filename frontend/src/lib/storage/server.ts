@@ -13,7 +13,6 @@ import type {
   ImageTransformOptions,
 } from "./types";
 
-const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 async function getSupabaseServerClient() {

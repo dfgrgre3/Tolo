@@ -47,7 +47,7 @@ export const AdaptiveImage = React.memo(function AdaptiveImage({
   sizes,
   ...rest
 }: AdaptiveImageProps) {
-  const { effectiveMode, capabilities } = useEfficiencyCapabilities();
+  const { effectiveMode } = useEfficiencyCapabilities();
   const isUltraLite = useUltraLiteMode();
 
   // Compute quality and loading strategy based on device
@@ -166,13 +166,16 @@ export const LightImg = React.memo(function LightImg({
   const adjustedWidth = typeof width === "number" ? Math.floor(width * factor) : width;
   const adjustedHeight = typeof height === "number" ? Math.floor(height * factor) : height;
 
+  const resolvedWidth = typeof adjustedWidth === "number" ? adjustedWidth : 640;
+  const resolvedHeight = typeof adjustedHeight === "number" ? adjustedHeight : 360;
+
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
       className={className}
-      width={adjustedWidth}
-      height={adjustedHeight}
+      width={resolvedWidth}
+      height={resolvedHeight}
       loading={loading ?? (effectiveMode === "performance" ? "eager" : "lazy")}
       decoding={decoding}
       fetchPriority={fetchPriority}
@@ -180,6 +183,7 @@ export const LightImg = React.memo(function LightImg({
         contentVisibility: "auto",
         containIntrinsicSize: "300px 200px",
       }}
+      unoptimized
       {...rest}
     />
   );
@@ -194,16 +198,16 @@ export const LazyImage = React.memo(function LazyImage({
   src,
   alt,
   className,
+  width: _width,
+  height: _height,
   rootMargin = "200px",
   threshold = 0.01,
-  fallback,
   ...rest
 }: React.ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
   alt: string;
   rootMargin?: string;
   threshold?: number;
-  fallback?: React.ReactNode;
 }) {
   const { effectiveMode } = useEfficiencyCapabilities();
   const isUltraLite = useUltraLiteMode();
@@ -239,22 +243,28 @@ export const LazyImage = React.memo(function LazyImage({
     return () => observer.disconnect();
   }, [effectiveMode, rootMargin, threshold]);
 
+  const handleLoad = useCallback(() => setLoaded(true), []);
+
   return (
-    <img
-      ref={ref}
-      alt={alt}
-      data-src={src}
-      src={inView ? src : undefined}
-      className={cn(className, !loaded && isUltraLite && "opacity-0")}
-      onLoad={useCallback(() => setLoaded(true), [])}
-      loading="lazy"
-      decoding="async"
-      style={{
-        transition: loaded ? "none" : undefined,
-      }}
-      {...rest}
-    >
-      {fallback}
-    </img>
+    <div ref={ref}>
+      {inView ? (
+        <Image
+          alt={alt}
+          src={src}
+          width={1280}
+          height={720}
+          sizes="100vw"
+          className={cn(className, !loaded && isUltraLite && "opacity-0")}
+          onLoad={handleLoad}
+          loading="lazy"
+          decoding="async"
+          style={{
+            transition: loaded ? "none" : undefined,
+          }}
+          unoptimized
+          {...rest}
+        />
+      ) : null}
+    </div>
   );
 });

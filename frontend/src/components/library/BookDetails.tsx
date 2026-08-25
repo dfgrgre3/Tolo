@@ -1,7 +1,8 @@
 "use client";
 
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { X, Download, Star, Eye, Calendar, User, BookOpen, Share2, Heart, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import { Book } from "./types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ interface BookDetailsProps {
 }
 
 import { useState } from "react";
-import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 
 export function BookDetails({ book, onClose }: BookDetailsProps) {
   const [showPreview, setShowPreview] = useState(false);
@@ -43,10 +44,13 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
         {/* Left Side: Visuals */}
         <div className="w-full md:w-2/5 relative h-64 md:h-full bg-black/40 border-l border-white/5 overflow-hidden group">
           {book.coverUrl ? (
-            <img 
-              src={book.coverUrl} 
-              alt={book.title} 
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+            <Image
+              src={book.coverUrl}
+              alt={book.title}
+              fill
+              sizes="(min-width: 768px) 40vw, 100vw"
+              unoptimized
+              className="object-cover transition-transform duration-1000 group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/10 to-blue-500/10">

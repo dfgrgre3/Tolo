@@ -34,7 +34,7 @@ interface UseExamGeneratorProps {
   years: number[];
 }
 
-export function useExamGenerator({ subjects, years }: UseExamGeneratorProps) {
+export function useExamGenerator(_props: UseExamGeneratorProps) {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [lesson, setLesson] = useState("");
@@ -46,7 +46,7 @@ export function useExamGenerator({ subjects, years }: UseExamGeneratorProps) {
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [, setRetryCount] = useState(0);
   const [pollSeconds, setPollSeconds] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);

@@ -17,7 +17,7 @@ interface StatusIndicatorProps {
   index: number;
 }
 
-export const IndicatorCard = ({ indicator, index }: StatusIndicatorProps) => {
+export const IndicatorCard = ({ indicator }: StatusIndicatorProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "online":

@@ -13,8 +13,6 @@ const REQUIRED_ENV_VARS = {
   development: []
 } as const;
 
-const MIN_JWT_SECRET_LENGTH = 32;
-
 interface EnvValidationResult {
   valid: boolean;
   errors: string[];

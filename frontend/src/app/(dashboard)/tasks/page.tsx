@@ -95,7 +95,9 @@ export default function TasksPage() {
   };
 
   useEffect(() => {
-    fetchTasks();
+    queueMicrotask(() => {
+      fetchTasks();
+    });
   }, []);
 
   const filteredAndSortedTasks = useMemo(() => {

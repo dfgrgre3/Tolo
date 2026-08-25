@@ -1,7 +1,7 @@
 "use client";
 
 import { m } from "framer-motion";
-import { Plus, Library, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import Image from "next/image";

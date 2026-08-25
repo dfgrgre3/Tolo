@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GraduationCap, CheckCircle2, ArrowLeft, Users, Award } from 'lucide-react';
 import type { PlatformStats } from '../types';

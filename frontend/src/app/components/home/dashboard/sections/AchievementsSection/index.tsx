@@ -1,8 +1,7 @@
 "use client";
 
 import React, { memo, useEffect, useState } from "react";
-import Link from "next/link";
-import { Trophy, Star, Award, CheckCircle2, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
+import { Trophy, Star, Award, CheckCircle2, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
@@ -253,15 +252,9 @@ export const AchievementsSection = memo(function AchievementsSection({
 
         {/* Footer Link */}
         <div className="text-center">
-          <Link href="/settings/achievements">
-            <Button size="lg" variant="ghost" className="group text-gray-300 hover:text-white hover:bg-white/10">
-              <span>عرض سجل الأوسمة الكامل</span>
-              <ArrowRight 
-                className="mr-2 h-4 w-4 rtl:rotate-180" 
-                aria-hidden="true"
-              />
-            </Button>
-          </Link>
+          <Button size="lg" variant="ghost" className="group text-gray-300 hover:text-white hover:bg-white/10 cursor-default">
+            <span>سجل الأوسمة</span>
+          </Button>
         </div>
       </div>
     </section>

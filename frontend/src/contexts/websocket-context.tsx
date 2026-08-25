@@ -1,7 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect } from 'react';
-import type { ErrorInfo } from 'react';
+import React, { createContext, useEffect } from 'react';
 import { useWebSocketStore } from './websocket-store';
 
 type WebSocketContextType = {
@@ -92,7 +91,9 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
 
     // Check initial state
     const initialDisabled = shouldDisableWebSocket();
-    setWebsocketEnabled(!initialDisabled);
+    queueMicrotask(() => {
+      setWebsocketEnabled(!initialDisabled);
+    });
 
     const observer = new MutationObserver(async () => {
       const isDisabled = shouldDisableWebSocket();
@@ -110,7 +111,6 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     });
 
     return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, connect, disconnect]);
 
   useEffect(() => {
@@ -124,7 +124,6 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     return () => {
       disconnect();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, websocketEnabled, connect, disconnect]);
 
   const socket = useWebSocketStore((state) => state.socket);

@@ -1,6 +1,7 @@
 "use client";
 
 import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
+import Image from "next/image";
 import { Download, Eye, Star, Book as BookIcon, Sparkles } from "lucide-react";
 import { Book } from "./types";
 import { Badge } from "@/components/ui/badge";
@@ -73,10 +74,13 @@ export function BookCard({ book, onClick, index }: BookCardProps) {
         {/* Book Cover */}
         <div className="relative aspect-[3/4] m-4 rounded-2xl overflow-hidden shadow-2xl bg-black/40 group-hover:shadow-amber-500/10 transition-shadow duration-500" style={{ transform: "translateZ(30px)" }}>
            {book.coverUrl ? (
-             <img 
-               src={book.coverUrl} 
+             <Image
+               src={book.coverUrl}
                alt={book.title}
-               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+               fill
+               sizes="(min-width: 768px) 33vw, 100vw"
+               unoptimized
+               className="object-cover transition-transform duration-700 group-hover:scale-110"
              />
            ) : (
              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 via-transparent to-blue-500/10">

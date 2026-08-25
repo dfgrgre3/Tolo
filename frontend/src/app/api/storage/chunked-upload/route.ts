@@ -45,12 +45,6 @@ interface InitiateBody {
   folder?: string;
 }
 
-interface UploadChunkBody {
-  uploadId: string;
-  chunkIndex: number;
-  totalChunks: number;
-}
-
 // ─── POST: Initiate or upload a chunk ──────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -286,7 +280,7 @@ export async function PUT(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { userId, supabase } = auth;
+    const { userId } = auth;
 
     // Validate that Redis is available for chunked uploads
     const redis = getRedisClient();

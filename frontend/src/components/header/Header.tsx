@@ -150,8 +150,6 @@ export default function Header() {
 					targetSlugs = ["digital_library", "awareness", "dashboard"];
 				} else if (item.href === "/leaderboard") {
 					targetSlugs = ["leaderboard", "community"];
-				} else if (item.href === "/settings") {
-					targetSlugs = ["subscription", "settings"];
 				}
 				const newMegaMenu = targetSlugs
 					.map((slug) => categoriesBySlug[slug])
@@ -277,7 +275,9 @@ export default function Header() {
 	// ── Close mobile menu on route change ─────────────────────────
 
 	useEffect(() => {
-		setIsMobileMenuOpen(false);
+		queueMicrotask(() => {
+			setIsMobileMenuOpen(false);
+		});
 	}, [pathname]);
 
 	// ── Helpers ───────────────────────────────────────────────────

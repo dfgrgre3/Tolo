@@ -9,15 +9,17 @@ import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
 import { useAuthContext } from '@/contexts/auth-context';
 
-interface NotificationsResponse {
-  notifications: Notification[];
-  unreadCount: number;
-  hasMore: boolean;
-}
-
+// GET /api/notifications / POST /api/notifications/mark-read
+// (notification_handler.go's GetNotifications/MarkNotificationRead) were
+// fully built - keyset pagination, L1+Redis caching, WebSocket broadcast on
+// mark-read - but never mounted on any route. See protected_routes.go where
+// they're wired alongside the rest of the user-facing routes.
+//
+// GetNotifications returns a bare array with no unreadCount/hasMore
+// alongside it, and MarkNotificationRead returns only {success: true} with
+// no unreadCount either - both are derived client-side instead.
 interface MarkReadResponse {
   success: boolean;
-  unreadCount?: number;
 }
 
 interface NotificationsContextType {
@@ -55,21 +57,15 @@ export function useNotificationsContext() {
 }
 
 function parseNotificationsResponse(response: unknown, limit: number) {
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response)) {
-      return {
-        nextNotifications: response as Notification[],
-        nextUnreadCount: (response as Notification[]).filter((n) => !n.isRead).length,
-        nextHasMore: response.length === limit
-      };
-    } else if ('notifications' in response && Array.isArray((response as Record<string, unknown>).notifications)) {
-      const resp = response as NotificationsResponse;
-      return {
-        nextNotifications: resp.notifications,
-        nextUnreadCount: resp.unreadCount ?? 0,
-        nextHasMore: resp.hasMore ?? (resp.notifications.length === limit)
-      };
-    }
+  // GetNotifications returns a bare array (api_response.Success(c, notifications)),
+  // not {notifications: [...]} - it has no separate unread-count or hasMore
+  // field, so both are derived from the page actually returned.
+  if (Array.isArray(response)) {
+    return {
+      nextNotifications: response as Notification[],
+      nextUnreadCount: (response as Notification[]).filter((n) => !n.isRead).length,
+      nextHasMore: response.length === limit
+    };
   }
   return { nextNotifications: [] as Notification[], nextUnreadCount: 0, nextHasMore: false };
 }
@@ -100,7 +96,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const [, setOffset] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const lastNotifiedId = useRef<string | null>(null);
   const isFirstFetch = useRef(true);
@@ -121,7 +117,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         offset: currentOffset.toString()
       });
 
-      const response = await apiClient.get<NotificationsResponse | Notification[]>(`/notifications?${params}`);
+      const response = await apiClient.get<Notification[]>(`/notifications?${params}`);
       
       const { nextNotifications, nextUnreadCount, nextHasMore } = parseNotificationsResponse(response, limit);
 
@@ -150,21 +146,25 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const response = await apiClient.post<MarkReadResponse>('/notifications/mark-read', { 
-        id: notificationIds ? notificationIds[0] : "", // Go backend handles 'id'
-        all 
-      });
-
-      if (all) {
+      // MarkNotificationRead has no "all" field or bulk-by-list support: an
+      // empty/absent id marks everything read, and any other id marks just
+      // that one notification. Marking several specific ids therefore needs
+      // one call per id, not the single first-id-only call this used to send
+      // (which silently left the rest unread server-side).
+      if (all || !notificationIds) {
+        await apiClient.post<MarkReadResponse>('/notifications/mark-read', { id: '' });
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      } else if (notificationIds) {
-        setNotifications((prev) =>
-        prev.map((n) => notificationIds.includes(n.id) ? { ...n, isRead: true } : n)
-        );
+        setUnreadCount(0);
+        return;
       }
 
-      setUnreadCount(response.unreadCount ?? (all ? 0 : Math.max(0, unreadCount - (notificationIds?.length || 0))));
-
+      await Promise.all(
+        notificationIds.map((id) => apiClient.post<MarkReadResponse>('/notifications/mark-read', { id }))
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (notificationIds.includes(n.id) ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - notificationIds.length));
     } catch (error) {
       logger.error('Error marking notifications as read:', error);
     }
@@ -247,7 +247,6 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       }
       clearInterval(pollInterval);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNotifications, isAuthenticated, isAuthLoading]);
 
   const value = useMemo(() => ({
@@ -260,7 +259,6 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     loadMore,
     soundEnabled,
     toggleSound
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [notifications, unreadCount, isLoading, hasMore, fetchNotifications, loadMore, soundEnabled, toggleSound]);
 
   return (

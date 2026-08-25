@@ -3,20 +3,11 @@
 import React from "react";
 import { m } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, BarChart3, CheckSquare, Calendar, Trophy } from "lucide-react";
+import { ArrowRight, CheckSquare, Calendar } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const quickLinks = [
-  {
-    title: "خريطة التقدم",
-    description: "راقب توسع نفوذك وإنجازاتك في عالمك الدراسي",
-    href: "/settings/progress",
-    icon: BarChart3,
-    color: "text-blue-400",
-    bgColor: "bg-blue-400/10",
-    delay: 0.1
-  },
   {
     title: "سجل المهام (Quests)",
     description: "المهام اليومية، الأسبوعية، والمهمات الملحمية",
@@ -34,15 +25,6 @@ const quickLinks = [
     color: "text-emerald-400",
     bgColor: "bg-emerald-400/10",
     delay: 0.3
-  },
-  {
-    title: "لوحة الشرف",
-    description: "الألقاب، الأوسمة، وترتيبك بين المحاربين",
-    href: "/settings/achievements",
-    icon: Trophy,
-    color: "text-purple-400",
-    bgColor: "bg-purple-400/10",
-    delay: 0.4
   }
 ];
 

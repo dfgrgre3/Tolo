@@ -15,8 +15,6 @@ import { HeaderNavLink } from "@/components/navigation";
 import { SITE } from "@thanawy/shared/site-config";
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "@/providers/theme-provider";
-import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
-import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/use-auth";
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -158,19 +156,11 @@ export function HeaderMobileMenuEnhanced({
 	// ── Theme toggle ──────────────────────────────────────────────
 
 	const toggleTheme = useCallback(
-		async (e?: React.MouseEvent) => {
+		(e?: React.MouseEvent) => {
 			const nextTheme = theme === "dark" ? "light" : "dark";
 			toggleThemeWithTransition(nextTheme, setTheme, e);
-
-			if (user?.id) {
-				try {
-					await saveSettingsPreferences({ appearance: { theme: nextTheme } });
-				} catch (error) {
-					logger.error("Failed to sync theme preference in MobileMenu:", error);
-				}
-			}
 		},
-		[theme, setTheme, user?.id]
+		[theme, setTheme]
 	);
 
 	// ── Nav items & search ────────────────────────────────────────

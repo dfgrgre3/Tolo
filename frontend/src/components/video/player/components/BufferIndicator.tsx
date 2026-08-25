@@ -14,12 +14,6 @@ interface BufferIndicatorProps {
   showDetails?: boolean;
 }
 
-interface BufferSegment {
-  start: number;
-  end: number;
-  percentage: number;
-}
-
 export function BufferIndicator({
   buffered,
   currentTime,

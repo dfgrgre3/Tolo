@@ -3,6 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { m } from "framer-motion";
 import {
   CreditCard,
@@ -195,7 +196,7 @@ export default function CourseCheckoutPage() {
             <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
                <div className="aspect-video rounded-[2rem] overflow-hidden relative">
                   {course.thumbnailUrl ?
-                <img src={course.thumbnailUrl} alt={course.nameAr} className="w-full h-full object-cover" /> :
+                <Image src={course.thumbnailUrl} alt={course.nameAr || course.name} fill sizes="(min-width: 1024px) 352px, 100vw" className="object-cover" unoptimized /> :
 
                 <div className="w-full h-full bg-[#101222] flex items-center justify-center">
                        <GraduationCap className="w-20 h-20 text-gray-700" />

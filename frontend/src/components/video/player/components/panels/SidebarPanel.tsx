@@ -209,7 +209,7 @@ function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
 }
 
 export function SidebarPanel({
-  isSidebarOpen, isEfficiencyMode, sidebarTab, onToggleSidebarTab,
+  isSidebarOpen, sidebarTab, onToggleSidebarTab,
   bookmarks, onJumpToTime, noteDraft, onNoteDraftChange, isNotesSyncing,
   onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote,
   hasTranscript, transcriptCues, transcriptQuery, onTranscriptQueryChange,

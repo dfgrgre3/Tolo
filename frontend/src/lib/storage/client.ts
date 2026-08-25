@@ -27,7 +27,6 @@ export type {
   ImageTransformOptions,
 };
 
-const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 export function getSupabaseClient() {
@@ -35,7 +34,7 @@ export function getSupabaseClient() {
 }
 
 export async function uploadFile(options: UploadOptions): Promise<UploadResult> {
-  const { bucket, file, contentType, onProgress } = options;
+  const { bucket, file, onProgress } = options;
 
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);

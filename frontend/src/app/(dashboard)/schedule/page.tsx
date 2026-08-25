@@ -97,7 +97,9 @@ export default function SchedulePage() {
   }, [userId]);
 
   useEffect(() => {
-    loadSchedule();
+    queueMicrotask(() => {
+      loadSchedule();
+    });
   }, [loadSchedule]);
 
   return (

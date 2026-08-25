@@ -9,10 +9,8 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  Clock3,
   Pause,
   Play,
-  Camera,
   Settings2,
   SkipBack,
   SkipForward,
@@ -68,10 +66,8 @@ import { usePlaybackStore } from "./player/stores/playback-store";
 import { useUIStore } from "./player/stores/ui-store";
 import { useSettingsStore } from "./player/stores/settings-store";
 import type {
-  CourseVideoPlayerApi,
   CourseVideoPlayerProps,
   PlayerFeedback,
-  QualityOption,
   YouTubeRuntimePlayer,
 } from "./player/types";
 
@@ -97,7 +93,7 @@ export function CourseVideoPlayer({
   alreadyCompleted = false,
   onLessonAutoComplete,
   onNextVideo,
-  playerApiRef,
+  playerApiRef: _playerApiRef,
   className,
   watermarkText = "Thanawy Academy",
   bookmarks = [],
@@ -114,11 +110,11 @@ export function CourseVideoPlayer({
   onProgress,
 }: CourseVideoPlayerProps) {
   // --- Refs & Internal State ---
-  // FIX: Removed `activeVideoUrl` state that was mirroring `videoUrl` prop — caused double render.
-  // Quality switches (non-HLS) temporarily override the URL via ref; all other URL changes
-  // come from the parent prop directly. `setPlaybackState({ isLoading: true })` is the render trigger.
-  const qualityOverrideUrlRef = useRef<string | null>(null);
-  const activeVideoUrl = qualityOverrideUrlRef.current ?? videoUrl;
+  // Quality switches (non-HLS) temporarily override the URL. The override is tagged with the
+  // `videoUrl` it was created for, so a URL change coming from the parent (lesson switch)
+  // automatically invalidates it — no reset effect and no ref access during render.
+  const [qualityOverride, setQualityOverride] = useState<{ forVideoUrl: string; src: string } | null>(null);
+  const activeVideoUrl = qualityOverride?.forVideoUrl === videoUrl ? qualityOverride.src : videoUrl;
   const provider = useMemo(() => getProvider(activeVideoUrl), [activeVideoUrl]);
   const youtubeId = useMemo(() => parseYouTubeId(activeVideoUrl), [activeVideoUrl]);
   
@@ -464,7 +460,7 @@ export function CourseVideoPlayer({
     if (onProgress) {
       onProgress(nextTime, duration);
     }
-  }, [getAdapter, interactiveQuestions, flashFeedback, onProgress]);
+  }, [getAdapter, interactiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState]);
 
   const stopPlaybackLoop = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -504,7 +500,7 @@ export function CourseVideoPlayer({
     setPlaybackState({ currentTime: nextTime, resumeTime: null, isEnded: false });
     syncPlaybackSnapshot();
     resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout, syncPlaybackSnapshot]);
+  }, [getAdapter, resetControlsTimeout, setPlaybackState, syncPlaybackSnapshot]);
 
   const seekBy = useCallback((seconds: number) => {
     const adapter = getAdapter();
@@ -532,7 +528,7 @@ export function CourseVideoPlayer({
       setUIState({ errorMessage: "تعذر تشغيل الفيديو الحالي." });
     }
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout]);
+  }, [flashFeedback, getAdapter, resetControlsTimeout, setUIState]);
 
   const toggleMute = useCallback(() => {
     const adapter = getAdapter();
@@ -546,7 +542,7 @@ export function CourseVideoPlayer({
     setPlaybackState({ isMuted: nextMuted });
     flashFeedback({ icon: nextMuted ? VolumeX : Volume2, label: nextMuted ? "كتم" : "صوت" });
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout, store.isMuted, store.volume]);
+  }, [flashFeedback, getAdapter, resetControlsTimeout, setPlaybackState, store.isMuted, store.volume]);
 
   const handleVolumeChange = useCallback((nextVolume: number) => {
     const adapter = getAdapter();
@@ -556,7 +552,7 @@ export function CourseVideoPlayer({
     adapter.setMuted(safeVolume === 0);
     setPlaybackState({ volume: safeVolume, isMuted: safeVolume === 0 });
     resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout]);
+  }, [getAdapter, resetControlsTimeout, setPlaybackState]);
 
   const handlePlaybackRateChange = useCallback((nextRate: number) => {
     const adapter = getAdapter();
@@ -569,7 +565,7 @@ export function CourseVideoPlayer({
     setPlaybackState({ playbackRate: nextRate });
     flashFeedback({ icon: Settings2, label: `${nextRate}x` });
     resetControlsTimeout();
-  }, [flashFeedback, getAdapter, provider, resetControlsTimeout, youtubePlaybackRates]);
+  }, [flashFeedback, getAdapter, provider, resetControlsTimeout, setPlaybackState, youtubePlaybackRates]);
 
   const toggleFullscreen = useCallback(async () => {
     const container = playerContainerRef.current;
@@ -581,7 +577,7 @@ export function CourseVideoPlayer({
       setUIState({ errorMessage: "تعذر تفعيل وضع ملء الشاشة." });
     }
     resetControlsTimeout();
-  }, [resetControlsTimeout]);
+  }, [resetControlsTimeout, setUIState]);
 
   const togglePip = useCallback(async () => {
     const video = videoRef.current;
@@ -593,7 +589,7 @@ export function CourseVideoPlayer({
       setUIState({ errorMessage: "وضع النافذة العائمة غير متاح لهذا المتصفح." });
     }
     resetControlsTimeout();
-  }, [provider, resetControlsTimeout]);
+  }, [provider, resetControlsTimeout, setUIState]);
 
   // AirPlay (Safari/iOS/macOS only — WebKit exposes this non-standard method
   // on the media element; other browsers simply don't have it, so we guard).
@@ -610,7 +606,7 @@ export function CourseVideoPlayer({
     }
     video.webkitShowPlaybackTargetPicker();
     resetControlsTimeout();
-  }, [resetControlsTimeout]);
+  }, [resetControlsTimeout, setUIState]);
 
   const toggleLoop = useCallback(() => {
     const { loopStart, loopEnd, currentTime } = usePlaybackStore.getState();
@@ -628,7 +624,7 @@ export function CourseVideoPlayer({
       setPlaybackState({ loopStart: null, loopEnd: null });
       flashFeedback({ icon: Repeat, label: "إيقاف التكرار" });
     }
-  }, [flashFeedback]);
+  }, [flashFeedback, setPlaybackState]);
 
   const applySubtitleSelection = useCallback((subtitleId: string) => {
     if (provider === "youtube" || !videoRef.current) return;
@@ -644,7 +640,7 @@ export function CourseVideoPlayer({
       icon: Settings2,
       label: id === "off" ? "الترجمة متوقفة" : (subtitleTracks.find(t => t.id === id)?.label ?? "ترجمة")
     });
-  }, [applySubtitleSelection, flashFeedback, subtitleTracks]);
+  }, [applySubtitleSelection, flashFeedback, setSettingsState, subtitleTracks]);
 
   const changeQuality = useCallback((qualityId: number) => {
     const hls = hlsRef.current;
@@ -664,12 +660,10 @@ export function CourseVideoPlayer({
       shouldResume: store.isPlaying
     };
     setSettingsState({ selectedQuality: qualityId });
-    // FIX: Use ref instead of state to store the quality URL override.
-    // This avoids a redundant render cycle; `setPlaybackState` below is already the render trigger.
-    qualityOverrideUrlRef.current = source.src;
+    setQualityOverride({ forVideoUrl: videoUrl, src: source.src });
     setPlaybackState({ isLoading: true });
     flashFeedback({ icon: Settings2, label: source.label });
-  }, [flashFeedback, getAdapter, hlsRef, qualitySources, store.isPlaying]);
+  }, [flashFeedback, getAdapter, hlsRef, qualitySources, setPlaybackState, setSettingsState, store.isPlaying, videoUrl]);
 
   // --- Hook Integration: Keyboard & Touch ---
   const handleKeyboardShortcuts = useKeyboardShortcuts({
@@ -717,12 +711,9 @@ export function CourseVideoPlayer({
 
   // --- Sync & Lifecycle Effects ---
   // FIX: The old `useEffect(() => setActiveVideoUrl(videoUrl), [videoUrl])` caused a classic
-  // derived-state double render cycle. Now `activeVideoUrl` is computed directly from the prop
-  // (or qualityOverrideUrlRef for quality switches), eliminating the extra render entirely.
-  // When videoUrl prop changes (new lesson), reset the quality override.
-  useEffect(() => {
-    qualityOverrideUrlRef.current = null;
-  }, [videoUrl]);
+  // derived-state double render cycle. `activeVideoUrl` is now computed directly from the prop,
+  // and the quality override state is tagged with the `videoUrl` it applies to, so switching
+  // lessons invalidates any stale override automatically — no reset effect needed.
 
   useEffect(() => {
     // FIX (Hydration): readPlayerPreferences() is now called inside useEffect only.
@@ -751,9 +742,10 @@ export function CourseVideoPlayer({
       selectedSubtitle: prefs.selectedSubtitle,
       brightness: prefs.brightness,
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached YouTube rates when the lesson changes
     setYoutubePlaybackRates([]);
     setNoteDraft("");
-  }, [lessonId]);
+  }, [lessonId, setNoteDraft]);
 
   useEffect(() => {
     localStorage.setItem(PLAYER_PREFERENCES_KEY, JSON.stringify({
@@ -872,7 +864,7 @@ export function CourseVideoPlayer({
     if (store.autoplayCountdown <= 0) { onNextVideo(); return; }
     const t = setTimeout(() => setPlaybackState(s => ({ autoplayCountdown: s.autoplayCountdown - 1 })), 1000);
     return () => clearTimeout(t);
-  }, [store.autoplayCountdown, store.isEnded, onNextVideo]);
+  }, [onNextVideo, setPlaybackState, store.autoplayCountdown, store.isEnded]);
 
   // Watch Time Tracking Effect
   // FIX: Subscribe to `playbackStore.isPlaying` directly instead of `store.isPlaying` (merged object).
@@ -959,6 +951,7 @@ export function CourseVideoPlayer({
         {provider === "youtube" ? (
           <div ref={youtubeContainerRef} data-youtube-container className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
         ) : (
+          // eslint-disable-next-line react/no-unknown-property -- Safari AirPlay support
           <video ref={videoRef} className="h-full w-full object-contain" playsInline preload="metadata" x-webkit-airplay="allow">
             {subtitleTracks.map(t => <track key={t.id} kind="subtitles" label={t.label} srcLang={t.language} src={t.src} />)}
           </video>
@@ -1030,8 +1023,8 @@ export function CourseVideoPlayer({
           onCancelAutoplay={() => setPlaybackState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
           onPlayNextNow={onNextVideo}
           onRetry={() => {
-            // FIX: Reset quality override ref and trigger reload via state update
-            qualityOverrideUrlRef.current = null;
+            // Reset the quality override and trigger reload via state update
+            setQualityOverride(null);
             setUIState({ errorMessage: null });
             setPlaybackState({ isLoading: true });
           }}

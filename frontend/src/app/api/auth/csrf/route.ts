@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
  * The frontend apiClient calls this before POST/PUT/PATCH/DELETE requests to
  * implement the Double Submit Cookie pattern.
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082';
 
   try {

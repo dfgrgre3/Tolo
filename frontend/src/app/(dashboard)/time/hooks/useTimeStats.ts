@@ -167,7 +167,9 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
   }, [tasks, studySessions, reminders]);
 
   useEffect(() => {
-    calculateStats();
+    queueMicrotask(() => {
+      calculateStats();
+    });
   }, [calculateStats]);
 
   const updateStatsOnTaskChange = useCallback((oldTask: Task | undefined, newTask: Task) => {

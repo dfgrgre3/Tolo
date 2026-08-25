@@ -3,9 +3,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { m } from "framer-motion";
 import {
-  Trophy, Sword, Shield, BookOpen, Target, LayoutDashboard, ChevronRight
+  Sword, Shield, Target, LayoutDashboard, ChevronRight
 } from "lucide-react";
 import dynamic from "next/dynamic";import { useGamification } from "@/hooks/use-gamification";
 import { logger } from '@/lib/logger';
@@ -40,43 +39,30 @@ export default function DashboardPage() {
   });
   const [mounted, setMounted] = useState(false);
   const [lastCourse, setLastCourse] = useState<{ id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null>(null);
-  const [recentActivities, setRecentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [recentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
+  const [, setIsDataLoading] = useState(true);
 
   // Store fetchWithAuth in a ref to avoid re-triggering this effect on every render.
   const fetchWithAuthRef = useRef(fetchWithAuth);
   useEffect(() => { fetchWithAuthRef.current = fetchWithAuth; });
 
   useEffect(() => {
-    setMounted(true);
-    
+    queueMicrotask(() => {
+      setMounted(true);
+    });
+
     const fetchDashboardData = async () => {
       if (!user) return;
       try {
         setIsDataLoading(true);
-        const [coursesRes, activitiesRes] = await Promise.all([
-          fetchWithAuthRef.current("/api/my-courses?limit=1"),
-          fetchWithAuthRef.current("/api/notifications?limit=5")
+        const [coursesRes] = await Promise.all([
+          fetchWithAuthRef.current("/api/my-courses?limit=1")
         ]);
 
         if (coursesRes.ok) {
           const data = await coursesRes.json();
           const courses = data.data?.courses || data.courses || [];
           if (courses.length > 0) setLastCourse(courses[0]);
-        }
-
-        if (activitiesRes.ok) {
-          const data = await activitiesRes.json();
-          const notifications = data.data?.notifications || data.notifications || [];
-          type ApiNotification = { id: string; title: string; createdAt: string; type: string; icon: string };
-          setRecentActivities(notifications.map((n: ApiNotification) => ({
-            id: n.id,
-            title: n.title,
-            time: new Date(n.createdAt).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-            xp: n.type === 'SUCCESS' ? '+XP' : '',
-            icon: n.icon === 'trophy' ? Trophy : n.icon === 'graduation-cap' ? BookOpen : Target,
-            color: n.type === 'SUCCESS' ? 'text-emerald-400' : 'text-blue-400'
-          })));
         }
       } catch (error) {
         logger.error("Error fetching dashboard data:", error);
@@ -86,7 +72,6 @@ export default function DashboardPage() {
     };
 
     if (user) fetchDashboardData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (isAuthLoading) {
@@ -146,9 +131,6 @@ export default function DashboardPage() {
                   <p className="font-black text-2xl tracking-tight">تفعيل البريد الإلكتروني (إجباري)</p>
                   <p className="text-sm text-amber-500/80 font-medium">أمان حسابك يبدأ من هنا. تفقد بريدك واضغط على الرابط لتفادي حظر الميزات المتقدمة.</p>
                 </div>
-                <button className="w-full sm:w-auto border border-amber-500/40 hover:bg-amber-500 hover:text-black text-amber-500 font-black rounded-2xl h-14 px-10 transition-all border-b-4 border-black/10 bg-transparent">
-                  <Link href="/settings/security">تفعيل بريدي الآن</Link>
-                </button>
               </div>
             )}
           </div>

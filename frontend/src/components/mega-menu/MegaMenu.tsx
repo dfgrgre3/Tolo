@@ -131,10 +131,12 @@ export function MegaMenu({
   const menuId = useId();
   const hasTrackedOpenRef = useRef(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [anchorTopPx, setAnchorTopPx] = useState<number | null>(null);
+  const [, setAnchorTopPx] = useState<number | null>(null);
   const [menuMaxHeight, setMenuMaxHeight] = useState<number | null>(null);
 
-  useEffect(() => setIsMounted(true), []);
+  useEffect(() => {
+    queueMicrotask(() => setIsMounted(true));
+  }, []);
   const updateLayout = useCallback(() => {
     if (typeof window === "undefined") return;
     const cssBottom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-bottom"));
@@ -147,8 +149,10 @@ export function MegaMenu({
 
   useEffect(() => {
     if (!isOpen) {
-      setAnchorTopPx(null);
-      setMenuMaxHeight(null);
+      queueMicrotask(() => {
+        setAnchorTopPx(null);
+        setMenuMaxHeight(null);
+      });
       return;
     }
     updateLayout();
@@ -239,16 +243,6 @@ export function MegaMenu({
       }
     },
     [isInsideMenu, scheduleClose]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handleToggle();
-      }
-    },
-    [handleToggle]
   );
 
   const handleFocus = useCallback(() => {

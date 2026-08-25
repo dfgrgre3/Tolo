@@ -1,14 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, Circle, BookOpen, MoreHorizontal, Calendar, MapPin, AlignLeft } from 'lucide-react';
+import { Clock, CheckCircle, Circle, BookOpen, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { getWeekDays, formatTimeRange } from './utils';
 import { BLOCK_TYPES } from './constants';
 import type { TimeBlock } from './types';
-import { m } from "framer-motion";
 
 interface AgendaViewProps {
   readonly currentWeek: Date;
@@ -43,13 +42,6 @@ export function AgendaView({
     'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'
   ];
   
-  const getPriorityLabel = (priority: string | undefined): string => {
-    if (priority === 'URGENT') return 'عاجل جداً';
-    if (priority === 'HIGH') return 'مهم';
-    if (priority === 'LOW') return 'بسيط';
-    return '';
-  };
-
   // Flatten items for VirtualList
   const flattenedItems = useMemo(() => {
     const items: Array<{type: 'header', dayIndex: number, day: Date} | {type: 'block', block: TimeBlock, dayIndex: number}> = [];
@@ -63,7 +55,7 @@ export function AgendaView({
     return items;
   }, [timeBlocks, weekDays]);
 
-  const renderItem = (item: any, index: number) => {
+  const renderItem = (item: any) => {
     if (item.type === 'header') {
       const { day, dayIndex } = item;
       const dayKey = format(day, 'yyyy-MM-dd');

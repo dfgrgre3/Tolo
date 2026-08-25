@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useGamificationQuery } from './use-gamification-query';
-import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/types/gamification';
+import { UserProgress, CustomGoal } from '@/types/gamification';
 export type { CustomGoal };
 
 interface UseGamificationOptions {
@@ -15,8 +15,6 @@ interface UseGamificationOptions {
 
 export function useGamification({
   userId,
-  enableNotifications = true,
-  enableRealTime = true,
   includeAchievements = false,
   includeLeaderboard = false,
 }: UseGamificationOptions) {
@@ -48,7 +46,7 @@ export function useGamification({
     } catch {
       return null;
     }
-  }, [query.updateProgress]);
+  }, [query]);
 
   const createCustomGoal = useCallback(async (
     goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>
@@ -59,7 +57,7 @@ export function useGamification({
     } catch {
       return null;
     }
-  }, [query.createCustomGoal]);
+  }, [query]);
 
   const updateCustomGoal = useCallback(async (
     goalId: string,
@@ -71,7 +69,7 @@ export function useGamification({
     } catch {
       return null;
     }
-  }, [query.updateCustomGoal]);
+  }, [query]);
 
   const getUserRank = useCallback(() => {
     if (!query.userProgress || !Array.isArray(query.leaderboard)) return null;

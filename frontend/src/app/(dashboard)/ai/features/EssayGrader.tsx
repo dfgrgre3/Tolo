@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { m } from 'framer-motion';
-import { PenTool, GraduationCap, CheckCircle, AlertCircle, Loader2, Sparkles, Languages } from 'lucide-react';
+import { PenTool, GraduationCap, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';

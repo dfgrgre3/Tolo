@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { BookOpen, Users, DollarSign, Star, Award, GraduationCap, CheckCircle2, TrendingUp } from "lucide-react";
+import { BookOpen, Users, DollarSign, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { InstructorStats } from "../hooks/use-teaching-data";
 

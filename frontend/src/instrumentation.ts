@@ -28,7 +28,6 @@ export async function register() {
       };
       
       console.warn = (...args) => {
-        const warnMsg = args.map(a => String(a)).join(' ');
         if (!isIntercepting && process.env.NODE_ENV === 'production') {
           isIntercepting = true;
           try {

@@ -81,14 +81,17 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 		try {
 			const stored = safeGetItem("header_recent_searches", { fallback: [] });
-			if (Array.isArray(stored) && stored.length > 0) {
-				setRecentSearches(stored.slice(0, MAX_RECENT_SEARCHES));
-			}
-
 			const scope = safeGetItem("header_search_scope", { fallback: "all" });
-			if (scope && VALID_SCOPES.includes(scope as SearchScope)) {
-				setSearchScope(scope as SearchScope);
-			}
+
+			queueMicrotask(() => {
+				if (Array.isArray(stored) && stored.length > 0) {
+					setRecentSearches(stored.slice(0, MAX_RECENT_SEARCHES));
+				}
+
+				if (scope && VALID_SCOPES.includes(scope as SearchScope)) {
+					setSearchScope(scope as SearchScope);
+				}
+			});
 		} catch (error) {
 			errorManager.handleError(
 				error instanceof Error ? error : new Error("Failed to load search preferences"),

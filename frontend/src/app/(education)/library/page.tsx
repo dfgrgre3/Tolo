@@ -11,9 +11,7 @@ import {
   FileText,
   Sparkles,
   Trophy,
-  History,
-  LayoutGrid,
-  ShieldCheck
+  LayoutGrid
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
@@ -236,7 +234,7 @@ export default function LibraryPage() {
                 كن جزءاً من <span className="rpg-gold-text">تاريخنا</span>
               </h2>
               <p className="text-xl text-gray-400 font-medium">
-                ساهم في بناء أكبر مكتبة تعليمية عربية. ارفع مذكراتك وكتبك المفضلة لتنال وسام "الحكيم الأكبر" وتكسب نقاط خبرة إضافية.
+                ساهم في بناء أكبر مكتبة تعليمية عربية. ارفع مذكراتك وكتبك المفضلة لتنال وسام &quot;الحكيم الأكبر&quot; وتكسب نقاط خبرة إضافية.
               </p>
               <Button 
                 onClick={() => setShowUploadModal(true)}

@@ -4,7 +4,7 @@ import { Lock, FileText, Shield, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CourseLesson } from "./types";
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const CourseVideoPlayer = dynamic(
   () => import("@/components/video/CourseVideoPlayer").then((mod) => mod.CourseVideoPlayer),
@@ -22,7 +22,6 @@ export function LessonVideoArea({
   canAccess,
   lessonData,
   courseId,
-  courseEnrolled,
   authName,
   userId,
   onAutoComplete,

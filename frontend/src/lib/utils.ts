@@ -134,35 +134,6 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
 }
 
 /**
- * Truncate text with validation
- */
-function truncateText(text: string | null | undefined, maxLength: number): string {
-  // Validate input
-  if (!text || typeof text !== 'string') {
-    return '';
-  }
-
-  // Validate maxLength
-  if (typeof maxLength !== 'number' || maxLength < 0) {
-    return text;
-  }
-
-  if (text.length <= maxLength) {
-    return text;
-  }
-
-  // Ensure we don't cut in the middle of a word if possible
-  const truncated = text.slice(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(' ');
-
-  if (lastSpace > maxLength * 0.7) {
-    return truncated.slice(0, lastSpace) + "...";
-  }
-
-  return truncated + "...";
-}
-
-/**
  * Generate unique ID with validation using cryptographically secure methods if available
  */
 export function generateId(): string {

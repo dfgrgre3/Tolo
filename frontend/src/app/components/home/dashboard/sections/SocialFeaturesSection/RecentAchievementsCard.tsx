@@ -2,9 +2,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Award, ArrowRight } from "lucide-react";
-import Link from "next/link";
+import { Award } from "lucide-react";
 
 interface Achievement {
   id: string;
@@ -30,12 +28,6 @@ export const RecentAchievementsCard = ({ loading, recentAchievements }: RecentAc
             <Award className="h-5 w-5 text-purple-400" />
             <span>إنجازات حديثة</span>
           </CardTitle>
-          <Link href="/settings/achievements">
-            <Button variant="link" size="sm" className="text-primary">
-              عرض الكل
-              <ArrowRight className="h-4 w-4 mr-1 rtl:rotate-180" />
-            </Button>
-          </Link>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

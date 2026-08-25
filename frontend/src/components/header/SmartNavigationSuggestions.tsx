@@ -44,7 +44,7 @@ export function SmartNavigationSuggestions() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   // Load navigation history

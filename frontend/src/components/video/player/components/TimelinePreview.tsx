@@ -5,6 +5,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import type { ThumbnailCue } from "../types";
 
 interface TimelinePreviewProps {
@@ -111,11 +112,14 @@ export function TimelinePreview({
               style={{ left: `${(previewTime / duration) * 100}%` }}
             >
               <div className="relative bg-black/90 rounded-lg overflow-hidden border border-white/20 shadow-xl">
-                <img
+                <Image
                   src={previewImage}
                   alt="Preview"
+                  width={128}
+                  height={72}
+                  priority
+                  unoptimized
                   className="block w-32 h-18 object-cover"
-                  loading="eager"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
                   <span className="text-xs font-bold text-white">

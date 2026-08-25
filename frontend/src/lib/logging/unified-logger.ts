@@ -1,5 +1,5 @@
 import { getRequestContext } from './correlation';
-import { sanitizeLogContext, sanitizeErrorMessage, containsSensitiveData } from './sanitizer';
+import { sanitizeLogContext, containsSensitiveData } from './sanitizer';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 type LogContext = Record<string, any>;

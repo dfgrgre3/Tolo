@@ -1,10 +1,10 @@
 import 'server-only';
 /**
- * User Repository — profile, billing summary, and settings.
+ * User Repository — billing summary, and settings.
  */
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
-import type { User, UpdateProfilePayload } from '@/types/user';
+import type { User } from '@/types/user';
 
 export interface BillingSummary {
   balance: number;
@@ -30,14 +30,6 @@ export interface UserSettings {
 // ────────────────────────────────────────────────────────────
 
 export const userRepository = {
-  /** GET /api/users/profile */
-  getProfile: () =>
-    apiClient.get<User>(apiRoutes.users.profile),
-
-  /** PATCH /api/users/profile */
-  updateProfile: (payload: UpdateProfilePayload) =>
-    apiClient.patch<User>(apiRoutes.users.updateProfile, payload),
-
   /** GET /api/users/billing-summary */
   getBillingSummary: () =>
     apiClient.get<BillingSummary>(apiRoutes.users.billingSummary),

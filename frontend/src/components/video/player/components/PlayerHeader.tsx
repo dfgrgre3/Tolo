@@ -1,4 +1,4 @@
-import { Check, Clock3, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
+import { Check, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { providerLabelMap } from "../constants";

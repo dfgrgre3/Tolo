@@ -24,7 +24,6 @@ export const ProgressRail = memo(function ProgressRail({
   duration,
   buffered,
   markers,
-  thumbnails,
   notes = [],
   interactiveQuestions = [],
   onSeek,

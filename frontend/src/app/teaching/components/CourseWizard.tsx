@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowRight, ArrowLeft, Save, Plus, X, Upload } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, ArrowLeft, Save, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -161,7 +162,7 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
                 <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10">
                   {thumbnail ? (
                     <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden shadow-md">
-                      <img src={thumbnail} alt="غلاف الكورس" className="w-full h-full object-cover" />
+                      <Image src={thumbnail} alt="غلاف الكورس" fill sizes="384px" className="object-cover" unoptimized />
                       <button
                         onClick={() => setThumbnail("")}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"

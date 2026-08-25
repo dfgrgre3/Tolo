@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { m } from "framer-motion";
 import {
   BookOpen,
@@ -201,7 +202,7 @@ export function LearningSuggestions() {
 
         {/* Suggestions Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {suggestions.map((course, index) => (
+          {suggestions.map((course, _index) => (
             <Link
               key={course.id}
               href={`/courses/${course.id}`}
@@ -211,10 +212,13 @@ export function LearningSuggestions() {
                 {/* Thumbnail */}
                 <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10">
                   {course.thumbnailUrl ? (
-                    <img
+                    <Image
                       src={course.thumbnailUrl}
                       alt={course.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      fill
+                      sizes="64px"
+                      unoptimized
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">

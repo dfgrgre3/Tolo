@@ -143,7 +143,7 @@ export function sanitizeLogContext(context: unknown): unknown {
     // نسخ الكائن لتجنب تعديل الأصل
     const cloned = JSON.parse(JSON.stringify(context));
     return sanitizeObject(cloned);
-  } catch (error) {
+  } catch {
     // إذا فشل النسخ، أرجع الكائن كما هو
     return context;
   }

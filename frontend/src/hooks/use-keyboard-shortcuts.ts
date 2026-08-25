@@ -174,9 +174,9 @@ export function useTouchGestures({
     onSwipeDown?: () => void;
     threshold?: number;
 }) {
-    const touchStart = { x: 0, y: 0 };
-
     useEffect(() => {
+        const touchStart = { x: 0, y: 0 };
+
         const handleTouchStart = (e: TouchEvent) => {
             touchStart.x = e.touches[0]!.clientX;
             touchStart.y = e.touches[0]!.clientY;

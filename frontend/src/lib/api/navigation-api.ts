@@ -60,7 +60,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 	"user_plus": Users,
 };
 
-function iconFromName(name?: string): LucideIcon {
+function _iconFromName(name?: string): LucideIcon {
 	if (!name) return Sparkles;
 	return ICON_MAP[name] || Sparkles;
 }

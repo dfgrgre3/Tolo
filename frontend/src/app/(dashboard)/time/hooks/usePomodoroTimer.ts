@@ -43,17 +43,13 @@ export function usePomodoroTimer(
 
   const [timeLeft, setTimeLeft] = useState(WORK_DURATION);
 
-  // References to keep state values updated without re-triggering effects
+  // References to keep state values updated without re-triggering effects.
+  // They are synced in an effect below (never during render).
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
   const activeTaskIdRef = useRef(activeTaskId);
-  activeTaskIdRef.current = activeTaskId;
   const currentPomodoroStateRef = useRef(currentPomodoroState);
-  currentPomodoroStateRef.current = currentPomodoroState;
   const pomodoroCountRef = useRef(pomodoroCount);
-  pomodoroCountRef.current = pomodoroCount;
   const timeLeftRef = useRef(timeLeft);
-  timeLeftRef.current = timeLeft;
 
   const sessionStartTimeRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -122,7 +118,17 @@ export function usePomodoroTimer(
 
   // Keep a stable ref to handleTimerComplete for the useEffect timer
   const handleTimerCompleteRef = useRef(handleTimerComplete);
-  handleTimerCompleteRef.current = handleTimerComplete;
+
+  // Sync latest values into refs after commit (declared before the timer effect,
+  // which reads timeLeftRef/handleTimerCompleteRef).
+  useEffect(() => {
+    settingsRef.current = settings;
+    activeTaskIdRef.current = activeTaskId;
+    currentPomodoroStateRef.current = currentPomodoroState;
+    pomodoroCountRef.current = pomodoroCount;
+    timeLeftRef.current = timeLeft;
+    handleTimerCompleteRef.current = handleTimerComplete;
+  }, [activeTaskId, currentPomodoroState, handleTimerComplete, pomodoroCount, settings, timeLeft]);
 
   // Accurate timer using delta time tracking
   useEffect(() => {

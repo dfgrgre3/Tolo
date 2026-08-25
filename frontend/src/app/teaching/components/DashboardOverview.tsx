@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Sparkles, TrendingUp, AlertCircle } from "lucide-react";
+import { Sparkles, TrendingUp } from "lucide-react";
 import DashboardCards from "./DashboardCards";
 import QuickActions from "./QuickActions";
 import RecentActivity from "./RecentActivity";
@@ -42,7 +42,7 @@ export default function DashboardOverview({
   });
 
   useEffect(() => {
-    setIsMounted(true);
+    queueMicrotask(() => setIsMounted(true));
   }, []);
 
   return (

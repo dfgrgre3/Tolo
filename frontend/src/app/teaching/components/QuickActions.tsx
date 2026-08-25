@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Video, Calendar, Megaphone, FileCheck, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, Video, Megaphone } from "lucide-react";
 
 interface QuickActionsProps {
   onCreateCourse: () => void;
@@ -13,7 +12,6 @@ interface QuickActionsProps {
 
 export default function QuickActions({
   onCreateCourse,
-  onUploadVideo,
   onScheduleSession,
   onSendAnnouncement,
 }: QuickActionsProps) {

@@ -62,7 +62,7 @@ export class NotificationQueueService {
     /**
      * @deprecated Migrated to Go backend
      */
-    static async processJob(job: any): Promise<void> {
+    static async processJob(_job: any): Promise<void> {
         logger.warn('[NotificationQueueService] processJob called in Next.js but logic has been migrated to Go');
     }
 
@@ -94,22 +94,22 @@ export class NotificationQueueService {
         }
     }
 
-    private static async sendEmail(userId: string, subject: string, body: string, metadata?: Record<string, unknown>): Promise<void> {
+    private static async sendEmail(userId: string, subject: string, _body: string, _metadata?: Record<string, unknown>): Promise<void> {
         // TODO: Implement email sending via Brevo SMTP
         logger.info(`[NotificationQueueService] Would send email to user ${userId}: ${subject}`);
     }
 
-    private static async sendSMS(userId: string, message: string, metadata?: Record<string, unknown>): Promise<void> {
+    private static async sendSMS(userId: string, _message: string, _metadata?: Record<string, unknown>): Promise<void> {
         // TODO: Implement SMS sending via Twilio
         logger.info(`[NotificationQueueService] Would send SMS to user ${userId}`);
     }
 
-    private static async sendPushNotification(userId: string, title: string, message: string, metadata?: Record<string, unknown>): Promise<void> {
+    private static async sendPushNotification(userId: string, title: string, _message: string, _metadata?: Record<string, unknown>): Promise<void> {
         // TODO: Implement push notification
         logger.info(`[NotificationQueueService] Would send push notification to user ${userId}: ${title}`);
     }
 
-    private static async sendInAppNotification(userId: string, title: string, message: string, metadata?: Record<string, unknown>): Promise<void> {
+    private static async sendInAppNotification(userId: string, title: string, _message: string, _metadata?: Record<string, unknown>): Promise<void> {
         // TODO: Implement in-app notification storage (database)
         logger.info(`[NotificationQueueService] Would store in-app notification for user ${userId}: ${title}`);
     }

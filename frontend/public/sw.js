@@ -88,10 +88,20 @@ self.addEventListener('fetch', (event) => {
                     request.headers.has('next-router-state-tree') ||
                     request.headers.has('next-router-prefetch');
 
-  // ---------------------------------------------------------------------------
-  // API and Next.js RSC requests: passthrough.
+  // Next.js RSC / prefetch requests: never intercept.
   //
-  // We deliberately do NOT cache API or RSC responses because they are almost
+  // These are never cached, so proxying them through the SW adds no benefit —
+  // only a failure mode: any rejection inside the handler reaches the router as
+  // "TypeError: Failed to fetch" ("Failed to fetch RSC payload ... Falling back
+  // to browser navigation"). Returning without respondWith() lets the browser
+  // perform the request natively, preserving its original mode, headers and
+  // streaming semantics.
+  if (isNextRsc) return;
+
+  // ---------------------------------------------------------------------------
+  // API requests: passthrough.
+  //
+  // We deliberately do NOT cache API responses because they are almost
   // always authenticated and depend on the current session. Caching them risks
   // serving stale 401/403/404 responses to a user who has since logged in or
   // whose data has changed.
@@ -103,7 +113,7 @@ self.addEventListener('fetch', (event) => {
   // sub-resource requests, which is the root cause of the 401s / 404s reported
   // on navigation.
   // ---------------------------------------------------------------------------
-  if (url.pathname.startsWith('/api/') || isNextRsc) {
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(passthroughApiRequest(request));
     return;
   }

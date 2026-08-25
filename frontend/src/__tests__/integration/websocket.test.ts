@@ -442,11 +442,11 @@ describe("WebSocket Integration", () => {
     it("should simulate rate limit rejection when connections exceed limit", async () => {
       const rateLimitServer = createMockServer();
       
-      const client1 = new MockWebSocket(WS_URL, rateLimitServer);
-      const client2 = new MockWebSocket(WS_URL, rateLimitServer);
-      const client3 = new MockWebSocket(WS_URL, rateLimitServer);
-      const client4 = new MockWebSocket(WS_URL, rateLimitServer);
-      const client5 = new MockWebSocket(WS_URL, rateLimitServer);
+      const _client1 = new MockWebSocket(WS_URL, rateLimitServer);
+      const _client2 = new MockWebSocket(WS_URL, rateLimitServer);
+      const _client3 = new MockWebSocket(WS_URL, rateLimitServer);
+      const _client4 = new MockWebSocket(WS_URL, rateLimitServer);
+      const _client5 = new MockWebSocket(WS_URL, rateLimitServer);
       
       // The 6th connection attempts under rate limit threshold and is rejected:
       const rateLimitedClient = new MockWebSocket(WS_URL, rateLimitServer);

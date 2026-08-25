@@ -3,8 +3,7 @@
 import React from 'react';
 import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Trophy, Star, Shield, Zap, Award, Flame } from 'lucide-react';
+import { Trophy, Shield, Zap, Award, Flame } from 'lucide-react';
 import type { TimeStats } from '../types';
 
 interface MasterySystemProps {

@@ -107,7 +107,7 @@ export function ActivityWidget() {
 
 	// Hydration guard
 	useEffect(() => {
-		setMounted(true);
+		queueMicrotask(() => setMounted(true));
 	}, []);
 
 	// Fetch activities
@@ -130,7 +130,7 @@ export function ActivityWidget() {
 	useEffect(() => {
 		if (!mounted || !user?.id) return;
 
-		fetchActivities();
+		const initialFetchId = setTimeout(fetchActivities, 0);
 
 		// Poll only when WebSocket is disconnected
 		if (!isConnected) {
@@ -154,6 +154,7 @@ export function ActivityWidget() {
 		}
 
 		return () => {
+			clearTimeout(initialFetchId);
 			if (intervalRef.current) clearInterval(intervalRef.current);
 			if (socket) socket.removeEventListener("message", handleWsMessage);
 		};

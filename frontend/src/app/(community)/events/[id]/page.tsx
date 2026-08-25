@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -221,11 +222,14 @@ export default function EventPage() {
         {/* Event Header */}
         <div className="rounded-lg border overflow-hidden">
           {event.imageUrl ? (
-            <div className="aspect-video bg-muted">
-              <img 
-                src={event.imageUrl} 
-                alt={event.title} 
+            <div className="relative aspect-video bg-muted">
+              <Image
+                src={event.imageUrl}
+                alt={event.title}
+                fill
+                sizes="(max-width: 896px) 100vw, 896px"
                 className="w-full h-full object-cover"
+                unoptimized
               />
             </div>
           ) : (
@@ -343,12 +347,15 @@ export default function EventPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {attendees.map((attendee) => (
                 <div key={attendee.id} className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                     {attendee.avatar ? (
-                      <img 
-                        src={attendee.avatar} 
-                        alt={attendee.name} 
+                      <Image
+                        src={attendee.avatar}
+                        alt={attendee.name}
+                        fill
+                        sizes="64px"
                         className="w-full h-full rounded-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-xl">{attendee.name.charAt(0)}</span>

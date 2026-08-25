@@ -75,7 +75,7 @@ function MiniCircle({ progress, state }: { progress: number; state: PomodoroStat
 }
 
 /* ──────────────────────────────── header pulse dot (collapsed) */
-function PulseDot({ state, isRunning }: { state: PomodoroState; isRunning: boolean }) {
+function PulseDot({ state, isRunning: _isRunning }: { state: PomodoroState; isRunning: boolean }) {
   const colors: Record<PomodoroState, string> = {
     work: 'bg-rose-500',
     shortBreak: 'bg-teal-500',
@@ -95,7 +95,7 @@ export function TimeTrackerHeaderWidget() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   // Close panel on outside click

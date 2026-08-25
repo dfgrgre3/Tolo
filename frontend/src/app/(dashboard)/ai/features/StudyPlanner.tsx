@@ -21,7 +21,7 @@ export default function StudyPlanner() {
   const generatePlan = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await safeFetch<{ plan: string }>('/api/ai/study-planner', {
+      const { data } = await safeFetch<{ plan: string }>('/api/ai/study-planner', {
         method: 'POST',
         body: JSON.stringify({ examDate, targetGrade, dailyHours }),
       });

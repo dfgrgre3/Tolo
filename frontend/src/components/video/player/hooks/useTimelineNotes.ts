@@ -80,7 +80,9 @@ export function useTimelineNotes({
 
   useEffect(() => {
     let cancelled = false;
-    loadCloudNotes(() => cancelled);
+    queueMicrotask(() => {
+      loadCloudNotes(() => cancelled);
+    });
     return () => {
       cancelled = true;
     };

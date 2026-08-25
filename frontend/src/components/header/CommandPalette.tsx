@@ -10,11 +10,9 @@ import {
 	Users,
 	MessageSquare,
 	Calendar,
-	Settings,
 	Bell,
 	TrendingUp,
 	Clock,
-	Award,
 	BarChart3,
 	ChevronLeft,
 	Sparkles,
@@ -278,15 +276,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 				category: "تحليلات"
 			},
 			{
-				id: "achievements",
-				label: "الإنجازات",
-				description: "عرض إنجازاتك",
-				icon: Award,
-				action: () => router.push("/settings/achievements"),
-				keywords: ["achievements", "إنجازات", "جوائز"],
-				category: "إنجازات"
-			},
-			{
 				id: "leaderboard",
 				label: "لوحة المتصدرين",
 				description: "ترتيب الطلاب",
@@ -294,15 +283,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 				action: () => router.push("/leaderboard"),
 				keywords: ["leaderboard", "متصدرين", "ترتيب"],
 				category: "تنافس"
-			},
-			{
-				id: "settings",
-				label: "الإعدادات",
-				description: "تعديل إعداداتك",
-				icon: Settings,
-				action: () => router.push("/settings"),
-				keywords: ["settings", "إعدادات", "خيارات"],
-				category: "حساب"
 			},
 			{
 				id: "notifications",

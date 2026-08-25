@@ -11,20 +11,22 @@ import { SectionDivider } from './shared/SectionDivider';
 import { AmbientBackground } from './shared/AmbientBackground';
 import { DashboardHeader } from './shared/DashboardHeader';
 import {
-  AchievementsSection,
   AnalyticsSection,
   CoursesProgressSection,
   ExamsSection,
   FeaturesSection,
   IntelligentRecommendationsSection,
   LiveActivityFeedSection,
-  PerformanceDashboardSection,
-  ProgressPredictionsSection,
   QuickLinksSectionEnhanced,
   RecommendedForYouSection,
   SocialFeaturesSection,
   StatusIndicatorsSection,
   TipsSection,
+  BrowseCategoriesSection,
+  ExploreCoursesSection,
+  TrendingTopicsDashboardSection,
+  SpecializationProgramsSection,
+  LearningPathsDashboardSection,
 } from './sections/registry';
 import { LazySection } from '@/components/layout/LazySection';
 
@@ -59,15 +61,41 @@ export function UserHome({ user }: UserHomeProps) {
           <QuickLinksSectionEnhanced />
         </div>
 
-        {/* ── Performance metrics — second viewport, lazy ───────────── */}
-        <SectionDivider label="مؤشرات الأداء" />
+        {/* ── Discovery sections — tصفح والاستكشاف ─────────────────── */}
+        <SectionDivider label="استكشف الفرص" />
+
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[320px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
+          <BrowseCategoriesSection />
+        </LazySection>
+
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[420px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
+          <ExploreCoursesSection />
+        </LazySection>
+
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[340px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
+          <TrendingTopicsDashboardSection />
+        </LazySection>
+
+        {/* ── Analytics — second viewport, lazy ─────────────────────── */}
+        <SectionDivider label="التحليلات" />
 
         <LazySection
           className="w-full space-y-12"
           rootMargin="400px"
           skeleton={<div className="w-full h-[520px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
         >
-          <PerformanceDashboardSection />
           <AnalyticsSection />
         </LazySection>
 
@@ -81,7 +109,25 @@ export function UserHome({ user }: UserHomeProps) {
         >
           <CoursesProgressSection />
           <ExamsSection />
-          <AchievementsSection />
+        </LazySection>
+
+        {/* ── Learning paths and specializations — deeper, lazy ───── */}
+        <SectionDivider label="مسارات متقدمة" />
+
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[340px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
+          <LearningPathsDashboardSection />
+        </LazySection>
+
+        <LazySection
+          className="w-full"
+          rootMargin="400px"
+          skeleton={<div className="w-full h-[380px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
+        >
+          <SpecializationProgramsSection />
         </LazySection>
 
         {/* ── Recommendations — further down, lazy ─────────────────── */}
@@ -104,7 +150,6 @@ export function UserHome({ user }: UserHomeProps) {
           skeleton={<div className="w-full h-[600px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
         >
           <IntelligentRecommendationsSection />
-          <ProgressPredictionsSection />
           <TipsSection />
           <SocialFeaturesSection />
           <LiveActivityFeedSection />

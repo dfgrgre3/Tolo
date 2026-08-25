@@ -1,6 +1,5 @@
   "use client";
 
-import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "../stores/settings-store";
 import { WATERMARK_POSITIONS } from "../constants";
 

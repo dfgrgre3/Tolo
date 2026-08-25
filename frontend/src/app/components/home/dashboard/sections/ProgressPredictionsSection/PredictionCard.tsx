@@ -22,7 +22,7 @@ interface PredictionCardProps {
   index: number;
 }
 
-export const PredictionCard = ({ prediction, index }: PredictionCardProps) => {
+export const PredictionCard = ({ prediction, index: _index }: PredictionCardProps) => {
   const getConfidenceLevel = (confidence: number) => {
     if (confidence >= 80) return { label: "دقة فائقة", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
     if (confidence >= 60) return { label: "دقة عالية", color: "bg-blue-500/10 text-blue-400 border-blue-500/30" };

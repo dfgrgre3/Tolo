@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -102,11 +103,14 @@ export default function BlogPostPage() {
         {/* Post Header */}
         <div className="rounded-lg border overflow-hidden">
           {post.coverImageUrl ?
-          <div className="aspect-video bg-muted">
-              <img
+          <div className="relative aspect-video bg-muted">
+              <Image
               src={post.coverImageUrl}
               alt={post.title}
-              className="w-full h-full object-cover" />
+              fill
+              sizes="(min-width: 1024px) 896px, 100vw"
+              className="object-cover"
+              unoptimized />
             
             </div> :
 

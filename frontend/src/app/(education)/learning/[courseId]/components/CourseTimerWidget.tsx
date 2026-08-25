@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { m, AnimatePresence } from 'framer-motion';
-import { Timer, Play, Pause, X, ExternalLink } from 'lucide-react';
+import { Play, Pause, X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
@@ -63,26 +63,28 @@ export function CourseTimerWidget({ courseId, courseTitle }: CourseTimerWidgetPr
   // Generate screen-reader friendly announcements at milestones to avoid spamming every second
   const [announcement, setAnnouncement] = useState('');
   useEffect(() => {
-    if (!isRunning || !isMyCourse) {
-      setAnnouncement('');
-      return;
-    }
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    
-    if (timeLeft === totalDuration) {
-      setAnnouncement(`بدأ مؤقت المذاكرة: ${settings.pomodoroWorkMinutes} دقيقة متبقية`);
-    } else if (timeLeft === 0) {
-      setAnnouncement('انتهت الجلسة');
-    } else if (seconds === 0 && minutes % 5 === 0) {
-      setAnnouncement(`الوقت المتبقي: ${minutes} دقائق`);
-    } else if (timeLeft === 60) {
-      setAnnouncement('دقيقة واحدة متبقية');
-    } else if (timeLeft === 30) {
-      setAnnouncement('30 ثانية متبقية');
-    } else if (timeLeft <= 10 && timeLeft > 0) {
-      setAnnouncement(`${timeLeft} ثوانٍ متبقية`);
-    }
+    queueMicrotask(() => {
+      if (!isRunning || !isMyCourse) {
+        setAnnouncement('');
+        return;
+      }
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+
+      if (timeLeft === totalDuration) {
+        setAnnouncement(`بدأ مؤقت المذاكرة: ${settings.pomodoroWorkMinutes} دقيقة متبقية`);
+      } else if (timeLeft === 0) {
+        setAnnouncement('انتهت الجلسة');
+      } else if (seconds === 0 && minutes % 5 === 0) {
+        setAnnouncement(`الوقت المتبقي: ${minutes} دقائق`);
+      } else if (timeLeft === 60) {
+        setAnnouncement('دقيقة واحدة متبقية');
+      } else if (timeLeft === 30) {
+        setAnnouncement('30 ثانية متبقية');
+      } else if (timeLeft <= 10 && timeLeft > 0) {
+        setAnnouncement(`${timeLeft} ثوانٍ متبقية`);
+      }
+    });
   }, [timeLeft, isRunning, isMyCourse, totalDuration, settings.pomodoroWorkMinutes]);
 
   const handleToggle = () => {

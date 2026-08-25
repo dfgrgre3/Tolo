@@ -34,7 +34,9 @@ export function useEfficiencyMode(): boolean {
     };
 
     // Initial check
-    setIsEfficiencyMode(checkMode());
+    queueMicrotask(() => {
+      setIsEfficiencyMode(checkMode());
+    });
 
     // Watch for changes
     const observer = new MutationObserver(() => {
@@ -63,7 +65,9 @@ export function usePerformanceMode(): string | null {
 
     const getMode = () => document.documentElement.getAttribute('data-perf-mode');
 
-    setMode(getMode());
+    queueMicrotask(() => {
+      setMode(getMode());
+    });
 
     const observer = new MutationObserver(() => {
       setMode(getMode());
@@ -95,7 +99,9 @@ export function useUltraLiteMode(): boolean {
       return root.classList.contains('ultra-lite-mode') || root.getAttribute('data-perf-mode') === 'ultra-lite';
     };
 
-    setIsUltraLite(checkUltraLite());
+    queueMicrotask(() => {
+      setIsUltraLite(checkUltraLite());
+    });
 
     const observer = new MutationObserver(() => {
       setIsUltraLite(checkUltraLite());

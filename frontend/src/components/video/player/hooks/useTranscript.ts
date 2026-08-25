@@ -37,7 +37,9 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadTranscript(() => cancelled);
+    queueMicrotask(() => {
+      loadTranscript(() => cancelled);
+    });
     return () => {
       cancelled = true;
     };

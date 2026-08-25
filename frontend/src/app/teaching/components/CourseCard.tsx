@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { MoreVertical, Users, BookOpen, Star, Edit, Copy, Trash2, Eye } from "lucide-react";
+import Image from "next/image";
+import { MoreVertical, Users, BookOpen, Star, Edit, Copy, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,10 +44,13 @@ export default function CourseCard({
     <Card className="border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden bg-card text-right flex flex-col h-full group">
       {/* Thumbnail Banner */}
       <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
-        <img
+        <Image
           src={course.thumbnail}
           alt={course.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          fill
+          sizes="(min-width: 768px) 33vw, 100vw"
+          unoptimized
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 right-3">{getStatusBadge(course.status)}</div>
         <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">

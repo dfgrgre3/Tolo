@@ -3,7 +3,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { safeSetItem, safeGetItem, isBrowser } from '@/lib/safe-client-utils';
-import { toast } from 'sonner';
 
 const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';

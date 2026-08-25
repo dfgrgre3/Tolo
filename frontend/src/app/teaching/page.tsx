@@ -5,7 +5,7 @@ import { usePermission } from "@/hooks/use-permission";
 import { useAuth } from "@/hooks/use-auth";
 import TeachingLayout from "./components/TeachingLayout";
 import TeachingLoading from "./loading";
-import { ShieldAlert, Home, ArrowLeft } from "lucide-react";
+import { ShieldAlert, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -122,7 +122,7 @@ export default function TeachingPage() {
           setLookupStatus("error");
           setLookupMessage("كود الطلب غير صحيح أو تعذر العثور على الطلب.");
         }
-      } catch (err) {
+      } catch (_err) {
         setLookupStatus("error");
         setLookupMessage("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
       }
@@ -316,7 +316,7 @@ export default function TeachingPage() {
     }
   };
 
-  const handleMessageStudent = (studentId: string) => {
+  const handleMessageStudent = (_studentId: string) => {
     // Select messages tab
     setActiveTab("messages");
   };

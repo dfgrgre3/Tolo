@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { m, AnimatePresence } from "framer-motion";
 import {
   Calendar,
@@ -231,7 +232,7 @@ export default function EventsPage() {
               
                      <div className="relative aspect-video overflow-hidden">
                         {event.imageUrl ?
-                <img src={event.imageUrl} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" /> :
+                <Image src={event.imageUrl} alt={event.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" unoptimized /> :
 
                 <div className="w-full h-full bg-gradient-to-br from-primary/10 via-black to-black flex items-center justify-center">
                              <Calendar className="w-16 h-16 text-primary/10 group-hover:scale-110 transition-transform" />

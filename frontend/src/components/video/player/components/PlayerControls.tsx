@@ -26,7 +26,7 @@ import { IconButton } from "./IconButton";
 import { ProgressRail } from "./ProgressRail";
 import { cn } from "@/lib/utils";
 import { useEfficiencyMode } from "@/hooks";
-import { useCallback, useRef, type WheelEvent } from "react";
+import { useCallback, type WheelEvent } from "react";
 
 
 const VolumeControl = ({
@@ -110,7 +110,7 @@ export function PlayerControls({
   canCast = false, isCasting = false, onToggleCast,
   onSeek, onSeekBy, onTogglePlayPause, onToggleMute, onVolumeChange, onOpenHelp,
   onToggleTheater, onTogglePip, onToggleSidebar, onToggleFullscreen, onToggleSettings,
-  onToggleLoop, onCaptureFrame, interactiveQuestions = [],
+  onToggleLoop: _onToggleLoop, onCaptureFrame: _onCaptureFrame, interactiveQuestions = [],
 }: {
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
@@ -139,7 +139,7 @@ export function PlayerControls({
   interactiveQuestions?: InteractiveQuestion[];
 }) {
   const {
-    duration, buffered, isPlaying, isMuted, volume, playbackRate, currentTime, loopStart, loopEnd,
+    duration, buffered, isPlaying, isMuted, volume, playbackRate, currentTime,
   } = usePlaybackStore(
     useShallow((state) => ({
       duration: state.duration, buffered: state.buffered,

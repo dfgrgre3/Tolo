@@ -81,7 +81,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   progress,
   lessonsCount,
   onEnroll,
-  onUnenroll,
+  onUnenroll: _onUnenroll,
   isProcessing = false,
   featured = false,
   index = 0,

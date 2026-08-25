@@ -74,7 +74,9 @@ export default function TaskManagement({
   });
 
   useEffect(() => {
-    setTasks(initialTasks);
+    queueMicrotask(() => {
+      setTasks(initialTasks);
+    });
   }, [initialTasks]);
 
   useEffect(() => {

@@ -42,7 +42,7 @@ function impactLabel(impact: number): string {
   return "تأثير منخفض";
 }
 
-export const RecommendationCard = ({ recommendation, index }: RecommendationCardProps) => {
+export const RecommendationCard = ({ recommendation, index: _index }: RecommendationCardProps) => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":

@@ -74,47 +74,6 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 	}
 }
 
-async function unregisterServiceWorker(): Promise<boolean> {
-	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
-		return false;
-	}
-
-	try {
-		const registration = await navigator.serviceWorker.getRegistration(SW_SCOPE);
-		if (registration) {
-			const unregistered = await registration.unregister();
-			logger.debug("Service Worker unregistered:", unregistered);
-			return unregistered;
-		}
-		return false;
-	} catch (error) {
-		logger.error("Service Worker unregistration failed:", error);
-		return false;
-	}
-}
-
-async function clearSearchCache(): Promise<boolean> {
-	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
-		return false;
-	}
-
-	return new Promise((resolve) => {
-		const messageChannel = new MessageChannel();
-		messageChannel.port1.onmessage = (event) => {
-			resolve(event.data.success);
-		};
-
-		if (navigator.serviceWorker.controller) {
-			navigator.serviceWorker.controller.postMessage(
-				{ type: "CLEAR_SEARCH_CACHE" },
-				[messageChannel.port2]
-			);
-		} else {
-			resolve(false);
-		}
-	});
-}
-
 export async function preCacheSearch(query: string, scope: string = "all"): Promise<boolean> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		return false;
@@ -135,9 +94,5 @@ export async function preCacheSearch(query: string, scope: string = "all"): Prom
 			resolve(false);
 		}
 	});
-}
-
-function isServiceWorkerSupported(): boolean {
-	return typeof window !== "undefined" && "serviceWorker" in navigator;
 }
 

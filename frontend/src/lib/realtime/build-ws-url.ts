@@ -38,7 +38,10 @@ export function buildAppUserWebSocketUrl(userId: string, token?: string): string
 
   let url = `${wsProtocol}//${host}/api/ws?userId=${encodeURIComponent(userId)}`;
   if (token) {
-    url += `&token=${encodeURIComponent(token)}`;
+    // Must be `access_token`: the backend's extractBearerToken() only reads that
+    // query parameter name. Any other name is silently ignored and the handshake
+    // is rejected with 401 missing_token.
+    url += `&access_token=${encodeURIComponent(token)}`;
   }
   return url;
 }

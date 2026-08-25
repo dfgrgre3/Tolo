@@ -35,8 +35,11 @@ export function useTimeData(): UseTimeDataReturn {
   // Sync userId with AuthContext and fallback to guest ID
   useEffect(() => {
     if (user?.id) {
-      setUserId(user.id);
-      globalStoreSetUserId(user.id);
+      const id = user.id;
+      queueMicrotask(() => {
+        setUserId(id);
+        globalStoreSetUserId(id);
+      });
     } else if (!isAuthLoading) {
       // Fallback to guest ID if not logged in
       import("@/lib/user-utils").then(({ ensureUser }) => {
@@ -146,7 +149,9 @@ export function useTimeData(): UseTimeDataReturn {
 
   useEffect(() => {
     if (userId) {
-      fetchData();
+      queueMicrotask(() => {
+        fetchData();
+      });
     }
   }, [userId, fetchData]);
 

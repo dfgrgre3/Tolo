@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,6 @@ import {
   TimerReset,
   History,
   Bell,
-  RefreshCw,
   Settings,
   Filter,
   Search,
@@ -72,21 +71,23 @@ export default function TimeManagementPage() {
 
   // Restore state from localStorage on mount
   useEffect(() => {
-    const storedStateRaw = localStorage.getItem('time-management-state');
-    if (storedStateRaw) {
-      try {
-        const storedState = JSON.parse(storedStateRaw);
-        if (storedState.activeTab) setActiveTab(storedState.activeTab);
-        if (storedState.taskFilter) setTaskFilter(storedState.taskFilter);
-        if (storedState.sessionFilter) setSessionFilter(storedState.sessionFilter);
-        if (typeof storedState.showCompletedTasks === 'boolean') setShowCompletedTasks(storedState.showCompletedTasks);
-        if (typeof storedState.showUpcomingRemindersOnly === 'boolean') setShowUpcomingRemindersOnly(storedState.showUpcomingRemindersOnly);
-        if (typeof storedState.showAnalytics === 'boolean') setShowAnalytics(storedState.showAnalytics);
-      } catch (e) {
-        console.error('Failed to restore time management state', e);
+    queueMicrotask(() => {
+      const storedStateRaw = localStorage.getItem('time-management-state');
+      if (storedStateRaw) {
+        try {
+          const storedState = JSON.parse(storedStateRaw);
+          if (storedState.activeTab) setActiveTab(storedState.activeTab);
+          if (storedState.taskFilter) setTaskFilter(storedState.taskFilter);
+          if (storedState.sessionFilter) setSessionFilter(storedState.sessionFilter);
+          if (typeof storedState.showCompletedTasks === 'boolean') setShowCompletedTasks(storedState.showCompletedTasks);
+          if (typeof storedState.showUpcomingRemindersOnly === 'boolean') setShowUpcomingRemindersOnly(storedState.showUpcomingRemindersOnly);
+          if (typeof storedState.showAnalytics === 'boolean') setShowAnalytics(storedState.showAnalytics);
+        } catch (e) {
+          console.error('Failed to restore time management state', e);
+        }
       }
-    }
-    setIsInitialized(true);
+      setIsInitialized(true);
+    });
   }, []);
 
   // Persist state to localStorage whenever it changes

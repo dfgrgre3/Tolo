@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Star, StarHalf, Pencil, Trash2, ThumbsUp } from 'lucide-react';
+import { Star, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Review {
@@ -67,7 +67,7 @@ export function BookReviews({
             setTotalReviews(data.stats?.totalReviews || 0);
             setHasMore(data.pagination?.totalPages > pageNum);
             setPage(pageNum);
-        } catch (error) {
+        } catch (_error) {
             toast.error('فشل في جلب المراجعات');
         } finally {
             setLoading(false);
@@ -122,7 +122,7 @@ export function BookReviews({
 
             toast.success('تم حذف المراجعة');
             fetchReviews(1);
-        } catch (error) {
+        } catch (_error) {
             toast.error('فشل في حذف المراجعة');
         }
     };

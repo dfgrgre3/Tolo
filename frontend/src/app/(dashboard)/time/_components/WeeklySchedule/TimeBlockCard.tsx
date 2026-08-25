@@ -1,7 +1,6 @@
 import { CheckCircle, Circle, MapPin, AlignLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatTimeRange, getBlockDuration } from './utils';
-import { BLOCK_TYPES, PRIORITY_COLORS } from './constants';
 import type { TimeBlock } from './types';
 import { m } from "framer-motion";
 
@@ -13,18 +12,13 @@ interface TimeBlockCardProps {
   onDragStart: (block: TimeBlock) => void;
 }
 
-const getBlockTypeInfo = (type: string) => {
-  return BLOCK_TYPES.find(t => t.value === type) || BLOCK_TYPES[0];
-};
-
-export function TimeBlockCard({ 
+export function TimeBlockCard({
   block, 
   compactView, 
   onEdit, 
   onComplete, 
   onDragStart 
 }: TimeBlockCardProps) {
-  const typeInfo = getBlockTypeInfo(block.type);
   const duration = getBlockDuration(block.startTime, block.endTime);
   
   // Base height is 80px per hour in our new TimeGrid

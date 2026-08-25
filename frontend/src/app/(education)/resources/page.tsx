@@ -49,7 +49,9 @@ function ResourceCard({ resource }: { resource: Resource }) {
     if (!isFile) return;
 
     let active = true;
-    setLoadingSize(true);
+    queueMicrotask(() => {
+      if (active) setLoadingSize(true);
+    });
 
     fetch(resource.url, { method: "HEAD" })
       .then((res) => {
@@ -165,32 +167,34 @@ export default function ResourcesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    fetch(`${API_URL}/resources`)
-      .then((r) => {
-        if (!r.ok) {
-          throw new Error(`HTTP error! status: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setResources(data);
-        } else {
-          logger.error("Fetched resources is not an array:", data);
-          setError("تم استلام بيانات غير صالحة من الخادم.");
+    queueMicrotask(() => {
+      setIsLoading(true);
+      setError(null);
+      fetch(`${API_URL}/resources`)
+        .then((r) => {
+          if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+          }
+          return r.json();
+        })
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setResources(data);
+          } else {
+            logger.error("Fetched resources is not an array:", data);
+            setError("تم استلام بيانات غير صالحة من الخادم.");
+            setResources([]);
+          }
+        })
+        .catch((err) => {
+          logger.error("Failed to fetch resources:", err);
+          setError("فشل في تحميل الموارد التعليمية.");
           setResources([]);
-        }
-      })
-      .catch((err) => {
-        logger.error("Failed to fetch resources:", err);
-        setError("فشل في تحميل الموارد التعليمية.");
-        setResources([]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    });
   }, []);
 
   const groups = Array.isArray(resources)

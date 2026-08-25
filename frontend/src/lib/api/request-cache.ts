@@ -30,7 +30,6 @@ class RequestCacheManager {
     "/api/auth/refresh": 0,                   // NO cache
     "/api/auth/login": 0,                     // NO cache - login always hits backend
     "/api/auth/logout": 0,                    // NO cache - logout always hits backend
-    "/api/auth/profile": 0,                   // NO cache
     "/api/settings": 300000,                  // 5 minutes - app settings rarely change
     "/api/settings/preferences": 600000,      // 10 minutes - user preferences rarely change
     "/api/ai/recommendations": 30000,         // 30 seconds
@@ -42,7 +41,6 @@ class RequestCacheManager {
     "/api/homepage": 300000,                  // 5 minutes - homepage stats rarely change
     "/api/navigation/menu": 300000,           // 5 minutes - navigation rarely changes
     "/api/exams": 15000,                      // 15 seconds
-    "/api/notifications": 300000,             // 5 minutes - fallback polling only
     "/api/activities/recent": 300000,         // 5 minutes - fallback polling only
     "/api/progress/summary": 300000,          // 5 minutes - CQRS view refreshes every 5 minutes
     "/api/my-courses": 300000,                // 5 minutes

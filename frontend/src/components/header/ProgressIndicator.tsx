@@ -32,7 +32,7 @@ function ProgressIndicator() {
   const fetchScheduled = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const fetchProgress = useCallback(async () => {
@@ -109,10 +109,7 @@ function ProgressIndicator() {
   }, [mounted, isAuthenticated]);
 
   useEffect(() => {
-    if (!mounted || !isAuthenticated) {
-      setIsVisible(false);
-      return;
-    }
+    if (!mounted || !isAuthenticated) return;
 
     fetchProgress();
     const interval = setInterval(fetchProgress, 300000);
@@ -122,11 +119,11 @@ function ProgressIndicator() {
 
   const shouldShow = useMemo(() => {
     if (!mounted) return false;
-    const showPages = ["/", "/courses", "/analytics", "/settings/achievements"];
+    const showPages = ["/", "/courses", "/analytics"];
     return showPages.some((page) => pathname?.startsWith(page));
   }, [pathname, mounted]);
 
-  if (!shouldShow || !isVisible || progressData.length === 0) return null;
+  if (!shouldShow || !isAuthenticated || !isVisible || progressData.length === 0) return null;
 
   return (
     <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/50 backdrop-blur-sm">

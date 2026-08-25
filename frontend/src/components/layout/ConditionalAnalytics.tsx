@@ -53,7 +53,9 @@ export function ConditionalAnalytics() {
       // ignore
     }
 
-    setShouldLoad(!inSaver);
+    queueMicrotask(() => {
+      setShouldLoad(!inSaver);
+    });
   }, [isUltraLite]);
 
   // Don't render anything until we know
@@ -99,7 +101,9 @@ export function ConditionalSpeedInsights() {
       // ignore
     }
 
-    setShouldLoad(!inSaver);
+    queueMicrotask(() => {
+      setShouldLoad(!inSaver);
+    });
   }, [isUltraLite]);
 
   if (shouldLoad !== true) return null;

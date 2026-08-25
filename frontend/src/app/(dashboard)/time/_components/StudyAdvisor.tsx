@@ -101,7 +101,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
 
         <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 text-center">
           <p className="text-xs text-emerald-400 font-bold mb-1">نصيحة اليوم</p>
-          <p className="text-xs text-slate-400 italic">"العلم بالتعلم، والحلم بالتحلم.. ابدأ الآن ولو بخطوة بسيطة."</p>
+          <p className="text-xs text-slate-400 italic">&quot;العلم بالتعلم، والحلم بالتحلم.. ابدأ الآن ولو بخطوة بسيطة.&quot;</p>
         </div>
       </CardContent>
     </Card>

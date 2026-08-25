@@ -50,13 +50,15 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
 
   // Sync with global store on mount/update
   useEffect(() => {
-    setSettings(prev => ({
-      ...prev,
-      soundEnabled: globalSettings.soundEnabled,
-      autoStartBreak: globalSettings.autoStartBreak,
-      pomodoroWorkMinutes: globalSettings.pomodoroWorkMinutes,
-      pomodoroBreakMinutes: globalSettings.pomodoroBreakMinutes
-    }));
+    queueMicrotask(() => {
+      setSettings(prev => ({
+        ...prev,
+        soundEnabled: globalSettings.soundEnabled,
+        autoStartBreak: globalSettings.autoStartBreak,
+        pomodoroWorkMinutes: globalSettings.pomodoroWorkMinutes,
+        pomodoroBreakMinutes: globalSettings.pomodoroBreakMinutes
+      }));
+    });
   }, [globalSettings]);
 
   const handleSave = () => {

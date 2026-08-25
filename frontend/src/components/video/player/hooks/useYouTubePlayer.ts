@@ -87,6 +87,18 @@ export function useYouTubePlayer({
   const playerRef = externalPlayerRef ?? internalPlayerRef;
   const isReadyRef = useRef(false);
 
+  // Latest-value refs: keep volume/mute/rate and event callbacks accessible inside the
+  // initialization effect without re-creating the player when they change.
+  const latestMediaPropsRef = useRef({ volume, isMuted, playbackRate });
+  useEffect(() => {
+    latestMediaPropsRef.current = { volume, isMuted, playbackRate };
+  }, [isMuted, playbackRate, volume]);
+
+  const callbacksRef = useRef({ onReady, onStateChange, onError });
+  useEffect(() => {
+    callbacksRef.current = { onReady, onStateChange, onError };
+  }, [onReady, onStateChange, onError]);
+
   // 1. Initialization Effect
   useEffect(() => {
     if (!enabled || !videoId || !containerRef.current) {
@@ -119,9 +131,11 @@ export function useYouTubePlayer({
               if (isCancelled) return;
               const player = playerRef.current;
               if (!player) return;
-              
+
               isReadyRef.current = true;
-              
+
+              const { volume, isMuted, playbackRate } = latestMediaPropsRef.current;
+
               // Apply initial state
               player.setVolume(Math.round(volume * 100));
               if (isMuted) {
@@ -135,21 +149,21 @@ export function useYouTubePlayer({
                 player.setPlaybackRate(playbackRate);
               }
 
-              onReady?.(player, api);
+              callbacksRef.current.onReady?.(player, api);
             },
             onStateChange: (event) => {
               const player = playerRef.current;
               if (!player) return;
-              onStateChange?.(event.data, player, api);
+              callbacksRef.current.onStateChange?.(event.data, player, api);
             },
             onError: () => {
-              onError?.();
+              callbacksRef.current.onError?.();
             },
           },
         });
       })
       .catch(() => {
-        onError?.();
+        callbacksRef.current.onError?.();
       });
 
     return () => {
@@ -161,7 +175,7 @@ export function useYouTubePlayer({
         containerNode.innerHTML = "";
       }
     };
-  }, [containerRef, enabled, videoId]); // Reduced dependencies to are-creation
+  }, [containerRef, enabled, playerRef, videoId]); // Reduced dependencies to are-creation
 
   // 2. Volume/Mute Updates
   useEffect(() => {
@@ -174,7 +188,7 @@ export function useYouTubePlayer({
     } else {
       player.unMute();
     }
-  }, [isMuted, volume]);
+  }, [isMuted, playerRef, volume]);
 
   // 3. Playback Rate Updates
   useEffect(() => {
@@ -185,7 +199,7 @@ export function useYouTubePlayer({
     if (availableRates.includes(playbackRate)) {
       player.setPlaybackRate(playbackRate);
     }
-  }, [playbackRate]);
+  }, [playbackRate, playerRef]);
 
   return playerRef;
 }

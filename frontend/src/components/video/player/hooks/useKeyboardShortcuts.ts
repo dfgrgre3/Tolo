@@ -1,7 +1,6 @@
 import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { SEEK_STEP_SECONDS, PLAYBACK_RATES } from "../constants";
 import { usePlaybackStore } from "../stores/playback-store";
-import { useSettingsStore } from "../stores/settings-store";
 import { useUIStore } from "../stores/ui-store";
 
 type KeyboardShortcutsOptions = {
@@ -29,69 +28,7 @@ export function useKeyboardShortcuts({
 }: KeyboardShortcutsOptions) {
   const volume = usePlaybackStore((s) => s.volume);
   const playbackRate = usePlaybackStore((s) => s.playbackRate);
-  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
   const setUIState = useUIStore((s) => s.setUIState);
-
-  const handleSeekKeys = (key: string, shiftKey: boolean) => {
-    if (key === "arrowright" || key === "l") {
-      seekBy(shiftKey ? 5 : SEEK_STEP_SECONDS);
-      return true;
-    }
-    if (key === "arrowleft" || key === "j") {
-      seekBy(shiftKey ? -5 : -SEEK_STEP_SECONDS);
-      return true;
-    }
-    return false;
-  };
-
-  const handleRateKeys = (key: string, shiftKey: boolean, originalKey: string) => {
-    if ((key === ">" || key === ".") && (shiftKey || originalKey !== ".")) {
-      const idx = PLAYBACK_RATES.indexOf(playbackRate);
-      if (idx < PLAYBACK_RATES.length - 1) handlePlaybackRateChange(PLAYBACK_RATES[idx + 1]!);
-      return true;
-    }
-    if ((key === "<" || key === ",") && (shiftKey || originalKey !== ",")) {
-      const idx = PLAYBACK_RATES.indexOf(playbackRate);
-      if (idx > 0) handlePlaybackRateChange(PLAYBACK_RATES[idx - 1]!);
-      return true;
-    }
-    return false;
-  };
-
-  const handleVolumeKeys = (key: string) => {
-    if (key === "arrowup" || key === "arrowdown") {
-      handleVolumeChange(volume + (key === "arrowup" ? 0.05 : -0.05));
-      return true;
-    }
-    return false;
-  };
-
-  const handleSubtitleKey = (key: string) => {
-    if (key === "c") {
-      const nextSub = selectedSubtitle === "off" && subtitleTracks[0] ? subtitleTracks[0].id : "off";
-      changeSubtitle(nextSub);
-      return true;
-    }
-    return false;
-  };
-
-  const handleEndKey = (key: string) => {
-    if (key === "end") {
-      const dur = getDuration();
-      if (dur > 0) handleSeek(dur);
-      return true;
-    }
-    return false;
-  };
-
-  const handleNumberKeys = (key: string) => {
-    if (/^[0-9]$/.test(key)) {
-      const dur = getDuration();
-      if (dur > 0) handleSeek((dur * Number(key)) / 10);
-      return true;
-    }
-    return false;
-  };
 
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -100,6 +37,18 @@ export function useKeyboardShortcuts({
 
       const key = event.key.toLowerCase();
       const shift = event.shiftKey;
+
+      const handleSeekKeys = (seekKey: string, shiftKey: boolean) => {
+        if (seekKey === "arrowright" || seekKey === "l") {
+          seekBy(shiftKey ? 5 : SEEK_STEP_SECONDS);
+          return true;
+        }
+        if (seekKey === "arrowleft" || seekKey === "j") {
+          seekBy(shiftKey ? -5 : -SEEK_STEP_SECONDS);
+          return true;
+        }
+        return false;
+      };
 
       // Handle simple mappings
       const simpleActions: Record<string, () => void> = {
@@ -122,6 +71,55 @@ export function useKeyboardShortcuts({
         simpleActions[key]();
         return;
       }
+
+      const handleRateKeys = (rateKey: string, shiftKey: boolean, originalKey: string) => {
+        if ((rateKey === ">" || rateKey === ".") && (shiftKey || originalKey !== ".")) {
+          const idx = PLAYBACK_RATES.indexOf(playbackRate);
+          if (idx < PLAYBACK_RATES.length - 1) handlePlaybackRateChange(PLAYBACK_RATES[idx + 1]!);
+          return true;
+        }
+        if ((rateKey === "<" || rateKey === ",") && (shiftKey || originalKey !== ",")) {
+          const idx = PLAYBACK_RATES.indexOf(playbackRate);
+          if (idx > 0) handlePlaybackRateChange(PLAYBACK_RATES[idx - 1]!);
+          return true;
+        }
+        return false;
+      };
+
+      const handleVolumeKeys = (volumeKey: string) => {
+        if (volumeKey === "arrowup" || volumeKey === "arrowdown") {
+          handleVolumeChange(volume + (volumeKey === "arrowup" ? 0.05 : -0.05));
+          return true;
+        }
+        return false;
+      };
+
+      const handleSubtitleKey = (subtitleKey: string) => {
+        if (subtitleKey === "c") {
+          const nextSub = selectedSubtitle === "off" && subtitleTracks[0] ? subtitleTracks[0].id : "off";
+          changeSubtitle(nextSub);
+          return true;
+        }
+        return false;
+      };
+
+      const handleEndKey = (endKey: string) => {
+        if (endKey === "end") {
+          const dur = getDuration();
+          if (dur > 0) handleSeek(dur);
+          return true;
+        }
+        return false;
+      };
+
+      const handleNumberKeys = (numberKey: string) => {
+        if (/^[0-9]$/.test(numberKey)) {
+          const dur = getDuration();
+          if (dur > 0) handleSeek((dur * Number(numberKey)) / 10);
+          return true;
+        }
+        return false;
+      };
 
       if (
         handleSeekKeys(key, shift) ||

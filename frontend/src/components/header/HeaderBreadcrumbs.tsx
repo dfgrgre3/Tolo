@@ -20,8 +20,6 @@ const routeLabels: Record<string, string> = {
   "/blog": "المدونة",
   "/library": "المكتبة",
   "/time": "التتبع الزمني",
-  "/settings": "الاعدادات",
-  "/notifications": "الإشعارات",
   "/help": "المساعدة",
 };
 
@@ -30,7 +28,7 @@ export function HeaderBreadcrumbs() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const breadcrumbs = useMemo(() => {

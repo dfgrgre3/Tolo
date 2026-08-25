@@ -26,7 +26,7 @@ interface RecommendedCourseCardProps {
   index: number;
 }
 
-export const RecommendedCourseCard = ({ course, index }: RecommendedCourseCardProps) => {
+export const RecommendedCourseCard = ({ course, index: _index }: RecommendedCourseCardProps) => {
   const getLevelColor = (level: string) => {
     const colors: Record<string, string> = {
       "مبتدئ": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",

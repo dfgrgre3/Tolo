@@ -16,6 +16,14 @@ import { CoursesControls } from "./_components/courses-controls";
 import { CoursesList } from "./_components/courses-list";
 import type { CourseLevel, CourseSummary, CourseCategory, SortOption } from "./_components/types";
 
+function pickSpotlightCourses(list: CourseSummary[]) {
+  const featuredCourses = list.filter((course) => course.isFeatured);
+  if (featuredCourses.length > 0) {
+    return sortCourses(featuredCourses, "rated").slice(0, 3);
+  }
+  return sortCourses(list, "popular").slice(0, 3);
+}
+
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
@@ -209,14 +217,7 @@ export default function CoursesPage() {
     sortBy,
   ]);
 
-  const spotlightCourses = useMemo(() => {
-    const featuredCourses = courses.filter((course) => course.isFeatured);
-    if (featuredCourses.length > 0) {
-      return sortCourses(featuredCourses, "rated").slice(0, 3);
-    }
-
-    return sortCourses(courses, "popular").slice(0, 3);
-  }, [courses]);
+  const spotlightCourses = useMemo(() => pickSpotlightCourses(courses), [courses]);
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||

@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Mail, Eye, GraduationCap, CheckCircle } from "lucide-react";
+import { Search, Mail, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Student } from "../hooks/use-teaching-data";

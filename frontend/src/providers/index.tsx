@@ -5,7 +5,6 @@ import { WebSocketProvider } from '@/contexts/websocket-context';
 import { SettingsProvider } from '@/contexts/settings-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
-import { NotificationsProvider } from '@/providers/notifications-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
@@ -79,7 +78,7 @@ const AppStateProviders = ({ children }: { children: React.ReactNode }) => (
 );
 
 /**
- * AuthGatedFeatureProviders — only activates WebSocket and Notifications
+ * AuthGatedFeatureProviders — only activates WebSocket
  * after the user is confirmed authenticated, avoiding unnecessary connections
  * for guest visitors (reduces bundle activation + server load).
  */
@@ -87,9 +86,7 @@ function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) 
   const { user } = useAuth();
   return (
     <WebSocketProvider userId={user?.id}>
-      <NotificationsProvider>
-        {children}
-      </NotificationsProvider>
+      {children}
     </WebSocketProvider>
   );
 }
@@ -118,7 +115,6 @@ const UIProviders = ({ children }: { children: React.ReactNode }) => (
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
-  initialAuthHint?: boolean;
 };
 
 /**
@@ -133,7 +129,7 @@ type GlobalProvidersProps = {
  * Framer Motion removed from global scope - import only where needed in specific components.
  * Heavy providers like OfflineSyncManager are lazy loaded to reduce initial bundle size.
  */
-export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
+export function GlobalProviders({ children }: GlobalProvidersProps) {
   return (
     <CoreProviders>
       <AppStateProviders>

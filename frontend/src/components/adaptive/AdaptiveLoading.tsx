@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useEfficiency as useEfficiencyCapabilities } from "@/hooks/use-efficiency";
 import { useUltraLiteMode } from "@/hooks/use-efficiency-mode";
 import { cn } from "@/lib/utils";
@@ -55,12 +55,8 @@ export const LazySection = React.memo(function LazySection({
     forceMount || effectiveMode === "performance" || effectiveMode === "balanced";
 
   useEffect(() => {
-    if (shouldEagerMount) {
-      setInView(true);
-      return;
-    }
-    if (typeof IntersectionObserver === "undefined") {
-      setInView(true);
+    if (shouldEagerMount || typeof IntersectionObserver === "undefined") {
+      queueMicrotask(() => setInView(true));
       return;
     }
     const el = ref.current;
@@ -171,7 +167,7 @@ export const HeavyMount = React.memo(function HeavyMount({
 
   useEffect(() => {
     if (shouldEagerMount) {
-      setMounted(true);
+      queueMicrotask(() => setMounted(true));
       return;
     }
     let cancelled = false;
@@ -181,7 +177,7 @@ export const HeavyMount = React.memo(function HeavyMount({
     };
 
     if (typeof window === "undefined") {
-      tryMount();
+      queueMicrotask(tryMount);
       return;
     }
 
@@ -440,7 +436,7 @@ export const AdaptiveBoundary = React.memo(function AdaptiveBoundary({
   children,
   fallback,
   disableOnUltraLite = false,
-  minDelay = 200,
+  minDelay: _minDelay = 200,
   className,
   minHeight,
 }: AdaptiveBoundaryProps) {

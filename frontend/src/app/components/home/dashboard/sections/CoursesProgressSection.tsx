@@ -74,7 +74,7 @@ export const CoursesProgressSection = memo(function CoursesProgressSection() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course, index) => (
+            {courses.map((course) => (
               <div
                 key={course.enrollmentId}
               >

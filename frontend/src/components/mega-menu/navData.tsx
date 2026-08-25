@@ -1,35 +1,24 @@
 import {
-  Activity,
-  Award,
   BarChart3,
-  Bell,
   BookMarked,
   BookOpen,
   Brain,
   Calendar,
-  CheckCircle,
   ClipboardList,
   Clock,
   CreditCard,
-  Download,
   FileText,
   FolderOpen,
   Gamepad2,
   GraduationCap,
   Home,
-  History as HistoryIcon,
   Library,
   Lightbulb,
   Megaphone,
   MessageSquare,
-  Settings,
-  Shield,
   Sparkles,
-  Star,
   Target,
-  TrendingUp,
   Trophy,
-  Upload,
   UserPlus,
   Users,
   type LucideIcon,
@@ -169,18 +158,6 @@ export const moreMegaMenu: MegaMenuCategory[] = [
       { href: "/billing/referrals", label: "برنامج الإحالة", icon: UserPlus, description: "دعوة أصدقائك والحصول على مكافآت ونقاط مجانية" },
     ],
   },
-  {
-    title: "الإعدادات والأمان",
-    slug: "settings",
-    items: [
-      { href: "/settings", label: "الإعدادات العامة", icon: Settings, description: "تخصيص الملف الشخصي والمظهر والتفضيلات" },
-      { href: "/settings/privacy", label: "الخصوصية والظهور", icon: Shield, description: "التحكم في بياناتك وظهورك لزملائك" },
-      { href: "/settings/security", label: "الأمان والوصول", icon: Shield, description: "تغيير كلمة المرور وتفعيل حماية الحساب" },
-      { href: "/settings/security/logs", label: "سجل النشاط", icon: HistoryIcon, description: "عرض تفاصيل وسجلات الدخول لحسابك" },
-      { href: "/settings/devices", label: "الأجهزة المتصلة", icon: Activity, description: "إدارة الأجهزة النشطة التي تستخدم حسابك" },
-      { href: "/settings/notifications", label: "تفضيلات الإشعارات", icon: Bell, description: "تحديد كيفية ووقت تلقي التنبيهات" },
-    ],
-  },
 ];
 
 export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
@@ -189,7 +166,7 @@ export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
   { href: "/library", label: "المكتبة", icon: Library, description: "مصادر تعليمية متنوعة", megaMenu: libraryMegaMenu },
   { href: "/ai", label: "الذكاء الاصطناعي", icon: Brain, description: "تعلم أذكى مع AI", badge: "AI" },
   { href: "/leaderboard", label: "التحديات", icon: Gamepad2, description: "لوحة الترتيب والمنافسات", megaMenu: competitionMegaMenu },
-  { href: "/settings", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
+  { href: "/all-features", label: "المزيد", icon: Sparkles, description: "المزيد من الخيارات والأدوات", megaMenu: moreMegaMenu },
 ];
 
 export const headerNavItems: NavItemWithMegaMenu[] = [

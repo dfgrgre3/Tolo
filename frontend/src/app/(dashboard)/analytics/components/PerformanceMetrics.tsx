@@ -29,7 +29,7 @@ interface PerformanceMetricsProps {
 const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({  
 	summary, 
 	weekly, 
-	performanceMetrics 
+	performanceMetrics: _performanceMetrics
 }) => {
 	const calculateMetrics = () => {
 		if (!summary || !weekly) {
@@ -250,4 +250,18 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 };
 
 export default PerformanceMetrics;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -31,7 +31,7 @@ export default function AnalyticsPanel() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    queueMicrotask(() => setIsMounted(true));
   }, []);
 
   const { data, isLoading } = useQuery<AnalyticsResponse>({

@@ -13,7 +13,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
-import type { Course, Chapter, Lesson, LessonQuestion, TabKey } from "../types";
+import type { Course, Chapter, LessonQuestion, TabKey } from "../types";
 import { apiClient } from "@/lib/api/api-client";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -253,13 +253,14 @@ export function useLearningHub() {
       .filter((chapter) => chapter.subTopics.length > 0);
   }, [chapters, deferredLessonSearch]);
 
+  const activeLessonContent = activeLesson?.content;
   const bookmarks = useMemo(() => {
-    if (!activeLesson?.content) return [];
+    if (!activeLessonContent) return [];
     const regex = /\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\]\s*([^\n<]+)/g;
     const nextBookmarks: { time: number; label: string }[] = [];
     let match: RegExpExecArray | null;
 
-    while ((match = regex.exec(activeLesson.content)) !== null) {
+    while ((match = regex.exec(activeLessonContent)) !== null) {
       const hours = match[1] ? Number(match[1]) : 0;
       const minutes = Number(match[2]);
       const seconds = Number(match[3]);
@@ -272,7 +273,7 @@ export function useLearningHub() {
     }
 
     return nextBookmarks;
-  }, [activeLesson?.content]);
+  }, [activeLessonContent]);
 
   const navigateToLesson = useCallback((lessonId: string) => {
     startTransition(() => {

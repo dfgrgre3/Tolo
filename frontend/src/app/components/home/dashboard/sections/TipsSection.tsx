@@ -57,7 +57,7 @@ export const TipsSection = memo(function TipsSection() {
 				</p>
 			) : (
 				<div className="grid gap-8 grid-cols-1 lg:grid-cols-3 relative z-10">
-					{tips.map((tip, index) => (
+					{tips.map((tip) => (
 						<div
 							key={tip.id}
 							className={`group rounded-[2rem] bg-gradient-to-br ${tip.color} p-8 border border-white/5 hover:border-white/20 shadow-xl backdrop-blur-md flex flex-col justify-between h-full`}
