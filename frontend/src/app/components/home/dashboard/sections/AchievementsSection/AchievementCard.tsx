@@ -24,12 +24,12 @@ interface AchievementCardProps {
 }
 
 // ✅ 2. Color Mapping: حل مشكلة Tailwind Dynamic Classes
-const COLOR_MAP: Record<AchievementColor, { gradient: string; bar: string }> = {
-  primary: { gradient: "from-primary to-primary/50", bar: "from-primary to-purple-500" },
-  purple: { gradient: "from-purple-600 to-purple-400", bar: "from-purple-500 to-fuchsia-500" },
-  emerald: { gradient: "from-emerald-600 to-emerald-400", bar: "from-emerald-500 to-teal-500" },
-  amber: { gradient: "from-amber-600 to-amber-400", bar: "from-amber-500 to-orange-500" },
-  rose: { gradient: "from-rose-600 to-rose-400", bar: "from-rose-500 to-pink-500" },
+const COLOR_MAP: Record<AchievementColor, { solid: string; bar: string }> = {
+  primary: { solid: "bg-primary", bar: "bg-primary" },
+  purple: { solid: "bg-primary", bar: "bg-primary" },
+  emerald: { solid: "bg-emerald-500", bar: "bg-emerald-500" },
+  amber: { solid: "bg-amber-500", bar: "bg-amber-500" },
+  rose: { solid: "bg-red-500", bar: "bg-red-500" },
 };
 
 const DEFAULT_COLOR: AchievementColor = "primary";
@@ -50,23 +50,16 @@ export const AchievementCard = memo(({
     >
       {/* ✅ 4. Semantic HTML: استخدام article بدلاً من div */}
       <article className={`${rpgCommonStyles.card} p-5 group relative overflow-hidden`}>
-        
-        {/* خلفية التوهج عند التحويم */}
-        <div 
-          className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-0 group-hover:opacity-10 pointer-events-none`} 
-          aria-hidden="true"
-        />
-      
         <div className="relative z-10 flex items-start gap-4">
-          <div 
-            className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center shrink-0 shadow-lg`}
+          <div
+            className={`w-12 h-12 rounded-xl ${colors.solid} flex items-center justify-center shrink-0`}
             aria-hidden="true"
           >
             {achievement.icon || <Trophy className="h-6 w-6 text-white" />}
           </div>
-          
+
           <div className="flex-1 min-w-0 space-y-1">
-            <h3 className="font-bold text-gray-100 group-hover:text-primary truncate">
+            <h3 className="font-bold text-foreground group-hover:text-primary-strong truncate">
               {achievement.title}
             </h3>
             <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
@@ -78,20 +71,20 @@ export const AchievementCard = memo(({
         {/* ✅ 5. Accessibility: شريط تقدم حقيقي لقرّاء الشاشة */}
         <div className="mt-4 space-y-2 relative z-10">
           <div className="flex justify-between text-xs font-medium">
-            <span className="text-gray-300">{progressLabel}</span>
-            <span className="text-primary tabular-nums">{safeProgress}%</span>
+            <span className="text-muted-foreground">{progressLabel}</span>
+            <span className="text-primary-strong tabular-nums">{safeProgress}%</span>
           </div>
-          
-          <div 
+
+          <div
             role="progressbar"
             aria-valuenow={safeProgress}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`${achievement.title}: ${safeProgress}%`}
-            className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden"
+            className="h-1.5 w-full bg-background rounded-full overflow-hidden"
           >
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${colors.bar}`}
+              className={`h-full rounded-full ${colors.bar}`}
             />
           </div>
         </div>

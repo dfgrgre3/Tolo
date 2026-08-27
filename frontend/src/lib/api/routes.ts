@@ -57,6 +57,11 @@ export const apiRoutes = {
       request: '/api/auth/magic-link/request',
       verify: '/api/auth/magic-link/verify',
     },
+    sessions: {
+      list: '/api/auth/sessions',
+      revoke: (id: string) => `/api/auth/sessions/${id}`,
+      revokeOthers: '/api/auth/sessions/revoke-others',
+    },
   },
 
   // ──────────────────────────────────────────
@@ -160,6 +165,7 @@ export const apiRoutes = {
   settings: {
     preferences: '/api/settings/preferences',
     system: '/api/settings',
+    privacyActions: '/api/settings/privacy/actions',
   },
 
   // ──────────────────────────────────────────

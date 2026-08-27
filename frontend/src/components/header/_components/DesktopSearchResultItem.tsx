@@ -26,10 +26,13 @@ export const DesktopSearchResultItem = ({
 	return (
 		<button
 			type="button"
+			id={`search-result-${index}`}
+			role="option"
+			aria-selected={isSelected}
 			onClick={() => onClick(result)}
 			onMouseEnter={() => onSelect(index)}
 			className={cn(
-				"w-full text-right px-4 py-3 flex items-center gap-3",
+				"w-full text-start px-4 py-3 flex items-center gap-3",
 				"border-b border-border/50 dark:border-border/50 last:border-0",
 				"border-r-2 outline-none",
 				"focus-visible:ring-2 focus-visible:ring-primary/50",
@@ -42,7 +45,7 @@ export const DesktopSearchResultItem = ({
 				<IconComponent className={cn("h-4 w-4", config.textClass)} />
 			</div>
 
-			<div className="flex-1 text-right min-w-0">
+			<div className="flex-1 text-start min-w-0">
 				<p
 					className={cn(
 						"text-sm font-medium truncate",

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { BookOpen, Flame, Clock, Star } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
+import { CONTAINER, TYPOGRAPHY, GRIDS, EMPTY_STATE } from '../design-system';
 import type { CourseSort } from '../api';
 import type { CourseItem } from '../types';
 
@@ -25,14 +26,14 @@ export function CoursesSection({
   onTabChange,
 }: CoursesSectionProps) {
   return (
-    <section className="py-16 bg-white border-y border-[#E2E8F0]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <section className="py-10 bg-white border-y border-[#E2E8F0]">
+      <div className={CONTAINER.className}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1E293B]">
+            <h2 className={TYPOGRAPHY.sectionHeading}>
               استكشف الكورسات المتاحة
             </h2>
-            <p className="text-sm text-[#64748B] font-medium mt-1">
+            <p className={TYPOGRAPHY.sectionSubheading}>
               كورسات مصممة لتناسب كل المستويات
             </p>
           </div>
@@ -66,20 +67,20 @@ export function CoursesSection({
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className={GRIDS.courses}>
             {Array.from({ length: 8 }).map((_, i) => (
               <CourseCardSkeleton key={i} />
             ))}
           </div>
         ) : courses.length === 0 ? (
-          <div className="text-center py-12 bg-[#F8FAFC] rounded-[12px] border border-[#E2E8F0]">
-            <BookOpen className="h-12 w-12 text-[#64748B] mx-auto mb-4 opacity-50" />
-            <p className="text-sm text-[#64748B] font-bold">
+          <div className={EMPTY_STATE.container}>
+            <BookOpen className={EMPTY_STATE.icon} />
+            <p className={EMPTY_STATE.text}>
               لا توجد كورسات متاحة حالياً في هذا القسم.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className={GRIDS.courses}>
             {courses.map((c) => {
               const norm = normalizeCourse(c);
               return (
@@ -103,10 +104,10 @@ export function CoursesSection({
           </div>
         )}
 
-        <div className="text-center mt-10">
+        <div className="text-center mt-8">
           <Link
             href="/courses"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] hover:text-[#0F766E] text-[#1E293B] font-bold text-sm rounded-[8px]"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] hover:text-[#0F766E] text-[#1E293B] font-bold text-sm rounded-[8px] transition-colors duration-150"
           >
             <BookOpen className="h-4 w-4" />
             عرض كافة الكورسات

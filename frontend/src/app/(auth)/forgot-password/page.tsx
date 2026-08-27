@@ -53,21 +53,21 @@ export default function ForgotPasswordPage() {
               {error && (
                 <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="font-semibold mr-2">خطأ</AlertTitle>
-                  <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+                  <AlertTitle className="font-semibold me-2">خطأ</AlertTitle>
+                  <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
                 </Alert>
               )}
               {success && (
                 <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <AlertTitle className="font-semibold mr-2">تم الإرسال بنجاح</AlertTitle>
-                  <AlertDescription dir="rtl" className="mr-2">{success}</AlertDescription>
+                  <AlertTitle className="font-semibold me-2">تم الإرسال بنجاح</AlertTitle>
+                  <AlertDescription dir="rtl" className="me-2">{success}</AlertDescription>
                 </Alert>
               )}
               <div className="grid gap-2">
                 <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                  <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
                     <Mail className="h-4 w-4" />
                   </span>
                   <Input
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
                     required
                     disabled={isLoading}
                     dir="ltr"
-                    className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
                   />
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
               <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !!success}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="ms-2 h-4 w-4 animate-spin" />
                     جاري الإرسال...
                   </>
                 ) : (

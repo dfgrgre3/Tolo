@@ -97,22 +97,36 @@ export interface UserSummary {
   role: UserRole;
 }
 
-/** Profile update payload — PATCH /api/auth/profile */
+/**
+ * Profile update payload — PATCH /api/users/profile.
+ *
+ * The handler (`user_profile_handler.go`) only reads these JSON keys; fields
+ * it doesn't know about are silently dropped by Gin's binding. The previous
+ * shape listed `dateOfBirth`, `wakeUpTime`, `sleepTime`, `focusStrategy`,
+ * `interestedSubjects`, `emailNotifications`, `smsNotifications` — none of
+ * which are accepted. `dateOfBirth` was a particularly nasty bug: the form
+ * sent it, the backend's `BirthDate *string \`json:"birthDate"\`` ignored it,
+ * and saving only a birthdate change returned `400 No fields to update`.
+ *
+ * The accept list is now a strict subset of what the handler actually mutates.
+ */
 export interface UpdateProfilePayload {
   name?: string;
   username?: string;
   phone?: string;
+  alternativePhone?: string;
   country?: string;
+  city?: string;
+  gender?: string;
+  school?: string;
   gradeLevel?: string;
   educationType?: string;
   section?: string;
+  /** YYYY-MM-DD. Wire name on the wire is `birthDate`, not `dateOfBirth`. */
+  birthDate?: string;
   bio?: string;
-  dateOfBirth?: string;
-  wakeUpTime?: string;
-  sleepTime?: string;
-  focusStrategy?: string;
   studyGoal?: string;
-  interestedSubjects?: string[];
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
+  subjectsTaught?: string[];
+  experienceYears?: string;
+  avatar?: string;
 }

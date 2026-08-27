@@ -1,51 +1,53 @@
 import React from "react";
+import { DASH_CONTAINER } from "./design-system";
 
+/**
+ * Layout-matched placeholder for the student dashboard: hero banner plus
+ * the same stacked flat panels UserHome renders, so there is no shift
+ * when real sections stream in.
+ */
 export const UserHomeSkeleton = () => {
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 bg-background min-h-screen" dir="rtl">
-      {/* Hero Skeleton */}
-      <div className="h-[500px] w-full rounded-[2.5rem] bg-white/5 border border-white/10 p-8">
-        <div className="flex flex-col items-center gap-8 mb-12">
-          <div className="h-10 w-48 bg-white/10 rounded-full"></div>
-          <div className="h-20 w-[80%] bg-white/10 rounded-2xl"></div>
-          <div className="h-12 w-96 bg-white/10 rounded-xl"></div>
-          <div className="h-24 w-48 bg-white/10 rounded-3xl mt-4"></div>
-        </div>
-        <div className="h-32 w-full max-w-4xl mx-auto rounded-3xl bg-white/10"></div>
-      </div>
-
-      {/* Main Vertical Content Skeleton */}
-      <div className="max-w-5xl mx-auto w-full space-y-12">
-        {/* Quick Links Skeleton */}
-        <div className="space-y-6">
-           <div className="h-10 w-64 bg-white/5 rounded-lg"></div>
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-             {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-56 rounded-2xl bg-white/5 border border-white/10"></div>
-             ))}
-           </div>
+    <div className="min-h-screen bg-background" dir="rtl">
+      <div className={`${DASH_CONTAINER.page} py-4 sm:py-6 lg:py-8`}>
+        {/* Hero banner */}
+        <div className="rounded-xl bg-muted border border-border p-5 sm:p-7 md:p-8 animate-pulse">
+          <div className="flex gap-2 mb-4">
+            <div className="h-7 w-36 rounded-full bg-background" />
+            <div className="h-7 w-40 rounded-full bg-background/70" />
+          </div>
+          <div className="h-9 w-52 rounded-lg bg-background mb-3" />
+          <div className="h-4 w-full max-w-xl rounded bg-background mb-6" />
+          {/* Level / XP strip */}
+          <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-background/60 p-4">
+            <div className="h-14 w-14 shrink-0 rounded-full bg-background" />
+            <div className="h-10 w-32 rounded-md bg-background" />
+            <div className="h-2.5 flex-1 rounded-full bg-background" />
+          </div>
         </div>
 
-        {/* Analytics/Performance Skeleton */}
-        <div className="h-96 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
-        
-        {/* Exams Skeleton */}
-        <div className="h-[600px] w-full rounded-[2rem] bg-white/5 border border-white/10 p-10">
-           <div className="w-full flex flex-col items-center gap-6 mb-12">
-             <div className="h-16 w-16 rounded-full bg-white/10"></div>
-             <div className="h-12 w-96 bg-white/10 rounded-xl"></div>
-           </div>
-           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-             {[1, 2, 3, 4, 5].map((i) => (
-               <div key={i} className="h-40 rounded-2xl bg-white/5 border border-white/10"></div>
-             ))}
-           </div>
-        </div>
-
-        {/* Intelligence Sections */}
-        <div className="space-y-12">
-           <div className="h-96 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
-           <div className="h-80 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
+        {/* Stacked panels */}
+        <div className={`${DASH_CONTAINER.stack} mt-4 sm:mt-5`}>
+          {[208, 420, 240, 460].map((height, i) => (
+            <div
+              key={i}
+              className="w-full rounded-xl border border-border bg-card p-4 sm:p-5 animate-pulse"
+              style={{ height }}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-6 w-1 rounded-full bg-muted" />
+                  <div className="h-5 w-44 rounded bg-muted" />
+                </div>
+                <div className="h-7 w-20 rounded-md bg-muted" />
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="h-24 rounded-lg bg-muted" />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

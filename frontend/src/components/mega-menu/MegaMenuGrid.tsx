@@ -14,6 +14,7 @@ interface MegaMenuGridProps {
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
 	setCategoryRef: (index: number, el: HTMLDivElement | null) => void;
+	onItemClick?: (item: import("./types").NavItem, category: CategoryType) => void;
 }
 
 export const MegaMenuGrid = React.memo(function MegaMenuGrid({
@@ -24,7 +25,8 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	focusedItemIndex,
 	onClose,
 	activeRoute,
-	setCategoryRef
+	setCategoryRef,
+	onItemClick
 }: MegaMenuGridProps) {
 	return (
 		<div
@@ -40,7 +42,10 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 					ref={(el) => setCategoryRef(categoryIndex, el)}
 					category={category}
 					categoryIndex={categoryIndex}
-					onItemClick={onClose}
+					onItemClick={(item, cat) => {
+						onItemClick?.(item, cat);
+						onClose();
+					}}
 					activeRoute={activeRoute}
 					isCompact={isCompact}
 					focusedItemIndex={focusedCategoryIndex === categoryIndex ? focusedItemIndex : -1}

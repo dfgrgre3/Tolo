@@ -23,7 +23,6 @@ export { usePersistedQuery } from "./use-persisted-query";
 
 // UI hooks
 export { useStickyHeader } from "./use-sticky-header";
-export { useHeaderAnimations } from "./use-header-animations";
 export { useHeaderKeyboardShortcuts } from "./use-keyboard-shortcuts";
 export { useFormPersistence } from "./use-form-persistence";
 export { useAdaptiveDebounce } from "./use-adaptive-debounce";

@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
-import { AlertCircle, RefreshCw, Sword, Shield, Scroll, Trophy, Swords } from "lucide-react";
-import { rpgCommonStyles, SUBJECT_EMOJIS } from "../../shared/styles";
+import { AlertCircle, RefreshCw, Sword, Shield, Scroll, Trophy, Search, Swords } from "lucide-react";
+import { SUBJECT_EMOJIS } from "../../shared/styles";
 import type { Exam, SubjectWithExams, StatCardProps } from "../../shared/types";
 import StatCard from "../../shared/StatCard";
+import { DashSection, DashEmpty } from "../../shared/SectionShell";
+import { DASH_GRID, DASH_BUTTON } from "../../shared/design-system";
 import { SubjectCard } from "./SubjectCard";
 import { ExamsModal } from "./ExamsModal";
 import { SubjectCardSkeleton } from "./SubjectCardSkeleton";
@@ -91,10 +93,10 @@ const ExamsSectionComponent = () => {
         const totalMinutes = exams.reduce((sum, exam) => sum + (exam.duration || 0), 0);
 
         setStats([
-          { icon: <Scroll />, value: `${exams.length}`, label: "امتحان متاح", color: "from-blue-500 to-cyan-500" },
-          { icon: <Sword />, value: `${totalQuestions}`, label: "سؤال", color: "from-red-500 to-rose-600" },
-          { icon: <Trophy />, value: `${subjectMap.size}`, label: "مادة", color: "from-amber-400 to-orange-500" },
-          { icon: <Shield />, value: `${Math.round(totalMinutes / 60)}`, label: "ساعة امتحانات", color: "from-emerald-500 to-teal-600" }
+          { icon: <Scroll />, value: `${exams.length}`, label: "امتحان متاح", color: "primary" },
+          { icon: <Sword />, value: `${totalQuestions}`, label: "سؤال", color: "primary" },
+          { icon: <Trophy />, value: `${subjectMap.size}`, label: "مادة", color: "primary" },
+          { icon: <Shield />, value: `${Math.round(totalMinutes / 60)}`, label: "ساعة امتحانات", color: "primary" }
         ]);
 
       } catch (err) {
@@ -122,94 +124,69 @@ const ExamsSectionComponent = () => {
   }, [subjects, searchTerm]);
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-4 py-12 !mt-12 overflow-hidden`}>
-      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 pointer-events-none mix-blend-overlay"></div>
+    <DashSection
+      title="الامتحانات"
+      subtitle="اختر المادة وابدأ الامتحان. كل امتحان تنهيه يرفع تقييمك ويكشف نقاط ضعفك."
+      icon={Swords}
+      toolbar={
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
+          <input
+            type="text"
+            placeholder="ابحث عن مادة أو امتحان…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="البحث في الامتحانات"
+            className="w-full rounded-lg border border-border bg-muted/40 py-2 pr-9 pl-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+      }
+    >
+      {/* Stats */}
+      {!loading && stats.length > 0 && (
+        <div className={`${DASH_GRID.stats} mb-4`}>
+          {stats.map((stat, idx) => (
+            <StatCard key={idx} {...stat} />
+          ))}
+        </div>
+      )}
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Section Header */}
-        <div className="text-center mb-16 relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-red-600/10 rounded-full blur-[100px] -z-10" />
-          <div
-            className="inline-flex items-center justify-center p-5 mb-8 rounded-[2rem] bg-black/60 border-2 border-red-500/40 backdrop-blur-2xl shadow-[0_0_40px_rgba(239,68,68,0.3)] ring-1 ring-white/10"
+      {loading ? (
+        <div className={DASH_GRID.tiles}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SubjectCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredSubjects.length === 0 ? (
+        <DashEmpty
+          icon={Search}
+          title={searchTerm ? "لا توجد نتائج تطابق بحثك" : "لا توجد امتحانات متاحة حالياً"}
+          description={searchTerm ? "حاول البحث باستخدام كلمات مفتاحية أخرى." : undefined}
+        />
+      ) : (
+        <div className={DASH_GRID.tiles}>
+          {filteredSubjects.map((subject) => (
+            <SubjectCard key={subject.name} {...subject} onClick={() => setSelectedSubject(subject)} />
+          ))}
+        </div>
+      )}
+
+      {/* Error + retry */}
+      {error && !loading && (
+        <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-5 text-center dark:border-red-900/50 dark:bg-red-950/40">
+          <AlertCircle className="h-8 w-8 text-red-500" aria-hidden="true" />
+          <p className="font-bold text-red-600 dark:text-red-400">{error}</p>
+          <button
+            onClick={() => { setRetryCount((prev) => prev + 1); setError(null); }}
+            className={`${DASH_BUTTON.outline} border-red-200 text-red-600 dark:border-red-900/50 dark:text-red-400`}
           >
-            <Swords className="w-12 h-12 text-red-500 filter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-          </div>
-          <h2 id="exams-heading" className={`text-5xl md:text-7xl font-black mb-6 tracking-tighter ${rpgCommonStyles.goldText}`}>
-            ساحة المعارك (ARENA)
-          </h2>
-          <p className="text-gray-400 mb-8 max-w-3xl mx-auto text-xl font-medium border-x-2 border-red-500/20 px-8 leading-relaxed">
-            اختر المادة وابدأ الامتحان. كل امتحان تنهيه يرفع تقييمك ويكشف نقاط ضعفك.
-          </p>
+            <RefreshCw className="h-4 w-4" /> إعادة المحاولة
+          </button>
         </div>
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto px-4">
-          {loading ? Array.from({ length: 3 }).map((_, i) =>
-            <div key={i} className="h-32 bg-white/5 rounded-2xl" />
-          ) : stats.map((stat, idx) =>
-            <StatCard
-              key={idx}
-              {...stat}
-              color={stat.color}
-              delay={idx * 0.1}
-            />
-          )}
-        </div>
+      )}
 
-        {/* Main Content Area */}
-        <div className="rounded-3xl border border-white/10 bg-black/20 backdrop-blur-md p-6 md:p-10 shadow-2xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10 border-b border-white/5 pb-8">
-            <div className="text-center md:text-right w-full md:w-auto">
-              <p className="font-bold text-2xl text-gray-100 mb-2">اختر منطقة المعركة</p>
-              <p className="text-sm text-gray-400">حدد المادة لبدء المهام المتاحة</p>
-            </div>
-            <div className="relative w-full md:w-96 group">
-              <input
-                type="text"
-                placeholder="🔍 ابحث عن تحدي أو مادة..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-5 py-4 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none pl-12 shadow-inner text-lg"
-              />
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-purple-500/10 opacity-0 group-hover:opacity-100 pointer-events-none -z-10 blur-xl"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {loading ? Array(5).fill(0).map((_, i) => <SubjectCardSkeleton key={i} />) :
-              filteredSubjects.map((subject) =>
-                <SubjectCard key={subject.name} {...subject} onClick={() => setSelectedSubject(subject)} />
-              )
-            }
-          </div>
-          
-          {error &&
-            <div className="text-center py-8 mx-auto max-w-md mt-8 fade-in">
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex flex-col items-center gap-4">
-                <AlertCircle className="h-10 w-10 text-red-400" />
-                <p className="font-medium text-red-100 text-lg">{error}</p>
-                <button
-                  onClick={() => {setRetryCount((prev) => prev + 1);setError(null);}}
-                  className="mt-2 text-sm bg-red-500/20 hover:bg-red-500/30 text-white px-6 py-2 rounded-lg flex items-center gap-2 border border-red-500/30"
-                >
-                  <RefreshCw className="w-4 h-4" /> إعادة الاتصال
-                </button>
-              </div>
-            </div>
-          }
-          
-          {!loading && !error && filteredSubjects.length === 0 &&
-            <div className="text-center py-20 text-gray-500 col-span-full">
-              <Shield className="w-20 h-20 mx-auto mb-6 opacity-20" />
-              <p className="text-xl font-medium">لا توجد ساحات معركة تطابق بحثك.</p>
-              <p className="text-sm mt-2 opacity-60">حاول البحث باستخدام كلمات مفتاحية أخرى.</p>
-            </div>
-          }
-        </div>
-      </div>
-      
       <ExamsModal subject={selectedSubject} onClose={() => setSelectedSubject(null)} />
-    </section>
+    </DashSection>
   );
 };
 

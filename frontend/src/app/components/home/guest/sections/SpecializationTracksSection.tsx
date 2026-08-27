@@ -97,16 +97,16 @@ const SPECIALIZATION_TRACKS: SpecializationTrack[] = [
  */
 function SpecializationCard({ track }: { track: SpecializationTrack }) {
   return (
-    <Link href={`/specializations/${track.id}`}>
+    <Link href="/pathways">
       <div className="group h-full flex flex-col bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:shadow-xl dark:hover:shadow-orange-500/30 transition-all duration-150">
 
         {/* Header Gradient */}
-        <div className={`bg-gradient-to-r ${track.color} p-6 text-white`}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="text-3xl opacity-70">{track.icon}</div>
-            <Award className="h-5 w-5 opacity-70" />
+        <div className={`bg-gradient-to-r ${track.color} p-4 text-white`}>
+          <div className="flex items-start justify-between mb-2.5">
+            <div className="text-2xl opacity-70">{track.icon}</div>
+            <Award className="h-4 w-4 opacity-70" />
           </div>
-          <h3 className="text-lg font-bold mb-2">
+          <h3 className="text-base font-bold mb-1.5">
             {track.title}
           </h3>
           <p className="text-sm opacity-90 line-clamp-2">
@@ -115,17 +115,17 @@ function SpecializationCard({ track }: { track: SpecializationTrack }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 flex flex-col">
+        <div className="flex-1 p-4 flex flex-col">
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-[#E2E8F0] dark:border-slate-700">
+          <div className="grid grid-cols-3 gap-3 mb-4 pb-4 border-b border-[#E2E8F0] dark:border-slate-700">
             <div className="text-center">
-              <div className="text-2xl font-black text-[#0F766E] dark:text-orange-500">
+              <div className="text-xl font-black text-[#0F766E] dark:text-orange-500">
                 {track.coursesCount}
               </div>
-              <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1">كورس</p>
+              <p className="text-xs text-[#64748B] dark:text-slate-400 mt-0.5">كورس</p>
             </div>
             <div className="text-center">
-              <Clock className="h-5 w-5 text-[#0F766E] dark:text-orange-500 mx-auto mb-1" />
+              <Clock className="h-4 w-4 text-[#0F766E] dark:text-orange-500 mx-auto mb-1" />
               <p className="text-xs text-[#64748B] dark:text-slate-400">{track.duration}</p>
             </div>
             <div className="text-center">
@@ -136,8 +136,8 @@ function SpecializationCard({ track }: { track: SpecializationTrack }) {
           </div>
 
           {/* Certification */}
-          <div className="mb-6 flex-1">
-            <p className="text-xs text-[#64748B] dark:text-slate-400 font-medium mb-2">
+          <div className="mb-4 flex-1">
+            <p className="text-xs text-[#64748B] dark:text-slate-400 font-medium mb-1.5">
               الشهادة المعترف بها:
             </p>
             <p className="text-sm font-bold text-[#1E293B] dark:text-white">
@@ -146,7 +146,7 @@ function SpecializationCard({ track }: { track: SpecializationTrack }) {
           </div>
 
           {/* CTA Button */}
-          <button className="w-full px-4 py-2 bg-gradient-to-r from-[#0F766E] to-[#115E59] dark:from-orange-600 dark:to-orange-700 text-white font-bold rounded-[8px] hover:shadow-lg transition-all group-hover:scale-105">
+          <button className="w-full px-4 py-2 bg-gradient-to-r from-[#0F766E] to-[#115E59] dark:from-orange-600 dark:to-orange-700 text-white font-bold text-sm rounded-[8px] hover:shadow-lg transition-all group-hover:scale-105">
             ابدأ التتبع
           </button>
         </div>
@@ -162,7 +162,7 @@ function SpecializationCard({ track }: { track: SpecializationTrack }) {
  */
 export function SpecializationTracksSection() {
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
+    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
@@ -175,7 +175,7 @@ export function SpecializationTracksSection() {
             </p>
           </div>
           <Link
-            href="/specializations"
+            href="/pathways"
             className={SECTION_HEADER.viewAllButton}
           >
             عرض جميع البرامج <ChevronLeft className="h-4 w-4" />
@@ -183,14 +183,14 @@ export function SpecializationTracksSection() {
         </div>
 
         {/* Specialization Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SPECIALIZATION_TRACKS.map((track) => (
             <SpecializationCard key={track.id} track={track} />
           ))}
         </div>
 
         {/* Info Banner */}
-        <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-orange-500/10 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px]">
+        <div className="mt-6 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-orange-500/10 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px]">
           <div className="flex items-start gap-4">
             <Award className="h-6 w-6 text-emerald-600 dark:text-orange-500 shrink-0 mt-1" />
             <div>

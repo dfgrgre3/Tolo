@@ -158,7 +158,7 @@ export default function ReferralsPage() {
             سجل المكافآت
         </h2>
         <div className="bg-[#111114] border border-white/5 rounded-3xl overflow-hidden">
-            <table className="w-full text-right">
+            <table className="w-full text-start">
                 <thead>
                     <tr className="border-b border-white/5 bg-white/2">
                         <th className="px-6 py-4 text-sm font-bold text-gray-400">الصديق</th>

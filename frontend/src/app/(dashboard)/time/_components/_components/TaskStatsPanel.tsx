@@ -24,7 +24,7 @@ export function TaskStatsPanel({ stats }: TaskStatsPanelProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <BarChart3 className="mr-2 h-5 w-5" />
+          <BarChart3 className="me-2 h-5 w-5" />
           إحصائيات المهام
         </CardTitle>
       </CardHeader>

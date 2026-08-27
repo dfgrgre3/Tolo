@@ -32,7 +32,7 @@ export default function LoginCredentialsFields({
       <div className="grid gap-2">
         <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
         <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
             <Mail className="h-4 w-4" />
           </span>
           <Input
@@ -45,7 +45,7 @@ export default function LoginCredentialsFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function LoginCredentialsFields({
           </Link>
         </div>
         <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
             <Lock className="h-4 w-4" />
           </span>
           <Input
@@ -74,7 +74,7 @@ export default function LoginCredentialsFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
       </div>

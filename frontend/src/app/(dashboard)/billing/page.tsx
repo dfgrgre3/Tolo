@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 const WalletDashboard = dynamic(() => import("@/components/billing/WalletDashboard"), {
   ssr: false,
@@ -11,7 +12,9 @@ import { CreditCard, Wallet, Sparkles, LayoutDashboard, ShieldCheck } from "luci
 import { m, AnimatePresence } from "framer-motion";
 
 export default function BillingPage() {
-  const [activeTab, setActiveTab] = useState<"wallet" | "upgrade">("wallet");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "upgrade" ? "upgrade" : "wallet";
+  const [activeTab, setActiveTab] = useState<"wallet" | "upgrade">(initialTab);
 
   return (
     <div className="min-h-screen bg-transparent py-12 px-4 md:px-8 xl:px-12" dir="rtl">

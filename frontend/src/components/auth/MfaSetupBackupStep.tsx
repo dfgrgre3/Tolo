@@ -33,7 +33,7 @@ export default function MfaSetupBackupStep({ success, backupCodes, onDownload }:
         ))}
       </div>
       <Button onClick={onDownload} className="w-full bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900">
-        <Download className="h-4 w-4 mr-2" /> تحميل رموز الاستعادة
+        <Download className="h-4 w-4 me-2" /> تحميل رموز الاستعادة
       </Button>
       <Link href="/dashboard" className="w-full">
         <Button className="w-full">الذهاب للوحة التحكم</Button>

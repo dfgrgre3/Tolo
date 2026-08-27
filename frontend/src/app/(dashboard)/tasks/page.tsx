@@ -316,7 +316,7 @@ export default function TasksPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row justify-between items-center gap-6">
           
-          <div className="space-y-4 text-center md:text-right">
+          <div className="space-y-4 text-center md:text-start">
              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-500">
                 <Scroll className="w-4 h-4" />
                 <span>سجل المهام النشط (Quest Log)</span>
@@ -393,12 +393,12 @@ export default function TasksPage() {
 
             <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
                <div className="relative group flex-1 min-w-[200px]">
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
+                  <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
                   <Input
                   placeholder="بحث في أرشيف المهام..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-12 pr-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner" />
+                  className="h-12 pe-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner" />
                 
                </div>
                

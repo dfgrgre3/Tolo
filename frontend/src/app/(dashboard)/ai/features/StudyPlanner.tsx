@@ -51,41 +51,41 @@ export default function StudyPlanner() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">تاريخ الامتحان</label>
+              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">تاريخ الامتحان</label>
               <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Calendar className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input 
                   type="date" 
                   value={examDate}
                   onChange={(e) => setExamDate(e.target.value)}
-                  className="bg-white/5 border-white/10 rounded-2xl pl-12 h-14 text-white focus:ring-primary/50" 
+                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white focus:ring-primary/50" 
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">الدرجة المستهدفة (%)</label>
+              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">الدرجة المستهدفة (%)</label>
               <div className="relative">
-                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Target className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input 
                   type="number" 
                   placeholder="مثال: 98"
                   value={targetGrade}
                   onChange={(e) => setTargetGrade(e.target.value)}
-                  className="bg-white/5 border-white/10 rounded-2xl pl-12 h-14 text-white" 
+                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white" 
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">ساعات المذاكرة اليومية</label>
+              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">ساعات المذاكرة اليومية</label>
               <div className="relative">
-                <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Clock className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input 
                   type="number" 
                   value={dailyHours}
                   onChange={(e) => setDailyHours(parseInt(e.target.value))}
-                  className="bg-white/5 border-white/10 rounded-2xl pl-12 h-14 text-white" 
+                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white" 
                 />
               </div>
             </div>
@@ -97,12 +97,12 @@ export default function StudyPlanner() {
             className="w-full md:w-auto px-12 h-14 bg-primary hover:bg-primary/90 text-black font-black rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                <Loader2 className="w-5 h-5 me-3 animate-spin" />
                 جاري التخطيط...
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 mr-3" />
+                <Sparkles className="w-5 h-5 me-3" />
                 إنشاء الخطة الدراسية
               </>
             )}
@@ -123,7 +123,7 @@ export default function StudyPlanner() {
               <h3 className="text-xl font-black text-white">خطتك الدراسية المقترحة</h3>
             </div>
             <Button variant="ghost" className="text-gray-400 hover:text-white">
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
               تحميل PDF
             </Button>
           </div>

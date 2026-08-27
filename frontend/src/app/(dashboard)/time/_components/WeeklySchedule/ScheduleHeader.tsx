@@ -19,7 +19,7 @@ export function ScheduleHeader({
   return (
     <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 p-6 bg-background/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden group">
       {/* Decorative Gradient Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-10 -mt-10" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -me-10 -mt-10" />
       
       <div className="relative z-10">
         <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-3 mb-3">

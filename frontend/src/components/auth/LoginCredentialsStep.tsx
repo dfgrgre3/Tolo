@@ -58,22 +58,22 @@ export default function LoginCredentialsStep({
           {error && (
             <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="font-semibold mr-2">خطأ في تسجيل الدخول</AlertTitle>
-              <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+              <AlertTitle className="font-semibold me-2">خطأ في تسجيل الدخول</AlertTitle>
+              <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
             </Alert>
           )}
           {sessionExpired && !error && (
             <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="font-semibold mr-2">انتهت الجلسة</AlertTitle>
-              <AlertDescription dir="rtl" className="mr-2">انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.</AlertDescription>
+              <AlertTitle className="font-semibold me-2">انتهت الجلسة</AlertTitle>
+              <AlertDescription dir="rtl" className="me-2">انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.</AlertDescription>
             </Alert>
           )}
           {registered && !error && (
             <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <AlertTitle className="font-semibold mr-2">تم إنشاء الحساب</AlertTitle>
-              <AlertDescription dir="rtl" className="mr-2">تم إنشاء حسابك بنجاح. سجّل الدخول للمتابعة.</AlertDescription>
+              <AlertTitle className="font-semibold me-2">تم إنشاء الحساب</AlertTitle>
+              <AlertDescription dir="rtl" className="me-2">تم إنشاء حسابك بنجاح. سجّل الدخول للمتابعة.</AlertDescription>
             </Alert>
           )}
 
@@ -94,7 +94,7 @@ export default function LoginCredentialsStep({
           <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
                 جاري التحقق...
               </>
             ) : (

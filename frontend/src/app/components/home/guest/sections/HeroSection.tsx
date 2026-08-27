@@ -42,20 +42,20 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
   const heroThumb = featuredCourse?.thumbnailUrl || featuredCourse?.thumbnail;
 
   return (
-    <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-10 pb-20">
+    <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-8 pb-12">
       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#F59E0B]/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-300/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-7 space-y-6 text-white">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-7 space-y-5 text-white">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-bold text-white/90">
               <Sparkles className="h-4 w-4 text-[#F59E0B]" />
               منصة ثنائي التعليمية
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
               تعلّم المهارات الأكثر طلباً،
               <br />
               <span className="text-[#F59E0B]">واصنع مستقبلك اليوم</span>
@@ -248,13 +248,13 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
 
         {loading ? (
           <div
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4"
             aria-hidden="true"
           >
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[122px] rounded-2xl bg-white/10 border border-white/20 animate-pulse"
+                className="h-[110px] rounded-[12px] bg-white/10 border border-white/20 animate-pulse"
               />
             ))}
           </div>

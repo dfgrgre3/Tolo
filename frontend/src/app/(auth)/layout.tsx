@@ -10,8 +10,8 @@ export default function AuthLayout({
   return (
     <div className="relative min-h-[90vh] w-full bg-slate-50 dark:bg-slate-950 py-10 flex items-center justify-center overflow-hidden">
       {/* Decorative background glows */}
-      <div className="pointer-events-none absolute -top-20 -left-20 h-80 w-80 rounded-full bg-primary/10 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -top-20 -start-20 h-80 w-80 rounded-full bg-primary/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-20 -end-20 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
 
       <div className="w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Brand header */}

@@ -42,7 +42,7 @@ export default function RegisterAccountFields({
         <div className="grid gap-2">
           <Label htmlFor="username" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">اسم المستخدم</Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <User className="h-4 w-4" />
             </span>
             <Input
@@ -52,14 +52,14 @@ export default function RegisterAccountFields({
               onChange={(e) => onUsernameChange(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="phone" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">رقم الهاتف</Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <Phone className="h-4 w-4" />
             </span>
             <Input
@@ -69,7 +69,7 @@ export default function RegisterAccountFields({
               onChange={(e) => onPhoneChange(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
         </div>
@@ -79,13 +79,13 @@ export default function RegisterAccountFields({
         <div className="grid gap-2">
           <Label htmlFor="role" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">نوع الحساب</Label>
           <Select value={role} onValueChange={onRoleChange} disabled={isLoading}>
-            <SelectTrigger id="role" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-right flex-row-reverse">
+            <SelectTrigger id="role" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-start flex-row-reverse">
               <SelectValue placeholder="اختر نوع الحساب" />
             </SelectTrigger>
             <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <SelectItem value="STUDENT" className="text-right justify-end font-medium">طالب</SelectItem>
-              <SelectItem value="PARENT" className="text-right justify-end font-medium">ولي أمر</SelectItem>
-              <SelectItem value="TEACHER" className="text-right justify-end font-medium">معلم</SelectItem>
+              <SelectItem value="STUDENT" className="text-start justify-end font-medium">طالب</SelectItem>
+              <SelectItem value="PARENT" className="text-start justify-end font-medium">ولي أمر</SelectItem>
+              <SelectItem value="TEACHER" className="text-start justify-end font-medium">معلم</SelectItem>
             </SelectContent>
           </Select>
           {role === "TEACHER" && (
@@ -97,7 +97,7 @@ export default function RegisterAccountFields({
         <div className="grid gap-2">
           <Label htmlFor="referralCode" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كود الإحالة (اختياري)</Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <Gift className="h-4 w-4" />
             </span>
             <Input
@@ -106,7 +106,7 @@ export default function RegisterAccountFields({
               value={referralCode}
               onChange={(e) => onReferralCodeChange(e.target.value)}
               disabled={isLoading}
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-center"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-center"
             />
           </div>
         </div>

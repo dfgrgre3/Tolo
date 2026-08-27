@@ -42,7 +42,7 @@ export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
 
         <div className="flex-1 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="text-right md:text-right">
+            <div className="text-start md:text-start">
               <h4 className="text-3xl font-black text-white">هدف المعسكر التدريبي اليومي</h4>
               <p className="text-gray-400 text-lg font-medium mt-1">تطورك مستمر؛ أنجز 45 دقيقة إضافية لتصل للقمة اليوم.</p>
             </div>

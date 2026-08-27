@@ -56,7 +56,7 @@ export default function PaymentFailPage() {
             className="flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-bold transition-all active:scale-95"
           >
             العودة للوحة التحكم
-            <ArrowLeft size={18} className="mr-auto ml-0" />
+            <ArrowLeft size={18} className="mr-auto ms-0" />
           </Link>
         </m.div>
       </div>

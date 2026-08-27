@@ -138,7 +138,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </Badge>
             {lessonsCount ?
             <Badge className="border-0 bg-black/50 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-md">
-                <Layers3 className="ml-1 h-3 w-3" />
+                <Layers3 className="ms-1 h-3 w-3" />
                 {lessonsCount} درس
               </Badge> :
             null}

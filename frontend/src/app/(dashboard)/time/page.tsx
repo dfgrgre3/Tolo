@@ -464,7 +464,7 @@ export default function TimeManagementPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
-                      <Settings className="h-4 w-4 ml-2" />
+                      <Settings className="h-4 w-4 ms-2" />
                       إعدادات الجدول
                     </Button>
                   </div>
@@ -490,12 +490,12 @@ export default function TimeManagementPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="بحث في المهام..."
                         value={taskSearch}
                         onChange={(e) => setTaskSearch(e.target.value)}
-                        className="pl-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
+                        className="ps-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <Select value={taskFilter} onValueChange={(value: "all" | "pending" | "in_progress" | "completed") => setTaskFilter(value)}>
@@ -510,7 +510,7 @@ export default function TimeManagementPage() {
                       </SelectContent>
                     </Select>
                     <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
-                      <Filter className="h-4 w-4 ml-2" />
+                      <Filter className="h-4 w-4 ms-2" />
                       تصفية متقدمة
                     </Button>
                   </div>
@@ -600,7 +600,7 @@ export default function TimeManagementPage() {
                       </SelectContent>
                     </Select>
                     <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
-                      <BarChart3 className="h-4 w-4 ml-2" />
+                      <BarChart3 className="h-4 w-4 ms-2" />
                       تحليل البيانات
                     </Button>
                   </div>
@@ -623,16 +623,16 @@ export default function TimeManagementPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="بحث في التذكيرات..."
                         value={reminderSearch}
                         onChange={(e) => setReminderSearch(e.target.value)}
-                        className="pl-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
+                        className="ps-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
-                      <Filter className="h-4 w-4 ml-2" />
+                      <Filter className="h-4 w-4 ms-2" />
                       تصفية متقدمة
                     </Button>
                   </div>

@@ -1,24 +1,38 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import CourseCard from "./CourseCard";
 import EmptyState from "./EmptyState";
+import { GridSkeleton } from "./Skeletons";
 import { Course } from "../hooks/use-teaching-data";
 
 interface CourseManagementProps {
   courses: Course[];
+  isLoading?: boolean;
   onCreateCourse: () => void;
   onEditCourse: (course: Course) => void;
   onDuplicateCourse: (course: Course) => void;
-  onDeleteCourse: (id: string) => void;
+  onDeleteCourse: (id: string) => void | Promise<void>;
 }
 
 type FilterStatus = "all" | "published" | "draft" | "archived";
 
 export default function CourseManagement({
   courses,
+  isLoading = false,
   onCreateCourse,
   onEditCourse,
   onDuplicateCourse,
@@ -26,6 +40,7 @@ export default function CourseManagement({
 }: CourseManagementProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -33,6 +48,26 @@ export default function CourseManagement({
     const matchesStatus = statusFilter === "all" ? true : c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleDuplicate = (course: Course) => {
+    onDuplicateCourse(course);
+    toast.success(`تم إنشاء نسخة من كورس "${course.title}" كمسودة`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 text-right" dir="rtl">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            <div className="h-3 w-64 bg-slate-100 dark:bg-slate-850 rounded-lg animate-pulse" />
+          </div>
+          <div className="h-9 w-36 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+        </div>
+        <GridSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
@@ -98,12 +133,39 @@ export default function CourseManagement({
               key={c.id}
               course={c}
               onEdit={onEditCourse}
-              onDuplicate={onDuplicateCourse}
-              onDelete={onDeleteCourse}
+              onDuplicate={handleDuplicate}
+              onDelete={(id) => {
+                const target = courses.find((course) => course.id === id);
+                if (target) setCourseToDelete(target);
+              }}
             />
           ))}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!courseToDelete} onOpenChange={(open) => !open && setCourseToDelete(null)}>
+        <AlertDialogContent dir="rtl" className="text-right rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right text-base">تأكيد حذف الكورس</AlertDialogTitle>
+            <AlertDialogDescription className="text-right text-xs leading-relaxed">
+              هل أنت متأكد من حذف كورس &quot;{courseToDelete?.title}&quot;؟ سيتم فقدان جميع بيانات الدروس والتسجيلات المرتبطة به ولا يمكن التراجع عن هذه الخطوة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction
+              onClick={() => {
+                if (courseToDelete) onDeleteCourse(courseToDelete.id);
+                setCourseToDelete(null);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs"
+            >
+              نعم، احذف الكورس
+            </AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl text-xs">إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

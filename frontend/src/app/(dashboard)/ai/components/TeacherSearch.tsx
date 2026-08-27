@@ -139,7 +139,7 @@ export default function TeacherSearch({
             }`}
           />
         ))}
-        <span className="text-sm text-gray-400 mr-1">{rating.toFixed(1)}</span>
+        <span className="text-sm text-gray-400 me-1">{rating.toFixed(1)}</span>
       </div>
     );
   };
@@ -299,12 +299,12 @@ export default function TeacherSearch({
             >
               {isSearching ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
                   جاري البحث...
                 </>
               ) : (
                 <>
-                  <Search className="h-5 w-5 mr-3" />
+                  <Search className="h-5 w-5 me-3" />
                   بحث عن مدرسين
                 </>
               )}

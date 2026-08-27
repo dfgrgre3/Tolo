@@ -12,43 +12,40 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
 
   if (loading) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 flex justify-center items-center`}>
-        <div className=" rounded-full h-10 w-10 border-b-2 border-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />
+      <section className={`${rpgCommonStyles.card} px-6 md:px-12 py-12 flex justify-center items-center`}>
+        <div className=" rounded-full h-10 w-10 border-b-2 border-primary" />
       </section>
     );
   }
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5" />
-      <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-      
+    <section className={`${rpgCommonStyles.card} px-6 md:px-12 py-12 overflow-hidden`}>
       <div className="relative z-10">
         <div
           className="mb-12 text-center"
         >
           <div className="flex flex-col items-center gap-4 mb-6">
-            <div className="rounded-full bg-indigo-500/20 p-4 ring-1 ring-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
-              <TrendingUp className="h-8 w-8 text-indigo-400" />
+            <div className="rounded-full bg-primary/10 p-4">
+              <TrendingUp className="h-8 w-8 text-primary-strong" />
             </div>
-            <h2 className={`text-3xl md:text-5xl font-black ${rpgCommonStyles.neonText}`}>
+            <h2 className="text-3xl md:text-5xl font-black text-foreground">
               توقعات تقدمك
             </h2>
           </div>
-          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
             محسوبة بانحدار خطي على درجات امتحاناتك خلال آخر 90 يوماً.
           </p>
         </div>
 
         {error ? (
-          <p className="text-center text-red-400 font-bold py-10">{error}</p>
+          <p className="text-center text-red-500 font-bold py-10">{error}</p>
         ) : predictions.length === 0 ? (
           <div className="text-center py-16 flex flex-col items-center">
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-              <TrendingUp className="h-10 w-10 text-gray-600" />
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+              <TrendingUp className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="text-xl font-bold text-gray-500 mb-2">لا توجد بيانات كافية للتوقع</p>
-            <p className="text-sm text-gray-600">
+            <p className="text-xl font-bold text-muted-foreground mb-2">لا توجد بيانات كافية للتوقع</p>
+            <p className="text-sm text-muted-foreground">
               أدِّ 3 امتحانات على الأقل ليتمكن النظام من رسم منحنى تقدمك
             </p>
           </div>

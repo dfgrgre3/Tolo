@@ -26,15 +26,15 @@ export function BulkActionsBar({
           </span>
           <div className="flex gap-2">
             <Button size="sm" onClick={onComplete}>
-              <CheckCircle className="h-4 w-4 mr-1" />
+              <CheckCircle className="h-4 w-4 me-1" />
               إكمال
             </Button>
             <Button size="sm" variant="outline" onClick={onStart}>
-              <Play className="h-4 w-4 mr-1" />
+              <Play className="h-4 w-4 me-1" />
               بدء
             </Button>
             <Button size="sm" variant="destructive" onClick={onDelete}>
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-4 w-4 me-1" />
               حذف
             </Button>
           </div>

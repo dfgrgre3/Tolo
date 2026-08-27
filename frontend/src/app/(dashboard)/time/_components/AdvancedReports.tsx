@@ -75,7 +75,7 @@ export default function AdvancedReports({
         </h2>
         {onExport &&
         <Button onClick={onExport} variant="outline" size="sm">
-            <Download className="h-4 w-4 ml-2" />
+            <Download className="h-4 w-4 ms-2" />
             تصدير التقرير
           </Button>
         }
@@ -86,7 +86,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-blue-200 dark:border-blue-800">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30">
             <CardTitle className="flex items-center text-lg">
-              <Target className="h-5 w-5 text-blue-600 dark:text-blue-400 ml-2" />
+              <Target className="h-5 w-5 text-blue-600 dark:text-blue-400 ms-2" />
               إحصائيات المهام
             </CardTitle>
           </CardHeader>
@@ -125,7 +125,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-purple-200 dark:border-purple-800">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30">
             <CardTitle className="flex items-center text-lg">
-              <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400 ml-2" />
+              <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400 ms-2" />
               تحليل وقت المذاكرة
             </CardTitle>
           </CardHeader>
@@ -161,7 +161,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-orange-200 dark:border-orange-800">
           <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30">
             <CardTitle className="flex items-center text-lg">
-              <Award className="h-5 w-5 text-orange-600 dark:text-orange-400 ml-2" />
+              <Award className="h-5 w-5 text-orange-600 dark:text-orange-400 ms-2" />
               تقدم الأهداف
             </CardTitle>
           </CardHeader>
@@ -193,7 +193,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-red-200 dark:border-red-800">
           <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30">
             <CardTitle className="flex items-center text-lg">
-              <Activity className="h-5 w-5 text-red-600 dark:text-red-400 ml-2" />
+              <Activity className="h-5 w-5 text-red-600 dark:text-red-400 ms-2" />
               توزيع الأولويات
             </CardTitle>
           </CardHeader>
@@ -235,7 +235,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-yellow-200 dark:border-yellow-800">
           <CardHeader className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/30">
             <CardTitle className="flex items-center text-lg">
-              <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400 ml-2" />
+              <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400 ms-2" />
               نظرة عامة على التذكيرات
             </CardTitle>
           </CardHeader>
@@ -276,7 +276,7 @@ export default function AdvancedReports({
         <Card className="border-2 border-indigo-200 dark:border-indigo-800">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-950/30 dark:to-indigo-900/30">
               <CardTitle className="flex items-center text-lg">
-                <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400 ml-2" />
+                <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400 ms-2" />
                 توزيع المواد الدراسية
               </CardTitle>
             </CardHeader>

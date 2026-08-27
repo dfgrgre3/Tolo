@@ -29,7 +29,7 @@ export function QuickActions() {
                 transition={{ delay: idx * 0.05, type: "spring", stiffness: 260, damping: 20 }}
                 className="group relative"
               >
-                <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-2xl">
+                <div className="absolute right-full me-4 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-2xl">
                   {action.label}
                 </div>
                 <Button 

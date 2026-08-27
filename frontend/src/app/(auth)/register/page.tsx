@@ -15,7 +15,7 @@ export default function RegisterPage() {
       <div className="relative hidden lg:flex lg:col-span-6 xl:col-span-7 h-full min-h-[600px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-10 text-white shadow-2xl border border-slate-800">
         {/* Soft grid background */}
         <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/20 rounded-full blur-[80px]" />
+        <div className="absolute top-0 end-0 w-[300px] h-[300px] bg-primary/20 rounded-full blur-[80px]" />
         
         {/* Branding header */}
         <div className="relative z-20 flex items-center gap-2">

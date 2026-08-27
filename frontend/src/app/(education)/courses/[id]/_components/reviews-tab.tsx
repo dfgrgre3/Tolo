@@ -225,7 +225,7 @@ export function ReviewsTab({
               </button>
           )}
             {userRating > 0 &&
-          <span className="text-sm font-bold text-amber-500 mr-2">{userRating}/5</span>
+          <span className="text-sm font-bold text-amber-500 me-2">{userRating}/5</span>
           }
           </div>
           <textarea

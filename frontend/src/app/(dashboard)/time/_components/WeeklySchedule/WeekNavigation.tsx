@@ -78,7 +78,7 @@ export function WeekNavigation({
         </Button>
       </div>
       
-      <div className="flex-1 text-center md:text-right px-4">
+      <div className="flex-1 text-center md:text-start px-4">
         <h3 className="text-lg font-black text-slate-100 flex items-center justify-center md:justify-end gap-2">
           <span className="text-emerald-400">{format(weekStart, 'dd MMMM', { locale: ar })}</span>
           <span className="opacity-40">-</span>

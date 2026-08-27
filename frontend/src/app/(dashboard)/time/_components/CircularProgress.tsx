@@ -69,7 +69,7 @@ export default function CircularProgress({
         <div className="absolute flex flex-col items-center justify-center text-center">
           {icon && <div className={`mb-1 ${colorClass}`}>{icon}</div>}
           <div className="text-xl font-bold dark:text-white drop-shadow-md">
-            {value}{max !== 100 && <span className="text-xs text-muted-foreground mr-1">/ {max}</span>}
+            {value}{max !== 100 && <span className="text-xs text-muted-foreground me-1">/ {max}</span>}
             {max === 100 && <span className="text-sm">%</span>}
           </div>
         </div>

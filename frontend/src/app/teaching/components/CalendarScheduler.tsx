@@ -9,10 +9,11 @@ import { CalendarEvent } from "../hooks/use-teaching-data";
 
 interface CalendarSchedulerProps {
   events: CalendarEvent[];
+  isLoading?: boolean;
   onAddEvent: (event: Omit<CalendarEvent, "id">) => void;
 }
 
-export default function CalendarScheduler({ events, onAddEvent }: CalendarSchedulerProps) {
+export default function CalendarScheduler({ events, isLoading = false, onAddEvent }: CalendarSchedulerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]!);
@@ -117,7 +118,19 @@ export default function CalendarScheduler({ events, onAddEvent }: CalendarSchedu
 
         {/* List of upcoming events */}
         <div className="space-y-4">
-          {events.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="w-20 h-6 bg-slate-100 dark:bg-slate-850 rounded-full animate-pulse" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-3.5 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                    <div className="h-2.5 w-64 bg-slate-100 dark:bg-slate-850 rounded animate-pulse" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : events.length === 0 ? (
             <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-850 rounded-2xl text-slate-400 text-xs">لا يوجد فعاليات قادمة مضافة</div>
           ) : (
             events.map((evt) => (

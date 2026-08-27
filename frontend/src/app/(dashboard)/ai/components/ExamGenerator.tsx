@@ -84,10 +84,10 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
                   المادة <span className="text-red-400">*</span>
                 </Label>
                 <div className="relative">
-                  <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+                  <BookOpen className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
                   <Select value={selectedSubject} onValueChange={setSelectedSubject} required>
                     <SelectTrigger
-                      className="pl-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
+                      className="ps-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
                       id="selectedSubject"
                     >
                       <SelectValue placeholder="اختر المادة" />
@@ -108,10 +108,10 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
                   السنة الدراسية <span className="text-red-400">*</span>
                 </Label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+                  <Calendar className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
                   <Select value={selectedYear} onValueChange={setSelectedYear} required>
                     <SelectTrigger
-                      className="pl-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
+                      className="ps-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
                       id="selectedYear"
                     >
                       <SelectValue placeholder="اختر السنة الدراسية" />
@@ -195,7 +195,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
                       onClick={handleRetryEnqueue}
                       className="mt-2 border-red-500/30 text-red-400 hover:bg-red-500/20"
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" />
+                      <RefreshCw className="h-4 w-4 me-2" />
                       إعادة المحاولة
                     </Button>
                   )}
@@ -216,12 +216,12 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
                   جاري إنشاء الامتحان...
                 </>
               ) : (
                 <>
-                  <Brain className="h-5 w-5 mr-3" />
+                  <Brain className="h-5 w-5 me-3" />
                   إنشاء الامتحان
                 </>
               )}
@@ -238,7 +238,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
 
             <div className="border border-white/10 rounded-2xl p-6 bg-white/5">
               <h3 className="font-bold text-white mb-4">الأسئلة ({examData.questions?.length || 0})</h3>
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              <div className="space-y-4 max-h-96 overflow-y-auto pe-2">
                 {examData.questions?.map((question, index) => (
                   <div key={index} className="border border-white/10 rounded-xl p-5 bg-black/20">
                     <div className="flex items-start gap-4">
@@ -326,7 +326,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
                 className="flex-1 h-14 rounded-2xl border-white/10 text-gray-400 hover:bg-white/10"
                 disabled={isSaving}
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4 me-2" />
                 إنشاء امتحان جديد
               </Button>
               <Button
@@ -336,12 +336,12 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
                     جاري الحفظ...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4 me-2" />
                     حفظ الامتحان
                   </>
                 )}

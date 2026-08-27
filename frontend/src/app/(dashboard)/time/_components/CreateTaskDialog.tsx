@@ -129,7 +129,7 @@ export default function CreateTaskDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="مثال: حل تمارين الرياضيات"
-              className="text-right"
+              className="text-start"
               required
             />
           </div>
@@ -141,7 +141,7 @@ export default function CreateTaskDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="أضف تفاصيل إضافية عن المهمة..."
-              className="text-right min-h-[80px]"
+              className="text-start min-h-[80px]"
             />
           </div>
           
@@ -194,13 +194,13 @@ export default function CreateTaskDialog({
             <div className="space-y-2">
               <Label htmlFor="estimatedTime">الوقت المتوقع (دقيقة)</Label>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Clock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="estimatedTime"
                   type="number"
                   value={estimatedTime}
                   onChange={(e) => setEstimatedTime(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                   min={1}
                   max={480}
                 />
@@ -220,7 +220,7 @@ export default function CreateTaskDialog({
             <Button type="submit" disabled={!title.trim() || isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="ms-2 h-4 w-4 animate-spin" />
                   جاري الإنشاء...
                 </>
               ) : (

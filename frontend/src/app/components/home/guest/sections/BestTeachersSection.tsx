@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Users, Star } from 'lucide-react';
-import { GRIDS, CONTAINER, TYPOGRAPHY, SECTION_HEADER, CARD_DIMENSIONS } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, CARD_DIMENSIONS, RAIL } from '../design-system';
 import type { Instructor } from '../types';
 
 interface BestTeachersSectionProps {
@@ -42,7 +42,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
   }
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
+    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>
@@ -62,13 +62,15 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
         </div>
 
         {loading ? (
-          <div className={GRIDS.instructors}>
+          <div className={RAIL.container}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <InstructorSkeleton key={i} />
+              <div key={i} className={`${RAIL.item} w-40`}>
+                <InstructorSkeleton />
+              </div>
             ))}
           </div>
         ) : (
-          <div className={GRIDS.instructors}>
+          <div className={RAIL.container}>
             {instructors.map((ins) => {
               const name = ins.name || `${ins.firstName || ''} ${ins.lastName || ''}`.trim() || 'مدرس';
               const avatar = ins.profileImage || ins.avatar;
@@ -79,6 +81,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
                   key={ins.id}
                   onClick={() => router.push(`/instructors/${ins.id}`)}
                   className={`
+                    ${RAIL.item} w-40
                     bg-white dark:bg-slate-800
                     border border-[#E2E8F0] dark:border-slate-700
                     hover:border-[#0F766E] dark:hover:border-orange-500

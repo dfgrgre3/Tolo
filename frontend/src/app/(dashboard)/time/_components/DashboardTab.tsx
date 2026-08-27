@@ -317,7 +317,7 @@ export default function DashboardTab({
                           <span>{new Date(session.startTime).toLocaleDateString('ar-SA')}</span>
                         </div>
                       </div>
-                      <Badge variant="default" className="ml-3 bg-primary/20 text-primary border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground shadow-sm transition-all h-8 px-3">
+                      <Badge variant="default" className="ms-3 bg-primary/20 text-primary border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground shadow-sm transition-all h-8 px-3">
                         {Math.floor(session.durationMin)} د
                       </Badge>
                     </div>

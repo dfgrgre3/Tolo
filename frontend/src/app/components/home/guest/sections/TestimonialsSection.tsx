@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 import { useRef } from 'react';
 
 interface Testimonial {
@@ -73,31 +73,31 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const initial = testimonial.studentName.charAt(0);
 
   return (
-    <div className="flex-shrink-0 w-full sm:w-96 p-6 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] hover:shadow-md dark:hover:shadow-orange-500/20 transition-all duration-150">
+    <div className={`${RAIL.item} w-80 p-4 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] hover:shadow-md dark:hover:shadow-orange-500/20 transition-all duration-150`}>
       {/* Rating */}
-      <div className="flex items-center gap-1 mb-4">
+      <div className="flex items-center gap-1 mb-3">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`h-4 w-4 ${
+            className={`h-3.5 w-3.5 ${
               i < Math.floor(testimonial.rating)
                 ? 'fill-[#F59E0B] text-[#F59E0B]'
                 : 'text-[#E2E8F0] dark:text-slate-600'
             }`}
           />
         ))}
-        <span className="text-sm font-bold text-[#F59E0B] dark:text-orange-400 mr-2">
+        <span className="text-xs font-bold text-[#F59E0B] dark:text-orange-400 mr-2">
           {testimonial.rating}
         </span>
       </div>
 
       {/* Testimonial Text */}
-      <p className="text-sm text-[#1E293B] dark:text-slate-200 mb-4 leading-relaxed line-clamp-3">
+      <p className="text-sm text-[#1E293B] dark:text-slate-200 mb-3 leading-relaxed line-clamp-3">
         &quot;{testimonial.text}&quot;
       </p>
 
       {/* Divider */}
-      <div className="border-t border-[#E2E8F0] dark:border-slate-700 mb-4" />
+      <div className="border-t border-[#E2E8F0] dark:border-slate-700 mb-3" />
 
       {/* Student Info */}
       <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ export function TestimonialsSection() {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
+    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
@@ -167,7 +167,7 @@ export function TestimonialsSection() {
           {/* Scroll Container */}
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto pb-4 scroll-smooth scrollbar-hide"
+            className={RAIL.container}
             style={{ scrollBehavior: 'smooth' }}
           >
             {SAMPLE_TESTIMONIALS.map((testimonial) => (
@@ -176,7 +176,7 @@ export function TestimonialsSection() {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-center gap-4 mt-6">
+          <div className="flex items-center justify-center gap-4 mt-4">
             <button
               onClick={() => scroll('left')}
               className="p-2 rounded-full bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#0F766E] dark:text-orange-500 hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors"
@@ -209,11 +209,11 @@ export function TestimonialsSection() {
           </div>
 
           {/* CTA */}
-          <div className="text-center mt-8">
-            <p className="text-sm text-[#64748B] dark:text-slate-400 mb-4">
+          <div className="text-center mt-6">
+            <p className="text-sm text-[#64748B] dark:text-slate-400 mb-3">
               انضم لآلاف الطلاب الراضين عن تجربتهم
             </p>
-            <button className="px-6 py-3 bg-[#0F766E] dark:bg-orange-600 text-white font-bold rounded-[8px] hover:bg-[#115E59] dark:hover:bg-orange-700 transition-colors">
+            <button className="px-6 py-2.5 bg-[#0F766E] dark:bg-orange-600 text-white font-bold text-sm rounded-[8px] hover:bg-[#115E59] dark:hover:bg-orange-700 transition-colors">
               ابدأ تعلمك الآن
             </button>
           </div>

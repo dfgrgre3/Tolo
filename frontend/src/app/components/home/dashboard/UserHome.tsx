@@ -1,26 +1,21 @@
 'use client';
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
 import { User } from '@/types/user';
 import { ProgressSummary } from '@/types/gamification';
 import { useGamification } from '@/hooks/use-gamification';
 
 import { useDashboardResource } from './hooks/useDashboardResource';
-import { SectionDivider } from './shared/SectionDivider';
 import { AmbientBackground } from './shared/AmbientBackground';
-import { DashboardHeader } from './shared/DashboardHeader';
+import { HeroSection } from './sections/HeroSection';
+import { DASH_CONTAINER } from './shared/design-system';
 import {
   AnalyticsSection,
   CoursesProgressSection,
   ExamsSection,
-  FeaturesSection,
   IntelligentRecommendationsSection,
-  LiveActivityFeedSection,
-  QuickLinksSectionEnhanced,
   RecommendedForYouSection,
   SocialFeaturesSection,
-  StatusIndicatorsSection,
   TipsSection,
   BrowseCategoriesSection,
   ExploreCoursesSection,
@@ -29,6 +24,17 @@ import {
   LearningPathsDashboardSection,
 } from './sections/registry';
 import { LazySection } from '@/components/layout/LazySection';
+
+/** Panel-shaped placeholder that matches the Noon section rhythm. */
+function PanelSkeleton({ height }: { height: number }) {
+  return (
+    <div
+      className="w-full rounded-xl border border-border bg-card animate-pulse"
+      style={{ height }}
+      aria-hidden="true"
+    />
+  );
+}
 
 interface UserHomeProps {
   user: User;
@@ -40,135 +46,111 @@ export function UserHome({ user }: UserHomeProps) {
   const { data: summary } = useDashboardResource<ProgressSummary>(progressSummaryUrl, 'ملخص التقدم');
 
   return (
-    <div
-      className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 lg:py-12 space-y-8 lg:space-y-16 min-h-screen font-sans selection:bg-primary/30 selection:text-primary-foreground"
-      dir="rtl">
-
+    <div className="min-h-screen font-sans selection:bg-primary/30 selection:text-primary-foreground" dir="rtl">
       <AmbientBackground />
 
-      {/* ── Above the fold: always eager ─────────────────────────────── */}
-      <div>
-        <DashboardHeader
+      <div className={`${DASH_CONTAINER.page} py-4 sm:py-6 lg:py-8`}>
+        {/* ── Above the fold: hero banner, always eager ──────────────────── */}
+        <HeroSection
           user={user}
-          currentStreak={userProgress?.currentStreak ?? 0}
-          weeklyMinutes={summary?.totalMinutes ?? 0}
+          progress={userProgress}
+          summary={summary}
         />
-      </div>
 
-      <div className="flex flex-col max-w-7xl mx-auto lg:px-4">
+        {/* ── Stacked Noon panels ───────────────────────────────────────── */}
+        <div className={`${DASH_CONTAINER.stack} mt-4 sm:mt-5`}>
 
-        <div className="w-full">
-          <QuickLinksSectionEnhanced />
+          {/* استكشف */}
+          <LazySection
+            className="w-full"
+            rootMargin="400px"
+            skeleton={<PanelSkeleton height={208} />}
+          >
+            <BrowseCategoriesSection />
+          </LazySection>
+
+          <LazySection
+            className="w-full"
+            rootMargin="400px"
+            skeleton={<PanelSkeleton height={420} />}
+          >
+            <ExploreCoursesSection />
+          </LazySection>
+
+          <LazySection
+            className="w-full"
+            rootMargin="400px"
+            skeleton={<PanelSkeleton height={240} />}
+          >
+            <TrendingTopicsDashboardSection />
+          </LazySection>
+
+          {/* التحليلات */}
+          <LazySection
+            className="w-full"
+            rootMargin="400px"
+            skeleton={<PanelSkeleton height={460} />}
+          >
+            <AnalyticsSection />
+          </LazySection>
+
+          {/* مساري التعليمي */}
+          <LazySection
+            className="w-full space-y-4 sm:space-y-5"
+            rootMargin="400px"
+            skeleton={
+              <>
+                <PanelSkeleton height={380} />
+                <PanelSkeleton height={480} />
+              </>
+            }
+          >
+            <CoursesProgressSection />
+            <ExamsSection />
+          </LazySection>
+
+          {/* مسارات متقدمة */}
+          <LazySection
+            className="w-full space-y-4 sm:space-y-5"
+            rootMargin="400px"
+            skeleton={
+              <>
+                <PanelSkeleton height={320} />
+                <PanelSkeleton height={340} />
+              </>
+            }
+          >
+            <LearningPathsDashboardSection />
+            <SpecializationProgramsSection />
+          </LazySection>
+
+          {/* موصى به لك */}
+          <LazySection
+            className="w-full"
+            rootMargin="400px"
+            skeleton={<PanelSkeleton height={380} />}
+          >
+            <RecommendedForYouSection />
+          </LazySection>
+
+          {/* نصائح ومجتمع */}
+          <LazySection
+            className="flex flex-col gap-4 sm:gap-5 w-full"
+            rootMargin="400px"
+            skeleton={
+              <>
+                <PanelSkeleton height={360} />
+                <PanelSkeleton height={320} />
+              </>
+            }
+          >
+            <IntelligentRecommendationsSection />
+            <TipsSection />
+            <SocialFeaturesSection />
+          </LazySection>
+
         </div>
-
-        {/* ── Discovery sections — tصفح والاستكشاف ─────────────────── */}
-        <SectionDivider label="استكشف الفرص" />
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[320px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <BrowseCategoriesSection />
-        </LazySection>
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[420px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <ExploreCoursesSection />
-        </LazySection>
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[340px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <TrendingTopicsDashboardSection />
-        </LazySection>
-
-        {/* ── Analytics — second viewport, lazy ─────────────────────── */}
-        <SectionDivider label="التحليلات" />
-
-        <LazySection
-          className="w-full space-y-12"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[520px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <AnalyticsSection />
-        </LazySection>
-
-        {/* ── Course path — third viewport, lazy ───────────────────── */}
-        <SectionDivider label="مساري التعليمي" />
-
-        <LazySection
-          className="w-full space-y-12"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[480px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <CoursesProgressSection />
-          <ExamsSection />
-        </LazySection>
-
-        {/* ── Learning paths and specializations — deeper, lazy ───── */}
-        <SectionDivider label="مسارات متقدمة" />
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[340px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <LearningPathsDashboardSection />
-        </LazySection>
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[380px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <SpecializationProgramsSection />
-        </LazySection>
-
-        {/* ── Recommendations — further down, lazy ─────────────────── */}
-        <SectionDivider label="موصى به لك" icon={Sparkles} />
-
-        <LazySection
-          className="w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[320px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <RecommendedForYouSection />
-        </LazySection>
-
-        {/* ── Analytics / tips — deeper page, lazy ─────────────────── */}
-        <SectionDivider label="تحليلات وتوصيات" />
-
-        <LazySection
-          className="flex flex-col gap-12 w-full"
-          rootMargin="400px"
-          skeleton={<div className="w-full h-[600px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <IntelligentRecommendationsSection />
-          <TipsSection />
-          <SocialFeaturesSection />
-          <LiveActivityFeedSection />
-        </LazySection>
-
-        {/* ── System status — bottom of page, lazy ─────────────────── */}
-        <SectionDivider label="حالة النظام" />
-
-        <LazySection
-          className="flex flex-col gap-12 w-full"
-          rootMargin="300px"
-          skeleton={<div className="w-full h-[280px] rounded-[2rem] bg-card/20 border border-white/5 animate-pulse" aria-hidden="true" />}
-        >
-          <StatusIndicatorsSection />
-          <FeaturesSection />
-        </LazySection>
-
       </div>
-
     </div>
   );
 }

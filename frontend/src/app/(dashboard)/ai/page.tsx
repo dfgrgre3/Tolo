@@ -120,7 +120,7 @@ export default function AILearningPage() {
             <button
               key={i}
               onClick={() => setActiveTab('assistant')}
-              className={`group relative overflow-hidden rounded-3xl border ${card.border} bg-gradient-to-br ${card.color} p-6 text-right transition-all hover:scale-[1.02] hover:shadow-lg`}
+              className={`group relative overflow-hidden rounded-3xl border ${card.border} bg-gradient-to-br ${card.color} p-6 text-start transition-all hover:scale-[1.02] hover:shadow-lg`}
             >
               <div className="text-3xl mb-3">{card.icon}</div>
               <h3 className="text-sm font-black text-white mb-1">{card.label}</h3>

@@ -12,6 +12,7 @@ import { safeSetItem } from '@/lib/safe-client-utils';
 import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api/api-client';
 
 interface TimeSettingsProps {
   onSave?: (settings: TimeSettingsData) => void;
@@ -75,22 +76,13 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
 
     // 3. Sync to backend if user is logged in
     if (userId) {
-      fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          soundEnabled: settings.soundEnabled,
-          notificationsEnabled: settings.notificationsEnabled,
-          theme: settings.theme,
-        })
+      apiClient.put('/api/settings', {
+        soundEnabled: settings.soundEnabled,
+        notificationsEnabled: settings.notificationsEnabled,
+        theme: settings.theme,
       })
-        .then(async (res) => {
-          if (res.ok) {
-            toast.success('تمت مزامنة الإعدادات مع حسابك بنجاح');
-          } else {
-            console.warn('Failed to sync settings to database:', res.statusText);
-            toast.success('تم حفظ الإعدادات محلياً');
-          }
+        .then(() => {
+          toast.success('تمت مزامنة الإعدادات مع حسابك بنجاح');
         })
         .catch((err) => {
           console.warn('Error syncing settings to database:', err);

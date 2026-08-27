@@ -241,7 +241,7 @@ export default function LeaderboardPage() {
                              <div className="space-y-1 min-w-0">
                                 <p className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
                                    {entry.username}
-                                   {entry.userId === userId && <Badge className="mr-3 bg-primary text-[10px] font-black h-5 uppercase">أنت</Badge>}
+                                   {entry.userId === userId && <Badge className="me-3 bg-primary text-[10px] font-black h-5 uppercase">أنت</Badge>}
                                 </p>
                                 <div className="flex items-center gap-4 text-xs font-bold text-gray-500 flex-wrap">
                                    <span className="uppercase tracking-widest text-primary/70">المستوى {entry.level}</span>
@@ -251,7 +251,7 @@ export default function LeaderboardPage() {
                                 </div>
                              </div>
                           </div>
-                          <div className="text-right sm:text-left shrink-0 self-end sm:self-center pr-12 sm:pr-0">
+                          <div className="text-start sm:text-left shrink-0 self-end sm:self-center pe-12 sm:pe-0">
                              <p className="text-2xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP عسكري</p>
                           </div>

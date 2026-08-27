@@ -156,10 +156,28 @@ export const COLORS = {
 // SECTION HEADER PATTERN
 // ============================================================================
 export const SECTION_HEADER = {
-  container: 'flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8',
-  content: 'flex-1',
+  container: 'flex flex-row items-center justify-between gap-4 mb-5',
+  content: 'flex-1 min-w-0',
   titleContainer: '',
-  viewAllButton: 'flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] dark:text-orange-500 dark:hover:text-orange-400 transition-colors whitespace-nowrap',
+  viewAllButton: 'flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] dark:text-orange-500 dark:hover:text-orange-400 transition-colors whitespace-nowrap shrink-0',
+} as const;
+
+// ============================================================================
+// SECTION WRAPPER (spacing rhythm)
+// ============================================================================
+export const SECTION = {
+  // Standard vertical rhythm for every homepage section
+  padding: 'py-10',
+} as const;
+
+// ============================================================================
+// HORIZONTAL SCROLL RAIL PATTERN
+// ============================================================================
+export const RAIL = {
+  // Scroll container: horizontal snap rail with hidden scrollbar
+  container: 'flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+  // Individual rail item wrapper (fixed width, snap point)
+  item: 'snap-start shrink-0',
 } as const;
 
 // ============================================================================

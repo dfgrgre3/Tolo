@@ -85,12 +85,12 @@ export default function LessonSummarizer() {
               className="w-full md:w-auto px-12 h-14 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 transition-all">
               {isLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  <Loader2 className="w-5 h-5 me-3 animate-spin" />
                   جاري التلخيص... (قد يستغرق بضع ثوانٍ)
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5 mr-3" />
+                  <Sparkles className="w-5 h-5 me-3" />
                   تلخيص الدرس الآن
                 </>
               )}
@@ -123,11 +123,11 @@ export default function LessonSummarizer() {
               </h3>
               <TabsList className="bg-white/5 border border-white/10 p-1 rounded-2xl h-12">
                 <TabsTrigger value="summary" className="rounded-xl px-6 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  <ListChecks className="w-4 h-4 mr-2" />
+                  <ListChecks className="w-4 h-4 me-2" />
                   الملخص
                 </TabsTrigger>
                 <TabsTrigger value="mindmap" className="rounded-xl px-6 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  <Map className="w-4 h-4 mr-2" />
+                  <Map className="w-4 h-4 me-2" />
                   الخريطة الذهنية
                 </TabsTrigger>
               </TabsList>
@@ -135,7 +135,7 @@ export default function LessonSummarizer() {
 
             <TabsContent value="summary">
               <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none relative">
-                <Button variant="ghost" size="icon" className="absolute top-6 left-6 text-gray-500 hover:text-white">
+                <Button variant="ghost" size="icon" className="absolute top-6 end-6 text-gray-500 hover:text-white">
                   <Copy className="w-4 h-4" />
                 </Button>
                 <SafeMarkdown>{summary.split('```')[0] || ''}</SafeMarkdown>

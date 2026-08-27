@@ -50,8 +50,8 @@ export default function AdminLoginCredentialsStep({
       {errorStatus && (
         <Alert variant="destructive" className="mb-6 bg-red-500/10 border-red-500/30">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="mr-2 font-semibold">خطأ</AlertTitle>
-          <AlertDescription dir="rtl" className="mr-2">{errorStatus}</AlertDescription>
+          <AlertTitle className="me-2 font-semibold">خطأ</AlertTitle>
+          <AlertDescription dir="rtl" className="me-2">{errorStatus}</AlertDescription>
         </Alert>
       )}
 
@@ -61,7 +61,7 @@ export default function AdminLoginCredentialsStep({
             البريد الإلكتروني
           </Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <Mail className="h-4 w-4" />
             </span>
             <Input
@@ -73,7 +73,7 @@ export default function AdminLoginCredentialsStep({
               required
               disabled={isSubmitting}
               dir="ltr"
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function AdminLoginCredentialsStep({
             كلمة المرور
           </Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <Lock className="h-4 w-4" />
             </span>
             <Input
@@ -95,13 +95,13 @@ export default function AdminLoginCredentialsStep({
               required
               disabled={isSubmitting}
               dir="ltr"
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
             <button
               type="button"
               tabIndex={-1}
               onClick={onToggleShowPassword}
-              className="absolute inset-y-0 left-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold"
+              className="absolute inset-y-0 end-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold"
               aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
             >
               {showPassword ? "إخفاء" : "إظهار"}
@@ -116,12 +116,12 @@ export default function AdminLoginCredentialsStep({
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              <Loader2 className="ms-2 h-4 w-4 animate-spin" />
               جاري التحقق...
             </>
           ) : (
             <>
-              <CheckCircle2 className="ml-2 h-4 w-4" />
+              <CheckCircle2 className="ms-2 h-4 w-4" />
               تسجيل الدخول
             </>
           )}

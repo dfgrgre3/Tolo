@@ -48,8 +48,8 @@ export default function RegisterFormFields({
         {error && (
           <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle className="font-semibold mr-2">خطأ في إنشاء الحساب</AlertTitle>
-            <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+            <AlertTitle className="font-semibold me-2">خطأ في إنشاء الحساب</AlertTitle>
+            <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
           </Alert>
         )}
 
@@ -86,7 +86,7 @@ export default function RegisterFormFields({
         <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !values.agreedToTerms}>
           {isLoading ? (
             <>
-              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              <Loader2 className="ms-2 h-4 w-4 animate-spin" />
               جاري التسجيل...
             </>
           ) : (

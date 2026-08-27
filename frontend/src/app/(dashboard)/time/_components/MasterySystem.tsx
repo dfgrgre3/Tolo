@@ -54,7 +54,7 @@ const MasterySystem = ({ stats }: MasterySystemProps) => {
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+              className="absolute inset-y-0 start-0 bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
             />
           </div>
         </div>

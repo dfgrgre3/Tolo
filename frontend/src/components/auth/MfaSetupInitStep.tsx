@@ -35,7 +35,7 @@ export default function MfaSetupInitStep({ error, isLoading, onStart }: MfaSetup
           </Alert>
         )}
         <Button onClick={onStart} disabled={isLoading} className="w-full">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "ابدأ الإعداد"}
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : "ابدأ الإعداد"}
         </Button>
       </CardContent>
     </>

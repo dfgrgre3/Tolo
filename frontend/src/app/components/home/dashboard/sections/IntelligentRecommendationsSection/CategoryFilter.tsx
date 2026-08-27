@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { DASH_TABS } from "../../shared/design-system";
 
 interface Category {
   id: string;
@@ -14,21 +15,22 @@ interface CategoryFilterProps {
   setSelectedCategory: (id: string) => void;
 }
 
+/** Noon-style pill tab strip for filtering recommendation types. */
 export const CategoryFilter = ({ categories, selectedCategory, setSelectedCategory }: CategoryFilterProps) => {
   return (
-    <div className="flex flex-wrap justify-center gap-3 mb-12">
+    <div className={DASH_TABS.list}>
       {categories.map((category) => (
         <button
           key={category.id}
+          type="button"
           onClick={() => setSelectedCategory(category.id)}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border ${
-            selectedCategory === category.id
-              ? "bg-primary text-black border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-105"
-              : "bg-white/10 text-gray-100 border-white/10 hover:border-primary/50 hover:bg-white/20"
+          aria-pressed={selectedCategory === category.id}
+          className={`${DASH_TABS.tab} inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+            selectedCategory === category.id ? DASH_TABS.tabActive : DASH_TABS.tabIdle
           }`}
         >
           {category.icon}
-          <span className="font-bold text-sm tracking-wide">{category.label}</span>
+          <span>{category.label}</span>
         </button>
       ))}
     </div>

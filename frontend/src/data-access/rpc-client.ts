@@ -33,12 +33,9 @@ const transport = createConnectTransport({
       for (const name of csrfNames) {
         const entry = cookies.find(c => c.startsWith(name + '='));
         if (entry) {
-          const rawValue = entry.split('=')[1] || '';
-          try {
-            csrfToken = decodeURIComponent(rawValue);
-          } catch {
-            csrfToken = rawValue;
-          }
+          // Send the cookie value verbatim — the backend compares the header
+          // against the raw Cookie value, so decoding (%3D -> =) breaks it.
+          csrfToken = entry.split('=').slice(1).join('=') || '';
           break;
         }
       }

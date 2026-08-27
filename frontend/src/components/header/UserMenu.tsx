@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useCallback,
@@ -10,6 +10,7 @@ import {
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useMounted } from "@/hooks/use-mounted";
 
 import {
   LogOut,
@@ -23,6 +24,7 @@ import {
   Loader2,
   Activity,
   Clock,
+  UserCircle,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -55,7 +57,7 @@ import { formatDistanceToNow } from "date-fns";
 
 type ThemeMode = "light" | "dark";
 
-// ─── Activity Types ───────────────────────────────────────────────
+// â”€â”€â”€ Activity Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type ActivityType = "notification" | "message" | "like" | "achievement" | "progress";
 
@@ -99,8 +101,8 @@ const LOCALE = "ar-EG";
 const LOGIN_PATH = "/login";
 
 /**
- * إذا كان logout لديك يقوم بالتوجيه تلقائيًا،
- * اجعل هذه القيمة false.
+ * Ø¥Ø°Ø§ ÙƒØ§Ù† logout Ù„Ø¯ÙŠÙƒ ÙŠÙ‚ÙˆÙ… Ø¨Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ØŒ
+ * Ø§Ø¬Ø¹Ù„ Ù‡Ø°Ù‡ Ø§Ù„Ù‚ÙŠÙ…Ø© false.
  */
 const REDIRECT_AFTER_LOGOUT = true;
 
@@ -114,6 +116,7 @@ const MENU_LINKS = {
   admin: "/admin",
   help: "/support",
   subscription: "/subscription",
+  profile: "/profile",
 } as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -145,7 +148,7 @@ function asDateInput(value: unknown): string | undefined {
 
   if (typeof value === "number" && Number.isFinite(value)) {
     /**
-     * إذا كان timestamp بالثواني، نحوله إلى milliseconds.
+     * Ø¥Ø°Ø§ ÙƒØ§Ù† timestamp Ø¨Ø§Ù„Ø«ÙˆØ§Ù†ÙŠØŒ Ù†Ø­ÙˆÙ„Ù‡ Ø¥Ù„Ù‰ milliseconds.
      */
     const ms = value < 1_000_000_000_000 ? value * 1000 : value;
     const date = new Date(ms);
@@ -166,21 +169,21 @@ function getSafeAvatarUrl(url?: string): string | undefined {
   if (!trimmed) return undefined;
 
   /**
-   * منع protocol-relative URLs
+   * Ù…Ù†Ø¹ protocol-relative URLs
    */
   if (trimmed.startsWith("//")) {
     return undefined;
   }
 
   /**
-   * المسارات الداخلية مثل /avatars/1.png
+   * Ø§Ù„Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ© Ù…Ø«Ù„ /avatars/1.png
    */
   if (trimmed.startsWith("/")) {
     return trimmed;
   }
 
   /**
-   * المسارات النسبية البسيطة التي لا تحتوي على protocol
+   * Ø§Ù„Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„Ù†Ø³Ø¨ÙŠØ© Ø§Ù„Ø¨Ø³ÙŠØ·Ø© Ø§Ù„ØªÙŠ Ù„Ø§ ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ protocol
    */
   if (!trimmed.includes(":")) {
     return trimmed;
@@ -247,7 +250,7 @@ function getInitials(user: AuthUser): string {
     .filter(Boolean);
 
   if (parts.length === 0) {
-    return "؟";
+    return "ØŸ";
   }
 
   return parts
@@ -321,13 +324,13 @@ function getSubscriptionLabel(
   const active = isSubscriptionActive(subscription);
 
   if (!active) {
-    return "الاشتراك غير نشط";
+    return "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ØºÙŠØ± Ù†Ø´Ø·";
   }
 
   const endDateLabel = formatDate(subscription.endDate, locale);
 
   if (!subscription.plan && !endDateLabel) {
-    return "الاشتراك نشط";
+    return "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ù†Ø´Ø·";
   }
 
   if (!endDateLabel) {
@@ -335,16 +338,16 @@ function getSubscriptionLabel(
   }
 
   if (!subscription.plan) {
-    return `ينتهي ${endDateLabel}`;
+    return `ÙŠÙ†ØªÙ‡ÙŠ ${endDateLabel}`;
   }
 
-  return `${subscription.plan} - ينتهي ${endDateLabel}`;
+  return `${subscription.plan} - ÙŠÙ†ØªÙ‡ÙŠ ${endDateLabel}`;
 }
 
 function isPremiumUser(user: AuthUser): boolean {
   /**
-   * إذا كان لديك PREMIUM كدور قديم، نعرضها.
-   * لكن الأفضل مستقبلًا أن تكون Premium من الاشتراك فقط.
+   * Ø¥Ø°Ø§ ÙƒØ§Ù† Ù„Ø¯ÙŠÙƒ PREMIUM ÙƒØ¯ÙˆØ± Ù‚Ø¯ÙŠÙ…ØŒ Ù†Ø¹Ø±Ø¶Ù‡Ø§.
+   * Ù„ÙƒÙ† Ø§Ù„Ø£ÙØ¶Ù„ Ù…Ø³ØªÙ‚Ø¨Ù„Ù‹Ø§ Ø£Ù† ØªÙƒÙˆÙ† Premium Ù…Ù† Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙÙ‚Ø·.
    */
   if (user.role === "PREMIUM") {
     return true;
@@ -361,7 +364,7 @@ function isPremiumUser(user: AuthUser): boolean {
 
   return (
     plan.includes("premium") ||
-    subscription.plan?.includes("بريميوم") === true
+    subscription.plan?.includes("Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…") === true
   );
 }
 
@@ -375,8 +378,8 @@ function getErrorMessage(error: unknown): string {
 
 export function UserMenu() {
   /**
-   * نستخدم unknown هنا لجعل المكوّن آمنًا حتى لو كان useAuth غير مضبوط النوع 100%.
-   * إذا كان useAuth لديك typed بالكامل، يمكنك إزالة هذه الـ casts لاحقًا.
+   * Ù†Ø³ØªØ®Ø¯Ù… unknown Ù‡Ù†Ø§ Ù„Ø¬Ø¹Ù„ Ø§Ù„Ù…ÙƒÙˆÙ‘Ù† Ø¢Ù…Ù†Ù‹Ø§ Ø­ØªÙ‰ Ù„Ùˆ ÙƒØ§Ù† useAuth ØºÙŠØ± Ù…Ø¶Ø¨ÙˆØ· Ø§Ù„Ù†ÙˆØ¹ 100%.
+   * Ø¥Ø°Ø§ ÙƒØ§Ù† useAuth Ù„Ø¯ÙŠÙƒ typed Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ØŒ ÙŠÙ…ÙƒÙ†Ùƒ Ø¥Ø²Ø§Ù„Ø© Ù‡Ø°Ù‡ Ø§Ù„Ù€ casts Ù„Ø§Ø­Ù‚Ù‹Ø§.
    */
   const { user, isLoading: authIsLoading, logout } = useAuth();
   const { socket, isConnected } = useWebSocket() as { socket: WebSocket | null; isConnected: boolean };
@@ -392,9 +395,9 @@ export function UserMenu() {
 
   const [open, setOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
-  // ─── Activity State ────────────────────────────────────────────
+  // â”€â”€â”€ Activity State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [actUnreadCount, setActUnreadCount] = useState(0);
 
@@ -440,14 +443,13 @@ export function UserMenu() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    queueMicrotask(() => setMounted(true));
 
     return () => {
       isMountedRef.current = false;
     };
   }, []);
 
-  // ─── Fetch Activities on open / WS ────────────────────────────
+  // â”€â”€â”€ Fetch Activities on open / WS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!mounted || !user?.id) return;
 
@@ -524,7 +526,7 @@ export function UserMenu() {
   }, [normalizedUser]);
 
   const primaryName =
-    normalizedUser?.name || normalizedUser?.username || normalizedUser?.email || "مستخدم";
+    normalizedUser?.name || normalizedUser?.username || normalizedUser?.email || "Ù…Ø³ØªØ®Ø¯Ù…";
 
   const secondaryText =
     normalizedUser?.email && normalizedUser.email !== primaryName
@@ -562,7 +564,7 @@ export function UserMenu() {
         getErrorMessage(error)
       );
 
-      toast.error("تعذر حفظ تفضيلات المظهر");
+      toast.error("ØªØ¹Ø°Ø± Ø­ÙØ¸ ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ù…Ø¸Ù‡Ø±");
     });
   }, [isDark, setThemeFn, normalizedUser?.id]);
 
@@ -573,7 +575,7 @@ export function UserMenu() {
     setIsLoggingOut(true);
 
     /**
-     * إيقاف تجاهل أي طلبات حفظ ثيم قديمة عند الخروج.
+     * Ø¥ÙŠÙ‚Ø§Ù ØªØ¬Ø§Ù‡Ù„ Ø£ÙŠ Ø·Ù„Ø¨Ø§Øª Ø­ÙØ¸ Ø«ÙŠÙ… Ù‚Ø¯ÙŠÙ…Ø© Ø¹Ù†Ø¯ Ø§Ù„Ø®Ø±ÙˆØ¬.
      */
     themeRequestIdRef.current += 1;
 
@@ -584,7 +586,7 @@ export function UserMenu() {
 
       await logout();
 
-      toast.success("تم تسجيل الخروج بنجاح");
+      toast.success("ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬ Ø¨Ù†Ø¬Ø§Ø­");
 
       if (isMountedRef.current) {
         setOpen(false);
@@ -595,7 +597,7 @@ export function UserMenu() {
       }
     } catch (error) {
       logger.error("Logout failed:", getErrorMessage(error));
-      toast.error("تعذر تسجيل الخروج، حاول مرة أخرى");
+      toast.error("ØªØ¹Ø°Ø± ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬ØŒ Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰");
     } finally {
       logoutLockRef.current = false;
 
@@ -609,7 +611,7 @@ export function UserMenu() {
     return (
       <div
         role="status"
-        aria-label="جارٍ تحميل قائمة المستخدم"
+        aria-label="Ø¬Ø§Ø±Ù ØªØ­Ù…ÙŠÙ„ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…"
         className="h-10 w-10 animate-pulse rounded-full bg-muted"
       />
     );
@@ -626,7 +628,7 @@ export function UserMenu() {
           type="button"
           variant="ghost"
           className="relative h-8 w-8 touch-manipulation overflow-hidden rounded-full border-2 border-primary/10 p-0 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 group sm:h-9 sm:w-9 md:h-10 md:w-10"
-          aria-label={`قائمة المستخدم: ${primaryName}`}
+          aria-label={`Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…: ${primaryName}`}
         >
           <Avatar className="h-full w-full">
             <AvatarImage src={normalizedUser.avatar || undefined} alt="" />
@@ -636,9 +638,9 @@ export function UserMenu() {
           </Avatar>
 
           {/*
-            نقطة الحالة:
-            إذا لم تكن حالة الاتصال حقيقية من السيرفر،
-            الأفضل إزالتها أو ربطها ببيانات presence.
+            Ù†Ù‚Ø·Ø© Ø§Ù„Ø­Ø§Ù„Ø©:
+            Ø¥Ø°Ø§ Ù„Ù… ØªÙƒÙ† Ø­Ø§Ù„Ø© Ø§Ù„Ø§ØªØµØ§Ù„ Ø­Ù‚ÙŠÙ‚ÙŠØ© Ù…Ù† Ø§Ù„Ø³ÙŠØ±ÙØ±ØŒ
+            Ø§Ù„Ø£ÙØ¶Ù„ Ø¥Ø²Ø§Ù„ØªÙ‡Ø§ Ø£Ùˆ Ø±Ø¨Ø·Ù‡Ø§ Ø¨Ø¨ÙŠØ§Ù†Ø§Øª presence.
           */}
           <span
             className="absolute bottom-0 end-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
@@ -646,7 +648,7 @@ export function UserMenu() {
           />
 
           <div
-            className="pointer-events-none absolute inset-0 rounded-full bg-primary/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            className="pointer-events-none absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100"
             aria-hidden="true"
           />
         </Button>
@@ -671,7 +673,7 @@ export function UserMenu() {
                   className="gap-1 px-1.5 py-0 text-[10px]"
                 >
                   <Crown className="h-2.5 w-2.5" aria-hidden="true" />
-                  مدير عام
+                  Ù…Ø¯ÙŠØ± Ø¹Ø§Ù…
                 </Badge>
               )}
 
@@ -681,7 +683,7 @@ export function UserMenu() {
                   className="gap-1 px-1.5 py-0 text-[10px]"
                 >
                   <Crown className="h-2.5 w-2.5" aria-hidden="true" />
-                  مسؤول
+                  Ù…Ø³Ø¤ÙˆÙ„
                 </Badge>
               )}
 
@@ -691,14 +693,14 @@ export function UserMenu() {
                   className="gap-1 px-1.5 py-0 text-[10px]"
                 >
                   <Shield className="h-2.5 w-2.5" aria-hidden="true" />
-                  مراقب
+                  Ù…Ø±Ø§Ù‚Ø¨
                 </Badge>
               )}
 
               {premium && (
                 <Badge className="gap-1 border-transparent bg-gradient-to-r from-amber-500 to-amber-600 px-1.5 py-0 text-[10px] text-white dark:from-amber-600 dark:to-amber-700">
                   <Crown className="h-2.5 w-2.5" aria-hidden="true" />
-                  مميز
+                  Ù…Ù…ÙŠØ²
                 </Badge>
               )}
             </div>
@@ -733,7 +735,7 @@ export function UserMenu() {
                   className="h-4 w-4 text-primary"
                   aria-hidden="true"
                 />
-                <span>لوحة الإدارة</span>
+                <span>Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©</span>
                 <ChevronRight
                   className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
                   aria-hidden="true"
@@ -746,11 +748,11 @@ export function UserMenu() {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          {/* ─── النشاط الأخير ─────────────────────────────────── */}
+          {/* â”€â”€â”€ Ø§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø£Ø®ÙŠØ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
               <Activity className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>النشاط الأخير</span>
+              <span>Ø§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø£Ø®ÙŠØ±</span>
               {actUnreadCount > 0 && (
                 <span className="ms-auto inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                   {actUnreadCount > 9 ? "9+" : actUnreadCount}
@@ -765,9 +767,9 @@ export function UserMenu() {
             >
               {/* Header */}
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/40">
-                <span className="text-xs font-semibold text-foreground">النشاط الأخير</span>
+                <span className="text-xs font-semibold text-foreground">Ø§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø£Ø®ÙŠØ±</span>
                 {actUnreadCount > 0 && (
-                  <span className="text-[10px] text-muted-foreground">({actUnreadCount} جديد)</span>
+                  <span className="text-[10px] text-muted-foreground">({actUnreadCount} Ø¬Ø¯ÙŠØ¯)</span>
                 )}
               </div>
 
@@ -776,7 +778,7 @@ export function UserMenu() {
                 {activities.length === 0 ? (
                   <div className="py-6 text-center">
                     <Activity className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" aria-hidden="true" />
-                    <p className="text-xs text-muted-foreground">لا يوجد نشاط حتى الآن</p>
+                    <p className="text-xs text-muted-foreground">Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù†Ø´Ø§Ø· Ø­ØªÙ‰ Ø§Ù„Ø¢Ù†</p>
                   </div>
                 ) : (
                   <div className="p-1.5 space-y-0.5">
@@ -802,7 +804,7 @@ export function UserMenu() {
                           </div>
                         </div>
                         {!activity.read && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0 mt-1" aria-label="غير مقروء" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0 mt-1" aria-label="ØºÙŠØ± Ù…Ù‚Ø±ÙˆØ¡" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -818,7 +820,7 @@ export function UserMenu() {
                     asChild
                     className="cursor-pointer justify-center text-xs py-2 touch-manipulation"
                   >
-                    <Link href="/activities" prefetch={false}>عرض جميع النشاط</Link>
+                    <Link href="/activities" prefetch={false}>Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù†Ø´Ø§Ø·</Link>
                   </DropdownMenuItem>
                 </>
               )}
@@ -830,6 +832,23 @@ export function UserMenu() {
 
         <DropdownMenuGroup>
           <DropdownMenuItem
+            asChild
+            className="cursor-pointer gap-2.5 py-2.5 touch-manipulation"
+          >
+            <Link href={MENU_LINKS.profile} prefetch={false}>
+              <UserCircle
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
+              <span>Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ ÙˆØ§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª</span>
+              <ChevronRight
+                className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
+                aria-hidden="true"
+              />
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
             className="cursor-pointer gap-2.5 py-2.5 touch-manipulation"
             onSelect={toggleTheme}
             disabled={!setThemeFn || isLoggingOut}
@@ -839,7 +858,7 @@ export function UserMenu() {
             ) : (
               <Moon className="h-4 w-4 text-primary" aria-hidden="true" />
             )}
-            <span>تبديل المظهر</span>
+            <span>ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø¸Ù‡Ø±</span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -851,7 +870,7 @@ export function UserMenu() {
                 className="h-4 w-4 text-primary"
                 aria-hidden="true"
               />
-              <span>المساعدة والدعم</span>
+              <span>Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯Ø© ÙˆØ§Ù„Ø¯Ø¹Ù…</span>
               <ChevronRight
                 className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
                 aria-hidden="true"
@@ -868,7 +887,7 @@ export function UserMenu() {
                 className="h-4 w-4 text-primary"
                 aria-hidden="true"
               />
-              <span>الاشتراك والفواتير</span>
+              <span>Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØ§Ù„ÙÙˆØ§ØªÙŠØ±</span>
               <ChevronRight
                 className="h-3.5 w-3.5 ms-auto opacity-50 rtl:-scale-x-100"
                 aria-hidden="true"
@@ -897,7 +916,7 @@ export function UserMenu() {
             <LogOut className="h-4 w-4" aria-hidden="true" />
           )}
           <span>
-            {isLoggingOut ? "جاري تسجيل الخروج..." : "تسجيل الخروج"}
+            {isLoggingOut ? "Ø¬Ø§Ø±ÙŠ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬..." : "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬"}
           </span>
         </DropdownMenuItem>
       </DropdownMenuContent>

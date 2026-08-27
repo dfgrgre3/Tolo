@@ -14,7 +14,7 @@ export const PerformanceDashboardSection = () => {
 
   if (loading) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 flex items-center justify-center min-h-[260px]`}>
+      <section className={`${rpgCommonStyles.card} px-6 py-12 flex items-center justify-center min-h-[260px]`}>
         <div className="rounded-full h-8 w-8 border-b-2 border-primary animate-spin" />
       </section>
     );
@@ -22,8 +22,8 @@ export const PerformanceDashboardSection = () => {
 
   if (error) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 text-center min-h-[260px] flex items-center justify-center`}>
-        <p className="text-red-400 font-bold">{error}</p>
+      <section className={`${rpgCommonStyles.card} px-6 py-12 text-center min-h-[260px] flex items-center justify-center`}>
+        <p className="text-red-500 font-bold">{error}</p>
       </section>
     );
   }
@@ -33,17 +33,15 @@ export const PerformanceDashboardSection = () => {
   const measuredCount = metrics.filter((metric) => metric.hasData).length;
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-10 py-8 !bg-black/20`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-indigo-500/5 pointer-events-none" />
-
+    <section className={`${rpgCommonStyles.card} px-6 md:px-10 py-8`}>
       <div className="relative z-10">
         <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-right">
           <div>
             <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-              <div className="rounded-xl bg-primary/20 p-2 ring-1 ring-primary/40 backdrop-blur-md shadow-lg shadow-primary/10">
-                <Activity className="h-6 w-6 text-primary" />
+              <div className="rounded-xl bg-primary/10 p-2">
+                <Activity className="h-6 w-6 text-primary-strong" />
               </div>
-              <h2 className={`text-2xl md:text-3xl font-bold ${rpgCommonStyles.neonText}`}>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                 مؤشرات الأداء
               </h2>
             </div>

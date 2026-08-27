@@ -59,7 +59,7 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
   formData.append("context", bucket);
   formData.append("category", "any");
 
-  const data = await apiClient.post<{ fileUrl: string; fileKey: string; fileName: string; fileSize: number; mimeType: string }>('/upload', formData);
+  const data = await apiClient.postForm<{ fileUrl: string; fileKey: string; fileName: string; fileSize: number; mimeType: string }>('/upload', formData);
 
   const metadata: FileMetadata = {
     name: file.name,

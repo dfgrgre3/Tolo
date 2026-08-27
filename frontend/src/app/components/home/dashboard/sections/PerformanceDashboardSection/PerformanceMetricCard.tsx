@@ -24,15 +24,15 @@ export const PerformanceMetricCard = ({ metric, index: _index }: PerformanceMetr
   const getStatusColor = (status: MetricStatus) => {
     switch (status) {
       case "excellent":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        return "bg-emerald-50 text-emerald-600 border-emerald-200";
       case "good":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+        return "bg-primary/10 text-primary-strong border-primary/20";
       case "warning":
-        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+        return "bg-amber-50 text-amber-700 border-amber-200";
       case "critical":
-        return "bg-red-500/10 text-red-400 border-red-500/20";
+        return "bg-red-50 text-red-600 border-red-200";
       default:
-        return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -53,11 +53,11 @@ export const PerformanceMetricCard = ({ metric, index: _index }: PerformanceMetr
   return (
     <div
     >
-      <Card className="border-white/5 bg-white/5 backdrop-blur-sm shadow-lg hover:shadow-primary/10 hover:border-primary/20 h-full overflow-hidden">
+      <Card className="border-border bg-card shadow-sm hover:border-primary/20 h-full overflow-hidden">
         <CardHeader className="p-4 pb-2 relative">
           <div className="flex items-start justify-between mb-1">
-            <CardTitle className="text-sm font-bold text-gray-300 flex items-center gap-2 truncate pr-2 w-full">
-              <span className="shrink-0 text-primary/80">{METRIC_ICONS[metric.name] ?? <Activity className="h-4 w-4" />}</span>
+            <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2 truncate pr-2 w-full">
+              <span className="shrink-0 text-primary-strong">{METRIC_ICONS[metric.name] ?? <Activity className="h-4 w-4" />}</span>
               <span className="truncate" title={metric.rpgName}>{metric.rpgName}</span>
             </CardTitle>
             <div className={`shrink-0 rounded-full p-1 border ${getStatusColor(metric.status)}`}>
@@ -67,18 +67,18 @@ export const PerformanceMetricCard = ({ metric, index: _index }: PerformanceMetr
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-3">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-white drop-shadow-sm tabular-nums tracking-tight">
+            <span className="text-2xl font-bold text-foreground tabular-nums tracking-tight">
               {metric.value}
             </span>
-            <span className="text-xs text-gray-500 font-mono self-end mb-1">{metric.unit}</span>
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-gray-500">
+            <span className="text-xs text-muted-foreground font-mono self-end mb-1">{metric.unit}</span>
+            <div className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground">
               <span>الهدف: {metric.target}</span>
               {metric.trend === 'up' ? (
-                <TrendingUp className="h-3 w-3 text-emerald-400" />
+                <TrendingUp className="h-3 w-3 text-emerald-600" />
               ) : metric.trend === 'down' ? (
-                <TrendingDown className="h-3 w-3 text-rose-400" />
+                <TrendingDown className="h-3 w-3 text-red-500" />
               ) : (
-                <Activity className="h-3 w-3 text-blue-400" />
+                <Activity className="h-3 w-3 text-primary-strong" />
               )}
             </div>
           </div>
@@ -86,13 +86,13 @@ export const PerformanceMetricCard = ({ metric, index: _index }: PerformanceMetr
           <div className="space-y-1.5">
             <Progress
               value={metric.target > 0 ? Math.min((metric.value / metric.target) * 100, 100) : 0}
-              className="h-1.5 bg-white/5"
+              className="h-1.5 bg-muted"
               indicatorClassName={
-                metric.status === 'excellent' 
-                  ? 'bg-emerald-500 shadow-[0_0_8px_currentColor]' 
-                  : metric.status === 'good' 
-                    ? 'bg-blue-500' 
-                    : 'bg-yellow-500'
+                metric.status === 'excellent'
+                  ? 'bg-emerald-500'
+                  : metric.status === 'good'
+                    ? 'bg-primary'
+                    : 'bg-amber-500'
               }
             />
           </div>

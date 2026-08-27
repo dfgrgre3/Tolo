@@ -137,10 +137,17 @@ export default async function RootLayout({
       </head>
       <body className={`${cairo.variable} ${geist.variable} font-sans`} suppressHydrationWarning>
         <div suppressHydrationWarning>
-          {/* Skip to main content - WCAG 2.1 AA */}
+          {/* Skip to main content - WCAG 2.1 AA
+              Kept permanently `fixed` (not just on :focus) so its geometry never
+              changes between the hidden and revealed states. Toggling `position`
+              itself (e.g. sr-only -> focus:fixed) shifts the element's bounding
+              box the instant it gains focus, which makes it an unstable target
+              for pointer-based automation (and for real keyboard users, a
+              flicker). Visibility is controlled purely via opacity/pointer-events
+              instead. */}
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[200] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-bold focus:shadow-lg focus:outline-none"
+            className="fixed top-4 start-4 z-[200] px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold shadow-lg outline-none opacity-0 pointer-events-none focus:opacity-100 focus:pointer-events-auto transition-opacity"
           >
             تخطى إلى المحتوى الرئيسي
           </a>

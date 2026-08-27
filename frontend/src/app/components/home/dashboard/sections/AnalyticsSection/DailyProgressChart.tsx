@@ -26,9 +26,9 @@ export const DailyProgressChart = React.memo(({
   width = 600,
   height = 180,
   padding,
-  primaryColor = "#8b5cf6",
-  title = "تطور المستوى القتالي",
-  footnote = "ملاحظة: هذا الرسم البياني يمثل تطور مهاراتك القتالية في آخر 7 مهام.",
+  primaryColor = "#f97316",
+  title = "تطور مستواك",
+  footnote = "ملاحظة: هذا الرسم البياني يمثل تطور أدائك في آخر 7 مهام.",
 }: DailyProgressChartProps) => {
 
   const gradientId = useId();
@@ -96,14 +96,14 @@ export const DailyProgressChart = React.memo(({
   // حالة عدم وجود بيانات
   if (!computedValues) {
     return (
-      <div className="w-full bg-black/20 rounded-xl p-4 border border-white/10 shadow-lg mb-6 backdrop-blur-md">
-        <h3 className="text-lg font-bold text-gray-200 mb-4 text-right border-b pb-2 border-white/10 flex items-center justify-end gap-2">
+      <div className="w-full bg-muted rounded-xl p-4 border border-border mb-6">
+        <h3 className="text-lg font-bold text-foreground mb-4 text-right border-b pb-2 border-border flex items-center justify-end gap-2">
           <span>{title}</span>
         </h3>
-        <div className="text-center py-8 text-gray-400" role="status">
+        <div className="text-center py-8 text-muted-foreground" role="status">
           لا تتوفر بيانات لعرض الرسم البياني.
         </div>
-        <p className="text-xs text-gray-400 mt-4 text-center">{footnote}</p>
+        <p className="text-xs text-muted-foreground mt-4 text-center">{footnote}</p>
       </div>
     );
   }
@@ -111,8 +111,8 @@ export const DailyProgressChart = React.memo(({
   const { cleanedData, maxX, scaleX, scaleY, points, lastX, lastY, lastProgress, gridLines } = computedValues;
 
   return (
-    <div className="w-full bg-black/20 rounded-xl p-4 border border-white/10 shadow-lg mb-6 backdrop-blur-md">
-      <h3 className="text-lg font-bold text-gray-200 mb-4 text-right border-b pb-2 border-white/10 flex items-center justify-end gap-2">
+    <div className="w-full bg-muted rounded-xl p-4 border border-border mb-6">
+      <h3 className="text-lg font-bold text-foreground mb-4 text-right border-b pb-2 border-border flex items-center justify-end gap-2">
         <span>{title}</span>
       </h3>
 
@@ -165,16 +165,18 @@ export const DailyProgressChart = React.memo(({
                 y1={line.y}
                 x2={maxX}
                 y2={line.y}
-                stroke="#ffffff"
-                strokeOpacity="0.1"
+                stroke="currentColor"
+                strokeOpacity="0.15"
                 strokeDasharray="4 4"
+                className="text-muted-foreground"
               />
               <text
                 x={effectivePadding - 10}
                 y={line.y + 4}
                 textAnchor="end"
                 fontSize="10"
-                fill="#d1d5db"
+                fill="currentColor"
+                className="text-muted-foreground"
               >
                 {line.value}%
               </text>
@@ -196,7 +198,6 @@ export const DailyProgressChart = React.memo(({
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className=" drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]"
           />
 
           {/* ✅ نقاط البيانات مع إمكانية وصول فردية */}
@@ -207,7 +208,7 @@ export const DailyProgressChart = React.memo(({
               cy={scaleY(d.progress)}
               r={4}
               fill={primaryColor}
-              stroke="#ffffff"
+              stroke="var(--card)"
               strokeWidth="2"
               className=""
               role="graphics-symbol"
@@ -226,7 +227,8 @@ export const DailyProgressChart = React.memo(({
               textAnchor="middle"
               fontSize="11"
               fontWeight="bold"
-              fill="#e5e7eb"
+              fill="currentColor"
+              className="text-foreground"
             >
               {d.day}
             </text>
@@ -240,14 +242,13 @@ export const DailyProgressChart = React.memo(({
             fontWeight="extrabold"
             fontSize="14"
             fill={primaryColor}
-            filter="drop-shadow(0 0 2px rgba(0,0,0,0.8))"
           >
             {`${lastProgress}%`}
           </text>
         </svg>
       </div>
 
-      <p className="text-xs text-gray-400 mt-4 text-center">
+      <p className="text-xs text-muted-foreground mt-4 text-center">
         {footnote}
       </p>
     </div>

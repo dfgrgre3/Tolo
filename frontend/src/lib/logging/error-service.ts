@@ -113,12 +113,26 @@ class ErrorService {
     }
   }
 
+  /**
+   * Next.js dev-only noise (HMR / Fast Refresh internals) that is not an app error.
+   */
+  private isDevToolingNoise(message: string, stack: string): boolean {
+    if (stack.includes('next-devtools')) return true;
+    if (process.env.NODE_ENV !== 'development') return false;
+    if (message.includes('Internal Next.js error')) return true;
+    return (
+      stack.includes('hot-reloader') ||
+      stack.includes('use-action-queue') ||
+      stack.includes('app-router-instance')
+    );
+  }
+
   private setupGlobalErrorHandlers(): void {
     if (typeof window === 'undefined') return;
 
     const handleError = (event: ErrorEvent) => {
       if (event.filename?.includes('next-devtools')) return;
-      if (event.error?.stack?.includes('next-devtools')) return;
+      if (this.isDevToolingNoise(event.message || '', event.error?.stack || '')) return;
 
       this.logError(event.error || new Error(event.message || 'Unknown error'), { 
         source: 'Global Error Handler',
@@ -128,7 +142,13 @@ class ErrorService {
 
     const handleRejection = (event: PromiseRejectionEvent) => {
       if (!event.reason) return;
-      if (String(event.reason.stack || '').includes('next-devtools')) return;
+      if (
+        this.isDevToolingNoise(
+          String(event.reason.message || event.reason),
+          String(event.reason.stack || '')
+        )
+      )
+        return;
 
       this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), { 
         source: 'Unhandled Promise Rejection',

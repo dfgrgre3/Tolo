@@ -327,7 +327,7 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
 
             {/* Pomodoro progress dots */}
             <div className="flex items-center gap-2 mb-6">
-              <span className="text-xs text-white/30 ml-2">التقدم اليوم:</span>
+              <span className="text-xs text-white/30 ms-2">التقدم اليوم:</span>
               {Array.from({ length: settings.goalTarget }).map((_, i) => {
                 const done = i < (pomodoroCount % settings.goalTarget);
                 return (
@@ -344,7 +344,7 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
                   />
                 );
               })}
-              <span className="text-xs text-white/30 mr-2">{pomodoroCount} جلسة</span>
+              <span className="text-xs text-white/30 me-2">{pomodoroCount} جلسة</span>
             </div>
 
             {/* Task Selector */}

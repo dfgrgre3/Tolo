@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useMounted } from "@/hooks/use-mounted";
 import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -39,13 +40,10 @@ export function SmartNavigationSuggestions() {
   const router = useRouter();
   const _pathname = usePathname();
   const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [suggestions, setSuggestions] = useState<NavigationSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    queueMicrotask(() => setMounted(true));
-  }, []);
 
   // Load navigation history
   useEffect(() => {
@@ -194,7 +192,7 @@ export function SmartNavigationSuggestions() {
 										<div className="flex items-center justify-center h-8 w-8 rounded-lg bg-yellow-500/10 text-yellow-600 shrink-0">
 											{suggestion.icon}
 										</div>
-										<div className="flex-1 min-w-0 text-right">
+										<div className="flex-1 min-w-0 text-start">
 											<div className="text-sm font-medium text-foreground">{suggestion.label}</div>
 											{suggestion.description &&
                   <div className="text-xs text-muted-foreground">{suggestion.description}</div>
@@ -220,7 +218,7 @@ export function SmartNavigationSuggestions() {
 										<div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
 											{suggestion.icon}
 										</div>
-										<div className="flex-1 min-w-0 text-right">
+										<div className="flex-1 min-w-0 text-start">
 											<div className="text-sm font-medium text-foreground">{suggestion.label}</div>
 										</div>
 										<ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -243,7 +241,7 @@ export function SmartNavigationSuggestions() {
 										<div className="flex items-center justify-center h-8 w-8 rounded-lg bg-green-500/10 text-green-600 shrink-0">
 											{suggestion.icon}
 										</div>
-										<div className="flex-1 min-w-0 text-right">
+										<div className="flex-1 min-w-0 text-start">
 											<div className="text-sm font-medium text-foreground">{suggestion.label}</div>
 										</div>
 										<ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />

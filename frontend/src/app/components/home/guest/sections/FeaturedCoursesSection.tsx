@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { GRIDS, CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface FeaturedCoursesSectionProps {
@@ -28,7 +28,7 @@ export function FeaturedCoursesSection({ courses, loading }: FeaturedCoursesSect
   }
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-950 dark:to-slate-900 dark:border-slate-800">
+    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-950 dark:to-slate-900 dark:border-slate-800">
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>
@@ -48,31 +48,34 @@ export function FeaturedCoursesSection({ courses, loading }: FeaturedCoursesSect
         </div>
 
         {loading ? (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <CourseCardSkeleton key={i} />
+              <div key={i} className={`${RAIL.item} w-72`}>
+                <CourseCardSkeleton />
+              </div>
             ))}
           </div>
         ) : (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {courses.map((c) => {
               const norm = normalizeCourse(c);
               return (
-                <CourseCard
-                  key={norm.id}
-                  id={norm.id}
-                  title={norm.title}
-                  slug={norm.slug}
-                  thumbnail={norm.thumbnail}
-                  categoryName={norm.categoryName}
-                  instructorName={norm.instructorName}
-                  ratingAvg={norm.ratingAvg}
-                  reviewsCount={norm.reviewsCount}
-                  studentsCount={norm.studentsCount}
-                  price={norm.price}
-                  discountPrice={norm.discountPrice}
-                  level={norm.level}
-                />
+                <div key={norm.id} className={`${RAIL.item} w-72`}>
+                  <CourseCard
+                    id={norm.id}
+                    title={norm.title}
+                    slug={norm.slug}
+                    thumbnail={norm.thumbnail}
+                    categoryName={norm.categoryName}
+                    instructorName={norm.instructorName}
+                    ratingAvg={norm.ratingAvg}
+                    reviewsCount={norm.reviewsCount}
+                    studentsCount={norm.studentsCount}
+                    price={norm.price}
+                    discountPrice={norm.discountPrice}
+                    level={norm.level}
+                  />
+                </div>
               );
             })}
           </div>

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMounted } from "@/hooks/use-mounted";
 import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -28,12 +29,10 @@ function ProgressIndicator() {
   const { isAuthenticated } = useAuth();
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
   const [isVisible, setIsVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const fetchScheduled = useRef(false);
 
-  useEffect(() => {
-    queueMicrotask(() => setMounted(true));
-  }, []);
+
 
   const fetchProgress = useCallback(async () => {
     if (!mounted || !isAuthenticated) return;
@@ -137,7 +136,7 @@ function ProgressIndicator() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-foreground truncate">{item.label}</span>
-                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                <span className="text-xs text-muted-foreground ms-2 shrink-0">
                   {Math.round(percentage)}%
                 </span>
               </div>

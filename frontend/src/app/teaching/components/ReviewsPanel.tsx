@@ -6,14 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Review, ReviewReply } from "../hooks/use-teaching-data";
 
 interface ReviewsPanelProps {
   reviews: Review[];
+  isLoading?: boolean;
   onReplyToReview: (id: string, text: string) => void;
 }
 
-export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelProps) {
+export default function ReviewsPanel({ reviews, isLoading = false, onReplyToReview }: ReviewsPanelProps) {
   const [filterRating, setFilterRating] = useState<number | "all">("all");
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [expandedReplyId, setExpandedReplyId] = useState<string | null>(null);
@@ -29,6 +31,32 @@ export default function ReviewsPanel({ reviews, onReplyToReview }: ReviewsPanelP
     setReplyInputs((prev) => ({ ...prev, [reviewId]: "" }));
     setExpandedReplyId(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 text-right" dir="rtl">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-44 rounded-lg" />
+          <Skeleton className="h-3 w-72 rounded-lg" />
+        </div>
+        {[0, 1, 2].map((i) => (
+          <Card key={i} className="border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-2.5 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-right" dir="rtl">

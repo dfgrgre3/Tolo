@@ -52,7 +52,7 @@ export const navTextStyles = cva("", {
 export const navBadgeStyles = cva("rounded-full font-bold whitespace-nowrap", {
   variants: {
     variant: {
-      desktop: "absolute -top-1 -right-1 bg-amber-500 text-black text-[9px] font-black italic flex items-center justify-center border border-black",
+      desktop: "absolute -top-1 -end-1 bg-amber-500 text-black text-[9px] font-black italic flex items-center justify-center border border-black",
       mobile: "px-2 py-0.5 text-[10px] bg-gradient-to-r from-primary to-primary/80 text-white shadow-sm shadow-primary/20",
       search: "px-1.5 py-0.5 text-[10px] rounded-full bg-primary/15 text-primary font-bold",
     },

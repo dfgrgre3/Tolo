@@ -311,6 +311,25 @@ export default function SubscriptionPage() {
           </Link>
         </header>
 
+        {/* Appointments shortcut — lesson scheduling lives on the teachers
+            directory page, not here; surface a direct link so it's
+            discoverable from the account/subscriptions area. */}
+        <Link
+          href="/education/teachers"
+          className="mb-12 flex items-center justify-between gap-4 rounded-3xl border border-white/5 bg-[#111114] p-6 transition-all hover:border-blue-500/30 hover:bg-[#15151a]"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500">
+              <Calendar size={22} />
+            </div>
+            <div>
+              <h4 className="font-bold">المواعيد</h4>
+              <p className="text-xs text-gray-400">إدارة حصصك وموعيدك مع المعلمين</p>
+            </div>
+          </div>
+          <ArrowUpRight size={18} className="text-gray-500" />
+        </Link>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <m.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
@@ -491,7 +510,7 @@ export default function SubscriptionPage() {
             </h2>
             <div className="bg-[#111114] border border-white/5 rounded-3xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-right">
+                <table className="w-full text-start">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/2">
                       <th className="px-6 py-4 text-sm font-bold text-gray-400">الخطة</th>

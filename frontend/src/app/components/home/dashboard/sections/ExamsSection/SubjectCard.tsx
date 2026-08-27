@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { rpgCommonStyles } from "../../shared/styles";
+import { DASH_CARD } from "../../shared/design-system";
 
 interface SubjectCardProps {
   emoji: string;
@@ -9,16 +9,22 @@ interface SubjectCardProps {
   onClick: () => void;
 }
 
+/** Compact Noon-style subject tile for the exams grid. */
 export const SubjectCard = memo(({ emoji, name, onClick }: SubjectCardProps) => (
   <button
     onClick={onClick}
-    className={`${rpgCommonStyles.card} group w-full flex flex-col items-center justify-center gap-5 hover:border-red-500/40 hover:bg-black/40 min-h-[180px] relative overflow-hidden backdrop-blur-2xl p-6`}
-    aria-label={`تحدي مادة ${name}`}
+    className={`${DASH_CARD.inner} group flex w-full flex-col items-center justify-center gap-2.5 p-5 text-center transition-colors hover:border-primary`}
+    aria-label={`امتحانات مادة ${name}`}
   >
-    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100" />
-    <div className="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] filter group-hover:brightness-125 relative z-10" role="img" aria-hidden="true">{emoji}</div>
-    <div className="text-xl font-black text-gray-100 group-hover:text-red-400 tracking-tight relative z-10">{name}</div>
-    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/0 group-hover:text-red-500/100 mt-1 relative z-10">بداية المعركة</div>
+    <div className="text-4xl transition-transform group-hover:scale-110" role="img" aria-hidden="true">
+      {emoji}
+    </div>
+    <div className="text-sm font-black text-foreground group-hover:text-primary-strong transition-colors line-clamp-1">
+      {name}
+    </div>
+    <span className="text-[10px] font-black text-primary-strong transition-colors group-hover:text-primary-strong">
+      ابدأ الامتحان
+    </span>
   </button>
 ));
 

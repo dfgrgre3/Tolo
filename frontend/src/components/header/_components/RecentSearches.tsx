@@ -55,7 +55,7 @@ export const RecentSearches = ({
 							<button
 								type="button"
 								onClick={() => onSearchClick(search)}
-								className="flex-1 min-w-0 text-right flex items-center gap-3 text-sm text-foreground/80 hover:text-foreground cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+								className="flex-1 min-w-0 text-start flex items-center gap-3 text-sm text-foreground/80 hover:text-foreground cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 							>
 								<Search
 									className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60 group-hover/item:text-primary"
@@ -118,7 +118,7 @@ export const RecentSearches = ({
 						<button
 							type="button"
 							onClick={() => onSearchClick(search)}
-							className="flex-1 min-w-0 text-right flex items-center gap-2.5 text-sm text-foreground/80 hover:text-foreground cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+							className="flex-1 min-w-0 text-start flex items-center gap-2.5 text-sm text-foreground/80 hover:text-foreground cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 						>
 							<Search
 								className="h-4 w-4 flex-shrink-0 text-muted-foreground/60"

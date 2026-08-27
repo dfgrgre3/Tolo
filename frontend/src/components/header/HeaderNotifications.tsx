@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import type { User } from "@/types/user";
+import type { AuthUser } from "@/contexts/auth-context";
 import type { Notification } from "@/types/notification";
 import { useNotificationsContext } from "@/providers/notifications-provider";
 import { NotificationItem } from "./NotificationItem";
@@ -19,7 +19,7 @@ import { NotificationItem } from "./NotificationItem";
 // ─── Types ───────────────────────────────────────────────────────
 
 interface HeaderNotificationsProps {
-	user: User | null;
+	user: AuthUser | null;
 	mounted: boolean;
 }
 
@@ -141,7 +141,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 				<Bell className="h-4 w-4" aria-hidden="true" />
 				{hasUnread && (
 					<span
-						className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold ring-2 ring-background"
+						className="absolute top-1 end-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold ring-2 ring-background"
 						aria-hidden="true"
 					>
 						{unreadCount > 9 ? "9+" : unreadCount}
@@ -155,7 +155,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 					ref={panelRef}
 					role="region"
 					aria-label="لوحة الإشعارات"
-					className="absolute left-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-background border border-border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
+					className="absolute end-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-background border border-border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
 				>
 					{/* Header */}
 					<div className="p-4 border-b border-border flex items-center justify-between gap-2">
@@ -195,7 +195,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem onClick={handleMarkAllRead} disabled={!hasUnread}>
-										<Check className="h-4 w-4 mr-2" aria-hidden="true" />
+										<Check className="h-4 w-4 me-2" aria-hidden="true" />
 										تحديد الكل كمقروء
 									</DropdownMenuItem>
 								</DropdownMenuContent>

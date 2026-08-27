@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ChevronLeft, Zap, Target, BookMarked } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, GRIDS } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
 
 interface ExamTrack {
   id: string;
@@ -78,7 +78,7 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
   return (
     <Link href={track.href}>
       <div className={`
-        h-full p-6 bg-white dark:bg-slate-800
+        h-full p-4 bg-white dark:bg-slate-800
         border border-[#E2E8F0] dark:border-slate-700
         rounded-[12px]
         hover:border-[#0F766E] dark:hover:border-orange-500
@@ -87,10 +87,10 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
       `}>
         {/* Icon */}
         <div className={`
-          h-12 w-12 rounded-xl
+          h-11 w-11 rounded-xl
           bg-emerald-50 dark:bg-orange-500/20
           text-[#0F766E] dark:text-orange-500
-          flex items-center justify-center mb-4
+          flex items-center justify-center mb-3
           group-hover:bg-[#0F766E] dark:group-hover:bg-orange-600
           group-hover:text-white transition-colors duration-150
         `}>
@@ -98,17 +98,17 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-bold text-[#1E293B] dark:text-white mb-2 group-hover:text-[#0F766E] dark:group-hover:text-orange-500 transition-colors">
+        <h3 className="text-sm font-bold text-[#1E293B] dark:text-white mb-1.5 group-hover:text-[#0F766E] dark:group-hover:text-orange-500 transition-colors">
           {track.title}
         </h3>
 
         {/* Description */}
-        <p className="text-xs text-[#64748B] dark:text-slate-400 mb-4 line-clamp-2">
+        <p className="text-xs text-[#64748B] dark:text-slate-400 mb-3 line-clamp-2">
           {track.description}
         </p>
 
         {/* Stats Row */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#E2E8F0] dark:border-slate-700">
+        <div className="flex items-center justify-between pt-3 border-t border-[#E2E8F0] dark:border-slate-700">
           <span className="text-xs font-semibold text-[#0F766E] dark:text-orange-500">
             {track.courses} كورس
           </span>
@@ -129,7 +129,7 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
  */
 export function ExamPreparationSection() {
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
+    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
@@ -150,7 +150,7 @@ export function ExamPreparationSection() {
         </div>
 
         {/* Exam Tracks Grid */}
-        <div className={GRIDS.courses}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {EXAM_TRACKS.map((track) => (
             <ExamTrackCard key={track.id} track={track} />
           ))}

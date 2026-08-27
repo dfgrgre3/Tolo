@@ -50,13 +50,13 @@ export function CertificatePreviewModal({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 left-4 p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
+              className="absolute top-4 start-4 p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
 
             {/* Header */}
-            <div className="mb-6 text-right">
+            <div className="mb-6 text-start">
               <span className="flex items-center gap-2 text-primary font-bold text-sm">
                 <Award className="h-5 w-5" />
                 <span>شهادة إتمام تفاعلية</span>
@@ -116,7 +116,7 @@ export function CertificatePreviewModal({
 
                 {/* Footer signatures & Badges */}
                 <div className="grid grid-cols-3 gap-4 items-end pt-6 border-t border-gray-200/50 dark:border-white/5 mt-8">
-                  <div className="text-right">
+                  <div className="text-start">
                     <p className="text-[10px] text-gray-400">تاريخ الإصدار</p>
                     <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{currentDate}</p>
                   </div>

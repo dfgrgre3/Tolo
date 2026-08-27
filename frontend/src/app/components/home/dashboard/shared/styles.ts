@@ -1,19 +1,20 @@
 import { type ClassValue } from "clsx";
 
 // ============================================================================
-// Common RPG-themed styles used across dashboard sections.
+// Shared style tokens for the dashboard UI — Noon-style: flat, light,
+// bold-color cards instead of dark glass/neon.
 // ============================================================================
 
-/** Reusable CSS class strings for the RPG-themed dashboard UI. */
+/** Reusable CSS class strings for the dashboard UI. */
 export const rpgCommonStyles = {
-  /** Primary card style with glass effect. */
-  card: "rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-xl",
-  /** Glass panel with a more prominent background. */
-  glassPanel: "relative rounded-3xl border border-white/10 bg-black/20 backdrop-blur-md p-6 md:p-10 shadow-2xl",
-  /** Neon text effect (primary color). */
-  neonText: "text-transparent bg-clip-text bg-gradient-to-l from-primary via-purple-400 to-primary",
-  /** Gold text effect. */
-  goldText: "text-transparent bg-clip-text bg-gradient-to-l from-yellow-300 via-amber-400 to-yellow-500",
+  /** Primary card style: plain white card, subtle border and shadow. */
+  card: "rounded-2xl border border-border bg-card shadow-sm",
+  /** Prominent panel, e.g. the hero header — solid brand-color surface, no blur/glass. */
+  glassPanel: "relative rounded-3xl bg-primary text-primary-foreground p-6 md:p-10 shadow-lg",
+  /** Bold brand-color text (was "neon"). Contrast-safe darker orange. */
+  neonText: "text-primary-strong",
+  /** Bold amber/gold accent text, used for streaks and rewards. */
+  goldText: "text-amber-700 dark:text-amber-400",
 } as const;
 
 /**

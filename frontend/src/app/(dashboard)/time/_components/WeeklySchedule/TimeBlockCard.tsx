@@ -51,7 +51,7 @@ export function TimeBlockCard({
       {/* Decorative side accent based on priority */}
       <div 
         className={cn(
-          "absolute inset-y-0 left-0 w-1 rounded-l-xl",
+          "absolute inset-y-0 start-0 w-1 rounded-s-xl",
           block.priority === 'URGENT' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' :
           block.priority === 'HIGH' ? 'bg-orange-500' :
           block.priority === 'MEDIUM' ? 'bg-blue-500' : 'bg-slate-500'

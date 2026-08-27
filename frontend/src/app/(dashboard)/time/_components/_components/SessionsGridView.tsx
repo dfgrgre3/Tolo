@@ -32,7 +32,7 @@ export function SessionsGridView({ sessions }: SessionsGridViewProps) {
               {session.subject && (
                 <div className="flex items-center justify-center">
                   <Badge variant="outline">
-                    <BookOpen className="h-3 w-3 mr-1" />
+                    <BookOpen className="h-3 w-3 me-1" />
                     {typeof session.subject === 'string' ? session.subject : session.subject.name}
                   </Badge>
                 </div>

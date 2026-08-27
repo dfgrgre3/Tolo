@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { AuthUser } from "@/contexts/auth-context";
 
 const buildLoginUrl = (redirect?: string) => {
   return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
@@ -12,25 +13,28 @@ const HEADER_PREFERENCES = {
   compactMode: false,
   showProgress: true,
   showSuggestions: true,
-  showActivity: true,
 } as const;
 
 export const useLoginUrl = () => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  
-  return useMemo(() => {
-    const query = searchParams.toString();
-    const fullPath = `${pathname || '/'}${query ? `?${query}` : ''}`;
-    return buildLoginUrl(fullPath);
-  }, [pathname, searchParams]);
+  const [loginUrl, setLoginUrl] = useState("/login");
+
+  useEffect(() => {
+    const query =
+      typeof window !== "undefined"
+        ? window.location.search.replace(/^\?/, "")
+        : "";
+    const fullPath = `${pathname || "/"}${query ? `?${query}` : ""}`;
+    queueMicrotask(() => setLoginUrl(buildLoginUrl(fullPath)));
+  }, [pathname]);
+
+  return loginUrl;
 };
 
-export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: any, isHidden = false) => {
+export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: AuthUser | null, isHidden = false) => {
   return useMemo(() => {
     return cn(
       "sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
-      "transition-transform duration-300 ease-in-out will-change-transform",
       isHidden ? "-translate-y-full" : "translate-y-0",
       isScrolled ? "shadow-lg shadow-black/5 border-primary/25 bg-background/90" : "border-border/40",
       mounted && user && !isScrolled && "border-primary/15"

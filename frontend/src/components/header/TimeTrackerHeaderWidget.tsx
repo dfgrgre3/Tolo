@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useMounted } from '@/hooks/use-mounted';
 import {
   Timer,
   Play,
@@ -20,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTimeTrackerStore, type PomodoroState } from '@/hooks/use-time-tracker-store';
 
-/* ──────────────────────────────────────────── helpers */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ helpers */
 const formatTime = (seconds: number) => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -29,21 +30,21 @@ const formatTime = (seconds: number) => {
 
 const stateConfig: Record<PomodoroState, { label: string; color: string; ring: string; bg: string; icon: React.ReactNode }> = {
   work: {
-    label: 'وقت الدراسة',
+    label: 'ÙˆÙ‚Øª Ø§Ù„Ø¯Ø±Ø§Ø³Ø©',
     color: 'text-rose-400',
     ring: 'stroke-rose-500',
     bg: 'from-rose-500/20 to-rose-600/5',
     icon: <Target className="h-3.5 w-3.5" />,
   },
   shortBreak: {
-    label: 'استراحة قصيرة',
+    label: 'Ø§Ø³ØªØ±Ø§Ø­Ø© Ù‚ØµÙŠØ±Ø©',
     color: 'text-teal-400',
     ring: 'stroke-teal-500',
     bg: 'from-teal-500/20 to-teal-600/5',
     icon: <Coffee className="h-3.5 w-3.5" />,
   },
   longBreak: {
-    label: 'استراحة طويلة',
+    label: 'Ø§Ø³ØªØ±Ø§Ø­Ø© Ø·ÙˆÙŠÙ„Ø©',
     color: 'text-violet-400',
     ring: 'stroke-violet-500',
     bg: 'from-violet-500/20 to-violet-600/5',
@@ -51,7 +52,7 @@ const stateConfig: Record<PomodoroState, { label: string; color: string; ring: s
   },
 };
 
-/* ──────────────────────────────────────── mini circular progress */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ mini circular progress */
 function MiniCircle({ progress, state }: { progress: number; state: PomodoroState }) {
   const r = 14;
   const circ = 2 * Math.PI * r;
@@ -74,7 +75,7 @@ function MiniCircle({ progress, state }: { progress: number; state: PomodoroStat
   );
 }
 
-/* ──────────────────────────────── header pulse dot (collapsed) */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ header pulse dot (collapsed) */
 function PulseDot({ state, isRunning: _isRunning }: { state: PomodoroState; isRunning: boolean }) {
   const colors: Record<PomodoroState, string> = {
     work: 'bg-rose-500',
@@ -88,15 +89,11 @@ function PulseDot({ state, isRunning: _isRunning }: { state: PomodoroState; isRu
   );
 }
 
-/* ──────────────────────────────── main widget */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ main widget */
 export function TimeTrackerHeaderWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    queueMicrotask(() => setMounted(true));
-  }, []);
+  const mounted = useMounted();
 
   // Close panel on outside click
   useEffect(() => {
@@ -143,7 +140,7 @@ export function TimeTrackerHeaderWidget() {
 
   return (
     <div className="relative" ref={panelRef}>
-      {/* ── Trigger button ── */}
+      {/* â”€â”€ Trigger button â”€â”€ */}
       <button
         onClick={() => setIsOpen((v) => !v)}
         className={cn(
@@ -152,7 +149,7 @@ export function TimeTrackerHeaderWidget() {
           'backdrop-blur-sm',
           isRunning && 'border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
         )}
-        aria-label="متتبع الوقت"
+        aria-label="Ù…ØªØªØ¨Ø¹ Ø§Ù„ÙˆÙ‚Øª"
       >
         <PulseDot state={currentPomodoroState} isRunning={isRunning} />
         <MiniCircle progress={progress} state={currentPomodoroState} />
@@ -162,14 +159,14 @@ export function TimeTrackerHeaderWidget() {
           </span>
           <span className="text-[10px] text-muted-foreground hidden sm:block">{cfg.label}</span>
         </div>
-        <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground', isOpen && 'rotate-180')} />
       </button>
 
-      {/* ── Dropdown Panel ── */}
+      {/* â”€â”€ Dropdown Panel â”€â”€ */}
       {isOpen && (
         <div
           className={cn(
-            'absolute left-0 top-full mt-2 z-[200]',
+            'absolute start-0 top-full mt-2 z-[200]',
             'w-72 rounded-2xl overflow-hidden',
             'bg-[#0c1220]/95 backdrop-blur-2xl',
             'border border-white/10',
@@ -189,7 +186,7 @@ export function TimeTrackerHeaderWidget() {
               <span className="text-xs text-white/50">{pomodoroCount} / {settings.goalTarget}</span>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-white/40 hover:text-white/80 transition-colors"
+                className="text-white/40 hover:text-white/80"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -242,7 +239,7 @@ export function TimeTrackerHeaderWidget() {
                 variant="ghost"
                 size="icon"
                 onClick={resetTimer}
-                className="h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                className="h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -250,7 +247,7 @@ export function TimeTrackerHeaderWidget() {
               <Button
                 onClick={toggleTimer}
                 className={cn(
-                  'h-12 w-12 rounded-full font-bold transition-colors shadow-lg',
+                  'h-12 w-12 rounded-full font-bold shadow-lg',
                   isRunning
                     ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 shadow-red-500/20'
                     : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 shadow-emerald-500/20'
@@ -258,7 +255,7 @@ export function TimeTrackerHeaderWidget() {
               >
                 {isRunning
                   ? <Pause className="h-5 w-5 fill-current" />
-                  : <Play className="h-5 w-5 fill-current mr-[-2px]" />
+                  : <Play className="h-5 w-5 fill-current me-[-2px]" />
                 }
               </Button>
 
@@ -266,7 +263,7 @@ export function TimeTrackerHeaderWidget() {
                 variant="ghost"
                 size="icon"
                 onClick={skipPhase}
-                className="h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                className="h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10"
               >
                 <SkipForward className="h-4 w-4" />
               </Button>
@@ -291,15 +288,15 @@ export function TimeTrackerHeaderWidget() {
           {/* Footer link */}
           <div className="border-t border-white/8 px-4 py-2.5 flex items-center justify-between">
             <span className="text-[11px] text-white/30">
-              {pomodoroCount} جلسة مكتملة
+              {pomodoroCount} Ø¬Ù„Ø³Ø© Ù…ÙƒØªÙ…Ù„Ø©
             </span>
             <Link
               href="/time"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80"
             >
               <Timer className="h-3 w-3" />
-              <span>فتح الصفحة الكاملة</span>
+              <span>ÙØªØ­ Ø§Ù„ØµÙØ­Ø© Ø§Ù„ÙƒØ§Ù…Ù„Ø©</span>
             </Link>
           </div>
         </div>

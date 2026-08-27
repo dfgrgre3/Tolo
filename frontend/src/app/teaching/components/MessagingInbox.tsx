@@ -5,20 +5,28 @@ import { Search, Send, User, Paperclip } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Conversation, Message } from "../hooks/use-teaching-data";
+import { InboxSkeleton } from "./Skeletons";
 
 interface MessagingInboxProps {
   conversations: Conversation[];
+  isLoading?: boolean;
   onSendMessage: (convId: string, text: string) => void;
 }
 
-export default function MessagingInbox({ conversations, onSendMessage }: MessagingInboxProps) {
+export default function MessagingInbox({ conversations, isLoading = false, onSendMessage }: MessagingInboxProps) {
   const [activeConvId, setActiveConvId] = useState<string>(conversations[0]?.id || "");
   const [search, setSearch] = useState("");
   const [filterUnread, setFilterUnread] = useState(false);
   const [messageText, setMessageText] = useState("");
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const activeConv = conversations.find((c) => c.id === activeConvId);
+
+  // Conversations load asynchronously — fall back to the first conversation
+  // while the stored selection is not (yet) part of the list.
+  const resolvedConvId = conversations.some((c) => c.id === activeConvId)
+    ? activeConvId
+    : conversations[0]?.id ?? "";
+  const activeConv = conversations.find((c) => c.id === resolvedConvId);
 
   const quickReplies = [
     "أهلاً بك! يسعدني مساعدتك والرد على استفساراتك.",
@@ -35,14 +43,22 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
   });
 
   const handleSend = () => {
-    if (!messageText.trim() || !activeConvId) return;
-    onSendMessage(activeConvId, messageText);
+    if (!messageText.trim() || !resolvedConvId) return;
+    onSendMessage(resolvedConvId, messageText.trim());
     setMessageText("");
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConv?.messages.length]);
+
+  if (isLoading) {
+    return (
+      <div className="text-right" dir="rtl">
+        <InboxSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-card h-[620px] grid grid-cols-1 md:grid-cols-3 text-right" dir="rtl">
@@ -85,7 +101,7 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
             <div className="p-6 text-center text-xs text-slate-400">لا توجد محادثات مطابقة</div>
           ) : (
             filteredConversations.map((conv) => {
-              const isSelected = conv.id === activeConvId;
+              const isSelected = conv.id === resolvedConvId;
               return (
                 <button
                   key={conv.id}
@@ -180,7 +196,7 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
 
             {/* Chat Input */}
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3 bg-slate-50/10">
-              <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl text-slate-400">
+              <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl text-slate-400" title="إرفاق ملف (قريباً)">
                 <Paperclip className="w-4.5 h-4.5" />
               </Button>
               <input
@@ -188,10 +204,15 @@ export default function MessagingInbox({ conversations, onSendMessage }: Messagi
                 placeholder="اكتب رسالتك للطالب هنا..."
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                 className="flex-1 text-right px-4 py-2 bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-700 dark:text-slate-200"
               />
-              <Button onClick={handleSend} size="icon" className="w-9 h-9 rounded-xl bg-primary text-white hover:bg-primary/95">
+              <Button
+                onClick={handleSend}
+                disabled={!messageText.trim()}
+                size="icon"
+                className="w-9 h-9 rounded-xl bg-primary text-white hover:bg-primary/95"
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>

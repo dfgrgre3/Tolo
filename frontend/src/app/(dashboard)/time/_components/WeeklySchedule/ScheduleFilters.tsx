@@ -25,12 +25,12 @@ export function ScheduleFilters({
   return (
     <div className="flex flex-wrap items-center gap-6 p-4 bg-[#0F172A]/40 backdrop-blur-xl border border-white/5 rounded-3xl">
       <div className="flex-1 min-w-[200px] relative group">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
         <Input
           placeholder="ابحث في الخطة..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pr-10 bg-white/5 border-white/10 rounded-2xl focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all font-bold"
+          className="pe-10 bg-white/5 border-white/10 rounded-2xl focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all font-bold"
         />
       </div>
       

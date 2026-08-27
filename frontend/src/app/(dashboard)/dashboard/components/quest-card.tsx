@@ -35,7 +35,7 @@ export function QuestCard() {
                     transition={{ duration: 2, repeat: Infinity }}
                     className="absolute inset-0 bg-orange-500/10" 
                   />
-                  <Play className="w-10 h-10 text-orange-500 fill-orange-500 ml-1 relative z-10 group-hover:scale-125 transition-transform" />
+                  <Play className="w-10 h-10 text-orange-500 fill-orange-500 ms-1 relative z-10 group-hover:scale-125 transition-transform" />
                   <div className="absolute inset-0 rounded-3xl border-2 border-orange-500 animate-pulse pointer-events-none" />
               </div>
               <div className="space-y-2">

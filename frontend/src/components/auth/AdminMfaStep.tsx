@@ -40,8 +40,8 @@ export default function AdminMfaStep({
       {errorStatus && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="mr-2 font-semibold">خطأ</AlertTitle>
-          <AlertDescription dir="rtl" className="mr-2">{errorStatus}</AlertDescription>
+          <AlertTitle className="me-2 font-semibold">خطأ</AlertTitle>
+          <AlertDescription dir="rtl" className="me-2">{errorStatus}</AlertDescription>
         </Alert>
       )}
 

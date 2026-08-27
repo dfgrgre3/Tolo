@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 
 export interface StatCardProps {
     icon: ReactElement<{ className?: string }>;
@@ -10,17 +10,6 @@ export interface StatCardProps {
         value: number;
         isPositive: boolean;
     };
-}
-
-// --- Feature Section Types ---
-export interface FeatureItem {
-    icon: ReactNode;
-    title: string;
-    description: string;
-    delay?: number;
-    badge?: string;
-    link?: string;
-    color?: string; // Specific color for the icon override
 }
 
 // --- Exam/Subject Types ---

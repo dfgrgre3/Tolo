@@ -75,7 +75,7 @@ export default function EssayGrader() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">موضوع التعبير</label>
+              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">موضوع التعبير</label>
               <Input 
                 placeholder="عنوان الموضوع..."
                 value={topic}
@@ -84,7 +84,7 @@ export default function EssayGrader() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">اللغة</label>
+              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">اللغة</label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white">
                   <SelectValue placeholder="اختر اللغة" />
@@ -112,12 +112,12 @@ export default function EssayGrader() {
               className="w-full md:w-auto px-12 h-14 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-xl shadow-orange-500/20 transition-all">
               {isLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  <Loader2 className="w-5 h-5 me-3 animate-spin" />
                   جاري التقييم... (قد يستغرق بضع ثوانٍ)
                 </>
               ) : (
                 <>
-                  <GraduationCap className="w-5 h-5 mr-3" />
+                  <GraduationCap className="w-5 h-5 me-3" />
                   تقييم الموضوع الآن
                 </>
               )}

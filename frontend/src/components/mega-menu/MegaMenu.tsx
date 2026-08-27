@@ -41,39 +41,6 @@ const CLOSE_DELAY_MS = 150;
 // Focus Trap Hook
 // ==========================================
 
-function useFocusTrap(containerRef: React.RefObject<HTMLDivElement | null>, isActive: boolean) {
-  useEffect(() => {
-    if (!isActive || !containerRef.current) return;
-
-    const container = containerRef.current;
-    const focusableSelector =
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const focusableElements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector));
-      if (focusableElements.length === 0) return;
-
-      const firstEl = focusableElements[0];
-      const lastEl = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === firstEl) {
-        e.preventDefault();
-        lastEl?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastEl) {
-        e.preventDefault();
-        firstEl?.focus();
-      }
-    };
-
-    const firstFocusable = container.querySelector<HTMLElement>(focusableSelector);
-    firstFocusable?.focus();
-
-    container.addEventListener("keydown", handleKeyDown);
-    return () => container.removeEventListener("keydown", handleKeyDown);
-  }, [isActive, containerRef]);
-}
-
 // ==========================================
 // Tracking Utility
 // ==========================================
@@ -175,8 +142,6 @@ export function MegaMenu({
   }, [isOpen, updateLayout]);
  // Guard against undefined/NaN zIndex to prevent invalid CSS values
   const safeZIndex = Number.isFinite(zIndex) ? (zIndex as number) : DEFAULT_Z_INDEX;
-
-  useFocusTrap(contentRef, isOpen);
 
   const clearTimeouts = useCallback(() => {
     if (timeoutRef.current) {
@@ -304,8 +269,7 @@ export function MegaMenu({
           id={menuId}
           ref={contentRef}
           data-mega-menu-content
-          role="dialog"
-          aria-modal="true"
+          role="region"
           aria-label={label}
           className="fixed left-0 right-0"
           style={{ zIndex: safeZIndex, top: anchorTop, maxHeight: menuMaxHeight ? `${menuMaxHeight}px` : undefined, overflowY: "auto" }}
@@ -334,8 +298,6 @@ export function MegaMenu({
         onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
         onBlur={handleBlur}
-
-        aria-haspopup="dialog"
 
       >
         <HeaderMenuTrigger label={label} isOpen={isOpen} onClick={handleToggle} ariaControls={menuId} className={className} />

@@ -42,34 +42,44 @@ export function CoursesControls({
           </p>
         </div>
 
-        <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
-          <SelectTrigger aria-label="ترتيب النتائج" className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
-            <SelectValue placeholder="الترتيب" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-1.5">
+          <span className="block px-1 text-xs font-bold text-slate-500 dark:text-slate-400">
+            ترتيب النتائج
+          </span>
+          <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
+            <SelectTrigger aria-label="ترتيب النتائج" className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+              <SelectValue placeholder="الترتيب" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={selectedLevel}
-          onValueChange={(value) => onLevelChange(value as ControlLevel)}
-        >
-          <SelectTrigger aria-label="تصفية حسب المستوى" className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
-            <SelectValue placeholder="المستوى" />
-          </SelectTrigger>
-          <SelectContent>
-            {LEVEL_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-1.5">
+          <span className="block px-1 text-xs font-bold text-slate-500 dark:text-slate-400">
+            تصفية حسب المستوى
+          </span>
+          <Select
+            value={selectedLevel}
+            onValueChange={(value) => onLevelChange(value as ControlLevel)}
+          >
+            <SelectTrigger aria-label="تصفية حسب المستوى" className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+              <SelectValue placeholder="المستوى" />
+            </SelectTrigger>
+            <SelectContent>
+              {LEVEL_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Button
           type="button"

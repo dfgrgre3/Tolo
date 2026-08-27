@@ -162,6 +162,11 @@ class ApiClient {
     }
 
     private logNetworkError(error: unknown, endpoint: string): void {
+        // Aborts (caller cancellation, our own timeout) are expected control
+        // flow, not failures — logging them as HIGH network errors just
+        // spams Sentry/console with noise on every unmount/navigation.
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
             errorManager.handleNetworkError(error, endpoint);
         }).catch(() => { });
@@ -174,7 +179,7 @@ class ApiClient {
 
         while (true) {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
+            const id = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeout);
 
             // Forward the caller's own AbortSignal (if any) into the internal
             // timeout controller. Without this, `fetcher()` below always sent
@@ -182,7 +187,7 @@ class ApiClient {
             // caller passed in `options` (e.g. auth-context's unmount cleanup)
             // — the caller's abort had no effect and the request kept running.
             const externalSignal = customOptions.signal instanceof AbortSignal ? customOptions.signal : undefined;
-            const forwardAbort = () => controller.abort();
+            const forwardAbort = () => controller.abort(externalSignal?.reason ?? new DOMException('Aborted by caller', 'AbortError'));
             if (externalSignal) {
                 if (externalSignal.aborted) {
                     controller.abort();

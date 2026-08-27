@@ -26,6 +26,25 @@ export default function HomePage({ user, hasSession }: HomePageProps) {
   // Use the passed user prop or fall back to auth context
   const currentUser = user || (authUser as User | null);
 
+  // تسخين chunk اللوحة في وقت الخمول: إن كان الزائر سيصبح مسجلاً هنا
+  // (أو لديه جلسة قيد التحقق) ينزل الكود دون أن ينافس أي شيء، فيظهر
+  // الـ dashboard فور جاهزية البيانات بدل انتقالة التنزيل.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const warm = () => {
+      void import('./dashboard/UserHome');
+    };
+    let cancel: () => void;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 4000 });
+      cancel = () => window.cancelIdleCallback(id);
+    } else {
+      const t = setTimeout(warm, 2000);
+      cancel = () => clearTimeout(t);
+    }
+    return cancel;
+  }, []);
+
   // للزائر تُعرض صفحة الهبوط فورًا. أما صاحب الجلسة فيرى هيكل اللوحة
   // أثناء جلب بياناته، فلا يحدث وميض بين الصفحتين.
   if (!currentUser) {

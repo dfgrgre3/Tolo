@@ -8,6 +8,7 @@ import { Menu, X, LogIn, UserPlus } from "lucide-react";
 import { TimeTrackerHeaderWidget } from "./TimeTrackerHeaderWidget";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HeaderLogo } from "./HeaderLogo";
 import { HeaderSearch } from "./HeaderSearch";
@@ -15,7 +16,7 @@ import { HeaderNavigation } from "./HeaderNavigation";
 import { HeaderNotifications } from "./HeaderNotifications";
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
-import { headerNavItems as fallbackHeaderNavItems, mainNavItemsWithMegaMenu } from "@/components/mega-menu/navData";
+import { headerNavItems as fallbackHeaderNavItems, mainNavItemsWithMegaMenu, utilityNavItems } from "@/components/mega-menu/navData";
 import { apiClient } from "@/lib/api/api-client";
 import { getLucideIcon } from "./headerIconMapper";
 import { useTimeTrackerStore } from "@/hooks/use-time-tracker-store";
@@ -32,7 +33,6 @@ import {
 	useContainerHeight,
 	useHeaderWidgets
 } from "./useHeaderOptimizations";
-import type { User } from "@/types/user";
 
 // ─── Dynamic Imports ─────────────────────────────────────────────
 
@@ -40,7 +40,10 @@ const CommandPalette = dynamic(
 	() =>
 		import("./CommandPalette")
 			.then((mod) => ({ default: mod.CommandPalette }))
-			.catch(() => ({ default: () => null })),
+			.catch((err) => {
+				logger.error("Failed to load CommandPalette", err);
+				return { default: () => null };
+			}),
 	{ ssr: false, loading: () => null }
 );
 
@@ -48,7 +51,10 @@ const SmartNavigationSuggestions = dynamic(
 	() =>
 		import("./SmartNavigationSuggestions")
 			.then((mod) => ({ default: mod.SmartNavigationSuggestions }))
-			.catch(() => ({ default: () => null })),
+			.catch((err) => {
+				logger.error("Failed to load SmartNavigationSuggestions", err);
+				return { default: () => null };
+			}),
 	{ ssr: false, loading: () => null }
 );
 
@@ -56,7 +62,10 @@ const HeaderMobileMenuEnhanced = dynamic(
 	() =>
 		import("./HeaderMobileMenuEnhanced")
 			.then((mod) => ({ default: mod.HeaderMobileMenuEnhanced }))
-			.catch(() => ({ default: () => null })),
+			.catch((err) => {
+				logger.error("Failed to load HeaderMobileMenuEnhanced", err);
+				return { default: () => null };
+			}),
 	{ ssr: false, loading: () => null }
 );
 
@@ -64,7 +73,10 @@ const ReadingProgressBar = dynamic(
 	() =>
 		import("./ReadingProgressBar")
 			.then((mod) => ({ default: mod.ReadingProgressBar }))
-			.catch(() => ({ default: () => null })),
+			.catch((err) => {
+				logger.error("Failed to load ReadingProgressBar", err);
+				return { default: () => null };
+			}),
 	{ ssr: false, loading: () => null }
 );
 
@@ -103,7 +115,7 @@ export default function Header() {
 		enableProgress: true
 	});
 
-	const { user, isLoading } = useAuth();
+	const { user } = useAuth();
 	const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
 
 	const [dynamicMainNav, setDynamicMainNav] = useState(mainNavItemsWithMegaMenu);
@@ -322,20 +334,19 @@ export default function Header() {
 						{/* ── Left: Logo & Teaching Links ────────────────── */}
 						<div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
 							<MemoizedHeaderLogo />
-							<div className="hidden lg:flex items-center gap-2">
-								<Link
-									href="/teach"
-									className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-								>
-									التدريس على Tolo
-								</Link>
-								<Link
-									href="/careers"
-									className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-								>
-									وظائف Tolo
-								</Link>
-							</div>
+						<div className="hidden lg:flex items-center gap-2">
+							{utilityNavItems
+								.filter((item) => item.position === "left")
+								.map((item) => (
+									<Link
+										key={item.href}
+										href={item.href}
+										className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+									>
+										{item.label}
+									</Link>
+								))}
+						</div>
 						</div>
 
 						{/* ── Center: Search ─────────────────────────────── */}
@@ -364,20 +375,24 @@ export default function Header() {
 										onOpen={() => setOpenMegaMenu(schoolsNavItem.href)}
 										activeRoute={isActiveRoute}
 										label={schoolsNavItem.label}
-										user={user as User | null}
+										user={user}
 										zIndex={50}
 										className="relative h-11 px-4 flex items-center gap-2 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 									/>
 								</div>
 							)}
 
-							{/* Plans Link */}
-							<Link
-								href="/plans"
-								className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-							>
-								الخطط
-							</Link>
+							{utilityNavItems
+								.filter((item) => item.position === "right")
+								.map((item) => (
+									<Link
+										key={item.href}
+										href={item.href}
+										className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+									>
+										{item.label}
+									</Link>
+								))}
 
 							{widgets.suggestions && (
 								<div className="hidden xl:block">
@@ -393,23 +408,15 @@ export default function Header() {
 								</div>
 							)}
 
-							{mounted && <HeaderNotifications user={user as User | null} mounted={mounted} />}
+							{mounted && <HeaderNotifications user={user} mounted={mounted} />}
 
 							{/* Auth Section */}
 							<div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
-								{(!mounted || isLoading) ? (
-									<div
-										className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 animate-pulse"
-										role="status"
-										aria-live="polite"
-										aria-busy="true"
-										aria-label="جاري التحميل"
-									/>
-								) : user ? (
+								{user ? (
 									<UserMenu />
 								) : (
 									<div className="flex items-center gap-1 sm:gap-1.5">
-										<Link href={loginUrl}>
+										<Link href={loginUrl} aria-label="تسجيل الدخول">
 											<Button
 												variant="ghost"
 												size="sm"
@@ -419,7 +426,7 @@ export default function Header() {
 												<span className="hidden sm:inline">تسجيل الدخول</span>
 											</Button>
 										</Link>
-										<Link href="/register" className="hidden sm:block">
+										<Link href="/register" className="hidden sm:block" aria-label="إنشاء حساب">
 											<Button
 												size="sm"
 												className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 font-bold px-3 sm:px-4 lg:px-6 relative overflow-hidden"
@@ -459,7 +466,7 @@ export default function Header() {
 							setOpenMegaMenu={setOpenMegaMenu}
 							isActiveRoute={isActiveRoute}
 							mounted={mounted}
-							user={user as User | null}
+							user={user}
 							navItems={dynamicMainNav}
 						/>
 					</div>

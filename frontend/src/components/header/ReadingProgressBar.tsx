@@ -98,7 +98,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
       {showPercentage && currentProgress > 0 && (
         <div
           className={cn(
-            "absolute left-2 text-[10px] font-black text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg border border-primary/20",
+            "absolute start-2 text-[10px] font-black text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg border border-primary/20",
             position === "top" ? "top-full mt-2" : "bottom-full mb-2"
           )}
         >

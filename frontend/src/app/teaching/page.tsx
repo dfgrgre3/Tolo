@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { usePermission } from "@/hooks/use-permission";
 import { useAuth } from "@/hooks/use-auth";
 import TeachingLayout from "./components/TeachingLayout";
@@ -27,13 +28,44 @@ import CourseWizard from "./components/CourseWizard";
 // Hooks
 import { useTeachingData, Course } from "./hooks/use-teaching-data";
 
+const VALID_TABS = [
+  "dashboard",
+  "courses",
+  "students",
+  "messages",
+  "reviews",
+  "analytics",
+  "earnings",
+  "calendar",
+  "settings",
+] as const;
+
+type TeachingTab = (typeof VALID_TABS)[number];
+
+function getInitialTab(): TeachingTab {
+  if (typeof window === "undefined") return "dashboard";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return VALID_TABS.includes(tab as TeachingTab) ? (tab as TeachingTab) : "dashboard";
+}
+
 export default function TeachingPage() {
   const { isContentCreator, isAuthenticated } = usePermission();
   const { user, logout, isLoading } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+
+  // Keep the active tab in the URL so refresh/deep-links preserve context
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (activeTab === "dashboard") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", activeTab);
+    }
+    window.history.replaceState(null, "", url.toString());
+  }, [activeTab]);
 
   // Teacher Application Form states
   const [showApplyForm, setShowApplyForm] = useState(false);
@@ -43,23 +75,29 @@ export default function TeachingPage() {
   const [applyCode, setApplyCode] = useState("");
   const [applyEmail, setApplyEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applyError, setApplyError] = useState("");
 
   // Previous Request Lookup states
   const [showLookupForm, setShowLookupForm] = useState(false);
   const [lookupCode, setLookupCode] = useState("");
   const [lookupMessage, setLookupMessage] = useState("");
-  const [lookupStatus, setLookupStatus] = useState<"pending" | "error" | "none">("none");
+  const [lookupStatus, setLookupStatus] = useState<"pending" | "approved" | "rejected" | "error" | "none">("none");
 
   // Teaching dashboard data store hooks
   const {
     stats,
     activities,
     courses,
+    isCoursesLoading,
     createCourse,
-    updateCourse,
-    deleteCourse,
+    createCourseAsync,
+    isCreatingCourse,
+    updateCourseAsync,
+    deleteCourseAsync,
     students,
+    isStudentsLoading,
     reviews,
+    isReviewsLoading,
     replyToReview,
     conversations,
     sendMessage,
@@ -69,6 +107,8 @@ export default function TeachingPage() {
     markNotificationRead,
     markAllNotificationsRead,
     transactions,
+    isTransactionsLoading,
+    isCalendarLoading,
   } = useTeachingData(activeTab);
 
   const [applyName, setApplyName] = useState(user?.name || "");
@@ -84,6 +124,7 @@ export default function TeachingPage() {
     const handleApplySubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setIsSubmitting(true);
+      setApplyError("");
       try {
         const response = await fetch("/api/teaching/apply", {
           method: "POST",
@@ -100,9 +141,12 @@ export default function TeachingPage() {
           setApplyCode(data.code || `TOLO-TCHR-${Math.floor(100000 + Math.random() * 900000)}`);
           setApplyEmail(data.email || applyFormEmail || user?.email || "");
           setApplySuccess(true);
+        } else {
+          setApplyError("تعذر تقديم الطلب حالياً، يرجى التحقق من البيانات وإعادة المحاولة.");
         }
       } catch (err) {
         console.error("Error submitting application details", err);
+        setApplyError("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
       } finally {
         setIsSubmitting(false);
       }
@@ -117,7 +161,16 @@ export default function TeachingPage() {
         if (response.ok) {
           const data = await response.json();
           setLookupStatus(data.status || "pending");
-          setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
+          switch (data.status) {
+            case "approved":
+              setLookupMessage("مبروك! تمت الموافقة على طلبك. يمكنك تسجيل الدخول للوصول إلى لوحة تحكم المعلم.");
+              break;
+            case "rejected":
+              setLookupMessage("نأسف، لم يتم قبول طلبك هذه المرة. يمكنك التواصل مع الدعم الفني لمعرفة التفاصيل.");
+              break;
+            default:
+              setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
+          }
         } else {
           setLookupStatus("error");
           setLookupMessage("كود الطلب غير صحيح أو تعذر العثور على الطلب.");
@@ -140,7 +193,7 @@ export default function TeachingPage() {
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                 شكرًا لاهتمامك بالانضمام كمعلم في منصة TOLO. تم إرسال كود المتابعة وتفاصيل طلبك إلى بريدك الإلكتروني: <strong className="text-slate-800 dark:text-slate-100">{applyEmail}</strong>
               </p>
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-805 dark:text-slate-200 font-bold select-all">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 font-bold select-all">
                 كود الطلب: {applyCode}
               </div>
               <Button
@@ -178,11 +231,17 @@ export default function TeachingPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary text-white rounded-xl text-xs">
-                  {isSubmitting ? "جاري التقديم..." : "تقديم الطلب"}
-                </Button>
-                <Button type="button" disabled={isSubmitting} variant="outline" onClick={() => setShowApplyForm(false)} className="rounded-xl text-xs">إلغاء</Button>
+                {applyError && (
+                  <div className="p-3 bg-red-50/60 dark:bg-red-950/15 text-red-500 border border-red-200/50 rounded-xl text-xs leading-relaxed">
+                    {applyError}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary text-white rounded-xl text-xs">
+                    {isSubmitting ? "جاري التقديم..." : "تقديم الطلب"}
+                  </Button>
+                <Button type="button" disabled={isSubmitting} variant="outline" onClick={() => { setShowApplyForm(false); setApplyError(""); }} className="rounded-xl text-xs">إلغاء</Button>
               </div>
             </form>
           ) : showLookupForm ? (
@@ -207,6 +266,10 @@ export default function TeachingPage() {
                 {lookupStatus !== "none" && (
                   <div className={`p-4 rounded-xl border text-xs leading-relaxed ${lookupStatus === "pending"
                       ? "bg-blue-50/50 dark:bg-blue-950/15 text-blue-600 border-blue-200/50"
+                      : lookupStatus === "approved"
+                      ? "bg-emerald-50/50 dark:bg-emerald-950/15 text-emerald-600 border-emerald-200/50"
+                      : lookupStatus === "rejected"
+                      ? "bg-amber-50/60 dark:bg-amber-950/15 text-amber-600 border-amber-200/50"
                       : "bg-red-50/55 dark:bg-red-950/15 text-red-500 border-red-200/50"
                     }`}>
                     {lookupMessage}
@@ -308,11 +371,27 @@ export default function TeachingPage() {
     setIsWizardOpen(true);
   };
 
-  const handleSaveCourse = (courseData: Partial<Course>) => {
-    if (editingCourse) {
-      updateCourse({ id: editingCourse.id, data: courseData });
-    } else {
-      createCourse(courseData);
+  const handleSaveCourse = async (courseData: Partial<Course>) => {
+    try {
+      if (editingCourse) {
+        await updateCourseAsync({ id: editingCourse.id, data: courseData });
+        toast.success("تم حفظ تعديلات الكورس بنجاح");
+      } else {
+        await createCourseAsync(courseData);
+        toast.success("تم إنشاء الكورس بنجاح");
+      }
+      setIsWizardOpen(false);
+    } catch {
+      toast.error("تعذر حفظ الكورس، يرجى المحاولة مرة أخرى");
+    }
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    try {
+      await deleteCourseAsync(id);
+      toast.success("تم حذف الكورس بنجاح");
+    } catch {
+      toast.error("تعذر حذف الكورس، يرجى المحاولة مرة أخرى");
     }
   };
 
@@ -339,24 +418,25 @@ export default function TeachingPage() {
         return (
           <CourseManagement
             courses={courses}
+            isLoading={isCoursesLoading}
             onCreateCourse={handleCreateCourseClick}
             onEditCourse={handleEditCourseClick}
             onDuplicateCourse={(c) => createCourse({ ...c, title: `${c.title} (نسخة مكررة)` })}
-            onDeleteCourse={deleteCourse}
+            onDeleteCourse={handleDeleteCourse}
           />
         );
       case "students":
-        return <StudentManagement students={students} onMessageStudent={handleMessageStudent} />;
+        return <StudentManagement students={students} isLoading={isStudentsLoading} onMessageStudent={handleMessageStudent} />;
       case "messages":
         return <MessagingInbox conversations={conversations} onSendMessage={sendMessage} />;
       case "reviews":
-        return <ReviewsPanel reviews={reviews} onReplyToReview={replyToReview} />;
+        return <ReviewsPanel reviews={reviews} isLoading={isReviewsLoading} onReplyToReview={replyToReview} />;
       case "analytics":
         return <AnalyticsPanel />;
       case "earnings":
-        return <EarningsPanel transactions={transactions} />;
+        return <EarningsPanel transactions={transactions} isLoading={isTransactionsLoading} />;
       case "calendar":
-        return <CalendarScheduler events={calendarEvents} onAddEvent={addCalendarEvent} />;
+        return <CalendarScheduler events={calendarEvents} isLoading={isCalendarLoading} onAddEvent={addCalendarEvent} />;
       case "settings":
         return <SettingsPanel />;
       default:
@@ -381,6 +461,7 @@ export default function TeachingPage() {
         <CourseWizard
           course={editingCourse}
           onSave={handleSaveCourse}
+          isSaving={isCreatingCourse}
           onClose={() => setIsWizardOpen(false)}
         />
       )}

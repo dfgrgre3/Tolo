@@ -118,7 +118,7 @@ export default function SchedulePage() {
           </div>
 
           <Button variant="outline" onClick={() => { loadSchedule(); }} disabled={isLoading}>
-            <RefreshCw className={`ml-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`ms-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             تحديث
           </Button>
         </CardHeader>

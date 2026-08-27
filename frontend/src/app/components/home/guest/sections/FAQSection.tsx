@@ -71,11 +71,11 @@ function FAQItemComponent({ item, isOpen, onToggle }: {
   onToggle: () => void;
 }) {
   return (
-    <div className="border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:border-[#0F766E] dark:hover:border-orange-500 transition-colors">
+    <div className="border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:border-[#0F766E] dark:hover:border-orange-500 transition-colors duration-150">
       {/* Question */}
       <button
         onClick={onToggle}
-        className="w-full p-6 flex items-start justify-between bg-white dark:bg-slate-800 hover:bg-[#F8FAFC] dark:hover:bg-slate-750 transition-colors text-right"
+        className="w-full p-4 flex items-start justify-between bg-white dark:bg-slate-800 hover:bg-[#F8FAFC] dark:hover:bg-slate-750 transition-colors text-right"
         aria-expanded={isOpen}
       >
         <div className="flex-1 text-right">
@@ -99,7 +99,7 @@ function FAQItemComponent({ item, isOpen, onToggle }: {
 
       {/* Answer */}
       {isOpen && (
-        <div className="px-6 py-4 bg-[#F8FAFC] dark:bg-slate-900 border-t border-[#E2E8F0] dark:border-slate-700 text-right">
+        <div className="px-4 py-3 bg-[#F8FAFC] dark:bg-slate-900 border-t border-[#E2E8F0] dark:border-slate-700 text-right">
           <p className="text-sm text-[#64748B] dark:text-slate-300 leading-relaxed">
             {item.answer}
           </p>
@@ -128,12 +128,12 @@ export function FAQSection() {
   };
 
   return (
-    <section className="py-16 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <HelpCircle className="h-6 w-6 text-[#0F766E] dark:text-orange-500" />
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <HelpCircle className="h-5 w-5 text-[#0F766E] dark:text-orange-500" />
             <h2 className={TYPOGRAPHY.sectionHeading}>
               الأسئلة الشائعة
             </h2>
@@ -143,8 +143,8 @@ export function FAQSection() {
           </p>
         </div>
 
-        {/* FAQ Grid */}
-        <div className="max-w-3xl mx-auto space-y-3">
+        {/* FAQ List */}
+        <div className="max-w-3xl mx-auto space-y-2.5">
           {FAQ_ITEMS.map((item) => (
             <FAQItemComponent
               key={item.id}
@@ -156,8 +156,8 @@ export function FAQSection() {
         </div>
 
         {/* Additional Help */}
-        <div className="mt-12 p-6 bg-gradient-to-br from-emerald-50 dark:from-orange-500/10 to-emerald-100/50 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px] text-center">
-          <p className="text-sm font-bold text-[#1E293B] dark:text-white mb-3">
+        <div className="mt-8 p-5 bg-gradient-to-br from-emerald-50 dark:from-orange-500/10 to-emerald-100/50 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px] text-center">
+          <p className="text-sm font-bold text-[#1E293B] dark:text-white mb-2">
             لم تجد ما تبحث عنه؟
           </p>
           <p className="text-sm text-[#64748B] dark:text-slate-400 mb-4">

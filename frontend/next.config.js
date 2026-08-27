@@ -187,7 +187,49 @@ const nextConfig = {
   },
 
   // ─── Redirects ─────────────────────────────────────────────────────────────
-  // (add here if needed)
+  // Keep legacy / aliased paths working so deep-linked tests and bookmarks
+  // (e.g. /auth/login, /contacts) resolve to the canonical routes instead of
+  // returning 404/502 at the edge.
+  async redirects() {
+    return [
+      // Auth lives at /login (route group (auth) is a non-routing group).
+      {
+        source: "/auth/login",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/auth/login/:path*",
+        destination: "/login/:path*",
+        permanent: false,
+      },
+      // The "contacts directory" (people/teachers directory) lives at
+      // /education/teachers. Alias /contacts there so directory links resolve.
+      {
+        source: "/contacts",
+        destination: "/education/teachers",
+        permanent: false,
+      },
+      {
+        source: "/contacts/:path*",
+        destination: "/education/teachers/:path*",
+        permanent: false,
+      },
+      // The bundled-package / promotion claim flow lives on the billing
+      // page's "plans" tab. Alias /plans there so the plans entry point
+      // and any bookmarked/deep links resolve instead of 404ing.
+      {
+        source: "/plans",
+        destination: "/billing?tab=upgrade",
+        permanent: false,
+      },
+      {
+        source: "/plans/:path*",
+        destination: "/billing?tab=upgrade",
+        permanent: false,
+      },
+    ];
+  },
 
   // ─── Webpack fine-tuning ───────────────────────────────────────────────────
   webpack(config, { isServer }) {

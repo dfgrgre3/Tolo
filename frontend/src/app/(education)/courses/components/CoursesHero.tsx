@@ -131,7 +131,7 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
                 {typeof stat.value === "number" && stat.value >= 1000 ?
               `${(stat.value / 1000).toFixed(1)}K` :
               stat.value}
-                <span className="text-sm font-bold text-gray-400 mr-0.5">{stat.suffix}</span>
+                <span className="text-sm font-bold text-gray-400 me-0.5">{stat.suffix}</span>
               </div>
               <div className="text-xs font-medium text-gray-500 mt-1">{stat.label}</div>
             </m.div>

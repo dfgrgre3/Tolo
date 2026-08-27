@@ -52,7 +52,7 @@ export function TimerSettingsCard({ settings }: TimerSettingsCardProps) {
               }
             }}
           >
-            <Settings className="h-4 w-4 ml-2" />
+            <Settings className="h-4 w-4 ms-2" />
             تعديل الإعدادات
           </Button>
         </div>

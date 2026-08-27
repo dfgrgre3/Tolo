@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { TrendingUp, ChevronLeft, Flame } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 
 interface TrendingTopic {
   id: string;
@@ -85,8 +85,8 @@ const TRENDING_TOPICS: TrendingTopic[] = [
  */
 function TrendingTopicCard({ topic }: { topic: TrendingTopic }) {
   return (
-    <Link href={`/courses?topic=${topic.id}`}>
-      <div className="group p-4 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] hover:border-[#0F766E] dark:hover:border-orange-500 hover:shadow-md dark:hover:shadow-orange-500/20 transition-all duration-150 cursor-pointer">
+    <Link href={`/courses?topic=${topic.id}`} className={`${RAIL.item} w-44`}>
+      <div className="group h-full p-4 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] hover:border-[#0F766E] dark:hover:border-orange-500 hover:shadow-md dark:hover:shadow-orange-500/20 transition-all duration-150 cursor-pointer">
 
         {/* Top Row: Icon + Trend */}
         <div className="flex items-start justify-between mb-3">
@@ -135,14 +135,14 @@ function TrendingTopicCard({ topic }: { topic: TrendingTopic }) {
  */
 export function TrendingTopicsSection() {
   return (
-    <section className="py-16 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>
-            <div className="flex items-center gap-2 mb-2">
-              <Flame className="h-5 w-5 text-red-500" />
-              <span className="text-xs font-bold bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Flame className="h-4 w-4 text-red-500" />
+              <span className="text-xs font-bold bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2.5 py-0.5 rounded-full">
                 الآن محل اهتمام
               </span>
             </div>
@@ -161,15 +161,15 @@ export function TrendingTopicsSection() {
           </Link>
         </div>
 
-        {/* Trending Topics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {/* Trending Topics Rail */}
+        <div className={RAIL.container}>
           {TRENDING_TOPICS.map((topic) => (
             <TrendingTopicCard key={topic.id} topic={topic} />
           ))}
         </div>
 
         {/* Info Bar */}
-        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-[12px]">
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-[12px]">
           <div className="flex items-start gap-3">
             <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-900 dark:text-blue-200">

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { GRIDS, CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface NewCoursesSectionProps {
@@ -27,13 +27,13 @@ export function NewCoursesSection({ courses, loading }: NewCoursesSectionProps) 
   }
 
   return (
-    <section className="py-16 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5 text-[#F59E0B] dark:text-orange-500" />
-              <span className="inline-block px-3 py-1 bg-[#FEF3C7] text-[#D97706] text-xs font-bold rounded-full dark:bg-orange-500/20 dark:text-orange-400">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Sparkles className="h-4 w-4 text-[#F59E0B] dark:text-orange-500" />
+              <span className="inline-block px-2.5 py-0.5 bg-[#FEF3C7] text-[#D97706] text-xs font-bold rounded-full dark:bg-orange-500/20 dark:text-orange-400">
                 جديد الآن
               </span>
             </div>
@@ -53,31 +53,34 @@ export function NewCoursesSection({ courses, loading }: NewCoursesSectionProps) 
         </div>
 
         {loading ? (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <CourseCardSkeleton key={i} />
+              <div key={i} className={`${RAIL.item} w-72`}>
+                <CourseCardSkeleton />
+              </div>
             ))}
           </div>
         ) : (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {courses.map((c) => {
               const norm = normalizeCourse(c);
               return (
-                <CourseCard
-                  key={norm.id}
-                  id={norm.id}
-                  title={norm.title}
-                  slug={norm.slug}
-                  thumbnail={norm.thumbnail}
-                  categoryName={norm.categoryName}
-                  instructorName={norm.instructorName}
-                  ratingAvg={norm.ratingAvg}
-                  reviewsCount={norm.reviewsCount}
-                  studentsCount={norm.studentsCount}
-                  price={norm.price}
-                  discountPrice={norm.discountPrice}
-                  level={norm.level}
-                />
+                <div key={norm.id} className={`${RAIL.item} w-72`}>
+                  <CourseCard
+                    id={norm.id}
+                    title={norm.title}
+                    slug={norm.slug}
+                    thumbnail={norm.thumbnail}
+                    categoryName={norm.categoryName}
+                    instructorName={norm.instructorName}
+                    ratingAvg={norm.ratingAvg}
+                    reviewsCount={norm.reviewsCount}
+                    studentsCount={norm.studentsCount}
+                    price={norm.price}
+                    discountPrice={norm.discountPrice}
+                    level={norm.level}
+                  />
+                </div>
               );
             })}
           </div>

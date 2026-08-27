@@ -34,7 +34,7 @@ export function SessionsListView({ sessions, bulkSelectMode, selectedSessions, o
                     </div>
                     {session.subject && (
                       <Badge variant="outline" className="text-xs">
-                        <BookOpen className="h-3 w-3 mr-1" />
+                        <BookOpen className="h-3 w-3 me-1" />
                         {subjectLabel}
                       </Badge>
                     )}
@@ -45,7 +45,7 @@ export function SessionsListView({ sessions, bulkSelectMode, selectedSessions, o
                     )}
                     {session.productivity !== undefined && (
                       <Badge variant="secondary" className="text-xs">
-                        <Activity className="h-3 w-3 mr-1" />
+                        <Activity className="h-3 w-3 me-1" />
                         {session.productivity}%
                       </Badge>
                     )}
@@ -61,19 +61,19 @@ export function SessionsListView({ sessions, bulkSelectMode, selectedSessions, o
                   <div className="flex flex-wrap gap-2">
                     {session.breaks !== undefined && session.breaks > 0 && (
                       <Badge variant="outline" className="text-xs">
-                        <Coffee className="h-3 w-3 mr-1" />
+                        <Coffee className="h-3 w-3 me-1" />
                         {session.breaks} استراحة
                       </Badge>
                     )}
                     {session.distractions !== undefined && session.distractions > 0 && (
                       <Badge variant="outline" className="text-xs text-red-600">
-                        <Zap className="h-3 w-3 mr-1" />
+                        <Zap className="h-3 w-3 me-1" />
                         {session.distractions} تشتت
                       </Badge>
                     )}
                     {session.focusScore !== undefined && (
                       <Badge variant="outline" className="text-xs">
-                        <Brain className="h-3 w-3 mr-1" />
+                        <Brain className="h-3 w-3 me-1" />
                         تركيز {session.focusScore}%
                       </Badge>
                     )}

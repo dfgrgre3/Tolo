@@ -24,7 +24,18 @@ import { logger } from '@/lib/logger';
 import { safeFetch } from "@/lib/safe-client-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+const SORT_LABELS: Record<"newest" | "soonest", string> = {
+  newest: "المضافة حديثاً",
+  soonest: "الأقرب زمنياً",
+};
 
 type Event = {
   id: string;
@@ -63,14 +74,15 @@ export default function EventsPage() {
     ensureUser().then(setUserId);
     const fetchEvents = async () => {
       setLoading(true);
-      const { data } = await safeFetch<Event[]>("/api/events", { signal: controller.signal });
-      // Add proper type checking to ensure data is an array
-      if (Array.isArray(data)) {
-        setEvents(data);
+      const { data } = await safeFetch<{ data: { events: Event[] } }>("/api/events", { signal: controller.signal });
+      // The API wraps the list as { success, data: { events, pagination } }
+      const eventsList = data?.data?.events;
+      if (Array.isArray(eventsList)) {
+        setEvents(eventsList);
       } else {
-        // If data is not an array, set empty array as fallback
+        // If data is not in the expected shape, set empty array as fallback
         setEvents([]);
-        logger.warn("Events API returned non-array data:", data);
+        logger.warn("Events API returned unexpected data shape:", data);
       }
       setLoading(false);
     };
@@ -198,14 +210,24 @@ export default function EventsPage() {
                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-primary transition-colors" />
               </div>
 
-              <select
-              className="h-14 px-6 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-gray-400 outline-none cursor-pointer"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as "newest" | "soonest")}>
-              
-                 <option value="newest" className="bg-background">المضافة حديثاً</option>
-                 <option value="soonest" className="bg-background">الأقرب زمنياً</option>
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-14 px-6 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-gray-400 outline-none cursor-pointer"
+                  >
+                    {SORT_LABELS[sortBy]}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-background">
+                  <DropdownMenuItem onSelect={() => setSortBy("newest")}>
+                    {SORT_LABELS.newest}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setSortBy("soonest")}>
+                    {SORT_LABELS.soonest}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
            </div>
         </div>
 

@@ -18,7 +18,7 @@ export const MobileSearchResultItem = ({ result, onClick }: MobileSearchResultIt
 			type="button"
 			onClick={() => onClick(result)}
 			className={cn(
-				"w-full text-right px-3 py-3 rounded-lg flex items-center gap-2.5",
+				"w-full text-start px-3 py-3 rounded-lg flex items-center gap-2.5",
 				"border border-border/50 dark:border-border/50 touch-manipulation",
 				"hover:bg-accent dark:hover:bg-accent/80 active:bg-accent dark:active:bg-accent/90",
 				"outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
@@ -31,7 +31,7 @@ export const MobileSearchResultItem = ({ result, onClick }: MobileSearchResultIt
 				/>
 			</div>
 
-			<div className="flex-1 text-right min-w-0">
+			<div className="flex-1 text-start min-w-0">
 				<p className="text-sm font-medium truncate text-foreground dark:text-foreground" title={result.title}>
 					{result.title}
 				</p>

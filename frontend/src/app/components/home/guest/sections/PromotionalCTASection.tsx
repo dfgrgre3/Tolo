@@ -14,7 +14,7 @@ import { CONTAINER } from '../design-system';
  */
 export function PromotionalCTASection() {
   return (
-    <section className="py-16 bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden">
+    <section className="py-10 bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden relative">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
@@ -24,15 +24,15 @@ export function PromotionalCTASection() {
       <div className={`relative z-10 ${CONTAINER.className}`}>
         <div className="max-w-2xl">
           {/* Main Message */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 leading-tight">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-3 leading-tight">
             ابدأ رحلة التعلم اليوم
           </h2>
-          <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-xl leading-relaxed font-medium">
+          <p className="text-base sm:text-lg text-white/90 mb-6 max-w-xl leading-relaxed font-medium">
             انضم إلى آلاف المتعلمين الذين غيّروا حياتهم من خلال تعليم عملي وعالي الجودة.
           </p>
 
           {/* Features Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-white/20 rounded-lg shrink-0">
                 <Zap className="h-5 w-5" />

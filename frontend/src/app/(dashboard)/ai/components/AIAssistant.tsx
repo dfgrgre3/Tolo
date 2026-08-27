@@ -376,7 +376,7 @@ export default function AIAssistant({
                       <div className="text-xs text-gray-500 mt-1">
                         {formatDate(conv.updatedAt)}
                         {conv._count && conv._count.messages > 0 && (
-                          <span className="mr-2">({conv._count.messages} رسالة)</span>
+                          <span className="me-2">({conv._count.messages} رسالة)</span>
                         )}
                       </div>
                     </div>
@@ -512,7 +512,7 @@ export default function AIAssistant({
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-xs text-gray-500 mr-2">جاري التفكير...</span>
+                  <span className="text-xs text-gray-500 me-2">جاري التفكير...</span>
                 </div>
               </div>
             </div>
@@ -532,7 +532,7 @@ export default function AIAssistant({
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion.text)}
                   disabled={isLoading || isStreaming}
-                  className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 rounded-xl transition-all text-right disabled:opacity-50 group"
+                  className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 rounded-xl transition-all text-start disabled:opacity-50 group"
                 >
                   <span className="text-xl">{suggestion.icon}</span>
                   <div className="flex-1 min-w-0">

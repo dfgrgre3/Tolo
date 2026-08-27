@@ -49,6 +49,9 @@ pnpm-debug.log*
 /.nyc_output
 /test-results
 /junit.xml
+.testsprite/
+**/.testsprite/
+*.webm
 
 # IDE and Editors
 .vscode/*
@@ -127,3 +130,5 @@ node_modules/
 
 # Markdown files (must never be committed)
 *.md
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json

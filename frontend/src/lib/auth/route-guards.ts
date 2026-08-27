@@ -24,7 +24,7 @@ export const ADMIN_PANEL_ROLES = ["ADMIN", "SUPER_ADMIN", "MODERATOR"] as const;
 export const TEACHER_ENDPOINT_ROLES = ["TEACHER", "ADMIN", "SUPER_ADMIN"] as const;
 export const STUDENT_ENDPOINT_ROLES = ["STUDENT", "ADMIN", "SUPER_ADMIN"] as const;
 
-const PROTECTED_ROUTES = ["/dashboard", "/learning"];
+const PROTECTED_ROUTES = ["/dashboard", "/learning", "/profile"];
 
 const GUEST_ROUTES = [
   "/login",

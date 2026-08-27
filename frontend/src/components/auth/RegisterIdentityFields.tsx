@@ -39,7 +39,7 @@ export default function RegisterIdentityFields({
         <div className="grid gap-2">
           <Label htmlFor="firstName" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">الاسم الأول</Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <User className="h-4 w-4" />
             </span>
             <Input
@@ -49,14 +49,14 @@ export default function RegisterIdentityFields({
               onChange={(e) => onFirstNameChange(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="lastName" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">الاسم الأخير</Label>
           <div className="relative">
-            <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
               <User className="h-4 w-4" />
             </span>
             <Input
@@ -66,7 +66,7 @@ export default function RegisterIdentityFields({
               onChange={(e) => onLastNameChange(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function RegisterIdentityFields({
       <div className="grid gap-2">
         <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
         <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
             <Mail className="h-4 w-4" />
           </span>
           <Input
@@ -87,7 +87,7 @@ export default function RegisterIdentityFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function RegisterIdentityFields({
       <div className="grid gap-2">
         <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كلمة المرور</Label>
         <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
             <Lock className="h-4 w-4" />
           </span>
           <Input
@@ -107,7 +107,7 @@ export default function RegisterIdentityFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function RegisterIdentityFields({
       <div className="grid gap-2">
         <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">تأكيد كلمة المرور</Label>
         <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
             <Lock className="h-4 w-4" />
           </span>
           <Input
@@ -127,7 +127,7 @@ export default function RegisterIdentityFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 pr-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
       </div>

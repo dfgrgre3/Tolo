@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Users } from 'lucide-react';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 import type { Instructor } from '../types';
 
 interface InstructorsSectionProps {
@@ -23,27 +24,29 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
   const router = useRouter();
 
   return (
-    <section className="py-16 bg-white border-y border-[#E2E8F0]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1E293B]">أفضل المدربين والخبراء</h2>
-            <p className="text-sm text-[#64748B] font-medium mt-1">
+    <section className="py-10 bg-white border-y border-[#E2E8F0]">
+      <div className={CONTAINER.className}>
+        <div className={SECTION_HEADER.container}>
+          <div className={SECTION_HEADER.content}>
+            <h2 className={TYPOGRAPHY.sectionHeading}>أفضل المدربين والخبراء</h2>
+            <p className={TYPOGRAPHY.sectionSubheading}>
               نخبة من المتخصصين لنقل خبراتهم إليك مباشرة
             </p>
           </div>
           <button
             onClick={() => router.push('/instructors')}
-            className="flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] transition-colors"
+            className={SECTION_HEADER.viewAllButton}
           >
             عرض الكل <ChevronLeft className="h-4 w-4" />
           </button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className={RAIL.container}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <InstructorSkeleton key={i} />
+              <div key={i} className={`${RAIL.item} w-40`}>
+                <InstructorSkeleton />
+              </div>
             ))}
           </div>
         ) : instructors.length === 0 ? (
@@ -51,7 +54,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
             لا يوجد مدربون متاحون حالياً.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className={RAIL.container}>
             {instructors.map((ins) => {
               const name =
                 ins.name || `${ins.firstName || ''} ${ins.lastName || ''}`.trim() || 'مدرب';
@@ -62,9 +65,9 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
                 <button
                   key={ins.id}
                   onClick={() => router.push(`/instructors/${ins.id}`)}
-                  className="bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] p-4 rounded-[12px] text-center flex flex-col items-center hover:shadow-md group transition-colors"
+                  className={`${RAIL.item} w-40 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] p-4 rounded-[12px] text-center flex flex-col items-center hover:shadow-md group transition-all duration-150`}
                 >
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden mb-3 ring-2 ring-[#E2E8F0] group-hover:ring-[#0F766E]">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden mb-2.5 ring-2 ring-[#E2E8F0] group-hover:ring-[#0F766E]">
                     {avatar ? (
                       <Image src={avatar} alt={name} fill className="object-cover" />
                     ) : (

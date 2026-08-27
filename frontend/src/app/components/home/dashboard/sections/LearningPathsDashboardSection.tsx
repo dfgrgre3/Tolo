@@ -1,7 +1,10 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft, MapPin, Users, BookOpen } from 'lucide-react';
+import { MapPin, Users, BookOpen, Clock } from 'lucide-react';
+import { DashSection, DashEmpty } from '../shared/SectionShell';
+import { DASH_RAIL } from '../shared/design-system';
 
 interface LearningPath {
   id: string;
@@ -26,135 +29,117 @@ const LEVEL_LABELS = {
   advanced: 'متقدم'
 };
 
+/** Module-level constants keep prop identities stable across parent renders. */
+const EMPTY_PATHS: LearningPath[] = [];
+
 /**
- * 🎓 مسارات التعلم المنظمة
- * نسخة من صفحة الزائرين مخصصة للمستخدمين المسجلين
+ * مسارات التعلم المنظمة — Noon rail of path cards inside the shared panel.
  */
-export function LearningPathsDashboardSection({
-  paths = [],
+function LearningPathsDashboardSectionBase({
+  paths = EMPTY_PATHS,
   loading = false
 }: LearningPathsDashboardSectionProps) {
   return (
-    <section className="py-8 sm:py-12">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              🎓 مسارات التعلم المنظمة
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium mt-1">
-              تعلم بطريقة منظمة مع خارطة طريق واضحة
-            </p>
-          </div>
-          <Link
-            href="/learning-paths"
-            className="flex items-center gap-1 text-sm font-bold text-primary hover:text-primary/80 transition-colors w-fit"
-          >
-            عرض جميع المسارات <ChevronLeft className="h-4 w-4" />
-          </Link>
+    <DashSection
+      title="مسارات التعلم المنظمة"
+      subtitle="تعلم بطريقة منظمة مع خارطة طريق واضحة"
+      href="/learning-paths"
+      linkLabel="عرض جميع المسارات"
+      rail
+    >
+      {loading ? (
+        <div className={DASH_RAIL.container}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className={`${DASH_RAIL.item} w-80 h-64 bg-muted border border-border rounded-xl animate-pulse`}
+            />
+          ))}
         </div>
-
-        {/* Paths Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-56 bg-muted border border-input rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
-        ) : paths.length === 0 ? (
-          <div className="text-center py-12 bg-muted/30 rounded-lg border border-input">
-            <MapPin className="h-12 w-12 mx-auto mb-4 opacity-40" />
-            <p className="text-sm text-muted-foreground font-bold">
-              لا توجد مسارات تعلم متاحة حالياً
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {paths.map((path) => (
-              <Link
-                key={path.id}
-                href={`/learning-paths/${path.slug}`}
-                className="group relative overflow-hidden rounded-lg border border-input hover:border-primary/50 hover:shadow-lg transition-all bg-card"
-              >
-                {/* Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                <div className="relative p-6 space-y-4">
-                  {/* Icon and Title */}
-                  <div className="flex items-start gap-4">
-                    <div className="text-4xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                      {path.icon || '🗺️'}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                        {path.title}
-                      </h3>
-                      {path.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {path.description}
-                        </p>
-                      )}
-                    </div>
+      ) : paths.length === 0 ? (
+        <DashEmpty
+          icon={MapPin}
+          title="لا توجد مسارات تعلم متاحة حالياً"
+        />
+      ) : (
+        <div className={DASH_RAIL.container}>
+          {paths.map((path) => (
+            <Link
+              key={path.id}
+              href={`/learning-paths/${path.slug}`}
+              className={`${DASH_RAIL.item} group flex w-80 flex-col rounded-xl border border-border bg-card hover:border-primary transition-colors overflow-hidden`}
+            >
+              <div className="flex flex-1 flex-col gap-3 p-5">
+                {/* Icon and Title */}
+                <div className="flex items-start gap-3">
+                  <div className="text-4xl shrink-0 transition-transform group-hover:scale-110" aria-hidden="true">
+                    {path.icon || '🗺️'}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-base text-foreground group-hover:text-primary-strong transition-colors line-clamp-1">
+                      {path.title}
+                    </h3>
+                    {path.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                        {path.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-                  {/* Level Badge */}
-                  {path.level && (
-                    <div className="flex gap-2">
-                      <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
-                        {LEVEL_LABELS[path.level]}
-                      </span>
+                {/* Level Badge */}
+                {path.level && (
+                  <span className="w-fit inline-block px-2 py-0.5 bg-primary/10 text-primary-strong text-[11px] font-black rounded-md">
+                    {LEVEL_LABELS[path.level]}
+                  </span>
+                )}
+
+                {/* Stats */}
+                <div className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
+                  {path.courseCount !== undefined && (
+                    <div>
+                      <div className="mb-0.5 flex items-center justify-center gap-1 text-primary-strong">
+                        <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="text-xs font-black tabular-nums">{path.courseCount}</span>
+                      </div>
+                      <p className="text-[10px] font-medium text-muted-foreground">الكورسات</p>
                     </div>
                   )}
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border">
-                    {path.courseCount !== undefined && (
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-1">
-                          <BookOpen className="h-4 w-4 text-primary" />
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium">الكورسات</p>
-                        <p className="text-sm font-bold text-foreground">{path.courseCount}</p>
-                      </div>
-                    )}
-
-                    {path.enrolledCount !== undefined && (
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-1">
-                          <Users className="h-4 w-4 text-primary" />
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium">الملتحقين</p>
-                        <p className="text-sm font-bold text-foreground">
+                  {path.enrolledCount !== undefined && (
+                    <div>
+                      <div className="mb-0.5 flex items-center justify-center gap-1 text-primary-strong">
+                        <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="text-xs font-black tabular-nums">
                           {(path.enrolledCount / 1000).toFixed(1)}K
-                        </p>
+                        </span>
                       </div>
-                    )}
+                      <p className="text-[10px] font-medium text-muted-foreground">الملتحقين</p>
+                    </div>
+                  )}
 
-                    {path.duration && (
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-1">
-                          <span className="text-lg">⏱️</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium">المدة</p>
-                        <p className="text-sm font-bold text-foreground">{path.duration}</p>
+                  {path.duration && (
+                    <div>
+                      <div className="mb-0.5 flex items-center justify-center gap-1 text-primary-strong">
+                        <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="text-xs font-black">{path.duration}</span>
                       </div>
-                    )}
-                  </div>
-
-                  {/* CTA Button */}
-                  <button className="w-full py-2 bg-primary text-primary-foreground rounded-md text-xs font-bold hover:bg-primary/90 transition-colors">
-                    ابدأ المسار
-                  </button>
+                      <p className="text-[10px] font-medium text-muted-foreground">المدة</p>
+                    </div>
+                  )}
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+
+                {/* CTA */}
+                <button className="w-full py-2 bg-primary text-primary-foreground rounded-md text-xs font-bold hover:opacity-90 transition-opacity">
+                  ابدأ المسار
+                </button>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </DashSection>
   );
 }
+
+export const LearningPathsDashboardSection = React.memo(LearningPathsDashboardSectionBase);

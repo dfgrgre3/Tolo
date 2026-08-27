@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@/types/user";
+import type { AuthUser } from "@/contexts/auth-context";
 import type { MegaMenuCategory } from "./types";
 
 interface UseMegaMenuProps {
   categories: MegaMenuCategory[];
   isOpen: boolean;
   onClose: () => void;
-  user?: User | null;
+  user?: AuthUser | null;
 }
 
 export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {

@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, Mail, Eye } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Mail, X, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Student } from "../hooks/use-teaching-data";
+import { TableSkeleton } from "./Skeletons";
 
 interface StudentManagementProps {
   students: Student[];
+  isLoading?: boolean;
   onMessageStudent: (studentId: string) => void;
 }
 
@@ -20,9 +22,18 @@ interface StudentDetailModalProps {
 }
 
 function StudentDetailModal({ student, onClose, onMessage }: StudentDetailModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-right" dir="rtl">
-      <div className="bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 rounded-full border border-primary/20">
@@ -34,8 +45,8 @@ function StudentDetailModal({ student, onClose, onMessage }: StudentDetailModalP
               <p className="text-[10px] text-slate-400 font-mono">{student.email}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-            <Eye className="w-4 h-4" />
+          <button onClick={onClose} aria-label="إغلاق" className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -82,7 +93,7 @@ function StudentDetailModal({ student, onClose, onMessage }: StudentDetailModalP
   );
 }
 
-export default function StudentManagement({ students, onMessageStudent }: StudentManagementProps) {
+export default function StudentManagement({ students, isLoading = false, onMessageStudent }: StudentManagementProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "in_progress">("all");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -138,6 +149,7 @@ export default function StudentManagement({ students, onMessageStudent }: Studen
         </div>
         <Button
           onClick={exportToCSV}
+          disabled={isLoading || students.length === 0}
           variant="outline"
           className="rounded-xl text-xs flex items-center gap-1.5 border-slate-200 dark:border-slate-800"
         >
@@ -145,6 +157,10 @@ export default function StudentManagement({ students, onMessageStudent }: Studen
         </Button>
       </div>
 
+      {isLoading ? (
+        <TableSkeleton />
+      ) : (
+      <>
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-card gap-4">
         <div className="relative w-full md:w-80">
@@ -281,6 +297,8 @@ export default function StudentManagement({ students, onMessageStudent }: Studen
           onClose={() => setSelectedStudent(null)}
           onMessage={() => onMessageStudent(selectedStudent.id)}
         />
+      )}
+      </>
       )}
     </div>
   );

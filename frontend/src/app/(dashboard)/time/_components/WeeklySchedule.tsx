@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from 'date-fns';
 import { m } from "framer-motion";
 
-import type { TimeBlock, WeeklyScheduleProps } from './WeeklySchedule/types';
+import type { TimeBlock, WeeklyScheduleProps, Schedule } from './WeeklySchedule/types';
 import { calculateWeekStats, addMinutesToTime } from './WeeklySchedule/utils';
 import { ScheduleHeader } from './WeeklySchedule/ScheduleHeader';
 import { WeekNavigation } from './WeeklySchedule/WeekNavigation';
@@ -17,6 +17,7 @@ import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
 
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
+import { apiClient } from '@/lib/api/api-client';
 
 function extractTimeBlocks(planJson?: string): TimeBlock[] {
   if (!planJson) return [];
@@ -151,22 +152,14 @@ export default function WeeklySchedule({
     };
 
     try {
-      const response = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          version: typeof (schedule as any)?.version === 'number'
-            ? (schedule as any).version
-            : undefined,
-          plan: scheduleData
-        })
+      const savedSchedule = await apiClient.post<Schedule>('/api/schedule', {
+        userId,
+        version: typeof (schedule as any)?.version === 'number'
+          ? (schedule as any).version
+          : undefined,
+        plan: scheduleData
       });
-
-      if (response.ok) {
-        const savedSchedule = await response.json();
-        onScheduleUpdate?.(savedSchedule);
-      }
+      onScheduleUpdate?.(savedSchedule);
     } catch (error) {
       logger.error('Error saving schedule:', error);
     }

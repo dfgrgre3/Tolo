@@ -2,8 +2,9 @@
 
 import { memo } from "react";
 import Link from "next/link";
-import { GraduationCap, ArrowRight, BookOpen } from "lucide-react";
-import { rpgCommonStyles } from "../shared/styles";
+import { BookOpen } from "lucide-react";
+import { DashSection, DashEmpty } from "../shared/SectionShell";
+import { DASH_GRID, DASH_PROGRESS } from "../shared/design-system";
 import { useCourseProgress } from "../hooks/useDashboardData";
 
 /**
@@ -15,97 +16,68 @@ export const CoursesProgressSection = memo(function CoursesProgressSection() {
 
   if (loading) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12`}>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <DashSection title="كورساتي" subtitle="جاري تحميل تقدمك…">
+        <div className={DASH_GRID.cards3}>
           {[1, 2, 3].map((key) => (
-            <div key={key} className="h-40 rounded-2xl bg-white/5" />
+            <div key={key} className="h-32 rounded-xl bg-muted border border-border animate-pulse" />
           ))}
         </div>
-      </section>
+      </DashSection>
     );
   }
 
   if (error) {
     return (
-      <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 text-center`}>
-        <p className="text-red-400 font-bold">{error}</p>
-      </section>
+      <DashSection title="كورساتي" subtitle={error}>
+        <DashEmpty icon={BookOpen} title="تعذر تحميل كورساتك" description={error} />
+      </DashSection>
     );
   }
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5" />
+    <DashSection
+      title="كورساتي"
+      subtitle={
+        courses.length > 0
+          ? `${completed} مكتمل · ${inProgress} قيد الدراسة · متوسط الإنجاز ${averagePercent}%`
+          : "لم تسجل في أي كورس بعد"
+      }
+      href="/courses"
+      linkLabel="تصفح الكورسات"
+    >
+      {courses.length === 0 ? (
+        <DashEmpty
+          icon={BookOpen}
+          title="لا توجد كورسات مسجلة"
+          description="سجّل في كورس لتتابع تقدمك هنا"
+        />
+      ) : (
+        <div className={DASH_GRID.cards3}>
+          {courses.map((course) => (
+            <Link
+              key={course.enrollmentId}
+              href={`/courses/${course.id}`}
+              className="block rounded-xl bg-muted/40 border border-border p-4 hover:border-primary transition-colors h-full"
+            >
+              <h3 className="font-black text-sm text-foreground mb-3 line-clamp-2">
+                {course.title}
+              </h3>
 
-      <div className="relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
-              <GraduationCap className="h-8 w-8 text-emerald-400" />
-            </div>
-            <div>
-              <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.neonText} mb-1`}>
-                كورساتي
-              </h2>
-              <p className="text-gray-400 text-base">
-                {courses.length > 0
-                  ? `${completed} مكتمل · ${inProgress} قيد الدراسة · متوسط الإنجاز ${averagePercent}%`
-                  : "لم تسجل في أي كورس بعد"}
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href="/courses"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-gray-200 font-bold hover:bg-white/10"
-          >
-            تصفح الكورسات
-            <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-          </Link>
-        </div>
-
-        {courses.length === 0 ? (
-          <div className="text-center py-16 flex flex-col items-center">
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-              <BookOpen className="h-10 w-10 text-gray-600" />
-            </div>
-            <p className="text-xl font-bold text-gray-500 mb-2">لا توجد كورسات مسجلة</p>
-            <p className="text-sm text-gray-600">سجّل في كورس لتتابع تقدمك هنا</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <div
-                key={course.enrollmentId}
-              >
-                <Link
-                  href={`/courses/${course.id}`}
-                  className="block rounded-2xl bg-white/5 border border-white/10 p-6 hover:border-emerald-500/40 hover:bg-white/[0.07] h-full"
-                >
-                  <h3 className="font-black text-lg text-gray-100 mb-4 line-clamp-2">
-                    {course.title}
-                  </h3>
-
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                    <span>
-                      {course.doneLessons} من {course.totalLessons} درس
-                    </span>
-                    <span className="font-bold text-emerald-400">{course.progress}%</span>
-                  </div>
-
-                  <div className="h-2 w-full rounded-full bg-black/40 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-teal-500"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
-                </Link>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span className="font-medium">
+                  {course.doneLessons} من {course.totalLessons} درس
+                </span>
+                <span className="font-black text-primary-strong tabular-nums">{course.progress}%</span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+
+              <div className={DASH_PROGRESS.track}>
+                <div className={DASH_PROGRESS.bar} style={{ width: `${course.progress}%` }} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </DashSection>
   );
 });
 

@@ -120,7 +120,7 @@ export function RemindersList({
                           variant={timeInfo.urgent ? "destructive" : "outline"}
                           className="text-xs"
                         >
-                          <Clock className="h-3 w-3 mr-1" />
+                          <Clock className="h-3 w-3 me-1" />
                           {format(new Date(reminder.remindAt), 'dd/MM HH:mm', { locale: ar })}
                         </Badge>
 
@@ -130,21 +130,21 @@ export function RemindersList({
 
                         {reminder.location && (
                           <Badge variant="outline" className="text-xs">
-                            <MapPin className="h-3 w-3 mr-1" />
+                            <MapPin className="h-3 w-3 me-1" />
                             {reminder.location}
                           </Badge>
                         )}
 
                         {reminder.isCompleted && (
                           <Badge variant="default" className="text-xs bg-green-500">
-                            <CheckCircle className="h-3 w-3 mr-1" />
+                            <CheckCircle className="h-3 w-3 me-1" />
                             مكتمل
                           </Badge>
                         )}
 
                         {reminder.isSnoozed && (
                           <Badge variant="secondary" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
+                            <Clock className="h-3 w-3 me-1" />
                             مؤجل
                           </Badge>
                         )}
@@ -154,7 +154,7 @@ export function RemindersList({
                         <div className="flex flex-wrap gap-1 mb-2">
                           {reminder.tags.map(tag => (
                             <Badge key={tag} variant="outline" className="text-xs">
-                              <Tag className="h-3 w-3 mr-1" />
+                              <Tag className="h-3 w-3 me-1" />
                               {tag}
                             </Badge>
                           ))}
@@ -207,12 +207,12 @@ export function RemindersList({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => onEdit(reminder)}>
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 me-2" />
                             تعديل
                           </DropdownMenuItem>
 
                           <DropdownMenuItem onClick={() => onDuplicate(reminder)}>
-                            <Copy className="h-4 w-4 mr-2" />
+                            <Copy className="h-4 w-4 me-2" />
                             نسخ
                           </DropdownMenuItem>
 
@@ -222,7 +222,7 @@ export function RemindersList({
                             className="text-red-600"
                             onClick={() => onDelete(reminder.id)}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 me-2" />
                             حذف
                           </DropdownMenuItem>
                         </DropdownMenuContent>

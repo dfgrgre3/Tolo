@@ -158,6 +158,13 @@ export const moreMegaMenu: MegaMenuCategory[] = [
       { href: "/billing/referrals", label: "برنامج الإحالة", icon: UserPlus, description: "دعوة أصدقائك والحصول على مكافآت ونقاط مجانية" },
     ],
   },
+  {
+    title: "الاتصالات",
+    slug: "connections",
+    items: [
+      { href: "/connections/organization", label: "ربط الحساب بمنظمة", icon: Users, description: "اربط حسابك بمنظمة أو مؤسسة تعليمية" },
+    ],
+  },
 ];
 
 export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
@@ -171,4 +178,21 @@ export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
 
 export const headerNavItems: NavItemWithMegaMenu[] = [
   { href: "/schools", label: "مدارس", icon: GraduationCap, description: "المراحل التعليمية من ابتدائي إلى ثانوي", megaMenu: schoolsMegaMenu },
+];
+
+export interface UtilityNavItem {
+  href: string;
+  label: string;
+  position: "left" | "right";
+}
+
+/**
+ * Standalone header links that are not part of the mega-menu navigation.
+ * Kept data-driven here so they live next to the rest of the nav config
+ * instead of being hard-coded inside Header.tsx.
+ */
+export const utilityNavItems: UtilityNavItem[] = [
+  { href: "/teach", label: "التدريس على Tolo", position: "left" },
+  { href: "/careers", label: "وظائف Tolo", position: "left" },
+  { href: "/plans", label: "الخطط", position: "right" },
 ];

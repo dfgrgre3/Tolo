@@ -230,12 +230,12 @@ export default function TipsGenerator({
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
                   جاري إنشاء النصائح...
                 </>
               ) : (
                 <>
-                  <Lightbulb className="h-5 w-5 mr-3" />
+                  <Lightbulb className="h-5 w-5 me-3" />
                   احصل على نصائح تعليمية
                 </>
               )}
@@ -257,7 +257,7 @@ export default function TipsGenerator({
                 variant="outline"
                 className="h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/10"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 me-2" />
                 نصائح جديدة
               </Button>
             </div>

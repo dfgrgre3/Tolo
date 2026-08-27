@@ -118,14 +118,14 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
       <div className="flex flex-col gap-3 md:flex-row">
         {/* Search input */}
         <div className="group relative flex-1">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400 transition-colors group-focus-within:text-primary" />
+          <Search className="absolute start-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400 transition-colors group-focus-within:text-primary" />
           <input
             type="text"
             placeholder="ابحث عن دورة، مدرس، أو مهارة..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={cn(
-              "w-full rounded-xl border bg-white py-3 pl-10 pr-11 text-sm transition-all duration-200",
+              "w-full rounded-xl border bg-white py-3 ps-10 pe-11 text-sm transition-all duration-200",
               "border-gray-200 text-gray-900 placeholder:text-gray-400",
               "focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10",
               "dark:border-white/10 dark:bg-gray-900/80 dark:text-white dark:placeholder:text-gray-500",
@@ -137,7 +137,7 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             onClick={() => setSearchTerm("")}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5">
+            className="absolute end-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5">
             
               <X className="h-4 w-4" />
             </m.button>

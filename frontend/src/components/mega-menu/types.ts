@@ -17,14 +17,14 @@ export interface MegaMenuCategory {
 	slug?: string;
 }
 
-import type { User } from "@/types/user";
+import type { AuthUser } from "@/contexts/auth-context";
 
 export interface MegaMenuProps {
 	categories: MegaMenuCategory[];
 	isOpen: boolean;
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
-	user?: User | null;
+	user?: AuthUser | null;
 }
 
 // Backend API response types

@@ -63,7 +63,7 @@ const handleActionShortcuts = (e: KeyboardEvent): boolean => {
 
     if (isCmd && e.key === "k" && noOtherMods) {
         e.preventDefault();
-        const searchButton = document.querySelector('[data-search-trigger]') as HTMLElement;
+        const searchButton = document.querySelector('#header-search-input') as HTMLElement;
         if (searchButton) searchButton.click();
         return true;
     }

@@ -2,15 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useMounted } from "@/hooks/use-mounted";
 
 export function useMegaMenuState() {
   const pathname = usePathname();
   const [openMegaMenu, setOpenMegaMenu] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setMounted(true));
-  }, []);
+  const mounted = useMounted();
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setOpenMegaMenu(null));

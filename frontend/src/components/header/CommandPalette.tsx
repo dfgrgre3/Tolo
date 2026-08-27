@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -29,7 +29,7 @@ import { safeGetItem } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
-// ─── Types ───────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CommandItem {
 	id: string;
@@ -81,13 +81,13 @@ declare global {
 	}
 }
 
-// ─── Constants ───────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const RECENT_STORAGE_KEY = "command_palette_recent";
 const MAX_RECENT_ITEMS = 5;
 const FOCUS_DELAY_MS = 100;
 
-// ─── Helpers ─────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getInitialRecentItems(): string[] {
 	if (typeof window === "undefined") return [];
@@ -116,7 +116,7 @@ function createSpeechRecognition(): SpeechRecognitionInstance | null {
 	return instance;
 }
 
-// ─── Component ───────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const router = useRouter();
@@ -129,7 +129,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const [recentItems, setRecentItems] = useState<string[]>(getInitialRecentItems);
 	const [isListening, setIsListening] = useState(false);
 
-	// ── Speech Recognition Setup ──────────────────────────────────
+	// â”€â”€ Speech Recognition Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		const recognition = createSpeechRecognition();
@@ -159,7 +159,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		};
 	}, []);
 
-	// ── Auto-focus on open ────────────────────────────────────────
+	// â”€â”€ Auto-focus on open â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		if (!open || !inputRef.current) return;
@@ -171,7 +171,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		return () => window.clearTimeout(timeout);
 	}, [open]);
 
-	// ── Handlers ──────────────────────────────────────────────────
+	// â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const handleOpenChange = useCallback(
 		(nextOpen: boolean) => {
@@ -204,90 +204,90 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		}
 	}, [isListening]);
 
-	// ── Commands ──────────────────────────────────────────────────
+	// â”€â”€ Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const allCommands = useMemo<CommandItem[]>(() => {
 		const baseCommands: CommandItem[] = [
 			{
 				id: "home",
-				label: "الصفحة الرئيسية",
-				description: "العودة إلى الصفحة الرئيسية",
+				label: "Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©",
+				description: "Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©",
 				icon: Home,
 				action: () => router.push("/"),
-				keywords: ["home", "رئيسية", "بداية"],
-				category: "تنقل",
+				keywords: ["home", "Ø±Ø¦ÙŠØ³ÙŠØ©", "Ø¨Ø¯Ø§ÙŠØ©"],
+				category: "ØªÙ†Ù‚Ù„",
 				shortcut: "Ctrl+H"
 			},
 			{
 				id: "courses",
-				label: "الدورات",
-				description: "عرض جميع الدورات",
+				label: "Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
+				description: "Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
 				icon: BookOpen,
 				action: () => router.push("/courses"),
-				keywords: ["courses", "دورات", "كورسات"],
-				category: "تعليم",
+				keywords: ["courses", "Ø¯ÙˆØ±Ø§Øª", "ÙƒÙˆØ±Ø³Ø§Øª"],
+				category: "ØªØ¹Ù„ÙŠÙ…",
 				popular: true
 			},
 			{
 				id: "teachers",
-				label: "المعلمين",
-				description: "استكشف المعلمين",
+				label: "Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†",
+				description: "Ø§Ø³ØªÙƒØ´Ù Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†",
 				icon: Users,
 				action: () => router.push("/teachers"),
-				keywords: ["teachers", "معلمين", "أساتذة"],
-				category: "تعليم"
+				keywords: ["teachers", "Ù…Ø¹Ù„Ù…ÙŠÙ†", "Ø£Ø³Ø§ØªØ°Ø©"],
+				category: "ØªØ¹Ù„ÙŠÙ…"
 			},
 			{
 				id: "forum",
-				label: "المنتدى",
-				description: "مناقشات ومحادثات",
+				label: "Ø§Ù„Ù…Ù†ØªØ¯Ù‰",
+				description: "Ù…Ù†Ø§Ù‚Ø´Ø§Øª ÙˆÙ…Ø­Ø§Ø¯Ø«Ø§Øª",
 				icon: MessageSquare,
 				action: () => router.push("/forum"),
-				keywords: ["forum", "منتدى", "مناقشات"],
-				category: "مجتمع"
+				keywords: ["forum", "Ù…Ù†ØªØ¯Ù‰", "Ù…Ù†Ø§Ù‚Ø´Ø§Øª"],
+				category: "Ù…Ø¬ØªÙ…Ø¹"
 			},
 			{
 				id: "schedule",
-				label: "الجدول الزمني",
-				description: "عرض جدولك الزمني",
+				label: "Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø²Ù…Ù†ÙŠ",
+				description: "Ø¹Ø±Ø¶ Ø¬Ø¯ÙˆÙ„Ùƒ Ø§Ù„Ø²Ù…Ù†ÙŠ",
 				icon: Calendar,
 				action: () => router.push("/schedule"),
-				keywords: ["schedule", "جدول", "مواعيد"],
-				category: "تنظيم",
+				keywords: ["schedule", "Ø¬Ø¯ÙˆÙ„", "Ù…ÙˆØ§Ø¹ÙŠØ¯"],
+				category: "ØªÙ†Ø¸ÙŠÙ…",
 				popular: true
 			},
 			{
 				id: "time",
-				label: "إدارة الوقت",
-				description: "تتبع وقتك الدراسي",
+				label: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙˆÙ‚Øª",
+				description: "ØªØªØ¨Ø¹ ÙˆÙ‚ØªÙƒ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
 				icon: Clock,
 				action: () => router.push("/time"),
-				keywords: ["time", "وقت", "تتبع"],
-				category: "إنتاجية",
+				keywords: ["time", "ÙˆÙ‚Øª", "ØªØªØ¨Ø¹"],
+				category: "Ø¥Ù†ØªØ§Ø¬ÙŠØ©",
 				popular: true
 			},
 			{
 				id: "analytics",
-				label: "الإحصائيات",
-				description: "عرض إحصائياتك",
+				label: "Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª",
+				description: "Ø¹Ø±Ø¶ Ø¥Ø­ØµØ§Ø¦ÙŠØ§ØªÙƒ",
 				icon: BarChart3,
 				action: () => router.push("/analytics"),
-				keywords: ["analytics", "إحصائيات"],
-				category: "تحليلات"
+				keywords: ["analytics", "Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª"],
+				category: "ØªØ­Ù„ÙŠÙ„Ø§Øª"
 			},
 			{
 				id: "leaderboard",
-				label: "لوحة المتصدرين",
-				description: "ترتيب الطلاب",
+				label: "Ù„ÙˆØ­Ø© Ø§Ù„Ù…ØªØµØ¯Ø±ÙŠÙ†",
+				description: "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø·Ù„Ø§Ø¨",
 				icon: TrendingUp,
 				action: () => router.push("/leaderboard"),
-				keywords: ["leaderboard", "متصدرين", "ترتيب"],
-				category: "تنافس"
+				keywords: ["leaderboard", "Ù…ØªØµØ¯Ø±ÙŠÙ†", "ØªØ±ØªÙŠØ¨"],
+				category: "ØªÙ†Ø§ÙØ³"
 			},
 			{
 				id: "notifications",
-				label: "الإشعارات",
-				description: "عرض الإشعارات",
+				label: "Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª",
+				description: "Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª",
 				icon: Bell,
 				action: () => {
 					const trigger = document.querySelector(
@@ -295,8 +295,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 					) as HTMLElement | null;
 					trigger?.click();
 				},
-				keywords: ["notifications", "إشعارات", "تنبيهات"],
-				category: "حساب",
+				keywords: ["notifications", "Ø¥Ø´Ø¹Ø§Ø±Ø§Øª", "ØªÙ†Ø¨ÙŠÙ‡Ø§Øª"],
+				category: "Ø­Ø³Ø§Ø¨",
 				shortcut: "Ctrl+N"
 			}
 		];
@@ -307,7 +307,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		}));
 	}, [recentItems, router]);
 
-	// ── Filtering & Sorting ───────────────────────────────────────
+	// â”€â”€ Filtering & Sorting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const filteredCommands = useMemo(() => {
 		if (!searchQuery.trim()) {
@@ -340,7 +340,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		return groups;
 	}, [filteredCommands]);
 
-	// ── Selection ─────────────────────────────────────────────────
+	// â”€â”€ Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const handleSelect = useCallback(
 		(command: CommandItem) => {
@@ -358,7 +358,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		[handleOpenChange, recentItems]
 	);
 
-	// ── Keyboard Navigation ───────────────────────────────────────
+	// â”€â”€ Keyboard Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		if (!open) return;
@@ -390,7 +390,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [filteredCommands, handleOpenChange, handleSelect, open, selectedIndex]);
 
-	// ── Scroll selected into view ─────────────────────────────────
+	// â”€â”€ Scroll selected into view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		if (!listRef.current || selectedIndex < 0) return;
@@ -399,7 +399,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		buttons[selectedIndex]?.scrollIntoView({ block: "nearest" });
 	}, [selectedIndex]);
 
-	// ── Render ────────────────────────────────────────────────────
+	// â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const hasSpeechRecognition =
 		typeof window !== "undefined" &&
@@ -407,7 +407,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden" aria-label="لوحة الأوامر">
+			<DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden" aria-label="Ù„ÙˆØ­Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø±">
 				<div className="flex flex-col">
 					{/* Search Header */}
 					<div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
@@ -416,9 +416,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 							ref={inputRef}
 							value={searchQuery}
 							onChange={(e) => handleSearchChange(e.target.value)}
-							placeholder="ابحث عن دروس، ملفات، أو أوامر..."
+							placeholder="Ø§Ø¨Ø­Ø« Ø¹Ù† Ø¯Ø±ÙˆØ³ØŒ Ù…Ù„ÙØ§ØªØŒ Ø£Ùˆ Ø£ÙˆØ§Ù…Ø±..."
 							className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-auto py-2"
-							aria-label="بحث في لوحة الأوامر"
+							aria-label="Ø¨Ø­Ø« ÙÙŠ Ù„ÙˆØ­Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø±"
 						/>
 
 						<div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 											: "hover:bg-primary/10 text-muted-foreground hover:text-primary"
 									)}
 									onClick={toggleListening}
-									aria-label={isListening ? "إيقاف الاستماع" : "بحث صوتي"}
+									aria-label={isListening ? "Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ø§Ø³ØªÙ…Ø§Ø¹" : "Ø¨Ø­Ø« ØµÙˆØªÙŠ"}
 									aria-pressed={isListening}
 								>
 									<Mic className={cn("h-4 w-4", isListening && "fill-current")} aria-hidden="true" />
@@ -446,7 +446,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 									size="icon"
 									className="h-6 w-6 shrink-0"
 									onClick={() => handleSearchChange("")}
-									aria-label="مسح البحث"
+									aria-label="Ù…Ø³Ø­ Ø§Ù„Ø¨Ø­Ø«"
 								>
 									<X className="h-3 w-3" aria-hidden="true" />
 								</Button>
@@ -455,12 +455,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 					</div>
 
 					{/* Results List */}
-					<div className="max-h-[60vh] overflow-y-auto" ref={listRef} role="listbox" aria-label="نتائج البحث">
+					<div className="max-h-[60vh] overflow-y-auto" ref={listRef} role="listbox" aria-label="Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø¨Ø­Ø«">
 						{filteredCommands.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12 px-4 text-center">
 								<Search className="h-12 w-12 text-muted-foreground mb-4 opacity-50" aria-hidden="true" />
-								<p className="text-sm font-medium text-foreground mb-1">لا توجد نتائج</p>
-								<p className="text-xs text-muted-foreground">جرب البحث بكلمات مختلفة</p>
+								<p className="text-sm font-medium text-foreground mb-1">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬</p>
+								<p className="text-xs text-muted-foreground">Ø¬Ø±Ø¨ Ø§Ù„Ø¨Ø­Ø« Ø¨ÙƒÙ„Ù…Ø§Øª Ù…Ø®ØªÙ„ÙØ©</p>
 							</div>
 						) : (
 							<div className="p-2">
@@ -483,14 +483,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 														aria-selected={isSelected}
 														onClick={() => handleSelect(command)}
 														className={cn(
-															"w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right outline-none transition-all duration-200 ease-out",
-															"hover:bg-primary/5 focus:bg-primary/5 hover:pl-4",
-															isSelected && "bg-primary/10 pl-4 ring-1 ring-primary/30"
+															"w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-start outline-none",
+															"hover:bg-primary/5 focus:bg-primary/5 hover:ps-4",
+															isSelected && "bg-primary/10 ps-4 ring-1 ring-primary/30"
 														)}
 													>
 														<div
 															className={cn(
-																"flex items-center justify-center h-8 w-8 rounded-md shrink-0 transition-transform duration-200",
+																"flex items-center justify-center h-8 w-8 rounded-md shrink-0",
 																isSelected
 																	? "bg-primary text-primary-foreground scale-110"
 																	: "bg-primary/10 text-primary"
@@ -499,16 +499,16 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 															<Icon className="h-4 w-4" aria-hidden="true" />
 														</div>
 
-														<div className="flex-1 min-w-0 text-right">
+														<div className="flex-1 min-w-0 text-start">
 															<div className="flex items-center gap-2">
 																<span className="text-sm font-medium text-foreground">
 																	{command.label}
 																</span>
 																{command.recent && (
-																	<History className="h-3 w-3 text-primary shrink-0" aria-label="تم استخدامه مؤخرًا" />
+																	<History className="h-3 w-3 text-primary shrink-0" aria-label="ØªÙ… Ø§Ø³ØªØ®Ø¯Ø§Ù…Ù‡ Ù…Ø¤Ø®Ø±Ù‹Ø§" />
 																)}
 																{command.popular && (
-																	<Star className="h-3 w-3 text-yellow-500 shrink-0" aria-label="شائع" />
+																	<Star className="h-3 w-3 text-yellow-500 shrink-0" aria-label="Ø´Ø§Ø¦Ø¹" />
 																)}
 															</div>
 															{command.description && (
@@ -539,16 +539,16 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 					<div className="border-t border-border/50 px-4 py-2 flex items-center justify-between text-xs text-muted-foreground bg-muted/30">
 						<div className="flex items-center gap-4">
 							<div className="flex items-center gap-1">
-								<kbd className="h-4 px-1.5 rounded border bg-background">↑↓</kbd>
-								<span>للتنقل</span>
+								<kbd className="h-4 px-1.5 rounded border bg-background">â†‘â†“</kbd>
+								<span>Ù„Ù„ØªÙ†Ù‚Ù„</span>
 							</div>
 							<div className="flex items-center gap-1">
 								<kbd className="h-4 px-1.5 rounded border bg-background">Enter</kbd>
-								<span>للاختيار</span>
+								<span>Ù„Ù„Ø§Ø®ØªÙŠØ§Ø±</span>
 							</div>
 							<div className="flex items-center gap-1">
 								<kbd className="h-4 px-1.5 rounded border bg-background">Esc</kbd>
-								<span>للإغلاق</span>
+								<span>Ù„Ù„Ø¥ØºÙ„Ø§Ù‚</span>
 							</div>
 						</div>
 						<div className="flex items-center gap-1 text-primary">

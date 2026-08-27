@@ -118,7 +118,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
       <Card className="border-2 border-primary/10 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
           <CardTitle className="flex items-center text-lg">
-            <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ml-2">
+            <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ms-2">
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             تحليلات الإنتاجية

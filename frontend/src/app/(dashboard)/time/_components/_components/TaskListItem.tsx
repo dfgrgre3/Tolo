@@ -146,7 +146,7 @@ export function TaskListItem({
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   {task.subject && (
                     <Badge variant="secondary" className="text-xs">
-                      <BookOpen className="h-3 w-3 mr-1" />
+                      <BookOpen className="h-3 w-3 me-1" />
                       {task.subject}
                     </Badge>
                   )}
@@ -164,28 +164,28 @@ export function TaskListItem({
                       variant={dueDateInfo.urgent ? "destructive" : "outline"}
                       className="text-xs"
                     >
-                      <Calendar className="h-3 w-3 mr-1" />
+                      <Calendar className="h-3 w-3 me-1" />
                       {dueDateInfo.text}
                     </Badge>
                   )}
 
                   {task.estimatedTime && (
                     <Badge variant="outline" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" />
+                      <Clock className="h-3 w-3 me-1" />
                       {task.estimatedTime}د
                     </Badge>
                   )}
 
                   {task.actualTime && (
                     <Badge variant="secondary" className="text-xs">
-                      <Timer className="h-3 w-3 mr-1" />
+                      <Timer className="h-3 w-3 me-1" />
                       {task.actualTime}د فعلي
                     </Badge>
                   )}
 
                   {totalSubtasks > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                      <CheckCircle className="h-3 w-3 me-1" />
                       {completedSubtasks}/{totalSubtasks}
                     </Badge>
                   )}
@@ -195,7 +195,7 @@ export function TaskListItem({
                   <div className="flex flex-wrap gap-1 mb-2">
                     {task.tags.map(tag => (
                       <Badge key={tag} variant="outline" className="text-xs">
-                        <Tag className="h-3 w-3 mr-1" />
+                        <Tag className="h-3 w-3 me-1" />
                         {tag}
                       </Badge>
                     ))}
@@ -261,12 +261,12 @@ export function TaskListItem({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(task)}>
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="h-4 w-4 me-2" />
                       تعديل
                     </DropdownMenuItem>
 
                     <DropdownMenuItem onClick={() => onCopyTitle(task.title)}>
-                      <Copy className="h-4 w-4 mr-2" />
+                      <Copy className="h-4 w-4 me-2" />
                       نسخ العنوان
                     </DropdownMenuItem>
 
@@ -274,14 +274,14 @@ export function TaskListItem({
 
                     {task.status !== 'IN_PROGRESS' && (
                       <DropdownMenuItem onClick={() => onStatusChange(task.id, 'IN_PROGRESS')}>
-                        <Play className="h-4 w-4 mr-2" />
+                        <Play className="h-4 w-4 me-2" />
                         بدء العمل
                       </DropdownMenuItem>
                     )}
 
                     {task.status !== 'COMPLETED' && (
                       <DropdownMenuItem onClick={() => onStatusChange(task.id, 'COMPLETED')}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-4 w-4 me-2" />
                         إكمال
                       </DropdownMenuItem>
                     )}
@@ -292,7 +292,7 @@ export function TaskListItem({
                       className="text-red-600"
                       onClick={() => onDelete(task.id)}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 me-2" />
                       حذف
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -301,7 +301,7 @@ export function TaskListItem({
             </div>
 
             {isExpanded && task.subtasks && task.subtasks.length > 0 && (
-              <div className="mt-3 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+              <div className="mt-3 ps-4 border-l-2 border-gray-200 dark:border-gray-700">
                 <div className="space-y-2">
                   {task.subtasks.map(subtask => (
                     <div key={subtask.id} className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export function TaskListItem({
                     variant="outline"
                     onClick={() => setAddingSubtaskTo(task.id)}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-4 w-4 me-1" />
                     إضافة مهمة فرعية
                   </Button>
                 )}

@@ -126,7 +126,7 @@ export default function TimeManagementHeader({
                     initial={{ width: 0 }}
                     animate={{ width: `${gameMetrics.progressPercentage}%` }}
                     transition={{ duration: 1, delay: 0.2 }}
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full">
+                    className="absolute top-0 start-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full">
                     
                        <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:10px_10px] animate-stripe" />
                      </m.div>

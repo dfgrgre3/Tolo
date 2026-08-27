@@ -1,20 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
-import { DollarSign, Landmark, ArrowDownCircle, Download, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { DollarSign, Landmark, ArrowDownCircle, Download, CheckCircle, Wallet } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Transaction } from "../hooks/use-teaching-data";
+import { TableSkeleton } from "./Skeletons";
 
 interface EarningsPanelProps {
   transactions: Transaction[];
+  isLoading?: boolean;
 }
 
-export default function EarningsPanel({ transactions }: EarningsPanelProps) {
+export default function EarningsPanel({ transactions, isLoading = false }: EarningsPanelProps) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
 
   const totalEarnings = transactions
     .filter((tr) => tr.type === "sale")
@@ -28,13 +32,36 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
+    const amount = parseFloat(withdrawAmount);
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
+      setWithdrawError("يرجى إدخال مبلغ صحيح أكبر من صفر.");
+      return;
+    }
+    if (amount > availableBalance) {
+      setWithdrawError(`المبلغ المطلوب يتجاوز الرصيد المتاح ($${availableBalance.toLocaleString()}).`);
+      return;
+    }
+    setWithdrawError("");
     setWithdrawSuccess(true);
+    toast.success("تم تسجيل طلب السحب بنجاح");
     setTimeout(() => {
       setShowWithdrawModal(false);
       setWithdrawSuccess(false);
       setWithdrawAmount("");
     }, 2000);
+  };
+
+  const getStatusBadge = (status: Transaction["status"]) => {
+    switch (status) {
+      case "completed":
+        return <span className="text-[10px] bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full font-bold">مكتملة</span>;
+      case "pending":
+        return <span className="text-[10px] bg-amber-50 text-amber-600 dark:bg-amber-950/20 px-2 py-0.5 rounded-full font-bold">قيد المعالجة</span>;
+      case "failed":
+        return <span className="text-[10px] bg-red-50 text-red-500 dark:bg-red-950/20 px-2 py-0.5 rounded-full font-bold">فاشلة</span>;
+      default:
+        return null;
+    }
   };
 
   const handleExportCSV = () => {
@@ -59,6 +86,27 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
     document.body.removeChild(link);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6 text-right" dir="rtl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[0, 1].map((i) => (
+            <Card key={i} className="border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div className="space-y-2 w-full">
+                  <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded animate-pulse" />
+                  <div className="h-7 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-850 animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <TableSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Header */}
@@ -72,7 +120,14 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
             <Download className="w-4 h-4" />
             تصدير تقرير CSV
           </Button>
-          <Button onClick={() => setShowWithdrawModal(true)} className="bg-primary hover:bg-primary/95 text-white flex items-center gap-1.5 rounded-xl text-xs">
+          <Button
+            onClick={() => {
+              setWithdrawError("");
+              setShowWithdrawModal(true);
+            }}
+            disabled={availableBalance <= 0}
+            className="bg-primary hover:bg-primary/95 text-white flex items-center gap-1.5 rounded-xl text-xs"
+          >
             <ArrowDownCircle className="w-4 h-4" />
             طلب سحب أرباح
           </Button>
@@ -123,6 +178,11 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
               </div>
             ) : (
               <form onSubmit={handleWithdraw} className="space-y-4 text-xs font-semibold">
+                {withdrawError && (
+                  <div className="p-3 bg-red-50/60 dark:bg-red-950/15 text-red-500 border border-red-200/50 rounded-xl text-xs leading-relaxed">
+                    {withdrawError}
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-slate-500">المبلغ المطلوب سحبه (بالدولار $)</label>
                   <input
@@ -177,7 +237,18 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((tr) => (
+              {transactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center p-10">
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <Wallet className="w-8 h-8 stroke-[1.5]" />
+                      <span className="text-xs">لا توجد معاملات مالية حتى الآن</span>
+                      <span className="text-[10px]">ستظهر مبيعات الكورسات والسحوبات في هذا السجل</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+              transactions.map((tr) => (
                 <TableRow key={tr.id} className="border-b border-slate-100 dark:border-slate-850/60 hover:bg-slate-50/30 dark:hover:bg-slate-900/10 text-xs">
                   <TableCell className="py-3">
                     <div className="font-bold text-slate-800 dark:text-slate-250">
@@ -192,15 +263,14 @@ export default function EarningsPanel({ transactions }: EarningsPanelProps) {
                     </span>
                   </TableCell>
                   <TableCell className="py-3">
-                    <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">
-                      مكتملة
-                    </span>
+                    {getStatusBadge(tr.status)}
                   </TableCell>
                   <TableCell className="py-3 text-left font-bold text-slate-800 dark:text-slate-200">
                     {tr.type === "sale" ? `+${tr.amount}$` : `-${tr.amount}$`}
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

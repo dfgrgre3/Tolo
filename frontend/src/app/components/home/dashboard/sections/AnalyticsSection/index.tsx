@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { safeFetch } from '@/lib/safe-client-utils';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/hooks/use-auth';
-import { rpgCommonStyles } from "../../shared/styles";
-import { Sword, Scroll, Clock, Target, RefreshCw } from "lucide-react";
+import { RefreshCw, Target, ScrollText, Clock, ChevronLeft, AlertCircle } from "lucide-react";
+import { DashSection, DashEmpty } from "../../shared/SectionShell";
+import { DASH_CARD, DASH_GRID, DASH_PROGRESS } from "../../shared/design-system";
 import { DailyProgressChart } from "./DailyProgressChart";
 
 type AnalyticsData = {
@@ -117,79 +118,72 @@ function AnalyticsSectionComponent() {
   let cardContent;
   if (isLoading && !data) {
     cardContent = (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-          <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
-          <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
-          <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
+      <div className="space-y-4">
+        <div className={DASH_GRID.cards3}>
+          <div className="h-28 rounded-lg bg-muted border border-border animate-pulse" />
+          <div className="h-28 rounded-lg bg-muted border border-border animate-pulse" />
+          <div className="h-28 rounded-lg bg-muted border border-border animate-pulse" />
         </div>
-        <div className="h-48 w-full rounded-xl bg-white/10 border border-white/5" />
-        <div className="flex justify-between items-center mt-6">
-          <div className="h-4 w-48 bg-white/10 rounded" />
-          <div className="h-10 w-32 bg-white/10 rounded-xl" />
-        </div>
+        <div className="h-48 w-full rounded-lg bg-muted border border-border animate-pulse" />
       </div>
     );
   } else if (error) {
     cardContent = (
-      <div className="text-center py-12 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
-          <Target className="h-10 w-10 text-red-400" />
-        </div>
-        <p className="text-xl font-bold text-gray-500 mb-2">تعذر تحميل البيانات</p>
-        <p className="text-sm text-gray-600 mb-6">{error}</p>
-        <button
-          onClick={loadData}
-          className="px-8 py-3 bg-primary text-primary-foreground rounded-xl text-base font-bold hover:bg-primary/90 shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] inline-flex items-center gap-2"
-        >
-          <RefreshCw className="h-5 w-5" />
-          إعادة المحاولة
-        </button>
-      </div>
+      <DashEmpty
+        icon={AlertCircle}
+        title="تعذر تحميل البيانات"
+        description={error}
+        action={
+          <button
+            onClick={loadData}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            إعادة المحاولة
+          </button>
+        }
+      />
     );
   } else {
     cardContent = (
       <div key={data?.timestamp || 'initial-content'}>
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+        <div className={`${DASH_GRID.cards3} mb-4 ${isLoading ? 'opacity-50' : 'opacity-100'} transition-opacity`}>
           {/* 1. Progress Rate */}
-          <div className={`${rpgCommonStyles.card} border-indigo-500/20 bg-indigo-500/10`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="h-5 w-5 text-indigo-400" />
-              <p className="text-sm text-gray-400">نسبة الإنجاز الأسبوعي</p>
+          <div className={`${DASH_CARD.inner} border-primary/30 bg-primary/5 p-3`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Target className="h-4 w-4 text-primary-strong" aria-hidden="true" />
+              <p className="text-[11px] font-bold text-muted-foreground">نسبة الإنجاز الأسبوعي</p>
             </div>
-            <p className={`text-3xl font-extrabold ${rpgCommonStyles.neonText} mt-1`}>
+            <p className="text-2xl font-black text-primary-strong tabular-nums">
               {isNaN(data?.progressRate ?? 0) ? 0 : (data?.progressRate ?? 0)}%
             </p>
-            <div className="h-2 bg-gray-700 rounded-full mt-3 overflow-hidden">
-              <div
-                className="h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-                style={{ width: `${data?.progressRate || 0}%` }}
-              />
+            <div className={`${DASH_PROGRESS.track} mt-2`}>
+              <div className={DASH_PROGRESS.bar} style={{ width: `${data?.progressRate || 0}%` }} />
             </div>
           </div>
 
           {/* 2. Completed tasks */}
-          <div className={`${rpgCommonStyles.card} border-emerald-500/20 bg-emerald-500/10`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Scroll className="h-5 w-5 text-emerald-400" />
-              <p className="text-sm text-gray-400">المهام المكتملة</p>
+          <div className={`${DASH_CARD.inner} p-3`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <ScrollText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <p className="text-[11px] font-bold text-muted-foreground">المهام المكتملة</p>
             </div>
-            <p className="text-3xl font-extrabold text-emerald-400 mt-1 drop-shadow-md">
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
               {isNaN(data?.skillsAcquired ?? 0) ? 0 : (data?.skillsAcquired ?? 0)}
             </p>
-            <p className="text-xs text-emerald-500 mt-2">خلال هذا الأسبوع</p>
+            <p className="text-[11px] text-muted-foreground mt-2">خلال هذا الأسبوع</p>
           </div>
 
           {/* 3. Study Hours */}
-          <div className={`${rpgCommonStyles.card} border-amber-500/20 bg-amber-500/10`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-amber-400" />
-              <p className="text-sm text-gray-400">ساعات المذاكرة</p>
+          <div className={`${DASH_CARD.inner} p-3`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Clock className="h-4 w-4 text-amber-500" aria-hidden="true" />
+              <p className="text-[11px] font-bold text-muted-foreground">ساعات المذاكرة</p>
             </div>
-            <p className={`text-3xl font-extrabold ${rpgCommonStyles.goldText} mt-1`}>
+            <p className="text-2xl font-black text-amber-700 dark:text-amber-400 tabular-nums">
               {isNaN(data?.studyHours ?? 0) ? 0 : (data?.studyHours ?? 0)}
             </p>
-            <p className="text-xs text-amber-500 mt-2">إجمالي وقت المذاكرة الأسبوعي</p>
+            <p className="text-[11px] text-muted-foreground mt-2">إجمالي وقت المذاكرة الأسبوعي</p>
           </div>
         </div>
 
@@ -197,35 +191,22 @@ function AnalyticsSectionComponent() {
           <DailyProgressChart chartData={data.dailyProgress} />
         )}
 
-        <p className="font-semibold mb-4 text-xl text-gray-100 border-b border-dashed border-white/10 pb-3 flex items-center gap-2">
-          <Sword className="h-5 w-5 text-red-400" />
-          التقرير الأسبوعي
-        </p>
+        <div className="mt-4 flex flex-col items-center justify-between gap-3 border-t border-dashed border-border pt-3 sm:flex-row">
+          <p className="text-xs font-medium text-muted-foreground">
+            آخر حساب:{' '}
+            {data?.timestamp
+              ? new Date(data.timestamp).toLocaleString('ar-EG', {
+                  day: 'numeric',
+                  month: 'long',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'غير متاح'}
+          </p>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-          <div className="flex items-center gap-2 text-sm text-gray-200">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-            <span>
-              آخر حساب:{' '}
-              {data?.timestamp
-                ? new Date(data.timestamp).toLocaleString('ar-EG', {
-                    day: 'numeric',
-                    month: 'long',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : 'غير متاح'}
-            </span>
-          </div>
-          
-          <Link
-            href="/analytics"
-            className="rtl:flex-row-reverse rtl:justify-end px-6 py-3 bg-primary text-black rounded-xl text-base font-bold hover:bg-primary/90 shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] inline-flex items-center gap-2"
-          >
+          <Link href="/analytics" className="text-xs sm:text-sm font-bold text-primary-strong hover:bg-primary/10 px-2.5 py-1.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
             عرض السجلات الكاملة
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rtl:rotate-180">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </div>
@@ -233,36 +214,25 @@ function AnalyticsSectionComponent() {
   }
 
   return (
-    <div className="mt-16 relative overflow-hidden p-4 md:p-8 max-w-5xl mx-auto rounded-3xl border border-white/5 !bg-black/60 backdrop-blur-xl shadow-2xl">
-      <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl opacity-30 pointer-events-none" />
-      <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-30 pointer-events-none" />
-      
-      <div className="relative z-10 text-right" dir="rtl">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-8">
-          <div className="flex items-center gap-3 order-2 sm:order-1">
-            <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.goldText}`}>إحصائيات الأسبوع</h2>
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 shadow-inner">
-              <span className="text-2xl filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">📊</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 order-1 sm:order-2">
-            <button
-              onClick={loadData}
-              disabled={isLoading}
-              className={`p-2 rounded-full flex items-center justify-center border border-white/10 ${isLoading ? 'bg-white/5 cursor-not-allowed text-gray-500' : 'bg-white/5 text-primary hover:bg-white/10 hover:shadow-[0_0_10px_rgba(124,58,237,0.2)]'}`}
-              title="تحديث البيانات"
-            >
-              <RefreshCw className={`h-5 w-5 ${isLoading ? '' : ''}`} />
-            </button>
-          </div>
-        </div>
-        
-        <div className="relative z-10">
-          {cardContent}
-        </div>
-      </div>
-    </div>
+    <DashSection
+      title="إحصائيات الأسبوع"
+      subtitle="لمحة سريعة عن أدائك خلال السبعة أيام الماضية"
+      action={
+        <button
+          onClick={loadData}
+          disabled={isLoading}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors disabled:opacity-50 ${
+            isLoading ? 'bg-muted text-muted-foreground' : 'bg-card text-muted-foreground hover:text-primary-strong hover:border-primary'
+          }`}
+          title="تحديث البيانات"
+          aria-label="تحديث البيانات"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </button>
+      }
+    >
+      <div dir="rtl">{cardContent}</div>
+    </DashSection>
   );
 }
 

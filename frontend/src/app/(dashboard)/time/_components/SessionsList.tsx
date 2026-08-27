@@ -41,7 +41,7 @@ export function SessionsList({ sessions, tasks }: SessionsListProps) {
                     {formatTime(session.durationMin * 60)} - {new Date(session.startTime).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
-                <Badge variant="secondary" className="ml-3">
+                <Badge variant="secondary" className="ms-3">
                   {Math.floor(session.durationMin)} د
                 </Badge>
               </div>

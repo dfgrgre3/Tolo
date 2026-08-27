@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Search, X, Moon, Sun, Home, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -17,13 +17,13 @@ import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "@/providers/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 
-// ─── Helpers ─────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildLoginUrl(redirect?: string): string {
 	return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login";
 }
 
-// ─── Types ───────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface HeaderMobileMenuEnhancedProps {
 	isMobileMenuOpen: boolean;
@@ -34,7 +34,7 @@ interface HeaderMobileMenuEnhancedProps {
 	headerNavItems?: NavItemWithMegaMenu[];
 }
 
-// ─── Component ───────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function HeaderMobileMenuEnhanced({
 	isMobileMenuOpen,
@@ -46,7 +46,6 @@ export function HeaderMobileMenuEnhanced({
 }: HeaderMobileMenuEnhancedProps) {
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const pathname = usePathname();
-	const searchParams = useSearchParams();
 	const router = useRouter();
 	const { theme, setTheme } = useTheme();
 	const { user, logout, isLoading } = useAuth();
@@ -56,7 +55,7 @@ export function HeaderMobileMenuEnhanced({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-	// ── Close menu helper ─────────────────────────────────────────
+	// â”€â”€ Close menu helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const closeMobileMenu = useCallback(() => {
 		setIsMobileMenuOpen(false);
@@ -64,7 +63,7 @@ export function HeaderMobileMenuEnhanced({
 		setSearchQuery("");
 	}, [setIsMobileMenuOpen]);
 
-	// ── Lock body scroll when open (without layout shift) ────────
+	// â”€â”€ Lock body scroll when open (without layout shift) â”€â”€â”€â”€â”€â”€â”€â”€
 	// Mobile menu is a fullscreen drawer, so scroll lock is justified.
 	// We use scrollbar-gutter: stable on <html> (set in globals.css)
 	// so the scrollbar placeholder remains visible and no layout shift occurs.
@@ -79,7 +78,7 @@ export function HeaderMobileMenuEnhanced({
 		};
 	}, [isMobileMenuOpen]);
 
-	// ── Click outside to close ────────────────────────────────────
+	// â”€â”€ Click outside to close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		if (!mounted || !isMobileMenuOpen) return;
@@ -99,7 +98,7 @@ export function HeaderMobileMenuEnhanced({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [closeMobileMenu, isMobileMenuOpen, mounted]);
 
-	// ── Focus trap & initial focus ────────────────────────────────
+	// â”€â”€ Focus trap & initial focus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	useEffect(() => {
 		if (!isMobileMenuOpen || !mobileMenuRef.current) return;
@@ -142,7 +141,7 @@ export function HeaderMobileMenuEnhanced({
 		return () => panel.removeEventListener("keydown", handleKeyDown);
 	}, [isMobileMenuOpen, closeMobileMenu]);
 
-	// ── Toggle mega menu section ──────────────────────────────────
+	// â”€â”€ Toggle mega menu section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const toggleMegaMenu = useCallback((menuKey: string) => {
 		setExpandedMenus((prev) => {
@@ -153,7 +152,7 @@ export function HeaderMobileMenuEnhanced({
 		});
 	}, []);
 
-	// ── Theme toggle ──────────────────────────────────────────────
+	// â”€â”€ Theme toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const toggleTheme = useCallback(
 		(e?: React.MouseEvent) => {
@@ -163,7 +162,7 @@ export function HeaderMobileMenuEnhanced({
 		[theme, setTheme]
 	);
 
-	// ── Nav items & search ────────────────────────────────────────
+	// â”€â”€ Nav items & search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const allNavItems = useMemo(() => buildMobileNavItems(navItems), [navItems]);
 
@@ -172,7 +171,7 @@ export function HeaderMobileMenuEnhanced({
 		if (!query) return [];
 
 		return buildMobileSearchResultsWithExtras(allNavItems, [
-			{ label: "مدارس", categories: headerNavItems?.[0]?.megaMenu }
+			{ label: "Ù…Ø¯Ø§Ø±Ø³", categories: headerNavItems?.[0]?.megaMenu }
 		])
 			.filter(
 				(entry) =>
@@ -193,12 +192,17 @@ export function HeaderMobileMenuEnhanced({
 		[closeMobileMenu, router, searchResults]
 	);
 
-	const loginUrl = useMemo(() => {
-		const query = searchParams.toString();
-		return buildLoginUrl(`${pathname || "/"}${query ? `?${query}` : ""}`);
-	}, [pathname, searchParams]);
+	const [loginUrl, setLoginUrl] = useState<string>("/login");
 
-	// ── Render helpers ────────────────────────────────────────────
+	useEffect(() => {
+		const query =
+			typeof window !== "undefined"
+				? window.location.search.replace(/^\?/, "")
+				: "";
+		queueMicrotask(() => setLoginUrl(buildLoginUrl(`${pathname || "/"}${query ? `?${query}` : ""}`)));
+	}, [pathname]);
+
+	// â”€â”€ Render helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	const renderSearchResult = useCallback(
 		(result: MobileSearchResult) => (
@@ -216,14 +220,16 @@ export function HeaderMobileMenuEnhanced({
 		[isActiveRoute, mounted, closeMobileMenu]
 	);
 
-	// ── Render ────────────────────────────────────────────────────
+	// â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	return (
 		<>
+			{isMobileMenuOpen && (
+			<>
 			{/* Backdrop */}
 			<div
 				className={cn(
-					"fixed inset-0 bg-black/65 dark:bg-black/80 z-[60] lg:hidden backdrop-blur-sm transition-opacity duration-300 ease-in-out",
+					"fixed inset-0 bg-black/65 dark:bg-black/80 z-[60] lg:hidden backdrop-blur-sm",
 					isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
 				)}
 				onClick={closeMobileMenu}
@@ -237,13 +243,13 @@ export function HeaderMobileMenuEnhanced({
 				data-header-root
 				role="dialog"
 				aria-modal="true"
-				aria-label="قائمة التنقل"
+				aria-label="Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ØªÙ†Ù‚Ù„"
 				className={cn(
-					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 transition-transform duration-300 ease-out pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
+					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
 					isMobileMenuOpen ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"
 				)}
 			>
-				{/* ── Header ──────────────────────────────────────── */}
+				{/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 				<div className="flex items-center justify-between p-4 pb-2 border-b border-border/20">
 					<div className="flex items-center gap-2.5">
 						<div className="relative shrink-0">
@@ -273,20 +279,20 @@ export function HeaderMobileMenuEnhanced({
 						size="icon"
 						onClick={closeMobileMenu}
 						className="rounded-full hover:bg-destructive/10 hover:text-destructive h-9 w-9 shrink-0"
-						aria-label="إغلاق القائمة"
+						aria-label="Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"
 					>
 						<X className="h-4 w-4" aria-hidden="true" />
 					</Button>
 				</div>
 
-				{/* ── Scrollable Content ──────────────────────────── */}
+				{/* â”€â”€ Scrollable Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 				<div className="flex-1 overflow-y-auto overflow-x-hidden -webkit-overflow-scrolling: touch">
 					{/* Search */}
 					<div className="px-4 py-3">
 						<form onSubmit={handleSearch} className="relative">
 							<Input
 								type="search"
-								placeholder="ابحث داخل التنقل..."
+								placeholder="Ø§Ø¨Ø­Ø« Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ†Ù‚Ù„..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								onFocus={() => setIsSearchFocused(true)}
@@ -295,7 +301,7 @@ export function HeaderMobileMenuEnhanced({
 									"w-full ps-10 pe-3 h-11 rounded-2xl bg-muted/50 border-transparent focus:bg-background text-start text-base outline-none",
 									isSearchFocused && "ring-2 ring-primary/20 border-primary/20"
 								)}
-								aria-label="بحث في القائمة"
+								aria-label="Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"
 							/>
 							<Search
 								className={cn(
@@ -310,7 +316,7 @@ export function HeaderMobileMenuEnhanced({
 					{/* User Section */}
 					<div className="px-4 py-2">
 						{isLoading ? (
-							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="جاري التحميل" />
+							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù…ÙŠÙ„" />
 						) : user ? (
 							<div className="p-3 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/10 shadow-sm">
 								<div className="flex items-center gap-2.5">
@@ -334,7 +340,7 @@ export function HeaderMobileMenuEnhanced({
 											logout();
 											closeMobileMenu();
 										}}
-										aria-label="تسجيل الخروج"
+										aria-label="ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬"
 									>
 										<LogOut className="h-3.5 w-3.5" aria-hidden="true" />
 									</Button>
@@ -349,7 +355,7 @@ export function HeaderMobileMenuEnhanced({
 								>
 									<Link href={loginUrl} onClick={closeMobileMenu}>
 										<LogIn className="h-3.5 w-3.5" aria-hidden="true" />
-										دخول
+										Ø¯Ø®ÙˆÙ„
 									</Link>
 								</Button>
 								<Button
@@ -358,7 +364,7 @@ export function HeaderMobileMenuEnhanced({
 								>
 									<Link href="/register" onClick={closeMobileMenu}>
 										<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-										اشتراك
+										Ø§Ø´ØªØ±Ø§Ùƒ
 									</Link>
 								</Button>
 							</div>
@@ -366,14 +372,14 @@ export function HeaderMobileMenuEnhanced({
 					</div>
 
 					{/* Navigation */}
-					<nav className="px-3 pb-6 space-y-2" aria-label="التنقل الرئيسي">
+					<nav className="px-3 pb-6 space-y-2" aria-label="Ø§Ù„ØªÙ†Ù‚Ù„ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ">
 						{searchQuery.trim() ? (
 							<div className="space-y-1.5">
 								{searchResults.length > 0 ? (
 									searchResults.map(renderSearchResult)
 								) : (
 									<div className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">
-										لا توجد نتائج مطابقة
+										Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø©
 									</div>
 								)}
 							</div>
@@ -381,7 +387,7 @@ export function HeaderMobileMenuEnhanced({
 							<>
 								<HeaderNavLink
 									href="/"
-									label="الرئيسية"
+									label="Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©"
 									icon={Home}
 									active={mounted && isActiveRoute("/")}
 									variant="mobile"
@@ -488,29 +494,31 @@ export function HeaderMobileMenuEnhanced({
 					</nav>
 				</div>
 
-				{/* ── Footer: Theme Toggle ────────────────────────── */}
+				{/* â”€â”€ Footer: Theme Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 				<div className="p-4 border-t border-border/40 bg-muted/20 mt-auto shrink-0">
 					<Button
 						variant="outline"
 						onClick={(e) => toggleTheme(e)}
 						className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm"
-						aria-label={`تبديل المظهر، الحالي: ${theme === "dark" ? "داكن" : "فاتح"}`}
+						aria-label={`ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø¸Ù‡Ø±ØŒ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${theme === "dark" ? "Ø¯Ø§ÙƒÙ†" : "ÙØ§ØªØ­"}`}
 					>
-						<span className="text-sm font-medium">المظهر</span>
+						<span className="text-sm font-medium">Ø§Ù„Ù…Ø¸Ù‡Ø±</span>
 						{theme === "dark" ? (
 							<div className="flex items-center gap-1.5 text-primary">
 								<Moon className="h-3.5 w-3.5" aria-hidden="true" />
-								<span className="text-xs">داكن</span>
+								<span className="text-xs">Ø¯Ø§ÙƒÙ†</span>
 							</div>
 						) : (
 							<div className="flex items-center gap-1.5 text-orange-500">
 								<Sun className="h-3.5 w-3.5" aria-hidden="true" />
-								<span className="text-xs">فاتح</span>
+								<span className="text-xs">ÙØ§ØªØ­</span>
 							</div>
 						)}
 					</Button>
 				</div>
 			</div>
+			</>
+			)}
 		</>
 	);
 }

@@ -1,8 +1,11 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronLeft } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { getCategoryIcon } from '../../guest/helpers';
+import { DashSection, DashEmpty } from '../shared/SectionShell';
+import { DASH_RAIL } from '../shared/design-system';
 
 interface Category {
   id: string;
@@ -16,74 +19,60 @@ interface BrowseCategoriesSectionProps {
   loading?: boolean;
 }
 
+/** Module-level constants keep prop identities stable across parent renders. */
+const EMPTY_CATEGORIES: Category[] = [];
+
 /**
- * تصفح الكورسات حسب المجال
- * نسخة من صفحة الزائرين مخصصة للمستخدمين المسجلين
+ * تصفح الكورسات حسب المجال — Noon rail of circular category tiles
+ * inside the shared flat panel.
  */
-export function BrowseCategoriesSection({
-  categories = [],
+function BrowseCategoriesSectionBase({
+  categories = EMPTY_CATEGORIES,
   loading = false
 }: BrowseCategoriesSectionProps) {
   return (
-    <section className="py-8 sm:py-12">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              تصفح حسب المجال
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium mt-1">
-              اختر المجال الذي تريد احترافه
-            </p>
-          </div>
-          <Link
-            href="/courses"
-            className="flex items-center gap-1 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-          >
-            عرض الكل <ChevronLeft className="h-4 w-4" />
-          </Link>
+    <DashSection
+      title="تصفح حسب المجال"
+      subtitle="اختر المجال الذي تريد احترافه"
+      href="/courses"
+      rail
+    >
+      {loading ? (
+        <div className={DASH_RAIL.container}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className={`${DASH_RAIL.item} h-28 w-28 bg-muted border border-border rounded-xl animate-pulse`}
+            />
+          ))}
         </div>
-
-        {/* Categories Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-28 bg-muted border border-input rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">
-            <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-40" />
-            لا توجد تصنيفات متاحة حالياً
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/courses?categoryId=${cat.id}`}
-                className="flex flex-col items-center justify-center p-5 bg-card border border-input rounded-lg hover:border-primary/50 hover:shadow-md text-center group transition-all duration-150"
-              >
-                <div className="h-12 w-12 rounded-xl bg-muted text-primary flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-primary-foreground text-2xl transition-all">
-                  {getCategoryIcon(cat.name)}
-                </div>
-                <h3 className="text-sm font-bold text-foreground group-hover:text-primary line-clamp-1 transition-colors">
-                  {cat.name}
-                </h3>
-                {cat.coursesCount !== undefined && (
-                  <span className="text-xs text-muted-foreground mt-1 font-medium">
-                    {cat.coursesCount} كورس
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+      ) : categories.length === 0 ? (
+        <DashEmpty icon={BookOpen} title="لا توجد تصنيفات متاحة حالياً" />
+      ) : (
+        <div className={DASH_RAIL.container}>
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/courses?categoryId=${cat.id}`}
+              className={`${DASH_RAIL.item} flex flex-col items-center justify-center w-28 p-3.5 bg-card border border-border rounded-xl hover:border-primary text-center group transition-colors duration-150`}
+            >
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary-strong flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-primary-foreground text-xl transition-colors">
+                {getCategoryIcon(cat.name)}
+              </div>
+              <h3 className="text-xs font-bold text-foreground group-hover:text-primary-strong line-clamp-1 transition-colors">
+                {cat.name}
+              </h3>
+              {cat.coursesCount !== undefined && (
+                <span className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                  {cat.coursesCount} كورس
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+    </DashSection>
   );
 }
+
+export const BrowseCategoriesSection = React.memo(BrowseCategoriesSectionBase);

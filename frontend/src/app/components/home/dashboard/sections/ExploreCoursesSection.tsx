@@ -1,8 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { ChevronLeft, Flame, Clock, Star } from 'lucide-react';
+import React from 'react';
+import { Flame, Clock, Star } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
+import { DashSection, DashEmpty } from '../shared/SectionShell';
+import { DASH_RAIL, DASH_TABS } from '../shared/design-system';
 
 interface Course {
   id: string;
@@ -32,44 +34,28 @@ const TABS = [
   { key: 'top_rated' as const, label: 'الأعلى تقييماً', icon: Star },
 ];
 
+/** Module-level constants keep prop identities stable across parent renders. */
+const EMPTY_COURSES: Course[] = [];
+const NOOP = () => {};
+
 /**
- * استكشف الكورسات المتاحة
- * نسخة من صفحة الزائرين مخصصة للمستخدمين المسجلين
+ * استكشف الكورسات — tabbed Noon rail of course cards inside the shared panel.
  */
-export function ExploreCoursesSection({
-  courses = [],
+function ExploreCoursesSectionBase({
+  courses = EMPTY_COURSES,
   loading = false,
   selectedTab = 'popular',
-  onTabChange = () => {}
+  onTabChange = NOOP
 }: ExploreCoursesSectionProps) {
   return (
-    <section className="py-8 sm:py-12">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              استكشف الكورسات
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium mt-1">
-              كورسات مصممة لتناسب كل المستويات
-            </p>
-          </div>
-          <Link
-            href="/courses"
-            className="flex items-center gap-1 text-sm font-bold text-primary hover:text-primary/80 transition-colors w-fit"
-          >
-            عرض جميع الكورسات <ChevronLeft className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* Tabs */}
-        <div
-          role="tablist"
-          aria-label="ترتيب الكورسات"
-          className="flex items-center bg-muted border border-input p-1 rounded-lg w-fit"
-          aria-orientation="horizontal"
-        >
+    <DashSection
+      title="استكشف الكورسات"
+      subtitle="كورسات مصممة لتناسب كل المستويات"
+      href="/courses"
+      linkLabel="عرض جميع الكورسات"
+      rail
+      toolbar={
+        <div role="tablist" aria-label="ترتيب الكورسات" aria-orientation="horizontal" className={DASH_TABS.list}>
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -77,10 +63,8 @@ export function ExploreCoursesSection({
               role="tab"
               aria-selected={selectedTab === key}
               onClick={() => onTabChange(key)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-                selectedTab === key
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              className={`${DASH_TABS.tab} flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                selectedTab === key ? DASH_TABS.tabActive : DASH_TABS.tabIdle
               }`}
               title={label}
             >
@@ -89,25 +73,27 @@ export function ExploreCoursesSection({
             </button>
           ))}
         </div>
-
-        {/* Courses Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <CourseCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : courses.length === 0 ? (
-          <div className="text-center py-12 bg-muted/30 rounded-lg border border-input">
-            <p className="text-sm text-muted-foreground font-bold">
-              لا توجد كورسات متاحة حالياً
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {courses.map((course) => (
+      }
+    >
+      {loading ? (
+        <div className={DASH_RAIL.container}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={`${DASH_RAIL.item} w-72`}>
+              <CourseCardSkeleton />
+            </div>
+          ))}
+        </div>
+      ) : courses.length === 0 ? (
+        <DashEmpty
+          icon={Star}
+          title="لا توجد كورسات متاحة حالياً"
+          description="تابعنا قريباً — تُضاف كورسات جديدة باستمرار"
+        />
+      ) : (
+        <div className={DASH_RAIL.container}>
+          {courses.map((course) => (
+            <div key={course.id} className={`${DASH_RAIL.item} w-72`}>
               <CourseCard
-                key={course.id}
                 id={course.id}
                 title={course.title}
                 slug={course.slug}
@@ -121,10 +107,12 @@ export function ExploreCoursesSection({
                 discountPrice={course.discountPrice}
                 level={course.level}
               />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+            </div>
+          ))}
+        </div>
+      )}
+    </DashSection>
   );
 }
+
+export const ExploreCoursesSection = React.memo(ExploreCoursesSectionBase);

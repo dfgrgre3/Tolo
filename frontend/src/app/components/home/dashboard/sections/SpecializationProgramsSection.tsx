@@ -1,7 +1,10 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { Award, ChevronLeft, Clock, BookOpen } from 'lucide-react';
+import { Award, Clock, BookOpen } from 'lucide-react';
+import { DashSection, DashEmpty } from '../shared/SectionShell';
+import { DASH_RAIL } from '../shared/design-system';
 
 interface SpecializationProgram {
   id: string;
@@ -25,114 +28,99 @@ const LEVEL_LABELS = {
   advanced: 'متقدم'
 };
 
+/** Module-level constants keep prop identities stable across parent renders. */
+const EMPTY_PROGRAMS: SpecializationProgram[] = [];
+
 /**
- * 🎖️ برامج التخصص المتقدمة
- * نسخة من صفحة الزائرين مخصصة للمستخدمين المسجلين
+ * برامج التخصص المتقدمة — Noon rail of program cards inside the shared panel.
  */
-export function SpecializationProgramsSection({
-  programs = [],
+function SpecializationProgramsSectionBase({
+  programs = EMPTY_PROGRAMS,
   loading = false
 }: SpecializationProgramsSectionProps) {
   return (
-    <section className="py-8 sm:py-12">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              🎖️ برامج التخصص المتقدمة
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium mt-1">
-              اصبح متخصصاً معترفاً به في مجالك
-            </p>
-          </div>
-          <Link
-            href="/specializations"
-            className="flex items-center gap-1 text-sm font-bold text-primary hover:text-primary/80 transition-colors w-fit"
-          >
-            عرض جميع البرامج <ChevronLeft className="h-4 w-4" />
-          </Link>
+    <DashSection
+      title="برامج التخصص المتقدمة"
+      subtitle="اصبح متخصصاً معترفاً به في مجالك"
+      href="/pathways"
+      linkLabel="عرض جميع البرامج"
+      rail
+    >
+      {loading ? (
+        <div className={DASH_RAIL.container}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className={`${DASH_RAIL.item} w-72 h-72 bg-muted border border-border rounded-xl animate-pulse`}
+            />
+          ))}
         </div>
-
-        {/* Programs Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+      ) : programs.length === 0 ? (
+        <DashEmpty
+          icon={Award}
+          title="لا توجد برامج متخصصة متاحة حالياً"
+        />
+      ) : (
+        <div className={DASH_RAIL.container}>
+          {programs.map((program) => (
+            <Link
+              key={program.id}
+              href="/pathways"
+              className={`${DASH_RAIL.item} group flex w-72 flex-col overflow-hidden rounded-xl border border-border hover:border-primary transition-colors`}
+            >
+              {/* Icon header */}
               <div
-                key={i}
-                className="h-64 bg-muted border border-input rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
-        ) : programs.length === 0 ? (
-          <div className="text-center py-12 bg-muted/30 rounded-lg border border-input">
-            <Award className="h-12 w-12 mx-auto mb-4 opacity-40" />
-            <p className="text-sm text-muted-foreground font-bold">
-              لا توجد برامج متخصصة متاحة حالياً
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {programs.map((program) => (
-              <Link
-                key={program.id}
-                href={`/specializations/${program.slug}`}
-                className="group overflow-hidden rounded-lg border border-input hover:border-primary/50 hover:shadow-lg transition-all"
+                className="flex h-20 items-center justify-center bg-muted/60 border-b border-border text-4xl"
+                role="img"
+                aria-label={program.title}
               >
-                {/* Header Gradient */}
-                <div
-                  className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform"
-                  role="img"
-                  aria-label={program.title}
-                >
-                  {program.icon || '🎯'}
-                </div>
+                <span className="transition-transform group-hover:scale-110">{program.icon || '🎯'}</span>
+              </div>
 
-                {/* Content */}
-                <div className="p-5 bg-card">
-                  <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
-                    {program.title}
-                  </h3>
+              {/* Content */}
+              <div className="flex flex-1 flex-col p-4">
+                <h3 className="font-black text-sm text-foreground group-hover:text-primary-strong transition-colors line-clamp-2 mb-1.5">
+                  {program.title}
+                </h3>
 
-                  {program.description && (
-                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">
-                      {program.description}
+                {program.description && (
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                    {program.description}
+                  </p>
+                )}
+
+                <div className="mb-4 space-y-1.5 text-xs text-muted-foreground">
+                  {program.courseCount !== undefined && (
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <BookOpen className="h-3.5 w-3.5 text-primary-strong" aria-hidden="true" />
+                      {program.courseCount} كورس
                     </p>
                   )}
 
-                  <div className="space-y-2 mb-4 text-xs">
-                    {program.courseCount !== undefined && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        <span>{program.courseCount} كورس</span>
-                      </div>
-                    )}
+                  {program.duration && (
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <Clock className="h-3.5 w-3.5 text-primary-strong" aria-hidden="true" />
+                      {program.duration}
+                    </p>
+                  )}
 
-                    {program.duration && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{program.duration}</span>
-                      </div>
-                    )}
-
-                    {program.level && (
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
-                          {LEVEL_LABELS[program.level]}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button className="w-full py-2 bg-primary text-primary-foreground rounded-md text-xs font-bold hover:bg-primary/90 transition-colors">
-                    ابدأ البرنامج
-                  </button>
+                  {program.level && (
+                    <span className="inline-block px-2 py-0.5 bg-primary/10 text-primary-strong text-[11px] font-black rounded-md w-fit">
+                      {LEVEL_LABELS[program.level]}
+                    </span>
+                  )}
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+
+                <button className="mt-auto w-full py-2 bg-primary text-primary-foreground rounded-md text-xs font-bold hover:opacity-90 transition-opacity">
+                  ابدأ البرنامج
+                </button>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </DashSection>
   );
 }
+
+export const SpecializationProgramsSection = React.memo(SpecializationProgramsSectionBase);

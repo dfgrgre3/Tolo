@@ -38,8 +38,8 @@ export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, on
           {error && (
             <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="font-semibold mr-2">خطأ في التحقق</AlertTitle>
-              <AlertDescription dir="rtl" className="mr-2">{error}</AlertDescription>
+              <AlertTitle className="font-semibold me-2">خطأ في التحقق</AlertTitle>
+              <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
             </Alert>
           )}
           <div className="grid gap-2">
@@ -68,7 +68,7 @@ export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, on
           <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
                 جاري التحقق...
               </>
             ) : (

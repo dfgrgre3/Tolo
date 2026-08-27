@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import { usePermission } from "@/hooks/use-permission";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -213,6 +214,12 @@ const EMPTY_STATS: InstructorStats = {
 
 export function useTeachingData(activeTab: string = "dashboard") {
   const queryClient = useQueryClient();
+  const { isAuthenticated, isContentCreator } = usePermission();
+
+  // Only fetch teaching data for authenticated teachers/admins — the page
+  // renders the "apply as teacher" screen for everyone else, and firing the
+  // queries anyway would just produce a burst of 403 insufficient_role errors.
+  const canFetch = isAuthenticated && isContentCreator();
 
   // Cache configuration
   const STALE_TIME = 5 * 60 * 1000;  // 5 minutes
@@ -223,6 +230,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const statsQuery = useQuery<TeachingStatsResponse>({
     queryKey: ["teaching", "stats"],
     queryFn: () => apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
+    enabled: canFetch,
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -236,7 +244,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const activitiesQuery = useQuery<ActivitiesResponse>({
     queryKey: ["teaching", "activities"],
     queryFn: () => apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
-    enabled: activeTab === "dashboard",
+    enabled: canFetch && activeTab === "dashboard",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -250,7 +258,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
     queryFn: () => apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
-    enabled: activeTab === "dashboard" || activeTab === "courses",
+    enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses"),
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -318,7 +326,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const allStudentsQuery = useQuery<StudentsResponse>({
     queryKey: ["teaching", "students"],
     queryFn: () => apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
-    enabled: activeTab === "students",
+    enabled: canFetch && activeTab === "students",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -332,7 +340,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const allReviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ["teaching", "reviews"],
     queryFn: () => apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
-    enabled: activeTab === "reviews",
+    enabled: canFetch && activeTab === "reviews",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -367,6 +375,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const notificationsQuery = useQuery<NotificationsResponse>({
     queryKey: ["teaching", "notifications"],
     queryFn: () => apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
+    enabled: canFetch,
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -428,7 +437,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const conversationsQuery = useQuery<{ conversations: Conversation[] }>({
     queryKey: ["teaching", "conversations"],
     queryFn: () => apiClient.get<{ conversations: Conversation[] }>("/api/teaching/conversations"),
-    enabled: activeTab === "messages",
+    enabled: canFetch && activeTab === "messages",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -478,7 +487,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const calendarEventsQuery = useQuery<{ events: CalendarEvent[] }>({
     queryKey: ["teaching", "calendar"],
     queryFn: () => apiClient.get<{ events: CalendarEvent[] }>("/api/teaching/calendar"),
-    enabled: activeTab === "calendar",
+    enabled: canFetch && activeTab === "calendar",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -514,7 +523,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const transactionsQuery = useQuery<{ transactions: Transaction[] }>({
     queryKey: ["teaching", "transactions"],
     queryFn: () => apiClient.get<{ transactions: Transaction[] }>("/api/teaching/transactions"),
-    enabled: activeTab === "earnings",
+    enabled: canFetch && activeTab === "earnings",
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -537,6 +546,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     updateCourseAsync: updateCourse.mutateAsync,
     isUpdatingCourse: updateCourse.isPending,
     deleteCourse: deleteCourse.mutate,
+    deleteCourseAsync: deleteCourse.mutateAsync,
     isDeletingCourse: deleteCourse.isPending,
     students: allStudents,
     isStudentsLoading: allStudentsQuery.isLoading,
@@ -556,5 +566,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     markNotificationRead: markNotificationRead.mutate,
     markAllNotificationsRead: markAllNotificationsRead.mutate,
     transactions,
+    isTransactionsLoading: transactionsQuery.isLoading,
+    isCalendarLoading: calendarEventsQuery.isLoading,
   };
 }

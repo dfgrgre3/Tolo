@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
+import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Save, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,12 @@ import { Course, Chapter } from "../hooks/use-teaching-data";
 
 interface CourseWizardProps {
   course?: Course | null; // If null, we are creating a new course
-  onSave: (course: Partial<Course>) => void;
+  onSave: (course: Partial<Course>) => void | Promise<void>;
   onClose: () => void;
+  isSaving?: boolean;
 }
 
-export default function CourseWizard({ course, onSave, onClose }: CourseWizardProps) {
+export default function CourseWizard({ course, onSave, onClose, isSaving = false }: CourseWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [title, setTitle] = useState(course?.title || "");
   const [description, setDescription] = useState(course?.description || "");
@@ -26,6 +28,22 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
   const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
   const [errorMsg, setErrorMsg] = useState("");
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  const handleThumbnailFile = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("يرجى اختيار ملف صورة صالح (PNG / JPG / WEBP)");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("حجم الصورة كبير جداً، الحد الأقصى 2MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setThumbnail(typeof reader.result === "string" ? reader.result : "");
+    reader.readAsDataURL(file);
+  };
 
   const steps = [
     { num: 1, label: "المعلومات الأساسية" },
@@ -52,22 +70,25 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       setErrorMsg("يرجى إدخال عنوان الكورس");
       return;
     }
-    onSave({
-      title,
-      description,
-      category,
-      price: parseFloat(price) || 0,
-      thumbnail,
-      status,
-      chapters,
-      lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
-    });
-    onClose();
+    try {
+      await onSave({
+        title,
+        description,
+        category,
+        price: parseFloat(price) || 0,
+        thumbnail,
+        status,
+        chapters,
+        lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
+      });
+    } catch {
+      // Errors are surfaced by the caller via toasts; keep the wizard open
+    }
   };
 
   return (
@@ -83,7 +104,8 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            disabled={isSaving}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
           >
             <X className="w-5 h-5" />
           </button>
@@ -159,13 +181,34 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
             <div className="space-y-6 text-xs font-semibold">
               <div className="space-y-2">
                 <label className="text-slate-500">غلاف الكورس (صورة Thumbnail)</label>
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10">
+                <input
+                  ref={thumbnailInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleThumbnailFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+                <div
+                  onClick={() => thumbnailInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleThumbnailFile(e.dataTransfer.files?.[0]);
+                  }}
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10 cursor-pointer hover:border-primary/50 transition-colors"
+                >
                   {thumbnail ? (
                     <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden shadow-md">
                       <Image src={thumbnail} alt="غلاف الكورس" fill sizes="384px" className="object-cover" unoptimized />
                       <button
-                        onClick={() => setThumbnail("")}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThumbnail("");
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -175,7 +218,8 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
                       <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full w-12 h-12 flex items-center justify-center mx-auto text-slate-400">
                         <Upload className="w-6 h-6" />
                       </div>
-                      <p className="text-xs text-slate-400">اضغط لرفع الغلاف أو ضع الرابط أدناه</p>
+                      <p className="text-xs text-slate-400">اضغط لرفع الغلاف أو اسحب الصورة وأفلتها هنا</p>
+                      <p className="text-[10px] text-slate-400/70">PNG / JPG / WEBP — حتى 2MB، أو ضع الرابط أدناه</p>
                     </div>
                   )}
                 </div>
@@ -229,9 +273,13 @@ export default function CourseWizard({ course, onSave, onClose }: CourseWizardPr
         <div className="p-6 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between bg-slate-50/20 dark:bg-slate-900/10">
           <div className="flex gap-2">
             {currentStep === 4 ? (
-              <Button onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2 rounded-xl px-5">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2 rounded-xl px-5"
+              >
                 <Save className="w-4 h-4" />
-                حفظ وإنهاء
+                {isSaving ? "جاري الحفظ..." : "حفظ وإنهاء"}
               </Button>
             ) : (
               <Button onClick={handleNext} className="bg-primary hover:bg-primary/95 text-white flex items-center gap-2 rounded-xl px-5">

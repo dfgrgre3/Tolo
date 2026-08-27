@@ -285,7 +285,7 @@ export default function CourseCheckoutPage() {
 
                <div className="space-y-6">
                   <div className="relative group">
-                     <Tag className="absolute right-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-500 group-focus-within:text-primary transition-colors" />
+                     <Tag className="absolute start-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-500 group-focus-within:text-primary transition-colors" />
                      <input
                     type="text"
                     placeholder="هل لديك كود خصم؟ (أدخل الكود هنا)"

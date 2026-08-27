@@ -238,7 +238,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 					{/* ── Link Columns ──────────────────────────────── */}
 					{FOOTER_COLUMNS.map((column) => (
 						<nav key={column.title} aria-label={column.title}>
-							<h3 className="text-sm font-bold text-foreground border-r-2 border-primary pr-3 mb-4">
+							<h3 className="text-sm font-bold text-foreground border-e-2 border-primary pe-3 mb-4">
 								{column.title}
 							</h3>
 							<ul className="space-y-2.5 text-xs font-medium">
@@ -276,7 +276,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 
 				{/* ── Bottom Bar ────────────────────────────────────── */}
 				<div className="pt-8 border-t border-border flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-muted-foreground">
-					<p className="text-center lg:text-right font-medium">
+					<p className="text-center lg:text-end font-medium">
 						© {currentYear} {LEGAL.companyNameAr}. جميع الحقوق محفوظة.
 					</p>
 

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, memo } from "react";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { Users } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/use-auth";
-import { rpgCommonStyles } from "../../shared/styles";
+import { DashSection, DashEmpty } from "../../shared/SectionShell";
 import { LeaderboardCard } from "./LeaderboardCard";
 
 interface LeaderboardEntry {
@@ -16,6 +16,7 @@ interface LeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
+/** Noon-style flat panel hosting the XP leaderboard. */
 export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
   const { user, isAuthenticated } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -71,30 +72,21 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
   }, [user?.id, isAuthenticated]);
 
   return (
-    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10" />
-
-      <div className="relative z-10">
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 p-3">
-              <Users className="h-6 w-6 text-white" />
-            </div>
-            <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.goldText}`}>
-              لوحة المتصدرين
-            </h2>
-          </div>
-          <p className="text-gray-400 text-lg">
-            ترتيب أعلى الطلاب في نقاط الخبرة
-          </p>
-        </div>
-
-        {/* Leaderboard Card */}
-        <div>
-          <LeaderboardCard loading={loading} leaderboard={leaderboard} />
-        </div>
-      </div>
-    </section>
+    <DashSection
+      title="لوحة المتصدرين"
+      subtitle="ترتيب أعلى الطلاب في نقاط الخبرة"
+      icon={Trophy}
+    >
+      {!loading && leaderboard.length === 0 ? (
+        <DashEmpty
+          icon={Trophy}
+          title="لوحة المتصدرين فارغة"
+          description="اكسب نقاط خبرة لتظهر في الترتيب"
+        />
+      ) : (
+        <LeaderboardCard loading={loading} leaderboard={leaderboard} />
+      )}
+    </DashSection>
   );
 });
 

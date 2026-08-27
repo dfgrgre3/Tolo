@@ -24,7 +24,7 @@ export default function UpcomingRemindersCard({
     <Card className="border-white/10 shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
       <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 relative z-10 border-b border-primary/10">
         <CardTitle className="flex items-center text-lg">
-          <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ml-2 shadow-[0_0_10px_rgba(var(--primary),0.2)]">
+          <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ms-2 shadow-[0_0_10px_rgba(var(--primary),0.2)]">
             <Bell className="h-5 w-5 text-primary" />
           </div>
           التذكيرات القادمة
@@ -40,7 +40,7 @@ export default function UpcomingRemindersCard({
       </CardHeader>
       <CardContent className="p-4 relative z-10">
         <m.div 
-          className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar"
+          className="space-y-3 max-h-80 overflow-y-auto pe-1 custom-scrollbar"
           initial="hidden"
           animate="visible"
           variants={{

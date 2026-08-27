@@ -29,25 +29,22 @@ interface RecommendedCourseCardProps {
 export const RecommendedCourseCard = ({ course, index: _index }: RecommendedCourseCardProps) => {
   const getLevelColor = (level: string) => {
     const colors: Record<string, string> = {
-      "مبتدئ": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-      "متوسط": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-      "متقدم": "bg-red-500/20 text-red-400 border-red-500/30",
+      "مبتدئ": "bg-emerald-50 text-emerald-600 border-emerald-200",
+      "متوسط": "bg-amber-50 text-amber-700 border-amber-200",
+      "متقدم": "bg-red-50 text-red-600 border-red-200",
     };
-    return colors[level] || "bg-blue-500/20 text-blue-400 border-blue-500/30";
+    return colors[level] || "bg-primary/10 text-primary-strong border-primary/20";
   };
 
   return (
-    <div
+    <div className="h-full"
     >
-      <Link href={`/courses/${course.id}`}>
-        <Card className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl backdrop-blur-md hover:border-primary/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.12)] hover:bg-white/[0.03] h-full">
-          {/* Top accent gradient */}
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/50 via-purple-500/50 to-indigo-500/50 opacity-0 group-hover:opacity-100" />
-          
+      <Link href={`/courses/${course.id}`} className="block h-full">
+        <Card className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:border-primary/40 h-full">
           {/* Match score badge */}
           <div className="absolute top-3 left-3 z-10">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border border-purple-500/30 text-xs font-bold text-purple-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-              <Star className="h-3 w-3 fill-purple-400 text-purple-400" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary-strong">
+              <Star className="h-3 w-3 fill-primary text-primary-strong" />
               <span>{course.matchScore}% مطابقة</span>
             </div>
           </div>
@@ -56,32 +53,32 @@ export const RecommendedCourseCard = ({ course, index: _index }: RecommendedCour
             <div className="flex flex-col gap-4">
               {/* Header */}
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-gradient-to-br from-primary/20 to-purple-600/20 p-3 ring-1 ring-primary/20 flex-shrink-0">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                <div className="rounded-xl bg-primary/10 p-3 flex-shrink-0">
+                  <BookOpen className="h-5 w-5 text-primary-strong" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white text-base leading-snug line-clamp-2 group-hover:text-primary">
+                  <h3 className="font-bold text-foreground text-base leading-snug line-clamp-2 group-hover:text-primary-strong">
                     {course.title}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1">{course.subject}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{course.subject}</p>
                 </div>
               </div>
 
               {/* Description */}
-              <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 {course.description}
               </p>
 
               {/* Match Reason */}
-              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
-                <TrendingUp className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-purple-300/80 leading-relaxed">
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
+                <TrendingUp className="h-4 w-4 text-primary-strong mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-primary-strong leading-relaxed">
                   {course.matchReason}
                 </p>
               </div>
 
               {/* Meta Info */}
-              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <Badge variant="outline" className={`border ${getLevelColor(course.level)}`}>
                   {course.level}
                 </Badge>
@@ -93,23 +90,20 @@ export const RecommendedCourseCard = ({ course, index: _index }: RecommendedCour
                   <Users className="h-3.5 w-3.5" />
                   <span>{course.studentsCount}</span>
                 </div>
-                <div className="flex items-center gap-1 text-amber-400">
-                  <Star className="h-3.5 w-3.5 fill-amber-400" />
+                <div className="flex items-center gap-1 text-amber-500">
+                  <Star className="h-3.5 w-3.5 fill-amber-500" />
                   <span>{course.rating}</span>
                 </div>
               </div>
 
               {/* Category */}
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-white/5 text-gray-300 hover:bg-white/10 border-0 text-xs">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted/70 border-0 text-xs">
                   {course.category}
                 </Badge>
               </div>
             </div>
           </CardContent>
-
-          {/* Hover glow effect */}
-          <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-primary/10 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 pointer-events-none" />
         </Card>
       </Link>
     </div>

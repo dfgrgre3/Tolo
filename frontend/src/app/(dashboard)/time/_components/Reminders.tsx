@@ -638,7 +638,7 @@ export default function Reminders({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <BarChart3 className="mr-2 h-5 w-5" />
+              <BarChart3 className="me-2 h-5 w-5" />
               إحصائيات التذكيرات
             </CardTitle>
           </CardHeader>
@@ -673,12 +673,12 @@ export default function Reminders({
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="البحث في التذكيرات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -765,7 +765,7 @@ export default function Reminders({
                       }
                     }}
                   >
-                    <Tag className="h-3 w-3 mr-1" />
+                    <Tag className="h-3 w-3 me-1" />
                     {tag}
                   </Button>
                 ))}
@@ -797,13 +797,13 @@ export default function Reminders({
                         size="sm"
                         onClick={() => handleComplete(reminderId)}
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                        <CheckCircle className="h-4 w-4 me-1" />
                         إكمال
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button size="sm" variant="outline">
-                            <Clock className="h-4 w-4 mr-1" />
+                            <Clock className="h-4 w-4 me-1" />
                             تأجيل
                           </Button>
                         </DropdownMenuTrigger>

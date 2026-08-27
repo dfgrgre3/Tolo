@@ -261,13 +261,13 @@ export default function CourseDetailClient({
                 </span>
               </div>
 
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pe-1">
                 {lessons.map((lesson, idx) =>
                   <button
                     key={lesson.id}
                     onClick={() => setActiveLesson(lesson.id)}
                     className={cn(
-                      "w-full p-4 rounded-2xl text-right flex gap-4 items-center transition-all group",
+                      "w-full p-4 rounded-2xl text-start flex gap-4 items-center transition-all group",
                       activeLesson === lesson.id ?
                         "bg-primary/5 dark:bg-primary/10 border border-primary/20 shadow-md shadow-primary/[0.02]" :
                         "bg-white dark:bg-gray-900/40 border border-gray-200/60 dark:border-white/[0.05] hover:border-gray-300 dark:hover:border-white/10"
@@ -511,7 +511,7 @@ export default function CourseDetailClient({
         variants={fadeUp}
         className="rounded-[28px] border border-amber-500/20 dark:border-amber-500/10 bg-gradient-to-br from-amber-500/[0.03] to-amber-500/[0.01] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6"
       >
-        <div className="flex items-center gap-4 text-right">
+        <div className="flex items-center gap-4 text-start">
           <div className="h-14 w-14 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-500 border border-amber-500/30">
             <Award className="h-7 w-7" />
           </div>

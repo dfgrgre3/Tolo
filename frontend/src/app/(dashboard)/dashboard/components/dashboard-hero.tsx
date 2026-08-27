@@ -62,7 +62,7 @@ export function DashboardHero({
             <m.span
               animate={{ rotate: [0, 10, -10, 10, 0] }}
               transition={{ duration: 5, repeat: Infinity }}
-              className="inline-block mr-4 scale-75 md:scale-100"
+              className="inline-block me-4 scale-75 md:scale-100"
             >
               🛡️
             </m.span>
@@ -156,7 +156,7 @@ export function DashboardHero({
                   </div>
                 </div>
 
-                <div className="flex-1 text-center md:text-right space-y-2">
+                <div className="flex-1 text-center md:text-start space-y-2">
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-black">تابع من حيث توقفت</Badge>
                   <h3 className="text-2xl font-black text-white">{lastCourse.title}</h3>
                   <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-400">

@@ -30,14 +30,14 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="py-16 bg-white border-t border-[#E2E8F0]">
-      <div className="max-w-3xl mx-auto px-4 text-center space-y-6">
-        <div className="h-14 w-14 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F766E] mx-auto flex items-center justify-center">
-          <Mail className="h-7 w-7" />
+    <section className="py-10 bg-white border-t border-[#E2E8F0]">
+      <div className="max-w-3xl mx-auto px-4 text-center space-y-5">
+        <div className="h-12 w-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F766E] mx-auto flex items-center justify-center">
+          <Mail className="h-6 w-6" />
         </div>
         <div>
           <h2 className="text-2xl font-black text-[#1E293B]">اشترك في نشرتنا البريدية</h2>
-          <p className="text-sm text-[#64748B] font-medium mt-2">
+          <p className="text-sm text-[#64748B] font-medium mt-1.5">
             احصل على أحدث الكورسات، المقالات التعليمية، والعروض الحصرية مباشرة في بريدك
           </p>
         </div>
@@ -52,12 +52,12 @@ export function NewsletterSection() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="أدخل بريدك الإلكتروني"
-            className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#0F766E] text-[#1E293B] focus:ring-2 focus:ring-[#0F766E]/20"
+            className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#0F766E] text-[#1E293B] focus:ring-2 focus:ring-[#0F766E]/20"
           />
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full sm:w-auto px-6 py-3.5 bg-[#0F766E] hover:bg-[#115E59] text-white font-bold text-sm rounded-xl shrink-0 flex items-center justify-center gap-2 disabled:opacity-70"
+            className="w-full sm:w-auto px-6 py-3 bg-[#0F766E] hover:bg-[#115E59] text-white font-bold text-sm rounded-xl shrink-0 flex items-center justify-center gap-2 disabled:opacity-70"
           >
             <Send className="h-4 w-4" />
             {status === 'loading' ? 'جاري الاشتراك...' : 'اشترك'}

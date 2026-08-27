@@ -65,7 +65,7 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
             }`}
           />
         </div>
-        <div className="text-right mt-1">
+        <div className="text-start mt-1">
           <span className={`text-sm font-medium ${
             goal.isCompleted ? 'text-green-600' : 'text-gray-500'
           }`}>

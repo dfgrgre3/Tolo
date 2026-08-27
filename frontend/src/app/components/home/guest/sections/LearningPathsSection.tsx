@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ChevronLeft, BookOpen, Zap } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 
 interface LearningPath {
   id: string;
@@ -78,15 +78,15 @@ const SAMPLE_PATHS: LearningPath[] = [
  */
 function LearningPathCard({ path }: { path: LearningPath }) {
   return (
-    <Link href={`/learning-paths/${path.id}`}>
-      <div className="group h-full bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:shadow-lg dark:hover:shadow-orange-500/20 transition-all duration-150">
+    <Link href={`/learning-paths/${path.id}`} className={`${RAIL.item} w-80`}>
+      <div className="group h-full flex flex-col bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:shadow-lg dark:hover:shadow-orange-500/20 transition-all duration-150">
 
         {/* Header with Icon */}
-        <div className="p-6 bg-gradient-to-br from-emerald-50 dark:from-orange-500/20 to-emerald-100/50 dark:to-orange-600/20">
-          <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-700 text-[#0F766E] dark:text-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+        <div className="p-4 bg-gradient-to-br from-emerald-50 dark:from-orange-500/20 to-emerald-100/50 dark:to-orange-600/20">
+          <div className="h-11 w-11 rounded-xl bg-white dark:bg-slate-700 text-[#0F766E] dark:text-orange-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             {path.icon}
           </div>
-          <h3 className="text-lg font-bold text-[#1E293B] dark:text-white mb-2 group-hover:text-[#0F766E] dark:group-hover:text-orange-500 transition-colors">
+          <h3 className="text-base font-bold text-[#1E293B] dark:text-white mb-1.5 group-hover:text-[#0F766E] dark:group-hover:text-orange-500 transition-colors">
             {path.title}
           </h3>
           <p className="text-sm text-[#64748B] dark:text-slate-400 line-clamp-2">
@@ -95,7 +95,7 @@ function LearningPathCard({ path }: { path: LearningPath }) {
         </div>
 
         {/* Info Row */}
-        <div className="p-6 space-y-3">
+        <div className="p-4 space-y-3 flex-1 flex flex-col">
           {/* Level & Duration */}
           <div className="flex items-center justify-between">
             <span className="text-xs px-2.5 py-1 bg-[#F8FAFC] dark:bg-slate-700 text-[#64748B] dark:text-slate-400 rounded-full font-medium">
@@ -107,11 +107,11 @@ function LearningPathCard({ path }: { path: LearningPath }) {
           </div>
 
           {/* Courses Count */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0] dark:border-slate-700">
+          <div className="flex items-center justify-between pt-2 mt-auto border-t border-[#E2E8F0] dark:border-slate-700">
             <span className="text-sm font-bold text-[#1E293B] dark:text-white">
               {path.coursesCount} كورس
             </span>
-            <button className="px-4 py-2 bg-[#0F766E] dark:bg-orange-600 text-white text-xs font-bold rounded-[8px] hover:bg-[#115E59] dark:hover:bg-orange-700 transition-colors">
+            <button className="px-3.5 py-1.5 bg-[#0F766E] dark:bg-orange-600 text-white text-xs font-bold rounded-[8px] hover:bg-[#115E59] dark:hover:bg-orange-700 transition-colors">
               ابدأ الآن
             </button>
           </div>
@@ -128,7 +128,7 @@ function LearningPathCard({ path }: { path: LearningPath }) {
  */
 export function LearningPathsSection() {
   return (
-    <section className="py-16 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
@@ -148,8 +148,8 @@ export function LearningPathsSection() {
           </Link>
         </div>
 
-        {/* Paths Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Paths Rail */}
+        <div className={RAIL.container}>
           {SAMPLE_PATHS.map((path) => (
             <LearningPathCard key={path.id} path={path} />
           ))}

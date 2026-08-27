@@ -30,7 +30,7 @@ export default function SocialLoginButtons({ isLoading, onSelect }: SocialLoginB
           disabled={isLoading}
           className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50"
         >
-          <Chrome className="ml-2 h-4 w-4 text-red-500" /> Google
+          <Chrome className="ms-2 h-4 w-4 text-red-500" /> Google
         </Button>
         <Button
           type="button"
@@ -39,7 +39,7 @@ export default function SocialLoginButtons({ isLoading, onSelect }: SocialLoginB
           disabled={isLoading}
           className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/50"
         >
-          <Apple className="ml-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> Apple
+          <Apple className="ms-2 h-4 w-4 text-slate-900 dark:text-slate-200" /> Apple
         </Button>
       </div>
     </>

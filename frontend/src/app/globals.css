@@ -10,6 +10,20 @@ html {
   scrollbar-gutter: stable;
 }
 
+/*
+ * Radix modals (Dialog / AlertDialog) lock body scroll via react-remove-scroll,
+ * which injects its own inline `padding-right`/`margin-right` on <html>/<body>
+ * to compensate for the scrollbar it hides. Since `scrollbar-gutter: stable`
+ * above already reserves that space permanently, Radix's extra compensation
+ * double-counts it and shifts the whole page a second time when a modal
+ * opens/closes. Zero out that compensation — scroll stays locked, but no
+ * extra shift, because our gutter already holds the space.
+ */
+html body[data-scroll-locked] {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* Header interactions are immediate by design. */
 [data-header-root],
 [data-header-root] *,
@@ -31,9 +45,14 @@ html {
     --popover: 0 0% 100%;
     --popover-foreground: 222 65% 15%;
 
-    /* Orange Primary — Logo circle color (#f97316) */
+    /* Orange Primary — Logo circle color (#f97316).
+       Foreground is deep navy, not white: white on this orange is ~2.8:1 (WCAG fail),
+       navy on it is ~6.2:1 (AA pass). */
     --primary: 26 95% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 222 47% 11%;
+    /* Darker orange reserved for small TEXT on light surfaces (#c2410c, ≥4.5:1);
+       the raw brand orange as text is ~2.8:1 and fails AA. */
+    --primary-strong: 20 91% 41%;
 
     --secondary: 218 30% 93%;
     --secondary-foreground: 218 62% 20%;
@@ -94,7 +113,9 @@ html {
 
     /* Orange Primary lighter in dark — still logo-inspired */
     --primary: 26 95% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 222 47% 11%;
+    /* Lighter orange for TEXT on dark surfaces (#fb923c, ≥7:1 on dark cards) */
+    --primary-strong: 27 96% 61%;
 
     --secondary: 218 40% 15%;
     --secondary-foreground: 210 20% 96%;
@@ -144,7 +165,7 @@ html {
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary-foreground;
     min-height: 100vh;
     /* Prevent horizontal overflow on all viewports */
     overflow-x: hidden;

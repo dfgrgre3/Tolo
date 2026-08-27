@@ -127,7 +127,7 @@ export default function DashboardPage() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 group-hover:scale-110 transition-transform shadow-lg border border-amber-500/30">
                   <Shield className="h-8 w-8" />
                 </div>
-                <div className="flex-1 text-center sm:text-right">
+                <div className="flex-1 text-center sm:text-start">
                   <p className="font-black text-2xl tracking-tight">تفعيل البريد الإلكتروني (إجباري)</p>
                   <p className="text-sm text-amber-500/80 font-medium">أمان حسابك يبدأ من هنا. تفقد بريدك واضغط على الرابط لتفادي حظر الميزات المتقدمة.</p>
                 </div>

@@ -57,7 +57,7 @@ export function OperationsGrid({ cardStyle }: OperationsGridProps) {
                   </div>
                 </div>
                 <div className="mt-10 flex items-center justify-between">
-                  <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden mr-6 shadow-inner border border-white/5">
+                  <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden me-6 shadow-inner border border-white/5">
                     <m.div
                       initial={{ width: 0 }}
                       animate={{ width: "75%" }}

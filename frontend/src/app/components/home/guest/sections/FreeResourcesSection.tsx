@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Heart, ChevronLeft, Gift } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { GRIDS, CONTAINER, TYPOGRAPHY, SECTION_HEADER } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface FreeResourcesSectionProps {
@@ -25,14 +25,14 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
   }
 
   return (
-    <section className="py-16 bg-gradient-to-b from-[#FEF3C7] to-[#FEF08A] dark:from-orange-500/10 dark:to-orange-600/10 border-b border-[#F59E0B] dark:border-orange-500/30">
+    <section className="py-10 bg-gradient-to-b from-[#FEF3C7] to-[#FEF08A] dark:from-orange-500/10 dark:to-orange-600/10 border-b border-[#F59E0B] dark:border-orange-500/30">
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>
-            <div className="flex items-center gap-2 mb-2">
-              <Gift className="h-5 w-5 text-[#F59E0B]" />
-              <span className="text-xs font-bold bg-white dark:bg-slate-800 text-[#F59E0B] px-3 py-1 rounded-full">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Gift className="h-4 w-4 text-[#F59E0B]" />
+              <span className="text-xs font-bold bg-white dark:bg-slate-800 text-[#F59E0B] px-2.5 py-0.5 rounded-full">
                 مجاني تماماً
               </span>
             </div>
@@ -52,9 +52,11 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
         </div>
 
         {loading ? (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <CourseCardSkeleton key={i} />
+              <div key={i} className={`${RAIL.item} w-72`}>
+                <CourseCardSkeleton />
+              </div>
             ))}
           </div>
         ) : freeCourses.length === 0 ? (
@@ -68,32 +70,33 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
             </p>
           </div>
         ) : (
-          <div className={GRIDS.courses}>
+          <div className={RAIL.container}>
             {freeCourses.map((c) => {
               const norm = normalizeCourse(c);
               return (
-                <CourseCard
-                  key={norm.id}
-                  id={norm.id}
-                  title={norm.title}
-                  slug={norm.slug}
-                  thumbnail={norm.thumbnail}
-                  categoryName={norm.categoryName}
-                  instructorName={norm.instructorName}
-                  ratingAvg={norm.ratingAvg}
-                  reviewsCount={norm.reviewsCount}
-                  studentsCount={norm.studentsCount}
-                  price={norm.price}
-                  discountPrice={norm.discountPrice}
-                  level={norm.level}
-                />
+                <div key={norm.id} className={`${RAIL.item} w-72`}>
+                  <CourseCard
+                    id={norm.id}
+                    title={norm.title}
+                    slug={norm.slug}
+                    thumbnail={norm.thumbnail}
+                    categoryName={norm.categoryName}
+                    instructorName={norm.instructorName}
+                    ratingAvg={norm.ratingAvg}
+                    reviewsCount={norm.reviewsCount}
+                    studentsCount={norm.studentsCount}
+                    price={norm.price}
+                    discountPrice={norm.discountPrice}
+                    level={norm.level}
+                  />
+                </div>
               );
             })}
           </div>
         )}
 
         {/* Benefits Row */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 bg-white dark:bg-slate-800 rounded-[12px] border border-[#E2E8F0] dark:border-slate-700">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-white dark:bg-slate-800 rounded-[12px] border border-[#E2E8F0] dark:border-slate-700">
           <div className="text-center">
             <div className="text-2xl mb-2">🎓</div>
             <p className="text-sm font-bold text-[#1E293B] dark:text-white">شهادات معتمدة</p>
@@ -112,7 +115,7 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
         </div>
 
         {/* Call to Action */}
-        <div className="mt-6 text-center">
+        <div className="mt-5 text-center">
           <p className="text-sm text-[#1E293B] dark:text-white mb-4">
             هل تريد المزيد من الموارد المجانية؟
           </p>

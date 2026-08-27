@@ -97,7 +97,7 @@ export function AgendaView({
           role="button"
           tabIndex={0}
           className={cn(
-            "w-full h-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 hover:scale-[1.01] transition-all duration-300 text-right group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-500/50",
+            "w-full h-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 hover:scale-[1.01] transition-all duration-300 text-start group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-500/50",
             block.isCompleted && "opacity-40 grayscale"
           )}
           onClick={() => onBlockEdit(block)}
@@ -109,7 +109,7 @@ export function AgendaView({
           }}
         >
           <div className={cn(
-            "absolute inset-y-0 right-0 w-1.5",
+            "absolute inset-y-0 end-0 w-1.5",
             block.priority === 'URGENT' ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' :
             block.priority === 'HIGH' ? 'bg-orange-500' :
             block.priority === 'MEDIUM' ? 'bg-blue-500' : 'bg-slate-500'

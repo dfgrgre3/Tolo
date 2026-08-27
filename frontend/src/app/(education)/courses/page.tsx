@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
+import { apiClient, ApiError } from "@/lib/api/api-client";
 import { addSearchQuery } from "@/lib/search-history";
 import { sortCourses } from "./_components/utils";
 import { CatalogStats } from "./_components/catalog-stats";
@@ -68,6 +68,18 @@ export default function CoursesPage() {
           coursesData = data.courses ?? data.items ?? data.subjects ?? [];
         } else {
           logger.error("Failed to load courses", coursesResult.reason);
+          // A failed courses request must not be swallowed into a silent
+          // "no results" empty state — the catalog would look empty for a
+          // reason the user can't diagnose (e.g. an expired session getting
+          // a 401 from the API). Surface it explicitly instead.
+          const reason = coursesResult.reason;
+          const isUnauthorized =
+            reason instanceof ApiError && reason.status === 401;
+          throw new Error(
+            isUnauthorized
+              ? "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى لعرض الدورات."
+              : "تعذر تحميل الدورات التعليمية."
+          );
         }
 
         let categoriesData: Array<{ id: string; name: string; nameAr?: string }> = [];
@@ -117,10 +129,6 @@ export default function CoursesPage() {
             name: cat.nameAr || cat.name || "",
           }))
         );
-
-        if (coursesResult.status === "rejected" && categoriesResult.status === "rejected") {
-          throw new Error("تعذر تحميل الدورات التعليمية.");
-        }
       } catch (loadError) {
         logger.error("Error loading courses catalog", loadError);
         setError(
@@ -240,7 +248,7 @@ export default function CoursesPage() {
           <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-7">
               <Badge className="rounded-full border-0 bg-orange-500/10 px-4 py-2 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-                <Sparkles className="ml-2 h-4 w-4" />
+                <Sparkles className="ms-2 h-4 w-4" />
                 منصة دورات تعليمية متكاملة للمرحلة الثانوية
               </Badge>
 
@@ -261,7 +269,7 @@ export default function CoursesPage() {
 
               <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
                 <div className="relative">
-                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                       value={searchQuery}
                       onChange={(event) => {
@@ -269,7 +277,7 @@ export default function CoursesPage() {
                         debouncedSaveSearch(event.target.value);
                       }}
                       placeholder="ابحث باسم الدورة أو المدرس أو المادة"
-                      className="h-14 rounded-2xl border-slate-200 bg-slate-50 pr-11 text-base dark:border-white/10 dark:bg-white/5"
+                      className="h-14 rounded-2xl border-slate-200 bg-slate-50 pe-11 text-base dark:border-white/10 dark:bg-white/5"
                     />
                 </div>
 
@@ -284,7 +292,7 @@ export default function CoursesPage() {
                   )}
                   onClick={() => setFeaturedOnly((current) => !current)}
                 >
-                  <Trophy className="ml-2 h-4 w-4" />
+                  <Trophy className="ms-2 h-4 w-4" />
                   الدورات المميزة
                 </Button>
 
@@ -299,7 +307,7 @@ export default function CoursesPage() {
                   )}
                   onClick={() => setEnrolledOnly((current) => !current)}
                 >
-                  <BookOpen className="ml-2 h-4 w-4" />
+                  <BookOpen className="ms-2 h-4 w-4" />
                   دوراتي فقط
                 </Button>
               </div>
@@ -346,7 +354,7 @@ export default function CoursesPage() {
                 )}
               >
                 {category.name}
-                <span className="mr-2 text-xs opacity-70">
+                <span className="me-2 text-xs opacity-70">
                   ({(category.count || 0).toLocaleString("ar-EG")})
                 </span>
               </button>

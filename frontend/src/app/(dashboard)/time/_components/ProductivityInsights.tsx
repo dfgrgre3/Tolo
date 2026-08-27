@@ -207,32 +207,32 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {completionRate < 70 &&
             <li className="flex items-start p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                <Target className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                <Target className="h-4 w-4 text-blue-500 mt-0.5 me-2 flex-shrink-0" />
                 <span>حدد أولوياتك: ركز على المهام عالية الأهمية أولاً</span>
               </li>
             }
             {studyEfficiency < 70 &&
             <li className="flex items-start p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
-                <Clock className="h-4 w-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                <Clock className="h-4 w-4 text-yellow-500 mt-0.5 me-2 flex-shrink-0" />
                 <span>حسّن تقدير الوقت: خصص وقتًا أكثر دقة للمهام الصعبة</span>
               </li>
             }
             {pomodoroRatio < 0.3 &&
             <li className="flex items-start p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                <BookOpen className="h-4 w-4 text-purple-500 mt-0.5 mr-2 flex-shrink-0" />
+                <BookOpen className="h-4 w-4 text-purple-500 mt-0.5 me-2 flex-shrink-0" />
                 <span>جرب تقنية بومودورو: استخدم فترات الدراسة المركزة لزيادة إنتاجيتك</span>
               </li>
             }
             <li className="flex items-start p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-              <Calendar className="h-4 w-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+              <Calendar className="h-4 w-4 text-green-500 mt-0.5 me-2 flex-shrink-0" />
               <span>خطط ليومك مسبقًا: ضع جدولًا زمنيًا لمهامك في بداية كل يوم</span>
             </li>
             <li className="flex items-start p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
-              <Zap className="h-4 w-4 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
+              <Zap className="h-4 w-4 text-indigo-500 mt-0.5 me-2 flex-shrink-0" />
               <span>قلل المشتتات: حدد أوقاتًا معينة لفحص الهاتف والرسائل</span>
             </li>
             <li className="flex items-start p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg">
-                <Award className="h-4 w-4 text-teal-500 mt-0.5 mr-2 flex-shrink-0" />
+                <Award className="h-4 w-4 text-teal-500 mt-0.5 me-2 flex-shrink-0" />
                 <span>احتفل بالإنجازات: كافئ نفسك عند إكمال المهام المهمة</span>
             </li>
           </ul>

@@ -20,13 +20,13 @@ export function StatsStrip({ stats }: StatsStripProps) {
   ];
 
   return (
-    <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
       {items.map(({ icon: Icon, value, label, color }) => (
         <div
           key={label}
-          className="flex flex-col items-center text-center p-5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20"
+          className="flex flex-col items-center text-center p-4 rounded-[12px] bg-white/10 backdrop-blur-sm border border-white/20"
         >
-          <div className={`h-10 w-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
+          <div className={`h-10 w-10 rounded-xl ${color} flex items-center justify-center mb-2.5`}>
             <Icon className="h-5 w-5 text-white" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-white">
@@ -52,13 +52,13 @@ export function AchievementStrip({ stats }: StatsStripProps) {
   ];
 
   return (
-    <section className="py-16 bg-[#1e293b]">
+    <section className="py-10 bg-[#1e293b]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {items.map(({ value, label, icon: Icon }) => (
             <div key={label} className="flex flex-col items-center animate-fade-in-up">
-              <Icon className="h-8 w-8 text-[#F59E0B] mb-3" />
-              <div className="text-3xl sm:text-4xl font-black text-white mb-1">
+              <Icon className="h-7 w-7 text-[#F59E0B] mb-2.5" />
+              <div className="text-2xl sm:text-3xl font-black text-white mb-1">
                 {value.toLocaleString('ar-EG')}
               </div>
               <div className="text-sm text-white/60 font-medium">{label}</div>
