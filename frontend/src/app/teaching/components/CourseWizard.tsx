@@ -3,13 +3,16 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Save, X, Upload } from "lucide-react";
+import { ArrowRight, ArrowLeft, Save, X, Upload, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LessonBuilder from "./LessonBuilder";
+import { QuizBuilder } from "./QuizBuilder";
 import { Course, Chapter } from "../hooks/use-teaching-data";
+import type { QuizQuestion } from "@/types/course-quiz";
 
 interface CourseWizardProps {
   course?: Course | null; // If null, we are creating a new course
@@ -27,6 +30,16 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
   const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(
+    course?.quiz?.questions || []
+  );
+  const [quizSettings, setQuizSettings] = useState({
+    passingScore: course?.quiz?.passingScore ?? 60,
+    timeLimitMinutes: course?.quiz?.timeLimitMinutes ?? 15,
+    shuffleQuestions: course?.quiz?.shuffleQuestions ?? false,
+    shuffleOptions: course?.quiz?.shuffleOptions ?? false,
+    showCorrectAnswers: course?.quiz?.showCorrectAnswers ?? true,
+  });
   const [errorMsg, setErrorMsg] = useState("");
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +62,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
     { num: 1, label: "المعلومات الأساسية" },
     { num: 2, label: "الوسائط والغلاف" },
     { num: 3, label: "منهج الكورس" },
-    { num: 4, label: "السعر والنشر" },
+    { num: 4, label: "اختبار الكورس" },
+    { num: 5, label: "السعر والنشر" },
   ];
 
   const handleNext = () => {
@@ -58,7 +72,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
       return;
     }
     setErrorMsg("");
-    if (currentStep < 4) {
+    if (currentStep < 5) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -85,6 +99,15 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         status,
         chapters,
         lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
+        quiz: {
+          title: `${title} — اختبار`,
+          passingScore: quizSettings.passingScore,
+          timeLimitMinutes: quizSettings.timeLimitMinutes,
+          shuffleQuestions: quizSettings.shuffleQuestions,
+          shuffleOptions: quizSettings.shuffleOptions,
+          showCorrectAnswers: quizSettings.showCorrectAnswers,
+          questions: quizQuestions,
+        },
       });
     } catch {
       // Errors are surfaced by the caller via toasts; keep the wizard open
@@ -112,7 +135,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         </div>
 
         {/* Steps Progress Header */}
-        <div className="px-8 py-4 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-850 grid grid-cols-4 gap-2 text-center text-[10px] font-bold">
+        <div className="px-4 sm:px-8 py-4 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-850 grid grid-cols-5 gap-2 text-center text-[10px] font-bold">
           {steps.map((st) => (
             <div
               key={st.num}
@@ -238,8 +261,56 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
             <LessonBuilder chapters={chapters} onChange={(newChapters) => setChapters(newChapters)} />
           )}
 
-          {/* STEP 4: Pricing & Publish Settings */}
+          {/* STEP 4: Quiz Builder */}
           {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="flex items-start gap-3 rounded-xl bg-violet-500/5 border border-violet-500/20 p-4">
+                <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                  أضف اختباراً تفاعلياً للكورس. سيتمكن الطلاب من حله بعد التسجيل في الكورس، وحساب النتيجة تلقائياً للأسئلة الموضوعية.
+                </div>
+              </div>
+
+              <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
+
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-4 text-xs font-semibold">
+                <p className="text-slate-800 dark:text-slate-200 font-bold text-xs">إعدادات الاختبار</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-slate-500">درجة النجاح (%)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={String(quizSettings.passingScore)}
+                      onChange={(e) => setQuizSettings((s) => ({ ...s, passingScore: Number(e.target.value) || 0 }))}
+                      className="rounded-xl text-right text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-500">المهلة (بالدقائق)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={String(quizSettings.timeLimitMinutes)}
+                      onChange={(e) => setQuizSettings((s) => ({ ...s, timeLimitMinutes: Number(e.target.value) || 0 }))}
+                      className="rounded-xl text-right text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  <ToggleRow label="خلط ترتيب الأسئلة" checked={quizSettings.shuffleQuestions} onChange={(v) => setQuizSettings((s) => ({ ...s, shuffleQuestions: v }))} />
+                  <ToggleRow label="خلط ترتيب الخيارات" checked={quizSettings.shuffleOptions} onChange={(v) => setQuizSettings((s) => ({ ...s, shuffleOptions: v }))} />
+                  <ToggleRow label="إظهار الإجابات الصحيحة بعد الحل" checked={quizSettings.showCorrectAnswers} onChange={(v) => setQuizSettings((s) => ({ ...s, showCorrectAnswers: v }))} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Pricing & Publish Settings */}
+          {currentStep === 5 && (
             <div className="space-y-6 text-xs font-semibold">
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-bold text-xs">سعر الكورس (بالدولار $)</label>
@@ -272,7 +343,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         {/* Footer Actions */}
         <div className="p-6 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between bg-slate-50/20 dark:bg-slate-900/10">
           <div className="flex gap-2">
-            {currentStep === 4 ? (
+            {currentStep === 5 ? (
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -299,6 +370,23 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-slate-700 dark:text-slate-300 font-medium text-xs">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }

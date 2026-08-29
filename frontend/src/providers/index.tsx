@@ -4,6 +4,7 @@ import React, { Suspense, useState } from 'react';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import { SettingsProvider } from '@/contexts/settings-context';
 import { AuthProvider } from '@/contexts/auth-context';
+import { NotificationsProvider } from '@/providers/notifications-provider';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -18,6 +19,7 @@ import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
 import { useAuth } from '@/hooks/use-auth';
+import { LazyMotion, domAnimation } from 'framer-motion';
 
 function makeQueryClient() {
   const isDev = process.env.NODE_ENV === 'development';
@@ -93,10 +95,15 @@ function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) 
 
 const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
   <AuthGatedFeatureProviders>
-    <Suspense fallback={null}>
-      <OfflineSyncManager />
-      {children}
-    </Suspense>
+    {/* NotificationsProvider must sit INSIDE WebSocketProvider (consumes the
+        socket) and INSIDE AuthProvider (gates fetches on isAuthenticated).
+        Feeds HeaderNotifications via useNotificationsContext. */}
+    <NotificationsProvider>
+      <Suspense fallback={null}>
+        <OfflineSyncManager />
+        {children}
+      </Suspense>
+    </NotificationsProvider>
   </AuthGatedFeatureProviders>
 );
 
@@ -126,20 +133,26 @@ type GlobalProvidersProps = {
  * - FeatureProviders: WebSocket, Notifications, Offline sync (lazy loaded)
  * - UIProviders: Tooltips, Performance monitoring
  *
- * Framer Motion removed from global scope - import only where needed in specific components.
+ * Framer Motion: the heavier `motion` API is still imported per-component where
+ * needed, but the lightweight `m` mini component requires a `LazyMotion`
+ * ancestor to animate at all (otherwise it freezes at its `initial` props).
+ * Header (via HeaderNotifications -> VirtualList) renders `m.*` on every route,
+ * so `LazyMotion` is provided here, once, at the root of the app tree.
  * Heavy providers like OfflineSyncManager are lazy loaded to reduce initial bundle size.
  */
 export function GlobalProviders({ children }: GlobalProvidersProps) {
   return (
-    <CoreProviders>
-      <AppStateProviders>
-        <FeatureProviders>
-          <UIProviders>
-            {children}
-          </UIProviders>
-        </FeatureProviders>
-      </AppStateProviders>
-    </CoreProviders>
+    <LazyMotion features={domAnimation}>
+      <CoreProviders>
+        <AppStateProviders>
+          <FeatureProviders>
+            <UIProviders>
+              {children}
+            </UIProviders>
+          </FeatureProviders>
+        </AppStateProviders>
+      </CoreProviders>
+    </LazyMotion>
   );
 }
 

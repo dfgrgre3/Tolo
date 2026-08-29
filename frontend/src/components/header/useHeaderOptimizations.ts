@@ -12,7 +12,6 @@ const buildLoginUrl = (redirect?: string) => {
 const HEADER_PREFERENCES = {
   compactMode: false,
   showProgress: true,
-  showSuggestions: true,
 } as const;
 
 export const useLoginUrl = () => {
@@ -52,7 +51,6 @@ export const useContainerHeight = (isShrunk: boolean) => {
 export const useHeaderWidgets = (isEfficiencyMode: boolean) => {
   return useMemo(() => ({
     progress: HEADER_PREFERENCES.showProgress && !isEfficiencyMode,
-    suggestions: HEADER_PREFERENCES.showSuggestions && !isEfficiencyMode,
   }), [isEfficiencyMode]);
 };
 

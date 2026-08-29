@@ -3,17 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { m } from "framer-motion";
+import { useState } from "react";
 import {
   ArrowLeft,
   GraduationCap,
+  Heart,
   Layers3,
   PlayCircle,
+  ShoppingCart,
   Star,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { levelMap } from "./constants";
 import { formatPrice, formatHours } from "./utils";
 import type { CourseSummary } from "./types";
@@ -26,6 +30,60 @@ export function CourseCard({
   index: number;
 }) {
   const levelInfo = levelMap[course.level] ?? levelMap.INTERMEDIATE;
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  const [cartBusy, setCartBusy] = useState(false);
+
+  const toggleWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (wishlistBusy) return;
+    setWishlistBusy(true);
+    try {
+      const res = await fetch(`/api/courses/${course.id}/wishlist`, {
+        method: isWishlisted ? "DELETE" : "POST",
+      });
+      if (res.ok) {
+        setIsWishlisted((prev) => !prev);
+        toast.success(isWishlisted ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة");
+      } else if (res.status === 401) {
+        toast.error("سجّل الدخول أولاً");
+      } else {
+        toast.error("حدث خطأ، حاول مرة أخرى");
+      }
+    } catch {
+      toast.error("حدث خطأ، حاول مرة أخرى");
+    } finally {
+      setWishlistBusy(false);
+    }
+  };
+
+  const addToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (cartBusy || inCart) return;
+    setCartBusy(true);
+    try {
+      const res = await fetch(`/api/cart/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subjectId: course.id }),
+      });
+      if (res.ok) {
+        setInCart(true);
+        toast.success("تمت الإضافة للسلة");
+      } else if (res.status === 401) {
+        toast.error("سجّل الدخول أولاً");
+      } else {
+        toast.error("حدث خطأ، حاول مرة أخرى");
+      }
+    } catch {
+      toast.error("حدث خطأ، حاول مرة أخرى");
+    } finally {
+      setCartBusy(false);
+    }
+  };
 
   return (
     <m.article
@@ -65,9 +123,25 @@ export function CourseCard({
             ) : null}
           </div>
 
-          <Badge className={cn("border px-3 py-1", levelInfo.className)}>
-            {levelInfo.label}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={cn("border px-3 py-1", levelInfo.className)}>
+              {levelInfo.label}
+            </Badge>
+            <button
+              type="button"
+              onClick={toggleWishlist}
+              disabled={wishlistBusy}
+              aria-label={isWishlisted ? "إزالة من المفضلة" : "أضف للمفضلة"}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 backdrop-blur transition-transform hover:scale-110 disabled:opacity-60"
+            >
+              <Heart
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  isWishlisted ? "fill-rose-500 text-rose-500" : "text-slate-600"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 text-white">
@@ -156,15 +230,29 @@ export function CourseCard({
           </div>
         </div>
 
-        <Button
-          asChild
-          className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-orange-500 dark:hover:bg-orange-600"
-        >
-          <Link href={`/courses/${course.id}`} className="flex items-center justify-center gap-2">
-            {course.enrolled ? "متابعة التعلم" : "عرض تفاصيل الدورة"}
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            asChild
+            className="h-12 flex-1 rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-orange-500 dark:hover:bg-orange-600"
+          >
+            <Link href={`/courses/${course.id}`} className="flex items-center justify-center gap-2">
+              {course.enrolled ? "متابعة التعلم" : "عرض تفاصيل الدورة"}
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          {!course.enrolled && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addToCart}
+              disabled={cartBusy || inCart}
+              className="h-12 w-12 shrink-0 rounded-2xl p-0"
+              aria-label="أضف للسلة"
+            >
+              <ShoppingCart className={cn("h-5 w-5", inCart && "text-emerald-500")} />
+            </Button>
+          )}
+        </div>
       </div>
     </m.article>
   );

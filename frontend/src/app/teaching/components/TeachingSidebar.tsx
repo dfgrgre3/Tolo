@@ -4,6 +4,7 @@ import React from "react";
 import {
   LayoutDashboard,
   BookOpen,
+  FileQuestion,
   Users,
   MessageSquare,
   Star,
@@ -37,6 +38,7 @@ export default function TeachingSidebar({
   const menuItems: SidebarLink[] = [
     { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
     { id: "courses", label: "إدارة الكورسات", icon: BookOpen },
+    { id: "quizzes", label: "الاختبارات", icon: FileQuestion },
     { id: "students", label: "الطلاب", icon: Users },
     { id: "messages", label: "الرسائل", icon: MessageSquare },
     { id: "reviews", label: "التقييمات", icon: Star },

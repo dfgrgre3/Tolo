@@ -1,64 +1,91 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { generateUserPath, validateFileType, validateFileSize, formatFileSize } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
+import { SERVER_MAX_FILE_SIZE, SERVER_ALLOWED_TYPES, sanitizeFolder } from "@/lib/storage/upload-policy";
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
+/**
+ * Resolves the authenticated user via Supabase JWT verification.
+ * SECURITY: We intentionally do NOT read userId from a plain cookie
+ * (e.g. "user_id") because unsigned cookies can be freely modified by
+ * the client. supabase.auth.getUser() validates the signed JWT and is
+ * the only trustworthy source of the caller's identity.
+ */
+async function getAuthenticatedUserId(): Promise<{ userId: string; supabase: Awaited<ReturnType<typeof createClient>> } | null> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (!user || error) return null;
+  return { userId: user.id, supabase };
+}
+
+// ─── CSRF helper ────────────────────────────────────────────────────────────
+// Strict Origin/Referer hostname matching against the request host.
+function isSameOriginRequest(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
+  const host = request.headers.get("host") || "";
+  const expectedHost = host.split(":")[0];
+
+  if (origin) {
+    try {
+      return new URL(origin).hostname === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+  if (referer) {
+    try {
+      return new URL(referer).hostname === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { userId, supabase } = auth;
 
-    // CSRF validation via strict Origin/Referer matching
-    const origin = request.headers.get("origin");
-    const referer = request.headers.get("referer");
-    const host = request.headers.get("host") || "";
-    const expectedHost = host.split(":")[0];
-
-    let isCsrfValid = false;
-
-    if (origin) {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.hostname === expectedHost) {
-          isCsrfValid = true;
-        }
-      } catch {
-        // Ignore invalid URL
-      }
-    } else if (referer) {
-      try {
-        const refererUrl = new URL(referer);
-        if (refererUrl.hostname === expectedHost) {
-          isCsrfValid = true;
-        }
-      } catch {
-        // Ignore invalid URL
-      }
-    }
-
-    if (!isCsrfValid) {
+    if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const supabase = await createClient();
-
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const folder = (formData.get("folder") as string) || "uploads";
-    const allowedTypes = (formData.get("allowedTypes") as string)?.split(",") || [];
-    const maxSize = parseInt((formData.get("maxSize") as string) || "100", 10) * 1024 * 1024;
+    const folder = sanitizeFolder((formData.get("folder") as string) || "uploads");
+    // Client-declared restrictions: optional, and only ever tighten the
+    // server-enforced limits above (intersection, not replacement).
+    const clientAllowedTypes = (formData.get("allowedTypes") as string)?.split(",").filter(Boolean) || [];
+    const clientMaxSizeMb = parseInt((formData.get("maxSize") as string) || "0", 10);
+    const maxSize = Math.min(
+      Number.isFinite(clientMaxSizeMb) && clientMaxSizeMb > 0
+        ? clientMaxSizeMb * 1024 * 1024
+        : SERVER_MAX_FILE_SIZE,
+      SERVER_MAX_FILE_SIZE
+    );
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!validateFileType(file, allowedTypes)) {
+    // 1) Server-enforced master allowlist (rejects empty/unknown MIME types)
+    if (!validateFileType(file, SERVER_ALLOWED_TYPES)) {
       return NextResponse.json(
-        { error: `File type not allowed. Allowed: ${allowedTypes.join(", ") || "any"}` },
+        { error: "File type not allowed" },
+        { status: 400 }
+      );
+    }
+
+    // 2) Optional client narrowing (e.g. an avatar field accepting images only)
+    if (clientAllowedTypes.length > 0 && !validateFileType(file, clientAllowedTypes)) {
+      return NextResponse.json(
+        { error: `File type not allowed. Allowed: ${clientAllowedTypes.join(", ")}` },
         { status: 400 }
       );
     }
@@ -113,58 +140,30 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
-    if (!userId) {
+    const auth = await getAuthenticatedUserId();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { userId, supabase } = auth;
 
-    // CSRF validation via strict Origin/Referer matching
-    const origin = request.headers.get("origin");
-    const referer = request.headers.get("referer");
-    const host = request.headers.get("host") || "";
-    const expectedHost = host.split(":")[0];
-
-    let isCsrfValid = false;
-
-    if (origin) {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.hostname === expectedHost) {
-          isCsrfValid = true;
-        }
-      } catch {
-        // Ignore invalid URL
-      }
-    } else if (referer) {
-      try {
-        const refererUrl = new URL(referer);
-        if (refererUrl.hostname === expectedHost) {
-          isCsrfValid = true;
-        }
-      } catch {
-        // Ignore invalid URL
-      }
-    }
-
-    if (!isCsrfValid) {
+    if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
     }
 
-    const supabase = await createClient();
-
     const { searchParams } = new URL(request.url);
-    const paths = searchParams.get("paths")?.split(",") || [];
+    const paths = searchParams.get("paths")?.split(",").filter(Boolean) || [];
 
     if (paths.length === 0) {
       return NextResponse.json({ error: "No paths provided" }, { status: 400 });
     }
 
-    // Security check: Ensure all paths belong to the authenticated user to prevent IDOR deletions
-    const invalidPaths = paths.filter(path => {
+    // Security check (IDOR): every path must contain the VERIFIED user id as
+    // a path segment. Paths generated by this route are either
+    // `<folder>/<userId>/<file>` or `<userId>/<file>`.
+    const invalidPaths = paths.filter((path) => {
       const cleanPath = path.replace(/^\/+|\/+$/g, "");
       const parts = cleanPath.split("/");
-      return parts[0] !== userId && parts[1] !== userId;
+      return !parts.includes(userId);
     });
 
     if (invalidPaths.length > 0) {

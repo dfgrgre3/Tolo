@@ -165,7 +165,19 @@ class ApiClient {
         // Aborts (caller cancellation, our own timeout) are expected control
         // flow, not failures — logging them as HIGH network errors just
         // spams Sentry/console with noise on every unmount/navigation.
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        //
+        // We can't rely solely on `error instanceof DOMException && name === 'AbortError'`:
+        // when a caller aborts with a plain string reason (e.g.
+        // `controller.abort("Component unmounted")`), `forwardAbort` propagates
+        // that reason as-is via `controller.abort(externalSignal.reason ?? ...)`,
+        // so the resulting rejection can be a generic Error whose name isn't
+        // 'AbortError' at all. Detect those cases by name/message too.
+        const name = (error as { name?: string } | null)?.name;
+        const message = (error as { message?: string } | null)?.message;
+        const isAbortLike =
+            name === 'AbortError' ||
+            (typeof message === 'string' && /aborted|abort/i.test(message));
+        if (isAbortLike) return;
 
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
             errorManager.handleNetworkError(error, endpoint);
@@ -187,7 +199,12 @@ class ApiClient {
             // caller passed in `options` (e.g. auth-context's unmount cleanup)
             // — the caller's abort had no effect and the request kept running.
             const externalSignal = customOptions.signal instanceof AbortSignal ? customOptions.signal : undefined;
-            const forwardAbort = () => controller.abort(externalSignal?.reason ?? new DOMException('Aborted by caller', 'AbortError'));
+            // Always forward as a proper AbortError DOMException — never the
+            // caller's raw `reason` (often a plain string like "Component
+            // unmounted" from `controller.abort("...")`), so downstream
+            // `error.name === 'AbortError'` checks (e.g. logNetworkError)
+            // reliably recognize this as a cancellation, not a failure.
+            const forwardAbort = () => controller.abort(new DOMException('Aborted by caller', 'AbortError'));
             if (externalSignal) {
                 if (externalSignal.aborted) {
                     controller.abort();

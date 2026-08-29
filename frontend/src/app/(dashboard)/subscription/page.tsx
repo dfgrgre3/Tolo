@@ -315,7 +315,7 @@ export default function SubscriptionPage() {
             directory page, not here; surface a direct link so it's
             discoverable from the account/subscriptions area. */}
         <Link
-          href="/education/teachers"
+          href="/teachers"
           className="mb-12 flex items-center justify-between gap-4 rounded-3xl border border-white/5 bg-[#111114] p-6 transition-all hover:border-blue-500/30 hover:bg-[#15151a]"
         >
           <div className="flex items-center gap-4">

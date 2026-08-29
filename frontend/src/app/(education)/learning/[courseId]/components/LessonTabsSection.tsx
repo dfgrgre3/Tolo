@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import { AnimatePresence, m } from "framer-motion";
 import {
   BookOpen,
@@ -59,6 +61,13 @@ export function LessonTabsSection({
   aiLoading,
   sendAiMessage,
 }: LessonTabsSectionProps) {
+  // Lesson HTML comes from the backend (teacher-authored) — sanitize before
+  // injecting via dangerouslySetInnerHTML (stored XSS protection).
+  const sanitizedContent = useMemo(
+    () => sanitizeRichTextHtml(activeLesson.content),
+    [activeLesson.content]
+  );
+
   const tabs = [
     { key: "content", label: "المحتوى", icon: BookOpen },
     { key: "resources", label: "المرفقات", icon: Download },
@@ -106,7 +115,7 @@ export function LessonTabsSection({
             activeLesson.content ? (
               <div
                 className="prose prose-sm max-w-none leading-8 text-slate-700 dark:prose-invert dark:text-slate-300"
-                dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizedContent }}
               />
             ) : (
               <div className="rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center dark:border-white/10">

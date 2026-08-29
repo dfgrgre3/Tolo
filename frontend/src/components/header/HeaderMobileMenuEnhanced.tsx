@@ -12,18 +12,24 @@ import { mainNavItemsWithMegaMenu, headerNavItems as fallbackHeaderNavItems, typ
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras } from "./headerMenuUtils";
 import type { MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink } from "@/components/navigation";
+import { MobileSearchResultItem } from "./_components/MobileSearchResultItem";
+import { SearchLoadingState } from "./_components/SearchLoadingState";
+import type { SearchResult } from "./_components/search-types";
 import { SITE } from "@thanawy/shared/site-config";
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "@/providers/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
+import { apiClient } from "@/lib/api/api-client";
+import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
+import { logger } from "@/lib/logger";
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ─────────────────────────────────────────────────────
 
 function buildLoginUrl(redirect?: string): string {
 	return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login";
 }
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ───────────────────────────────────────────────────────
 
 interface HeaderMobileMenuEnhancedProps {
 	isMobileMenuOpen: boolean;
@@ -34,7 +40,7 @@ interface HeaderMobileMenuEnhancedProps {
 	headerNavItems?: NavItemWithMegaMenu[];
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ───────────────────────────────────────────────────
 
 export function HeaderMobileMenuEnhanced({
 	isMobileMenuOpen,
@@ -54,16 +60,19 @@ export function HeaderMobileMenuEnhanced({
 	const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	const [apiResults, setApiResults] = useState<SearchResult[]>([]);
+	const [isApiSearching, setIsApiSearching] = useState(false);
 
-	// â”€â”€ Close menu helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Close menu helper ─────────────────────────────────────────
 
 	const closeMobileMenu = useCallback(() => {
 		setIsMobileMenuOpen(false);
 		setExpandedMenus(new Set());
 		setSearchQuery("");
+		setApiResults([]);
 	}, [setIsMobileMenuOpen]);
 
-	// â”€â”€ Lock body scroll when open (without layout shift) â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Lock body scroll when open (without layout shift) ────────
 	// Mobile menu is a fullscreen drawer, so scroll lock is justified.
 	// We use scrollbar-gutter: stable on <html> (set in globals.css)
 	// so the scrollbar placeholder remains visible and no layout shift occurs.
@@ -78,7 +87,7 @@ export function HeaderMobileMenuEnhanced({
 		};
 	}, [isMobileMenuOpen]);
 
-	// â”€â”€ Click outside to close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Click outside to close ────────────────────────────────────
 
 	useEffect(() => {
 		if (!mounted || !isMobileMenuOpen) return;
@@ -98,7 +107,7 @@ export function HeaderMobileMenuEnhanced({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [closeMobileMenu, isMobileMenuOpen, mounted]);
 
-	// â”€â”€ Focus trap & initial focus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Focus trap & initial focus ────────────────────────────────
 
 	useEffect(() => {
 		if (!isMobileMenuOpen || !mobileMenuRef.current) return;
@@ -141,7 +150,7 @@ export function HeaderMobileMenuEnhanced({
 		return () => panel.removeEventListener("keydown", handleKeyDown);
 	}, [isMobileMenuOpen, closeMobileMenu]);
 
-	// â”€â”€ Toggle mega menu section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Toggle mega menu section ──────────────────────────────────
 
 	const toggleMegaMenu = useCallback((menuKey: string) => {
 		setExpandedMenus((prev) => {
@@ -152,7 +161,7 @@ export function HeaderMobileMenuEnhanced({
 		});
 	}, []);
 
-	// â”€â”€ Theme toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Theme toggle ──────────────────────────────────────────────
 
 	const toggleTheme = useCallback(
 		(e?: React.MouseEvent) => {
@@ -162,7 +171,7 @@ export function HeaderMobileMenuEnhanced({
 		[theme, setTheme]
 	);
 
-	// â”€â”€ Nav items & search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Nav items & search ────────────────────────────────────────
 
 	const allNavItems = useMemo(() => buildMobileNavItems(navItems), [navItems]);
 
@@ -171,7 +180,7 @@ export function HeaderMobileMenuEnhanced({
 		if (!query) return [];
 
 		return buildMobileSearchResultsWithExtras(allNavItems, [
-			{ label: "Ù…Ø¯Ø§Ø±Ø³", categories: headerNavItems?.[0]?.megaMenu }
+			{ label: "مدارس", categories: headerNavItems?.[0]?.megaMenu }
 		])
 			.filter(
 				(entry) =>
@@ -185,11 +194,63 @@ export function HeaderMobileMenuEnhanced({
 	const handleSearch = useCallback(
 		(e: React.FormEvent) => {
 			e.preventDefault();
+			const firstApiResult = apiResults[0];
+			if (firstApiResult) {
+				router.push(firstApiResult.url);
+				closeMobileMenu();
+				return;
+			}
 			if (searchResults.length === 0) return;
 			router.push(searchResults[0]!.href);
 			closeMobileMenu();
 		},
-		[closeMobileMenu, router, searchResults]
+		[apiResults, closeMobileMenu, router, searchResults]
+	);
+
+	// ── Content search (courses/teachers/etc via API) ──────────────
+	// Nav links are matched locally above; this covers real content
+	// (courses, teachers, resources) the same way the desktop HeaderSearch does,
+	// so drawer search isn't limited to static nav labels.
+	const performApiSearch = useCallback(async (rawQuery: string) => {
+		const query = rawQuery.trim();
+		if (!query) {
+			setApiResults([]);
+			setIsApiSearching(false);
+			return;
+		}
+		setIsApiSearching(true);
+		try {
+			const data = await apiClient.get<{ results: SearchResult[] }>(
+				`/search?q=${encodeURIComponent(query)}&type=all&limit=5`
+			);
+			setApiResults(data?.results || []);
+		} catch (error) {
+			logger.debug("Mobile menu search failed", error);
+			setApiResults([]);
+		} finally {
+			setIsApiSearching(false);
+		}
+	}, []);
+
+	const { debouncedCallback: debouncedApiSearch } = useAdaptiveDebounce(
+		((...args: unknown[]) => {
+			const [query] = args as [string];
+			performApiSearch(query);
+		}) as (...args: unknown[]) => void,
+		{ minDelay: 150, maxDelay: 600, initialDelay: 300 }
+	);
+
+	useEffect(() => {
+		if (!isMobileMenuOpen) return;
+		debouncedApiSearch(searchQuery);
+	}, [searchQuery, isMobileMenuOpen, debouncedApiSearch]);
+
+	const handleApiResultClick = useCallback(
+		(result: SearchResult) => {
+			router.push(result.url);
+			closeMobileMenu();
+		},
+		[closeMobileMenu, router]
 	);
 
 	const [loginUrl, setLoginUrl] = useState<string>("/login");
@@ -202,7 +263,7 @@ export function HeaderMobileMenuEnhanced({
 		queueMicrotask(() => setLoginUrl(buildLoginUrl(`${pathname || "/"}${query ? `?${query}` : ""}`)));
 	}, [pathname]);
 
-	// â”€â”€ Render helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Render helpers ────────────────────────────────────────────
 
 	const renderSearchResult = useCallback(
 		(result: MobileSearchResult) => (
@@ -220,7 +281,7 @@ export function HeaderMobileMenuEnhanced({
 		[isActiveRoute, mounted, closeMobileMenu]
 	);
 
-	// â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Render ────────────────────────────────────────────────────
 
 	return (
 		<>
@@ -243,13 +304,13 @@ export function HeaderMobileMenuEnhanced({
 				data-header-root
 				role="dialog"
 				aria-modal="true"
-				aria-label="Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ØªÙ†Ù‚Ù„"
+				aria-label="قائمة التنقل"
 				className={cn(
 					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
 					isMobileMenuOpen ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"
 				)}
 			>
-				{/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+				{/* ── Header ──────────────────────────────────────── */}
 				<div className="flex items-center justify-between p-4 pb-2 border-b border-border/20">
 					<div className="flex items-center gap-2.5">
 						<div className="relative shrink-0">
@@ -279,20 +340,20 @@ export function HeaderMobileMenuEnhanced({
 						size="icon"
 						onClick={closeMobileMenu}
 						className="rounded-full hover:bg-destructive/10 hover:text-destructive h-9 w-9 shrink-0"
-						aria-label="Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"
+						aria-label="إغلاق القائمة"
 					>
 						<X className="h-4 w-4" aria-hidden="true" />
 					</Button>
 				</div>
 
-				{/* â”€â”€ Scrollable Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+				{/* ── Scrollable Content ──────────────────────────── */}
 				<div className="flex-1 overflow-y-auto overflow-x-hidden -webkit-overflow-scrolling: touch">
 					{/* Search */}
 					<div className="px-4 py-3">
 						<form onSubmit={handleSearch} className="relative">
 							<Input
 								type="search"
-								placeholder="Ø§Ø¨Ø­Ø« Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ†Ù‚Ù„..."
+								placeholder="ابحث داخل التنقل..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								onFocus={() => setIsSearchFocused(true)}
@@ -301,7 +362,7 @@ export function HeaderMobileMenuEnhanced({
 									"w-full ps-10 pe-3 h-11 rounded-2xl bg-muted/50 border-transparent focus:bg-background text-start text-base outline-none",
 									isSearchFocused && "ring-2 ring-primary/20 border-primary/20"
 								)}
-								aria-label="Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"
+								aria-label="بحث في القائمة"
 							/>
 							<Search
 								className={cn(
@@ -316,7 +377,7 @@ export function HeaderMobileMenuEnhanced({
 					{/* User Section */}
 					<div className="px-4 py-2">
 						{isLoading ? (
-							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù…ÙŠÙ„" />
+							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="جاري التحميل" />
 						) : user ? (
 							<div className="p-3 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/10 shadow-sm">
 								<div className="flex items-center gap-2.5">
@@ -340,7 +401,7 @@ export function HeaderMobileMenuEnhanced({
 											logout();
 											closeMobileMenu();
 										}}
-										aria-label="ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬"
+										aria-label="تسجيل الخروج"
 									>
 										<LogOut className="h-3.5 w-3.5" aria-hidden="true" />
 									</Button>
@@ -355,7 +416,7 @@ export function HeaderMobileMenuEnhanced({
 								>
 									<Link href={loginUrl} onClick={closeMobileMenu}>
 										<LogIn className="h-3.5 w-3.5" aria-hidden="true" />
-										Ø¯Ø®ÙˆÙ„
+										دخول
 									</Link>
 								</Button>
 								<Button
@@ -364,7 +425,7 @@ export function HeaderMobileMenuEnhanced({
 								>
 									<Link href="/register" onClick={closeMobileMenu}>
 										<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-										Ø§Ø´ØªØ±Ø§Ùƒ
+										اشتراك
 									</Link>
 								</Button>
 							</div>
@@ -372,14 +433,28 @@ export function HeaderMobileMenuEnhanced({
 					</div>
 
 					{/* Navigation */}
-					<nav className="px-3 pb-6 space-y-2" aria-label="Ø§Ù„ØªÙ†Ù‚Ù„ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ">
+					<nav className="px-3 pb-6 space-y-2" aria-label="التنقل الرئيسي">
 						{searchQuery.trim() ? (
 							<div className="space-y-1.5">
-								{searchResults.length > 0 ? (
-									searchResults.map(renderSearchResult)
-								) : (
+								{isApiSearching && <SearchLoadingState animated={false} className="py-2" />}
+
+								{!isApiSearching && apiResults.length > 0 && (
+									<div className="space-y-1.5">
+										{apiResults.map((result) => (
+											<MobileSearchResultItem
+												key={result.id}
+												result={result}
+												onClick={handleApiResultClick}
+											/>
+										))}
+									</div>
+								)}
+
+								{searchResults.length > 0 && searchResults.map(renderSearchResult)}
+
+								{!isApiSearching && apiResults.length === 0 && searchResults.length === 0 && (
 									<div className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">
-										Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø©
+										لا توجد نتائج مطابقة
 									</div>
 								)}
 							</div>
@@ -387,7 +462,7 @@ export function HeaderMobileMenuEnhanced({
 							<>
 								<HeaderNavLink
 									href="/"
-									label="Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©"
+									label="الرئيسية"
 									icon={Home}
 									active={mounted && isActiveRoute("/")}
 									variant="mobile"
@@ -494,24 +569,24 @@ export function HeaderMobileMenuEnhanced({
 					</nav>
 				</div>
 
-				{/* â”€â”€ Footer: Theme Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+				{/* ── Footer: Theme Toggle ────────────────────────── */}
 				<div className="p-4 border-t border-border/40 bg-muted/20 mt-auto shrink-0">
 					<Button
 						variant="outline"
 						onClick={(e) => toggleTheme(e)}
 						className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm"
-						aria-label={`ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø¸Ù‡Ø±ØŒ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${theme === "dark" ? "Ø¯Ø§ÙƒÙ†" : "ÙØ§ØªØ­"}`}
+						aria-label={`تبديل المظهر، الحالي: ${theme === "dark" ? "داكن" : "فاتح"}`}
 					>
-						<span className="text-sm font-medium">Ø§Ù„Ù…Ø¸Ù‡Ø±</span>
+						<span className="text-sm font-medium">المظهر</span>
 						{theme === "dark" ? (
 							<div className="flex items-center gap-1.5 text-primary">
 								<Moon className="h-3.5 w-3.5" aria-hidden="true" />
-								<span className="text-xs">Ø¯Ø§ÙƒÙ†</span>
+								<span className="text-xs">داكن</span>
 							</div>
 						) : (
 							<div className="flex items-center gap-1.5 text-orange-500">
 								<Sun className="h-3.5 w-3.5" aria-hidden="true" />
-								<span className="text-xs">ÙØ§ØªØ­</span>
+								<span className="text-xs">فاتح</span>
 							</div>
 						)}
 					</Button>

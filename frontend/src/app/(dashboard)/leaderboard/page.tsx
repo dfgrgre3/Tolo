@@ -239,10 +239,10 @@ export default function LeaderboardPage() {
                                  {entry.username!.charAt(0).toUpperCase()}
                              </div>
                              <div className="space-y-1 min-w-0">
-                                <p className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
+                                <div className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
                                    {entry.username}
                                    {entry.userId === userId && <Badge className="me-3 bg-primary text-[10px] font-black h-5 uppercase">أنت</Badge>}
-                                </p>
+                                </div>
                                 <div className="flex items-center gap-4 text-xs font-bold text-gray-500 flex-wrap">
                                    <span className="uppercase tracking-widest text-primary/70">المستوى {entry.level}</span>
                                    <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">

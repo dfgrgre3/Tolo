@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -63,6 +65,13 @@ export function LessonPlayerSection({
   playerApiRef,
 }: LessonPlayerSectionProps) {
   const router = useRouter();
+
+  // Lesson HTML comes from the backend (teacher-authored) — sanitize before
+  // injecting via dangerouslySetInnerHTML (stored XSS protection).
+  const sanitizedContent = useMemo(
+    () => sanitizeRichTextHtml(activeLesson.content),
+    [activeLesson.content]
+  );
 
   return (
     <section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.07)] backdrop-blur dark:border-white/10 dark:bg-slate-950/80 dark:shadow-none">
@@ -178,7 +187,7 @@ export function LessonPlayerSection({
           <div className="min-h-[500px] rounded-[28px] bg-white dark:bg-slate-900/40 p-8 shadow-inner overflow-y-auto">
             <div 
               className="prose prose-lg dark:prose-invert max-w-none leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: activeLesson.content || "لا يوجد محتوى نصي متاح." }}
+              dangerouslySetInnerHTML={{ __html: sanitizedContent || "لا يوجد محتوى نصي متاح." }}
             />
           </div>
         ) : (

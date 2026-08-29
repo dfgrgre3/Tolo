@@ -21,7 +21,9 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && (
     error.name === 'AbortError' ||
     error.message.includes('signal is aborted') ||
-    error.message.includes('Request was aborted')
+    error.message.includes('Request was aborted') ||
+    error.message.includes('Component unmounted') ||
+    error.message.includes('Cancelling previous request')
   );
 }
 
@@ -53,7 +55,7 @@ const ExamsSectionComponent = () => {
         );
 
         if (examsError) {
-          if (isAbortError(examsError)) return;
+          if (isAbortError(examsError) || controller.signal.aborted) return;
           throw new Error(examsError.message || "Failed to fetch exams");
         }
 

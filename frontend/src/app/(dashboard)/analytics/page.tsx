@@ -1,6 +1,8 @@
-﻿'use client';
+'use client';
 
-import { useAuth } from "@/hooks/use-auth";import { PageContainer } from "@/components/ui/page-container";
+import { PageContainer } from "@/components/ui/page-container";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import { Button } from "@/components/ui/button";
 import { BarChart3, RefreshCw, Download } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
@@ -33,7 +35,6 @@ type PredictionsData = {
 export const dynamic = 'force-dynamic';
 
 export default function AnalyticsPage() {
-  const { fetchWithAuth } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<{ summary: SummaryData | null; weekly: WeeklyData | null; predictions: PredictionsData[]; performance: Record<string, unknown> | null } | null>(null);
 
@@ -43,9 +44,9 @@ export default function AnalyticsPage() {
   }, []);
 
   const loadAnalyticsData = useCallback(async (userId: string) => {
-    const safeFetch = async <T,>(url: string, name: string): Promise<T | null> => {
+    const fetchJson = async <T,>(url: string, name: string): Promise<T | null> => {
       try {
-        const res = await fetchWithAuth(url);
+        const res = await apiClient.fetch(url);
         if (!res.ok) return null;
         return (await res.json()) as T;
       } catch (e) {
@@ -55,14 +56,14 @@ export default function AnalyticsPage() {
     };
 
     const [summary, weekly, predictionsResp, performance] = await Promise.all([
-      safeFetch<SummaryData>(`/api/progress/summary?userId=${userId}`, "summary"),
-      safeFetch<WeeklyData>(`/api/analytics/weekly?userId=${userId}`, "weekly"),
-      safeFetch<{ success: boolean; predictions: PredictionsData[] }>(
-        `/api/analytics/predictions?userId=${userId}`,
+      fetchJson<SummaryData>(`${apiRoutes.progress.summary}?userId=${userId}`, "summary"),
+      fetchJson<WeeklyData>(`${apiRoutes.analytics.weekly}?userId=${userId}`, "weekly"),
+      fetchJson<{ success: boolean; predictions: PredictionsData[] }>(
+        `${apiRoutes.analytics.predictions}?userId=${userId}`,
         "predictions"
       ),
-      safeFetch<Record<string, unknown>>(
-        `/api/analytics/performance?hours=168`,
+      fetchJson<Record<string, unknown>>(
+        `${apiRoutes.analytics.performance}?hours=168`,
         "performance"
       ),
     ]);
@@ -70,7 +71,7 @@ export default function AnalyticsPage() {
     const predictions = predictionsResp?.success ? predictionsResp.predictions : [];
 
     return { summary, weekly, predictions, performance };
-  }, [fetchWithAuth]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

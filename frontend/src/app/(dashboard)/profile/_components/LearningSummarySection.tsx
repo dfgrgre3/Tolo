@@ -47,7 +47,7 @@ export default function LearningSummarySection() {
           )}
 
           <div className="flex flex-wrap gap-3 pt-6">
-            <Link href="/my-courses">
+            <Link href="/courses">
               <Button variant="outline" className="gap-2">
                 عرض كورساتي <ArrowLeft className="w-4 h-4" />
               </Button>

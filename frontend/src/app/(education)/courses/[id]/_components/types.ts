@@ -20,6 +20,24 @@ export type ReviewStats = {
   distribution: Record<number, number>;
 };
 
+export type QuestionAnswer = {
+  id: string;
+  body: string;
+  isInstructorAnswer: boolean;
+  createdAt: string;
+  user: { name: string | null; avatar: string | null };
+};
+
+export type Question = {
+  id: string;
+  title: string;
+  body: string;
+  subTopicId?: string | null;
+  createdAt: string;
+  user: { name: string | null; avatar: string | null };
+  answers?: QuestionAnswer[];
+};
+
 export type Course = {
   id: string;
   title: string;

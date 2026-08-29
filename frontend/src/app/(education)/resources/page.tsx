@@ -178,8 +178,11 @@ export default function ResourcesPage() {
           return r.json();
         })
         .then((data) => {
-          if (Array.isArray(data)) {
-            setResources(data);
+          // Backend wraps every response as `{ success, data }`
+          // (see response.Success in response.go) — never a bare array.
+          const items = Array.isArray(data) ? data : data?.data;
+          if (Array.isArray(items)) {
+            setResources(items);
           } else {
             logger.error("Fetched resources is not an array:", data);
             setError("تم استلام بيانات غير صالحة من الخادم.");

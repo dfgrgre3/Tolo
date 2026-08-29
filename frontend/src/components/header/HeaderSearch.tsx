@@ -25,7 +25,7 @@ import { RecentSearches } from "./_components/RecentSearches";
 import { SearchLoadingState } from "./_components/SearchLoadingState";
 import { SearchNoResults } from "./_components/SearchNoResults";
 
-// â”€â”€â”€ Types & Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types & Constants ───────────────────────────────────────────
 
 interface HeaderSearchProps {
 	isMobile?: boolean;
@@ -43,7 +43,44 @@ interface CacheEntry {
 	timestamp: number;
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Minimal Web Speech API typings (no official lib.dom coverage) ───────────
+// Window.SpeechRecognition / webkitSpeechRecognition are declared globally in
+// CommandPalette.tsx — reuse that shape here instead of re-declaring it.
+
+interface SpeechRecognitionResultEvent extends Event {
+	results: {
+		[index: number]: {
+			[index: number]: {
+				transcript: string;
+			};
+		};
+	};
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+	error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+	lang: string;
+	interimResults: boolean;
+	maxAlternatives: number;
+	onstart: () => void;
+	onresult: (event: SpeechRecognitionResultEvent) => void;
+	onerror: (event: SpeechRecognitionErrorEvent) => void;
+	onend: () => void;
+	start: () => void;
+	stop: () => void;
+}
+
+function getSpeechRecognitionConstructor(): (new () => SpeechRecognitionInstance) | null {
+	if (typeof window === "undefined") return null;
+	return (window.webkitSpeechRecognition ?? window.SpeechRecognition ?? null) as unknown as
+		| (new () => SpeechRecognitionInstance)
+		| null;
+}
+
+// ─── Component ───────────────────────────────────────────────────
 
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const router = useRouter();
@@ -61,18 +98,19 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 	const inputRef = useRef<HTMLInputElement>(null);
 	const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+	const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
-	// â”€â”€ Mount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Mount ─────────────────────────────────────────────────────
 
 
-	// â”€â”€ Service Worker Registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Service Worker Registration ───────────────────────────────
 
 	useEffect(() => {
 		if (!mounted || typeof window === "undefined") return;
 		registerServiceWorker().catch(() => {});
 	}, [mounted]);
 
-	// â”€â”€ Load Preferences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Load Preferences ──────────────────────────────────────────
 
 	useEffect(() => {
 		if (!mounted) return;
@@ -94,12 +132,12 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 			errorManager.handleError(
 				error instanceof Error ? error : new Error("Failed to load search preferences"),
 				{ showToast: false, logToConsole: true, severity: "low" },
-				{ description: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ø¨Ø­Ø«" }
+				{ description: "تعذر تحميل تفضيلات البحث" }
 			);
 		}
 	}, [mounted]);
 
-	// â”€â”€ Save Scope Preference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Save Scope Preference ─────────────────────────────────────
 
 	useEffect(() => {
 		if (!mounted) return;
@@ -110,7 +148,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		}
 	}, [searchScope, mounted]);
 
-	// â”€â”€ Cache Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Cache Management ──────────────────────────────────────────
 
 	const updateCache = useCallback((key: string, results: SearchResult[]) => {
 		cacheRef.current.set(key, { results, timestamp: Date.now() });
@@ -121,7 +159,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		}
 	}, []);
 
-	// â”€â”€ Recent Searches Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Recent Searches Management ────────────────────────────────
 
 	const updateRecentSearches = useCallback(
 		(query: string) => {
@@ -160,10 +198,10 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		}
 	}, []);
 
-	// â”€â”€ Error Handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Error Handling ────────────────────────────────────────────
 
 	const handleSearchError = useCallback((error: unknown, query: string, scope: string) => {
-		const message = error instanceof Error ? error.message : "ÙØ´Ù„ ÙÙŠ Ø¬Ù„Ø¨ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø¨Ø­Ø«";
+		const message = error instanceof Error ? error.message : "فشل في جلب نتائج البحث";
 
 		errorManager.handleError(
 			error instanceof Error ? error : new Error(message),
@@ -174,10 +212,10 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				context: { source: "Header_Search", query, scope }
 			},
 			{
-				title: "Ø®Ø·Ø£ ÙÙŠ Ø§Ù„Ø¨Ø­Ø«",
-				description: "ØªØ¹Ø°Ø± Ø¬Ù„Ø¨ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø¨Ø­Ø«. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+				title: "خطأ في البحث",
+				description: "تعذر جلب نتائج البحث. يرجى المحاولة مرة أخرى.",
 				action: {
-					label: "Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©",
+					label: "إعادة المحاولة",
 					onClick: () => {
 						setSearchQuery("");
 						setTimeout(() => setSearchQuery(query), 100);
@@ -191,7 +229,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		setShowSuggestions(false);
 	}, []);
 
-	// â”€â”€ Search Execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Search Execution ──────────────────────────────────────────
 
 	const performSearch = useCallback(
 		async (rawQuery: string, scope: string) => {
@@ -246,7 +284,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		[updateCache, updateRecentSearches, handleSearchError]
 	);
 
-	// â”€â”€ Debounced Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Debounced Search ──────────────────────────────────────────
 
 	const { debouncedCallback: debouncedSearch } = useAdaptiveDebounce(
 		((...args: unknown[]) => {
@@ -261,7 +299,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		debouncedSearch(searchQuery, searchScope);
 	}, [searchQuery, searchScope, mounted, debouncedSearch]);
 
-	// â”€â”€ Result Click Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Result Click Handler ──────────────────────────────────────
 
 	const handleResultClick = useCallback(
 		(result: SearchResult) => {
@@ -274,7 +312,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		[router]
 	);
 
-	// â”€â”€ Keyboard Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Keyboard Navigation ───────────────────────────────────────
 
 	useEffect(() => {
 		if (!mounted) return;
@@ -311,7 +349,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [mounted, searchResults, selectedIndex, handleResultClick]);
 
-	// â”€â”€ Global Shortcut (Ctrl/Cmd+K) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Global Shortcut (Ctrl/Cmd+K) ──────────────────────────────
 
 	useEffect(() => {
 		if (!mounted || isMobile) return;
@@ -327,7 +365,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [mounted, isMobile]);
 
-	// â”€â”€ Form Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Form Submit ───────────────────────────────────────────────
 
 	const handleSubmit = useCallback(
 		(e: React.FormEvent) => {
@@ -340,41 +378,80 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 			if (selected) {
 				handleResultClick(selected);
 			} else {
-				toast.warning("Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø­Ø« Ø­Ø§Ù„ÙŠØ§Ù‹.");
+				toast.warning("لا توجد نتائج مطابقة لهذا البحث حالياً.");
 			}
 		},
 		[handleResultClick, searchQuery, searchResults, selectedIndex]
 	);
 
-	// â”€â”€ Recent Search Click â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Recent Search Click ───────────────────────────────────────
 
 	const handleRecentClick = useCallback((search: string) => {
 		setSearchQuery(search);
 		inputRef.current?.focus();
 	}, []);
 
-	// â”€â”€ Voice Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Voice Search ──────────────────────────────────────────────
 
 	const handleVoiceSearch = useCallback(() => {
-		if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-			toast.warning("Ø§Ù„Ø¨Ø­Ø« Ø§Ù„ØµÙˆØªÙŠ ØºÙŠØ± Ù…ØªØ§Ø­ ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„Ù…ØªØµÙØ­.");
+		// Toggle off if already listening
+		if (isVoiceActive && recognitionRef.current) {
+			recognitionRef.current.stop();
 			return;
 		}
 
-		setIsVoiceActive(true);
-		setTimeout(() => {
+		const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
+
+		if (!SpeechRecognitionCtor) {
+			toast.warning("البحث الصوتي غير متاح في هذا المتصفح.");
+			return;
+		}
+
+		const recognition = new SpeechRecognitionCtor();
+		recognition.lang = "ar-SA";
+		recognition.interimResults = false;
+		recognition.maxAlternatives = 1;
+
+		recognition.onstart = () => setIsVoiceActive(true);
+
+		recognition.onresult = (event: SpeechRecognitionResultEvent) => {
+			const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+			if (transcript) {
+				setSearchQuery(transcript);
+				setShowSuggestions(true);
+				inputRef.current?.focus();
+			}
+		};
+
+		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+			if (event.error !== "no-speech" && event.error !== "aborted") {
+				toast.warning("البحث الصوتي غير متاح في هذا المتصفح.");
+			}
+		};
+
+		recognition.onend = () => {
 			setIsVoiceActive(false);
-			toast.info("Ù…ÙŠØ²Ø© Ø§Ù„Ø¨Ø­Ø« Ø§Ù„ØµÙˆØªÙŠ Ù‚ÙŠØ¯ Ø§Ù„ØªØ·ÙˆÙŠØ±.");
-		}, 1000);
+			recognitionRef.current = null;
+		};
+
+		recognitionRef.current = recognition;
+		recognition.start();
+	}, [isVoiceActive]);
+
+	// Stop any active speech recognition on unmount to avoid leaking listeners
+	useEffect(() => {
+		return () => {
+			recognitionRef.current?.stop();
+		};
 	}, []);
 
-	// â”€â”€ Efficiency Mode Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Efficiency Mode Toggle ────────────────────────────────────
 
 	const toggleEfficiency = useCallback(() => {
 		setMode(isEfficiencyMode ? "performance" : "lite");
 	}, [isEfficiencyMode, setMode]);
 
-	// â”€â”€ Clear All â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Clear All ─────────────────────────────────────────────────
 
 	const handleClearAll = useCallback(() => {
 		setSearchQuery("");
@@ -384,7 +461,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		setShowSuggestions(false);
 	}, []);
 
-	// â”€â”€ Render: Mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Render: Mobile ────────────────────────────────────────────
 
 	if (isMobile) {
 		return (
@@ -399,7 +476,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 							"h-10 w-10 shrink-0 border border-border/50",
 							isEfficiencyMode ? "text-primary bg-primary/10" : "text-muted-foreground"
 						)}
-						aria-label={isEfficiencyMode ? "ØªØ¹Ø·ÙŠÙ„ ÙˆØ¶Ø¹ Ø§Ù„Ø£Ø¯Ø§Ø¡ Ø§Ù„Ù…ØªÙˆØ§Ø²Ù†" : "ØªÙØ¹ÙŠÙ„ ÙˆØ¶Ø¹ Ø§Ù„Ø£Ø¬Ù‡Ø²Ø© Ø§Ù„Ø¶Ø¹ÙŠÙØ©"}
+						aria-label={isEfficiencyMode ? "تعطيل وضع الأداء المتوازن" : "تفعيل وضع الأجهزة الضعيفة"}
 						aria-pressed={isEfficiencyMode}
 					>
 						{isEfficiencyMode ? (
@@ -412,11 +489,11 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 					<div className="relative flex-1">
 						<Input
 							type="search"
-							placeholder="Ø¨Ø­Ø«..."
+							placeholder="بحث..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="flex-1 pe-10 focus:ring-2 focus:ring-primary/20 bg-background border-border text-base"
-							aria-label="Ø¨Ø­Ø«"
+							aria-label="بحث"
 						/>
 						<Button
 							type="button"
@@ -430,7 +507,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 								"absolute start-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 touch-manipulation",
 								isVoiceActive && "text-primary"
 							)}
-							aria-label="Ø§Ù„Ø¨Ø­Ø« Ø§Ù„ØµÙˆØªÙŠ"
+							aria-label="البحث الصوتي"
 							aria-pressed={isVoiceActive}
 						>
 							<Mic className="h-4 w-4" aria-hidden="true" />
@@ -441,7 +518,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						type="submit"
 						size="icon"
 						className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm touch-manipulation"
-						aria-label="ØªÙ†ÙÙŠØ° Ø§Ù„Ø¨Ø­Ø«"
+						aria-label="تنفيذ البحث"
 					>
 						<Search className="h-4 w-4" aria-hidden="true" />
 					</Button>
@@ -480,7 +557,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		);
 	}
 
-	// â”€â”€ Render: Desktop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// ── Render: Desktop ───────────────────────────────────────────
 
 	const hasQuery = searchQuery.trim().length > 0;
 
@@ -498,7 +575,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						ref={inputRef}
 						id="header-search-input"
 						type="search"
-						placeholder="Ø§Ø¨Ø­Ø« Ø¹Ù† Ø¯ÙˆØ±Ø§ØªØŒ Ù…Ø¯Ø±Ø³ÙŠÙ†ØŒ Ù…ÙˆØ§Ø¯..."
+						placeholder="ابحث عن دورات، مدرسين، مواد..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						onFocus={() => setShowSuggestions(true)}
@@ -515,7 +592,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 							}
 						}}
 						className="w-full h-12 pe-11 ps-20 bg-background/50 hover:bg-background/80 focus:bg-background border-border/50 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 text-base rounded-2xl shadow-sm outline-none"
-						aria-label="Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù…ÙˆÙ‚Ø¹"
+						aria-label="بحث في الموقع"
 						aria-expanded={showSuggestions}
 						aria-controls="search-results-panel"
 						aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
@@ -543,7 +620,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 							"absolute left-10 rtl:left-auto rtl:right-10 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary rounded-xl",
 							isVoiceActive && "text-primary bg-primary/10"
 						)}
-						aria-label="Ø§Ù„Ø¨Ø­Ø« Ø§Ù„ØµÙˆØªÙŠ"
+						aria-label="البحث الصوتي"
 						aria-pressed={isVoiceActive}
 					>
 						<Mic className="h-4 w-4" aria-hidden="true" />
@@ -602,7 +679,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				size="icon"
 				variant="ghost"
 				className="hover:bg-primary/15 hover:text-primary shadow-md h-12 w-12 rounded-2xl bg-primary/10"
-				aria-label="ØªÙ†ÙÙŠØ° Ø§Ù„Ø¨Ø­Ø«"
+				aria-label="تنفيذ البحث"
 			>
 				<Search className="h-5 w-5" aria-hidden="true" />
 			</Button>
@@ -614,7 +691,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 					variant="ghost"
 					onClick={handleClearAll}
 					className="hover:bg-destructive/15 hover:text-destructive h-12 w-12 rounded-2xl"
-					aria-label="Ù…Ø³Ø­ Ø§Ù„Ø¨Ø­Ø«"
+					aria-label="مسح البحث"
 				>
 					<X className="h-5 w-5" aria-hidden="true" />
 				</Button>

@@ -6,8 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { trimTrailingSlashes } from './utils';
-import { requestCache } from './api/request-cache';
+import { apiClient } from './api/api-client';
 
 // Use console internally to avoid circular dependencies with the unified logger
 const logger = console;
@@ -152,48 +151,6 @@ async function safeJsonParse<T>(
   }
 }
 
-function buildFinalUrl(url: string): string {
-  const isBrowserEnv = typeof window !== 'undefined';
-  const BASE_API_URL = trimTrailingSlashes(process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082/api');
-  if (!url.startsWith('/api/')) {
-    return url;
-  }
-
-  if (isBrowserEnv) {
-    return url;
-  }
-
-  return BASE_API_URL.endsWith('/api')
-    ? `${BASE_API_URL}${url.substring(4)}`
-    : `${BASE_API_URL}${url}`;
-}
-
-/**
- * تحويل أي خطأ إلى سلسلة نصية قابلة للقراءة
- * Convert any error to a readable string message
- */
-function extractErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  if (error && typeof error === 'object') {
-    const obj = error as Record<string, unknown>;
-    if (typeof obj.message === 'string') return obj.message;
-    if (typeof obj.reason === 'string') return obj.reason;
-    if (typeof obj.description === 'string') return obj.description;
-    // DOMException-like objects: try toString
-    try {
-      return String(error);
-    } catch {
-      return 'Unknown error (non-serializable)';
-    }
-  }
-  return 'Unknown error';
-}
-
 function isAbortLikeError(error: unknown): boolean {
   if (error instanceof Error) {
     return (
@@ -206,56 +163,6 @@ function isAbortLikeError(error: unknown): boolean {
     return error.includes('signal is aborted') || error.includes('Request was aborted');
   }
   return false;
-}
-
-async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-  // Merge signals: if an external signal is provided, both the timeout and external signal can abort
-  const externalSignal = options?.signal as AbortSignal | undefined;
-  let combinedSignal: AbortSignal;
-
-  if (externalSignal) {
-    // When external signal aborts, also abort our controller
-    const onExternalAbort = () => {
-      controller.abort();
-      externalSignal.removeEventListener('abort', onExternalAbort);
-    };
-    externalSignal.addEventListener('abort', onExternalAbort);
-
-    combinedSignal = controller.signal;
-  } else {
-    combinedSignal = controller.signal;
-  }
-
-  const executeFetch = async () => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: combinedSignal,
-        credentials: options?.credentials || 'include' // Ensure cookies are sent
-      });
-      clearTimeout(timeoutId);
-      return response;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (isAbortLikeError(fetchError) || controller.signal.aborted || externalSignal?.aborted) {
-        const abortError = new Error('Request was aborted');
-        abortError.name = 'AbortError';
-        throw abortError;
-      }
-      // Always preserve the original error message for better debugging
-      const errorMessage = extractErrorMessage(fetchError);
-      throw new Error(`Failed to fetch from ${url}: ${errorMessage}`);
-    }
-  };
-
-  const method = options?.method || 'GET';
-  if (method.toUpperCase() === 'GET') {
-    return requestCache.getResponse(url, options, executeFetch);
-  }
-  return executeFetch();
 }
 
 function handleFailedResponse<T>(response: Response, data: T | null, fallback: T | null, url: string): { data: T | null; error: Error; response: Response } {
@@ -351,47 +258,28 @@ function normalizeFetchCatchError(_error: unknown, options?: RequestInit): Error
 /**
  * استدعاء fetch مع معالجة آمنة للأخطاء والـ JSON
  * Safe fetch with error handling and JSON parsing
+ *
+ * Transport is delegated to `apiClient.fetch` — the single transport for the
+ * whole app. It handles URL normalization (same-origin `/api` proxy in the
+ * browser, INTERNAL_API_URL on the server), CSRF (Double Submit Cookie with
+ * cookie bootstrapping + one retry), timeouts, GET retries with backoff,
+ * Idempotency-Key on writes, external AbortSignal forwarding, and the
+ * session-aware 401 safety net. Only the calling convention differs from
+ * `apiClient.get/post/...`: this returns an error envelope instead of
+ * throwing, so callers keep their existing `if (error)` handling.
  */
 export async function safeFetch<T = unknown>(
   url: string,
   options?: RequestInit,
-  fallback: T | null = null,
-  fetchFn: typeof fetchWithTimeout = fetchWithTimeout
+  fallback: T | null = null
 ): Promise<{ data: T | null; error: Error | null; response: Response | null; }> {
   try {
-    const finalUrl = buildFinalUrl(url);
-
-    const newOptions = { ...options };
-
-    // Attach CSRF token for write requests in browser environment
-    const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(newOptions.method || 'GET');
-    if (isWriteMethod && typeof window !== 'undefined') {
-      const headers = new Headers(newOptions.headers);
-      if (!headers.has('X-CSRF-Token')) {
-        const cookies = window.document.cookie.split(';').map(c => c.trim());
-        const csrfNames = ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token'];
-        let csrfToken: string | undefined;
-        for (const name of csrfNames) {
-          const entry = cookies.find(c => c.startsWith(name + '='));
-          if (entry) {
-            csrfToken = entry.split('=')[1];
-            break;
-          }
-        }
-        if (csrfToken) {
-          headers.set('X-CSRF-Token', csrfToken);
-          newOptions.headers = headers;
-        }
-      }
-    }
-
-    let response = await fetchFn(finalUrl, newOptions);
-
     // Token refresh is handled EXCLUSIVELY by the Edge middleware (src/proxy.ts)
     // It checks access-token expiry on every matched request and performs silent rotation
     // before the request reaches this client. This prevents race conditions and duplicate
     // refresh attempts. A 401 arriving here means the middleware already tried to refresh
     // and failed, or the backend rejected the request for another reason.
+    const response = await apiClient.fetch(url, options);
 
     const data = await safeJsonParse<T>(response, fallback);
 

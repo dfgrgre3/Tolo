@@ -57,7 +57,6 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
 		title: "التعليم",
 		links: [
 			{ href: "/courses", label: "الدورات التعليمية" },
-			{ href: "/my-courses", label: "دوراتي" },
 			{ href: "/teachers", label: "المدرسون" },
 			{ href: "/exams", label: "الامتحانات" },
 			{ href: "/library", label: "المكتبة الرقمية" },

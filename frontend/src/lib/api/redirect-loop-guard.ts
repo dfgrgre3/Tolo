@@ -45,6 +45,25 @@ const REDIRECT_LOOP_KEY = '__api_redirect_count';
 const REDIRECT_LOOP_WINDOW = 15_000; // 15 seconds — generous window to catch slow loops
 const MAX_REDIRECTS_IN_WINDOW = 2;   // at most 2 redirects per window
 
+/**
+ * Client-side session presence, reported by the AuthProvider once `/auth/me`
+ * resolves.
+ *
+ * The access/refresh cookies are HttpOnly, so `handleUnauthorized` cannot ask
+ * "did this browser have a session?" via `document.cookie`. This module-level
+ * flag is the client's only reliable answer. A guest (no session) receiving a
+ * 401 from a protected endpoint must NOT be bounced to /login — guest
+ * surfaces (e.g. the landing page) treat 401 as "empty data", not as a broken
+ * session. `'unknown'` (auth still resolving) also stays put: the worst case
+ * is a visible error state, never a wrong redirect.
+ */
+type SessionPresence = 'unknown' | 'present' | 'absent';
+let sessionPresence: SessionPresence = 'unknown';
+
+export function setSessionPresence(presence: Exclude<SessionPresence, 'unknown'>): void {
+    sessionPresence = presence;
+}
+
 export function isAuthEndpoint(endpoint: string): boolean {
     return AUTH_ENDPOINT_MARKERS.some((marker) => endpoint.includes(marker));
 }
@@ -98,12 +117,18 @@ function clearRedirectCount(): void {
 
 /**
  * Handles a 401 response: navigates to `/login` unless the endpoint owns its
- * own 401 handling, we're already on an auth page, or a redirect loop is
- * detected (in which case automatic redirects are stopped entirely so the
- * user isn't bounced forever — they can still log in manually).
+ * own 401 handling, the browser has no session (guest), we're already on an
+ * auth page, or a redirect loop is detected (in which case automatic
+ * redirects are stopped entirely so the user isn't bounced forever — they
+ * can still log in manually).
  */
 export function handleUnauthorized(endpoint: string): void {
     if (isAuthEndpoint(endpoint) || typeof window === 'undefined') return;
+
+    // Only bounce users who actually HAD a session (see setSessionPresence).
+    // A 401 for a guest means "this endpoint needs auth", which guest
+    // surfaces already handle by rendering empty states.
+    if (sessionPresence !== 'present') return;
 
     if (detectRedirectLoop()) {
         console.error(

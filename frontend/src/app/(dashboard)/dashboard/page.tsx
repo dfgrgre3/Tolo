@@ -1,7 +1,9 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useEffect, useRef } from "react";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Sword, Shield, Target, LayoutDashboard, ChevronRight
@@ -33,7 +35,7 @@ const STYLES = {
 };
 
 export default function DashboardPage() {
-  const { user, isLoading: isAuthLoading, fetchWithAuth } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { userProgress } = useGamification({
     userId: user?.id || ""
   });
@@ -41,10 +43,6 @@ export default function DashboardPage() {
   const [lastCourse, setLastCourse] = useState<{ id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null>(null);
   const [recentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
   const [, setIsDataLoading] = useState(true);
-
-  // Store fetchWithAuth in a ref to avoid re-triggering this effect on every render.
-  const fetchWithAuthRef = useRef(fetchWithAuth);
-  useEffect(() => { fetchWithAuthRef.current = fetchWithAuth; });
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -56,7 +54,7 @@ export default function DashboardPage() {
       try {
         setIsDataLoading(true);
         const [coursesRes] = await Promise.all([
-          fetchWithAuthRef.current("/api/my-courses?limit=1")
+          apiClient.fetch(`${apiRoutes.subjects.myCourses}?limit=1`)
         ]);
 
         if (coursesRes.ok) {

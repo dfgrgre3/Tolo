@@ -53,7 +53,8 @@ interface PlanTier {
 type BillingCycle = "monthly" | "yearly";
 type PaymentMethod = "card" | "wallet" | "internal_wallet";
 
-function groupPlansByTier(plans: Plan[]): PlanTier[] {
+// مُصدَّرة للاختبار — منطق خالص لتجميع متغيرات الخطة (شهري/سنوي) تحت مستوى واحد.
+export function groupPlansByTier(plans: Plan[]): PlanTier[] {
   const groups = new Map<string, Plan[]>();
   for (const plan of plans) {
     const key = plan.groupKey || plan.id;
@@ -73,7 +74,7 @@ function groupPlansByTier(plans: Plan[]): PlanTier[] {
 // Resolves the plan record to actually display/charge for a tier given the
 // selected billing cycle: the matching-interval variant if the admin set
 // one up, otherwise whichever variant exists (e.g. a lifetime-only plan).
-function planForCycle(tier: PlanTier, cycle: BillingCycle): Plan {
+export function planForCycle(tier: PlanTier, cycle: BillingCycle): Plan {
   if (cycle === "yearly") return tier.yearly || tier.monthly || tier.fallback;
   return tier.monthly || tier.yearly || tier.fallback;
 }

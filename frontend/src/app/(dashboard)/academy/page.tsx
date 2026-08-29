@@ -1,6 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import React, { useEffect, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -33,7 +35,7 @@ import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
-  const { user, fetchWithAuth } = useAuth();
+  const { user } = useAuth();
   const { userProgress } = useGamification({ userId: user?.id || "" });
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
@@ -43,7 +45,7 @@ export default function GamifiedCoursesDashboard() {
     const fetchMyCourses = async () => {
       try {
         setLoading(true);
-        const res = await fetchWithAuth("/api/courses");
+        const res = await apiClient.fetch(apiRoutes.courses.list);
         if (res.ok) {
           const data = await res.json();
           const fetchedCourses = Array.isArray(data.courses) ?
@@ -60,7 +62,7 @@ export default function GamifiedCoursesDashboard() {
       }
     };
     fetchMyCourses();
-  }, [fetchWithAuth]);
+  }, []);
 
   // Derived state
   const enrolledCourses = courses.filter((c) => c.enrolled);
@@ -89,7 +91,7 @@ export default function GamifiedCoursesDashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
-      {/* â”€â”€â”€ Stats Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Stats Header ────────────────────────────────────────── */}
       <m.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -175,7 +177,7 @@ export default function GamifiedCoursesDashboard() {
         </m.div>
       </m.div>
 
-      {/* â”€â”€â”€ Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Main Content Area ───────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Col: Lists */}

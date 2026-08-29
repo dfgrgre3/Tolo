@@ -44,6 +44,7 @@ export default function TeachingHeader({
   const tabTitles: Record<string, string> = {
     dashboard: "لوحة التحكم الرئيسية",
     courses: "إدارة الكورسات والمناهج",
+    quizzes: "الاختبارات وأداء الطلاب",
     students: "قائمة الطلاب ومتابعة الأداء",
     messages: "صندوق الرسائل والمحادثات",
     reviews: "تقييمات وآراء الطلاب",

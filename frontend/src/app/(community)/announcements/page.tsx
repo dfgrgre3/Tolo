@@ -81,8 +81,16 @@ export default function AnnouncementsPage() {
           fetch("/api/announcements"),
           fetch("/api/contests")
         ]);
-        if (annRes.ok) setAnnouncements(await annRes.json());
-        if (conRes.ok) setContests(await conRes.json());
+        if (annRes.ok) {
+          const annJson = await annRes.json();
+          const annData = Array.isArray(annJson) ? annJson : annJson?.data;
+          setAnnouncements(Array.isArray(annData) ? annData : []);
+        }
+        if (conRes.ok) {
+          const conJson = await conRes.json();
+          const conData = Array.isArray(conJson) ? conJson : conJson?.data;
+          setContests(Array.isArray(conData) ? conData : []);
+        }
       } catch (err) {
         logger.error("Failed to fetch community data", err);
       } finally {

@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
+import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import {
   Clock,
   ChevronLeft,
@@ -15,7 +16,8 @@ import {
   FileText,
   Layers,
   Star,
-  Award
+  Award,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,8 +25,10 @@ import { apiClient } from "@/lib/api/api-client";
 import type { Course, CourseLesson, Review, ReviewStats } from "./_components/types";
 import { container, fadeUp, getListItems } from "./_components/types";
 import { LessonVideoArea } from "./_components/lesson-video-area";
+import { QuizLessonArea, QuizLessonBadge } from "./_components/quiz-lesson-area";
 import { CourseActionCard } from "./_components/course-action-card";
 import { ReviewsTab } from "./_components/reviews-tab";
+import { QuestionsTab } from "./_components/questions-tab";
 import { CertificatePreviewModal } from "./_components/CertificatePreviewModal";
 
 export default function CourseDetailClient({
@@ -47,7 +51,7 @@ export default function CourseDetailClient({
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const [activeTab, setActiveTab] = useState<"curriculum" | "overview" | "reviews">("curriculum");
+  const [activeTab, setActiveTab] = useState<"curriculum" | "overview" | "reviews" | "questions">("curriculum");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -185,6 +189,13 @@ export default function CourseDetailClient({
   };
 
   const activeLessonData = useMemo(() => lessons.find((l) => l.id === activeLesson), [lessons, activeLesson]);
+
+  // Lesson HTML comes from the backend (teacher-authored) — sanitize before
+  // injecting via dangerouslySetInnerHTML (stored XSS protection).
+  const sanitizedLessonContent = useMemo(
+    () => sanitizeRichTextHtml(activeLessonData?.content),
+    [activeLessonData?.content]
+  );
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
   const courseProgress = lessons.length > 0 ? Math.round(completedCount / lessons.length * 100) : 0;
   const canAccessActiveLesson = Boolean(course.enrolled || activeLessonData?.isFree);
@@ -227,11 +238,12 @@ export default function CourseDetailClient({
           {[
             { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
             { key: "overview", label: "نظرة عامة", icon: FileText },
-            { key: "reviews", label: "التقييمات", icon: Star }
+            { key: "reviews", label: "التقييمات", icon: Star },
+            { key: "questions", label: "الأسئلة والأجوبة", icon: HelpCircle }
           ].map((tab) =>
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key as "curriculum" | "overview" | "reviews")}
+              onClick={() => setActiveTab(tab.key as "curriculum" | "overview" | "reviews" | "questions")}
               className={cn(
                 "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-300",
                 activeTab === tab.key ?
@@ -321,18 +333,34 @@ export default function CourseDetailClient({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 16 }}
                     className="space-y-6">
-                    {/* Video player */}
+                    {/* Video / Quiz player */}
                     <div className="rounded-[28px] overflow-hidden border border-gray-250 dark:border-white/[0.08] bg-white dark:bg-gray-900/80 shadow-md">
-                      <LessonVideoArea
-                        canAccess={canAccessActiveLesson}
-                        lessonData={activeLessonData}
-                        courseId={course.id}
-                        courseEnrolled={course.enrolled}
-                        authName={authUser?.name}
-                        userId={userId}
-                        onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
-                        onEnroll={handleEnroll}
-                      />
+                      {activeLessonData.type === "QUIZ" ? (
+                        <>
+                          <div className="p-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
+                            <QuizLessonBadge lesson={activeLessonData} />
+                          </div>
+                          <div className="p-5">
+                            <QuizLessonArea
+                              canAccess={canAccessActiveLesson}
+                              lessonData={activeLessonData}
+                              courseId={course.id}
+                              onEnroll={handleEnroll}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <LessonVideoArea
+                          canAccess={canAccessActiveLesson}
+                          lessonData={activeLessonData}
+                          courseId={course.id}
+                          courseEnrolled={course.enrolled}
+                          authName={authUser?.name}
+                          userId={userId}
+                          onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
+                          onEnroll={handleEnroll}
+                        />
+                      )}
 
                       {/* Lesson details */}
                       <div className="p-6 space-y-4 border-t border-gray-100 dark:border-white/5">
@@ -357,7 +385,7 @@ export default function CourseDetailClient({
                         {activeLessonData.content && canAccessActiveLesson &&
                           <div
                             className="prose prose-sm dark:prose-invert max-w-none pt-4 border-t border-gray-100 dark:border-white/5"
-                            dangerouslySetInnerHTML={{ __html: activeLessonData.content }} />
+                            dangerouslySetInnerHTML={{ __html: sanitizedLessonContent }} />
                         }
                       </div>
                     </div>
@@ -500,6 +528,11 @@ export default function CourseDetailClient({
             setUserComment={setUserComment}
             submittingReview={submittingReview}
             setSubmittingReview={setSubmittingReview} />
+        }
+
+        {/* Questions Tab */}
+        {activeTab === "questions" &&
+          <QuestionsTab courseId={courseId} enrolled={course.enrolled} />
         }
       </m.div>
 

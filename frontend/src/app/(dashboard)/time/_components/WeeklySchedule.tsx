@@ -152,12 +152,14 @@ export default function WeeklySchedule({
     };
 
     try {
+      // Backend expects `planJson` as a required JSON-encoded string
+      // (see UpdateSchedule in activity_handler.go), not a nested object.
       const savedSchedule = await apiClient.post<Schedule>('/api/schedule', {
         userId,
         version: typeof (schedule as any)?.version === 'number'
           ? (schedule as any).version
           : undefined,
-        plan: scheduleData
+        planJson: JSON.stringify(scheduleData)
       });
       onScheduleUpdate?.(savedSchedule);
     } catch (error) {

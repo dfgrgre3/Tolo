@@ -16,6 +16,48 @@ export function generateNonce(): string {
   return btoa(binary);
 }
 
+/**
+ * Builds `connect-src` per environment.
+ *
+ * SECURITY: bare scheme wildcards (`https:`, `ws:`, `wss:`) previously allowed
+ * the page to talk to ANY host — neutralizing the directive. They are replaced
+ * by an explicit allowlist. The local Go backend (API + WebSocket) is only
+ * permitted in development; production reaches the backend on *.vercel.app.
+ * CSP violations are reported to /api/csp-report, so a missing host will
+ * surface there instead of failing silently.
+ */
+function buildConnectSrc(): string {
+  const isDev = process.env.NODE_ENV === "development";
+
+  const sources = [
+    "'self'",
+    // Supabase — API, storage, and realtime websockets
+    "https://*.supabase.co",
+    "https://*.supabase.in",
+    "wss://*.supabase.co",
+    "wss://*.supabase.in",
+    // Error monitoring
+    "https://sentry.io",
+    "https://*.sentry.io",
+    "https://*.ingest.sentry.io",
+    // Vercel analytics + the Go backend deployed on Vercel
+    "https://vitals.vercel-insights.com",
+    "https://va.vercel-scripts.com",
+    "https://*.vercel.app",
+  ];
+
+  if (isDev) {
+    sources.push(
+      "http://localhost:8082",
+      "ws://localhost:8082",
+      "http://127.0.0.1:8082",
+      "ws://127.0.0.1:8082"
+    );
+  }
+
+  return `connect-src ${sources.join(" ")}`;
+}
+
 export function applyCsp(response: NextResponse, nonce: string): NextResponse {
   const cspHeader = [
     "default-src 'self'",
@@ -25,7 +67,7 @@ export function applyCsp(response: NextResponse, nonce: string): NextResponse {
     "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
     "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
     "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
-    "connect-src 'self' http://localhost:8082 ws://localhost:8082 https: ws: wss: https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
+    buildConnectSrc(),
     "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",

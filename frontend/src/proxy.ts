@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { generateNonce, applyCsp } from '@/lib/security/csp';
 import { verifyAccessToken, attemptTokenRefresh } from '@/lib/auth/jwt-edge';
+import { sanitizeRedirectPath } from '@/services/auth/navigation';
 import {
   ALLOWED_AUTHENTICATED_ROLES,
   ADMIN_PANEL_ROLES,
@@ -79,7 +80,9 @@ export async function proxy(request: NextRequest) {
     }
 
     if (isValidAccess) {
-      const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/dashboard';
+      // Only allow safe relative paths — prevents open-redirect via
+      // ?redirect=//evil.com or ?redirect=https://evil.com
+      const redirectUrl = sanitizeRedirectPath(request.nextUrl.searchParams.get('redirect'));
       const redirectRes = NextResponse.redirect(new URL(redirectUrl, request.url));
       if (refreshCookies.length > 0) {
         for (const cookie of refreshCookies) {

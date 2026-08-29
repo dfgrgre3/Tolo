@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { usePermission } from "@/hooks/use-permission";
+import type { QuizQuestion } from "@/types/course-quiz";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -67,7 +68,18 @@ export interface Course {
   category: string;
   createdDate: string;
   chapters: Chapter[];
+  quiz?: {
+    title: string;
+    passingScore: number;
+    timeLimitMinutes?: number;
+    shuffleQuestions: boolean;
+    shuffleOptions: boolean;
+    showCorrectAnswers: boolean;
+    questions: QuizQuestion[];
+  };
 }
+
+export type { QuizQuestion } from "@/types/course-quiz";
 
 export interface Student {
   id: string;
@@ -258,7 +270,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
     queryFn: () => apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
-    enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses"),
+    enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses" || activeTab === "quizzes"),
     retry: 1,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -288,6 +300,19 @@ export function useTeachingData(activeTab: string = "dashboard") {
             isPreview: l.isPreview ?? false,
           })),
         })),
+        ...(newCourse.quiz
+          ? {
+              quiz: {
+                title: newCourse.quiz.title,
+                passingScore: newCourse.quiz.passingScore,
+                timeLimitMinutes: newCourse.quiz.timeLimitMinutes,
+                shuffleQuestions: newCourse.quiz.shuffleQuestions,
+                shuffleOptions: newCourse.quiz.shuffleOptions,
+                showCorrectAnswers: newCourse.quiz.showCorrectAnswers,
+                questions: newCourse.quiz.questions,
+              },
+            }
+          : {}),
       };
       return apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
     },

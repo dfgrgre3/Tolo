@@ -83,6 +83,10 @@ export const apiRoutes = {
     lessonProgress: (lessonId: string) => `/api/courses/lessons/${lessonId}/progress`,
     lessonNotes: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     createNote: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
+    quizzes: (id: string) => `/api/courses/${id}/quizzes`,
+    quiz: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}`,
+    submitQuiz: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}/submit`,
+    quizResults: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}/results`,
   },
 
   // Categories & Teachers

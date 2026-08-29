@@ -44,8 +44,6 @@ const nextConfig = {
 
   serverExternalPackages: [
     'ioredis',
-    '@bufbuild/protobuf',
-    '@connectrpc/connect',
   ],
 
   outputFileTracingRoot: path.resolve(__dirname, '..'),
@@ -204,15 +202,25 @@ const nextConfig = {
         permanent: false,
       },
       // The "contacts directory" (people/teachers directory) lives at
-      // /education/teachers. Alias /contacts there so directory links resolve.
+      // /teachers (the (education) route group does NOT appear in the URL —
+      // /education/teachers was a 404). Alias /contacts there so directory
+      // links resolve.
       {
         source: "/contacts",
-        destination: "/education/teachers",
+        destination: "/teachers",
         permanent: false,
       },
       {
         source: "/contacts/:path*",
-        destination: "/education/teachers/:path*",
+        destination: "/teachers/:path*",
+        permanent: false,
+      },
+      // The teacher app lives at /teaching. Legacy/internal links point at
+      // /teach — alias it so existing links resolve on a single canonical
+      // URL (also lets Footer's startsWith("/teaching") hide rule work).
+      {
+        source: "/teach",
+        destination: "/teaching",
         permanent: false,
       },
       // The bundled-package / promotion claim flow lives on the billing

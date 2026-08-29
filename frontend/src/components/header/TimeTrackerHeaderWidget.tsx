@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTimeTrackerStore, type PomodoroState } from '@/hooks/use-time-tracker-store';
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ helpers */
+/* ──────────────────────────────────────────── helpers */
 const formatTime = (seconds: number) => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -30,21 +30,21 @@ const formatTime = (seconds: number) => {
 
 const stateConfig: Record<PomodoroState, { label: string; color: string; ring: string; bg: string; icon: React.ReactNode }> = {
   work: {
-    label: 'ÙˆÙ‚Øª Ø§Ù„Ø¯Ø±Ø§Ø³Ø©',
+    label: 'وقت الدراسة',
     color: 'text-rose-400',
     ring: 'stroke-rose-500',
     bg: 'from-rose-500/20 to-rose-600/5',
     icon: <Target className="h-3.5 w-3.5" />,
   },
   shortBreak: {
-    label: 'Ø§Ø³ØªØ±Ø§Ø­Ø© Ù‚ØµÙŠØ±Ø©',
+    label: 'استراحة قصيرة',
     color: 'text-teal-400',
     ring: 'stroke-teal-500',
     bg: 'from-teal-500/20 to-teal-600/5',
     icon: <Coffee className="h-3.5 w-3.5" />,
   },
   longBreak: {
-    label: 'Ø§Ø³ØªØ±Ø§Ø­Ø© Ø·ÙˆÙŠÙ„Ø©',
+    label: 'استراحة طويلة',
     color: 'text-violet-400',
     ring: 'stroke-violet-500',
     bg: 'from-violet-500/20 to-violet-600/5',
@@ -52,7 +52,7 @@ const stateConfig: Record<PomodoroState, { label: string; color: string; ring: s
   },
 };
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ mini circular progress */
+/* ──────────────────────────────────────── mini circular progress */
 function MiniCircle({ progress, state }: { progress: number; state: PomodoroState }) {
   const r = 14;
   const circ = 2 * Math.PI * r;
@@ -75,7 +75,7 @@ function MiniCircle({ progress, state }: { progress: number; state: PomodoroStat
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ header pulse dot (collapsed) */
+/* ──────────────────────────────── header pulse dot (collapsed) */
 function PulseDot({ state, isRunning: _isRunning }: { state: PomodoroState; isRunning: boolean }) {
   const colors: Record<PomodoroState, string> = {
     work: 'bg-rose-500',
@@ -89,7 +89,7 @@ function PulseDot({ state, isRunning: _isRunning }: { state: PomodoroState; isRu
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ main widget */
+/* ──────────────────────────────── main widget */
 export function TimeTrackerHeaderWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -140,7 +140,7 @@ export function TimeTrackerHeaderWidget() {
 
   return (
     <div className="relative" ref={panelRef}>
-      {/* â”€â”€ Trigger button â”€â”€ */}
+      {/* ── Trigger button ── */}
       <button
         onClick={() => setIsOpen((v) => !v)}
         className={cn(
@@ -149,7 +149,7 @@ export function TimeTrackerHeaderWidget() {
           'backdrop-blur-sm',
           isRunning && 'border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
         )}
-        aria-label="Ù…ØªØªØ¨Ø¹ Ø§Ù„ÙˆÙ‚Øª"
+        aria-label="متتبع الوقت"
       >
         <PulseDot state={currentPomodoroState} isRunning={isRunning} />
         <MiniCircle progress={progress} state={currentPomodoroState} />
@@ -162,7 +162,7 @@ export function TimeTrackerHeaderWidget() {
         <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground', isOpen && 'rotate-180')} />
       </button>
 
-      {/* â”€â”€ Dropdown Panel â”€â”€ */}
+      {/* ── Dropdown Panel ── */}
       {isOpen && (
         <div
           className={cn(
@@ -288,7 +288,7 @@ export function TimeTrackerHeaderWidget() {
           {/* Footer link */}
           <div className="border-t border-white/8 px-4 py-2.5 flex items-center justify-between">
             <span className="text-[11px] text-white/30">
-              {pomodoroCount} Ø¬Ù„Ø³Ø© Ù…ÙƒØªÙ…Ù„Ø©
+              {pomodoroCount} جلسة مكتملة
             </span>
             <Link
               href="/time"
@@ -296,7 +296,7 @@ export function TimeTrackerHeaderWidget() {
               className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80"
             >
               <Timer className="h-3 w-3" />
-              <span>ÙØªØ­ Ø§Ù„ØµÙØ­Ø© Ø§Ù„ÙƒØ§Ù…Ù„Ø©</span>
+              <span>فتح الصفحة الكاملة</span>
             </Link>
           </div>
         </div>

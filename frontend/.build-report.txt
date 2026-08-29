@@ -1,0 +1,135 @@
+﻿
+> thanawy@0.1.0 build
+> cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack
+
+Γû▓ Next.js 16.2.6 (webpack)
+- Environments: .env.local, .env.production, .env
+- Experiments (use with caution):
+  ┬╖ clientTraceMetadata
+  ┬╖ optimizePackageImports
+
+  Creating an optimized production build ...
+npm.cmd : [@sentry/nextjs] It appears you've configured a 
+`sentry.server.config.ts` file. Please ensure to put this file's content into 
+the `register()` function of a Next.js instrumentation file instead. To ensure 
+correct functionality of the SDK, `Sentry.init` must be called inside of an 
+instrumentation file. Learn more about setting up an instrumentation file in 
+Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instr
+umentation. You can safely delete the `sentry.server.config.ts` file afterward.
+At line:1 char:5
++ & { npm.cmd run build 2>&1 | Out-File -FilePath .build-report.txt -En ...
++     ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([@sentry/nextjs...file afterward. 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. 
+This indicates outdated configuration of the Sentry SDK. Use 
+`Sentry.captureRequestError` to instrument the `onRequestError` hook: https://d
+ocs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nest
+ed-react-server-components
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] It appears you've configured a `sentry.edge.config.ts` file. 
+Please ensure to put this file's content into the `register()` function of a 
+Next.js instrumentation file instead. To ensure correct functionality of the 
+SDK, `Sentry.init` must be called inside of an instrumentation file. Learn 
+more about setting up an instrumentation file in Next.js: https://nextjs.org/do
+cs/app/building-your-application/optimizing/instrumentation. You can safely 
+delete the `sentry.edge.config.ts` file afterward.
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your 
+`sentry.client.config.ts` file, or moving its content to 
+`instrumentation-client.ts`. When using Turbopack `sentry.client.config.ts` 
+will no longer work. Read more about the `instrumentation-client.ts` file: http
+s://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+Γ£ô Compiled successfully in 107s
+  Running TypeScript ...
+  Finished TypeScript in 2.2min ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/65) ...
+  Generating static pages using 15 workers (16/65) 
+  Generating static pages using 15 workers (32/65) 
+  Generating static pages using 15 workers (48/65) 
+Γ£ô Generating static pages using 15 workers (65/65) in 12.8s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+Γöî ╞Æ /
+Γö£ ╞Æ /_not-found
+Γö£ ╞Æ /about
+Γö£ ╞Æ /academy
+Γö£ ╞Æ /access-denied
+Γö£ ╞Æ /admin-login
+Γö£ ╞Æ /ai
+Γö£ ╞Æ /all-features
+Γö£ ╞Æ /analytics
+Γö£ ╞Æ /announcements
+Γö£ ╞Æ /announcements/new
+Γö£ ╞Æ /api/[...path]
+Γö£ ╞Æ /api/analytics/web-vitals
+Γö£ ╞Æ /api/auth/csrf
+Γö£ ╞Æ /api/cache/revalidate
+Γö£ ╞Æ /api/csp-report
+Γö£ ╞Æ /api/storage/chunked-upload
+Γö£ ╞Æ /api/storage/upload
+Γö£ ╞Æ /billing
+Γö£ ╞Æ /billing/referrals
+Γö£ ╞Æ /blog
+Γö£ ╞Æ /blog/new-post
+Γö£ ╞Æ /blog/post/[id]
+Γö£ ╞Æ /cart
+Γö£ ╞Æ /chat
+Γö£ ╞Æ /chat/new
+Γö£ ╞Æ /connections/organization
+Γö£ ╞Æ /contact
+Γö£ ╞Æ /contests/new
+Γö£ ╞Æ /courses
+Γö£ ╞Æ /courses/[id]
+Γö£ ╞Æ /courses/[id]/checkout
+Γö£ ╞Æ /dashboard
+Γö£ ╞Æ /events
+Γö£ ╞Æ /events/[id]
+Γö£ ╞Æ /events/new
+Γö£ ╞Æ /exams
+Γö£ ╞Æ /faq
+Γö£ ╞Æ /forgot-password
+Γö£ ╞Æ /forum
+Γö£ ╞Æ /forum/new-post
+Γö£ ╞Æ /forum/post/[id]
+Γö£ ╞Æ /goals
+Γö£ ╞Æ /leaderboard
+Γö£ ╞Æ /learning/[courseId]
+Γö£ ╞Æ /library
+Γö£ ╞Æ /login
+Γö£ ╞Æ /mfa
+Γö£ ╞Æ /my-courses
+Γö£ ╞Æ /offline
+Γö£ ╞Æ /pathways
+Γö£ ╞Æ /privacy
+Γö£ ╞Æ /profile
+Γö£ ╞Æ /register
+Γö£ ╞Æ /reset-password
+Γö£ ╞Æ /resources
+Γö£ Γùï /robots.txt
+Γö£ ╞Æ /schedule
+Γö£ ╞Æ /settings
+Γö£ Γùï /sitemap.xml
+Γö£ ╞Æ /subscription
+Γö£ ╞Æ /subscription/fail
+Γö£ ╞Æ /subscription/success
+Γö£ ╞Æ /tasks
+Γö£ ╞Æ /teacher-exams
+Γö£ ╞Æ /teachers
+Γö£ ╞Æ /teaching
+Γö£ ╞Æ /terms
+Γö£ ╞Æ /time
+Γö£ ╞Æ /tips
+Γö£ ╞Æ /verify-email
+Γöö ╞Æ /wishlist
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

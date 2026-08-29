@@ -1,4 +1,4 @@
-import { jwtVerify, decodeJwt as decodeJwtUnverified } from "jose";
+import { jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
 
 /**
@@ -18,15 +18,13 @@ import type { NextRequest } from "next/server";
  * that gap by verifying the signature with the same HS256 secret the backend
  * signs with, so a forged cookie is rejected here too.
  *
- * DEGRADED MODE
- * -------------
- * `JWT_SECRET` is only defined in this repo's `.env.production` — the local
- * dev env files don't set it (the local backend may run with its own
- * secret that isn't shared with the frontend). When it's missing, this module
- * logs one warning and falls back to the old unverified decode so local
- * development keeps working. In that mode the middleware is UI-routing only,
- * NOT a security boundary — the backend remains the authority. Never treat a
- * missing-secret warning as acceptable in production.
+ * MISSING SECRET — FAIL CLOSED
+ * ----------------------------
+ * If `JWT_SECRET` is not configured, EVERY token is treated as invalid
+ * (returns `null`) and callers fall back to the refresh flow / login
+ * redirect. The old "degraded mode" that fell back to unverified base64
+ * decoding was removed: accepting a self-asserted `role` claim without a
+ * signature re-opened the exact forgery this module exists to prevent.
  */
 
 export interface AccessTokenPayload {
@@ -44,36 +42,28 @@ function getSecretKey(): Uint8Array | null {
   return new TextEncoder().encode(secret);
 }
 
-/** Unverified fallback — only reached when JWT_SECRET is not configured. */
-function decodeUnverified(token: string): AccessTokenPayload | null {
-  try {
-    return decodeJwtUnverified(token) as AccessTokenPayload;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Verifies an access token's signature and expiry.
  *
- * Returns the payload only when the token is cryptographically valid (or, in
- * degraded mode without `JWT_SECRET`, merely well-formed). Returns `null` for
- * a missing, forged, malformed, or expired token — callers treat that
- * identically to "no token" and fall back to the refresh-token flow / login
- * redirect. Never throws.
+ * Returns the payload only when the token is cryptographically valid. Returns
+ * `null` for a missing secret, forged, malformed, or expired token — callers
+ * treat that identically to "no token" and fall back to the refresh-token
+ * flow / login redirect. Never throws.
  */
 export async function verifyAccessToken(token: string): Promise<AccessTokenPayload | null> {
   const key = getSecretKey();
 
   if (!key) {
+    // FAIL CLOSED: without the secret we cannot prove the token's origin,
+    // so it must be treated as untrusted rather than decoded unverified.
     if (!loggedMissingSecret) {
       loggedMissingSecret = true;
-      console.warn(
-        "[jwt-edge] JWT_SECRET is not set — access tokens are NOT signature-verified at the edge. " +
-        "Routing decisions in proxy.ts are UI-only in this mode; this must never be true in production."
+      console.error(
+        "[jwt-edge] JWT_SECRET is not set — rejecting every access token (fail-closed). " +
+        "Set JWT_SECRET to the backend's HS256 signing secret; unverified decode is no longer supported."
       );
     }
-    return decodeUnverified(token);
+    return null;
   }
 
   try {

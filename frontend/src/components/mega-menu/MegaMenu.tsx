@@ -94,6 +94,7 @@ export function MegaMenu({
 }: MegaMenuComponentProps) {
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuId = useId();
   const hasTrackedOpenRef = useRef(false);
@@ -232,6 +233,8 @@ export function MegaMenu({
       if (e.key === "Escape") {
         if (enableTracking) trackMegaMenuEvent("close", label, { trigger: "escape" });
         onClose();
+        // إعادة التركيز إلى الزر الذي فتح القائمة بدل تركه يضيع في الصفحة
+        triggerButtonRef.current?.focus();
       }
     };
     document.addEventListener("keydown", handleEscape);
@@ -300,7 +303,7 @@ export function MegaMenu({
         onBlur={handleBlur}
 
       >
-        <HeaderMenuTrigger label={label} isOpen={isOpen} onClick={handleToggle} ariaControls={menuId} className={className} />
+        <HeaderMenuTrigger ref={triggerButtonRef} label={label} isOpen={isOpen} onClick={handleToggle} ariaControls={menuId} className={className} />
       </div>
 
       {isMounted && createPortal(overlay, document.body)}

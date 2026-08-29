@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
+import { isFileTypeAllowed, sanitizeFolder } from "@/lib/storage/upload-policy";
 import {
   initiateUpload,
   registerChunk,
@@ -85,6 +86,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Server-enforced MIME allowlist — client-declared values can only narrow it later
+      const mimeType = body.mimeType || "application/octet-stream";
+      if (!isFileTypeAllowed(mimeType)) {
+        return NextResponse.json({ error: "File type not allowed" }, { status: 400 });
+      }
+
+      const folder = sanitizeFolder(body.folder || "uploads");
+
       const chunkSize = body.chunkSize || DEFAULT_CHUNK_SIZE;
       if (chunkSize > MAX_CHUNK_SIZE) {
         return NextResponse.json(
@@ -101,10 +110,10 @@ export async function POST(request: NextRequest) {
         uploadId,
         fileName: body.fileName,
         fileSize: body.fileSize,
-        mimeType: body.mimeType || "application/octet-stream",
+        mimeType,
         totalChunks: body.totalChunks,
         chunkSize,
-        folder: body.folder || "uploads",
+        folder,
         userId,
         createdAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
       const chunkIndexStr = formData.get("chunkIndex") as string;
       const totalChunksStr = formData.get("totalChunks") as string;
       const file = formData.get("file") as File;
-      const folder = (formData.get("folder") as string) || "uploads";
+      const folder = sanitizeFolder((formData.get("folder") as string) || "uploads");
       // Optional SHA-256 checksum for integrity verification.
       // Clients should send this as the X-Chunk-Checksum request header or
       // as a "chunkChecksum" form field (header takes precedence).
@@ -145,6 +154,14 @@ export async function POST(request: NextRequest) {
       const chunkIndex = parseInt(chunkIndexStr, 10);
       const totalChunks = parseInt(totalChunksStr || "0", 10);
 
+      // Reject NaN / negative / fractional chunk indices
+      if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
+        return NextResponse.json({ error: "Invalid chunkIndex" }, { status: 400 });
+      }
+      if (!Number.isInteger(totalChunks) || totalChunks < 0) {
+        return NextResponse.json({ error: "Invalid totalChunks" }, { status: 400 });
+      }
+
       // Verify session exists and belongs to user
       const session = await getSessionMeta(uploadId);
       if (!session || session.userId !== userId) {
@@ -154,8 +171,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Validate file type if types are specified
-      const allowedTypes = (formData.get("allowedTypes") as string)?.split(",") || [];
+      // Validate file type: server-enforced allowlist first. Fall back to the
+      // session-declared type when the client doesn't set one on the chunk.
+      const chunkMime = file.type || session.mimeType;
+      if (!isFileTypeAllowed(chunkMime)) {
+        return NextResponse.json({ error: "File type not allowed" }, { status: 400 });
+      }
+
+      // Optional client narrowing (can only restrict, never widen)
+      const allowedTypes = (formData.get("allowedTypes") as string)?.split(",").filter(Boolean) || [];
       if (allowedTypes.length > 0 && !validateFileType(file, allowedTypes)) {
         return NextResponse.json(
           { error: `File type not allowed. Allowed: ${allowedTypes.join(", ")}` },

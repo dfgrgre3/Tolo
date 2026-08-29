@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
-import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
 
 interface Message {
@@ -29,34 +30,6 @@ interface AIAssistantProps {
   className?: string;
 }
 
-const getCsrfToken = () => {
-  const cookies = document.cookie.split(';').map(c => c.trim());
-  for (const name of ['_csrf', 'X-CSRF-Token', 'csrf', 'csrf_token']) {
-    const entry = cookies.find(c => c.startsWith(name + '='));
-    if (entry) {
-      try {
-        return decodeURIComponent(entry.split('=')[1]!);
-      } catch (_e) {
-        return entry.split('=')[1];
-      }
-    }
-  }
-  return undefined;
-};
-
-const ensureCsrfToken = async () => {
-  let token = getCsrfToken();
-  if (!token) {
-    try {
-      await fetch('/api/ai/chat?action=conversations', { method: 'GET', credentials: 'include' });
-      token = getCsrfToken();
-    } catch (_e) {
-      // ignore
-    }
-  }
-  return token;
-};
-
 const quickSuggestions = [
   { icon: '📐', text: 'اشرح لي نظرية فيثاغورس', category: 'رياضيات' },
   { icon: '🔬', text: 'ما هي قوانين نيوتن الثلاثة؟', category: 'فيزياء' },
@@ -70,7 +43,6 @@ export default function AIAssistant({
   title = "المساعد الذكي",
   className = ""
 }: AIAssistantProps) {
-  const { fetchWithAuth } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -131,9 +103,7 @@ export default function AIAssistant({
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const response = await fetchWithAuth('/api/ai/chat?action=conversations', {
-        method: 'GET'
-      });
+      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?action=conversations`);
 
       if (response.ok) {
         const data = await response.json();
@@ -144,7 +114,7 @@ export default function AIAssistant({
     } finally {
       setIsLoadingConversations(false);
     }
-  }, [fetchWithAuth]);
+  }, []);
 
   useEffect(() => {
     if (showSidebar && conversations.length === 0) {
@@ -154,9 +124,7 @@ export default function AIAssistant({
 
   const loadConversation = async (convId: string) => {
     try {
-      const response = await fetchWithAuth(`/api/ai/chat?action=conversation&id=${convId}`, {
-        method: 'GET'
-      });
+      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?action=conversation&id=${convId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -181,12 +149,8 @@ export default function AIAssistant({
     if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
 
     try {
-      const csrfToken = await ensureCsrfToken();
-      const response = await fetchWithAuth(`/api/ai/chat?id=${convId}`, {
-        method: 'DELETE',
-        headers: {
-          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
-        }
+      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?id=${convId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -258,13 +222,8 @@ export default function AIAssistant({
     setIsLoading(true);
 
     try {
-      const csrfToken = await ensureCsrfToken();
-      const response = await fetchWithAuth('/api/ai/chat', {
+      const response = await apiClient.fetch(apiRoutes.ai.chat, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
-        },
         body: JSON.stringify({
           message: userMessage.content,
           conversationId,

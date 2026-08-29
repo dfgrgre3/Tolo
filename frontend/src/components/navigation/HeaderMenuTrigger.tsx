@@ -1,5 +1,6 @@
 "use client";
 
+import { forwardRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,31 +15,34 @@ interface HeaderMenuTriggerProps {
   ariaControls?: string;
 }
 
-export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge, ariaControls }: HeaderMenuTriggerProps) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={onClick}
-      className={cn(triggerStyles({ variant: "header", open: isOpen, size: "header" }), className)}
-      aria-expanded={isOpen}
-      aria-controls={ariaControls}
-      aria-label={`${label} - ${isOpen ? "مفتوح" : "مغلق"}`}
-    >
-      <span className="font-medium">{label}</span>
-      <ChevronDown className={cn("h-4 w-4", isOpen && "rotate-180")} aria-hidden="true" />
-      {badge && (
-        <span className="absolute -top-1 -end-1 h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
-          {badge}
-        </span>
-      )}
-      {isOpen && (
-        <div
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
-          aria-hidden="true"
-        />
-      )}
-    </Button>
-  );
-}
+export const HeaderMenuTrigger = forwardRef<HTMLButtonElement, HeaderMenuTriggerProps>(
+  function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge, ariaControls }, ref) {
+    return (
+      <Button
+        ref={ref}
+        type="button"
+        variant="ghost"
+        onClick={onClick}
+        className={cn(triggerStyles({ variant: "header", open: isOpen, size: "header" }), className)}
+        aria-expanded={isOpen}
+        aria-controls={ariaControls}
+        aria-label={`${label} - ${isOpen ? "مفتوح" : "مغلق"}`}
+      >
+        <span className="font-medium">{label}</span>
+        <ChevronDown className={cn("h-4 w-4", isOpen && "rotate-180")} aria-hidden="true" />
+        {badge && (
+          <span className="absolute -top-1 -end-1 h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
+            {badge}
+          </span>
+        )}
+        {isOpen && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+            aria-hidden="true"
+          />
+        )}
+      </Button>
+    );
+  }
+);
 

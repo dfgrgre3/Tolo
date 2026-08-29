@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { m, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { ensureUser } from "@/lib/user-utils";
@@ -60,6 +60,12 @@ export default function GoalsPage() {
   }
 
   return (
+    // LazyMotion supplies the `domAnimation` features `m.*` needs to actually
+    // animate. Framer Motion isn't loaded globally (see providers/index.tsx),
+    // so without this wrapper every m.div here (and in GoalCard/CreateGoalModal)
+    // stays frozen at its `initial` state (opacity: 0) forever — the page keeps
+    // its layout space but nothing is visible.
+    <LazyMotion features={domAnimation}>
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
@@ -169,7 +175,8 @@ export default function GoalsPage() {
       <AchievementToast
         achievement={currentAchievement}
         onClose={clearAchievementNotification} />
-      
-      </div>);
+
+      </div>
+    </LazyMotion>);
 
 }

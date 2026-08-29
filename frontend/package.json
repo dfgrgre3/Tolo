@@ -12,7 +12,7 @@
         "build:analyze": "cross-env ANALYZE=true NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
         "start": "next start",
         "clean": "npx rimraf .next",
-        "lint": "eslint",
+        "lint": "eslint . --max-warnings=177",
         "type-check": "npx tsc --noEmit",
         "perf": "npx lighthouse http://localhost:3000 --chrome-flags='--headless --disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --ignore-certificate-errors --allow-insecure-localhost' --output=json --output-path=./lighthouse-results.json --only-categories=performance",
         "check:env": "node scripts/check-proxy-config.mjs",
@@ -24,9 +24,6 @@
         "test:e2e": "playwright test"
     },
     "dependencies": {
-        "@bufbuild/protobuf": "^2.12.0",
-        "@connectrpc/connect": "^2.1.1",
-        "@connectrpc/connect-web": "^2.1.1",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",

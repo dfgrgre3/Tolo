@@ -122,13 +122,10 @@ lighthouse-results.json
 docker-compose.yml
 docker-compose.override.yml
 
-# Local Netlify folder
 .netlify
-node_modules/ 
-**/node_modules/ 
+node_modules/
+**/node_modules/
 .env*
 
-# Markdown files (must never be committed)
-*.md
 testsprite_tests/tmp/
 testsprite_tests/tmp/config.json

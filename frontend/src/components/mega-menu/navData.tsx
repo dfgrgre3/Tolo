@@ -40,7 +40,6 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
     slug: "study",
     items: [
       { href: "/courses", label: "جميع الدورات", icon: BookOpen, description: "استعرض كل الدورات التعليمية المتاحة" },
-      { href: "/my-courses", label: "دوراتي", icon: BookMarked, description: "الدورات والمسارات التي تتابعها حالياً" },
       { href: "/teachers", label: "المدرسون", icon: GraduationCap, description: "تواصل مع نخبة من أفضل المدرسين" },
     ],
   },

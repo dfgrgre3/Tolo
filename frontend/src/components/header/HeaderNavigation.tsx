@@ -26,7 +26,7 @@ export function HeaderNavigation({
   return (
     <nav 
       className="hidden lg:flex items-center gap-2 flex-1 justify-center relative" 
-      aria-label="Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©"
+      aria-label="القائمة الرئيسية"
     >
       {navItems.map((item) => {
 

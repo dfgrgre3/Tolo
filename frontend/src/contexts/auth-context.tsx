@@ -21,6 +21,7 @@ import React, {
 } from "react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { requestCache } from "@/lib/api/request-cache";
+import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
 import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login as loginRequest, verifyMfa } from "@/services/auth/login-service";
@@ -106,8 +107,6 @@ interface AuthContextValue extends AuthState {
     userId: string,
     code: string
   ) => Promise<AuthLoginResult>;
-  /** Fetch with authentication headers (for external APIs) */
-  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   /** @deprecated Use redirectToLogin instead */
   login: () => Promise<void>;
   /** @deprecated Use redirectToRegister instead */
@@ -199,6 +198,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       controller.abort();
     };
   }, []);
+
+  // Report session presence to the API layer: a 401 may only auto-redirect
+  // to /login for a browser that actually HAD a session. Guests keep their
+  // empty states instead of being bounced (see redirect-loop-guard.ts).
+  useEffect(() => {
+    if (state.isLoading) return; // still resolving — stay 'unknown'
+    setSessionPresence(state.isAuthenticated ? "present" : "absent");
+  }, [state.isAuthenticated, state.isLoading]);
 
   const redirectToLogin = useCallback(async () => {
     window.location.href = "/login";
@@ -306,14 +313,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refreshUser]
   );
 
-  const fetchWithAuth = useCallback(
-    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const endpoint = typeof input === "string" ? input : input.toString();
-      return apiClient.fetch(endpoint, init);
-    },
-    []
-  );
-
   // Memoized so consumers only re-render when auth state actually changes.
   // Without this, every AuthProvider render hands down a fresh object and
   // re-renders every `useAuth()` call site in the tree.
@@ -326,7 +325,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       adminLogin,
       verify2FA,
       refreshUser,
-      fetchWithAuth,
       // Deprecated aliases for backward compatibility
       login: redirectToLogin,
       register: redirectToRegister,
@@ -339,7 +337,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       adminLogin,
       verify2FA,
       refreshUser,
-      fetchWithAuth,
     ]
   );
 

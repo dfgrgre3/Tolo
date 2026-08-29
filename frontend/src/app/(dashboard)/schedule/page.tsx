@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, RefreshCw } from "lucide-react";
+import { LazyMotion, domAnimation } from "framer-motion";
 import WeeklySchedule from "@/app/(dashboard)/time/_components/WeeklySchedule";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,17 +133,24 @@ export default function SchedulePage() {
           </div>
         </div>
       ) : (
-        <WeeklySchedule
-          schedule={schedule}
-          subjects={subjects}
-          userId={userId}
-          onScheduleUpdate={(updatedSchedule: any) =>
-            setSchedule((prev) => ({
-              ...prev,
-              ...updatedSchedule
-            }))
-          }
-        />
+        // LazyMotion supplies the `domAnimation` features `m.*` needs to actually
+        // animate (WeeklySchedule and its children use `m.div` with
+        // initial={{ opacity: 0 }}). Framer Motion isn't loaded globally
+        // (see providers/index.tsx), so without this wrapper the content stays
+        // frozen at opacity: 0 forever — visible layout space, invisible content.
+        <LazyMotion features={domAnimation}>
+          <WeeklySchedule
+            schedule={schedule}
+            subjects={subjects}
+            userId={userId}
+            onScheduleUpdate={(updatedSchedule: any) =>
+              setSchedule((prev) => ({
+                ...prev,
+                ...updatedSchedule
+              }))
+            }
+          />
+        </LazyMotion>
       )}
     </div>
   );

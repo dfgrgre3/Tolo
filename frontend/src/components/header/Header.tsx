@@ -14,6 +14,7 @@ import { HeaderLogo } from "./HeaderLogo";
 import { HeaderSearch } from "./HeaderSearch";
 import { HeaderNavigation } from "./HeaderNavigation";
 import { HeaderNotifications } from "./HeaderNotifications";
+import { HeaderCartIcon } from "./HeaderCartIcon";
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
 import { headerNavItems as fallbackHeaderNavItems, mainNavItemsWithMegaMenu, utilityNavItems } from "@/components/mega-menu/navData";
@@ -42,17 +43,6 @@ const CommandPalette = dynamic(
 			.then((mod) => ({ default: mod.CommandPalette }))
 			.catch((err) => {
 				logger.error("Failed to load CommandPalette", err);
-				return { default: () => null };
-			}),
-	{ ssr: false, loading: () => null }
-);
-
-const SmartNavigationSuggestions = dynamic(
-	() =>
-		import("./SmartNavigationSuggestions")
-			.then((mod) => ({ default: mod.SmartNavigationSuggestions }))
-			.catch((err) => {
-				logger.error("Failed to load SmartNavigationSuggestions", err);
 				return { default: () => null };
 			}),
 	{ ssr: false, loading: () => null }
@@ -214,7 +204,11 @@ export default function Header() {
 					applyNavData(response.categories);
 				}
 			} catch (err) {
-				console.warn("Failed to fetch dynamic navigation menu from backend:", err);
+				// Falls back silently to the static navData.tsx above — logged so we can
+				// track in production how often the backend nav menu is unavailable.
+				logger.warn("Failed to fetch dynamic navigation menu from backend", {
+					error: err instanceof Error ? err.message : String(err),
+				});
 			}
 		};
 
@@ -394,12 +388,6 @@ export default function Header() {
 									</Link>
 								))}
 
-							{widgets.suggestions && (
-								<div className="hidden xl:block">
-									<SmartNavigationSuggestions />
-								</div>
-							)}
-
 							<TimeTrackerHeaderWidget />
 
 							{mounted && (
@@ -408,7 +396,9 @@ export default function Header() {
 								</div>
 							)}
 
-							{mounted && <HeaderNotifications user={user} mounted={mounted} />}
+							{mounted && <HeaderCartIcon user={user} mounted={mounted} />}
+
+						{mounted && <HeaderNotifications user={user} mounted={mounted} />}
 
 							{/* Auth Section */}
 							<div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">

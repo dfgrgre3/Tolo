@@ -21,6 +21,7 @@ import AnalyticsPanel from "./components/AnalyticsPanel";
 import CalendarScheduler from "./components/CalendarScheduler";
 import EarningsPanel from "./components/EarningsPanel";
 import SettingsPanel from "./components/SettingsPanel";
+import { QuizManagementPanel } from "./components/QuizManagementPanel";
 
 // Wizard Modal
 import CourseWizard from "./components/CourseWizard";
@@ -31,6 +32,7 @@ import { useTeachingData, Course } from "./hooks/use-teaching-data";
 const VALID_TABS = [
   "dashboard",
   "courses",
+  "quizzes",
   "students",
   "messages",
   "reviews",
@@ -425,6 +427,8 @@ export default function TeachingPage() {
             onDeleteCourse={handleDeleteCourse}
           />
         );
+      case "quizzes":
+        return <QuizManagementPanel courses={courses} />;
       case "students":
         return <StudentManagement students={students} isLoading={isStudentsLoading} onMessageStudent={handleMessageStudent} />;
       case "messages":

@@ -185,7 +185,13 @@ export default [
       "react-hooks/refs": "warn",
       "react-hooks/purity": "warn",
       "react/no-unescaped-entities": "warn",
-      "@typescript-eslint/no-explicit-any": "off",
+      // `no-explicit-any` is re-enabled as a WARNING with a ratchet in the
+      // lint script (`--max-warnings=N`, see package.json). It was previously
+      // "off", which let ~145 implicit-any escapes accumulate. The ratchet
+      // fails CI on any NEW occurrence while the existing ones are typed
+      // down incrementally — lower the number in package.json as they're
+      // fixed until it can be flipped to "error".
+      "@typescript-eslint/no-explicit-any": "warn",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       // Disable base no-unused-vars in favor of TypeScript version
