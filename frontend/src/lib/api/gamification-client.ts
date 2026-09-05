@@ -2,8 +2,18 @@ import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/types
 import apiClient from './api-client';
 import { apiRoutes } from './routes';
 
-export async function fetchUserProgress(userId: string): Promise<UserProgress | null> {
-    return apiClient.get<UserProgress>(`${apiRoutes.gamification.progress}?userId=${userId}`, {
+/**
+ * Gamification API client — session-scoped.
+ *
+ * None of these calls send a userId: the backend derives identity from the
+ * JWT session (see resolveGamificationUserID in gamification_handler.go) and
+ * the client-supplied ?userId=/body override was removed there, so sending
+ * one would only invite IDOR/BOLA-style mistakes.
+ */
+
+/** Gamification progress of the authenticated user (GET /gamification/progress). */
+export async function fetchMyProgress(): Promise<UserProgress | null> {
+    return apiClient.get<UserProgress>(apiRoutes.gamification.progress, {
         retries: 0
     });
 }
@@ -24,15 +34,10 @@ export async function fetchLeaderboard(type: 'global' | 'friends' = 'global', li
     }));
 }
 
-export async function updateUserProgress(userId: string, action: string, data?: Record<string, any>): Promise<UserProgress> {
-    return apiClient.post<UserProgress>(apiRoutes.gamification.progress, { userId, action, data });
-}
-
 export async function createCustomGoal(
-    userId: string,
     goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>
 ): Promise<CustomGoal> {
-    return apiClient.post<CustomGoal>(apiRoutes.gamification.goals, { userId, ...goalData });
+    return apiClient.post<CustomGoal>(apiRoutes.gamification.goals, goalData);
 }
 
 export async function updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {

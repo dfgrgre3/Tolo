@@ -32,7 +32,6 @@ import {
 
 export default function TaskManagement({
   initialTasks,
-  userId,
   subjects,
   onTaskUpdate,
   onTaskCreate,
@@ -143,9 +142,9 @@ export default function TaskManagement({
 
     const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
+    // The task owner is resolved server-side from the session — no userId.
     const body = JSON.stringify({
       ...values,
-      userId,
       tags,
       status: taskToEdit?.status || 'PENDING'
     });
@@ -172,7 +171,7 @@ export default function TaskManagement({
     } catch (error) {
       logger.error("Error saving task:", error);
     }
-  }, [taskToEdit, userId, onTaskUpdate, onTaskCreate, handleFinished]);
+  }, [taskToEdit, onTaskUpdate, onTaskCreate, handleFinished]);
 
   const handleDelete = useCallback(async (taskId: string) => {
     if (!taskId) return;

@@ -4,7 +4,6 @@ import { TimeSettingsData } from '../_components/TimeSettings';
 import { logger } from '@/lib/logger';
 
 export function usePomodoroTimer(
-  userId: string,
   onStudySessionCreate: (session: StudySession) => void,
   activeTaskId: string | null
 ) {
@@ -85,7 +84,6 @@ export function usePomodoroTimer(
       if (currentTaskId) {
         const session: StudySession = {
           id: `session_${Date.now()}`,
-          userId,
           taskId: currentTaskId,
           durationMin: Math.floor(WORK_DURATION / 60),
           startTime: sessionStartTimeRef.current || new Date(Date.now() - WORK_DURATION * 1000).toISOString(),
@@ -114,7 +112,7 @@ export function usePomodoroTimer(
       setTimeLeft(WORK_DURATION);
       setIsRunning(currentSettings.autoStartBreak);
     }
-  }, [userId, onStudySessionCreate, WORK_DURATION, LONG_BREAK, SHORT_BREAK, GOAL_TARGET]);
+  }, [onStudySessionCreate, WORK_DURATION, LONG_BREAK, SHORT_BREAK, GOAL_TARGET]);
 
   // Keep a stable ref to handleTimerComplete for the useEffect timer
   const handleTimerCompleteRef = useRef(handleTimerComplete);

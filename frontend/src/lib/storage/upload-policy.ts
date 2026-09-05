@@ -2,7 +2,12 @@
 // /api/storage/chunked-upload. Client-submitted restrictions can only
 // NARROW these limits, never widen them.
 
-export const SERVER_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB hard cap
+export const MAX_SIMPLE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB hard cap for simple / direct uploads
+export const SERVER_MAX_FILE_SIZE = MAX_SIMPLE_UPLOAD_SIZE; // Backwards compatibility alias
+
+export const MAX_CHUNKED_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB hard cap for chunked uploads
+export const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB per chunk
+export const MAX_CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB max per chunk
 
 // Master MIME allowlist enforced regardless of what the client sends.
 // text/html and application/xhtml+xml are intentionally excluded

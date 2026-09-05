@@ -5,7 +5,6 @@ import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { Button } from "@/components/ui/button";
 import { BarChart3, RefreshCw, Download } from "lucide-react";
-import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import { useEffect, useState, useCallback } from "react";
 import AnalyticsTabs from "./AnalyticsTabs";
@@ -43,7 +42,7 @@ export default function AnalyticsPage() {
     setMounted(true);
   }, []);
 
-  const loadAnalyticsData = useCallback(async (userId: string) => {
+  const loadAnalyticsData = useCallback(async () => {
     const fetchJson = async <T,>(url: string, name: string): Promise<T | null> => {
       try {
         const res = await apiClient.fetch(url);
@@ -55,11 +54,13 @@ export default function AnalyticsPage() {
       }
     };
 
+    // Session-scoped: the backend resolves the user from the JWT, so no
+    // ?userId= is appended (IDOR/BOLA hardening).
     const [summary, weekly, predictionsResp, performance] = await Promise.all([
-      fetchJson<SummaryData>(`${apiRoutes.progress.summary}?userId=${userId}`, "summary"),
-      fetchJson<WeeklyData>(`${apiRoutes.analytics.weekly}?userId=${userId}`, "weekly"),
+      fetchJson<SummaryData>(apiRoutes.progress.summary, "summary"),
+      fetchJson<WeeklyData>(apiRoutes.analytics.weekly, "weekly"),
       fetchJson<{ success: boolean; predictions: PredictionsData[] }>(
-        `${apiRoutes.analytics.predictions}?userId=${userId}`,
+        apiRoutes.analytics.predictions,
         "predictions"
       ),
       fetchJson<Record<string, unknown>>(
@@ -77,9 +78,9 @@ export default function AnalyticsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const userId = await ensureUser();
+        const result = await loadAnalyticsData();
         if (cancelled) return;
-        setData(await loadAnalyticsData(userId));
+        setData(result);
       } catch (e) {
         logger.error('Error loading analytics page:', e);
       }

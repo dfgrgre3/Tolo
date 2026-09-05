@@ -1,30 +1,51 @@
 /**
  * Login Service — the single source of truth for the sign-in and MFA contract.
  *
- * WHY THIS FILE EXISTS
- * --------------------
- * The login and MFA-verify calls used to be duplicated in three places
- * (`LoginForm`, `auth-context.adminLogin`, `auth-repository`) with *different*
- * field names for the same endpoints: `email` vs `identifier` on the request,
- * and `ticket` vs `userId` on the MFA challenge. At most one of those spellings
- * can be the one the Go backend actually reads, so the others were silently
- * broken.
+ * The backend exposes ONE canonical contract (`internal/application/dto/auth_dto.go`):
+ *   - POST /api/auth/login      → { email, password, rememberMe?, deviceName?, fingerprint? }
+ *   - POST /api/auth/mfa/verify → { challengeId, code }
+ *   - a pending-MFA login returns { mfaRequired: true, challengeId }.
  *
- * Rather than guess, this module sends both accepted aliases and normalizes
- * whatever the backend returns into one internal shape. Go's `encoding/json`
- * ignores unknown object keys, so sending both is safe. When the backend
- * contract is confirmed, this is the only file that needs to change.
+ * This module used to hedge against a drifted contract by sending *both*
+ * `email`+`identifier` and `ticket`+`userId`. Those aliases are gone: the
+ * backend only ever reads `email` and `challengeId`, so that is all we send.
+ * The wire shapes are declared once in `@thanawy/shared/types/auth` and
+ * re-checked at runtime with zod — any future backend drift now fails loudly
+ * here instead of silently breaking login.
  */
+import * as z from "zod";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import type {
+  LoginRequestPayload,
+  MfaVerifyPayload,
+  LoginChallengeResponse,
+} from "@thanawy/shared/types/auth";
 
-/** Raw response from `POST /auth/login`, tolerating either MFA challenge spelling. */
-interface RawLoginResponse {
-  mfaRequired?: boolean;
-  /** Opaque challenge handle (preferred). */
-  ticket?: string | null;
-  /** Legacy challenge handle used by older backend builds. */
-  userId?: string | null;
+// ─── Runtime validators (mirror the shared canonical DTOs) ────────────────────
+
+const loginRequestSchema = z.object({
+  email: z.string().trim().min(1).email(),
+  password: z.string().min(1),
+  rememberMe: z.boolean(),
+  deviceName: z.string(),
+  fingerprint: z.string().optional(),
+});
+
+const mfaVerifyPayloadSchema = z.object({
+  challengeId: z.string().trim().min(1),
+  code: z.string().trim().min(1),
+});
+
+const loginChallengeSchema = z.object({
+  mfaRequired: z.literal(true),
+  challengeId: z.string().trim().min(1),
+});
+
+/** Parses the canonical MFA-challenge branch of `POST /auth/login`. */
+function parseChallenge(data: unknown): LoginChallengeResponse | null {
+  const parsed = loginChallengeSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }
 
 /** Normalized outcome of a sign-in attempt. */
@@ -33,16 +54,19 @@ export interface LoginOutcome {
   /** True when the account has MFA enabled and a code is still required. */
   requiresMfa: boolean;
   /**
-   * Handle to pass back to `verifyMfa`. Carries whichever value the backend
-   * returned (`ticket` or `userId`) — callers should treat it as opaque.
+   * Opaque MFA challenge handle to pass back to `verifyMfa`.
+   * Callers should treat it as opaque — it maps to the backend's `challengeId`.
    */
-  challenge: string | null;
+  challengeId: string | null;
   error?: string;
 }
 
 export interface LoginCredentials {
-  /** Email or username. Sent as both `email` and `identifier`. */
-  identifier: string;
+  /**
+   * Email — the only identifier the backend accepts (`json:"email"`,
+   * validated by `binding:"required,email"` in auth_dto.go).
+   */
+  email: string;
   password: string;
   rememberMe?: boolean;
   /** Best-effort device fingerprint; omitted from the payload when empty. */
@@ -62,37 +86,56 @@ function toErrorMessage(err: unknown, fallback: string): string {
 /**
  * Signs in with credentials. Never throws — inspect `success` / `requiresMfa`.
  *
- * On `requiresMfa: true` the session is NOT yet established; pass `challenge`
+ * On `requiresMfa: true` the session is NOT yet established; pass `challengeId`
  * to `verifyMfa` along with the user's code.
  */
 export async function login(credentials: LoginCredentials): Promise<LoginOutcome> {
-  const identifier = credentials.identifier.trim();
+  const payload: LoginRequestPayload = {
+    email: credentials.email.trim(),
+    password: credentials.password,
+    rememberMe: credentials.rememberMe ?? false,
+    deviceName: getDeviceName(),
+    ...(credentials.fingerprint ? { fingerprint: credentials.fingerprint } : {}),
+  };
+
+  const parsed = loginRequestSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      success: false,
+      requiresMfa: false,
+      challengeId: null,
+      error: "بيانات الدخول غير صالحة",
+    };
+  }
 
   try {
-    const data = await apiClient.post<RawLoginResponse>(apiRoutes.auth.login, {
-      // Both aliases — see the file header for why.
-      email: identifier,
-      identifier,
-      password: credentials.password,
-      rememberMe: credentials.rememberMe ?? false,
-      deviceName: getDeviceName(),
-      ...(credentials.fingerprint ? { fingerprint: credentials.fingerprint } : {}),
-    });
+    const data = await apiClient.post<unknown>(apiRoutes.auth.login, parsed.data);
 
-    if (data?.mfaRequired) {
+    // Only the MFA branch requires reading the body; a successful sign-in maps
+    // directly to success (the session is established via HttpOnly cookies).
+    if ((data as { mfaRequired?: unknown } | null)?.mfaRequired === true) {
+      const challenge = parseChallenge(data);
+      if (!challenge) {
+        return {
+          success: false,
+          requiresMfa: false,
+          challengeId: null,
+          error: "استجابة غير متوقعة من الخادم",
+        };
+      }
       return {
         success: false,
         requiresMfa: true,
-        challenge: data.ticket ?? data.userId ?? null,
+        challengeId: challenge.challengeId,
       };
     }
 
-    return { success: true, requiresMfa: false, challenge: null };
+    return { success: true, requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
       success: false,
       requiresMfa: false,
-      challenge: null,
+      challengeId: null,
       error: toErrorMessage(err, "فشل تسجيل الدخول"),
     };
   }
@@ -101,26 +144,33 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
 /**
  * Completes an MFA challenge started by `login`. Never throws.
  *
- * `challenge` is the opaque value from `LoginOutcome.challenge`; it is sent as
- * both `ticket` and `userId` for the same reason the login request sends both
- * identifier spellings.
+ * `challengeId` is the opaque handle from `LoginOutcome.challengeId`; it is the
+ * only handle the backend's `VerifyMFARequest` accepts.
  */
 export async function verifyMfa(
-  challenge: string,
+  challengeId: string,
   code: string
 ): Promise<LoginOutcome> {
+  const payload: MfaVerifyPayload = { challengeId, code: code.trim() };
+
+  const parsed = mfaVerifyPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      success: false,
+      requiresMfa: false,
+      challengeId,
+      error: "بيانات التحقق غير صالحة",
+    };
+  }
+
   try {
-    await apiClient.post(apiRoutes.auth.mfa.verify, {
-      ticket: challenge,
-      userId: challenge,
-      code: code.trim(),
-    });
-    return { success: true, requiresMfa: false, challenge: null };
+    await apiClient.post(apiRoutes.auth.mfa.verify, parsed.data);
+    return { success: true, requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
       success: false,
       requiresMfa: false,
-      challenge,
+      challengeId,
       error: toErrorMessage(err, "فشل التحقق من الرمز"),
     };
   }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import {
@@ -28,7 +28,6 @@ interface CreateTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   onTaskCreate: (task: Task) => void;
   subjects: SubjectType[];
-  userId: string;
 }
 
 const subjectLabels: Record<SubjectType, string> = {
@@ -50,8 +49,7 @@ export default function CreateTaskDialog({
   open,
   onOpenChange,
   onTaskCreate,
-  subjects,
-  userId
+  subjects
 }: CreateTaskDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -71,7 +69,6 @@ export default function CreateTaskDialog({
     try {
       const newTask: Task = {
         id: `task-${Date.now()}`,
-        userId,
         title: title.trim(),
         description: description.trim() || undefined,
         subject: subject || undefined,

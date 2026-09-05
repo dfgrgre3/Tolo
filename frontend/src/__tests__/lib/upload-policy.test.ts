@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   SERVER_MAX_FILE_SIZE,
+  MAX_SIMPLE_UPLOAD_SIZE,
+  MAX_CHUNKED_UPLOAD_SIZE,
   SERVER_ALLOWED_TYPES,
   isFileTypeAllowed,
   sanitizeFolder,
@@ -48,8 +50,10 @@ describe("isFileTypeAllowed (server master allowlist)", () => {
     expect(isFileTypeAllowed("application/x-sh")).toBe(false);
   });
 
-  it("caps file size at 50 MB", () => {
+  it("caps simple file size at 50 MB and chunked at 500 MB", () => {
     expect(SERVER_MAX_FILE_SIZE).toBe(50 * 1024 * 1024);
+    expect(MAX_SIMPLE_UPLOAD_SIZE).toBe(50 * 1024 * 1024);
+    expect(MAX_CHUNKED_UPLOAD_SIZE).toBe(500 * 1024 * 1024);
   });
 });
 

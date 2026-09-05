@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Layout } from "@/components/layout/Layout";
 
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
 
@@ -263,8 +263,11 @@ export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
   const chatUserId = params.id as string;
+  // Session-scoped: the backend resolves the current user from the JWT; the
+  // session id is only used for local isOwn-message comparison.
+  const { user, isAuthenticated } = useAuth();
+  const userId = isAuthenticated && user?.id ? user.id : null;
 
-  const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -274,15 +277,13 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ensureUser().then(setUserId);
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
 
     const fetchConversations = async () => {
       try {
-        const res = await fetch(`/api/chat/conversations/${userId}`);
+        // Session-scoped: the caller's identity comes from the JWT, so no
+        // userId path segment is sent (IDOR/BOLA hardening).
+        const res = await fetch("/api/chat/conversations");
         if (res.ok) {
           const data = await res.json() as Conversation[];
           setConversations(data);
@@ -293,10 +294,10 @@ export default function ChatPage() {
     };
 
     fetchConversations();
-  }, [userId]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!userId || !chatUserId) return;
+    if (!isAuthenticated || !chatUserId) return;
 
     const fetchMessages = async () => {
       setLoading(true);
@@ -307,7 +308,9 @@ export default function ChatPage() {
           setSelectedUser(userData);
         }
 
-        const messagesRes = await fetch(`/api/chat/messages/${userId}/${chatUserId}`);
+        // Only the counterpart user id is a parameter — the sender is the
+        // JWT session user.
+        const messagesRes = await fetch(`/api/chat/messages/${chatUserId}`);
         if (messagesRes.ok) {
           const messagesData = await messagesRes.json() as Message[];
           setMessages(messagesData);
@@ -320,7 +323,7 @@ export default function ChatPage() {
     };
 
     fetchMessages();
-  }, [userId, chatUserId]);
+  }, [isAuthenticated, chatUserId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -328,7 +331,7 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !chatUserId || !newMessage.trim() || sending) return;
+    if (!isAuthenticated || !chatUserId || !newMessage.trim() || sending) return;
 
     setSending(true);
     try {
@@ -336,7 +339,6 @@ export default function ChatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          senderId: userId,
           receiverId: chatUserId,
           content: newMessage.trim()
         }),

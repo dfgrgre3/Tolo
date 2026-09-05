@@ -23,7 +23,9 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userId = isAuthenticated && user?.id ? user.id : null;
+    // Session-derived id, used only for a local isCurrentUser comparison —
+    // it is never sent to the server (IDOR/BOLA hardening).
+    const currentUserId = isAuthenticated && user?.id ? user.id : null;
     let cancelled = false;
     setLoading(true);
     setLeaderboard([]);
@@ -35,7 +37,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           leaderboard: Array<{rank: number;userId: string;name: string;totalXP: number;level: number;}>;
           userPosition?: {rank: number;totalXP: number;level: number;};
         }>(
-          `/api/gamification/leaderboard?limit=5${userId ? `&userId=${userId}` : ''}`,
+          '/api/gamification/leaderboard?limit=5',
           undefined,
           null
         );
@@ -48,7 +50,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
             name: entry.name || "مستخدم",
             score: entry.totalXP || 0,
             badge: entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : "⭐",
-            isCurrentUser: entry.userId === userId
+            isCurrentUser: currentUserId !== null && entry.userId === currentUserId
           }));
 
           setLeaderboard(transformedLeaderboard);

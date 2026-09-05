@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/hooks/use-auth";
 
 type Teacher = {
   id: string;
@@ -37,7 +37,7 @@ type UserGrade = {
 };
 
 export default function TeacherExamsPage() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [examResults, setExamResults] = useState<ExamResult[]>([]);
   const [userGrades, setUserGrades] = useState<UserGrade[]>([]);
@@ -52,10 +52,6 @@ export default function TeacherExamsPage() {
   const [isOnline, setIsOnline] = useState(false);
   const [notes, setNotes] = useState("");
   const [assignmentType, setAssignmentType] = useState("OTHER");
-
-  useEffect(() => {
-    ensureUser().then(setUserId);
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -74,14 +70,16 @@ export default function TeacherExamsPage() {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
     (async () => {
       try {
-        const resultsRes = await fetch(`/api/exams/results?userId=${userId}`);
+        // Session-scoped: the backend resolves the user from the JWT, so no
+        // ?userId= is appended (IDOR/BOLA hardening).
+        const resultsRes = await fetch("/api/exams/results");
         const results = await resultsRes.json();
         setExamResults(Array.isArray(results) ? results : []);
 
-        const gradesRes = await fetch(`/api/grades?userId=${userId}`);
+        const gradesRes = await fetch("/api/grades");
         const grades = await gradesRes.json();
         setUserGrades(Array.isArray(grades) ? grades : []);
       } catch (err) {
@@ -90,11 +88,11 @@ export default function TeacherExamsPage() {
         setUserGrades([]);
       }
     })();
-  }, [userId]);
+  }, [isAuthenticated]);
 
   async function addTeacherExam(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId || !teacherId || !subject || !examTitle || !examDate) return;
+    if (!isAuthenticated || !teacherId || !subject || !examTitle || !examDate) return;
 
     // First create the exam
     const examRes = await fetch("/api/exams", {
@@ -114,7 +112,6 @@ export default function TeacherExamsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId,
         examId: exam.id,
         score: Number(score),
         takenAt: examDate,
@@ -128,7 +125,6 @@ export default function TeacherExamsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId,
         subject,
         grade: Number(score),
         maxGrade: Number(maxScore),
@@ -141,10 +137,10 @@ export default function TeacherExamsPage() {
     });
 
     // Refresh data — defend against non-array responses (e.g. 404/502 error objects).
-    const updatedResults = await fetch(`/api/exams/results?userId=${userId}`).then((r) => r.json());
+    const updatedResults = await fetch("/api/exams/results").then((r) => r.json());
     setExamResults(Array.isArray(updatedResults) ? updatedResults : []);
 
-    const updatedGrades = await fetch(`/api/grades?userId=${userId}`).then((r) => r.json());
+    const updatedGrades = await fetch("/api/grades").then((r) => r.json());
     setUserGrades(Array.isArray(updatedGrades) ? updatedGrades : []);
 
     // Reset form

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/hooks/use-auth";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { useOfflineOutboxStore } from "@/hooks/use-offline-outbox-store";
 import { isCriticalError } from "@/lib/error-utils";
@@ -81,7 +81,7 @@ export default function ExamsPage() {
 function ExamsPageContent() {
    const search = useSearchParams();
    const _focusId = search.get("focus");
-   const [userId, setUserId] = useState<string | null>(null);
+   const { isAuthenticated } = useAuth();
    const [exams, setExams] = useState<Exam[]>([]);
    const [results, setResults] = useState<ExamResult[]>([]);
    const [examId, setExamId] = useState("");
@@ -90,10 +90,6 @@ function ExamsPageContent() {
    const [isLoading, setIsLoading] = useState(true);
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [, ,] = useState<string | null>(null);
-
-   useEffect(() => {
-      ensureUser().then(setUserId);
-   }, []);
 
    useEffect(() => {
       const fetchExams = async () => {
@@ -107,21 +103,23 @@ function ExamsPageContent() {
    }, []);
 
    useEffect(() => {
-      if (!userId) return;
+      if (!isAuthenticated) return;
       const fetchResults = async () => {
-         const { data } = await safeFetch<ExamResult[]>(`/api/exams/results?userId=${userId}`, undefined, []);
+         // Session-scoped: the backend resolves the user from the JWT, so no
+         // ?userId= is appended (IDOR/BOLA hardening).
+         const { data } = await safeFetch<ExamResult[]>("/api/exams/results", undefined, []);
          setResults(Array.isArray(data) ? data : []);
       };
       fetchResults();
-   }, [userId]);
+   }, [isAuthenticated]);
 
    const addResult = useCallback(async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!userId || !examId) return;
+      if (!isAuthenticated || !examId) return;
       const scoreNum = parseFloat(score);
       if (isNaN(scoreNum)) return;
 
-      const payload = { userId, examId, score: scoreNum, takenAt: takenAt || undefined };
+      const payload = { examId, score: scoreNum, takenAt: takenAt || undefined };
 
       // Check offline status first
       if (typeof window !== 'undefined' && !navigator.onLine) {
@@ -152,7 +150,7 @@ function ExamsPageContent() {
             toast.error(error?.message || "فشل تسجيل النتيجة.");
          }
       } finally { setIsSubmitting(false); }
-   }, [userId, examId, score, takenAt]);
+   }, [isAuthenticated, examId, score, takenAt]);
 
    const deleteResult = useCallback(async (id: string) => {
       if (!confirm('هل أنت متأكد من حذف هذه المعركة؟')) return;

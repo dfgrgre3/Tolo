@@ -47,7 +47,7 @@ export class ApiError extends Error {
 
 const isBrowser = typeof window !== 'undefined';
 
-export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api';
+export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api/v1';
 
 const BASE_API_URL = trimTrailingSlashes(
     isBrowser
@@ -72,16 +72,15 @@ function normalizeEndpoint(endpoint: string): string {
         return `/api${normalized}`;
     }
 
-    // Server-side (SSR) requests use the absolute base URL
-    if (normalized.startsWith('/api/')) {
-        return BASE_API_URL.endsWith('/api')
-            ? `${BASE_API_URL}${normalized.substring(4)}`
-            : `${BASE_API_URL}${normalized}`;
-    }
-    if (BASE_API_URL.endsWith('/api')) {
-        return `${BASE_API_URL}${normalized}`;
-    }
-    return `${BASE_API_URL}/api${normalized}`;
+    // Server-side (SSR) requests use the absolute base URL. The backend is
+    // versioned at /api/v1 (internal/infrastructure/api/*_routes.go) — always
+    // land on exactly one /api/v1 segment regardless of whether BASE_API_URL
+    // or the caller-supplied endpoint already includes one.
+    const withoutApiPrefix = normalized.startsWith('/api/')
+        ? normalized.substring(4)
+        : normalized;
+    const base = BASE_API_URL.replace(/\/api(\/v1)?$/, '');
+    return `${base}/api/v1${withoutApiPrefix}`;
 }
 
 

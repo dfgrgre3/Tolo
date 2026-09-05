@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'sonner';
+import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
 
 export type PomodoroState = 'work' | 'shortBreak' | 'longBreak';
 
@@ -34,7 +35,6 @@ interface TimeTrackerState {
   currentPomodoroState: PomodoroState;
   pomodoroCount: number;
   sessionStartTime: string | null;
-  userId: string | null;
 
   // Context
   activeTaskId: string | null;
@@ -49,7 +49,6 @@ interface TimeTrackerState {
   settings: TimerSettings;
 
   // Actions
-  setUserId: (userId: string | null) => void;
   startTimer: () => void;
   pauseTimer: () => void;
   resetTimer: () => void;
@@ -89,17 +88,12 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
       currentPomodoroState: 'work',
       pomodoroCount: 0,
       sessionStartTime: null,
-      userId: null,
       activeTaskId: null,
       activeTaskTitle: null,
       activeCourseId: null,
       activeCourseTitle: null,
       sessions: [],
       settings: DEFAULT_SETTINGS,
-
-      setUserId: (userId) => {
-        set({ userId });
-      },
 
       startTimer: () => {
         const state = get();
@@ -146,7 +140,6 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           activeCourseId,
           activeCourseTitle,
           sessionStartTime,
-          userId,
         } = get();
 
         // Save session if it was a work session
@@ -169,9 +162,10 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
             type: 'work',
           };
 
-          // If user is authenticated, sync session to database
-          if (userId) {
-            fetch(`/api/study-sessions?userId=${encodeURIComponent(userId)}`, {
+          // If a session exists (per the auth provider), sync to the database.
+          // The server resolves the user from the JWT — no userId is sent.
+          if (getSessionPresence() === 'present') {
+            fetch('/api/study-sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -189,7 +183,7 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
 
             // Sync the actual time to the active task
             if (activeTaskId) {
-              fetch(`/api/tasks/${activeTaskId}?userId=${encodeURIComponent(userId)}`)
+              fetch(`/api/tasks/${activeTaskId}`)
                 .then((res) => {
                   if (res.ok) return res.json();
                   throw new Error('Failed to fetch task details');
@@ -199,7 +193,7 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
                     ...task,
                     actualTime: (task.actualTime || 0) + durationVal,
                   };
-                  return fetch(`/api/tasks/${activeTaskId}?userId=${encodeURIComponent(userId)}`, {
+                  return fetch(`/api/tasks/${activeTaskId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedTask),
@@ -312,7 +306,6 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
         activeCourseTitle: state.activeCourseTitle,
         sessions: state.sessions,
         settings: state.settings,
-        userId: state.userId,
         // Don't persist isRunning — always start paused after refresh
         isRunning: false,
         sessionStartTime: null,

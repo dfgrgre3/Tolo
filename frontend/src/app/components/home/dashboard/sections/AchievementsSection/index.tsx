@@ -82,7 +82,7 @@ export const AchievementsSection = memo(function AchievementsSection({
   initialAchievements,
   initialStats
 }: AchievementsSectionProps) {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements ?? []);
   const [stats, setStats] = useState<AchievementStat[]>(initialStats ?? []);
   const [loading, setLoading] = useState(!initialAchievements);
@@ -96,17 +96,19 @@ export const AchievementsSection = memo(function AchievementsSection({
     if (authLoading) return;
 
     const fetchData = async () => {
-      // ✅ 3. Security: منع طلبات API خاطئة عند عدم وجود userId
-      if (!isAuthenticated || !user?.id) {
+      // ✅ 3. Security: منع طلبات API خاطئة عند عدم وجود جلسة
+      if (!isAuthenticated) {
         logger.warn("AchievementsSection: User not authenticated, skipping fetch");
         setLoading(false);
         return;
       }
 
       try {
+        // Session-scoped: the backend resolves the user from the JWT, so no
+        // ?userId= is appended (IDOR/BOLA hardening).
         const [achievementsRes, progressRes] = await Promise.all([
-          safeFetch<unknown>(`/api/gamification/achievements?userId=${user.id}`),
-          safeFetch<unknown>(`/api/gamification/progress?userId=${user.id}`),
+          safeFetch<unknown>('/api/gamification/achievements'),
+          safeFetch<unknown>('/api/gamification/progress'),
         ]);
 
         const rawAchievements = validateAchievements(achievementsRes?.data);
@@ -158,7 +160,7 @@ export const AchievementsSection = memo(function AchievementsSection({
     };
 
     fetchData();
-  }, [initialAchievements, isAuthenticated, user?.id, authLoading]);
+  }, [initialAchievements, isAuthenticated, authLoading]);
 
   // ✅ 6. Accessibility: Loading state حقيقي لقرّاء الشاشة
   if (loading) {

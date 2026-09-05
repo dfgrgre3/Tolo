@@ -108,7 +108,7 @@ export default function TimeManagementPage() {
 
   // Custom hooks
   const {
-    userId,
+    isAuthenticated,
     schedule,
     subjects,
     tasks,
@@ -355,7 +355,6 @@ export default function TimeManagementPage() {
               quickStats={quickStats}
               fullStats={stats}
               subjects={subjects}
-              userId={userId || undefined}
               onTaskCreate={handleTaskCreate}
               isCreateTaskOpen={isCreateTaskOpen}
               setIsCreateTaskOpen={setIsCreateTaskOpen}
@@ -477,10 +476,10 @@ export default function TimeManagementPage() {
                     </Button>
                   </div>
                 </div>
-                {userId ? (
+                {isAuthenticated ? (
                   <div className="animate-in fade-in duration-700">
                     <ComponentErrorBoundary>
-                      <LazyWeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
+                      <LazyWeeklySchedule schedule={schedule} subjects={subjects} onScheduleUpdate={handleScheduleUpdate} />
                     </ComponentErrorBoundary>
                   </div>
                 ) : (
@@ -523,12 +522,11 @@ export default function TimeManagementPage() {
                     </Button>
                   </div>
                 </div>
-                {userId ? (
+                {isAuthenticated ? (
                   <div className="animate-in fade-in duration-700">
                     <ComponentErrorBoundary>
                       <LazyTaskManagement
                         initialTasks={filteredTasks}
-                        userId={userId}
                         subjects={subjects}
                         onTaskUpdate={handleTaskUpdate}
                         onTaskCreate={handleTaskCreate}
@@ -571,11 +569,10 @@ export default function TimeManagementPage() {
                     </Button>
                   </div>
                 </div>
-                {userId ? (
+                {isAuthenticated ? (
                   <div className="animate-in fade-in duration-700">
                     <ComponentErrorBoundary>
                       <LazyTimeTracker
-                        userId={userId}
                         tasks={mapTasksForTimeTracker}
                         subjects={subjects.map(String)}
                         onStudySessionCreate={handleStudySessionCreate}
@@ -645,12 +642,11 @@ export default function TimeManagementPage() {
                     </Button>
                   </div>
                 </div>
-                {userId ? (
+                {isAuthenticated ? (
                   <div className="animate-in fade-in duration-700">
                     <ComponentErrorBoundary>
                       <LazyReminders
                         initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders}
-                        userId={userId}
                         onReminderUpdate={handleReminderUpdate}
                         onReminderCreate={handleReminderCreate}
                         onReminderDelete={handleReminderDelete}

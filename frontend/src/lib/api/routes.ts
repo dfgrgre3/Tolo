@@ -280,10 +280,12 @@ export const apiRoutes = {
   community: {
     announcements: '/api/announcements',
     createAnnouncement: '/api/announcements',
+    // Session-scoped: the caller's identity comes from the JWT, so the
+    // conversations endpoint takes no userId and the messages endpoint takes
+    // only the counterpart user id (IDOR/BOLA hardening).
     chat: {
-      conversations: (userId: string) => `/api/chat/conversations/${userId}`,
-      messages: (userId: string, chatUserId: string) =>
-        `/api/chat/messages/${userId}/${chatUserId}`,
+      conversations: '/api/chat/conversations',
+      messages: (chatUserId: string) => `/api/chat/messages/${chatUserId}`,
       sendMessage: '/api/chat/messages',
     },
   },

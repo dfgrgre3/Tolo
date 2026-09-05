@@ -2,11 +2,17 @@
 
 import { useState, useCallback } from 'react';
 import { useGamificationQuery } from './use-gamification-query';
-import { UserProgress, CustomGoal } from '@/types/gamification';
+import { useAuth } from '@/hooks/use-auth';
+import { CustomGoal } from '@/types/gamification';
 export type { CustomGoal };
 
+/**
+ * Session-scoped gamification hook. There is no userId option: identity is
+ * resolved server-side from the JWT. The only client-side user id used here
+ * is the session user (from /auth/me), and only to locate the caller's own
+ * row in the public leaderboard — never sent to the API.
+ */
 interface UseGamificationOptions {
-  userId: string;
   enableNotifications?: boolean;
   enableRealTime?: boolean;
   includeAchievements?: boolean;
@@ -14,11 +20,11 @@ interface UseGamificationOptions {
 }
 
 export function useGamification({
-  userId,
   includeAchievements = false,
   includeLeaderboard = false,
-}: UseGamificationOptions) {
-  const query = useGamificationQuery(userId, {
+}: UseGamificationOptions = {}) {
+  const { user } = useAuth();
+  const query = useGamificationQuery({
     includeAchievements,
     includeLeaderboard,
   });
@@ -35,18 +41,6 @@ export function useGamification({
   const clearAchievementNotification = useCallback(() => {
     setCurrentAchievement(null);
   }, []);
-
-  const updateProgress = useCallback(async (
-    action: string,
-    data?: Record<string, unknown>
-  ): Promise<UserProgress | null> => {
-    try {
-      const updated = await query.updateProgress({ action, data });
-      return updated;
-    } catch {
-      return null;
-    }
-  }, [query]);
 
   const createCustomGoal = useCallback(async (
     goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>
@@ -73,9 +67,9 @@ export function useGamification({
 
   const getUserRank = useCallback(() => {
     if (!query.userProgress || !Array.isArray(query.leaderboard)) return null;
-    const userEntry = query.leaderboard.find(entry => entry.userId === userId);
+    const userEntry = query.leaderboard.find(entry => entry.userId === user?.id);
     return userEntry?.rank || null;
-  }, [query.userProgress, query.leaderboard, userId]);
+  }, [query.userProgress, query.leaderboard, user?.id]);
 
   const getEarnedAchievements = useCallback(() => {
     if (!query.userProgress) return [];
@@ -134,7 +128,6 @@ export function useGamification({
     error: query.error,
 
     // Actions
-    updateProgress,
     createCustomGoal,
     updateCustomGoal,
     clearAchievementNotification,

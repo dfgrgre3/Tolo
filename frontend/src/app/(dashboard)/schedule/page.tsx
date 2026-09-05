@@ -6,13 +6,12 @@ import { LazyMotion, domAnimation } from "framer-motion";
 import WeeklySchedule from "@/app/(dashboard)/time/_components/WeeklySchedule";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ensureUser } from "@/lib/user-utils";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
 
 type Schedule = {
   id: string;
-  userId: string;
+  userId?: string;
   planJson: string;
   createdAt: string;
   updatedAt: string;
@@ -26,14 +25,12 @@ type SubjectEnrollment = {
 
 const EMPTY_SCHEDULE: Schedule = {
   id: "",
-  userId: "",
   planJson: JSON.stringify({ timeBlocks: [] }),
   createdAt: "",
   updatedAt: ""
 };
 
 export default function SchedulePage() {
-  const [userId, setUserId] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,25 +39,16 @@ export default function SchedulePage() {
     setIsLoading(true);
 
     try {
-      const ensuredUserId = userId || await ensureUser();
-
-      if (!ensuredUserId) {
-        setSchedule(EMPTY_SCHEDULE);
-        return;
-      }
-
-      if (!userId) {
-        setUserId(ensuredUserId);
-      }
-
+      // Session-scoped: the backend resolves the user from the JWT, so no
+      // ?userId= is appended (IDOR/BOLA hardening).
       const { data, error } = await safeFetch<Schedule>(
-        `/api/schedule?userId=${encodeURIComponent(ensuredUserId)}`,
+        "/api/schedule",
         undefined,
         EMPTY_SCHEDULE
       );
 
       const { data: subjectsData } = await safeFetch<SubjectEnrollment[]>(
-        `/api/courses?userId=${encodeURIComponent(ensuredUserId)}`,
+        "/api/courses",
         undefined,
         []
       );
@@ -72,14 +60,10 @@ export default function SchedulePage() {
       if (data) {
         setSchedule({
           ...data,
-          userId: data.userId || ensuredUserId,
           planJson: data.planJson || EMPTY_SCHEDULE.planJson
         });
       } else {
-        setSchedule({
-          ...EMPTY_SCHEDULE,
-          userId: ensuredUserId
-        });
+        setSchedule(EMPTY_SCHEDULE);
       }
 
       setSubjects(
@@ -95,7 +79,7 @@ export default function SchedulePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -125,7 +109,7 @@ export default function SchedulePage() {
         </CardHeader>
       </Card>
 
-      {isLoading || !userId ? (
+      {isLoading ? (
         <div className="flex min-h-[320px] items-center justify-center rounded-2xl border bg-card">
           <div className="text-center">
             <RefreshCw className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />
@@ -142,7 +126,6 @@ export default function SchedulePage() {
           <WeeklySchedule
             schedule={schedule}
             subjects={subjects}
-            userId={userId}
             onScheduleUpdate={(updatedSchedule: any) =>
               setSchedule((prev) => ({
                 ...prev,

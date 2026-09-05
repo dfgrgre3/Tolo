@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server-user";
 import { sanitizeSvg } from "./svg-sanitizer";
 import type {
   UploadOptions,
@@ -13,7 +13,9 @@ import type {
   ImageTransformOptions,
 } from "./types";
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+import { MAX_SIMPLE_UPLOAD_SIZE } from "./upload-policy";
+
+const MAX_FILE_SIZE = MAX_SIMPLE_UPLOAD_SIZE;
 
 async function getSupabaseServerClient() {
   return createClient();

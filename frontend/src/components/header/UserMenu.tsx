@@ -345,14 +345,8 @@ function getSubscriptionLabel(
 }
 
 function isPremiumUser(user: AuthUser): boolean {
-  /**
-   * إذا كان لديك PREMIUM كدور قديم، نعرضها.
-   * لكن الأفضل مستقبلًا أن تكون Premium من الاشتراك فقط.
-   */
-  if (user.role === "PREMIUM") {
-    return true;
-  }
-
+  // PREMIUM was never a real backend role (see internal/domain/common/user.go's
+  // UserRole constants) — premium status comes from the subscription alone.
   const subscription = user.subscription;
   if (!subscription) return false;
 

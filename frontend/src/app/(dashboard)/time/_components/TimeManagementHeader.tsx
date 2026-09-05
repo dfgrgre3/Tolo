@@ -26,7 +26,6 @@ interface TimeManagementHeaderProps {
   quickStats?: QuickStats;
   fullStats?: TimeStats; // Need full stats for XP
   subjects?: SubjectType[];
-  userId?: string;
   onTaskCreate?: (task: Task) => void;
   isCreateTaskOpen?: boolean;
   setIsCreateTaskOpen?: (open: boolean) => void;
@@ -41,7 +40,6 @@ export default function TimeManagementHeader({
   quickStats,
   fullStats, // Optional for backward compatibility, but we expect it for XP System
   subjects = [],
-  userId,
   onTaskCreate,
   isCreateTaskOpen: isCreateTaskOpenProp,
   setIsCreateTaskOpen: setIsCreateTaskOpenProp
@@ -141,20 +139,18 @@ export default function TimeManagementHeader({
         <div className="flex flex-wrap gap-3 lg:gap-4 items-center relative z-10 w-full lg:w-auto">
           <Button
             className="flex-1 lg:flex-none items-center justify-center gap-2 h-12 px-6 rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] active:scale-95 text-base font-semibold"
-            onClick={() => setIsCreateTaskOpen(true)}
-            disabled={!userId}>
-            
+            onClick={() => setIsCreateTaskOpen(true)}>
+
             <PlusCircle className="h-5 w-5" />
             إضافة مهمة
           </Button>
-          
-          {userId && subjects.length > 0 && onTaskCreate &&
+
+          {subjects.length > 0 && onTaskCreate &&
           <CreateTaskDialog
             open={isCreateTaskOpen}
             onOpenChange={setIsCreateTaskOpen}
             onTaskCreate={handleTaskCreate}
-            subjects={subjects}
-            userId={userId} />
+            subjects={subjects} />
           }
           
           <Button

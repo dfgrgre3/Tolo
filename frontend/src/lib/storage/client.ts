@@ -27,7 +27,10 @@ export type {
   ImageTransformOptions,
 };
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+import { MAX_SIMPLE_UPLOAD_SIZE, MAX_CHUNKED_UPLOAD_SIZE } from "./upload-policy";
+
+export const MAX_FILE_SIZE = MAX_SIMPLE_UPLOAD_SIZE;
+export { MAX_SIMPLE_UPLOAD_SIZE, MAX_CHUNKED_UPLOAD_SIZE };
 
 export function getSupabaseClient() {
   return createClient();

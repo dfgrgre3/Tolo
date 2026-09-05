@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
 
@@ -21,17 +21,16 @@ type User = {
 
 export default function NewChatPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  // Session-derived id, used only to exclude the current user from the list —
+  // it is never sent to the server (IDOR/BOLA hardening).
+  const { user, isAuthenticated } = useAuth();
+  const currentUserId = isAuthenticated && user?.id ? user.id : null;
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    ensureUser().then(setUserId);
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
 
     const fetchUsers = async () => {
       try {
@@ -39,7 +38,9 @@ export default function NewChatPage() {
         if (res.ok) {
           const data = await res.json() as User[];
           // Filter out the current user
-          const otherUsers = data.filter((user: User) => user.id !== userId);
+          const otherUsers = currentUserId
+            ? data.filter((user: User) => user.id !== currentUserId)
+            : data;
           setUsers(otherUsers);
         }
       } catch (error) {
@@ -50,7 +51,7 @@ export default function NewChatPage() {
     };
 
     fetchUsers();
-  }, [userId]);
+  }, [isAuthenticated, currentUserId]);
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;

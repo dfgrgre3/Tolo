@@ -4,7 +4,7 @@ import { ar } from 'date-fns/locale';
 
 export interface Reminder {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   message?: string;
   remindAt: string;

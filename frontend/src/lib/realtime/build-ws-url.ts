@@ -36,7 +36,7 @@ export function buildAppUserWebSocketUrl(userId: string, token?: string): string
   // Ensure host doesn't end with slash
   host = host.replace(/\/+$/, "");
 
-  let url = `${wsProtocol}//${host}/api/ws?userId=${encodeURIComponent(userId)}`;
+  let url = `${wsProtocol}//${host}/api/v1/ws?userId=${encodeURIComponent(userId)}`;
   if (token) {
     // Must be `access_token`: the backend's extractBearerToken() only reads that
     // query parameter name. Any other name is silently ignored and the handshake

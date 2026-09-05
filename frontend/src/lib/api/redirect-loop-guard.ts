@@ -64,6 +64,15 @@ export function setSessionPresence(presence: Exclude<SessionPresence, 'unknown'>
     sessionPresence = presence;
 }
 
+/**
+ * Reads the session-presence flag reported by the AuthProvider. Lets
+ * non-React modules (e.g. the time-tracker store) decide whether a
+ * server sync is worth attempting without ever learning the user's id.
+ */
+export function getSessionPresence(): SessionPresence {
+    return sessionPresence;
+}
+
 export function isAuthEndpoint(endpoint: string): boolean {
     return AUTH_ENDPOINT_MARKERS.some((marker) => endpoint.includes(marker));
 }

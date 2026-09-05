@@ -107,7 +107,7 @@ export async function attemptTokenRefresh(
       headers["User-Agent"] = userAgent;
     }
 
-    const refreshRes = await fetch(`${backendUrl}/api/auth/refresh`, {
+    const refreshRes = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
       method: "POST",
       headers,
     });

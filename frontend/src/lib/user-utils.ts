@@ -1,15 +1,19 @@
 'use client';
 
 /**
- * وظائف مساعدة لإدارة معرف المستخدم
- * Helper functions for user ID management
+ * Session-only identity helpers.
+ *
+ * The user's identity comes exclusively from the authenticated session
+ * (JWT → /auth/me). Nothing is cached in localStorage and no guest identity
+ * is fabricated client-side: endpoints resolve the caller server-side from
+ * the token, so a client-supplied userId must never influence which user's
+ * data is read or written (IDOR/BOLA hardening).
  */
 
-import { safeGetItem, safeSetItem } from './safe-client-utils';
 import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
 
-const LOCAL_USER_KEY = 'tw_user_id';
+const LEGACY_USER_KEY = 'tw_user_id';
 
 function normalizeUserId(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -25,89 +29,28 @@ function normalizeUserId(value: unknown): string | null {
   return trimmed;
 }
 
-async function getAuthenticatedUser(): Promise<string | null> {
+// One-time cleanup of the legacy client-side identity cache: the session is
+// now the single source of identity and nothing reads this key anymore.
+if (typeof window !== 'undefined') {
   try {
-    const data = await apiClient.get<any>('/auth/me');
-    const authenticatedId = normalizeUserId(data?.user?.id);
-    if (authenticatedId) {
-      safeSetItem(LOCAL_USER_KEY, authenticatedId);
-      return authenticatedId;
-    }
-  } catch (error) {
-    logger.warn('Unexpected error reading authenticated user:', error);
+    window.localStorage.removeItem(LEGACY_USER_KEY);
+  } catch {
+    // Ignore storage access failures (private mode, disabled storage, …)
   }
-  return null;
-}
-
-async function createGuestUser(): Promise<string | null> {
-  try {
-    const data = await apiClient.get<any>('/auth/guest');
-    
-    if (data?.id) {
-      const id = normalizeUserId(data.id);
-      if (id) {
-        safeSetItem(LOCAL_USER_KEY, id);
-        return id;
-      }
-    }
-  } catch (error) {
-    logger.warn('Unexpected error creating guest user:', error);
-  }
-  return null;
 }
 
 /**
- * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
- * Ensure user ID exists, create guest user if needed
+ * Resolve the current session's user id from the server.
+ *
+ * Returns an empty string when there is no authenticated session — callers
+ * must treat that as "no identity" instead of fabricating a local one.
  */
 export async function ensureUser(): Promise<string> {
-  const authId = await getAuthenticatedUser();
-  if (authId) return authId;
-
-  let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
-
-  if (id === 'dev-user-id' || id === 'default-user') {
-    clearUserId();
-    id = null;
+  try {
+    const data = await apiClient.get<any>('/auth/me');
+    return normalizeUserId(data?.user?.id) ?? '';
+  } catch (error) {
+    logger.warn('Unexpected error reading authenticated user:', error);
+    return '';
   }
-
-  if (id) {
-    return id;
-  }
-
-  id = await createGuestUser();
-
-  return id || '';
 }
-
-/**
- * الحصول على معرف المستخدم من التخزين فقط
- * Get user ID from storage only (without creating)
- */
-export function getUserId(): string | null {
-  const value = safeGetItem(LOCAL_USER_KEY, { fallback: null });
-  return normalizeUserId(value);
-}
-
-/**
- * تعيين معرف المستخدم في التخزين
- * Set user ID in storage
- */
-export function setUserId(userId: string): boolean {
-  const normalized = normalizeUserId(userId);
-  if (!normalized) {
-    return clearUserId();
-  }
-
-  return safeSetItem(LOCAL_USER_KEY, normalized);
-}
-
-/**
- * حذف معرف المستخدم من التخزين
- * Remove user ID from storage
- */
-export function clearUserId(): boolean {
-  return safeSetItem(LOCAL_USER_KEY, null);
-}
-
-export { LOCAL_USER_KEY };

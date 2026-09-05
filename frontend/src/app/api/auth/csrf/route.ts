@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest) {
   try {
     logger.info('CSRF token bootstrap request', { source: 'api/auth/csrf' });
 
-    const response = await fetch(`${backendUrl}/api/auth/csrf`, {
+    const response = await fetch(`${backendUrl}/api/v1/auth/csrf`, {
       method: 'GET',
       credentials: 'include',
       signal: AbortSignal.timeout(10_000),

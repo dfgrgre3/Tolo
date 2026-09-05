@@ -1,6 +1,6 @@
-﻿export interface Schedule {
+export interface Schedule {
   id: string;
-  userId: string;
+  userId?: string;
   planJson: string;
   createdAt: string;
   updatedAt: string;
@@ -29,7 +29,6 @@ export interface TimeBlock {
 export interface WeeklyScheduleProps {
   schedule: Schedule | null;
   subjects: string[];
-  userId: string;
   onScheduleUpdate?: (schedule: Schedule) => void;
 }
 

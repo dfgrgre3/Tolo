@@ -36,7 +36,7 @@ import { logger } from '@/lib/logger';
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const { userProgress } = useGamification({ userId: user?.id || "" });
+  const { userProgress } = useGamification();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "completed" | "explore">("active");

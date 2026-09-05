@@ -88,7 +88,6 @@ function extractTimeBlocks(planJson?: string): TimeBlock[] {
 export default function WeeklySchedule({
   schedule,
   subjects,
-  userId,
   onScheduleUpdate
 }: WeeklyScheduleProps) {
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -143,8 +142,6 @@ export default function WeeklySchedule({
   }, [timeBlocks, currentWeek]);
 
   const saveSchedule = useCallback(async () => {
-    if (!userId) return;
-
     const scheduleData = {
       timeBlocks,
       lastUpdated: new Date().toISOString(),
@@ -154,8 +151,8 @@ export default function WeeklySchedule({
     try {
       // Backend expects `planJson` as a required JSON-encoded string
       // (see UpdateSchedule in activity_handler.go), not a nested object.
+      // The user is resolved server-side from the session.
       const savedSchedule = await apiClient.post<Schedule>('/api/schedule', {
-        userId,
         version: typeof (schedule as any)?.version === 'number'
           ? (schedule as any).version
           : undefined,
@@ -165,7 +162,7 @@ export default function WeeklySchedule({
     } catch (error) {
       logger.error('Error saving schedule:', error);
     }
-  }, [timeBlocks, userId, schedule, onScheduleUpdate]);
+  }, [timeBlocks, schedule, onScheduleUpdate]);
 
   // Debounced auto-save
   useEffect(() => {

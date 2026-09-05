@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface PendingSubmission {
   id: string;
-  userId: string;
   examId: string;
   score: number;
   takenAt?: string;

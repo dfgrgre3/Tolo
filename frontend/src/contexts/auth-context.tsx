@@ -24,20 +24,16 @@ import { requestCache } from "@/lib/api/request-cache";
 import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
 import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
-import { login as loginRequest, verifyMfa } from "@/services/auth/login-service";
-import { setUserId, clearUserId } from "@/lib/user-utils";
+import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services/auth/login-service";
 
 /**
  * Result of an explicit credential-based login (admin or normal).
  */
 export interface AuthLoginResult {
   success: boolean;
-  requires2FA?: boolean;
-  /**
-   * Opaque MFA challenge handle to pass to `verify2FA`. Named `userId` for
-   * backward compatibility with existing call sites.
-   */
-  userId?: string | null;
+  requiresMfa?: boolean;
+  /** Opaque MFA challenge handle to pass to `verifyMfa`. */
+  challengeId?: string | null;
   error?: string | null;
 }
 
@@ -102,9 +98,9 @@ interface AuthContextValue extends AuthState {
     password: string,
     remember?: boolean
   ) => Promise<AuthLoginResult>;
-  /** Complete a 2FA challenge during sign-in. */
-  verify2FA: (
-    userId: string,
+  /** Complete an MFA challenge during sign-in. */
+  verifyMfa: (
+    challengeId: string,
     code: string
   ) => Promise<AuthLoginResult>;
   /** @deprecated Use redirectToLogin instead */
@@ -170,13 +166,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // A 200 with no user object means the backend contract broke; treating
         // it as authenticated would leave `user` null behind an auth guard.
         if (!data?.user) {
+          requestCache.setIdentity(null);
           setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
           return;
         }
 
-        if (data.user.id) {
-          setUserId(data.user.id);
-        }
+        // Bind user-scoped cache entries to this identity (see request-cache.ts).
+        // The identity itself is never cached in localStorage — the session is
+        // the single source of identity.
+        requestCache.setIdentity(data.user.id);
 
         setState({
           user: data.user,
@@ -188,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
+        requestCache.setIdentity(null);
         setState(guestStateFromError(err));
       }
     };
@@ -225,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Drop any cached authenticated data (e.g. /auth/me with its 5-min TTL) so
     // the next authenticated fetch reflects the logged-out state immediately.
     requestCache.clear();
-    clearUserId();
+    requestCache.setIdentity(null);
     setState(GUEST_STATE);
     window.location.href = "/login";
   }, []);
@@ -236,13 +235,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await apiClient.get<AuthMeResponse>(buildMeUrl());
 
       if (!data?.user) {
+        requestCache.setIdentity(null);
         setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
         return false;
       }
 
-      if (data.user.id) {
-        setUserId(data.user.id);
-      }
+      // Bind user-scoped cache entries to the (possibly new) identity — this
+      // is what prevents the previous user's data from being replayed after
+      // an in-session login switch (see request-cache.ts).
+      requestCache.setIdentity(data.user.id);
 
       setState({
         user: data.user,
@@ -252,6 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return true;
     } catch (err: unknown) {
+      requestCache.setIdentity(null);
       setState(guestStateFromError(err));
       return false;
     }
@@ -261,7 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Sign in with email/password (used by both the normal and the admin login
    * flows). Delegates to the shared login service so this path and `LoginForm`
    * send an identical payload. When the account has MFA enabled the result
-   * carries `requires2FA` plus the challenge handle for `verify2FA`.
+   * carries `requiresMfa` plus the challenge handle for `verifyMfa`.
    */
   const adminLogin = useCallback(
     async (
@@ -270,14 +272,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       remember: boolean = false
     ): Promise<AuthLoginResult> => {
       const result = await loginRequest({
-        identifier,
+        email: identifier,
         password,
         rememberMe: remember,
         fingerprint: getDeviceFingerprint(),
       });
 
       if (result.requiresMfa) {
-        return { success: false, requires2FA: true, userId: result.challenge };
+        return { success: false, requiresMfa: true, challengeId: result.challengeId };
       }
 
       if (!result.success) {
@@ -294,12 +296,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   /**
-   * Completes an MFA challenge started by `adminLogin`. `challenge` is the
-   * opaque handle returned as `userId` in that call's result.
+   * Completes an MFA challenge started by `adminLogin`. `challengeId` is the
+   * opaque handle returned in that call's result.
    */
-  const verify2FA = useCallback(
-    async (challenge: string, code: string): Promise<AuthLoginResult> => {
-      const result = await verifyMfa(challenge, code);
+  const verifyMfa = useCallback(
+    async (challengeId: string, code: string): Promise<AuthLoginResult> => {
+      const result = await verifyMfaRequest(challengeId, code);
 
       if (!result.success) {
         return { success: false, error: result.error ?? "فشل التحقق من الرمز" };
@@ -323,7 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       redirectToRegister,
       logout,
       adminLogin,
-      verify2FA,
+      verifyMfa,
       refreshUser,
       // Deprecated aliases for backward compatibility
       login: redirectToLogin,
@@ -335,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       redirectToRegister,
       logout,
       adminLogin,
-      verify2FA,
+      verifyMfa,
       refreshUser,
     ]
   );

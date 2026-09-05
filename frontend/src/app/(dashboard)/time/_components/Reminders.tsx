@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,6 @@ import { RemindersList } from './_components/reminders-list';
 
 interface RemindersProps {
   readonly initialReminders: Reminder[];
-  readonly userId: string;
   readonly onReminderUpdate?: (reminder: Reminder) => void;
   readonly onReminderCreate?: (reminder: Reminder) => void;
   readonly onReminderDelete?: (reminderId: string) => void;
@@ -56,7 +55,6 @@ const FORM_DATA_INITIAL: ReminderFormData = {
 
 export default function Reminders({
   initialReminders,
-  userId,
   onReminderUpdate,
   onReminderCreate,
   onReminderDelete
@@ -350,7 +348,6 @@ export default function Reminders({
 
       const reminderData = {
         ...formData,
-        userId,
         tags,
         remindAt: remindAtDate.toISOString()
       };
@@ -398,7 +395,7 @@ export default function Reminders({
     } catch (error) {
       logger.error("Error saving reminder:", error);
     }
-  }, [formData, reminderToEdit, userId, onReminderUpdate, onReminderCreate]);
+  }, [formData, reminderToEdit, onReminderUpdate, onReminderCreate]);
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);

@@ -1,13 +1,13 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { errorService as errorManager } from '@/lib/logging/error-service';import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
+import { errorService as errorManager } from '@/lib/logging/error-service';
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
 
 import { logger } from '@/lib/logger';
 
 interface UseTimeDataReturn {
-  userId: string | null;
+  isAuthenticated: boolean;
   schedule: Schedule | null;
   subjects: SubjectType[];
   tasks: Task[];
@@ -21,37 +21,19 @@ interface UseTimeDataReturn {
   setSchedule: React.Dispatch<React.SetStateAction<Schedule | null>>;
 }
 
+/**
+ * Session-scoped time-management data. All endpoints resolve the user from
+ * the JWT server-side, so no userId is ever sent — the queries simply wait
+ * for an authenticated session.
+ */
 export function useTimeData(): UseTimeDataReturn {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [subjects, setSubjects] = useState<SubjectType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const globalStoreSetUserId = useTimeTrackerStore((state) => state.setUserId);
-
-  // Sync userId with AuthContext and fallback to guest ID
-  useEffect(() => {
-    if (user?.id) {
-      const id = user.id;
-      queueMicrotask(() => {
-        setUserId(id);
-        globalStoreSetUserId(id);
-      });
-    } else if (!isAuthLoading) {
-      // Fallback to guest ID if not logged in
-      import("@/lib/user-utils").then(({ ensureUser }) => {
-        ensureUser().then(id => {
-          if (id) {
-            setUserId(id);
-            globalStoreSetUserId(id);
-          }
-        });
-      });
-    }
-  }, [user, isAuthLoading, globalStoreSetUserId]);
 
   /**
    * Helper to process individual API call results
@@ -63,17 +45,15 @@ export function useTimeData(): UseTimeDataReturn {
     setter: (data: T) => void,
     isArray = true
   ) => {
-    const apiPath = `${path}?userId=${userId}`;
-
     if (result.status === 'rejected') {
       const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
-      errorManager.handleNetworkError(error, apiPath, { showToast: false });
+      errorManager.handleNetworkError(error, path, { showToast: false });
       return;
     }
 
     const { data, error } = result.value;
     if (error) {
-      errorManager.handleNetworkError(error, apiPath, { showToast: false });
+      errorManager.handleNetworkError(error, path, { showToast: false });
       return;
     }
 
@@ -85,11 +65,10 @@ export function useTimeData(): UseTimeDataReturn {
     } else {
       setter(data);
     }
-  }, [userId]);
+  }, []);
 
   const fetchData = useCallback(async () => {
-    if (!userId || userId.trim() === '' || userId === 'undefined') {
-      logger.warn('Invalid userId, skipping data fetch');
+    if (!user?.id) {
       setIsLoading(false);
       return;
     }
@@ -99,11 +78,11 @@ export function useTimeData(): UseTimeDataReturn {
     try {
       // Use Promise.allSettled for better error handling - allows partial success
       const results = await Promise.allSettled([
-        safeFetch<Schedule>(`/api/schedule?userId=${encodeURIComponent(userId)}`, undefined, null),
-        safeFetch<SubjectEnrollment[]>(`/api/subjects?userId=${encodeURIComponent(userId)}`, undefined, []),
-        safeFetch<Task[]>(`/api/tasks?userId=${encodeURIComponent(userId)}`, undefined, []),
-        safeFetch<StudySession[]>(`/api/study-sessions?userId=${encodeURIComponent(userId)}`, undefined, []),
-        safeFetch<Reminder[]>(`/api/reminders?userId=${encodeURIComponent(userId)}`, undefined, []),
+        safeFetch<Schedule>('/api/schedule', undefined, null),
+        safeFetch<SubjectEnrollment[]>('/api/subjects', undefined, []),
+        safeFetch<Task[]>('/api/tasks', undefined, []),
+        safeFetch<StudySession[]>('/api/study-sessions', undefined, []),
+        safeFetch<Reminder[]>('/api/reminders', undefined, []),
       ]);
 
       const [scheduleRes, subjectsRes, tasksRes, sessionsRes, remindersRes] = results;
@@ -145,18 +124,18 @@ export function useTimeData(): UseTimeDataReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, processResult]);
+  }, [user?.id, processResult]);
 
   useEffect(() => {
-    if (userId) {
+    if (!isAuthLoading) {
       queueMicrotask(() => {
         fetchData();
       });
     }
-  }, [userId, fetchData]);
+  }, [isAuthLoading, user?.id, fetchData]);
 
   return {
-    userId,
+    isAuthenticated,
     schedule,
     subjects,
     tasks,

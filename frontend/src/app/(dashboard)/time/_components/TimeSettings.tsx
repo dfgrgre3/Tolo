@@ -13,6 +13,7 @@ import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/api-client';
+import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
 
 interface TimeSettingsProps {
   onSave?: (settings: TimeSettingsData) => void;
@@ -33,7 +34,7 @@ export interface TimeSettingsData {
 }
 
 function TimeSettings({ onSave }: TimeSettingsProps) {
-  const { settings: globalSettings, updateSettings, userId } = useTimeTrackerStore();
+  const { settings: globalSettings, updateSettings } = useTimeTrackerStore();
 
   const [settings, setSettings] = useState<TimeSettingsData>({
     dailyGoalMinutes: 180,
@@ -74,8 +75,9 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
     // 2. Save locally
     safeSetItem('timeSettings', settings);
 
-    // 3. Sync to backend if user is logged in
-    if (userId) {
+    // 3. Sync to backend when a session is present (the server resolves the
+    // user from the JWT; the store no longer tracks a userId).
+    if (getSessionPresence() === 'present') {
       apiClient.put('/api/settings', {
         soundEnabled: settings.soundEnabled,
         notificationsEnabled: settings.notificationsEnabled,

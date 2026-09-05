@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  const me = await fetch(`${BACKEND_URL}/api/auth/me`, {
+  const me = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     cache: "no-store",
   });

@@ -34,7 +34,7 @@ function AdminLoginContent() {
   const searchParams = useSearchParams();
   const {
     adminLogin,
-    verify2FA,
+    verifyMfa,
     isAuthenticated,
     user,
     isLoading: isAuthLoading,
@@ -47,8 +47,8 @@ function AdminLoginContent() {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   // 2FA state
-  const [requires2FA, setRequires2FA] = useState(false);
-  const [userId2FA, setUserId2FA] = useState<string | null>(null);
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState("");
 
   const redirectUrl = sanitizeRedirectPath(searchParams.get("redirect"), "/admin");
@@ -82,9 +82,9 @@ function AdminLoginContent() {
     const result = await adminLogin(identifier.trim().toLowerCase(), password, true);
 
     if (!result.success) {
-      if (result.requires2FA) {
-        setRequires2FA(true);
-        setUserId2FA(result.userId ?? null);
+      if (result.requiresMfa) {
+        setRequiresMfa(true);
+        setMfaChallengeId(result.challengeId ?? null);
       } else {
         setErrorStatus(result.error || "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.");
       }
@@ -98,12 +98,12 @@ function AdminLoginContent() {
 
   const handleVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId2FA || twoFactorCode.length < 6) return;
+    if (!mfaChallengeId || twoFactorCode.length < 6) return;
 
     setIsSubmitting(true);
     setErrorStatus(null);
 
-    const result = await verify2FA(userId2FA, twoFactorCode);
+    const result = await verifyMfa(mfaChallengeId, twoFactorCode);
 
     if (!result.success) {
       setErrorStatus(result.error || "رمز التحقق غير صحيح");
@@ -118,14 +118,14 @@ function AdminLoginContent() {
   return (
     <div className="w-full flex items-center justify-center py-8">
       <div className="w-full max-w-[460px] mx-auto">
-        {requires2FA ? (
+        {requiresMfa ? (
           <AdminMfaStep
             code={twoFactorCode}
             onCodeChange={setTwoFactorCode}
             errorStatus={errorStatus}
             isSubmitting={isSubmitting}
             onSubmit={handleVerify2FA}
-            onCancel={() => setRequires2FA(false)}
+            onCancel={() => setRequiresMfa(false)}
           />
         ) : (
           <AdminLoginCredentialsStep

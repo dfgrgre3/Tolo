@@ -1,6 +1,6 @@
 export interface StudySession {
   id: string;
-  userId: string;
+  userId?: string;
   taskId?: string;
   durationMin: number;
   subject?: string | { name: string };

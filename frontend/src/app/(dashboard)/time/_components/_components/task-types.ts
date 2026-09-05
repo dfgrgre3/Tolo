@@ -19,7 +19,7 @@ export interface SubTask {
 
 export interface Task {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   description?: string;
   subject?: SubjectType;
@@ -49,7 +49,6 @@ export const taskSchema = z.object({
 
 export interface TaskManagementProps {
   readonly initialTasks: Task[];
-  readonly userId: string;
   readonly subjects: SubjectType[];
   readonly onTaskUpdate?: (task: Task) => void;
   readonly onTaskCreate?: (task: Task) => void;

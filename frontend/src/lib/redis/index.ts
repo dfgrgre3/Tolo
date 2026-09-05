@@ -5,8 +5,10 @@ export {
   getOrderedChunks,
   getSessionMeta,
   isUploadComplete,
+  validateUploadCompletion,
   getUploadProgress,
+  updateSessionStatus,
   markUploadCompleted,
   cleanupUpload,
 } from './chunked-upload';
-export type { UploadSessionMeta, ChunkInfo } from './chunked-upload';
+export type { UploadSessionMeta, ChunkInfo, UploadSessionStatus, CompletionValidationResult } from './chunked-upload';

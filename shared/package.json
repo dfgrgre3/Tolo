@@ -25,6 +25,22 @@
     "./types/user": {
       "types": "./src/types/user.ts",
       "default": "./src/types/user.ts"
+    },
+    "./types/auth": {
+      "types": "./src/types/auth.ts",
+      "default": "./src/types/auth.ts"
+    },
+    "./auth": {
+      "types": "./src/auth/index.ts",
+      "default": "./src/auth/index.ts"
+    },
+    "./auth/login": {
+      "types": "./src/auth/login.ts",
+      "default": "./src/auth/login.ts"
+    },
+    "./auth/mfa": {
+      "types": "./src/auth/mfa.ts",
+      "default": "./src/auth/mfa.ts"
     }
   }
 }

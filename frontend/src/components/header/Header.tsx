@@ -20,7 +20,6 @@ import { MegaMenu } from "@/components/mega-menu";
 import { headerNavItems as fallbackHeaderNavItems, mainNavItemsWithMegaMenu, utilityNavItems } from "@/components/mega-menu/navData";
 import { apiClient } from "@/lib/api/api-client";
 import { getLucideIcon } from "./headerIconMapper";
-import { useTimeTrackerStore } from "@/hooks/use-time-tracker-store";
 import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
@@ -110,13 +109,6 @@ export default function Header() {
 
 	const [dynamicMainNav, setDynamicMainNav] = useState(mainNavItemsWithMegaMenu);
 	const [dynamicHeaderNav, setDynamicHeaderNav] = useState(fallbackHeaderNavItems);
-
-	const setUserId = useTimeTrackerStore((state) => state.setUserId);
-	useEffect(() => {
-		if (mounted) {
-			setUserId(user?.id || null);
-		}
-	}, [user?.id, mounted, setUserId]);
 
 	useEffect(() => {
 		if (!mounted) return;

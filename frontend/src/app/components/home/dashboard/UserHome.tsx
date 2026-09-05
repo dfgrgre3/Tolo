@@ -41,9 +41,10 @@ interface UserHomeProps {
 }
 
 export function UserHome({ user }: UserHomeProps) {
-  const { userProgress } = useGamification({ userId: user.id });
-  const progressSummaryUrl = `/api/progress/summary?userId=${encodeURIComponent(user.id)}`;
-  const { data: summary } = useDashboardResource<ProgressSummary>(progressSummaryUrl, 'ملخص التقدم');
+  const { userProgress } = useGamification();
+  // Session-scoped: the backend resolves the user from the JWT, so no
+  // ?userId= is appended (IDOR/BOLA hardening).
+  const { data: summary } = useDashboardResource<ProgressSummary>('/api/progress/summary', 'ملخص التقدم');
 
   return (
     <div className="min-h-screen font-sans selection:bg-primary/30 selection:text-primary-foreground" dir="rtl">

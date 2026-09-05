@@ -44,13 +44,11 @@ const fetchAnalyticsData = async (signal?: AbortSignal): Promise<AnalyticsData> 
 };
 
 function AnalyticsSectionComponent() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [data, setData] = React.useState<AnalyticsData | null>(null);
   const [requestLoading, setRequestLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
-
-  const userId = isAuthenticated && user?.id ? user.id : null;
 
   const loadData = React.useCallback(async () => {
     // Abort any in-flight request
@@ -80,7 +78,7 @@ function AnalyticsSectionComponent() {
   }, []);
 
   React.useEffect(() => {
-    if (!userId) {
+    if (!isAuthenticated) {
       return;
     }
 
@@ -111,9 +109,9 @@ function AnalyticsSectionComponent() {
         abortControllerRef.current = null;
       }
     };
-  }, [userId]);
+  }, [isAuthenticated]);
 
-  const isLoading = userId ? requestLoading : false;
+  const isLoading = isAuthenticated ? requestLoading : false;
 
   let cardContent;
   if (isLoading && !data) {

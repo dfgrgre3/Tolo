@@ -210,7 +210,12 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // Additional API route-specific authorization checks
+    // Additional API route-specific coarse gating (Defense-in-depth).
+    // NOTE (Two-Tier Architecture):
+    // Edge provides fast rejection / coarse route gating based on JWT claims.
+    // The Go backend is the absolute authority for fine-grained authorization,
+    // real-time user status (e.g. suspended accounts), action permissions,
+    // and resource ownership / course entitlement.
     if (pathname.startsWith("/api/")) {
       // Teacher-only endpoints
       if (pathname.startsWith("/api/teaching/") || pathname.startsWith("/api/courses/create")) {

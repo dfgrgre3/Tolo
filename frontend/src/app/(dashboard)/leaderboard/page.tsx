@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { m } from "framer-motion";
 import { useGamification } from '@/hooks/use-gamification';
+import { useAuth } from '@/hooks/use-auth';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import {
   Trophy,
@@ -12,9 +13,8 @@ import {
   Shield,
   Sparkles,
   Users,
-  Clock 
+  Clock
 } from 'lucide-react';
-import { ensureUser } from "@/lib/user-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useEfficiency } from "@/hooks/use-efficiency";
@@ -27,8 +27,9 @@ const STYLES = {
 };
 
 export default function LeaderboardPage() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const { isEfficiencyMode } = useEfficiency();
-  const [userId, setUserId] = useState<string>('');
   const [leaderboardType, setLeaderboardType] = useState<'global' | 'friends'>('global');
 
   const {
@@ -42,17 +43,9 @@ export default function LeaderboardPage() {
     error: _error,
     refreshData: _refreshData
   } = useGamification({
-    userId,
     enableNotifications: true,
     includeLeaderboard: true,
   });
-
-  useEffect(() => {
-    (async () => {
-      const id = await ensureUser();
-      setUserId(id || '');
-    })();
-  }, []);
 
   const userRank = getUserRank();
   const safeLeaderboard = useMemo(() => (Array.isArray(leaderboard) ? leaderboard : []), [leaderboard]);

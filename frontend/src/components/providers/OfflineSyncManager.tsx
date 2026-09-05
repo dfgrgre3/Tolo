@@ -29,7 +29,6 @@ export function OfflineSyncManager() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: sub.userId,
               examId: sub.examId,
               score: sub.score,
               takenAt: sub.takenAt || undefined,

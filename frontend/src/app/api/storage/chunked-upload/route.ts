@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { createHash } from "crypto";
+import { createClient } from "@/utils/supabase/server-user";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
-import { isFileTypeAllowed, sanitizeFolder } from "@/lib/storage/upload-policy";
+import {
+  isFileTypeAllowed,
+  sanitizeFolder,
+  MAX_CHUNKED_UPLOAD_SIZE,
+  DEFAULT_CHUNK_SIZE,
+  MAX_CHUNK_SIZE,
+} from "@/lib/storage/upload-policy";
 import {
   initiateUpload,
   registerChunk,
-  getOrderedChunks,
   getSessionMeta,
-  isUploadComplete,
+  validateUploadCompletion,
   getUploadProgress,
+  updateSessionStatus,
   markUploadCompleted,
   cleanupUpload,
   getRedisClient,
@@ -29,11 +36,6 @@ async function getAuthenticatedUserId(): Promise<{ userId: string; supabase: Awa
   if (!user || error) return null;
   return { userId: user.id, supabase };
 }
-
-// ─── Configuration ─────────────────────────────────────────────────────────
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB max total
-const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB per chunk
-const MAX_CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB max per chunk
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -79,9 +81,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (body.fileSize > MAX_FILE_SIZE) {
+      if (!Number.isInteger(body.totalChunks) || body.totalChunks <= 0) {
         return NextResponse.json(
-          { error: `File size exceeds maximum of ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)} MB` },
+          { error: "totalChunks must be a positive integer" },
+          { status: 400 }
+        );
+      }
+
+      if (body.fileSize <= 0 || body.fileSize > MAX_CHUNKED_UPLOAD_SIZE) {
+        return NextResponse.json(
+          { error: `File size must be between 1 byte and ${(MAX_CHUNKED_UPLOAD_SIZE / 1024 / 1024).toFixed(0)} MB` },
           { status: 400 }
         );
       }
@@ -95,7 +104,7 @@ export async function POST(request: NextRequest) {
       const folder = sanitizeFolder(body.folder || "uploads");
 
       const chunkSize = body.chunkSize || DEFAULT_CHUNK_SIZE;
-      if (chunkSize > MAX_CHUNK_SIZE) {
+      if (chunkSize <= 0 || chunkSize > MAX_CHUNK_SIZE) {
         return NextResponse.json(
           { error: `Chunk size exceeds maximum of ${(MAX_CHUNK_SIZE / 1024 / 1024).toFixed(0)} MB` },
           { status: 400 }
@@ -106,6 +115,7 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
 
+      // Initiate session with immutable totalChunks and initial 'CREATED' status
       await initiateUpload({
         uploadId,
         fileName: body.fileName,
@@ -124,6 +134,7 @@ export async function POST(request: NextRequest) {
         uploadId,
         chunkSize,
         totalChunks: body.totalChunks,
+        status: "CREATED",
         expiresAt: expiresAt.toISOString(),
       });
     }
@@ -133,7 +144,6 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const uploadId = formData.get("uploadId") as string;
       const chunkIndexStr = formData.get("chunkIndex") as string;
-      const totalChunksStr = formData.get("totalChunks") as string;
       const file = formData.get("file") as File;
       const folder = sanitizeFolder((formData.get("folder") as string) || "uploads");
       // Optional SHA-256 checksum for integrity verification.
@@ -144,7 +154,7 @@ export async function POST(request: NextRequest) {
         (formData.get("chunkChecksum") as string | null) ||
         undefined;
 
-      if (!uploadId || !chunkIndexStr || !file) {
+      if (!uploadId || chunkIndexStr === null || chunkIndexStr === undefined || !file) {
         return NextResponse.json(
           { error: "Missing required fields: uploadId, chunkIndex, file" },
           { status: 400 }
@@ -152,15 +162,6 @@ export async function POST(request: NextRequest) {
       }
 
       const chunkIndex = parseInt(chunkIndexStr, 10);
-      const totalChunks = parseInt(totalChunksStr || "0", 10);
-
-      // Reject NaN / negative / fractional chunk indices
-      if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
-        return NextResponse.json({ error: "Invalid chunkIndex" }, { status: 400 });
-      }
-      if (!Number.isInteger(totalChunks) || totalChunks < 0) {
-        return NextResponse.json({ error: "Invalid totalChunks" }, { status: 400 });
-      }
 
       // Verify session exists and belongs to user
       const session = await getSessionMeta(uploadId);
@@ -168,6 +169,39 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: "Upload session not found or access denied" },
           { status: 404 }
+        );
+      }
+
+      // State machine validation: reject any upload if session is COMPLETED, COMPLETING, or EXPIRED
+      if (session.status === "COMPLETED") {
+        return NextResponse.json(
+          { error: "Cannot upload chunk: session is already completed", status: session.status },
+          { status: 409 }
+        );
+      }
+      if (session.status === "COMPLETING") {
+        return NextResponse.json(
+          { error: "Cannot upload chunk: session is currently finalizing", status: session.status },
+          { status: 409 }
+        );
+      }
+      if (session.status === "EXPIRED") {
+        return NextResponse.json(
+          { error: "Cannot upload chunk: session has expired", status: session.status },
+          { status: 410 }
+        );
+      }
+
+      // Chunk index validation: strictly 0 <= chunkIndex < session.totalChunks
+      // session.totalChunks is immutable and determined at initiateUpload
+      if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+        return NextResponse.json(
+          {
+            error: `Invalid chunkIndex: must be an integer between 0 and ${session.totalChunks - 1}`,
+            chunkIndex,
+            totalChunks: session.totalChunks,
+          },
+          { status: 400 }
         );
       }
 
@@ -187,6 +221,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Verify chunk data checksum if provided by client
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      if (chunkChecksum) {
+        const computedChecksum = createHash("sha256").update(fileBuffer).digest("hex");
+        if (computedChecksum.toLowerCase() !== chunkChecksum.toLowerCase()) {
+          return NextResponse.json(
+            {
+              error: "Chunk checksum mismatch: data corrupted or tampered in transit",
+              expected: chunkChecksum,
+              computed: computedChecksum,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       // Generate a path for this chunk
       const chunkPath = generateUserPath(
         userId,
@@ -197,13 +247,13 @@ export async function POST(request: NextRequest) {
       // Upload chunk to Supabase storage
       let fileToUpload: File | Blob = file;
       if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
-        const svgText = await file.text();
+        const svgText = fileBuffer.toString("utf-8");
         const sanitizedSvg = sanitizeSvg(svgText);
         fileToUpload = new Blob([sanitizedSvg], { type: "image/svg+xml" });
       }
 
       const { data, error } = await supabase.storage.from("uploads").upload(chunkPath, fileToUpload, {
-        upsert: false,
+        upsert: true,
         contentType: file.type,
         cacheControl: "3600",
       });
@@ -215,13 +265,13 @@ export async function POST(request: NextRequest) {
       // Register chunk in Redis (with optional checksum for integrity tracking)
       const progress = await registerChunk(uploadId, chunkIndex, file.size, data.path, chunkChecksum);
 
-      const isComplete = totalChunks > 0 && progress.receivedChunks >= totalChunks;
+      const isComplete = progress.receivedChunks === session.totalChunks;
 
       return NextResponse.json({
         success: true,
         chunkIndex,
         receivedChunks: progress.receivedChunks,
-        totalChunks,
+        totalChunks: session.totalChunks,
         isComplete,
         chunkPath: data.path,
       });
@@ -325,7 +375,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Verify session and all chunks received
+    // Verify session exists and belongs to user
     const session = await getSessionMeta(uploadId);
     if (!session || session.userId !== userId) {
       return NextResponse.json(
@@ -334,27 +384,48 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const complete = await isUploadComplete(uploadId);
-    if (!complete) {
-      const progress = await getUploadProgress(uploadId);
+    // Check state machine: if already COMPLETED, prevent double-completion
+    if (session.status === "COMPLETED") {
+      return NextResponse.json(
+        { error: "Upload session is already completed", status: session.status },
+        { status: 409 }
+      );
+    }
+    if (session.status === "EXPIRED") {
+      return NextResponse.json(
+        { error: "Upload session has expired", status: session.status },
+        { status: 410 }
+      );
+    }
+
+    // Atomically transition status to COMPLETING
+    await updateSessionStatus(uploadId, "COMPLETING");
+
+    // Exhaustive completion validation:
+    // 1. indices = [0 ... totalChunks - 1] exactly
+    // 2. sum(chunk.size) == declared fileSize
+    // 3. all checksum formats valid
+    const validation = await validateUploadCompletion(uploadId);
+    if (!validation.valid) {
+      // Revert status back to UPLOADING so missing chunks can be recovered
+      await updateSessionStatus(uploadId, "UPLOADING");
       return NextResponse.json(
         {
-          error: "Not all chunks have been uploaded yet",
-          receivedChunks: progress?.receivedChunks || 0,
-          totalChunks: progress?.totalChunks || 0,
+          error: validation.error || "Chunk completion validation failed",
+          totalChunks: session.totalChunks,
+          receivedChunks: validation.chunks.length,
+          receivedSize: validation.totalSize,
+          declaredSize: session.fileSize,
         },
         { status: 400 }
       );
     }
 
-    // Get ordered chunks
-    const chunks = await getOrderedChunks(uploadId);
-
-    // Mark as completed in Redis (prevents duplicate assembly)
+    // Mark as completed in Redis (prevents duplicate assembly or subsequent uploads)
     await markUploadCompleted(uploadId);
 
-    // Return the list of chunk paths for the client or server to reassemble
-    const chunkPaths = chunks.map((c) => c.path);
+    // Return the list of chunk paths for assembly
+    const chunkPaths = validation.chunks.map((c) => c.path);
 
     return NextResponse.json({
       success: true,
@@ -362,9 +433,10 @@ export async function PUT(request: NextRequest) {
       fileName: session.fileName,
       mimeType: session.mimeType,
       fileSize: session.fileSize,
-      totalChunks: chunks.length,
+      totalChunks: validation.chunks.length,
       chunks: chunkPaths,
-      message: "All chunks uploaded. Use the returned chunks array to trigger reassembly.",
+      status: "COMPLETED",
+      message: "All chunks validated and complete. Ready for reassembly.",
     });
   } catch (error) {
     console.error("Chunked upload finalize error:", error);

@@ -2,12 +2,22 @@
  * Shared Request Deduplication and Cache Manager
  * Prevents high-frequency duplicate GET requests, collapsing concurrent requests
  * and caching results locally on the client.
+ *
+ * Cache keys for USER-SCOPED routes (endpoints whose response body depends on
+ * the authenticated caller) are namespaced by the current identity registered
+ * via `setIdentity()`. A URL alone does not determine the response for those
+ * endpoints, so binding the key to the identity guarantees a response fetched
+ * as user A can never be replayed for user B inside one browser session
+ * (login/logout/MFA/impersonation transitions that keep the SPA alive).
  */
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
 }
+
+/** Prefix marking a cache key as identity-scoped. Never collides with `${method}:${url}` keys. */
+const SCOPED_KEY_PREFIX = "@user:";
 
 class RequestCacheManager {
   // Stores active, in-flight Promises to collapse identical concurrent requests
@@ -21,6 +31,43 @@ class RequestCacheManager {
 
   // Default cache TTL: 5 seconds (good for preventing double-clicks and rapid renders)
   private defaultTTL = 5000;
+
+  // Current authenticated identity scope. "" = not yet resolved (page load
+  // before /auth/me answers) or signed out.
+  private identityScope = "";
+
+  // Route prefixes whose GET responses are user-specific. Their cache keys
+  // embed the identity scope; everything else keeps the plain `method:url` key
+  // so data cached during the "identity unknown" boot phase stays reusable.
+  //
+  // MAINTENANCE: any new backend GET endpoint that returns per-user data MUST
+  // be added here, otherwise its cached responses are shared across identities.
+  private readonly userScopedRoutes: string[] = [
+    "/api/my-courses",
+    "/api/progress", // /api/progress/summary
+    "/api/users/", // profile, progress/*, billing-summary
+    "/api/analytics",
+    "/api/gamification",
+    "/api/ai/recommendations",
+    "/api/ai/conversations",
+    "/api/settings/preferences",
+    "/api/activities/recent",
+    "/api/notifications",
+    "/api/teaching/",
+    "/api/exams/results",
+    "/api/billing/wallet",
+    "/api/payments/history",
+    "/api/subscriptions", // includes public /plans — over-scoped, harmless
+    "/api/schedule",
+    "/api/tasks",
+    "/api/reminders",
+    "/api/study-sessions",
+    "/api/courses/lessons/", // lesson progress & notes (NOT /api/courses/:id/lessons)
+    "/enrollment-status", // /api/courses/:id/enrollment-status
+    "/api/auth/sessions",
+    "/api/auth/social/accounts",
+    "/api/search",
+  ];
 
   // Custom TTLs for specific high-frequency endpoints
   // NOTE: Reduced auth TTLs to prevent stale state after login/logout.
@@ -49,13 +96,23 @@ class RequestCacheManager {
     "/api/gamification/leaderboard": 300000,  // 5 minutes
   };
 
+  // Pre-sorted longest-route-first so "/api/settings/preferences" is not
+  // shadowed by "/api/settings" when matching by substring.
+  private readonly customTTLEntries = Object.entries(this.customTTLs).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+
   private getTTL(url: string): number {
-    for (const [route, ttl] of Object.entries(this.customTTLs)) {
+    for (const [route, ttl] of this.customTTLEntries) {
       if (url.includes(route)) {
         return ttl;
       }
     }
     return this.defaultTTL;
+  }
+
+  private isUserScoped(url: string): boolean {
+    return this.userScopedRoutes.some((route) => url.includes(route));
   }
 
   private getCacheKey(url: string, options?: RequestInit): string {
@@ -82,6 +139,12 @@ class RequestCacheManager {
     // Ignore URLs explicitly requesting fresh/forced data
     if (url.includes("force=true") || url.includes("refresh=true") || url.includes("_t=")) {
       return "";
+    }
+
+    // User-scoped resources: the URL alone does not determine the response
+    // body, so bind the key to the current identity scope.
+    if (this.isUserScoped(url)) {
+      return `${SCOPED_KEY_PREFIX}${this.identityScope}|${method}:${url}`;
     }
 
     return `${method}:${url}`;
@@ -152,6 +215,29 @@ class RequestCacheManager {
   public clear(): void {
     this.cache.clear();
     this.inFlight.clear();
+  }
+
+  /**
+   * Registers the current authenticated identity (the user ID from /auth/me).
+   * User-scoped cache entries are namespaced by this identity, and all of them
+   * are evicted whenever it changes, so responses fetched under one identity
+   * can never be replayed under another within the same browser session.
+   * Public (unscoped) entries are kept — their content does not depend on the
+   * caller's identity. Pass null when signed out or the identity is unknown.
+   */
+  public setIdentity(userId: string | null | undefined): void {
+    const next = (typeof userId === "string" ? userId.trim() : "") || "";
+    if (next === this.identityScope) return;
+
+    this.identityScope = next;
+
+    // Evict every identity-scoped entry (old-identity keys are unreachable
+    // anyway; this also frees memory and covers in-flight write-backs).
+    for (const key of Array.from(this.cache.keys())) {
+      if (key.startsWith(SCOPED_KEY_PREFIX)) {
+        this.cache.delete(key);
+      }
+    }
   }
 }
 

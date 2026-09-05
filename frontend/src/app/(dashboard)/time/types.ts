@@ -2,7 +2,7 @@ export type SubjectType = "MATH" | "PHYSICS" | "CHEMISTRY" | "ARABIC" | "ENGLISH
 
 export interface Schedule {
   id: string;
-  userId: string;
+  userId?: string;
   planJson: string;
   createdAt: string;
   updatedAt: string;
@@ -10,7 +10,7 @@ export interface Schedule {
 
 export interface SubjectEnrollment {
   id: string;
-  userId: string;
+  userId?: string;
   subject: SubjectType;
   createdAt: string;
 }
@@ -24,7 +24,7 @@ interface SubTask {
 
 export interface Task {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   description?: string;
   subject?: SubjectType;
@@ -44,7 +44,7 @@ export interface Task {
 
 export interface StudySession {
   id: string;
-  userId: string;
+  userId?: string;
   taskId?: string;
   durationMin: number;
   startTime: string;
@@ -57,7 +57,7 @@ export interface StudySession {
 
 export interface Reminder {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   message?: string;
   remindAt: string;

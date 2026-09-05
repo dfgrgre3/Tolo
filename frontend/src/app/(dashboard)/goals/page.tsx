@@ -1,15 +1,13 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { m, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
-import { ensureUser } from "@/lib/user-utils";
 import { CreateGoalModal } from './components/CreateGoalModal';
 import { GoalCard } from './components/GoalCard';
 
 export default function GoalsPage() {
-  const [userId, setUserId] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
 
@@ -22,16 +20,8 @@ export default function GoalsPage() {
     isLoading,
     error: _error
   } = useGamification({
-    userId,
     enableNotifications: true
   });
-
-  useEffect(() => {
-    (async () => {
-      const id = await ensureUser();
-      setUserId(id);
-    })();
-  }, []);
 
   const handleCreateGoal = async (goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>) => {
     await createCustomGoal(goalData);

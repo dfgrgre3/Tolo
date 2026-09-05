@@ -23,7 +23,6 @@ import { useTimeTrackerStore, type PomodoroState } from '@/hooks/use-time-tracke
 import type { TimeTrackerTask } from '../types';
 
 interface TimeTrackerProps {
-  userId: string;
   tasks: TimeTrackerTask[];
   subjects: string[];
   onStudySessionCreate?: (session: any) => void;
@@ -149,7 +148,7 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
 
 TimerCircle.displayName = 'TimerCircle';
 
-export default function TimeTracker({ userId, tasks, onStudySessionCreate }: TimeTrackerProps) {
+export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTrackerProps) {
   const isRunning = useTimeTrackerStore((state) => state.isRunning);
   const currentPomodoroState = useTimeTrackerStore((state) => state.currentPomodoroState);
   const pomodoroCount = useTimeTrackerStore((state) => state.pomodoroCount);
@@ -208,7 +207,6 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
           if (newSession) {
             onStudySessionCreate({
               id: newSession.id,
-              userId: userId,
               durationMin: newSession.durationMin,
               focusScore: 100,
               startTime: newSession.startTime,
@@ -222,7 +220,7 @@ export default function TimeTracker({ userId, tasks, onStudySessionCreate }: Tim
       }
     );
     return unsub;
-  }, [onStudySessionCreate, userId]); // Stable deps — no re-subscriptions on each tick
+  }, [onStudySessionCreate]); // Stable deps — no re-subscriptions on each tick
 
   // Recent sessions
   const recentSessions = sessions.slice(0, 6);

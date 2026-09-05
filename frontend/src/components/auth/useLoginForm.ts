@@ -55,7 +55,7 @@ export function useLoginForm() {
     setError(null);
 
     const result = await login({
-      identifier: email,
+      email,
       password,
       rememberMe,
       // Computed on demand (and memoized in localStorage) so the value is
@@ -64,7 +64,7 @@ export function useLoginForm() {
     });
 
     if (result.requiresMfa) {
-      setMfaChallenge(result.challenge ?? "");
+      setMfaChallenge(result.challengeId ?? "");
       setIsLoading(false);
       return;
     }

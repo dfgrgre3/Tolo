@@ -2,7 +2,10 @@
 
 import { useAuth } from "@/hooks/use-auth";
 
-export type UserRole = "ADMIN" | "SUPER_ADMIN" | "TEACHER" | "MODERATOR" | "STUDENT" | "PREMIUM";
+// Mirrors the backend's real UserRole constants (internal/domain/common/user.go).
+// No PREMIUM — that was never a backend role; premium status is a subscription
+// property (see UserMenu.tsx's isPremiumUser).
+export type UserRole = "ADMIN" | "SUPER_ADMIN" | "TEACHER" | "MODERATOR" | "STUDENT" | "PARENT" | "SUPPORT";
 
 function permissionGrantMatches(grant: string, required: string): boolean {
   if (grant === required || grant === "admin:bypass") return true;
