@@ -101,7 +101,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       if (isDisabled) {
         disconnect();
       } else if (currentUserId) {
-        connect(currentUserId, "");
+        connect();
       }
     });
 
@@ -119,7 +119,10 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
       return;
     }
 
-    connect(currentUserId, "");
+    // Session-scoped: the handshake authenticates with the access token and
+    // the backend derives the identity from it — the provider's userId prop
+    // is only a gating hint and is never sent (IDOR/BOLA hardening).
+    connect();
 
     return () => {
       disconnect();

@@ -1,18 +1,13 @@
 /**
- * Single place for browser WebSocket URL to `/api/v1/ws`.
+ * Single place for browser WebSocket URL to `/api/ws` (notifications + future live payloads).
+ * Set `NEXT_PUBLIC_WS_HOST` (e.g. `localhost:3000`) if the WS entry is not the page host.
  *
- * Authentication Architecture:
- * - Handshake relies on standard HttpOnly Secure session cookies (`access_token` / `__session`).
- * - Passing authentication credentials (like tokens) in the URL query string is insecure
- *   and avoided to prevent token leakage in server logs, browser histories, and proxy headers.
- * - `userId` is purely an optional client hint for logging / diagnostic verification,
- *   never trusted by the backend as an authoritative subject identity.
- *
- * Set `NEXT_PUBLIC_WS_HOST` (e.g. `localhost:8082`) if the WS entry is not the page host.
+ * The caller's identity is derived server-side from the access token — a
+ * client-supplied userId query param is never trusted (IDOR/BOLA hardening).
  */
-export function buildAppUserWebSocketUrl(userId?: string, _token?: string): string {
-  if (typeof window === "undefined") return "";
-  
+export function buildAppUserWebSocketUrl(token?: string): string {
+  if (typeof window === "undefined" || !token) return "";
+
   // 1. If explicit NEXT_PUBLIC_WS_HOST is set, use it
   let host = process.env.NEXT_PUBLIC_WS_HOST?.trim();
   let wsProtocol = "";
@@ -44,11 +39,8 @@ export function buildAppUserWebSocketUrl(userId?: string, _token?: string): stri
   // Ensure host doesn't end with slash
   host = host.replace(/\/+$/, "");
 
-  // Base WebSocket URL. Credentials are exchanged automatically via HttpOnly Cookie.
-  let url = `${wsProtocol}//${host}/api/v1/ws`;
-  if (userId) {
-    // Optional non-authoritative hint
-    url += `?userId=${encodeURIComponent(userId)}`;
-  }
-  return url;
+  // Must be `access_token`: the backend's extractBearerToken() only reads that
+  // query parameter name. Any other name is silently ignored and the handshake
+  // is rejected with 401 missing_token.
+  return `${wsProtocol}//${host}/api/v1/ws?access_token=${encodeURIComponent(token)}`;
 }

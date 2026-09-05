@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/hooks/use-auth";
 import { m, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -39,7 +39,7 @@ interface TeachersClientProps {
 
 export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
   const hasServerTeachers = Array.isArray(initialTeachers) && initialTeachers.length > 0;
-  const [userId, setUserId] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
   const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers ?? []);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
@@ -50,10 +50,6 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    ensureUser().then(setUserId);
-  }, []);
 
   // جلب المعلمين من المتصفح يحدث فقط عندما يفشل تجمع الخادم —
   // البيانات الخاصة بالمستخدم (الحصص/الجدول) تبقى في المتصفح دائماً.
@@ -73,24 +69,26 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
   }, [hasServerTeachers]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
     (async () => {
       try {
-        const ls = await apiClient.get<Lesson[]>(`/lessons?userId=${userId}`);
+        // Session-scoped: the backend resolves the caller from the JWT, so
+        // no ?userId= is appended (IDOR/BOLA hardening).
+        const ls = await apiClient.get<Lesson[]>(`/lessons`);
         setLessons(ls);
-        const sch = await apiClient.get<Schedule>(`/schedule?userId=${userId}`);
+        const sch = await apiClient.get<Schedule>(`/schedule`);
         setSchedule(sch);
       } catch (err) {
         logger.error("Failed to fetch user data:", err);
       }
     })();
-  }, [userId]);
+  }, [isAuthenticated]);
 
   async function addLesson(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId || !teacherId || !title || !location || !startTime || !endTime) return;
+    if (!isAuthenticated || !teacherId || !title || !location || !startTime || !endTime) return;
     try {
-      const newLesson = await apiClient.post<Lesson>("/lessons", { userId, teacherId, title, location, startTime, endTime });
+      const newLesson = await apiClient.post<Lesson>("/lessons", { teacherId, title, location, startTime, endTime });
       setLessons((l) => [...l, newLesson]);
     } catch (err) {
       logger.error("Failed to add lesson:", err);
@@ -102,7 +100,12 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       const dayKey = new Date(startTime).toLocaleDateString("en-CA");
       plan[dayKey] = plan[dayKey] || [];
       plan[dayKey].push({ type: "lesson", title, location, startTime, endTime, teacherId });
-      const s = await apiClient.post<Schedule>("/schedule", { userId, plan });
+      // Backend expects `planJson` as a required JSON-encoded string
+      // (see UpdateSchedule in activity_handler.go); the user is resolved
+      // server-side from the session.
+      const s = await apiClient.post<Schedule>("/schedule", {
+        planJson: JSON.stringify(plan)
+      });
       setSchedule(s);
     } catch (err) {logger.error(String(err));}
     setTeacherId("");setTitle("");setLocation("");setStartTime("");setEndTime("");

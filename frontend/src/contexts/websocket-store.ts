@@ -6,7 +6,7 @@ type WebSocketStore = {
   socket: WebSocket | null;
   isConnected: boolean;
   token: string | null;
-  connect: (userId?: string, token?: string) => void;
+  connect: (token?: string) => void;
   disconnect: () => void;
   listeners: Set<(event: MessageEvent) => void>;
   subscribe: (listener: (event: MessageEvent) => void) => () => void;
@@ -22,7 +22,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   token: null,
   listeners: new Set(),
 
-  connect: (userId?: string, token?: string) => {
+  connect: (token?: string) => {
     // Cleanup existing if any
     get().disconnect();
 
@@ -31,8 +31,9 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       set({ token });
     }
 
-    // Connect using secure HttpOnly cookie session. userId is an optional routing hint.
-    const wsUrl = buildAppUserWebSocketUrl(userId, currentToken || undefined);
+    // Session-scoped: the backend derives the caller's identity from the
+    // access token — no client-supplied userId is sent (IDOR/BOLA hardening).
+    const wsUrl = buildAppUserWebSocketUrl(currentToken || undefined);
     if (!wsUrl) return;
 
     try {
@@ -67,7 +68,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
         if (reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
           reconnectAttempts++;
           const delay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
-          reconnectTimeout = setTimeout(() => get().connect(userId, currentToken || undefined), delay);
+          reconnectTimeout = setTimeout(() => get().connect(currentToken || undefined), delay);
         }
       };
 
