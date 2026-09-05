@@ -122,15 +122,14 @@ const GUEST_STATE: AuthState = {
 };
 
 /**
- * Builds the `/auth/me` URL with cache-busting query params.
+ * Canonical `/auth/me` endpoint.
  *
- * WHY: `requestCache` memoizes GET responses for 5 minutes, including the 401
- * a guest receives. Without busting it, a user who loaded the page while signed
- * out would keep reading that cached 401 for 5 minutes after signing in — the
- * login would appear to succeed and then immediately fail.
+ * Cache Policy:
+ * Formally non-cacheable via RequestCacheManager endpoint metadata ({ scope: "none", ttl: 0 }).
+ * There is no need for external cache-busting URL hacks like `refresh=true` or `_t=Date.now()`.
  */
-function buildMeUrl(): string {
-  return `${apiRoutes.auth.me}?refresh=true&_t=${Date.now()}`;
+function getMeUrl(): string {
+  return apiRoutes.auth.me;
 }
 
 /** Maps a failed `/auth/me` into guest state, distinguishing 401 from a real fault. */
@@ -159,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchUser = async () => {
       try {
-        const data = await apiClient.get<AuthMeResponse>(buildMeUrl(), {
+        const data = await apiClient.get<AuthMeResponse>(getMeUrl(), {
           signal: controller.signal,
         });
 
@@ -232,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       requestCache.clear();
-      const data = await apiClient.get<AuthMeResponse>(buildMeUrl());
+      const data = await apiClient.get<AuthMeResponse>(getMeUrl());
 
       if (!data?.user) {
         requestCache.setIdentity(null);

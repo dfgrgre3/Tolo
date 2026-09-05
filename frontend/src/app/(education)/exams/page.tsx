@@ -119,12 +119,17 @@ function ExamsPageContent() {
       const scoreNum = parseFloat(score);
       if (isNaN(scoreNum)) return;
 
-      const payload = { examId, score: scoreNum, takenAt: takenAt || undefined };
+      const outboxPayload = {
+         examId,
+         answers: {},
+         takenAt: takenAt || undefined,
+         completedAt: takenAt || new Date().toISOString(),
+      };
 
       // Check offline status first
       if (typeof window !== 'undefined' && !navigator.onLine) {
-         useOfflineOutboxStore.getState().addSubmission(payload);
-         toast.info("تم حفظ النتيجة محلياً لانقطاع الاتصال بالإنترنت. ستتم مزامنتها تلقائياً فور عودة الاتصال.");
+         useOfflineOutboxStore.getState().addSubmission(outboxPayload);
+         toast.info("تم حفظ المحاولة محلياً لانقطاع الاتصال بالإنترنت. ستتم مزامنتها تلقائياً فور عودة الاتصال.");
          setExamId(""); setScore(""); setTakenAt("");
          return;
       }
@@ -134,7 +139,7 @@ function ExamsPageContent() {
          const { data, error } = await safeFetch<ExamResult>("/api/exams/results", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ examId, score: scoreNum, takenAt: takenAt || undefined })
          }, null);
 
          if (data && !error) {
@@ -143,8 +148,8 @@ function ExamsPageContent() {
             setExamId(""); setScore(""); setTakenAt("");
          } else if (error && !isCriticalError(error)) {
             // Save to outbox for temporary network failure
-            useOfflineOutboxStore.getState().addSubmission(payload);
-            toast.info("حدث خطأ في الاتصال، تم حفظ النتيجة محلياً لمزامنتها لاحقاً.");
+            useOfflineOutboxStore.getState().addSubmission(outboxPayload);
+            toast.info("حدث خطأ في الاتصال، تم حفظ المحاولة محلياً لمزامنتها لاحقاً.");
             setExamId(""); setScore(""); setTakenAt("");
          } else {
             toast.error(error?.message || "فشل تسجيل النتيجة.");

@@ -19,6 +19,13 @@ interface CacheEntry<T> {
 /** Prefix marking a cache key as identity-scoped. Never collides with `${method}:${url}` keys. */
 const SCOPED_KEY_PREFIX = "@user:";
 
+export type CacheScope = "public" | "user" | "none";
+
+export interface EndpointCachePolicy {
+  scope: CacheScope;
+  ttl: number; // in milliseconds. 0 or scope="none" means non-cacheable
+}
+
 class RequestCacheManager {
   // Stores active, in-flight Promises to collapse identical concurrent requests
   private inFlight = new Map<string, Promise<any>>();
@@ -36,83 +43,85 @@ class RequestCacheManager {
   // before /auth/me answers) or signed out.
   private identityScope = "";
 
-  // Route prefixes whose GET responses are user-specific. Their cache keys
-  // embed the identity scope; everything else keeps the plain `method:url` key
-  // so data cached during the "identity unknown" boot phase stays reusable.
-  //
-  // MAINTENANCE: any new backend GET endpoint that returns per-user data MUST
-  // be added here, otherwise its cached responses are shared across identities.
-  private readonly userScopedRoutes: string[] = [
-    "/api/my-courses",
-    "/api/progress", // /api/progress/summary
-    "/api/users/", // profile, progress/*, billing-summary
-    "/api/analytics",
-    "/api/gamification",
-    "/api/ai/recommendations",
-    "/api/ai/conversations",
-    "/api/settings/preferences",
-    "/api/activities/recent",
-    "/api/notifications",
-    "/api/teaching/",
-    "/api/exams/results",
-    "/api/billing/wallet",
-    "/api/payments/history",
-    "/api/subscriptions", // includes public /plans — over-scoped, harmless
-    "/api/schedule",
-    "/api/tasks",
-    "/api/reminders",
-    "/api/study-sessions",
-    "/api/courses/lessons/", // lesson progress & notes (NOT /api/courses/:id/lessons)
-    "/enrollment-status", // /api/courses/:id/enrollment-status
-    "/api/auth/sessions",
-    "/api/auth/social/accounts",
-    "/api/search",
-  ];
+  /**
+   * Declarative Endpoint Metadata & Cache Policies
+   * Replaces ad-hoc string inspections. Every endpoint explicitly declares its:
+   * - scope: "none" (strictly non-cacheable), "user" (identity-bound), or "public" (shared)
+   * - ttl: cache lifetime in ms
+   */
+  private readonly endpointPolicies: Record<string, EndpointCachePolicy> = {
+    // Auth endpoints: strictly NON-CACHEABLE by policy
+    "/api/auth/me": { scope: "none", ttl: 0 },
+    "/api/auth/refresh": { scope: "none", ttl: 0 },
+    "/api/auth/login": { scope: "none", ttl: 0 },
+    "/api/auth/logout": { scope: "none", ttl: 0 },
+    "/api/auth/sessions": { scope: "user", ttl: 0 },
+    "/api/auth/social/accounts": { scope: "user", ttl: 0 },
 
-  // Custom TTLs for specific high-frequency endpoints
-  // NOTE: Reduced auth TTLs to prevent stale state after login/logout.
-  // The ?refresh=true query parameter still bypasses this cache entirely.
-  private customTTLs: Record<string, number> = {
-    "/api/auth/me": 0,                        // NO cache - auth state must always reflect current session
-    "/api/auth/refresh": 0,                   // NO cache
-    "/api/auth/login": 0,                     // NO cache - login always hits backend
-    "/api/auth/logout": 0,                    // NO cache - logout always hits backend
-    "/api/settings": 300000,                  // 5 minutes - app settings rarely change
-    "/api/settings/preferences": 600000,      // 10 minutes - user preferences rarely change
-    "/api/ai/recommendations": 30000,         // 30 seconds
-    "/api/categories": 300000,                // 5 minutes - categories rarely change
-    "/api/courses": 60000,                    // 1 minute - course listings change occasionally
-    "/api/subjects": 60000,                   // 1 minute - subjects same as courses
-    "/api/teachers": 300000,                  // 5 minutes - teachers rarely change
-    "/api/blog": 300000,                      // 5 minutes - blog posts change occasionally
-    "/api/homepage": 300000,                  // 5 minutes - homepage stats rarely change
-    "/api/navigation/menu": 300000,           // 5 minutes - navigation rarely changes
-    "/api/exams": 15000,                      // 15 seconds
-    "/api/activities/recent": 300000,         // 5 minutes - fallback polling only
-    "/api/progress/summary": 300000,          // 5 minutes - CQRS view refreshes every 5 minutes
-    "/api/my-courses": 300000,                // 5 minutes
-    "/api/gamification/progress": 300000,     // 5 minutes
-    "/api/gamification/achievements": 300000, // 5 minutes
-    "/api/gamification/leaderboard": 300000,  // 5 minutes
+    // User-scoped resources: partitioned by authenticated user identity
+    "/api/my-courses": { scope: "user", ttl: 300000 },
+    "/api/progress/summary": { scope: "user", ttl: 300000 },
+    "/api/progress": { scope: "user", ttl: 300000 },
+    "/api/users/": { scope: "user", ttl: 60000 },
+    "/api/analytics": { scope: "user", ttl: 60000 },
+    "/api/gamification/progress": { scope: "user", ttl: 300000 },
+    "/api/gamification/achievements": { scope: "user", ttl: 300000 },
+    "/api/gamification/leaderboard": { scope: "user", ttl: 300000 },
+    "/api/gamification": { scope: "user", ttl: 300000 },
+    "/api/ai/recommendations": { scope: "user", ttl: 30000 },
+    "/api/ai/conversations": { scope: "user", ttl: 30000 },
+    "/api/settings/preferences": { scope: "user", ttl: 600000 },
+    "/api/activities/recent": { scope: "user", ttl: 300000 },
+    "/api/notifications": { scope: "user", ttl: 30000 },
+    "/api/teaching/": { scope: "user", ttl: 60000 },
+    "/api/exams/results": { scope: "user", ttl: 0 }, // exam results reflect latest submissions immediately
+    "/api/billing/wallet": { scope: "user", ttl: 30000 },
+    "/api/payments/history": { scope: "user", ttl: 30000 },
+    "/api/subscriptions": { scope: "user", ttl: 60000 },
+    "/api/schedule": { scope: "user", ttl: 60000 },
+    "/api/tasks": { scope: "user", ttl: 60000 },
+    "/api/reminders": { scope: "user", ttl: 60000 },
+    "/api/study-sessions": { scope: "user", ttl: 60000 },
+    "/api/courses/lessons/": { scope: "user", ttl: 60000 },
+    "/enrollment-status": { scope: "user", ttl: 60000 },
+    "/api/search": { scope: "user", ttl: 30000 },
+
+    // Public / Shared resources
+    "/api/settings": { scope: "public", ttl: 300000 },
+    "/api/categories": { scope: "public", ttl: 300000 },
+    "/api/courses": { scope: "public", ttl: 60000 },
+    "/api/subjects": { scope: "public", ttl: 60000 },
+    "/api/teachers": { scope: "public", ttl: 300000 },
+    "/api/blog": { scope: "public", ttl: 300000 },
+    "/api/homepage": { scope: "public", ttl: 300000 },
+    "/api/navigation/menu": { scope: "public", ttl: 300000 },
+    "/api/exams": { scope: "public", ttl: 15000 },
   };
 
-  // Pre-sorted longest-route-first so "/api/settings/preferences" is not
-  // shadowed by "/api/settings" when matching by substring.
-  private readonly customTTLEntries = Object.entries(this.customTTLs).sort(
+  // Pre-sorted longest-route-first to avoid substring shadowing (e.g. /api/settings/preferences vs /api/settings)
+  private readonly policyEntries = Object.entries(this.endpointPolicies).sort(
     (a, b) => b[0].length - a[0].length
   );
 
-  private getTTL(url: string): number {
-    for (const [route, ttl] of this.customTTLEntries) {
+  /**
+   * Resolves the cache policy metadata for a given request URL.
+   */
+  public getPolicy(url: string): EndpointCachePolicy {
+    for (const [route, policy] of this.policyEntries) {
       if (url.includes(route)) {
-        return ttl;
+        return policy;
       }
     }
-    return this.defaultTTL;
+    // Default policy for unspecified routes
+    return { scope: "public", ttl: this.defaultTTL };
+  }
+
+  private getTTL(url: string): number {
+    return this.getPolicy(url).ttl;
   }
 
   private isUserScoped(url: string): boolean {
-    return this.userScopedRoutes.some((route) => url.includes(route));
+    return this.getPolicy(url).scope === "user";
   }
 
   private getCacheKey(url: string, options?: RequestInit): string {
@@ -122,6 +131,12 @@ class RequestCacheManager {
 
     // If not in browser (server-side), do NOT cache/deduplicate to prevent cross-request leakage
     if (typeof window === 'undefined') return "";
+
+    // Check endpoint cache policy metadata
+    const policy = this.getPolicy(url);
+    if (policy.scope === "none" || policy.ttl <= 0) {
+      return "";
+    }
 
     // Check if the request explicitly bypasses cache
     if (options?.headers) {
@@ -141,9 +156,8 @@ class RequestCacheManager {
       return "";
     }
 
-    // User-scoped resources: the URL alone does not determine the response
-    // body, so bind the key to the current identity scope.
-    if (this.isUserScoped(url)) {
+    // User-scoped resources: bind key to authenticated identity scope
+    if (policy.scope === "user") {
       return `${SCOPED_KEY_PREFIX}${this.identityScope}|${method}:${url}`;
     }
 

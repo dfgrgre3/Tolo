@@ -1,9 +1,17 @@
 /**
- * Single place for browser WebSocket URL to `/api/ws` (notifications + future live payloads).
- * Set `NEXT_PUBLIC_WS_HOST` (e.g. `localhost:3000`) if the WS entry is not the page host.
+ * Single place for browser WebSocket URL to `/api/v1/ws`.
+ *
+ * Authentication Architecture:
+ * - Handshake relies on standard HttpOnly Secure session cookies (`access_token` / `__session`).
+ * - Passing authentication credentials (like tokens) in the URL query string is insecure
+ *   and avoided to prevent token leakage in server logs, browser histories, and proxy headers.
+ * - `userId` is purely an optional client hint for logging / diagnostic verification,
+ *   never trusted by the backend as an authoritative subject identity.
+ *
+ * Set `NEXT_PUBLIC_WS_HOST` (e.g. `localhost:8082`) if the WS entry is not the page host.
  */
-export function buildAppUserWebSocketUrl(userId: string, token?: string): string {
-  if (typeof window === "undefined" || !userId) return "";
+export function buildAppUserWebSocketUrl(userId?: string, _token?: string): string {
+  if (typeof window === "undefined") return "";
   
   // 1. If explicit NEXT_PUBLIC_WS_HOST is set, use it
   let host = process.env.NEXT_PUBLIC_WS_HOST?.trim();
@@ -36,12 +44,11 @@ export function buildAppUserWebSocketUrl(userId: string, token?: string): string
   // Ensure host doesn't end with slash
   host = host.replace(/\/+$/, "");
 
-  let url = `${wsProtocol}//${host}/api/v1/ws?userId=${encodeURIComponent(userId)}`;
-  if (token) {
-    // Must be `access_token`: the backend's extractBearerToken() only reads that
-    // query parameter name. Any other name is silently ignored and the handshake
-    // is rejected with 401 missing_token.
-    url += `&access_token=${encodeURIComponent(token)}`;
+  // Base WebSocket URL. Credentials are exchanged automatically via HttpOnly Cookie.
+  let url = `${wsProtocol}//${host}/api/v1/ws`;
+  if (userId) {
+    // Optional non-authoritative hint
+    url += `?userId=${encodeURIComponent(userId)}`;
   }
   return url;
 }

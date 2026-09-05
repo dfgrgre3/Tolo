@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
-import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import {
@@ -45,7 +44,9 @@ export default function CourseDetailClient({
   const courseId = params.id as string;
 
   const { user: authUser, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [userId, setUserId] = useState<string | null>(null);
+  // Session-derived id (watermark display + auth gates only) — never sent to
+  // the server, which resolves the caller from the JWT (IDOR/BOLA hardening).
+  const userId = authUser?.id ?? null;
   const [course, setCourse] = useState<Course>(initialCourseData);
   const [lessons, setLessons] = useState<CourseLesson[]>(initialLessons);
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
@@ -60,16 +61,6 @@ export default function CourseDetailClient({
   const [submittingReview, setSubmittingReview] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      if (authUser?.id) {
-        setUserId(authUser.id);
-      } else if (!authLoading) {
-        ensureUser().then(setUserId);
-      }
-    });
-  }, [authUser, authLoading]);
-
   // Sync user-specific progress when user logs in
   useEffect(() => {
     if (!courseId) return;
@@ -77,7 +68,9 @@ export default function CourseDetailClient({
     const syncUserSpecificData = async () => {
       if (userId) {
         try {
-          const courseData = await apiClient.get<any>(`/courses/${courseId}?userId=${userId}`);
+          // Session-scoped: the backend resolves the caller from the JWT, so
+          // no ?userId= is appended (IDOR/BOLA hardening).
+          const courseData = await apiClient.get<any>(`/courses/${courseId}`);
           
           if (courseData?.subject) {
             const subject = courseData.subject;
@@ -105,7 +98,7 @@ export default function CourseDetailClient({
             });
           }
 
-          const data = await apiClient.get<any>(`/courses/${courseId}/lessons?userId=${userId}`);
+          const data = await apiClient.get<any>(`/courses/${courseId}/lessons`);
           const payload = data.data ?? data;
           const rawLessons = Array.isArray(payload) ? payload : (payload.lessons ?? []);
           const progressMap = payload.progress || {};

@@ -77,8 +77,7 @@ export function useLearningHub() {
   const courseId = params.courseId as string;
   const playerApiRef = useRef<CourseVideoPlayerApi | null>(null);
 
-  const { user, isLoading: authLoading } = useAuth();
-  const userId = user?.id;
+  const { isLoading: authLoading } = useAuth();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -116,9 +115,11 @@ export function useLearningHub() {
       try {
         setLoading(true);
 
+        // Session-scoped: the backend resolves the caller from the JWT, so
+        // no ?userId= is appended (IDOR/BOLA hardening).
         const [curriculumPayload, coursePayload] = await Promise.all([
-          apiClient.get<any>(`/courses/${courseId}/curriculum${userId ? `?userId=${userId}` : ""}`),
-          apiClient.get<any>(`/courses/${courseId}${userId ? `?userId=${userId}` : ""}`),
+          apiClient.get<any>(`/courses/${courseId}/curriculum`),
+          apiClient.get<any>(`/courses/${courseId}`),
         ]);
 
         if (!coursePayload?.enrollment) {
@@ -165,7 +166,7 @@ export function useLearningHub() {
     };
 
     loadLearningHub();
-  }, [courseId, userId, authLoading, router]);
+  }, [courseId, authLoading, router]);
 
   useEffect(() => {
     if (!isInitialized || !courseId) return;
@@ -208,8 +209,8 @@ export function useLearningHub() {
     const loadLessonExtras = async () => {
       try {
         const [notePayload, questionsPayload] = await Promise.all([
-          apiClient.get<any>(`/courses/lessons/${activeLessonId}/notes${userId ? `?userId=${userId}` : ""}`).catch(() => null),
-          apiClient.get<any>(`/courses/lessons/${activeLessonId}/questions${userId ? `?userId=${userId}` : ""}`).catch(() => null),
+          apiClient.get<any>(`/courses/lessons/${activeLessonId}/notes`).catch(() => null),
+          apiClient.get<any>(`/courses/lessons/${activeLessonId}/questions`).catch(() => null),
         ]);
 
         setNoteContent(notePayload?.content || "");
@@ -220,7 +221,7 @@ export function useLearningHub() {
     };
 
     loadLessonExtras();
-  }, [activeLessonId, userId]);
+  }, [activeLessonId]);
 
   const progress = useMemo(() => {
     if (allLessons.length === 0) return 0;

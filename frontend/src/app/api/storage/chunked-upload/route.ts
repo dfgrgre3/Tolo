@@ -13,6 +13,7 @@ import {
 import {
   initiateUpload,
   registerChunk,
+  getOrderedChunks,
   getSessionMeta,
   validateUploadCompletion,
   getUploadProgress,

@@ -6,7 +6,7 @@ type WebSocketStore = {
   socket: WebSocket | null;
   isConnected: boolean;
   token: string | null;
-  connect: (userId: string, token?: string) => void;
+  connect: (userId?: string, token?: string) => void;
   disconnect: () => void;
   listeners: Set<(event: MessageEvent) => void>;
   subscribe: (listener: (event: MessageEvent) => void) => () => void;
@@ -22,7 +22,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   token: null,
   listeners: new Set(),
 
-  connect: (userId: string, token?: string) => {
+  connect: (userId?: string, token?: string) => {
     // Cleanup existing if any
     get().disconnect();
 
@@ -31,6 +31,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       set({ token });
     }
 
+    // Connect using secure HttpOnly cookie session. userId is an optional routing hint.
     const wsUrl = buildAppUserWebSocketUrl(userId, currentToken || undefined);
     if (!wsUrl) return;
 

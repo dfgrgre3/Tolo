@@ -25,13 +25,20 @@ export function OfflineSyncManager() {
 
       for (const sub of pendingSubmissions) {
         try {
-          const { error } = await safeFetch('/api/exams/results', {
+          // Security Architecture:
+          // Never send client-computed `score` or untrusted `userId`.
+          // Submit the student's attempt (`answers`, `attemptId`, timestamps) to the authoritative
+          // grading endpoint `/api/exams/:id/submit`. The server validates enrollment, grades answers,
+          // calculates the official score, and records the attempt for the authenticated session user.
+          const submitEndpoint = `/api/exams/${encodeURIComponent(sub.examId)}/submit`;
+          const { error } = await safeFetch(submitEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              examId: sub.examId,
-              score: sub.score,
-              takenAt: sub.takenAt || undefined,
+              answers: sub.answers || {},
+              attemptId: sub.id,
+              startedAt: sub.startedAt || undefined,
+              completedAt: sub.completedAt || sub.takenAt || undefined,
             }),
           }, null);
 

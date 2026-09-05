@@ -2,9 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface PendingSubmission {
-  id: string;
+  id: string; // client attempt identifier
   examId: string;
-  score: number;
+  answers: Record<string, string>;
+  questionIds?: string[];
+  startedAt?: string;
+  completedAt?: string;
   takenAt?: string;
   timestamp: number;
 }

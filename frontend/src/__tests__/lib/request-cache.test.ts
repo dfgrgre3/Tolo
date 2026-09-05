@@ -203,4 +203,21 @@ describe("RequestCacheManager TTL matching", () => {
 
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  it("should never cache endpoints marked with scope: none or ttl: 0 (/api/auth/me)", async () => {
+    const fetcher = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ user: { id: "u1" } })));
+
+    // First request
+    await requestCache.getResponse("/api/auth/me", undefined, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Second request immediately after
+    await requestCache.getResponse("/api/auth/me", undefined, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    const policy = requestCache.getPolicy("/api/auth/me");
+    expect(policy.scope).toBe("none");
+    expect(policy.ttl).toBe(0);
+  });
 });
+
