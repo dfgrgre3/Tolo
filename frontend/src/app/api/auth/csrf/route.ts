@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { getBackendUrl } from '@/lib/api/backend-url';
-import { forwardSetCookies } from '@/lib/security/cookie-attrs';
+import {
+  CSRF_COOKIE_NAME,
+  forwardSetCookies,
+  validateCsrfCookieAttributes,
+} from '@/lib/security/cookie-attrs';
 
 /**
  * CSRF Token Bootstrap Endpoint
@@ -57,12 +61,11 @@ export async function GET(_request: NextRequest) {
     // route inlined a custom strip loop that only handled the
     // `Secure` attribute and silently trusted everything else.
     //
-    // The CSRF cookie is classified as auth-related via the
-    // default `isAuthCookie` predicate in `forwardSetCookies`
-    // (matches csrf_token, access_token, refresh_token).
     forwardSetCookies({
       from: response,
       to: nextResponse,
+      isCsrfCookie: (name) => name === CSRF_COOKIE_NAME,
+      validateCookie: validateCsrfCookieAttributes,
       reportViolation: (name, violations) => {
         logger.warn('CSRF cookie missing required security attributes', {
           source: 'api/auth/csrf',

@@ -55,6 +55,14 @@ const idbStorage = {
     del(key),
 };
 
+let persistenceQueue = Promise.resolve();
+
+function enqueuePersistence(task: () => Promise<void>): Promise<void> {
+  const next = persistenceQueue.then(task, task);
+  persistenceQueue = next.catch(() => undefined);
+  return next;
+}
+
 function shouldPersistQuery(query: Parameters<typeof defaultShouldDehydrateQuery>[0]) {
   if ((query.meta as { persist?: boolean } | undefined)?.persist === true) {
     return defaultShouldDehydrateQuery(query);
@@ -91,115 +99,103 @@ export function ReactQueryPersistence() {
   const queryClient = useQueryClient();
   // Read auth state via context. The provider tree guarantees this hook
   // resolves to a value (it is mounted under <AuthProvider>).
-  const { user, status } = useAuth();
+  const { user, status, authSessionVersion } = useAuth();
 
   // The bucket we're currently persisting to. We track it in a ref so the
   // effect can read the latest value without re-subscribing on every
   // identity change (a fresh effect is set up for each transition).
   const currentScopeRef = useRef<string>(cacheKeyForScope(user?.id));
+  const activeSessionVersionRef = useRef<number | null>(null);
+  const transitionGenerationRef = useRef(0);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const scopeKey = cacheKeyForScope(user?.id);
-    currentScopeRef.current = scopeKey;
+    if (status === 'loading') return;
 
+    const nextKey = cacheKeyForScope(user?.id);
+    const previousKey = currentScopeRef.current;
+    const isSessionTransition =
+      previousKey !== nextKey || activeSessionVersionRef.current !== authSessionVersion;
+    const generation = ++transitionGenerationRef.current;
     const persister = createAsyncStoragePersister({
       storage: idbStorage,
-      key: scopeKey,
+      key: nextKey,
       throttleTime: 2000,
     });
-
     const saveOptions = {
       queryClient,
       persister,
       dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
     };
-
-    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
     const flush = () => {
-      persistQueryClientSave(saveOptions as unknown as Parameters<typeof persistQueryClientSave>[0]);
+      void enqueuePersistence(() =>
+        persistQueryClientSave(saveOptions as unknown as Parameters<typeof persistQueryClientSave>[0]),
+      );
     };
 
+    const runTransition = async () => {
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
+
+      if (isSessionTransition) {
+        await enqueuePersistence(async () => {
+          await persistQueryClientSave({
+            queryClient,
+            persister: createAsyncStoragePersister({
+              storage: idbStorage,
+              key: previousKey,
+              throttleTime: 0,
+            }),
+            dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+          } as unknown as Parameters<typeof persistQueryClientSave>[0]);
+
+          if (previousKey !== nextKey && previousKey !== `${CACHE_KEY_PREFIX}:anonymous`) {
+            await idbStorage.removeItem(previousKey);
+          }
+        });
+
+        if (cancelled || generation !== transitionGenerationRef.current) return;
+        queryClient.clear();
+      }
+
+      if (cancelled || generation !== transitionGenerationRef.current) return;
+
+      try {
+        await persistQueryClientRestore({
+          queryClient,
+          persister,
+          maxAge: MAX_AGE_MS,
+        } as unknown as Parameters<typeof persistQueryClientRestore>[0]);
+      } catch {
+        // IndexedDB unavailable (e.g. private browsing in Firefox) — skip persistence silently
+      }
+
+      if (cancelled || generation !== transitionGenerationRef.current) return;
+      currentScopeRef.current = nextKey;
+      activeSessionVersionRef.current = authSessionVersion;
+      unsubscribeRef.current = persistQueryClientSubscribe(
+        saveOptions as unknown as Parameters<typeof persistQueryClientSubscribe>[0],
+      );
+    };
+
+    void runTransition();
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush();
     };
-
-    persistQueryClientRestore({
-      queryClient,
-      persister,
-      maxAge: MAX_AGE_MS,
-    } as unknown as Parameters<typeof persistQueryClientRestore>[0])
-      .then(() => {
-        unsubscribe = persistQueryClientSubscribe(
-          saveOptions as unknown as Parameters<typeof persistQueryClientSubscribe>[0],
-        );
-      })
-      .catch(() => {
-        // IndexedDB unavailable (e.g. private browsing in Firefox) — skip persistence silently
-      });
-
     window.addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('pagehide', flush);
       document.removeEventListener('visibilitychange', onVisibility);
-      unsubscribe?.();
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
       flush();
     };
-  }, [queryClient, user?.id]);
-
-  /**
-   * Identity-transition side effect.
-   *
-   * Runs whenever the auth status OR user ID changes. On every transition:
-   *   - Flush the previous bucket's pending writes immediately.
-   *   - Clear the in-memory cache so a render that races the next restore
-   *     never sees user A's data under user B's session.
-   *   - Remove the previous bucket's IndexedDB entry (a one-shot
-   *     transition guard — see the file header for why).
-   *   - Reset the queryClient state so the next restore starts clean.
-   *
-   * Note: status === "loading" is excluded so the initial mount (when we
-   * don't yet know who the user is) doesn't trigger a spurious clear+restore
-   * cycle that would evict the anonymous cache before it can be used.
-   */
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    const previousKey = currentScopeRef.current;
-    const nextKey = cacheKeyForScope(user?.id);
-    if (previousKey === nextKey) return;
-
-    // Flush any pending writes to the OLD bucket before we forget the key.
-    persistQueryClientSave({
-      queryClient,
-      persister: createAsyncStoragePersister({
-        storage: idbStorage,
-        key: previousKey,
-        throttleTime: 0,
-      }),
-      dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
-    } as unknown as Parameters<typeof persistQueryClientSave>[0]);
-
-    // Drop everything in memory. Persisted entries for the next bucket
-    // will be restored by the key-change effect above.
-    queryClient.clear();
-
-    // Defence-in-depth: remove the previous bucket from IndexedDB so a
-    // mid-session identity flap (login → logout → login again) cannot
-    // accidentally replay a stale entry. We schedule this async because
-    // the previous flush is also async and we don't want them racing on
-    // the same key.
-    if (previousKey !== nextKey && previousKey !== `${CACHE_KEY_PREFIX}:anonymous`) {
-      // Only delete user-scoped buckets — anonymous cache may be reused by
-      // a subsequent guest session and shouldn't be wiped on every
-      // authenticated logout.
-      void idbStorage.removeItem(previousKey);
-    }
-
-    currentScopeRef.current = nextKey;
-  }, [queryClient, status, user?.id]);
+  }, [authSessionVersion, queryClient, status, user?.id]);
 
   return null;
 }

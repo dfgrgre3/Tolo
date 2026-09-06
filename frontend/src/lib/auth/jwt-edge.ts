@@ -2,6 +2,7 @@ import { jwtVerify, importSPKI } from "jose";
 import type { NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { getBackendUrl } from "@/lib/api/backend-url";
+import { resolveTrustedClientIp } from "@/lib/security/policy/auth-policy";
 
 /**
  * Edge-safe JWT verification for the Next.js middleware (`src/proxy.ts`).
@@ -38,12 +39,9 @@ import { getBackendUrl } from "@/lib/api/backend-url";
  * can be redeployed without rotating the edge, and the edge can be
  * replicated horizontally without ever needing the signing key.
  *
- * LEGACY FALLBACK
- * ---------------
- * For backward compatibility, if `JWT_PUBLIC_KEY` is not set we still
- * accept the historical `JWT_SECRET` and verify with HS256. New
- * deployments should set `JWT_PUBLIC_KEY` and rotate `JWT_SECRET` away
- * from the edge as soon as possible.
+ * Production requires JWT_PUBLIC_KEY plus both expected claims. JWT_SECRET is
+ * accepted only in development or when JWT_MIGRATION_MODE=true is explicitly
+ * enabled outside production during a controlled migration.
  *
  * MISSING KEY — FAIL CLOSED
  * -------------------------
@@ -72,13 +70,12 @@ export interface AccessTokenPayload {
  * pin `iss` and `aud` so a token signed by the correct key but issued
  * for a different tenant / service cannot be replayed against us.
  *
- * Set JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE in the edge env to
- * match the backend's issuer/audience claims. When unset we fall back to
- * the historical "any iss/aud accepted" behaviour for backward
- * compatibility, but new deployments MUST set both.
+ * Set JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE in the edge env. They are
+ * mandatory in production and verification always pins both values.
  */
-const EXPECTED_ISSUER = process.env.JWT_EXPECTED_ISSUER || "";
-const EXPECTED_AUDIENCE = process.env.JWT_EXPECTED_AUDIENCE || "";
+const EXPECTED_ISSUER = process.env.JWT_EXPECTED_ISSUER;
+const EXPECTED_AUDIENCE = process.env.JWT_EXPECTED_AUDIENCE;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 /**
  * Number of trusted reverse proxies in front of this edge runtime.
@@ -91,42 +88,18 @@ const EXPECTED_AUDIENCE = process.env.JWT_EXPECTED_AUDIENCE || "";
  * When TRUSTED_PROXY_COUNT > 0 we treat the RIGHTMOST N hops as trusted
  * (they were appended by proxies we control) and pick the value just
  * before that boundary as the real client IP. When unset (= 0) we fall
- * back to `x-real-ip` (set by a single trusted reverse proxy) and
- * IGNORE the spoofable X-Forwarded-For entirely.
+ * returns no identity when the trusted proxy count is not configured.
  *
  * Set this to the number of trusted hops in your deployment, e.g.:
  *   - direct CDN edge (Vercel/Cloudflare) → 1
  *   - CDN + custom reverse proxy            → 2
  */
-const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
-
 /**
  * Derive the real client IP without trusting attacker-controlled
  * X-Forwarded-For values. See TRUSTED_PROXY_COUNT above for the policy.
  */
 function resolveClientIp(request: NextRequest): string {
-  // Prefer x-real-ip from a single trusted reverse proxy. This header is
-  // set by the proxy and not by the client, so it cannot be spoofed.
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  if (TRUSTED_PROXY_COUNT > 0) {
-    const xff = request.headers.get("x-forwarded-for");
-    if (xff) {
-      const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
-      // The rightmost TRUSTED_PROXY_COUNT hops are trusted. The hop just
-      // before them is the client we want.
-      const trustedStart = Math.max(0, hops.length - TRUSTED_PROXY_COUNT);
-      const clientIdx = trustedStart - 1;
-      if (clientIdx >= 0 && hops[clientIdx]) return hops[clientIdx];
-      // Chain shorter than expected trusted hops — fall through to next.
-    }
-  }
-
-  // Untrusted deployment without TRUSTED_PROXY_COUNT: do NOT pass
-  // attacker-controllable X-Forwarded-For through. Empty string lets the
-  // backend log "unknown" rather than a spoofed value.
-  return "";
+  return resolveTrustedClientIp(request);
 }
 
 let loggedMissingKey = false;
@@ -171,10 +144,17 @@ async function getKey(): Promise<VerifyKey | null> {
     }
   }
 
-  // Legacy fallback: shared HS256 secret. Kept for backward compatibility
-  // only — set JWT_PUBLIC_KEY and remove JWT_SECRET from the edge env.
-  const secret = process.env.JWT_SECRET;
+  // JWT_SECRET is strictly forbidden in production. It's only allowed in development mode.
+  // Migration mode is no longer supported - use JWT_PUBLIC_KEY for all non-development environments.
+  const allowLegacySecret = !IS_PRODUCTION && process.env.NODE_ENV === "development";
+  const secret = allowLegacySecret ? process.env.JWT_SECRET : undefined;
   if (secret) {
+    if (IS_PRODUCTION) {
+      console.error(
+        "[jwt-edge] JWT_SECRET is forbidden in production. Use JWT_PUBLIC_KEY for asymmetric verification."
+      );
+      return null;
+    }
     cachedKey = { kind: "hs256", key: new TextEncoder().encode(secret) };
     return cachedKey;
   }
@@ -201,7 +181,17 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
       loggedMissingKey = true;
       console.error(
         "[jwt-edge] No JWT verification key configured — rejecting every access token (fail-closed). " +
-        "Set JWT_PUBLIC_KEY (preferred, asymmetric) or JWT_SECRET (legacy HS256)."
+        "Set JWT_PUBLIC_KEY (asymmetric) for edge verification."
+      );
+    }
+    return null;
+  }
+
+  if (IS_PRODUCTION && (!EXPECTED_ISSUER || !EXPECTED_AUDIENCE)) {
+    if (!loggedMissingKey) {
+      loggedMissingKey = true;
+      console.error(
+        "[jwt-edge] JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE are required in production."
       );
     }
     return null;
@@ -210,11 +200,9 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
   try {
     const verifyOpts: Parameters<typeof jwtVerify>[2] = {
       algorithms: key.kind === "spki" ? [key.alg] : ["HS256"],
+      issuer: EXPECTED_ISSUER,
+      audience: EXPECTED_AUDIENCE,
     };
-    // Pin issuer/audience when configured. jose throws if they don't match,
-    // which our catch block treats as "invalid token" → fail-closed.
-    if (EXPECTED_ISSUER) verifyOpts.issuer = EXPECTED_ISSUER;
-    if (EXPECTED_AUDIENCE) verifyOpts.audience = EXPECTED_AUDIENCE;
 
     const { payload } = key.kind === "spki"
       ? await jwtVerify(token, key.cryptoKey, verifyOpts)

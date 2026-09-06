@@ -19,6 +19,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { requestCache } from "@/lib/api/request-cache";
 import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
@@ -107,6 +108,8 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
+  /** Increments whenever the session is established, refreshed, or cleared. */
+  authSessionVersion: number;
   /** Redirect to login page (for protected routes) */
   redirectToLogin: () => Promise<void>;
   /** Redirect to registration page */
@@ -213,6 +216,8 @@ function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const [authSessionVersion, setAuthSessionVersion] = useState(0);
   const [state, setState] = useState<AuthState>({
     user: null,
     isLoading: true,
@@ -235,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // it as authenticated would leave `user` null behind an auth guard.
         if (!data?.user) {
           requestCache.setIdentity(null);
+          setAuthSessionVersion((version) => version + 1);
           setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
           return;
         }
@@ -243,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // The identity itself is never cached in localStorage — the session is
         // the single source of identity.
         requestCache.setIdentity(data.user.id);
+        setAuthSessionVersion((version) => version + 1);
 
         setState({
           user: data.user,
@@ -261,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // invalidate it just because /auth/me is temporarily unreachable.
         if (err instanceof ApiError && err.status === 401) {
           requestCache.setIdentity(null);
+          setAuthSessionVersion((version) => version + 1);
         }
         setState(stateFromMeError(err));
       }
@@ -301,13 +309,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // never replays the previous session. See clear-client-caches.ts for
     // the rationale on the three layers (request-cache, React Query,
     // service worker) and the order in which they must be invalidated.
-    // queryClient is intentionally not passed here: React Query
-    // persistence reacts to the user.id transition via its own effect
-    // and clears the in-memory cache once the provider re-renders.
-    await clearClientCaches();
+    await clearClientCaches({ queryClient });
+    setAuthSessionVersion((version) => version + 1);
     setState(ANONYMOUS_STATE);
     window.location.href = "/login";
-  }, []);
+  }, [queryClient]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -316,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!data?.user) {
         requestCache.setIdentity(null);
+        setAuthSessionVersion((version) => version + 1);
         setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
         return false;
       }
@@ -324,6 +331,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // is what prevents the previous user's data from being replayed after
       // an in-session login switch (see request-cache.ts).
       requestCache.setIdentity(data.user.id);
+      setAuthSessionVersion((version) => version + 1);
 
       setState({
         user: data.user,
@@ -336,6 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         requestCache.setIdentity(null);
+        setAuthSessionVersion((version) => version + 1);
       }
       setState(stateFromMeError(err));
       return false;
@@ -374,7 +383,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // new session: in-flight dedup promises, the identity binding,
       // and the CSRF token. `refreshUser()` will re-establish them
       // under the new user.
-      await clearClientCaches();
+      await clearClientCaches({ queryClient });
 
       // The session cookie is set; load the user so guards see the new role.
       const refreshed = await refreshUser();
@@ -382,7 +391,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ? { success: true }
         : { success: false, error: "تعذر تحميل بيانات المستخدم بعد تسجيل الدخول" };
     },
-    [refreshUser]
+    [queryClient, refreshUser]
   );
 
   /**
@@ -401,14 +410,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // moves the user from a pre-auth (or partial-auth) state to a
       // fully-authenticated state, so any cached data from before must
       // be wiped to prevent it from being replayed under the new session.
-      await clearClientCaches();
+      await clearClientCaches({ queryClient });
 
       const refreshed = await refreshUser();
       return refreshed
         ? { success: true }
         : { success: false, error: "تعذر تحميل بيانات المستخدم بعد التحقق" };
     },
-    [refreshUser]
+    [queryClient, refreshUser]
   );
 
   // Memoized so consumers only re-render when auth state actually changes.
@@ -417,6 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
+      authSessionVersion,
       redirectToLogin,
       redirectToRegister,
       logout,
@@ -429,6 +439,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       state,
+      authSessionVersion,
       redirectToLogin,
       redirectToRegister,
       logout,

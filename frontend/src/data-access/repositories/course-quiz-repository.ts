@@ -42,11 +42,11 @@ export const courseQuizRepository = {
 
   /** Create a quiz (teacher/admin). */
   async createQuiz(courseId: string, payload: CreateQuizPayload): Promise<CourseQuiz> {
-    return apiClient.post<CourseQuiz>(apiRoutes.courses.quizzes(courseId), payload);
+    return apiClient.postJson<CourseQuiz>(apiRoutes.courses.quizzes(courseId), payload);
   },
 
   /** Submit a quiz attempt; returns the graded result. */
   async submitQuiz(courseId: string, quizId: string, payload: SubmitQuizPayload): Promise<QuizResult> {
-    return apiClient.post<QuizResult>(apiRoutes.courses.submitQuiz(courseId, quizId), payload);
+    return apiClient.postJson<QuizResult>(apiRoutes.courses.submitQuiz(courseId, quizId), payload);
   },
 };

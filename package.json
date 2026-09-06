@@ -20,7 +20,8 @@
     "contracts:fetch": "node scripts/fetch-swagger.mjs",
     "contracts:generate": "npm run contracts:fetch && npm run generate:api-types",
     "generate:api-types": "openapi-typescript packages/contracts/swagger.json -o packages/contracts/src/generated/api.ts",
-    "contracts:check": "node scripts/check-api-types-fresh.mjs"
+    "contracts:check": "node scripts/check-api-types-fresh.mjs",
+    "contracts:type-check": "npm run type-check --workspace @thanawy/contracts"
   },
   "devDependencies": {
     "openapi-typescript": "^7.4.4"

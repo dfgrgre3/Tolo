@@ -8,6 +8,7 @@
  * ever one `apiClient` singleton app-wide (mirrors the previous private
  * fields on the `ApiClient` class).
  */
+import { CSRF_COOKIE_NAME } from '@/lib/security/cookie-attrs';
 
 /** In-flight CSRF bootstrap request — shared across concurrent callers to avoid duplicate fetches */
 let csrfBootstrapPromise: Promise<void> | null = null;
@@ -63,7 +64,7 @@ export async function ensureCsrfToken(forceRefresh = false): Promise<void> {
 
     // Fast path: cookie already present and no forced refresh requested.
     if (!forceRefresh) {
-        const existingCookie = getCookie('_csrf');
+        const existingCookie = getCookie(CSRF_COOKIE_NAME);
         if (existingCookie) {
             lastCsrfToken = existingCookie;
             return;
@@ -115,7 +116,7 @@ export async function applyCsrfHeader(headers: Headers, isWriteMethod: boolean):
     if (typeof window === 'undefined' || !isWriteMethod) return;
 
     await ensureCsrfToken();
-    const csrfToken = getCookie('_csrf');
+    const csrfToken = getCookie(CSRF_COOKIE_NAME);
     if (csrfToken) {
         lastCsrfToken = csrfToken;
         headers.set('X-CSRF-Token', csrfToken);

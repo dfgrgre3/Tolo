@@ -63,10 +63,16 @@ function shouldDisableWebSocket(): boolean {
     ) {
       return true;
     }
-    const conn =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+    type NetworkInformation = {
+      saveData?: boolean;
+      effectiveType?: string;
+    };
+    const browserNavigator = navigator as Navigator & {
+      connection?: NetworkInformation;
+      mozConnection?: NetworkInformation;
+      webkitConnection?: NetworkInformation;
+    };
+    const conn = browserNavigator.connection || browserNavigator.mozConnection || browserNavigator.webkitConnection;
     if (conn?.saveData) return true;
     if (conn?.effectiveType && ["slow-2g", "2g"].includes(conn.effectiveType)) {
       return true;
@@ -77,7 +83,7 @@ function shouldDisableWebSocket(): boolean {
   return false;
 }
 
-export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
+export function WebSocketProvider({ children, userId, authSessionVersion }: {children: React.ReactNode;userId?: string; authSessionVersion: number;}) {
   const currentUserId = userId || "";
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
@@ -127,7 +133,7 @@ export function WebSocketProvider({ children, userId }: {children: React.ReactNo
     return () => {
       disconnect();
     };
-  }, [currentUserId, websocketEnabled, connect, disconnect]);
+  }, [currentUserId, authSessionVersion, websocketEnabled, connect, disconnect]);
 
   const socket = useWebSocketStore((state) => state.socket);
   const isConnected = useWebSocketStore((state) => state.isConnected);

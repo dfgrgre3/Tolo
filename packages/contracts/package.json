@@ -12,7 +12,8 @@
   },
   "scripts": {
     "generate": "openapi-typescript swagger.json -o src/generated/api.ts",
-    "check": "node scripts/check-fresh.mjs"
+    "check": "node scripts/check-fresh.mjs",
+    "type-check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "openapi-fetch": "^0.13.5"

@@ -18,12 +18,11 @@
  *   3. expose a single Sentry-aware entry point so the rules live in
  *      one place.
  *
- * Dev-only `Secure` stripping (so cookies work over http://localhost)
- * is centralized here too. See `forwardSetCookieForDev` for the rule.
+ * In production, invalid auth cookies are rejected rather than forwarded.
  */
 
 export const AUTH_COOKIE_NAMES = ["access_token", "refresh_token"] as const;
-export const CSRF_COOKIE_NAME = "csrf_token";
+export const CSRF_COOKIE_NAME = "_csrf";
 
 export type AuthCookieName = (typeof AUTH_COOKIE_NAMES)[number];
 
@@ -183,6 +182,27 @@ export function validateAuthCookieAttributes(
 }
 
 /**
+ * Validates a readable double-submit CSRF cookie. Unlike auth cookies, a CSRF
+ * cookie must not be HttpOnly because the browser client echoes it in a
+ * request header.
+ */
+export function validateCsrfCookieAttributes(cookie: string): string[] {
+  const violations: string[] = [];
+  const { name, attributes } = parseCookieAttributes(cookie);
+  if (attributes.has("httponly")) {
+    violations.push(`'${name}' must remain readable by JavaScript (HttpOnly is not allowed)`);
+  }
+  if (!isDevelopment() && !hasSecureAttribute(cookie)) {
+    violations.push(`'${name}' is missing Secure attribute (production)`);
+  }
+  const sameSite = getSameSiteAttribute(cookie)?.toLowerCase() ?? null;
+  if (sameSite === "none") {
+    violations.push(`'${name}' has SameSite=None which is unsafe for CSRF cookies`);
+  }
+  return violations;
+}
+
+/**
  * Forwards Set-Cookie headers from a backend response to a Next.js
  * response, applying dev-only `Secure` stripping. Auth-related
  * cookies are validated; violations are reported via the provided
@@ -195,32 +215,52 @@ export function validateAuthCookieAttributes(
  *
  * `isAuthCookie` classifies the cookie name; if the predicate
  * returns `true`, validation runs and any violation is reported.
+ *
+ * `isCsrfCookie` classifies CSRF cookies separately; CSRF cookies
+ * have different security requirements (must NOT be HttpOnly since
+ * they need to be readable by JavaScript for the double-submit pattern).
+ *
+ * CSRF cookies are validated using `validateCsrfCookieAttributes` which
+ * enforces that they remain readable by JavaScript (no HttpOnly), while
+ * auth cookies use `validateAuthCookieAttributes` which requires HttpOnly.
  */
 export function forwardSetCookies(params: {
   from: Response;
   to: { headers: { append(name: string, value: string): void } };
   isAuthCookie?: (name: string) => boolean;
+  isCsrfCookie?: (name: string) => boolean;
+  validateCookie?: (cookie: string) => string[];
   reportViolation?: (cookieName: string, violations: string[]) => void;
 }): void {
   const {
     from,
     to,
     isAuthCookie = (n) =>
-      (AUTH_COOKIE_NAMES as readonly string[]).includes(n) ||
-      n === CSRF_COOKIE_NAME,
+      (AUTH_COOKIE_NAMES as readonly string[]).includes(n),
+    isCsrfCookie = (n) => n === CSRF_COOKIE_NAME,
+    validateCookie = (cookie) => validateAuthCookieAttributes(cookie),
     reportViolation,
   } = params;
 
   for (const raw of getSetCookieHeaders(from)) {
     const adjusted = forwardSetCookieForDev(raw);
-    to.headers.append("Set-Cookie", adjusted);
-
-    if (!reportViolation) continue;
     const name = parseCookieAttributes(adjusted).name;
-    if (!isAuthCookie(name)) continue;
-    const violations = validateAuthCookieAttributes(adjusted);
-    if (violations.length > 0) {
-      reportViolation(name, violations);
+
+    // Use appropriate validation based on cookie type
+    let violations: string[] = [];
+    if (isAuthCookie(name)) {
+      // Auth cookies must be HttpOnly to prevent JavaScript access
+      violations = validateAuthCookieAttributes(adjusted);
+    } else if (isCsrfCookie(name)) {
+      // CSRF cookies must NOT be HttpOnly - they need to be readable by JavaScript
+      // for the double-submit pattern to work
+      violations = validateCsrfCookieAttributes(adjusted);
     }
+
+    if (violations.length > 0) {
+      reportViolation?.(name, violations);
+      if (!isDevelopment()) continue;
+    }
+    to.headers.append("Set-Cookie", adjusted);
   }
 }

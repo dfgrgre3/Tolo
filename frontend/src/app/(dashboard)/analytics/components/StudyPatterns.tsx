@@ -1,4 +1,5 @@
 ﻿﻿'use client';
+/* eslint-disable react/no-unknown-property -- className is valid React JSX; the rule misparses this file. */
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

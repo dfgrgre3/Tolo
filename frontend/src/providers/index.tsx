@@ -54,11 +54,13 @@ function makeQueryClient() {
 }
 
 // Composed providers for better organization and reduced nesting
-const CoreProviders = ({ children }: { children: React.ReactNode }) => (
-  <ErrorBoundary variant="global">
-    <Suspense fallback={null}>
-      <ClientLayoutProvider>
-        <QueryClientProvider client={useState(makeQueryClient)[0]}>
+function CoreRuntime({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(makeQueryClient);
+  return (
+    <ErrorBoundary variant="global">
+      <Suspense fallback={null}>
+        <ClientLayoutProvider>
+          <QueryClientProvider client={queryClient}>
           {/*
             ReactQueryPersistence renders here so it has access to the
             QueryClient. AuthProvider renders inside AppStateProviders
@@ -66,51 +68,33 @@ const CoreProviders = ({ children }: { children: React.ReactNode }) => (
             ordered so AuthProvider is mounted before the first render of
             any useQuery() consumer that may need the restored cache.
           */}
-          {children}
-        </QueryClientProvider>
-      </ClientLayoutProvider>
-    </Suspense>
-  </ErrorBoundary>
-);
+            {children}
+          </QueryClientProvider>
+        </ClientLayoutProvider>
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
 
-const AppStateProviders = ({ children }: { children: React.ReactNode }) => (
+const SessionRuntime = ({ children }: { children: React.ReactNode }) => (
   <SettingsProvider>
     <AuthProvider>
-      {/*
-        ReactQueryPersistence must be INSIDE AuthProvider so it can read
-        the current user via useAuth() and key the IndexedDB store by
-        identity (see react-query-persistence.tsx). It still sits under
-        QueryClientProvider from CoreProviders, so useQueryClient() works.
-      */}
-      <ReactQueryPersistence />
-      <EfficiencyProvider>
-        <GlobalSettingsApplier>
-          {children}
-        </GlobalSettingsApplier>
-      </EfficiencyProvider>
+      {children}
     </AuthProvider>
   </SettingsProvider>
 );
 
-/**
- * AuthGatedFeatureProviders — only activates WebSocket
- * after the user is confirmed authenticated, avoiding unnecessary connections
- * for guest visitors (reduces bundle activation + server load).
- */
-function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  return (
-    <WebSocketProvider userId={user?.id}>
-      {children}
-    </WebSocketProvider>
-  );
-}
+const DataRuntime = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <ReactQueryPersistence />
+    <EfficiencyProvider>
+      <GlobalSettingsApplier>{children}</GlobalSettingsApplier>
+    </EfficiencyProvider>
+  </>
+);
 
-const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
+const RealtimeRuntime = ({ children }: { children: React.ReactNode }) => (
   <AuthGatedFeatureProviders>
-    {/* NotificationsProvider must sit INSIDE WebSocketProvider (consumes the
-        socket) and INSIDE AuthProvider (gates fetches on isAuthenticated).
-        Feeds HeaderNotifications via useNotificationsContext. */}
     <NotificationsProvider>
       <Suspense fallback={null}>
         <OfflineSyncManager />
@@ -120,7 +104,7 @@ const FeatureProviders = ({ children }: { children: React.ReactNode }) => (
   </AuthGatedFeatureProviders>
 );
 
-const UIProviders = ({ children }: { children: React.ReactNode }) => (
+const UIRuntime = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider>
     <Suspense fallback={null}>
       <TimerBootstrap />
@@ -132,6 +116,44 @@ const UIProviders = ({ children }: { children: React.ReactNode }) => (
     </Suspense>
   </TooltipProvider>
 );
+
+/*
+ * SessionRuntime owns identity, DataRuntime owns query/persistence state,
+ * RealtimeRuntime owns sockets/notifications, and UIRuntime owns visual and
+ * lifecycle-only providers. Keep this order explicit because each layer
+ * consumes the context established by the layer above it.
+ */
+const RuntimeProviders = ({ children }: { children: React.ReactNode }) => (
+  <CoreRuntime>
+    <SessionRuntime>
+      {/*
+        ReactQueryPersistence must be INSIDE AuthProvider so it can read
+        the current user via useAuth() and key the IndexedDB store by
+        identity (see react-query-persistence.tsx). It still sits under
+        QueryClientProvider from CoreProviders, so useQueryClient() works.
+      */}
+      <DataRuntime>
+        <RealtimeRuntime>
+          <UIRuntime>{children}</UIRuntime>
+        </RealtimeRuntime>
+      </DataRuntime>
+    </SessionRuntime>
+  </CoreRuntime>
+);
+
+/**
+ * AuthGatedFeatureProviders — only activates WebSocket
+ * after the user is confirmed authenticated, avoiding unnecessary connections
+ * for guest visitors (reduces bundle activation + server load).
+ */
+function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) {
+  const { user, authSessionVersion } = useAuth();
+  return (
+    <WebSocketProvider userId={user?.id} authSessionVersion={authSessionVersion}>
+      {children}
+    </WebSocketProvider>
+  );
+}
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
@@ -156,15 +178,7 @@ type GlobalProvidersProps = {
 export function GlobalProviders({ children }: GlobalProvidersProps) {
   return (
     <LazyMotion features={domAnimation}>
-      <CoreProviders>
-        <AppStateProviders>
-          <FeatureProviders>
-            <UIProviders>
-              {children}
-            </UIProviders>
-          </FeatureProviders>
-        </AppStateProviders>
-      </CoreProviders>
+      <RuntimeProviders>{children}</RuntimeProviders>
     </LazyMotion>
   );
 }

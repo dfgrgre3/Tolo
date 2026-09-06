@@ -3,7 +3,9 @@ import {
   getSetCookieHeaders,
   forwardSetCookieForDev,
   validateAuthCookieAttributes,
+  validateCsrfCookieAttributes,
   forwardSetCookies,
+  CSRF_COOKIE_NAME,
 } from '@/lib/security/cookie-attrs';
 
 /**
@@ -160,7 +162,7 @@ describe('forwardSetCookies', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const cookies = [
       'access_token=abc; HttpOnly; Secure; SameSite=Lax',
-      'csrf_token=xyz; HttpOnly; Secure; SameSite=Lax',
+      `${CSRF_COOKIE_NAME}=xyz; Secure; SameSite=Lax`,
     ];
     const to = makeToResponse();
     forwardSetCookies({ from: makeFromResponse(cookies), to: to.target });
@@ -212,15 +214,17 @@ describe('forwardSetCookies', () => {
     expect(report).not.toHaveBeenCalled();
   });
 
-  it('reports csrf_token violations', () => {
+  it('validates CSRF cookies as readable double-submit cookies', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const report = vi.fn();
     forwardSetCookies({
-      from: makeFromResponse(['csrf_token=xyz']),
+      from: makeFromResponse([`${CSRF_COOKIE_NAME}=xyz; HttpOnly`]),
       to: makeToResponse().target,
+      isCsrfCookie: (name) => name === CSRF_COOKIE_NAME,
+      validateCookie: validateCsrfCookieAttributes,
       reportViolation: report,
     });
-    expect(report).toHaveBeenCalledWith('csrf_token', expect.any(Array));
+    expect(report).toHaveBeenCalledWith(CSRF_COOKIE_NAME, expect.any(Array));
   });
 
   it('uses the isAuthCookie predicate when provided', () => {

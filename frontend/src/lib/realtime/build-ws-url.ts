@@ -2,11 +2,11 @@
  * Single place for browser WebSocket URL to `/api/ws` (notifications + future live payloads).
  * Set `NEXT_PUBLIC_WS_HOST` (e.g. `localhost:3000`) if the WS entry is not the page host.
  *
- * The caller's identity is derived server-side from the access token — a
- * client-supplied userId query param is never trusted (IDOR/BOLA hardening).
+ * The caller's identity is derived server-side from the HttpOnly access_token
+ * cookie. Credentials are deliberately absent from the URL.
  */
-export function buildAppUserWebSocketUrl(token?: string): string {
-  if (typeof window === "undefined" || !token) return "";
+export function buildAppUserWebSocketUrl(): string {
+  if (typeof window === "undefined") return "";
 
   // 1. If explicit NEXT_PUBLIC_WS_HOST is set, use it
   let host = process.env.NEXT_PUBLIC_WS_HOST?.trim();
@@ -39,8 +39,5 @@ export function buildAppUserWebSocketUrl(token?: string): string {
   // Ensure host doesn't end with slash
   host = host.replace(/\/+$/, "");
 
-  // Must be `access_token`: the backend's extractBearerToken() only reads that
-  // query parameter name. Any other name is silently ignored and the handshake
-  // is rejected with 401 missing_token.
-  return `${wsProtocol}//${host}/api/v1/ws?access_token=${encodeURIComponent(token)}`;
+  return `${wsProtocol}//${host}/api/v1/ws`;
 }

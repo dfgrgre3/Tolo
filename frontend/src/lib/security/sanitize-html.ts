@@ -45,6 +45,22 @@ function registerLinkHook() {
   // noreferrer" (reverse tabnabbing protection).
   DOMPurify.addHook("afterSanitizeAttributes", (node) => {
     if (node.nodeName === "A" && node.getAttribute("href")) {
+      const href = node.getAttribute("href")!;
+      let protocol = "";
+      try {
+        protocol = new URL(href, "https://thanawy.invalid").protocol;
+      } catch {
+        node.removeAttribute("href");
+        node.removeAttribute("target");
+        node.removeAttribute("rel");
+        return;
+      }
+      if (protocol !== "http:" && protocol !== "https:" && protocol !== "mailto:") {
+        node.removeAttribute("href");
+        node.removeAttribute("target");
+        node.removeAttribute("rel");
+        return;
+      }
       node.setAttribute("target", "_blank");
       node.setAttribute("rel", "noopener noreferrer");
     }

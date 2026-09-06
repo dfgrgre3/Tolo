@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getCookie, ensureCsrfToken, applyCsrfHeader, isCsrfValidationFailure } from "@/lib/api/csrf";
+import { CSRF_COOKIE_NAME } from "@/lib/security/cookie-attrs";
 
 /**
  * اختبارات نمط Double Submit Cookie للـ CSRF.
@@ -7,8 +8,8 @@ import { getCookie, ensureCsrfToken, applyCsrfHeader, isCsrfValidationFailure } 
 
 describe("getCookie", () => {
   it("reads a cookie set on document", () => {
-    document.cookie = "_csrf=abc123";
-    expect(getCookie("_csrf")).toBe("abc123");
+    document.cookie = `${CSRF_COOKIE_NAME}=abc123`;
+    expect(getCookie(CSRF_COOKIE_NAME)).toBe("abc123");
   });
 
   it("returns null for a missing cookie", () => {
@@ -17,8 +18,8 @@ describe("getCookie", () => {
 
   it("handles cookies with leading spaces after semicolons", () => {
     document.cookie = "a=1";
-    document.cookie = "_csrf=xyz789";
-    expect(getCookie("_csrf")).toBe("xyz789");
+    document.cookie = `${CSRF_COOKIE_NAME}=xyz789`;
+    expect(getCookie(CSRF_COOKIE_NAME)).toBe("xyz789");
   });
 
   it("returns null outside the browser (SSR)", async () => {
@@ -42,7 +43,7 @@ describe("ensureCsrfToken", () => {
   });
 
   it("uses the cookie fast-path without a network call when present", async () => {
-    document.cookie = "_csrf=fast-path-token";
+    document.cookie = `${CSRF_COOKIE_NAME}=fast-path-token`;
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     await ensureCsrfToken();
@@ -99,7 +100,7 @@ describe("applyCsrfHeader", () => {
   });
 
   it("injects X-CSRF-Token for write methods when the cookie exists", async () => {
-    document.cookie = "_csrf=token-abc";
+    document.cookie = `${CSRF_COOKIE_NAME}=token-abc`;
     const headers = new Headers();
 
     await applyCsrfHeader(headers, true);
@@ -108,7 +109,7 @@ describe("applyCsrfHeader", () => {
   });
 
   it("is a no-op for GET-like methods", async () => {
-    document.cookie = "_csrf=token-abc";
+    document.cookie = `${CSRF_COOKIE_NAME}=token-abc`;
     const headers = new Headers();
 
     await applyCsrfHeader(headers, false);

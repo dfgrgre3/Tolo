@@ -33,7 +33,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
           name: metric.name,
           value: metric.value,
           id: metric.id,
-          url: window.location.href,
+          url: `${window.location.origin}${window.location.pathname}`,
           timestamp: new Date().toISOString(),
         });
 

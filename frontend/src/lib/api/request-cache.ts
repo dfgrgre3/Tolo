@@ -15,12 +15,9 @@
  *
  *   1. Concurrent identical GETs share one in-flight promise
  *      (`Promise<Response>`), each waiter gets its own `.clone()`.
- *   2. Server-side HTTP cache semantics (`Cache-Control`, `Vary`,
- *      `Set-Cookie`) are still honored — see `canStoreResponse()`. A
- *      `Cache-Control: no-store` / `no-cache` / `private`, a `Set-Cookie`,
- *      or a `Vary: Authorization/Cookie` response will be passed through
- *      without any client-side replay (TanStack Query owns the actual
- *      re-use decision via `staleTime`).
+ *   2. Response bodies are never cached here. TanStack Query owns response
+ *      reuse and server cache headers; this manager only shares an active
+ *      request while it is in flight.
  *   3. Identity scoping is preserved for the in-flight key so an
  *      in-flight response for user A can never be coalesced with an
  *      identical-looking in-flight request for user B (login/logout/MFA
@@ -82,21 +79,6 @@ function routeMatches(pathname: string, route: string): boolean {
  * when the origin marks it as private/non-cacheable, when it carries a
  * Set-Cookie (identity-affecting), or when it varies on identity headers.
  */
-function canStoreResponse(response: Response): boolean {
-  const cacheControl = response.headers.get("cache-control")?.toLowerCase() ?? "";
-  const pragma = response.headers.get("pragma")?.toLowerCase() ?? "";
-  const vary = response.headers.get("vary")?.toLowerCase() ?? "";
-  const denied =
-    cacheControl.includes("no-store") ||
-    cacheControl.includes("no-cache") ||
-    cacheControl.includes("private") ||
-    pragma.includes("no-cache") ||
-    response.headers.has("set-cookie") ||
-    vary.includes("authorization") ||
-    vary.includes("cookie");
-  return !denied;
-}
-
 class RequestCacheManager {
   // Stores active, in-flight Promises to collapse identical concurrent
   // requests onto a single network call. Entries are removed as soon as
@@ -104,14 +86,15 @@ class RequestCacheManager {
   // grows past the current burst of identical concurrent calls.
   private inFlight = new Map<string, Promise<Response>>();
 
-  // Cap the number of simultaneously-deduplicated fetches. This is a
-  // pathological-case guard (e.g. a single render firing 1000 GETs at the
-  // same URL); in normal traffic the map peaks at a handful of entries.
+  // Cap retained deduplication entries. This is not a network semaphore:
+  // overflow requests intentionally bypass coalescing and may fetch in
+  // parallel, while a true concurrency limit belongs at the transport layer.
   private readonly maxInFlightEntries = 200;
 
   // Current authenticated identity scope. "" = not yet resolved (page load
-  // before /auth/me answers) or signed out.
+  // before /auth/me answers or signed out.
   private identityScope = "";
+  private identityResolved = false;
 
   /**
    * Declarative Endpoint Metadata & Cache Policies
@@ -230,6 +213,7 @@ class RequestCacheManager {
 
     // User-scoped resources: bind key to authenticated identity scope
     if (policy.scope === "user") {
+      if (!this.identityResolved) return "";
       return `${SCOPED_KEY_PREFIX}${this.identityScope}|${method}:${url}`;
     }
 
@@ -249,9 +233,8 @@ class RequestCacheManager {
    * concurrent requests. This avoids two parallel cache layers drifting
    * out of sync and keeps peak memory bounded by the in-flight burst.
    *
-   * Server-side cache directives are still respected via
-   * `canStoreResponse()` so we never replay a `no-store` /
-   * `Set-Cookie` / identity-varying response through any mechanism.
+  * Response cache directives are intentionally owned by TanStack Query;
+  * this layer only removes the in-flight entry when the fetch settles.
    */
   public async getResponse(
     url: string,
@@ -277,13 +260,6 @@ class RequestCacheManager {
       try {
         const response = await fetcher();
 
-        // Non-dedup-eligible (auth, no-store, identity=ttl=0, etc.) —
-        // return as-is. We still funnel through here so callers get a
-        // consistent wrapper around the live Response.
-        if (!key || !response.ok || !canStoreResponse(response)) {
-          return response;
-        }
-
         return response;
       } finally {
         if (key) {
@@ -293,9 +269,8 @@ class RequestCacheManager {
     })();
 
     if (key) {
-      // Pathological-case guard: a runaway renderer firing thousands of
-      // identical GETs would otherwise grow the in-flight map without
-      // bound. Bail out and fall through to the fetcher.
+      // Overflow escape: avoid growing the deduplication map without bound.
+      // This does not promise a global concurrency cap.
       if (this.inFlight.size >= this.maxInFlightEntries) {
         return fetcher();
       }
@@ -389,9 +364,17 @@ class RequestCacheManager {
    */
   public setIdentity(userId: string | null | undefined): void {
     const next = (typeof userId === "string" ? userId.trim() : "") || "";
-    if (next === this.identityScope) return;
+    const changed = next !== this.identityScope;
+    const wasUnresolved = !this.identityResolved;
 
     this.identityScope = next;
+    this.identityResolved = true;
+
+    // Drop all user-scoped in-flight entries when:
+    // 1. Identity actually changed (user switch, logout/login)
+    // 2. Identity is being resolved for the first time (prevents race where
+    //    requests made before /auth/me could be associated with empty scope)
+    if (!changed && !wasUnresolved) return;
 
     // Drop any in-flight user-scoped promise from the previous identity.
     // We deliberately keep public (unscoped) in-flight entries — they

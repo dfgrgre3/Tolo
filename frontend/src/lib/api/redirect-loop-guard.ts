@@ -74,9 +74,19 @@ export type SessionPresence =
     | 'unavailable';
 
 let sessionPresence: SessionPresence = 'unknown';
+const pendingUnauthorizedEndpoints = new Set<string>();
 
 export function setSessionPresence(presence: SessionPresence): void {
     sessionPresence = presence;
+    if (presence === 'absent') {
+        pendingUnauthorizedEndpoints.clear();
+        return;
+    }
+    if (presence === 'present' && pendingUnauthorizedEndpoints.size > 0) {
+        const pending = Array.from(pendingUnauthorizedEndpoints);
+        pendingUnauthorizedEndpoints.clear();
+        handleUnauthorized(pending[0]!);
+    }
 }
 
 /**
@@ -159,13 +169,13 @@ function clearRedirectCount(): void {
 export function handleUnauthorized(endpoint: string): void {
     if (isAuthEndpoint(endpoint) || typeof window === 'undefined') return;
 
-    // Only bounce users who actually HAD a session (see setSessionPresence).
-    // A 401 for a guest means "this endpoint needs auth", which guest
-    // surfaces already handle by rendering empty states. During loading or
-    // a backend outage (status === 'unavailable') we also stay put — the
-    // session is presumed still valid and the auth state is the source of
-    // truth, so a redirect decision is deferred until it converges.
-    if (!hasConfirmedSession()) return;
+    // A guest 401 is not a redirect signal. During loading or an outage,
+    // retain the signal until AuthProvider converges instead of losing it.
+    if (sessionPresence === 'absent') return;
+    if (!hasConfirmedSession()) {
+        pendingUnauthorizedEndpoints.add(endpoint);
+        return;
+    }
 
     if (detectRedirectLoop()) {
         console.error(

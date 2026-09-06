@@ -45,6 +45,15 @@ describe("sanitizeRichTextHtml", () => {
     expect(result).not.toContain("javascript:");
   });
 
+  it("allows only http, https, mailto, and relative link protocols", () => {
+    const result = sanitizeRichTextHtml(
+      '<a href="https://example.com">https</a><a href="mailto:a@example.com">mail</a><a href="ftp://example.com">ftp</a>'
+    );
+    expect(result).toContain("https://example.com");
+    expect(result).toContain("mailto:a@example.com");
+    expect(result).not.toContain("ftp://example.com");
+  });
+
   it("strips <iframe> (clickjacking / hosted attack pages)", () => {
     const result = sanitizeRichTextHtml('<iframe src="https://evil.com"></iframe>');
     expect(result).not.toContain("iframe");

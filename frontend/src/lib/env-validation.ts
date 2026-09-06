@@ -18,9 +18,9 @@ import { logger } from './logger';
  * fails the contract at startup — see `ensureValidEnvironment()`.
  *
  * - INTERNAL_API_URL          — server-to-server backend base (no /api suffix)
- * - JWT_SECRET                — legacy HS256 fallback (32+ chars)
- *                              (JWT_PUBLIC_KEY is the recommended replacement)
- * - NEXT_PUBLIC_SUPABASE_URL
+ * - JWT_PUBLIC_KEY            — asymmetric public verification key (production)
+ * - JWT_EXPECTED_ISSUER       — required JWT issuer (production)
+ * - JWT_EXPECTED_AUDIENCE     — required JWT audience (production)
  * - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (preferred) or ANON_KEY
  *
  * If neither SUPABASE key is present, the schema accepts an empty
@@ -36,19 +36,47 @@ const serverEnvSchema = z
       .string()
       .min(32, 'JWT_SECRET must be at least 32 characters')
       .optional(),
-    JWT_PUBLIC_KEY: z.string().min(10).optional(),
+    JWT_PUBLIC_KEY: z.string().min(10, 'JWT_PUBLIC_KEY must be a valid PEM public key').optional(),
+    JWT_EXPECTED_ISSUER: z.string().min(1, 'JWT_EXPECTED_ISSUER is required').optional(),
+    JWT_EXPECTED_AUDIENCE: z.string().min(1, 'JWT_EXPECTED_AUDIENCE is required').optional(),
     NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(10).optional(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(10).optional(),
   })
-  .refine(
-    (v) => v.JWT_SECRET || v.JWT_PUBLIC_KEY,
-    {
-      message:
-        'Either JWT_SECRET (legacy HS256) or JWT_PUBLIC_KEY (asymmetric, recommended) must be set',
-      path: ['JWT_SECRET'],
+  .superRefine((env, ctx) => {
+    if (isProductionEnvironment()) {
+      // Production: JWT_PUBLIC_KEY is mandatory, JWT_SECRET is forbidden
+      if (!env.JWT_PUBLIC_KEY) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'JWT_PUBLIC_KEY is required in production', path: ['JWT_PUBLIC_KEY'] });
+      }
+      if (!env.JWT_EXPECTED_ISSUER) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'JWT_EXPECTED_ISSUER is required in production', path: ['JWT_EXPECTED_ISSUER'] });
+      }
+      if (!env.JWT_EXPECTED_AUDIENCE) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'JWT_EXPECTED_AUDIENCE is required in production', path: ['JWT_EXPECTED_AUDIENCE'] });
+      }
+      if (env.JWT_SECRET) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'JWT_SECRET is forbidden in production; use JWT_PUBLIC_KEY for edge verification',
+          path: ['JWT_SECRET'],
+        });
+      }
+    } else {
+      // Non-production: Either JWT_PUBLIC_KEY or JWT_SECRET is required
+      if (!env.JWT_PUBLIC_KEY && !env.JWT_SECRET) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'JWT_PUBLIC_KEY or JWT_SECRET is required outside production', path: ['JWT_PUBLIC_KEY'] });
+      }
+      // JWT_SECRET is only allowed in development mode
+      if (env.JWT_SECRET && process.env.NODE_ENV !== 'development') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'JWT_SECRET is only allowed in development mode. Use JWT_PUBLIC_KEY for other environments.',
+          path: ['JWT_SECRET'],
+        });
+      }
     }
-  );
+  });
 
 /**
  * Validation result shape consumed by callers / startup hooks.
@@ -57,6 +85,10 @@ interface EnvValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+function isProductionEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
 }
 
 function checkProductionVars(errors: string[], warnings: string[], isProduction: boolean) {
@@ -106,14 +138,15 @@ function checkBaseUrl(warnings: string[]) {
   }
 }
 
-function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
-  const allowedKeys = new Set([
+export const PUBLIC_ENV_KEYS = new Set([
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'NEXT_PUBLIC_API_URL',
     'NEXT_PUBLIC_ADMIN_URL',
     'NEXT_PUBLIC_BASE_URL',
+    'NEXT_PUBLIC_APP_URL',
+    'NEXT_PUBLIC_CDN_URL',
     'NEXT_PUBLIC_RP_ID',
     'NEXT_PUBLIC_APP_NAME',
     'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY',
@@ -127,25 +160,29 @@ function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
     'NEXT_PUBLIC_GRPC_URL',
   ]);
 
-  const sensitivePatterns = [
-    'key', 'token', 'secret', 'password', 'pass', 'database', 'url', 'cred', 'private'
-  ];
+export const SERVER_ENV_KEYS = new Set([
+  'INTERNAL_API_URL',
+  'JWT_SECRET',
+  'JWT_PUBLIC_KEY',
+  'JWT_PRIVATE_KEY',
+  'JWT_EXPECTED_ISSUER',
+  'JWT_EXPECTED_AUDIENCE',
+  'REDIS_URL',
+  'DATABASE_URL',
+]);
 
+function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
   for (const rawKey of Object.keys(process.env)) {
     const key = rawKey.trim();
     if (key.startsWith('NEXT_PUBLIC_')) {
       const cleanKey = key.replace(/[^A-Za-z0-9_]/g, '');
-      if (allowedKeys.has(key) || allowedKeys.has(cleanKey)) {
+      if (PUBLIC_ENV_KEYS.has(key) || PUBLIC_ENV_KEYS.has(cleanKey)) {
         if (key !== rawKey || cleanKey !== key) {
           warnings.push(`Variable ${cleanKey} has invisible or invalid characters in its name.`);
         }
         continue;
       }
-      const lowerKey = cleanKey.toLowerCase();
-      const isSensitive = sensitivePatterns.some(pattern => lowerKey.includes(pattern));
-      if (isSensitive) {
-        errors.push(`Security Violation: Sensitive variable ${rawKey} must not be exposed to the client bundle via NEXT_PUBLIC_ prefix.`);
-      }
+      errors.push(`Environment contract violation: ${rawKey} is not declared in PUBLIC_ENV_KEYS.`);
     }
   }
 }
@@ -156,7 +193,7 @@ function checkNoSensitiveKeysExposed(errors: string[], warnings: string[]) {
 function validateEnvironment(): EnvValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnvironment();
 
   checkProductionVars(errors, warnings, isProduction);
   checkSessionDuration(warnings);

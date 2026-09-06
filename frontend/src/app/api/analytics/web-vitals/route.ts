@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getRedisClientAsync } from '@/lib/redis';
+import { resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
 
 // Hard limits — the endpoint is unauthenticated by design (the metric
 // beacons fire from every visitor), so we MUST defend against both
@@ -15,6 +17,9 @@ import { z } from 'zod';
 //     `id` or a NaN `value` past the parser.
 const MAX_BODY_BYTES = 4 * 1024;
 const MAX_METRICS_PER_REQUEST = 20;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
 // Field-level whitelist. Anything outside this enum is rejected —
 // `web-vitals` 5.x only ever emits one of these names.
@@ -56,7 +61,49 @@ const payloadSchema = z.union([
   z.array(metricSchema).min(1).max(MAX_METRICS_PER_REQUEST),
 ]);
 
+async function exceedsRateLimit(request: NextRequest): Promise<boolean> {
+  const now = Date.now();
+  const clientIp = resolveTrustedClientIp(request) || 'unresolved-client';
+  const windowId = Math.floor(now / RATE_LIMIT_WINDOW_MS);
+  try {
+    const redis = await getRedisClientAsync();
+    if (redis) {
+      const key = `rate:web-vitals:${clientIp}:${windowId}`;
+      const count = await redis.incr(key);
+      if (count === 1) await redis.expire(key, 60);
+      return count > RATE_LIMIT_MAX;
+    }
+  } catch {
+    // Fall through to the per-instance limiter.
+  }
+
+  const bucket = rateLimitBuckets.get(clientIp);
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(clientIp, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    if (rateLimitBuckets.size > 10_000) {
+      for (const [key, value] of rateLimitBuckets) {
+        if (value.resetAt <= now) rateLimitBuckets.delete(key);
+      }
+    }
+    return false;
+  }
+
+  bucket.count += 1;
+  return bucket.count > RATE_LIMIT_MAX;
+}
+
 export async function POST(request: NextRequest) {
+  try {
+    if (await exceedsRateLimit(request)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      );
+    }
+  } catch {
+    // A rate-limit backend failure must not take down telemetry ingestion.
+  }
+
   // Cap the request body BEFORE we let JSON.parse allocate it. A
   // well-behaved `web-vitals` beacon is ~250 bytes; we cut anything
   // larger off at 4 KB.
@@ -104,11 +151,20 @@ export async function POST(request: NextRequest) {
 
   const metrics = Array.isArray(result.data) ? result.data : [result.data];
 
+  // Sanitize URLs to remove query parameters and sensitive data.
+  // Query strings can contain authentication tokens, session IDs, or
+  // other sensitive state that should not be logged. We keep only
+  // origin + pathname for analytics purposes.
+  const sanitizedMetrics = metrics.map(metric => ({
+    ...metric,
+    url: metric.url ? sanitizeUrl(metric.url) : undefined,
+  }));
+
   // Sanity-check the metric values against plausible Web Vitals ranges.
   // Anything outside the bounds is rejected — these would be the result
   // of a bug or a malicious payload, and we don't want them in the
   // aggregation pipeline.
-  for (const metric of metrics) {
+  for (const metric of sanitizedMetrics) {
     if (!isPlausibleMetric(metric)) {
       return NextResponse.json(
         { error: 'Implausible metric value' },
@@ -121,8 +177,7 @@ export async function POST(request: NextRequest) {
   // index by metric name without parsing a free-form string. The
   // `console.log` from the previous implementation was both noisy and
   // unstructured.
-  for (const metric of metrics) {
-    // eslint-disable-next-line no-console
+  for (const metric of sanitizedMetrics) {
     console.info(
       JSON.stringify({
         source: 'web-vitals',
@@ -139,6 +194,21 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ status: 'success' }, { status: 200 });
+}
+
+/**
+ * Sanitize URLs by removing query parameters and hash fragments.
+ * This prevents sensitive data (auth tokens, session IDs, etc.) from
+ * being logged in analytics. Returns only origin + pathname.
+ */
+function sanitizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    // If URL parsing fails, return empty string to avoid logging malformed URLs
+    return '';
+  }
 }
 
 /**

@@ -8,6 +8,7 @@ import { getBackendUrl } from './backend-url';
 import { requestCache } from './request-cache';
 import { applyCsrfHeader, ensureCsrfToken, isCsrfValidationFailure } from './csrf';
 import { handleUnauthorized } from './redirect-loop-guard';
+import { requiresIdempotencyKey } from './idempotency-policy';
 import {
     RETRYABLE_STATUSES,
     RETRY_DELAY,
@@ -17,7 +18,6 @@ import {
     sleep,
     TimeoutError,
     CallerAbortError,
-    NetworkError,
 } from './retry-policy';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
@@ -39,8 +39,17 @@ interface ApiEnvelope<T> {
     code?: string;
 }
 
-const API_TIMEOUT = 30000; // 30 seconds
-const MAX_RETRIES = 3;
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | object;
+type JsonBody<T> = T extends FormData | Blob | ArrayBuffer | URLSearchParams | ReadableStream
+    ? never
+    : T;
+
+const API_TIMEOUT = 15000;
+// Proxy timeout is 12s (FETCH_TIMEOUT_MS in /api/[...path]/route.ts)
+// Client timeout should be slightly larger than proxy timeout to allow
+// proper error propagation, but not so large that it masks backend issues.
+const MAX_RETRIES = 0;
 
 export class ApiError extends Error {
     public status: number;
@@ -56,29 +65,6 @@ export class ApiError extends Error {
     }
 }
 
-const isBrowser = typeof window !== 'undefined';
-
-export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api/v1';
-
-// Server-side base URL is resolved through the shared helper so every
-// server caller agrees on the same value (and so a missing config throws
-// in production instead of silently routing to localhost).
-// getBackendUrl() throws in production when neither INTERNAL_API_URL nor
-// NEXT_PUBLIC_API_URL is set — that's the intended fail-fast behavior.
-const BASE_API_URL = trimTrailingSlashes(
-    isBrowser
-        ? '/api'
-        : (() => {
-            try {
-                return getBackendUrl();
-            } catch {
-                // During build / instrumentation the env may legitimately be
-                // unset. Defer to the dev fallback so the module can load.
-                return DEFAULT_API_URL;
-            }
-        })()
-);
-
 function normalizeEndpoint(endpoint: string): string {
     if (!endpoint) return '';
     if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
@@ -89,7 +75,7 @@ function normalizeEndpoint(endpoint: string): string {
 
     // In the browser, always use relative path (/api/...) to route through Next.js proxy.
     // This avoids CORS issues entirely.
-    if (isBrowser) {
+    if (typeof window !== 'undefined') {
         if (normalized.startsWith('/api/')) {
             return normalized;
         }
@@ -103,7 +89,7 @@ function normalizeEndpoint(endpoint: string): string {
     const withoutApiPrefix = normalized.startsWith('/api/')
         ? normalized.substring(4)
         : normalized;
-    const base = BASE_API_URL.replace(/\/api(\/v1)?$/, '');
+    const base = trimTrailingSlashes(getBackendUrl()).replace(/\/api(\/v1)?$/, '');
     return `${base}/api/v1${withoutApiPrefix}`;
 }
 
@@ -147,7 +133,7 @@ async function buildApiError(response: Response): Promise<ApiError> {
 }
 
 class ApiClient {
-    private async buildHeaders(customOptions: RequestInit): Promise<Headers> {
+    private async buildHeaders(endpoint: string, customOptions: RequestInit): Promise<Headers> {
         const headers = new Headers();
 
         if (!(customOptions.body instanceof FormData)) {
@@ -176,8 +162,10 @@ class ApiClient {
         // then inject it as the X-CSRF-Token header (Double Submit Cookie pattern).
         await applyCsrfHeader(headers, isWriteMethod);
 
-        // Auto-generate Idempotency-Key for write requests (idempotency middleware)
-        if (isWriteMethod && !headers.has('Idempotency-Key')) {
+        // Only explicitly replay-safe endpoint families receive an idempotency
+        // key. Login, logout, telemetry, search-like POSTs, and uploads have
+        // different semantics and must not inherit payment retry behavior.
+        if (isWriteMethod && requiresIdempotencyKey(customOptions.method || 'GET', endpoint) && !headers.has('Idempotency-Key')) {
             headers.set('Idempotency-Key', crypto.randomUUID());
         }
 
@@ -232,7 +220,7 @@ class ApiClient {
                 }
             }
 
-            const headers = await this.buildHeaders(customOptions);
+            const headers = await this.buildHeaders(endpoint, customOptions);
             if (savedIdempotencyKey) {
                 headers.set('Idempotency-Key', savedIdempotencyKey);
             } else {
@@ -341,12 +329,17 @@ class ApiClient {
         return this.request<T>(endpoint, { ...options, method: 'GET' });
     }
 
-    public post<T>(endpoint: string, body: unknown, options?: FetchOptions): Promise<T> {
-        return this.request<T>(endpoint, {
+    public postJson<TResult, TBody extends JsonValue = JsonValue>(endpoint: string, body: JsonBody<TBody>, options?: FetchOptions): Promise<TResult> {
+        return this.request<TResult>(endpoint, {
             ...options,
             method: 'POST',
             body: JSON.stringify(body),
         });
+    }
+
+    /** @deprecated Use postJson() for JSON or postRaw() for another body type. */
+    public post<TResult, TBody extends JsonValue = JsonValue>(endpoint: string, body: JsonBody<TBody>, options?: FetchOptions): Promise<TResult> {
+        return this.postJson<TResult, TBody>(endpoint, body, options);
     }
 
     /**
@@ -359,6 +352,14 @@ class ApiClient {
             ...options,
             method: 'POST',
             body: formData,
+        });
+    }
+
+    public postRaw<T>(endpoint: string, body: BodyInit, options?: FetchOptions): Promise<T> {
+        return this.request<T>(endpoint, {
+            ...options,
+            method: 'POST',
+            body,
         });
     }
 

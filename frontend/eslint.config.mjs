@@ -209,7 +209,7 @@ export default [
       // Allow lexical declarations in case blocks
       "no-case-declarations": "off",
       // Allow styled-jsx properties
-      "react/no-unknown-property": ["error", { ignore: ["jsx", "global"] }],
+      "react/no-unknown-property": ["error", { ignore: ["jsx", "global", "className"] }],
       // Prevent importing old/deprecated files
       "no-restricted-imports": [
         "error",

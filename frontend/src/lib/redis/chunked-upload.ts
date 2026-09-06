@@ -185,13 +185,16 @@ export async function compareAndSetSessionStatus(
   expectedFrom: UploadSessionStatus | null
 ): Promise<'ok' | 'stale' | 'missing'> {
   const redis = assertRedis();
-  const raw = (await redis.eval(
+  const evalScript = (redis as unknown as {
+    eval(script: string, keyCount: number, ...args: string[]): Promise<number>;
+  }).eval.bind(redis);
+  const raw = await evalScript(
     CAS_STATUS_SCRIPT,
     1,
     sessionKey(uploadId),
     expectedFrom ?? '',
     nextStatus
-  )) as number;
+  );
 
   if (raw === 1) return 'ok';
   if (raw === 0) return 'stale';

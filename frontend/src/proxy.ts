@@ -7,15 +7,10 @@ import {
   validateAuthCookieAttributes,
 } from '@/lib/security/cookie-attrs';
 import {
-  ALLOWED_AUTHENTICATED_ROLES,
-  ADMIN_PANEL_ROLES,
-  isAdminRoute,
-  isProtectedRoute,
-  isGuestRoute,
-  isPublicApiEndpoint,
-  hasRole,
-  findRoleRule,
-} from '@/lib/auth/route-guards';
+  isProtectedPage,
+  isGuestPage,
+  isPublicApiPath,
+} from '@/lib/security/policy/route-policy';
 
 function updateCookieHeader(headers: Headers, accessToken?: string, refreshToken?: string) {
   if (!accessToken && !refreshToken) return;
@@ -62,13 +57,13 @@ function appendRefreshCookies(
 ): void {
   for (const cookie of cookies) {
     const adjusted = forwardSetCookieForDev(cookie);
-    response.headers.append('Set-Cookie', adjusted);
     const violations = validateAuthCookieAttributes(adjusted);
+    if (violations.length > 0 && process.env.NODE_ENV === 'production') {
+      console.error('[proxy] Refusing insecure auth cookie from backend', violations);
+      continue;
+    }
+    response.headers.append('Set-Cookie', adjusted);
     if (violations.length > 0) {
-      // The frontend is a pass-through: even if a backend cookie
-      // is missing HttpOnly/Secure, we forward it and rely on
-      // Sentry breadcrumbs + backend fixes. Refusing the cookie
-      // would lock users out, which is worse than the warning.
       const { addBreadcrumb } = require('@sentry/nextjs') as typeof import('@sentry/nextjs');
       addBreadcrumb({
         category: 'auth.cookie',
@@ -95,8 +90,8 @@ export async function proxy(request: NextRequest) {
   // Add pathname to headers for conditional rendering in layouts
   requestHeaders.set('x-pathname', pathname);
 
-  const isProtected = isProtectedRoute(pathname);
-  const isGuest = isGuestRoute(pathname);
+  const isProtected = isProtectedPage(pathname);
+  const isGuest = isGuestPage(pathname);
 
   const accessToken = request.cookies.get('access_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
@@ -139,7 +134,7 @@ export async function proxy(request: NextRequest) {
   // This handles token refresh for ALL API requests, not just protected routes
   // This ensures that guest pages can still make authenticated API calls
   const isApiRequest = pathname.startsWith('/api/');
-  const isPublicEndpoint = isPublicApiEndpoint(pathname);
+  const isPublicEndpoint = isPublicApiPath(pathname);
 
   let payload: Awaited<ReturnType<typeof verifyAccessToken>> = null;
   let refreshAttempted = false;
@@ -221,44 +216,9 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // Verify the (signature-verified) JWT payload and role authorization
-    if (!hasRole(payload?.role, ALLOWED_AUTHENTICATED_ROLES)) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Access Denied: Insufficient Permissions" }, { status: 403 });
-      }
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'insufficient_permissions');
-      const redirectRes = NextResponse.redirect(loginUrl);
-      redirectRes.cookies.delete('access_token');
-      redirectRes.cookies.delete('refresh_token');
-      return redirectRes;
-    }
-
-    // Admin layout guards
-    if (isAdminRoute(pathname)) {
-      if (!hasRole(payload?.role, ADMIN_PANEL_ROLES)) {
-        if (pathname.startsWith("/api/")) {
-          return NextResponse.json({ error: "Access Denied: Admin privileges required" }, { status: 403 });
-        }
-        return NextResponse.redirect(new URL('/access-denied', request.url));
-      }
-    }
-
-    // Additional API route-specific coarse gating (Defense-in-depth).
-    // NOTE (Two-Tier Architecture):
-    // Edge provides fast rejection / coarse route gating based on JWT claims.
-    // The Go backend is the absolute authority for fine-grained authorization,
-    // real-time user status (e.g. suspended accounts), action permissions,
-    // and resource ownership / course entitlement.
-    //
-    // The rule table lives in `route-guards.ts` (ROLE_RULES) so adding a
-    // new role-gated endpoint is a one-line change there — no proxy edit.
-    if (pathname.startsWith("/api/")) {
-      const roleRule = findRoleRule(pathname);
-      if (roleRule && !hasRole(payload?.role, roleRule.allowedRoles)) {
-        return NextResponse.json({ error: roleRule.errorMessage }, { status: 403 });
-      }
-    }
+    // The Edge only verifies session integrity and expiry. It deliberately
+    // does not authorize roles from a potentially stale JWT claim; the
+    // backend is the sole authority for current permissions and ownership.
 
     if (newAccessToken || newRefreshToken) {
       updateCookieHeader(requestHeaders, newAccessToken, newRefreshToken);

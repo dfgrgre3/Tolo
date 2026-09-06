@@ -148,15 +148,21 @@ export async function listFilesServer(options: ListFilesOptions): Promise<FileLi
     throw new Error(`Failed to list files: ${error.message}`);
   }
 
-  return (data || []).map((f) => ({
+  return (data || []).map((f) => {
+    const metadata = f.metadata && typeof f.metadata === 'object'
+      ? f.metadata as Record<string, unknown>
+      : {};
+    const rawSize = metadata.size;
+    return {
     name: f.name,
     id: f.id || "",
     updated_at: f.updated_at || "",
     created_at: f.created_at || "",
     last_accessed_at: f.last_accessed_at || "",
-    metadata: (f.metadata || {}) as Record<string, unknown>,
-    size: (f.metadata && typeof f.metadata === 'object' && 'size' in f.metadata) ? Number((f.metadata as any).size) : 0,
-  }));
+    metadata,
+    size: typeof rawSize === 'number' || typeof rawSize === 'string' ? Number(rawSize) : 0,
+    };
+  });
 }
 
 export async function deleteFilesServer(options: DeleteOptions): Promise<void> {
@@ -248,11 +254,14 @@ export async function updateBucketServer(
 ): Promise<BucketInfo> {
   const supabase = await getSupabaseServerClient();
 
-  const updatePayload: any = {};
+  const updatePayload: Partial<Pick<CreateBucketOptions, 'public' | 'fileSizeLimit' | 'allowedMimeTypes'>> = {};
   if (options.public !== undefined) updatePayload.public = options.public;
   if (options.fileSizeLimit !== undefined) updatePayload.fileSizeLimit = options.fileSizeLimit;
   if (options.allowedMimeTypes !== undefined) updatePayload.allowedMimeTypes = options.allowedMimeTypes;
-  const { data, error } = await supabase.storage.updateBucket(name, updatePayload);
+  const { data, error } = await supabase.storage.updateBucket(
+    name,
+    updatePayload as Parameters<typeof supabase.storage.updateBucket>[1],
+  );
 
   if (error) {
     throw new Error(`Failed to update bucket: ${error.message}`);

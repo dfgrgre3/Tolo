@@ -82,12 +82,13 @@ describe("isGuestRoute", () => {
 });
 
 describe("isPublicApiEndpoint", () => {
-  it("flags declared public endpoints and their sub-paths", () => {
+  it("flags only exact declared public endpoints", () => {
     expect(isPublicApiEndpoint("/api/categories")).toBe(true);
-    expect(isPublicApiEndpoint("/api/categories/123")).toBe(true);
     expect(isPublicApiEndpoint("/api/teachers")).toBe(true);
     expect(isPublicApiEndpoint("/api/homepage")).toBe(true);
     expect(isPublicApiEndpoint("/api/settings")).toBe(true);
+    expect(isPublicApiEndpoint("/api/settings/private")).toBe(false);
+    expect(isPublicApiEndpoint("/api/blog/admin")).toBe(false);
   });
 
   it("does NOT treat text-prefix lookalikes as public", () => {
@@ -111,6 +112,7 @@ describe("findRoleRule", () => {
 
     // Sub-path is matched too.
     expect(findRoleRule("/api/teaching/dashboard")).not.toBeNull();
+    expect(findRoleRule("/api/courses/create-bulk")).toBeNull();
   });
 
   it("returns a rule for student-gated endpoints and their sub-paths", () => {

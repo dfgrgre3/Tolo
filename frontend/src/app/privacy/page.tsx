@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import {
   Shield,
   Lock,
@@ -44,6 +45,28 @@ export const metadata: Metadata = {
 };
 
 const effectiveDate = "1 يوليو 2026";
+
+function renderPolicyItem(item: string): ReactNode {
+  const tokens = item.split(/(\*\*.*?\*\*|<strong>.*?<\/strong>|<a\b[^>]*>.*?<\/a>)/g);
+  return tokens.map((token, index) => {
+    if (!token) return null;
+    if (token.startsWith("**")) {
+      return <strong key={index} className="text-foreground font-bold">{token.slice(2, -2)}</strong>;
+    }
+    if (token.startsWith("<strong>")) {
+      return <strong key={index} className="text-foreground font-bold">{token.slice(8, -9)}</strong>;
+    }
+    if (token.startsWith("<a")) {
+      const href = token.match(/href="([^"]+)"/)?.[1] ?? "/";
+      const text = token.match(/>(.*?)<\/a>/)?.[1] ?? "رابط";
+      if (href.startsWith("/")) {
+        return <Link key={index} href={href} className="text-primary underline hover:text-primary/80 transition-colors">{text}</Link>;
+      }
+      return <span key={index}>{text}</span>;
+    }
+    return <span key={index}>{token}</span>;
+  });
+}
 
 const tableOfContents = [
   { id: "collect", title: "البيانات التي نجمعها" },
@@ -439,14 +462,7 @@ export default function PrivacyPage() {
                           className="flex items-start gap-3 text-sm sm:text-base text-muted-foreground leading-relaxed"
                         >
                           <ChevronRight className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: item.replace(
-                                /\*\*(.*?)\*\*/g,
-                                '<strong class="text-foreground font-bold">$1</strong>'
-                              ),
-                            }}
-                          />
+                          <span>{renderPolicyItem(item)}</span>
                         </li>
                       ))}
                     </ul>

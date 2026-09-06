@@ -3,6 +3,8 @@ import { POST as webVitalsPost } from '../analytics/web-vitals/route';
 import { POST as revalidatePost } from '../cache/revalidate/route';
 import { getBackendUrl } from '@/lib/api/backend-url';
 import { forwardSetCookies } from '@/lib/security/cookie-attrs';
+import { decodeStorageSegments, isPublicStorageBucket, FORWARDED_COOKIE_NAMES } from '@/lib/security/policy/storage-policy';
+import { getUpstreamAuthorization, resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
 
 // =============================================================================
 // Configuration
@@ -29,7 +31,8 @@ export const maxDuration = 30;
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // Hard timeout for requests before failing fast to avoid blocking serverless threads.
-const FETCH_TIMEOUT_MS = 20000;
+// Set to 12s to be slightly less than client timeout (15s) for proper error propagation.
+const FETCH_TIMEOUT_MS = 12000;
 
 // Maximum allowed request body size forwarded through the proxy.
 // Requests advertising a larger Content-Length are rejected immediately (413)
@@ -62,8 +65,6 @@ function getProxyBackendUrl(): string {
  * Number of trusted reverse proxies in front of this proxy.
  * See `resolveClientIp` for the policy.
  */
-const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
-
 /**
  * Derive the real client IP without trusting attacker-controlled
  * X-Forwarded-For values.
@@ -74,27 +75,13 @@ const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
  * rate-limiting, audit logs, and abuse detection.
  *
  * Policy:
- *   - Prefer `x-real-ip` (set by our single trusted reverse proxy).
  *   - If TRUSTED_PROXY_COUNT > 0, pick the hop just BEFORE the trusted
  *     suffix of the XFF chain.
  *   - Otherwise drop XFF entirely (empty string → backend logs "unknown"
  *     instead of a spoofed value).
  */
 function resolveClientIp(request: NextRequest): string {
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-
-  if (TRUSTED_PROXY_COUNT > 0) {
-    const xff = request.headers.get('x-forwarded-for');
-    if (xff) {
-      const hops = xff.split(',').map((h) => h.trim()).filter(Boolean);
-      const trustedStart = Math.max(0, hops.length - TRUSTED_PROXY_COUNT);
-      const clientIdx = trustedStart - 1;
-      if (clientIdx >= 0 && hops[clientIdx]) return hops[clientIdx];
-    }
-  }
-
-  return '';
+  return resolveTrustedClientIp(request);
 }
 
 function upstreamHeaders(request: NextRequest): Record<string, string> {
@@ -103,20 +90,7 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   // Only accept the Authorization header. Tokens in URL query parameters are
   // a leakage risk: they end up in proxy logs, browser history, server access
   // logs and analytics tools. They are intentionally NOT supported here.
-  let auth = request.headers.get('authorization');
-  if (!auth) {
-    // Fallback: parse from Cookie header (Bearer-style token set as a cookie).
-    // This is safer than URL params because cookies are not logged in URLs.
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = /(?:^|;\s*)(?:access_token|auth_token|bearer_token)=([^;]+)/.exec(cookieHeader);
-    if (match && match[1]) {
-      try {
-        auth = `Bearer ${decodeURIComponent(match[1])}`;
-      } catch {
-        auth = `Bearer ${match[1]}`;
-      }
-    }
-  }
+  const auth = getUpstreamAuthorization(request);
 
   if (auth) headers['Authorization'] = auth;
 
@@ -127,17 +101,7 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
     // cookies that the backend has no business seeing — and every extra
     // cookie is one more byte of PII or internal state leaking upstream.
     // Only forward the cookies the backend actually consumes.
-    const ALLOWED_COOKIES = new Set([
-      'access_token',
-      'refresh_token',
-      '__session',
-      'auth_token',
-      'bearer_token',
-      // CSRF token used by backend double-submit pattern. Sent both as a
-      // cookie and as X-CSRF-Token header below.
-      'csrf_token',
-      '_csrf',
-    ]);
+    const ALLOWED_COOKIES = FORWARDED_COOKIE_NAMES;
     const forwarded = cookie
       .split(/;\s*/)
       .filter((kv) => kv.includes('='))
@@ -154,7 +118,7 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
 
   // Resolve client IP from trusted-proxy chain rather than trusting the
   // raw X-Forwarded-For header. See resolveClientIp() below for the
-  // spoof-resistance policy (TRUSTED_PROXY_COUNT / x-real-ip).
+  // spoof-resistance policy (TRUSTED_PROXY_COUNT).
   const ip = resolveClientIp(request);
   if (ip) headers['x-forwarded-for'] = ip;
 
@@ -319,10 +283,10 @@ function handleErrorResponse(response: Response, errorText: string) {
 
 async function handleProxy(
   request: NextRequest,
-  props: { params: Promise<any> }
+  props: { params: Promise<{ path: string[] }> }
 ) {
   const params = await props.params;
-  const path = (params.path as string[]).join('/');
+  const path = params.path.join('/');
 
   // SECURITY: /api/storage/* is a redirect-only fast path to the Supabase
   // Storage CDN. A redirect is only safe when the target object is genuinely
@@ -339,14 +303,12 @@ async function handleProxy(
   //   - Reject path traversal (no "..", no encoded slashes that escape the
   //     bucket segment, no leading slashes).
   if (params.path[0] === 'storage') {
-    const PUBLIC_STORAGE_BUCKETS = new Set([
-      'public-assets',
-      'avatars',
-    ]);
-
-    const remaining = params.path.slice(1);
+    const remaining = decodeStorageSegments(params.path.slice(1));
+    if (!remaining) {
+      return NextResponse.json({ error: 'Invalid storage path' }, { status: 400 });
+    }
     const bucket = remaining[0];
-    if (!bucket || !PUBLIC_STORAGE_BUCKETS.has(bucket)) {
+    if (!isPublicStorageBucket(bucket)) {
       console.warn(
         `[API Proxy] Refused storage bypass for bucket=${bucket || '(none)'} path=/api/${path}. ` +
         `Only public buckets may be redirected; private content must be served via a signed URL route.`
@@ -357,20 +319,21 @@ async function handleProxy(
       );
     }
 
-    // Reject any traversal segment anywhere in the remainder.
-    const hasTraversal = remaining.some(
-      (segment) => segment === '' || segment === '.' || segment === '..' || segment.includes('\\')
-    );
-    if (hasTraversal) {
-      return NextResponse.json({ error: 'Invalid storage path' }, { status: 400 });
+    const configuredSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    if (!configuredSupabaseUrl) {
+      console.error('[API Proxy] Storage redirect requested without NEXT_PUBLIC_SUPABASE_URL');
+      return NextResponse.json(
+        { error: 'Storage service unavailable' },
+        { status: 503 },
+      );
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vowortqooklkavlaqigr.supabase.co';
+    const supabaseUrl = configuredSupabaseUrl.replace(/\/+$/, '');
     const { search } = new URL(request.url);
-    const objectPath = remaining.slice(1).join('/');
+    const objectPath = remaining.slice(1).map(encodeURIComponent).join('/');
+    const encodedBucket = encodeURIComponent(bucket);
     const redirectUrl = objectPath
-      ? `${supabaseUrl}/storage/${bucket}/${objectPath}${search}`
-      : `${supabaseUrl}/storage/${bucket}${search}`;
+      ? `${supabaseUrl}/storage/${encodedBucket}/${objectPath}${search}`
+      : `${supabaseUrl}/storage/${encodedBucket}${search}`;
     console.log(`[API Proxy] Media redirect (public bucket): /api/${path} -> ${redirectUrl}`);
     return NextResponse.redirect(redirectUrl, { status: 307 });
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
 
 // CSP reports are small (<2 KB in practice). Anything bigger is abuse or
 // a misuse of the endpoint — reject before parsing so attackers can't
@@ -19,18 +20,7 @@ const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 const SAMPLE_RATE_PROD = 0.1;
 
 function clientIp(request: NextRequest): string {
-  // Same policy as src/app/api/[...path]/route.ts: prefer x-real-ip
-  // (single trusted reverse proxy), fall back to the XFF hop just
-  // before the trusted suffix. Never trust the leftmost XFF value.
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-  const xff = request.headers.get('x-forwarded-for');
-  if (xff) {
-    const hops = xff.split(',').map((h) => h.trim()).filter(Boolean);
-    const candidate = hops.length >= 2 ? hops[hops.length - 2] : hops[0];
-    if (candidate) return candidate;
-  }
-  return 'unknown';
+  return resolveTrustedClientIp(request) || 'unknown';
 }
 
 function rateLimit(ip: string): boolean {

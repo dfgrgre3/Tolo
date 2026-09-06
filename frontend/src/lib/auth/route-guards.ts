@@ -92,6 +92,7 @@ export interface RoleRule {
   path: string;
   allowedRoles: readonly string[];
   errorMessage: string;
+  match: "exact" | "subtree";
 }
 
 export const ROLE_RULES: readonly RoleRule[] = [
@@ -99,21 +100,25 @@ export const ROLE_RULES: readonly RoleRule[] = [
     path: "/api/teaching",
     allowedRoles: TEACHER_ENDPOINT_ROLES,
     errorMessage: "Access Denied: Teacher privileges required",
+    match: "subtree",
   },
   {
     path: "/api/courses/create",
     allowedRoles: TEACHER_ENDPOINT_ROLES,
     errorMessage: "Access Denied: Teacher privileges required",
+    match: "exact",
   },
   {
     path: "/api/student",
     allowedRoles: STUDENT_ENDPOINT_ROLES,
     errorMessage: "Access Denied: Student access required",
+    match: "subtree",
   },
   {
     path: "/api/exams/submit",
     allowedRoles: STUDENT_ENDPOINT_ROLES,
     errorMessage: "Access Denied: Student access required",
+    match: "exact",
   },
 ];
 
@@ -141,7 +146,7 @@ export function isGuestRoute(pathname: string): boolean {
 }
 
 export function isPublicApiEndpoint(pathname: string): boolean {
-  return PUBLIC_API_ENDPOINTS.some((endpoint) => matchesPath(pathname, endpoint));
+  return PUBLIC_API_ENDPOINTS.includes(pathname);
 }
 
 export function hasRole(role: string | null | undefined, allowed: readonly string[]): boolean {
@@ -162,7 +167,7 @@ export function hasRole(role: string | null | undefined, allowed: readonly strin
  */
 export function findRoleRule(pathname: string): RoleRule | null {
   for (const rule of ROLE_RULES) {
-    if (matchesPath(pathname, rule.path)) {
+    if (rule.match === "exact" ? pathname === rule.path : matchesPath(pathname, rule.path)) {
       return rule;
     }
   }
