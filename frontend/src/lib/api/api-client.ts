@@ -3,8 +3,7 @@
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
 import { performanceMonitor } from '../metrics/performance';
-import { trimTrailingSlashes } from '../utils';
-import { getBackendUrl } from './backend-url';
+import { getBackendApiUrl } from './backend-url';
 import { requestCache } from './request-cache';
 import { applyCsrfHeader, ensureCsrfToken, isCsrfValidationFailure } from './csrf';
 import { handleUnauthorized } from './redirect-loop-guard';
@@ -49,7 +48,9 @@ const API_TIMEOUT = 15000;
 // Proxy timeout is 12s (FETCH_TIMEOUT_MS in /api/[...path]/route.ts)
 // Client timeout should be slightly larger than proxy timeout to allow
 // proper error propagation, but not so large that it masks backend issues.
-const MAX_RETRIES = 0;
+// One retry is enabled for methods explicitly marked safe by retry-policy.
+// POST/PATCH remain excluded; GET/HEAD/OPTIONS use the existing backoff.
+const MAX_RETRIES = 1;
 
 export class ApiError extends Error {
     public status: number;
@@ -82,15 +83,7 @@ function normalizeEndpoint(endpoint: string): string {
         return `/api${normalized}`;
     }
 
-    // Server-side (SSR) requests use the absolute base URL. The backend is
-    // versioned at /api/v1 (internal/infrastructure/api/*_routes.go) — always
-    // land on exactly one /api/v1 segment regardless of whether BASE_API_URL
-    // or the caller-supplied endpoint already includes one.
-    const withoutApiPrefix = normalized.startsWith('/api/')
-        ? normalized.substring(4)
-        : normalized;
-    const base = trimTrailingSlashes(getBackendUrl()).replace(/\/api(\/v1)?$/, '');
-    return `${base}/api/v1${withoutApiPrefix}`;
+    return getBackendApiUrl(normalized);
 }
 
 

@@ -187,7 +187,11 @@ export const SECTION_CONFIG = {
  * API Configuration
  */
 export const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  // Relative path: the browser always calls same-origin /api/*, which the
+  // Next.js catch-all proxy (src/app/api/[...path]/route.ts) forwards to the
+  // Go backend. A previous fallback here pointed at the frontend's own dev
+  // port (3000) instead of the backend, which is never a valid API target.
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
   timeout: 30000,
   retries: 3,
   retryDelay: 1000,

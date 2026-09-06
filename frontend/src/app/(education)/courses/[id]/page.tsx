@@ -8,6 +8,7 @@ import CourseDetailClient from "./CourseDetailClient";
 import { SITE } from "@thanawy/shared/site-config";
 import type { Course, CourseLesson } from "./_components/types";
 import { levelConfig } from "./_components/types";
+import { getBackendApiUrl } from "@/lib/api/backend-url";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -15,10 +16,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-gamma-lyart-16.vercel.app/api";
 
   try {
-    const res = await fetch(`${apiUrl}/courses/${id}`, {
+    const res = await fetch(getBackendApiUrl(`/courses/${id}`), {
       next: { revalidate: 3600 } // Cache for 1 hour
     });
 
@@ -80,13 +80,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { id } = await params;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-gamma-lyart-16.vercel.app/api";
   let schema = null;
   let initialCourseData: Course | null = null;
   let initialLessons: CourseLesson[] = [];
 
   try {
-    const res = await fetch(`${apiUrl}/courses/${id}`, {
+    const res = await fetch(getBackendApiUrl(`/courses/${id}`), {
       next: { revalidate: 3600 }
     });
     if (res.ok) {

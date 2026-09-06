@@ -26,7 +26,7 @@ export const RETRYABLE_STATUSES = [408, 429, 502, 504];
 //   would defeat it. We restrict retries to methods whose second attempt is
 //   guaranteed safe under HTTP semantics (GET) or where the server enforces
 //   idempotency by design (PUT, DELETE).
-export const RETRYABLE_METHODS = ['GET', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'];
+export const RETRYABLE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
 export const RETRY_DELAY = 1000;
 

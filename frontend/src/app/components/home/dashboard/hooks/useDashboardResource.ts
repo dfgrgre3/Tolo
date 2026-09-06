@@ -73,7 +73,7 @@ export function useDashboardResource<T>(
 
         if (result.error) {
           // Distinguish abort from real errors
-          if (result.error.name === "AbortError") {
+          if (result.error.name === "AbortError" || result.error.name === "CallerAbortError") {
             return;
           }
 
@@ -93,7 +93,7 @@ export function useDashboardResource<T>(
         if (!isMounted || controller.signal.aborted) return;
 
         // Catch unexpected errors not handled by safeFetch
-        if (err instanceof Error && err.name !== "AbortError") {
+        if (err instanceof Error && err.name !== "AbortError" && err.name !== "CallerAbortError") {
           logger.error(`[useDashboardResource] Unexpected error loading ${resourceId}`, err);
           setError(`حدث خطأ غير متوقع أثناء تحميل ${resourceId}`);
           setData(null);

@@ -1,3 +1,0 @@
-﻿╞Æ  (Dynamic)  server-rendered on demand
-
-BUILD=0

@@ -28,8 +28,8 @@ describe("retry constants", () => {
     expect(RETRYABLE_METHODS).not.toContain("POST");
     expect(RETRYABLE_METHODS).not.toContain("PATCH");
     expect(RETRYABLE_METHODS).toContain("GET");
-    expect(RETRYABLE_METHODS).toContain("PUT");
-    expect(RETRYABLE_METHODS).toContain("DELETE");
+    expect(RETRYABLE_METHODS).not.toContain("PUT");
+    expect(RETRYABLE_METHODS).not.toContain("DELETE");
   });
 });
 

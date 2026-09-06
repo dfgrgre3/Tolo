@@ -41,6 +41,44 @@ export function isFileTypeAllowed(mimeType: string): boolean {
   );
 }
 
+/**
+ * Validate a file's leading bytes against its declared content type.
+ * Client MIME metadata is advisory; these checks provide a server-side
+ * signature check for the binary formats accepted by the upload routes.
+ * Text formats are validated separately by their parsers/sanitizers.
+ */
+export function hasValidContentSignature(
+  bytes: Uint8Array,
+  mimeType: string,
+): boolean {
+  const startsWith = (...signature: number[]) =>
+    signature.every((byte, index) => bytes[index] === byte);
+  const asciiAt = (offset: number, value: string) =>
+    value.split('').every((character, index) => bytes[offset + index] === character.charCodeAt(0));
+
+  if (mimeType === 'application/pdf') return asciiAt(0, '%PDF-');
+  if (mimeType === 'application/zip') return startsWith(0x50, 0x4b, 0x03, 0x04) || startsWith(0x50, 0x4b, 0x05, 0x06);
+  if (mimeType === 'image/png') return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+  if (mimeType === 'image/jpeg') return startsWith(0xff, 0xd8, 0xff);
+  if (mimeType === 'image/gif') return asciiAt(0, 'GIF87a') || asciiAt(0, 'GIF89a');
+  if (mimeType === 'image/webp') return asciiAt(0, 'RIFF') && asciiAt(8, 'WEBP');
+  if (mimeType === 'audio/mpeg') return asciiAt(0, 'ID3') || (bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0);
+  if (mimeType === 'audio/wav') return asciiAt(0, 'RIFF') && asciiAt(8, 'WAVE');
+  if (mimeType === 'audio/ogg' || mimeType === 'video/ogg') return asciiAt(0, 'OggS');
+  if (mimeType === 'video/mp4') return asciiAt(4, 'ftyp');
+  if (mimeType === 'font/woff') return asciiAt(0, 'wOFF');
+  if (mimeType === 'font/woff2') return asciiAt(0, 'wOF2');
+  if (mimeType === 'font/ttf' || mimeType === 'font/otf') return asciiAt(0, 'OTTO') || startsWith(0x00, 0x01, 0x00, 0x00);
+
+  // JSON, CSV, Markdown, and plain text have no reliable magic number.
+  if (mimeType.startsWith('text/') || mimeType === 'application/json') {
+    return !bytes.includes(0);
+  }
+
+  // SVG is validated by sanitizeSvg before storage.
+  return mimeType === 'image/svg+xml';
+}
+
 /** Folder becomes part of the storage key — reduce it to a single safe segment. */
 export function sanitizeFolder(folder: string): string {
   const cleaned = folder.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/^-+|-+$/g, "");

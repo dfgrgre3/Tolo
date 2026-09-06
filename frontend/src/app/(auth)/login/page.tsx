@@ -10,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="w-full min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-[460px] mx-auto">
+    <main dir="rtl" className="relative isolate flex min-h-[calc(100vh-4rem)] w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 dark:bg-slate-950 sm:px-6 lg:px-8">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-32 start-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute bottom-0 end-0 h-64 w-64 rounded-full bg-orange-400/10 blur-3xl" />
+      <div className="relative w-full max-w-[460px] mx-auto">
         <Suspense
           fallback={
             <div className="flex items-center justify-center py-6">
@@ -22,6 +24,6 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
       </div>
-    </div>
+    </main>
   );
 }

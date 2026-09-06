@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useId, useState } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 interface LoginCredentialsFieldsProps {
   email: string;
@@ -15,7 +15,10 @@ interface LoginCredentialsFieldsProps {
   rememberMe: boolean;
   onRememberMeChange: (value: boolean) => void;
   isLoading: boolean;
+  emailError?: string | null;
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Email / password / remember-me fields for `LoginCredentialsStep`. */
 export default function LoginCredentialsFields({
@@ -26,7 +29,16 @@ export default function LoginCredentialsFields({
   rememberMe,
   onRememberMeChange,
   isLoading,
+  emailError,
 }: LoginCredentialsFieldsProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailErrorId = useId();
+
+  const isEmailInvalid =
+    (emailTouched && email.length > 0 && !EMAIL_PATTERN.test(email)) || !!emailError;
+  const emailErrorMessage = emailError ?? "يرجى إدخال بريد إلكتروني صحيح";
+
   return (
     <>
       <div className="grid gap-2">
@@ -42,12 +54,21 @@ export default function LoginCredentialsFields({
             placeholder="name@example.com"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
+            onBlur={() => setEmailTouched(true)}
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            autoFocus
+            aria-invalid={isEmailInvalid}
+            aria-describedby={isEmailInvalid ? emailErrorId : undefined}
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary aria-invalid:border-red-500 aria-invalid:focus:ring-red-500/50"
           />
         </div>
+        {isEmailInvalid && (
+          <p id={emailErrorId} className="text-xs text-red-500 dark:text-red-400" role="alert">
+            {emailErrorMessage}
+          </p>
+        )}
       </div>
 
       <div className="grid gap-2">
@@ -66,7 +87,7 @@ export default function LoginCredentialsFields({
           </span>
           <Input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
             value={password}
@@ -74,8 +95,19 @@ export default function LoginCredentialsFields({
             required
             disabled={isLoading}
             dir="ltr"
-            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className="bg-white dark:bg-slate-950 ps-10 pe-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            disabled={isLoading}
+            tabIndex={-1}
+            aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+            aria-pressed={showPassword}
+            className="absolute inset-y-0 end-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-50"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 

@@ -43,7 +43,7 @@ export default function LoginCredentialsStep({
   onSocialLogin,
 }: LoginCredentialsStepProps) {
   return (
-    <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
+    <Card className="w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-white/95 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/95">
       <CardHeader className="space-y-2 text-center pb-6">
         <div className="flex justify-center mb-3">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -53,8 +53,8 @@ export default function LoginCredentialsStep({
         <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50">تسجيل الدخول</CardTitle>
         <CardDescription className="text-slate-500 dark:text-slate-400">أدخل بيانات الاعتماد الخاصة بك للدخول إلى المنصة</CardDescription>
       </CardHeader>
-      <form onSubmit={onSubmit}>
-        <CardContent className="grid gap-5">
+      <form onSubmit={onSubmit} aria-busy={isLoading}>
+        <CardContent className="grid gap-5" aria-live="polite">
           {error && (
             <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4" />
@@ -91,7 +91,7 @@ export default function LoginCredentialsStep({
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
+          <Button type="submit" className="h-11 w-full bg-gradient-to-r from-primary to-orange-500 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:from-primary/90 hover:to-orange-500/90 disabled:translate-y-0" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="ms-2 h-4 w-4 animate-spin" />

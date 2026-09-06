@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { getBackendUrl } from '@/lib/api/backend-url';
+import { getBackendApiUrl } from '@/lib/api/backend-url';
 import {
   CSRF_COOKIE_NAME,
   forwardSetCookies,
@@ -18,9 +18,8 @@ import {
  * implement the Double Submit Cookie pattern.
  */
 export async function GET(_request: NextRequest) {
-  let backendUrl: string;
   try {
-    backendUrl = getBackendUrl();
+    getBackendApiUrl('/auth/csrf');
   } catch (err) {
     logger.error('CSRF token bootstrap: backend URL not configured', err, { source: 'api/auth/csrf' });
     return NextResponse.json(
@@ -32,7 +31,7 @@ export async function GET(_request: NextRequest) {
   try {
     logger.info('CSRF token bootstrap request', { source: 'api/auth/csrf' });
 
-    const response = await fetch(`${backendUrl}/api/v1/auth/csrf`, {
+    const response = await fetch(getBackendApiUrl('/auth/csrf'), {
       method: 'GET',
       credentials: 'include',
       signal: AbortSignal.timeout(10_000),

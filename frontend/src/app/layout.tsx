@@ -87,7 +87,7 @@ export default async function RootLayout({
       <head>
 
         {/* Centralized performance detection script */}
-        <Script src="/perf-detect.js" strategy="afterInteractive" />
+        <Script src="/perf-detect.js" strategy="beforeInteractive" nonce={nonce} />
 
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <meta name="theme-color" content="#f97316" />
@@ -95,7 +95,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
         {/* Hydration attribute cleanup */}
-        <Script src="/hydration-fix.js" strategy="afterInteractive" />
+        <Script src="/hydration-fix.js" strategy="lazyOnload" nonce={nonce} />
 
         {/* Structured Data (Schema.org) */}
         <script

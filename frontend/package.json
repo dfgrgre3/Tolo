@@ -17,6 +17,7 @@
         "type-check": "npx tsc --noEmit",
         "perf": "npx lighthouse http://localhost:3000 --chrome-flags='--headless --disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --ignore-certificate-errors --allow-insecure-localhost' --output=json --output-path=./lighthouse-results.json --only-categories=performance",
         "check:env": "node scripts/check-proxy-config.mjs",
+        "check:security": "node scripts/check-security-config.mjs",
         "check:errors": "npm run type-check && npm run lint && npm test",
         "check:errors:fix": "eslint . --fix && npm run type-check && npm test",
         "test": "vitest run",

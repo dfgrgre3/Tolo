@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { POST as webVitalsPost } from '../analytics/web-vitals/route';
 import { POST as revalidatePost } from '../cache/revalidate/route';
-import { getBackendUrl } from '@/lib/api/backend-url';
+import { getBackendApiUrl, getBackendUrl } from '@/lib/api/backend-url';
 import { forwardSetCookies } from '@/lib/security/cookie-attrs';
 import { decodeStorageSegments, isPublicStorageBucket, FORWARDED_COOKIE_NAMES } from '@/lib/security/policy/storage-policy';
 import { getUpstreamAuthorization, resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
@@ -380,7 +380,7 @@ async function handleProxy(
   // Connect-RPC routes are registered under both root and /api/ prefixes on the backend.
   // We route them under /api/ here so that Vercel serverless routing forwards them correctly.
   // Backend routes are versioned at /api/v1 (internal/infrastructure/api/*_routes.go).
-  const targetUrl = `${backendUrl}/api/v1/${path}${search}`;
+  const targetUrl = `${getBackendApiUrl(`/${path}`)}${search}`;
 
   if (process.env.NODE_ENV !== 'production') {
     console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);

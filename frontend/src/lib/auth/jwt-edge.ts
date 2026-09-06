@@ -1,8 +1,11 @@
 import { jwtVerify, importSPKI } from "jose";
 import type { NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { getBackendUrl } from "@/lib/api/backend-url";
-import { resolveTrustedClientIp } from "@/lib/security/policy/auth-policy";
+import { getBackendApiUrl } from "@/lib/api/backend-url";
+import {
+  canUseLegacyJwtSecret,
+  resolveTrustedClientIp,
+} from "@/lib/security/policy/auth-policy";
 
 /**
  * Edge-safe JWT verification for the Next.js middleware (`src/proxy.ts`).
@@ -32,16 +35,16 @@ import { resolveTrustedClientIp } from "@/lib/security/policy/auth-policy";
  * The fix is to verify with an asymmetric public key on the edge while
  * the backend keeps the private key for signing:
  *
- *   Edge runtime     : JWT_PUBLIC_KEY  (PEM SPKI, e.g. EdDSA "ed25519")
+ *   Edge runtime     : JWT_PUBLIC_KEY  (PEM SPKI, RS256)
  *   Backend / issuer : JWT_PRIVATE_KEY (never leaves the backend)
  *
  * A leak of `JWT_PUBLIC_KEY` cannot be used to forge tokens. The backend
  * can be redeployed without rotating the edge, and the edge can be
  * replicated horizontally without ever needing the signing key.
  *
- * Production requires JWT_PUBLIC_KEY plus both expected claims. JWT_SECRET is
- * accepted only in development or when JWT_MIGRATION_MODE=true is explicitly
- * enabled outside production during a controlled migration.
+ * Production requires JWT_PUBLIC_KEY plus both expected claims. It verifies
+ * RS256 only. JWT_SECRET is accepted only in development; migration mode is
+ * not a production bypass.
  *
  * MISSING KEY — FAIL CLOSED
  * -------------------------
@@ -105,7 +108,7 @@ function resolveClientIp(request: NextRequest): string {
 let loggedMissingKey = false;
 
 type VerifyKey =
-  | { kind: "spki"; alg: "EdDSA" | "RS256"; cryptoKey: CryptoKey }
+  | { kind: "spki"; cryptoKey: CryptoKey }
   | { kind: "hs256"; key: Uint8Array };
 
 let cachedKey: VerifyKey | null = null;
@@ -114,23 +117,21 @@ let pendingImport: Promise<VerifyKey | null> | null = null;
 async function getKey(): Promise<VerifyKey | null> {
   if (cachedKey) return cachedKey;
 
-  // Preferred: asymmetric public key (EdDSA / RS256). The edge runtime
-  // can verify with this but cannot forge new tokens.
+  // Production contract: the backend and edge use RS256. The edge only has
+  // the public key, so it can verify tokens but cannot forge new ones.
   if (process.env.JWT_PUBLIC_KEY) {
     if (!pendingImport) {
       pendingImport = (async () => {
         const spkiPem = process.env.JWT_PUBLIC_KEY!;
-        for (const alg of ["EdDSA", "RS256"] as const) {
-          try {
-            const cryptoKey = await importSPKI(spkiPem, alg);
-            cachedKey = { kind: "spki", alg, cryptoKey };
-            return cachedKey;
-          } catch {
-            // Try next alg.
-          }
+        try {
+          const cryptoKey = await importSPKI(spkiPem, "RS256");
+          cachedKey = { kind: "spki", cryptoKey };
+          return cachedKey;
+        } catch {
+          // Fall through to a closed verification result.
         }
         console.error(
-          "[jwt-edge] JWT_PUBLIC_KEY is set but could not be imported as EdDSA or RS256. " +
+          "[jwt-edge] JWT_PUBLIC_KEY is set but could not be imported as RS256. " +
           "Check that the PEM is a valid SubjectPublicKeyInfo."
         );
         pendingImport = null;
@@ -144,9 +145,8 @@ async function getKey(): Promise<VerifyKey | null> {
     }
   }
 
-  // JWT_SECRET is strictly forbidden in production. It's only allowed in development mode.
-  // Migration mode is no longer supported - use JWT_PUBLIC_KEY for all non-development environments.
-  const allowLegacySecret = !IS_PRODUCTION && process.env.NODE_ENV === "development";
+  // JWT_SECRET is allowed only under the shared legacy-secret policy.
+  const allowLegacySecret = canUseLegacyJwtSecret();
   const secret = allowLegacySecret ? process.env.JWT_SECRET : undefined;
   if (secret) {
     if (IS_PRODUCTION) {
@@ -199,7 +199,7 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
 
   try {
     const verifyOpts: Parameters<typeof jwtVerify>[2] = {
-      algorithms: key.kind === "spki" ? [key.alg] : ["HS256"],
+      algorithms: key.kind === "spki" ? ["RS256"] : ["HS256"],
       issuer: EXPECTED_ISSUER,
       audience: EXPECTED_AUDIENCE,
     };
@@ -236,12 +236,10 @@ export async function attemptTokenRefresh(
   accessToken?: string;
   refreshToken?: string;
 }> {
-  // getBackendUrl() normalizes trailing /api and slashes, and throws in
-  // production when no backend URL is configured — matching the policy of
-  // every other server-side caller.
-  let backendUrl: string;
+  // getBackendApiUrl() applies the canonical /api/v1 composition and throws
+  // in production when no backend URL is configured.
   try {
-    backendUrl = getBackendUrl();
+    getBackendApiUrl('/auth/refresh');
   } catch (err) {
     Sentry.captureException(err, {
       tags: { source: "jwt-edge:refresh" },
@@ -275,7 +273,7 @@ export async function attemptTokenRefresh(
       headers["User-Agent"] = userAgent;
     }
 
-    const refreshRes = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
+    const refreshRes = await fetch(getBackendApiUrl('/auth/refresh'), {
       method: "POST",
       headers,
       // AbortSignal.timeout() is available in Node 17.3+ / Edge runtime.

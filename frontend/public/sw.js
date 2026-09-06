@@ -12,10 +12,9 @@
  * the previous build. Bump again on any future breaking change.
  */
 
-const CACHE_VERSION = 'tolo-v7';
+const CACHE_VERSION = 'tolo-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
-const SEARCH_CACHE = `${CACHE_VERSION}-search`;
 
 const PRECACHE_URLS = [
   '/',
@@ -50,63 +49,13 @@ self.addEventListener('message', async (event) => {
   if (!event.data) return;
 
   const { type } = event.data;
-  if (type === 'CLEAR_SEARCH_CACHE') {
-    try {
-      const cache = await caches.open(SEARCH_CACHE);
-      const keys = await cache.keys();
-      await Promise.all(keys.map((key) => cache.delete(key)));
-      event.ports[0]?.postMessage({ success: true });
-    } catch (err) {
-      event.ports[0]?.postMessage({ success: false, error: err.message });
-    }
-  } else if (type === 'CLEAR_ALL_CACHES') {
+  if (type === 'CLEAR_ALL_CACHES') {
     try {
       const keys = await caches.keys();
       await Promise.all(keys.map((key) => caches.delete(key)));
       event.ports[0]?.postMessage({ success: true });
     } catch (err) {
       event.ports[0]?.postMessage({ success: false, error: err.message });
-    }
-  } else if (type === 'PRE_CACHE_SEARCH') {
-    // Pre-warm the SEARCH_CACHE for a given query/scope.
-    //
-    // The fetch handler in this SW treats /api/* as a passthrough and never
-    // writes to CacheStorage (see comment near `passthroughApiRequest`),
-    // so we have to drive the network here directly with the same flags.
-    //
-    // Notes:
-    //  - `query` and `scope` come from the trusted client (our own page).
-    //    They are URL-encoded and appended to a fixed endpoint; they never
-    //    reach a different host.
-    //  - Cookies are forwarded via `credentials: 'include'` so the
-    //    authenticated search response is captured under the user's session.
-    //  - We cache by absolute URL with explicit query string, so each
-    //    query+scope combination gets its own entry.
-    //  - We swallow errors: pre-cache is best-effort and must never surface
-    //    a failure back to the user. `success` reflects whether the network
-    //    response was 2xx and cacheable.
-    try {
-      const { query, scope } = event.data || {};
-      if (typeof query !== 'string' || query.length === 0) {
-        event.ports[0]?.postMessage({ success: false, error: 'invalid query' });
-        return;
-      }
-      const safeScope = (typeof scope === 'string' && scope.length > 0) ? scope : 'all';
-      const url = `/api/search?q=${encodeURIComponent(query)}&type=${encodeURIComponent(safeScope)}&limit=8`;
-      const response = await fetch(url, {
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'accept': 'application/json' },
-      });
-      if (!response.ok) {
-        event.ports[0]?.postMessage({ success: false, error: `status ${response.status}` });
-        return;
-      }
-      const cache = await caches.open(SEARCH_CACHE);
-      await cache.put(url, response.clone());
-      event.ports[0]?.postMessage({ success: true });
-    } catch (err) {
-      event.ports[0]?.postMessage({ success: false, error: err && err.message ? err.message : 'unknown' });
     }
   } else if (type === 'SKIP_WAITING') {
     self.skipWaiting();

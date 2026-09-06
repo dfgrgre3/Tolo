@@ -75,23 +75,6 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 /**
- * Tells the active Service Worker to pre-warm `SEARCH_CACHE` for the
- * given query/scope so the next identical search can hit CacheStorage
- * instead of the network. The actual fetch + cache.put happens inside
- * the SW (see `PRE_CACHE_SEARCH` handler in `public/sw.js`) because
- * the SW's fetch handler treats `/api/*` as a passthrough.
- *
- * Returns `true` only when the SW acknowledged a successful cache write.
- * `false` means: no active SW controller, the SW timed out (2s), the
- * SW reported a non-2xx, or the helper threw. Pre-cache is best-effort
- * by design — callers should never block user flows on the result.
- */
-export async function preCacheSearch(query: string, scope: string = "all"): Promise<boolean> {
-	const response = await postMessageToServiceWorker("PRE_CACHE_SEARCH", { query, scope });
-	return response?.success ?? false;
-}
-
-/**
  * Sends a typed message to the active Service Worker via MessageChannel
  * and resolves with the SW's response. Returns `null` if no controller
  * is available (first load before `clients.claim()`), allowing the
@@ -160,16 +143,6 @@ async function postMessageToServiceWorker(
  */
 export async function clearAllCachesViaServiceWorker(): Promise<boolean> {
 	const response = await postMessageToServiceWorker("CLEAR_ALL_CACHES");
-	return response?.success ?? false;
-}
-
-/**
- * Tells the active Service Worker to drop only the search-index cache
- * (`tolo-v*-search`). The static asset cache is intentionally left
- * intact — it holds versioned bundles that are not identity-dependent.
- */
-export async function clearSearchCacheViaServiceWorker(): Promise<boolean> {
-	const response = await postMessageToServiceWorker("CLEAR_SEARCH_CACHE");
 	return response?.success ?? false;
 }
 

@@ -59,19 +59,24 @@ function buildConnectSrc(): string {
 }
 
 export function applyCsp(response: NextResponse, nonce: string): NextResponse {
+  const isDev = process.env.NODE_ENV === "development";
+  const devScriptSources = isDev ? " 'unsafe-eval'" : "";
   const cspHeader = [
     "default-src 'self'",
     // script-src: nonce-only, no 'unsafe-inline' / 'unsafe-eval'. The nonce
     // is injected by the Edge middleware (see src/proxy.ts) and added to
     // every <script> the framework emits. Any script that does not carry
     // the matching nonce will be blocked by the browser.
-    `script-src 'self' 'nonce-${nonce}' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
+    `script-src 'self' 'nonce-${nonce}'${devScriptSources} https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
     // style-src: nonce for inline styles too. Tailwind/CSS-in-JS still
     // occasionally inject inline <style> tags; with the nonce they pass
     // without needing 'unsafe-inline'. If a third-party stylesheet cannot
     // be migrated, fall back to a per-host hash instead of broad
     // 'unsafe-inline'.
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    // Next/font and React can emit inline style attributes/tags without the
+    // request nonce. Allowing inline styles keeps the rendered UI intact;
+    // script execution remains nonce-restricted above.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
     // img-src: explicit host allowlist. The previous `https:` wildcard
     // allowed any HTTPS origin to be a tracking/exfiltration target; we

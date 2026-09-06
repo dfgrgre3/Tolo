@@ -11,7 +11,7 @@ import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { errorService as errorManager } from "@/lib/logging/error-service";
 import { toast } from "sonner";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
-import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
+import { registerServiceWorker } from "@/lib/service-worker";
 import { useEfficiency } from "@/hooks/use-efficiency";
 import { logger } from "@/lib/logger";
 import { apiClient } from "@/lib/api/api-client";
@@ -272,9 +272,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				setShowSuggestions(results.length > 0);
 				updateRecentSearches(query);
 
-				if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-					preCacheSearch(query, scope).catch(() => {});
-				}
 			} catch (error) {
 				handleSearchError(error, query, scope);
 			} finally {

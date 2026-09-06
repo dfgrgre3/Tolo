@@ -12,10 +12,11 @@ import { getContractsBaseUrl } from "./backend-url.js";
 import type { paths } from "./generated/api.js";
 
 /**
- * Auth middleware: attaches the bearer token from localStorage on the
- * client side, or the request cookie on the server side. Skips the
- * `/auth/login` and `/auth/register` paths so the login call itself
- * isn't blocked by stale tokens.
+ * Auth middleware: browser requests stay same-origin and use the HttpOnly
+ * access_token cookie. Server callers may pass their request Cookie header;
+ * only the canonical access_token cookie is accepted. Skips the
+ * `/auth/login` and `/auth/register` paths so the login call itself isn't
+ * blocked by stale tokens.
  *
  * Mirrors the auth header forwarding done by the catch-all proxy at
  * `src/app/api/[...path]/route.ts`. Keep the two policies consistent.
@@ -27,24 +28,15 @@ const authMiddleware: Middleware = {
     const path = new URL(request.url).pathname;
     if (SKIP_AUTH_SUFFIXES.some((s) => path.endsWith(s))) return request;
 
-    if (typeof window !== "undefined") {
-      const token =
-        window.localStorage.getItem("access_token") ??
-        window.localStorage.getItem("auth_token");
-      if (token) {
-        request.headers.set("Authorization", `Bearer ${token}`);
-      }
-    } else {
-      const cookie = request.headers.get("cookie") ?? "";
-      const match = /(?:^|;\s*)(?:access_token|auth_token)=([^;]+)/.exec(
-        cookie,
+    if (typeof window !== "undefined") return request;
+
+    const cookie = request.headers.get("cookie") ?? "";
+    const match = /(?:^|;\s*)access_token=([^;]+)/.exec(cookie);
+    if (match?.[1]) {
+      request.headers.set(
+        "Authorization",
+        `Bearer ${decodeURIComponent(match[1])}`,
       );
-      if (match && match[1]) {
-        request.headers.set(
-          "Authorization",
-          `Bearer ${decodeURIComponent(match[1])}`,
-        );
-      }
     }
 
     return request;
@@ -52,7 +44,8 @@ const authMiddleware: Middleware = {
 };
 
 export const client = createClient<paths>({
-  baseUrl: getContractsBaseUrl(),
+  baseUrl: typeof window === "undefined" ? getContractsBaseUrl() : "",
+  credentials: "include",
 });
 
 client.use(authMiddleware);

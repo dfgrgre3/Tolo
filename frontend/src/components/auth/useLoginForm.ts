@@ -8,6 +8,8 @@ import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login, verifyMfa, getSocialLoginUrl } from "@/services/auth/login-service";
 import { sanitizeRedirectPath } from "@/services/auth/navigation";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function toSocialLoginError(err: unknown): string {
   return err instanceof ApiError || err instanceof Error
     ? err.message
@@ -46,8 +48,15 @@ export function useLoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (isLoading) return;
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       setError("يرجى إدخال البريد الإلكتروني وكلمة المرور");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError("يرجى إدخال بريد إلكتروني صحيح");
       return;
     }
 
@@ -55,7 +64,7 @@ export function useLoginForm() {
     setError(null);
 
     const result = await login({
-      email,
+      email: trimmedEmail,
       password,
       rememberMe,
       // Computed on demand (and memoized in localStorage) so the value is
@@ -81,6 +90,7 @@ export function useLoginForm() {
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     if (!mfaCode) {
       setError("يرجى إدخال رمز التحقق ثنائي العامل");
       return;

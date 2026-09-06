@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
-import { createClient } from "@/utils/supabase/server-user";
+import { createAdminClient } from "@/utils/supabase/server-admin";
+import { verifyAccessToken } from "@/lib/auth/jwt-edge";
 import { generateUserPath, validateFileType } from "@/lib/storage";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
 import {
@@ -9,6 +10,7 @@ import {
   MAX_CHUNKED_UPLOAD_SIZE,
   DEFAULT_CHUNK_SIZE,
   MAX_CHUNK_SIZE,
+  hasValidContentSignature,
 } from "@/lib/storage/upload-policy";
 import {
   initiateUpload,
@@ -26,17 +28,19 @@ import {
 
 // ─── Auth Helper ────────────────────────────────────────────────────────────
 /**
- * Resolves the authenticated user via Supabase JWT verification.
- * SECURITY: We intentionally do NOT read userId from a plain cookie
- * (e.g. "user_id") because unsigned cookies can be freely modified by
- * the client. supabase.auth.getUser() validates the signed JWT and is
- * the only trustworthy source of the caller's identity.
+ * Resolves the authenticated user from the canonical backend access token.
+ * Supabase is used only as the storage provider after this identity check;
+ * it is not a second application authentication source.
  */
-async function getAuthenticatedUserId(): Promise<{ userId: string; supabase: Awaited<ReturnType<typeof createClient>> } | null> {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (!user || error) return null;
-  return { userId: user.id, supabase };
+async function getAuthenticatedUserId(request: NextRequest): Promise<{ userId: string; supabase: ReturnType<typeof createAdminClient> } | null> {
+  const accessToken = request.cookies.get("access_token")?.value;
+  if (!accessToken) return null;
+
+  const payload = await verifyAccessToken(accessToken);
+  const userId = payload?.userId || payload?.sub;
+  if (!userId) return null;
+
+  return { userId, supabase: createAdminClient() };
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ interface InitiateBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserId();
+    const auth = await getAuthenticatedUserId(request);
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
 
       // Validate file type: server-enforced allowlist first. Fall back to the
       // session-declared type when the client doesn't set one on the chunk.
-      const chunkMime = file.type || session.mimeType;
+      const chunkMime = file.type && isFileTypeAllowed(file.type) ? file.type : session.mimeType;
       if (!isFileTypeAllowed(chunkMime)) {
         return NextResponse.json({ error: "File type not allowed" }, { status: 400 });
       }
@@ -225,6 +229,12 @@ export async function POST(request: NextRequest) {
 
       // Verify chunk data checksum if provided by client
       const fileBuffer = Buffer.from(await file.arrayBuffer());
+      if (chunkIndex === 0 && !hasValidContentSignature(fileBuffer, chunkMime)) {
+        return NextResponse.json(
+          { error: "File content does not match the declared MIME type" },
+          { status: 400 },
+        );
+      }
       if (chunkChecksum) {
         const computedChecksum = createHash("sha256").update(fileBuffer).digest("hex");
         if (computedChecksum.toLowerCase() !== chunkChecksum.toLowerCase()) {
@@ -282,7 +292,7 @@ export async function POST(request: NextRequest) {
 
       const { data, error } = await supabase.storage.from("uploads").upload(chunkPath, fileToUpload, {
         upsert: true,
-        contentType: file.type,
+        contentType: fileToUpload.type || chunkMime,
         cacheControl: "3600",
       });
 
@@ -319,7 +329,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserId();
+    const auth = await getAuthenticatedUserId(request);
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -378,7 +388,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserId();
+    const auth = await getAuthenticatedUserId(request);
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -508,7 +518,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserId();
+    const auth = await getAuthenticatedUserId(request);
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

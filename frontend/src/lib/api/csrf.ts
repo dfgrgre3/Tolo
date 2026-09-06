@@ -4,15 +4,14 @@
  * state-changing request must echo its value back in the `X-CSRF-Token`
  * header.
  *
- * State here is module-level rather than per-instance because there is only
- * ever one `apiClient` singleton app-wide (mirrors the previous private
- * fields on the `ApiClient` class).
+ * The module stores only the in-flight bootstrap promise. The CSRF cookie is
+ * the sole token source, so separate tabs cannot disagree through module
+ * memory.
  */
 import { CSRF_COOKIE_NAME } from '@/lib/security/cookie-attrs';
 
 /** In-flight CSRF bootstrap request — shared across concurrent callers to avoid duplicate fetches */
 let csrfBootstrapPromise: Promise<void> | null = null;
-let lastCsrfToken: string | null = null;
 
 /**
  * Upper bound for the bootstrap GET to /api/auth/csrf. The backend route
@@ -24,16 +23,14 @@ let lastCsrfToken: string | null = null;
 const CSRF_BOOTSTRAP_TIMEOUT_MS = 10_000;
 
 /**
- * Drops the cached CSRF token held in module memory. Must be invoked on:
+ * Resets the in-flight bootstrap state. Must be invoked on:
  *   - logout        (token bound to previous account, must not leak across)
  *   - account switch (identity changed; old token must not be replayed)
  *   - auth reset    (forced re-bootstrap on next write request)
  */
 export function clearCsrfToken(): void {
-    lastCsrfToken = null;
     // Also reset any in-flight bootstrap so the next caller re-bootstraps
-    // instead of reusing a stale promise that may resolve to a token
-    // issued for the previous identity.
+    // instead of reusing a stale promise after an auth reset.
     csrfBootstrapPromise = null;
 }
 
@@ -66,7 +63,6 @@ export async function ensureCsrfToken(forceRefresh = false): Promise<void> {
     if (!forceRefresh) {
         const existingCookie = getCookie(CSRF_COOKIE_NAME);
         if (existingCookie) {
-            lastCsrfToken = existingCookie;
             return;
         }
     }
@@ -87,17 +83,14 @@ export async function ensureCsrfToken(forceRefresh = false): Promise<void> {
                 if (!response.ok) {
                     throw new Error(`CSRF bootstrap failed with status ${response.status}`);
                 }
-                const token = response.headers.get('X-CSRF-Token');
-                if (token) {
-                    lastCsrfToken = token;
-                }
+                // The cookie is the source of truth. The response header is
+                // intentionally not cached because module state is not shared
+                // across tabs and cannot be cleared from the browser cookie.
             })
             .catch((err) => {
-                // Clear the cached value on any failure (timeout, network,
-                // non-2xx) so a subsequent attempt doesn't try to replay
-                // a stale token from a previous bootstrap.
+                // Clear the in-flight state on any failure (timeout, network,
+                // non-2xx) so a subsequent attempt can bootstrap again.
                 if (err instanceof DOMException && err.name === 'TimeoutError') {
-                    lastCsrfToken = null;
                     throw new Error(`CSRF bootstrap timed out after ${CSRF_BOOTSTRAP_TIMEOUT_MS}ms`);
                 }
                 throw err;
@@ -118,10 +111,7 @@ export async function applyCsrfHeader(headers: Headers, isWriteMethod: boolean):
     await ensureCsrfToken();
     const csrfToken = getCookie(CSRF_COOKIE_NAME);
     if (csrfToken) {
-        lastCsrfToken = csrfToken;
         headers.set('X-CSRF-Token', csrfToken);
-    } else if (lastCsrfToken) {
-        headers.set('X-CSRF-Token', lastCsrfToken);
     }
 }
 

@@ -25,7 +25,7 @@ const fetchAnalyticsData = async (signal?: AbortSignal): Promise<AnalyticsData> 
   );
 
   // Don't throw error if request was aborted
-  if (error && error.name === 'AbortError') {
+  if (error && (error.name === 'AbortError' || error.name === 'CallerAbortError')) {
     throw error;
   }
 
@@ -67,7 +67,7 @@ function AnalyticsSectionComponent() {
       }
     } catch (err) {
       // Don't log or show error if request was aborted (expected behavior)
-      if (controller.signal.aborted || (err instanceof Error && err.name === 'AbortError')) return;
+      if (controller.signal.aborted || (err instanceof Error && (err.name === 'AbortError' || err.name === 'CallerAbortError'))) return;
       logger.error("Failed to fetch analytics data:", err);
       setError((err instanceof Error ? err.message : String(err)) || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
     } finally {
@@ -93,7 +93,7 @@ function AnalyticsSectionComponent() {
           setData(fetchedData);
         }
       } catch (err) {
-        if (controller.signal.aborted || (err instanceof Error && err.name === 'AbortError')) return;
+        if (controller.signal.aborted || (err instanceof Error && (err.name === 'AbortError' || err.name === 'CallerAbortError'))) return;
         logger.error("Failed to fetch analytics data:", err);
         setError((err instanceof Error ? err.message : String(err)) || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
       } finally {

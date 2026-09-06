@@ -17,8 +17,8 @@
  *    used so local DX works without a `.env.local`. The fallback is NEVER
  *    used in production.
  *
- * The returned URL is normalized: trailing `/api` and trailing slashes are
- * stripped so callers can safely append `/api/v1/<path>` themselves.
+ * `getBackendUrl()` returns only the origin. Use `getBackendApiUrl()` for
+ * backend API paths so `/api/v1` is composed in exactly one place.
  */
 
 const DEV_FALLBACK = 'http://127.0.0.1:8082';
@@ -68,4 +68,18 @@ export function getBackendUrl(): string {
  */
 export function __resetBackendUrlCache(): void {
   cached = null;
+}
+
+/**
+ * Build a canonical URL for a backend API route.
+ *
+ * Accepts `/courses`, `/api/courses`, or `/api/v1/courses` and always returns
+ * exactly one `/api/v1` prefix. Query strings and fragments are preserved.
+ */
+export function getBackendApiUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const apiPath = normalizedPath
+    .replace(/^\/api\/v1(?=\/|\?|#|$)/, '')
+    .replace(/^\/api(?=\/|\?|#|$)/, '');
+  return `${getBackendUrl()}/api/v1${apiPath || '/'}`;
 }

@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { isSameOriginRequest } from "@/lib/security/origin-check";
-import { getBackendUrl } from "@/lib/api/backend-url";
-
-// Resolved lazily so a missing production config surfaces as a 503 on the
-// request path instead of crashing module load at build time.
-let cachedBackendUrl: string | null = null;
-function resolveBackendUrl(): string {
-  if (cachedBackendUrl !== null) return cachedBackendUrl;
-  cachedBackendUrl = getBackendUrl();
-  return cachedBackendUrl;
-}
+import { getBackendApiUrl } from "@/lib/api/backend-url";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +41,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  let backendUrl: string;
+  let backendApiUrl: string;
   try {
-    backendUrl = resolveBackendUrl();
+    backendApiUrl = getBackendApiUrl('/auth/me');
   } catch (err) {
     console.error("[cache/revalidate] backend URL not configured:", err);
     return NextResponse.json(
@@ -61,7 +52,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const me = await fetch(`${backendUrl}/api/v1/auth/me`, {
+  const me = await fetch(backendApiUrl, {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     cache: "no-store",
   });

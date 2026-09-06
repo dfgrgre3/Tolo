@@ -173,15 +173,6 @@ describe('clearAllCachesViaServiceWorker', () => {
   });
 });
 
-describe('clearSearchCacheViaServiceWorker', () => {
-  it('sends CLEAR_SEARCH_CACHE and resolves true on SW success', async () => {
-    mockResponse = { success: true };
-    const { clearSearchCacheViaServiceWorker } = await import('@/lib/service-worker');
-    expect(await clearSearchCacheViaServiceWorker()).toBe(true);
-    expect(sentMessages).toEqual([{ type: 'CLEAR_SEARCH_CACHE' }]);
-  });
-});
-
 describe('skipWaitingViaServiceWorker', () => {
   it('sends SKIP_WAITING without a MessageChannel', async () => {
     const { skipWaitingViaServiceWorker } = await import('@/lib/service-worker');
