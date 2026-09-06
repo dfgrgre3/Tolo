@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { isSameOriginRequest } from "@/lib/security/origin-check";
+import { getBackendUrl } from "@/lib/api/backend-url";
 
-const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082').replace(/\/api$/, '').replace(/\/+$/, '');
+// Resolved lazily so a missing production config surfaces as a 503 on the
+// request path instead of crashing module load at build time.
+let cachedBackendUrl: string | null = null;
+function resolveBackendUrl(): string {
+  if (cachedBackendUrl !== null) return cachedBackendUrl;
+  cachedBackendUrl = getBackendUrl();
+  return cachedBackendUrl;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -28,35 +37,9 @@ function isAllowedRevalidatePath(p: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  // CSRF validation via strict Origin/Referer matching
-  const origin = request.headers.get("origin");
-  const referer = request.headers.get("referer");
-  const host = request.headers.get("host") || "";
-  const expectedHost = host.split(":")[0];
-
-  let isCsrfValid = false;
-
-  if (origin) {
-    try {
-      const originUrl = new URL(origin);
-      if (originUrl.hostname === expectedHost) {
-        isCsrfValid = true;
-      }
-    } catch {
-      // Ignore invalid URL
-    }
-  } else if (referer) {
-    try {
-      const refererUrl = new URL(referer);
-      if (refererUrl.hostname === expectedHost) {
-        isCsrfValid = true;
-      }
-    } catch {
-      // Ignore invalid URL
-    }
-  }
-
-  if (!isCsrfValid) {
+  // CSRF validation: strict Origin/Referer match against the canonical app
+  // origin (protocol + hostname + port) — see lib/security/origin-check.ts.
+  if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: "Invalid Origin/Referer (CSRF)" }, { status: 403 });
   }
 
@@ -67,7 +50,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  const me = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+  let backendUrl: string;
+  try {
+    backendUrl = resolveBackendUrl();
+  } catch (err) {
+    console.error("[cache/revalidate] backend URL not configured:", err);
+    return NextResponse.json(
+      { error: "Backend service unavailable" },
+      { status: 503 }
+    );
+  }
+
+  const me = await fetch(`${backendUrl}/api/v1/auth/me`, {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     cache: "no-store",
   });

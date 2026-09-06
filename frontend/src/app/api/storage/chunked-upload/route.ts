@@ -17,6 +17,7 @@ import {
   getSessionMeta,
   validateUploadCompletion,
   getUploadProgress,
+  compareAndSetSessionStatus,
   updateSessionStatus,
   markUploadCompleted,
   cleanupUpload,
@@ -245,11 +246,37 @@ export async function POST(request: NextRequest) {
         `${folder}/_chunks`
       );
 
-      // Upload chunk to Supabase storage
+      // SECURITY: fail-closed SVG handling. If the chunk is an SVG we MUST
+      // sanitize it before it ever touches storage, and we MUST reject the
+      // chunk if sanitization cannot produce a safe result. Falling back to
+      // the original bytes here would smuggle script tags, on-handlers and
+      // foreignObject payloads straight into the user's storage and out to
+      // whoever later fetches the public URL.
       let fileToUpload: File | Blob = file;
       if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
-        const svgText = fileBuffer.toString("utf-8");
-        const sanitizedSvg = sanitizeSvg(svgText);
+        let sanitizedSvg: string;
+        try {
+          const svgText = fileBuffer.toString("utf-8");
+          sanitizedSvg = sanitizeSvg(svgText);
+        } catch (e) {
+          console.error("SVG sanitization threw; refusing chunk", e);
+          return NextResponse.json(
+            { error: "SVG chunk could not be safely sanitized and was rejected." },
+            { status: 400 }
+          );
+        }
+
+        // DOMPurify returns an empty string for fully-hostile input rather
+        // than throwing. Treat empty output as a rejection: an SVG chunk
+        // that sanitizes to nothing is not a usable file, and silently
+        // uploading "" would mask the attack from the client.
+        if (!sanitizedSvg || !sanitizedSvg.trim()) {
+          return NextResponse.json(
+            { error: "SVG chunk rejected by sanitizer (empty after sanitization)." },
+            { status: 400 }
+          );
+        }
+
         fileToUpload = new Blob([sanitizedSvg], { type: "image/svg+xml" });
       }
 
@@ -399,8 +426,26 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Atomically transition status to COMPLETING
-    await updateSessionStatus(uploadId, "COMPLETING");
+    // SECURITY: atomic CAS into the COMPLETING window.
+    //
+    // Two concurrent PUT /finalize calls will both pass the GET above while
+    // the session is still UPLOADING. A plain updateSessionStatus() would
+    // let BOTH enter the validate→markCompleted path, double-assembling or
+    // racing on the same chunk set. The Lua-backed CAS ensures exactly one
+    // caller wins the transition; every other concurrent caller gets
+    // 'stale' here and a 409 below.
+    const cas = await compareAndSetSessionStatus(uploadId, "COMPLETING", null);
+    if (cas !== "ok") {
+      return NextResponse.json(
+        {
+          error: cas === "missing"
+            ? "Upload session not found"
+            : "Upload session is already finalizing or completed (concurrent finalize rejected)",
+          status: cas === "stale" ? "COMPLETING" : undefined,
+        },
+        { status: cas === "missing" ? 404 : 409 }
+      );
+    }
 
     // Exhaustive completion validation:
     // 1. indices = [0 ... totalChunks - 1] exactly
@@ -408,8 +453,10 @@ export async function PUT(request: NextRequest) {
     // 3. all checksum formats valid
     const validation = await validateUploadCompletion(uploadId);
     if (!validation.valid) {
-      // Revert status back to UPLOADING so missing chunks can be recovered
-      await updateSessionStatus(uploadId, "UPLOADING");
+      // Revert status back to UPLOADING so missing chunks can be recovered.
+      // Use CAS so a concurrent winner of a retry doesn't accidentally
+      // yank a session that's already moved forward.
+      await compareAndSetSessionStatus(uploadId, "UPLOADING", "COMPLETING");
       return NextResponse.json(
         {
           error: validation.error || "Chunk completion validation failed",
@@ -422,8 +469,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Mark as completed in Redis (prevents duplicate assembly or subsequent uploads)
-    await markUploadCompleted(uploadId);
+    // Mark as completed in Redis. This is itself a CAS-gated transition
+    // (COMPLETING -> COMPLETED) so a stray late finalize call that somehow
+    // gets past the COMPLETING gate still cannot overwrite a COMPLETED
+    // session back to COMPLETING and trigger a second assembly.
+    const completed = await markUploadCompleted(uploadId);
+    if (completed !== "ok") {
+      return NextResponse.json(
+        { error: "Upload session state changed during finalize; aborted" },
+        { status: 409 }
+      );
+    }
 
     // Return the list of chunk paths for assembly
     const chunkPaths = validation.chunks.map((c) => c.path);

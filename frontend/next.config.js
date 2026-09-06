@@ -18,7 +18,12 @@ const nextConfig = {
   // اللازمة لوقت التشغيل — يجعل صورة Docker صغيرة وسريعة الإقلاع.
   output: 'standalone',
   reactStrictMode: true,
-  productionBrowserSourceMaps: true,
+  // SECURITY: never publish public .map files alongside the client bundle.
+  // Source maps are uploaded privately to Sentry via SENTRY_AUTH_TOKEN
+  // (configured in the withSentryConfig call below). Public exposure would
+  // let anyone reconstruct the original source — including any string that
+  // happened to land in a bundle, comments, route paths, etc.
+  productionBrowserSourceMaps: false,
   compress: true,           // gzip/brotli at the Next.js edge
   poweredByHeader: false,   // remove X-Powered-By header (minor security + bytes)
   transpilePackages: ["@thanawy/shared"],
@@ -132,47 +137,105 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          // Cross-Origin-Opener-Policy: same-origin — isolates the browsing
+          // context from cross-origin windows that open us via window.open
+          // (e.g. payment iframes from Paymob). Without this, a malicious
+          // opener could synchronously access window.opener on the payment
+          // page via a postMessage attack. `same-origin` permits iframes
+          // from the same origin only, which is what we want for payment
+          // flows (Paymob runs in its own iframe context, not as a same
+          // window).
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+          // Cross-Origin-Resource-Policy: same-origin — tells browsers to
+          // refuse to load any of our static assets as cross-origin
+          // resources (e.g. <img src=...> from a third-party site).
+          // Defense against side-channel attacks that use cross-origin
+          // resource timing.
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-origin',
+          },
+          // Permissions-Policy: explicit denials for features the app
+          // does not use. Anything not listed here is implicitly allowed
+          // by the browser, so a missing entry is a permissive default.
+          // Keep this in sync with any feature the app adds.
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self), payment=(self "https://*.paymob.com")',
-          },
-          // ─── Content Security Policy ─────────────────────────────────────────
-          // Provides defence-in-depth against XSS. Next.js generates inline
-          // scripts during hydration so 'unsafe-inline' is required for scripts
-          // until a nonce-based middleware approach is adopted. However, all
-          // script *sources* are tightly allow-listed, limiting injection vectors
-          // significantly compared to having no CSP at all.
-          //
-          // ROADMAP: migrate to nonce-based CSP (middleware.ts nonce injection)
-          // to eliminate 'unsafe-inline' for scripts entirely.
-          {
-            key: 'Content-Security-Policy',
             value: [
-              // Only load scripts from known-safe origins
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com",
-              // Styles: self + Google Fonts + inline (required by Tailwind/CSS-in-JS)
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Fonts from Google Fonts CDN + Perplexity CDN
-              "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
-              // Images: self + Supabase CDN + YouTube thumbnails + Google avatars + DiceBear
-              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
-              // Iframes: YouTube embeds only
-              "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
-              // API, Supabase realtime, Sentry, Vercel Analytics
-              "connect-src 'self' http://localhost:8082 ws://localhost:8082 ws: wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://sentry.io https://*.sentry.io https://vitals.vercel-insights.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
-              // Video/audio: self + Supabase storage + Bunny + Cloudflare Stream
-              "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com",
-              // Service worker and Web Workers
-              "worker-src 'self' blob:",
-              // Block <object>, <embed>, <applet> — legacy plugin vectors
-              "object-src 'none'",
-              // Restrict <base href> to same origin
-              "base-uri 'self'",
-              // Form submissions to same origin only
-              "form-action 'self'",
-              // Fallback for any unspecified fetch directives
-              "default-src 'self'",
-            ].join('; '),
+              'camera=()',
+              'microphone=()',
+              'geolocation=(self)',
+              'payment=(self "https://*.paymob.com")',
+              // Modern APIs that the app does not use but the browser
+              // exposes by default.
+              'usb=()',
+              'serial=()',
+              'bluetooth=()',
+              'midi=()',
+              'hid=()',
+              'accelerometer=()',
+              'gyroscope=()',
+              'magnetometer=()',
+              'autoplay=()',
+              'encrypted-media=()',
+              'picture-in-picture=()',
+              'screen-wake-lock=()',
+              'xr-spatial-tracking=()',
+            ].join(', '),
+          },
+          // SECURITY: Content-Security-Policy is intentionally NOT set here.
+          // The single source of truth is the Edge middleware in
+          // src/proxy.ts (which delegates to src/lib/security/csp.ts).
+          // Defining CSP in both next.config.js and the middleware caused
+          // a duplicated policy where the intersection of the two sources
+          // applied — e.g. payment iframe breaks because the static
+          // frame-src lacked Paymob. Keeping one policy avoids the
+          // accidental intersection and ensures the nonce injected by the
+          // middleware is the only script-src key the browser enforces.
+        ],
+      },
+      // API responses — minimal but non-negotiable security headers.
+      // The HTML route above excludes `/api/*` (see the negative
+      // lookahead in its source pattern) so these routes need their own
+      // block. CSP is NOT applied here: API responses are never
+      // rendered as documents, only consumed by fetch, so the runtime
+      // nonce in src/proxy.ts is unnecessary and would be a leak.
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // Block API responses from being embedded as iframes — the
+          // browser will refuse to render a JSON body in a frame, but
+          // X-Frame-Options: DENY also defends against clickjacking on
+          // any HTML wrapper that might proxy the response.
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          // Cross-Origin-Resource-Policy for API: `same-origin` would
+          // break the SW which reads /api/* on first load from its own
+          // origin, so we use `same-site` to allow the SW + the page
+          // origin to fetch each other, while still blocking unrelated
+          // third-party origins from embedding API responses as
+          // resources.
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-site',
+          },
+          // Mark every API response as varying on Origin so the browser
+          // does not cache a response from user A and serve it to user
+          // B's request from a shared CDN. Combined with the
+          // `Cache-Control: no-store` set by individual route handlers
+          // for sensitive endpoints, this prevents response mix-up.
+          {
+            key: 'Vary',
+            value: 'Origin',
           },
         ],
       },

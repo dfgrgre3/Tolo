@@ -10,6 +10,7 @@ import { ShieldAlert, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { errorService } from "@/lib/logging/error-service";
 
 // Tabs Panels
 import DashboardOverview from "./components/DashboardOverview";
@@ -147,7 +148,7 @@ export default function TeachingPage() {
           setApplyError("تعذر تقديم الطلب حالياً، يرجى التحقق من البيانات وإعادة المحاولة.");
         }
       } catch (err) {
-        console.error("Error submitting application details", err);
+        errorService.logError(err, { source: "teaching:apply", severity: "medium" });
         setApplyError("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
       } finally {
         setIsSubmitting(false);

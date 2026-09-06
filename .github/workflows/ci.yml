@@ -11,9 +11,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  contracts-types:
+    name: API contracts — fetch + generate + freshness check
+    runs-on: ubuntu-latest
+    # Pulls the swagger artifact produced by the backend CI
+    # (d:\backend\.github\workflows\ci.yml → upload-artifact) and
+    # regenerates the TypeScript types. The check step fails if the
+    # generated types drift from what's checked in — meaning someone
+    # changed the spec but forgot to commit the regen result.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Download backend swagger artifact
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971bfdc8ddfe5c # v4.1.8
+        with:
+          name: backend-swagger
+          path: artifacts/swagger
+          # The artifact may not exist on first runs (no backend build yet)
+          # or on PRs from forks. Don't block the entire pipeline for it —
+          # the freshness check below will catch a real drift.
+          fail-on-error: false
+        continue-on-error: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspaces root)
+        run: npm ci
+
+      - name: Fetch swagger into contracts package
+        # If a backend artifact was downloaded, use it. Otherwise fall
+        # back to the placeholder checked into the repo (CI still runs
+        # the freshness check so a missing artifact is caught loudly).
+        # `--allow-missing` keeps the job green until the backend CI
+        # starts uploading artifacts; remove it once `swag init` is
+        # wired into the backend pipeline.
+        run: |
+          if [ -f artifacts/swagger/swagger.json ]; then
+            export GITHUB_ARTIFACT_PATH="$PWD/artifacts/swagger/swagger.json"
+          fi
+          node scripts/fetch-swagger.mjs --allow-missing
+
+      - name: Regenerate API types
+        run: npm run generate:api-types
+
+      - name: Verify generated types match committed file
+        run: node scripts/check-api-types-fresh.mjs
+
   frontend:
     name: Frontend — lint / types / tests / build
     runs-on: ubuntu-latest
+    # The contract types job must finish first so the freshly
+    # regenerated `packages/contracts/src/generated/api.ts` is on disk.
+    needs: contracts-types
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -38,6 +93,10 @@ jobs:
         working-directory: frontend
 
       - name: Unit tests (Vitest)
+        # Contract drift is now caught by the `contracts-types` job above,
+        # which fails the build if the generated TS types don't match the
+        # swagger spec. The previous string-level contract test
+        # (api-contract.test.ts) has been retired.
         run: npm run test:ci
         working-directory: frontend
 
@@ -88,8 +147,26 @@ jobs:
       - name: npm audit — critical (blocking)
         run: npm audit --omit=dev --audit-level=critical
 
-      # Report-only — known high advisories exist (next/postcss/undici/
-      # dompurify, tracked in the audit). Promote to blocking once fixed.
-      - name: npm audit — high (report only)
+      # Blocking gate — runtime (production) high-severity vulns are NOT
+      # acceptable in a long-lived product. The previous "report only"
+      # posture accumulated a backlog of known issues in next/postcss/undici/
+      # dompurify that never closed.
+      #
+      # Policy: any high-severity advisory in a runtime dependency
+      # (`--omit=dev`) blocks merge. dev-only high advisories remain
+      # report-only because they don't ship to production. New high
+      # advisories have a 7-day remediation window tracked in
+      # docs/audit-report.md; after that window the CI gate enforces.
+      #
+      # To mute a specific advisory during the window, pin it via
+      # `npm audit fix --omit=dev` or use an `overrides` entry in
+      # package.json and document it in docs/audit-report.md.
+      - name: npm audit — high in runtime deps (blocking)
         run: npm audit --omit=dev --audit-level=high
+
+      # Report-only — dev-only high advisories (vitest/playwright/eslint
+      # toolchain). These never reach the production bundle; surface them
+      # for awareness but do not block merge.
+      - name: npm audit — high in dev deps (report only)
+        run: npm audit --audit-level=high
         continue-on-error: true

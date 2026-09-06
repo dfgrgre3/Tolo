@@ -3,6 +3,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { errorService } from "@/lib/logging/error-service";
 
 interface Props {
   children?: ReactNode;
@@ -25,7 +26,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // Route through the unified error service so this event ends up in
+    // Sentry exactly once (the previous direct console.error was both
+    // logged to stdout AND captured by Sentry's global handler — a
+    // duplicate that doubled noise on every render crash).
+    errorService.logError(error, {
+      source: "ErrorBoundary",
+      severity: "critical",
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   private handleReset = () => {

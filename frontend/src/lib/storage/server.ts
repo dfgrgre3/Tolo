@@ -13,7 +13,7 @@ import type {
   ImageTransformOptions,
 } from "./types";
 
-import { MAX_SIMPLE_UPLOAD_SIZE } from "./upload-policy";
+import { MAX_SIMPLE_UPLOAD_SIZE, isPublicBucket } from "./upload-policy";
 
 const MAX_FILE_SIZE = MAX_SIMPLE_UPLOAD_SIZE;
 
@@ -31,16 +31,35 @@ export async function uploadFileServer(options: UploadOptions): Promise<UploadRe
 
   let fileToUpload = file;
   if (file.type === "image/svg+xml" || file.name.endsWith(".svg")) {
+    // SECURITY: fail closed. Sanitization must succeed for an SVG to be
+    // uploaded at all. Falling back to the original bytes here would
+    // re-introduce XSS / script-injection vectors the sanitizer exists
+    // to remove.
+    let sanitizedText: string;
     try {
       const text = await file.text();
-      const sanitizedText = sanitizeSvg(text);
-      fileToUpload = new File([sanitizedText], file.name, {
-        type: file.type,
-        lastModified: file.lastModified,
-      });
+      sanitizedText = sanitizeSvg(text);
     } catch (e) {
-      console.warn("SVG sanitization failed on server, uploading raw file", e);
+      console.warn("SVG sanitization failed on server; rejecting upload", e);
+      throw new Error(
+        "SVG validation failed: the file could not be safely sanitized and was rejected."
+      );
     }
+
+    // DOMPurify returns "" for fully-hostile input rather than throwing.
+    // Treat empty output as a rejection: an "SVG" that sanitizes to
+    // nothing is not a usable file and silently uploading "" would mask
+    // the attack from both the caller and any downstream consumer.
+    if (!sanitizedText || !sanitizedText.trim()) {
+      throw new Error(
+        "SVG validation failed: sanitizer produced empty output (file rejected as unsafe)."
+      );
+    }
+
+    fileToUpload = new File([sanitizedText], file.name, {
+      type: file.type,
+      lastModified: file.lastModified,
+    });
   }
 
   const { data, error } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
@@ -53,7 +72,28 @@ export async function uploadFileServer(options: UploadOptions): Promise<UploadRe
     throw new Error(`Upload failed: ${error.message}`);
   }
 
-  const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+  // SECURITY: only return a public CDN URL when the bucket is explicitly
+  // public. For private buckets (student work, certificates, teacher
+  // materials, invoices) we issue a short-lived signed URL — the public
+  // URL would otherwise expose every object to anonymous readers at the
+  // Supabase edge cache, sidestepping every authorization check on this
+  // server.
+  let accessibleUrl: string;
+  let signedUrl: string | undefined;
+  if (isPublicBucket(bucket)) {
+    accessibleUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
+  } else {
+    const { data: signedData, error: signedErr } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(data.path, 3600);
+    if (signedErr || !signedData?.signedUrl) {
+      throw new Error(
+        `Upload succeeded but failed to issue signed URL: ${signedErr?.message ?? "unknown error"}`
+      );
+    }
+    accessibleUrl = signedData.signedUrl;
+    signedUrl = signedData.signedUrl;
+  }
 
   const metadata: FileMetadata = {
     name: file.name,
@@ -66,7 +106,8 @@ export async function uploadFileServer(options: UploadOptions): Promise<UploadRe
   return {
     path: data.path,
     fullPath: data.fullPath,
-    publicUrl: publicUrlData.publicUrl,
+    publicUrl: accessibleUrl,
+    signedUrl,
     metadata,
   };
 }
@@ -249,6 +290,15 @@ export async function getImageTransformUrlServer(
   path: string,
   transform: ImageTransformOptions
 ): Promise<string> {
+  // SECURITY: refuse to mint a public CDN URL for a non-public bucket.
+  // A transform applied to a private object would still be reachable at
+  // the same public edge — same leak shape as getPublicUrlServer().
+  if (!isPublicBucket(bucket)) {
+    throw new Error(
+      `getImageTransformUrlServer is not allowed for bucket "${bucket}": bucket is not public. ` +
+      `Use createSignedUrl with a transform for private content.`
+    );
+  }
   const supabase = await createClient();
   return supabase.storage.from(bucket).getPublicUrl(path, {
     transform: transform as Record<string, unknown>,

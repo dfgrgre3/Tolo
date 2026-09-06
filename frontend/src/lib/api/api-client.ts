@@ -4,10 +4,21 @@
  */
 import { performanceMonitor } from '../metrics/performance';
 import { trimTrailingSlashes } from '../utils';
+import { getBackendUrl } from './backend-url';
 import { requestCache } from './request-cache';
 import { applyCsrfHeader, ensureCsrfToken, isCsrfValidationFailure } from './csrf';
 import { handleUnauthorized } from './redirect-loop-guard';
-import { RETRYABLE_STATUSES, RETRY_DELAY, canRetryMethod, isRetryableError, sleep } from './retry-policy';
+import {
+    RETRYABLE_STATUSES,
+    RETRY_DELAY,
+    canRetryMethod,
+    isRetryableError,
+    classifyFetchError,
+    sleep,
+    TimeoutError,
+    CallerAbortError,
+    NetworkError,
+} from './retry-policy';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
@@ -49,10 +60,23 @@ const isBrowser = typeof window !== 'undefined';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8082/api/v1';
 
+// Server-side base URL is resolved through the shared helper so every
+// server caller agrees on the same value (and so a missing config throws
+// in production instead of silently routing to localhost).
+// getBackendUrl() throws in production when neither INTERNAL_API_URL nor
+// NEXT_PUBLIC_API_URL is set — that's the intended fail-fast behavior.
 const BASE_API_URL = trimTrailingSlashes(
     isBrowser
         ? '/api'
-        : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL)
+        : (() => {
+            try {
+                return getBackendUrl();
+            } catch {
+                // During build / instrumentation the env may legitimately be
+                // unset. Defer to the dev fallback so the module can load.
+                return DEFAULT_API_URL;
+            }
+        })()
 );
 
 function normalizeEndpoint(endpoint: string): string {
@@ -161,22 +185,13 @@ class ApiClient {
     }
 
     private logNetworkError(error: unknown, endpoint: string): void {
-        // Aborts (caller cancellation, our own timeout) are expected control
-        // flow, not failures — logging them as HIGH network errors just
-        // spams Sentry/console with noise on every unmount/navigation.
-        //
-        // We can't rely solely on `error instanceof DOMException && name === 'AbortError'`:
-        // when a caller aborts with a plain string reason (e.g.
-        // `controller.abort("Component unmounted")`), `forwardAbort` propagates
-        // that reason as-is via `controller.abort(externalSignal.reason ?? ...)`,
-        // so the resulting rejection can be a generic Error whose name isn't
-        // 'AbortError' at all. Detect those cases by name/message too.
-        const name = (error as { name?: string } | null)?.name;
-        const message = (error as { message?: string } | null)?.message;
-        const isAbortLike =
-            name === 'AbortError' ||
-            (typeof message === 'string' && /aborted|abort/i.test(message));
-        if (isAbortLike) return;
+        // Caller cancellation and our own internal timeouts are expected
+        // control flow, not failures — logging them as HIGH network errors
+        // just spams Sentry/console with noise on every unmount/navigation.
+        const classified = classifyFetchError(error);
+        if (classified instanceof CallerAbortError || classified instanceof TimeoutError) {
+            return;
+        }
 
         import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
             errorManager.handleNetworkError(error, endpoint);
@@ -190,7 +205,12 @@ class ApiClient {
 
         while (true) {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeout);
+            // Internal timeout: stamp a TimeoutError onto the controller so the
+            // catch block below can recover the original reason even after the
+            // generic `AbortError` DOMException is raised by `fetch`.
+            const id = setTimeout(() => {
+                controller.abort(new TimeoutError());
+            }, timeout);
 
             // Forward the caller's own AbortSignal (if any) into the internal
             // timeout controller. Without this, `fetcher()` below always sent
@@ -198,15 +218,15 @@ class ApiClient {
             // caller passed in `options` (e.g. auth-context's unmount cleanup)
             // — the caller's abort had no effect and the request kept running.
             const externalSignal = customOptions.signal instanceof AbortSignal ? customOptions.signal : undefined;
-            // Always forward as a proper AbortError DOMException — never the
-            // caller's raw `reason` (often a plain string like "Component
-            // unmounted" from `controller.abort("...")`), so downstream
-            // `error.name === 'AbortError'` checks (e.g. logNetworkError)
-            // reliably recognize this as a cancellation, not a failure.
-            const forwardAbort = () => controller.abort(new DOMException('Aborted by caller', 'AbortError'));
+            // Stamp a CallerAbortError on the controller so downstream code
+            // can `instanceof` it instead of guessing from `error.name` /
+            // `error.message`. We never propagate the caller's raw `reason`
+            // (often a plain string like "Component unmounted") because that
+            // breaks the error taxonomy.
+            const forwardAbort = () => controller.abort(new CallerAbortError());
             if (externalSignal) {
                 if (externalSignal.aborted) {
-                    controller.abort();
+                    controller.abort(new CallerAbortError());
                 } else {
                     externalSignal.addEventListener('abort', forwardAbort);
                 }
@@ -264,23 +284,34 @@ class ApiClient {
             } catch (error: unknown) {
                 clearTimeout(id);
 
+                // Recover the reason we stamped on the controller. `fetch`
+                // unwraps the DOMException reason into a generic
+                // `DOMException { name: 'AbortError' }`, but we can recover
+                // the original `TimeoutError` / `CallerAbortError` instance
+                // we passed to `controller.abort(reason)` — that's the whole
+                // reason we used explicit classes.
+                const reason = controller.signal.reason;
+                const classified = (reason instanceof TimeoutError || reason instanceof CallerAbortError)
+                    ? reason
+                    : classifyFetchError(error);
+
                 // The caller explicitly cancelled (e.g. a component unmounting) —
                 // propagate immediately. Without this check the abort is
                 // indistinguishable from an internal timeout abort below and
                 // would be retried, which re-issues a request the caller no
                 // longer wants.
-                if (externalSignal?.aborted) {
-                    throw error;
+                if (externalSignal?.aborted || classified instanceof CallerAbortError) {
+                    throw classified;
                 }
 
-                if (isRetryableError(error, retryCount, retries, customOptions.method || 'GET')) {
+                if (isRetryableError(classified, retryCount, retries, customOptions.method || 'GET')) {
                     retryCount++;
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
                     continue;
                 }
 
-                this.logNetworkError(error, endpoint);
-                throw error;
+                this.logNetworkError(classified, endpoint);
+                throw classified;
             } finally {
                 if (externalSignal) {
                     externalSignal.removeEventListener('abort', forwardAbort);

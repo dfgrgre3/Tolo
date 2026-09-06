@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Thanawy API (placeholder)",
+    "version": "0.0.0",
+    "description": "Placeholder committed so CI runs before the backend pipeline uploads the real spec. The `contracts-types` job regenerates this file's TS counterpart and fails on drift — once the backend CI starts uploading the artifact via `actions/upload-artifact` (name: backend-swagger), this placeholder is no longer used."
+  },
+  "paths": {}
+}

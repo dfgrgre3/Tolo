@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { getBackendUrl } from '@/lib/api/backend-url';
+import { forwardSetCookies } from '@/lib/security/cookie-attrs';
 
 /**
  * CSRF Token Bootstrap Endpoint
- * 
+ *
  * This endpoint ensures the browser receives a _csrf cookie before making
  * state-changing requests. It calls the backend's /api/auth/csrf endpoint
  * which uses middleware.EnsureCSRFToken to set the cookie and X-CSRF-Token header.
- * 
+ *
  * The frontend apiClient calls this before POST/PUT/PATCH/DELETE requests to
  * implement the Double Submit Cookie pattern.
  */
 export async function GET(_request: NextRequest) {
-  const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8082';
+  let backendUrl: string;
+  try {
+    backendUrl = getBackendUrl();
+  } catch (err) {
+    logger.error('CSRF token bootstrap: backend URL not configured', err, { source: 'api/auth/csrf' });
+    return NextResponse.json(
+      { error: 'Backend service unavailable' },
+      { status: 503 }
+    );
+  }
 
   try {
     logger.info('CSRF token bootstrap request', { source: 'api/auth/csrf' });
@@ -38,15 +49,28 @@ export async function GET(_request: NextRequest) {
       nextResponse.headers.set('X-CSRF-Token', csrfToken);
     }
     
-    // Forward Set-Cookie headers
-    const setCookieHeaders = response.headers.getSetCookie?.() || response.headers.get('set-cookie')?.split(',').filter(Boolean) || [];
-    for (const cookie of setCookieHeaders) {
-      // In development, remove Secure flag to allow HTTP cookies
-      const cookieValue = process.env.NODE_ENV === 'development' 
-        ? cookie.split(';').filter(part => part.trim().toLowerCase() !== 'secure').join(';')
-        : cookie;
-      nextResponse.headers.append('Set-Cookie', cookieValue);
-    }
+    // Forward Set-Cookie headers verbatim from the backend.
+    //
+    // `forwardSetCookies` centralizes dev-only `Secure` stripping
+    // (so http://localhost still works) and validation that auth
+    // cookies carry HttpOnly/Secure/SameSite. Previously this
+    // route inlined a custom strip loop that only handled the
+    // `Secure` attribute and silently trusted everything else.
+    //
+    // The CSRF cookie is classified as auth-related via the
+    // default `isAuthCookie` predicate in `forwardSetCookies`
+    // (matches csrf_token, access_token, refresh_token).
+    forwardSetCookies({
+      from: response,
+      to: nextResponse,
+      reportViolation: (name, violations) => {
+        logger.warn('CSRF cookie missing required security attributes', {
+          source: 'api/auth/csrf',
+          cookie: name,
+          violations,
+        });
+      },
+    });
 
     return nextResponse;
   } catch (error) {

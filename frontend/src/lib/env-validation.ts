@@ -1,31 +1,89 @@
 /**
  * Environment Variables Validation
- * Validates all required environment variables at startup
+ * Validates all required environment variables at startup.
+ *
+ * Contract is enforced via a Zod schema (zod is already a direct dep). The
+ * schema is the single source of truth for what each environment needs to
+ * be valid; the rest of the checks (NEXT_PUBLIC_ leakage, URL format,
+ * SESSION_DURATION) are layered on top.
  */
 
+import { z } from 'zod';
 import { logger } from './logger';
 
-const REQUIRED_ENV_VARS = {
-  // Production required
-  production: [],
+/**
+ * Production-required server-side secrets / endpoints.
+ *
+ * These MUST be set in every production deployment. A missing value here
+ * fails the contract at startup — see `ensureValidEnvironment()`.
+ *
+ * - INTERNAL_API_URL          — server-to-server backend base (no /api suffix)
+ * - JWT_SECRET                — legacy HS256 fallback (32+ chars)
+ *                              (JWT_PUBLIC_KEY is the recommended replacement)
+ * - NEXT_PUBLIC_SUPABASE_URL
+ * - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (preferred) or ANON_KEY
+ *
+ * If neither SUPABASE key is present, the schema accepts an empty
+ * `NEXT_PUBLIC_SUPABASE_*` value but logs a warning so a forgotten
+ * `.env.local` is loud rather than silent.
+ */
+const serverEnvSchema = z
+  .object({
+    INTERNAL_API_URL: z
+      .string()
+      .url('INTERNAL_API_URL must be a valid URL (e.g. https://api.example.com)'),
+    JWT_SECRET: z
+      .string()
+      .min(32, 'JWT_SECRET must be at least 32 characters')
+      .optional(),
+    JWT_PUBLIC_KEY: z.string().min(10).optional(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(10).optional(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(10).optional(),
+  })
+  .refine(
+    (v) => v.JWT_SECRET || v.JWT_PUBLIC_KEY,
+    {
+      message:
+        'Either JWT_SECRET (legacy HS256) or JWT_PUBLIC_KEY (asymmetric, recommended) must be set',
+      path: ['JWT_SECRET'],
+    }
+  );
 
-  // Development optional (but should be set)
-  development: []
-} as const;
-
+/**
+ * Validation result shape consumed by callers / startup hooks.
+ */
 interface EnvValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
 }
 
-function checkProductionVars(errors: string[], isProduction: boolean) {
-  if (isProduction) {
-    for (const envVar of REQUIRED_ENV_VARS.production) {
-      if (!process.env[envVar]) {
-        errors.push(`Required environment variable ${envVar} is not set`);
-      }
+function checkProductionVars(errors: string[], warnings: string[], isProduction: boolean) {
+  if (!isProduction) return;
+
+  const parsed = serverEnvSchema.safeParse(process.env);
+  if (parsed.success) {
+    // Loud-but-non-fatal warning: Supabase must be configured to use any
+    // client-side auth flow. The schema leaves it optional so non-Supabase
+    // deployments don't crash, but forgetting to set both keys is a
+    // configuration mistake we want surfaced.
+    if (
+      !parsed.data.NEXT_PUBLIC_SUPABASE_URL &&
+      !parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY &&
+      !parsed.data.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
+      warnings.push(
+        'No Supabase keys configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY). ' +
+          'Auth and storage will not work until these are set.'
+      );
     }
+    return;
+  }
+
+  for (const issue of parsed.error.issues) {
+    const path = issue.path.length ? issue.path.join('.') : '(root)';
+    errors.push(`${path}: ${issue.message}`);
   }
 }
 
@@ -100,7 +158,7 @@ function validateEnvironment(): EnvValidationResult {
   const warnings: string[] = [];
   const isProduction = process.env.NODE_ENV === 'production';
 
-  checkProductionVars(errors, isProduction);
+  checkProductionVars(errors, warnings, isProduction);
   checkSessionDuration(warnings);
   checkBaseUrl(warnings);
   checkNoSensitiveKeysExposed(errors, warnings);

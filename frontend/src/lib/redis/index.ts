@@ -1,4 +1,4 @@
-export { getRedisClient, closeRedis } from './client';
+export { getRedisClient, getRedisClientAsync, closeRedis } from './client';
 export {
   initiateUpload,
   registerChunk,
@@ -7,6 +7,7 @@ export {
   isUploadComplete,
   validateUploadCompletion,
   getUploadProgress,
+  compareAndSetSessionStatus,
   updateSessionStatus,
   markUploadCompleted,
   cleanupUpload,

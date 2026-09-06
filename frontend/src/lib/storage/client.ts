@@ -45,16 +45,35 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
 
   let fileToUpload = file;
   if (file.type === "image/svg+xml" || file.name.endsWith(".svg")) {
+    // SECURITY: fail closed. If sanitization rejects the SVG (likely hostile),
+    // we MUST NOT upload the original bytes — that would re-introduce the
+    // very payloads (script tags, on-handlers, foreignObject XSS) the
+    // sanitizer exists to block.
+    let sanitizedText: string;
     try {
       const text = await file.text();
-      const sanitizedText = sanitizeSvg(text);
-      fileToUpload = new File([sanitizedText], file.name, {
-        type: file.type,
-        lastModified: file.lastModified,
-      });
+      sanitizedText = sanitizeSvg(text);
     } catch (e) {
-      console.error("SVG sanitization failed, uploading raw file", e);
+      console.error("SVG sanitization failed; refusing to upload raw file", e);
+      throw new Error(
+        "SVG validation failed: the file could not be safely sanitized and was rejected."
+      );
     }
+
+    // DOMPurify returns "" for fully-hostile input instead of throwing.
+    // Treat empty output as a rejection: silently uploading an empty
+    // blob would mask the attack from the user and still bypass the
+    // sanitizer's intent.
+    if (!sanitizedText || !sanitizedText.trim()) {
+      throw new Error(
+        "SVG validation failed: sanitizer produced empty output (file rejected as unsafe)."
+      );
+    }
+
+    fileToUpload = new File([sanitizedText], file.name, {
+      type: file.type,
+      lastModified: file.lastModified,
+    });
   }
 
   const formData = new FormData();

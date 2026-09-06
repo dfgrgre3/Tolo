@@ -59,7 +59,13 @@ const CoreProviders = ({ children }: { children: React.ReactNode }) => (
     <Suspense fallback={null}>
       <ClientLayoutProvider>
         <QueryClientProvider client={useState(makeQueryClient)[0]}>
-          <ReactQueryPersistence />
+          {/*
+            ReactQueryPersistence renders here so it has access to the
+            QueryClient. AuthProvider renders inside AppStateProviders
+            below; the persister reads auth state via useAuth() and is
+            ordered so AuthProvider is mounted before the first render of
+            any useQuery() consumer that may need the restored cache.
+          */}
           {children}
         </QueryClientProvider>
       </ClientLayoutProvider>
@@ -70,6 +76,13 @@ const CoreProviders = ({ children }: { children: React.ReactNode }) => (
 const AppStateProviders = ({ children }: { children: React.ReactNode }) => (
   <SettingsProvider>
     <AuthProvider>
+      {/*
+        ReactQueryPersistence must be INSIDE AuthProvider so it can read
+        the current user via useAuth() and key the IndexedDB store by
+        identity (see react-query-persistence.tsx). It still sits under
+        QueryClientProvider from CoreProviders, so useQueryClient() works.
+      */}
+      <ReactQueryPersistence />
       <EfficiencyProvider>
         <GlobalSettingsApplier>
           {children}

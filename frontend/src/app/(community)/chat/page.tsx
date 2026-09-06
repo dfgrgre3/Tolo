@@ -38,6 +38,14 @@ type Conversation = {
   isOnline?: boolean;
 };
 
+/** Unwraps the `{ success, data }` envelope used by the backend responses. */
+function unwrap<T>(payload: unknown): T {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+}
+
 const formatTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -285,8 +293,9 @@ export default function ChatPage() {
         // userId path segment is sent (IDOR/BOLA hardening).
         const res = await fetch("/api/chat/conversations");
         if (res.ok) {
-          const data = await res.json() as Conversation[];
-          setConversations(data);
+          const payload = await res.json();
+          const data = unwrap<Conversation[]>(payload);
+          setConversations(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         logger.error("Error fetching conversations:", error);
@@ -302,18 +311,19 @@ export default function ChatPage() {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const userRes = await fetch(`/api/users/${chatUserId}`);
+        const userRes = await fetch(`/api/community/users/${chatUserId}`);
         if (userRes.ok) {
-          const userData = await userRes.json() as User;
-          setSelectedUser(userData);
+          const payload = await userRes.json();
+          setSelectedUser(unwrap<User>(payload));
         }
 
         // Only the counterpart user id is a parameter — the sender is the
         // JWT session user.
         const messagesRes = await fetch(`/api/chat/messages/${chatUserId}`);
         if (messagesRes.ok) {
-          const messagesData = await messagesRes.json() as Message[];
-          setMessages(messagesData);
+          const payload = await messagesRes.json();
+          const messagesData = unwrap<Message[]>(payload);
+          setMessages(Array.isArray(messagesData) ? messagesData : []);
         }
       } catch (error) {
         logger.error("Error fetching messages:", error);
@@ -345,7 +355,8 @@ export default function ChatPage() {
       });
 
       if (res.ok) {
-        const newMsg = await res.json() as Message;
+        const payload = await res.json();
+        const newMsg = unwrap<Message>(payload);
         setMessages([...messages, newMsg]);
         setNewMessage("");
 

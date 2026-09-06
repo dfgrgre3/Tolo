@@ -9,23 +9,24 @@ import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
 
-type User = {
+type DirectoryUser = {
   id: string;
   name: string;
-  email: string;
   avatar?: string;
-  grade?: string;
-  school?: string;
-  isOnline?: boolean;
 };
+
+/** Unwraps the `{ success, data }` envelope used by the backend responses. */
+function unwrap<T>(payload: unknown): T {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+}
 
 export default function NewChatPage() {
   const router = useRouter();
-  // Session-derived id, used only to exclude the current user from the list —
-  // it is never sent to the server (IDOR/BOLA hardening).
-  const { user, isAuthenticated } = useAuth();
-  const currentUserId = isAuthenticated && user?.id ? user.id : null;
-  const [users, setUsers] = useState<User[]>([]);
+  const { isAuthenticated } = useAuth();
+  const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -34,14 +35,13 @@ export default function NewChatPage() {
 
     const fetchUsers = async () => {
       try {
-        const res = await fetch("/api/users");
+        // Session-scoped directory: the backend excludes the caller based on
+        // the JWT, so no userId is sent (IDOR/BOLA hardening).
+        const res = await fetch("/api/community/users");
         if (res.ok) {
-          const data = await res.json() as User[];
-          // Filter out the current user
-          const otherUsers = currentUserId
-            ? data.filter((user: User) => user.id !== currentUserId)
-            : data;
-          setUsers(otherUsers);
+          const payload = await res.json();
+          const data = unwrap<DirectoryUser[]>(payload);
+          setUsers(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         logger.error("Error fetching users:", error);
@@ -51,17 +51,12 @@ export default function NewChatPage() {
     };
 
     fetchUsers();
-  }, [isAuthenticated, currentUserId]);
+  }, [isAuthenticated]);
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
     const term = searchTerm.toLowerCase();
-    return users.filter(user =>
-      user.name.toLowerCase().includes(term) || 
-      user.email.toLowerCase().includes(term) ||
-      (user.grade && user.grade.toLowerCase().includes(term)) ||
-      (user.school && user.school.toLowerCase().includes(term))
-    );
+    return users.filter((user) => user.name.toLowerCase().includes(term));
   }, [searchTerm, users]);
 
   const handleStartChat = (chatUserId: string) => {
@@ -135,15 +130,9 @@ export default function NewChatPage() {
                           <span className="text-lg">{user.name.charAt(0)}</span>
                         )}
                       </div>
-                      {user.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
-                      )}
                     </div>
                     <div>
                       <h3 className="font-medium">{user.name}</h3>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      {user.grade && <p className="text-xs text-muted-foreground">الصف: {user.grade}</p>}
-                      {user.school && <p className="text-xs text-muted-foreground">المدرسة: {user.school}</p>}
                     </div>
                   </div>
                   <button

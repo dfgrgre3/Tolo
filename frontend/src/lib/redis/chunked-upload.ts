@@ -126,6 +126,10 @@ export async function initiateUpload(
 
 /**
  * Update the status of an upload session.
+ *
+ * NOTE: this is an unconditional write and is NOT safe to call from
+ * finalize/complete paths where two concurrent requests must not be able to
+ * both win the transition. Use {@link compareAndSetSessionStatus} for that.
  */
 export async function updateSessionStatus(
   uploadId: string,
@@ -133,6 +137,65 @@ export async function updateSessionStatus(
 ): Promise<void> {
   const redis = assertRedis();
   await redis.hset(sessionKey(uploadId), 'status', status);
+}
+
+/**
+ * Atomically transition an upload session's status from `from` to `to`,
+ * returning 1 if the transition happened and 0 otherwise.
+ *
+ * Implemented as a Lua script so the read of the current status and the
+ * write of the new status happen as a single Redis operation. Without this,
+ * two concurrent finalize requests can both read status='UPLOADING' in
+ * their GET handler, both call `updateSessionStatus('COMPLETING')`, both
+ * run validation, and both proceed to mark the upload completed — a classic
+ * lost-update / TOCTOU race that ends in double-assembly or, worse,
+ * assembly against a partially-overwritten chunk set.
+ *
+ * Pass `null` for `from` to require only that the key exists (any current
+ * status is accepted). This is the right form for `COMPLETING`:
+ *
+ *   compareAndSetSessionStatus(id, 'COMPLETING', null)
+ *
+ * is rejected once a previous winner already moved the session to
+ * 'COMPLETING' or 'COMPLETED' — the second concurrent request cannot enter
+ * the finalize window at all.
+ */
+const CAS_STATUS_SCRIPT = `
+local key = KEYS[1]
+local expected = ARGV[1]
+local next_status = ARGV[2]
+local current = redis.call('HGET', key, 'status')
+if not current then
+  return -1
+end
+if expected == '' or expected == nil then
+  redis.call('HSET', key, 'status', next_status)
+  return 1
+end
+if current ~= expected then
+  return 0
+end
+redis.call('HSET', key, 'status', next_status)
+return 1
+`;
+
+export async function compareAndSetSessionStatus(
+  uploadId: string,
+  nextStatus: UploadSessionStatus,
+  expectedFrom: UploadSessionStatus | null
+): Promise<'ok' | 'stale' | 'missing'> {
+  const redis = assertRedis();
+  const raw = (await redis.eval(
+    CAS_STATUS_SCRIPT,
+    1,
+    sessionKey(uploadId),
+    expectedFrom ?? '',
+    nextStatus
+  )) as number;
+
+  if (raw === 1) return 'ok';
+  if (raw === 0) return 'stale';
+  return 'missing';
 }
 
 /**
@@ -348,10 +411,16 @@ export async function getUploadProgress(
 
 /**
  * Mark the upload session as completed (status = 'COMPLETED').
- * This prevents reuse after the final assembly.
+ *
+ * SECURITY: this transition is CAS-gated to 'COMPLETING' so that it can
+ * only fire from inside the finalize handler that just won the
+ * COMPLETING transition. A second concurrent finalize request that lost
+ * the CAS for COMPLETING will not be able to call this — its CAS will
+ * return 'stale' and the handler will return 409 to the caller instead
+ * of double-marking the session.
  */
-export async function markUploadCompleted(uploadId: string): Promise<void> {
-  await updateSessionStatus(uploadId, 'COMPLETED');
+export async function markUploadCompleted(uploadId: string): Promise<'ok' | 'stale' | 'missing'> {
+  return compareAndSetSessionStatus(uploadId, 'COMPLETED', 'COMPLETING');
 }
 
 /**

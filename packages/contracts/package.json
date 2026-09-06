@@ -1,0 +1,23 @@
+{
+  "name": "@thanawy/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generated API contract types and client for the Thanawy backend (OpenAPI).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./generated": "./src/generated/api.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript swagger.json -o src/generated/api.ts",
+    "check": "node scripts/check-fresh.mjs"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.5"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.4"
+  }
+}

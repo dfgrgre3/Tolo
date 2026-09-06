@@ -45,6 +45,8 @@
     "prisma/seed",
     "scratch",
     "backend",
-    "admin"
+    "admin",
+    "packages",
+    "../packages"
   ]
 }

@@ -97,8 +97,13 @@ services:
     restart: unless-stopped
     networks:
       - thanawy-net
-    ports:
-      - "8082:8082"
+    # Internal-only: not published to the host. The frontend reaches the
+    # backend over the `thanawy-net` bridge via http://backend:8082 (see
+    # INTERNAL_API_URL above). Only the `frontend` service should be exposed
+    # to the host / public internet, ideally behind a reverse proxy that
+    # terminates TLS and forwards to frontend:3000.
+    expose:
+      - "8082"
     environment:
       NODE_ENV: production
       PORT: 8082

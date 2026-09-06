@@ -61,11 +61,22 @@ function buildConnectSrc(): string {
 export function applyCsp(response: NextResponse, nonce: string): NextResponse {
   const cspHeader = [
     "default-src 'self'",
-    // TODO: Remove 'unsafe-inline' once all inline scripts use nonce-based CSP
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    // script-src: nonce-only, no 'unsafe-inline' / 'unsafe-eval'. The nonce
+    // is injected by the Edge middleware (see src/proxy.ts) and added to
+    // every <script> the framework emits. Any script that does not carry
+    // the matching nonce will be blocked by the browser.
+    `script-src 'self' 'nonce-${nonce}' https://*.sentry.io https://*.vercel-insights.com https://*.vercel.com https://va.vercel-scripts.com https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com https://cdn.jsdelivr.net https://js.sentry-cdn.com`,
+    // style-src: nonce for inline styles too. Tailwind/CSS-in-JS still
+    // occasionally inject inline <style> tags; with the nonce they pass
+    // without needing 'unsafe-inline'. If a third-party stylesheet cannot
+    // be migrated, fall back to a per-host hash instead of broad
+    // 'unsafe-inline'.
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
     "font-src 'self' data: https://fonts.gstatic.com https://frontend-cdn.perplexity.ai",
-    "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
+    // img-src: explicit host allowlist. The previous `https:` wildcard
+    // allowed any HTTPS origin to be a tracking/exfiltration target; we
+    // restrict to known image sources only.
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
     "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
     buildConnectSrc(),
     "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",

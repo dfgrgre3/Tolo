@@ -12,6 +12,7 @@
 
 import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
+import type { AuthMeResponse } from '@/contexts/auth-context';
 
 const LEGACY_USER_KEY = 'tw_user_id';
 
@@ -47,7 +48,7 @@ if (typeof window !== 'undefined') {
  */
 export async function ensureUser(): Promise<string> {
   try {
-    const data = await apiClient.get<any>('/auth/me');
+    const data = await apiClient.get<AuthMeResponse>('/auth/me');
     return normalizeUserId(data?.user?.id) ?? '';
   } catch (error) {
     logger.warn('Unexpected error reading authenticated user:', error);

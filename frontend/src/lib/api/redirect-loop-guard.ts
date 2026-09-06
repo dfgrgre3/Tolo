@@ -47,20 +47,35 @@ const MAX_REDIRECTS_IN_WINDOW = 2;   // at most 2 redirects per window
 
 /**
  * Client-side session presence, reported by the AuthProvider once `/auth/me`
- * resolves.
+ * resolves. The full four-way status is mirrored here so redirect decisions
+ * stay aligned with the canonical auth state — see contexts/auth-context.tsx.
  *
  * The access/refresh cookies are HttpOnly, so `handleUnauthorized` cannot ask
  * "did this browser have a session?" via `document.cookie`. This module-level
- * flag is the client's only reliable answer. A guest (no session) receiving a
- * 401 from a protected endpoint must NOT be bounced to /login — guest
- * surfaces (e.g. the landing page) treat 401 as "empty data", not as a broken
- * session. `'unknown'` (auth still resolving) also stays put: the worst case
- * is a visible error state, never a wrong redirect.
+ * flag is the client's only signal — but it is now DRIVEN by the auth state
+ * (the source of truth) rather than being an independent volatile value.
+ *
+ * Decision table for `handleUnauthorized`:
+ *   - "present"     → we know the user HAD a session; an automatic redirect
+ *                     to /login on a 401 is acceptable.
+ *   - "absent"      → 401 came from a guest; guest surfaces render empty
+ *                     data, no redirect.
+ *   - "unknown" / "loading" / "unavailable"
+ *                   → auth state has not converged or the backend is down;
+ *                     do NOT redirect (avoids redirect loops during a
+ *                     transient outage and avoids bouncing a user whose
+ *                     session is still valid but whose /auth/me call failed).
  */
-type SessionPresence = 'unknown' | 'present' | 'absent';
+export type SessionPresence =
+    | 'unknown'
+    | 'loading'
+    | 'present'
+    | 'absent'
+    | 'unavailable';
+
 let sessionPresence: SessionPresence = 'unknown';
 
-export function setSessionPresence(presence: Exclude<SessionPresence, 'unknown'>): void {
+export function setSessionPresence(presence: SessionPresence): void {
     sessionPresence = presence;
 }
 
@@ -71,6 +86,16 @@ export function setSessionPresence(presence: Exclude<SessionPresence, 'unknown'>
  */
 export function getSessionPresence(): SessionPresence {
     return sessionPresence;
+}
+
+/**
+ * `true` only when the auth provider has positively confirmed the browser
+ * had a session. Used by `handleUnauthorized` to decide whether a 401
+ * warrants a redirect to /login. Anything other than 'present' is treated
+ * conservatively (no redirect).
+ */
+export function hasConfirmedSession(): boolean {
+    return sessionPresence === 'present';
 }
 
 export function isAuthEndpoint(endpoint: string): boolean {
@@ -136,8 +161,11 @@ export function handleUnauthorized(endpoint: string): void {
 
     // Only bounce users who actually HAD a session (see setSessionPresence).
     // A 401 for a guest means "this endpoint needs auth", which guest
-    // surfaces already handle by rendering empty states.
-    if (sessionPresence !== 'present') return;
+    // surfaces already handle by rendering empty states. During loading or
+    // a backend outage (status === 'unavailable') we also stay put — the
+    // session is presumed still valid and the auth state is the source of
+    // truth, so a redirect decision is deferred until it converges.
+    if (!hasConfirmedSession()) return;
 
     if (detectRedirectLoop()) {
         console.error(

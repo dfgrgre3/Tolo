@@ -3,15 +3,18 @@ import { generateNonce, applyCsp } from '@/lib/security/csp';
 import { verifyAccessToken, attemptTokenRefresh } from '@/lib/auth/jwt-edge';
 import { sanitizeRedirectPath } from '@/services/auth/navigation';
 import {
+  forwardSetCookieForDev,
+  validateAuthCookieAttributes,
+} from '@/lib/security/cookie-attrs';
+import {
   ALLOWED_AUTHENTICATED_ROLES,
   ADMIN_PANEL_ROLES,
-  TEACHER_ENDPOINT_ROLES,
-  STUDENT_ENDPOINT_ROLES,
   isAdminRoute,
   isProtectedRoute,
   isGuestRoute,
   isPublicApiEndpoint,
   hasRole,
+  findRoleRule,
 } from '@/lib/auth/route-guards';
 
 function updateCookieHeader(headers: Headers, accessToken?: string, refreshToken?: string) {
@@ -42,6 +45,41 @@ function updateCookieHeader(headers: Headers, accessToken?: string, refreshToken
     .join('; ');
 
   headers.set('cookie', updatedCookieString);
+}
+
+/**
+ * Appends refresh cookies (returned from the Go backend's
+ * /auth/refresh-token endpoint) to the outgoing response.
+ *
+ * Centralized so the dev-only `Secure` strip and auth-cookie
+ * attribute validation live in one place. `proxy.ts` previously
+ * had three copies of the same loop, each silently trusting the
+ * backend's Set-Cookie attributes. This helper validates them.
+ */
+function appendRefreshCookies(
+  response: NextResponse,
+  cookies: string[],
+): void {
+  for (const cookie of cookies) {
+    const adjusted = forwardSetCookieForDev(cookie);
+    response.headers.append('Set-Cookie', adjusted);
+    const violations = validateAuthCookieAttributes(adjusted);
+    if (violations.length > 0) {
+      // The frontend is a pass-through: even if a backend cookie
+      // is missing HttpOnly/Secure, we forward it and rely on
+      // Sentry breadcrumbs + backend fixes. Refusing the cookie
+      // would lock users out, which is worse than the warning.
+      const { addBreadcrumb } = require('@sentry/nextjs') as typeof import('@sentry/nextjs');
+      addBreadcrumb({
+        category: 'auth.cookie',
+        level: 'warning',
+        data: {
+          violations,
+          route: 'proxy',
+        },
+      });
+    }
+  }
 }
 
 export async function proxy(request: NextRequest) {
@@ -85,9 +123,7 @@ export async function proxy(request: NextRequest) {
       const redirectUrl = sanitizeRedirectPath(request.nextUrl.searchParams.get('redirect'));
       const redirectRes = NextResponse.redirect(new URL(redirectUrl, request.url));
       if (refreshCookies.length > 0) {
-        for (const cookie of refreshCookies) {
-          redirectRes.headers.append("Set-Cookie", cookie);
-        }
+        appendRefreshCookies(redirectRes, refreshCookies);
       }
       return nonce ? applyCsp(redirectRes, nonce) : redirectRes;
     } else {
@@ -141,9 +177,7 @@ export async function proxy(request: NextRequest) {
       },
     });
 
-    for (const cookie of refreshCookies) {
-      nextResponse.headers.append("Set-Cookie", cookie);
-    }
+    appendRefreshCookies(nextResponse, refreshCookies);
 
     return nonce ? applyCsp(nextResponse, nonce) : nextResponse;
   }
@@ -216,19 +250,13 @@ export async function proxy(request: NextRequest) {
     // The Go backend is the absolute authority for fine-grained authorization,
     // real-time user status (e.g. suspended accounts), action permissions,
     // and resource ownership / course entitlement.
+    //
+    // The rule table lives in `route-guards.ts` (ROLE_RULES) so adding a
+    // new role-gated endpoint is a one-line change there — no proxy edit.
     if (pathname.startsWith("/api/")) {
-      // Teacher-only endpoints
-      if (pathname.startsWith("/api/teaching/") || pathname.startsWith("/api/courses/create")) {
-        if (!hasRole(payload?.role, TEACHER_ENDPOINT_ROLES)) {
-          return NextResponse.json({ error: "Access Denied: Teacher privileges required" }, { status: 403 });
-        }
-      }
-
-      // Student-only endpoints
-      if (pathname.startsWith("/api/student/") || pathname.startsWith("/api/exams/submit")) {
-        if (!hasRole(payload?.role, STUDENT_ENDPOINT_ROLES)) {
-          return NextResponse.json({ error: "Access Denied: Student access required" }, { status: 403 });
-        }
+      const roleRule = findRoleRule(pathname);
+      if (roleRule && !hasRole(payload?.role, roleRule.allowedRoles)) {
+        return NextResponse.json({ error: roleRule.errorMessage }, { status: 403 });
       }
     }
 
@@ -245,9 +273,7 @@ export async function proxy(request: NextRequest) {
 
     // Add refresh cookies if we have them from protected route refresh
     if (refreshCookies.length > 0) {
-      for (const cookie of refreshCookies) {
-        nextResponse.headers.append("Set-Cookie", cookie);
-      }
+      appendRefreshCookies(nextResponse, refreshCookies);
     }
 
     return nonce ? applyCsp(nextResponse, nonce) : nextResponse;

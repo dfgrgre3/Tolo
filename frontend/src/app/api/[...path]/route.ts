@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { POST as webVitalsPost } from '../analytics/web-vitals/route';
 import { POST as revalidatePost } from '../cache/revalidate/route';
+import { getBackendUrl } from '@/lib/api/backend-url';
+import { forwardSetCookies } from '@/lib/security/cookie-attrs';
 
 // =============================================================================
 // Configuration
@@ -37,67 +39,63 @@ const FETCH_TIMEOUT_MS = 20000;
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
 
 // =============================================================================
-// Backend URL resolution (request-time, NOT module-load time)
+// Backend URL resolution
+// =============================================================================
+//
+// Routed through the shared `getBackendUrl()` helper (see
+// src/lib/api/backend-url.ts) so this proxy agrees with the api-client,
+// jwt-edge, /api/auth/csrf, and /api/cache/revalidate about what "the
+// backend URL" is. In production a missing config throws here too — we
+// catch it and return a structured 503 with a clear remediation hint
+// instead of letting fetch produce a confusing 502.
 // =============================================================================
 
-/**
- * Resolve the backend base URL at request-time (NOT at module-load time).
- *
- * Vercel deployments must have one of these set in Project Settings → Environment Variables:
- *   - INTERNAL_API_URL   = https://your-backend.vercel.app          (preferred, server-to-server)
- *   - NEXT_PUBLIC_API_URL = https://your-backend.vercel.app/api     (exposed to the client)
- *
- * If neither is set the proxy falls back to 127.0.0.1:8082 which does NOT
- * exist on Vercel's serverless runtime → 502 "Failed to connect to backend".
- *
- * We log the resolved value on first use so it shows up in `vercel logs`.
- */
-function resolveBackendUrl(): string {
-  const raw =
-    process.env.INTERNAL_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    '';
-
-  // Strip a trailing /api and trailing slashes so we can re-append /api/<path>.
-  const cleaned = raw.replace(/\/api\/?$/, '').replace(/\/+$/, '');
-
-  if (!cleaned) {
-    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-    const fallback = isProd ? '' : 'http://127.0.0.1:8082';
-
-    if (isProd) {
-      // Loud, structured error so the issue shows up immediately in Vercel logs.
-      console.error(
-        '[API Proxy] FATAL: No backend URL configured in production. ' +
-        'Set INTERNAL_API_URL or NEXT_PUBLIC_API_URL in Vercel Environment Variables. ' +
-        'Every /api/* request will return 502 until this is fixed.'
-      );
-    } else {
-      console.warn(
-        '[API Proxy] No INTERNAL_API_URL / NEXT_PUBLIC_API_URL set; ' +
-        'using development fallback http://127.0.0.1:8082'
-      );
-    }
-
-    return fallback;
-  }
-
-  return cleaned;
-}
-
-let loggedBackendUrl: string | null = null;
-function getBackendUrl(): string {
-  const url = resolveBackendUrl();
-  if (loggedBackendUrl !== url) {
-    console.log(`[API Proxy] Resolved BACKEND_URL = ${url || '(empty - will 502)'}`);
-    loggedBackendUrl = url;
-  }
-  return url;
+function getProxyBackendUrl(): string {
+  return getBackendUrl();
 }
 
 // =============================================================================
 // Header helpers
 // =============================================================================
+
+/**
+ * Number of trusted reverse proxies in front of this proxy.
+ * See `resolveClientIp` for the policy.
+ */
+const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
+
+/**
+ * Derive the real client IP without trusting attacker-controlled
+ * X-Forwarded-For values.
+ *
+ * X-Forwarded-For is a comma-separated chain: `client, proxy1, proxy2`.
+ * The leftmost value is what the original client (or an attacker)
+ * controls — blindly forwarding it lets an attacker spoof their IP for
+ * rate-limiting, audit logs, and abuse detection.
+ *
+ * Policy:
+ *   - Prefer `x-real-ip` (set by our single trusted reverse proxy).
+ *   - If TRUSTED_PROXY_COUNT > 0, pick the hop just BEFORE the trusted
+ *     suffix of the XFF chain.
+ *   - Otherwise drop XFF entirely (empty string → backend logs "unknown"
+ *     instead of a spoofed value).
+ */
+function resolveClientIp(request: NextRequest): string {
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  if (TRUSTED_PROXY_COUNT > 0) {
+    const xff = request.headers.get('x-forwarded-for');
+    if (xff) {
+      const hops = xff.split(',').map((h) => h.trim()).filter(Boolean);
+      const trustedStart = Math.max(0, hops.length - TRUSTED_PROXY_COUNT);
+      const clientIdx = trustedStart - 1;
+      if (clientIdx >= 0 && hops[clientIdx]) return hops[clientIdx];
+    }
+  }
+
+  return '';
+}
 
 function upstreamHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -124,13 +122,40 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
 
   const cookie = request.headers.get('cookie');
   if (cookie) {
-    // Forward cookies unmodified. Do NOT filter out __session because
-    // the backend Auth middleware treats __session as a valid auth token
-    // when the Authorization header is missing.
-    headers['Cookie'] = cookie;
+    // Forward an allowlist of cookies rather than the raw Cookie header.
+    // The frontend may carry analytics, experiments, framework, and legacy
+    // cookies that the backend has no business seeing — and every extra
+    // cookie is one more byte of PII or internal state leaking upstream.
+    // Only forward the cookies the backend actually consumes.
+    const ALLOWED_COOKIES = new Set([
+      'access_token',
+      'refresh_token',
+      '__session',
+      'auth_token',
+      'bearer_token',
+      // CSRF token used by backend double-submit pattern. Sent both as a
+      // cookie and as X-CSRF-Token header below.
+      'csrf_token',
+      '_csrf',
+    ]);
+    const forwarded = cookie
+      .split(/;\s*/)
+      .filter((kv) => kv.includes('='))
+      .map((kv) => {
+        const eqIdx = kv.indexOf('=');
+        const name = kv.substring(0, eqIdx).trim();
+        return { name, value: kv.substring(eqIdx + 1) };
+      })
+      .filter(({ name }) => ALLOWED_COOKIES.has(name))
+      .map(({ name, value }) => `${name}=${value}`)
+      .join('; ');
+    if (forwarded) headers['Cookie'] = forwarded;
   }
 
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+  // Resolve client IP from trusted-proxy chain rather than trusting the
+  // raw X-Forwarded-For header. See resolveClientIp() below for the
+  // spoof-resistance policy (TRUSTED_PROXY_COUNT / x-real-ip).
+  const ip = resolveClientIp(request);
   if (ip) headers['x-forwarded-for'] = ip;
 
   // Forward CSRF token
@@ -220,56 +245,36 @@ function copyResponseHeaders(response: Response, defaultCacheControl?: string): 
 }
 
 function applyCookies(fromResponse: Response, toResponse: NextResponse) {
-  if (fromResponse.headers.has('set-cookie')) {
-    const setCookieHeaders = typeof (fromResponse.headers as any).getSetCookie === 'function'
-      ? (fromResponse.headers as any).getSetCookie()
-      : [fromResponse.headers.get('set-cookie')].filter(Boolean) as string[];
-
-    setCookieHeaders.forEach((cookieVal: string) => {
-      const parts = cookieVal.split(';');
-      const nameValue = parts[0];
-      if (nameValue) {
-        const eqIdx = nameValue.indexOf('=');
-        if (eqIdx > 0) {
-          const name = nameValue.substring(0, eqIdx).trim();
-          const value = nameValue.substring(eqIdx + 1).trim();
-          
-          const options: any = {};
-          parts.slice(1).forEach((attrStr) => {
-            const eqIdxAttr = attrStr.indexOf('=');
-            let attrName = '';
-            let attrVal = '';
-            if (eqIdxAttr > 0) {
-              attrName = attrStr.substring(0, eqIdxAttr).trim();
-              attrVal = attrStr.substring(eqIdxAttr + 1).trim();
-            } else {
-              attrName = attrStr.trim();
-            }
-            const lowerName = attrName.toLowerCase();
-            if (lowerName === 'path') {
-              options.path = attrVal;
-            } else if (lowerName === 'domain') {
-              options.domain = attrVal;
-            } else if (lowerName === 'max-age') {
-              options.maxAge = parseInt(attrVal, 10);
-            } else if (lowerName === 'expires') {
-              options.expires = new Date(attrVal);
-            } else if (lowerName === 'httponly') {
-              options.httpOnly = true;
-            } else if (lowerName === 'secure') {
-              options.secure = true;
-            } else if (lowerName === 'samesite') {
-              const lowerVal = attrVal.toLowerCase();
-              if (lowerVal === 'lax' || lowerVal === 'strict' || lowerVal === 'none') {
-                options.sameSite = lowerVal;
-              }
-            }
-          });
-          toResponse.cookies.set(name, value, options);
-        }
-      }
-    });
-  }
+  // Forward Set-Cookie headers verbatim from the backend. The previous
+  // implementation parsed each attribute and rebuilt the cookie via
+  // Next.js `cookies.set(name, value, options)`, which silently dropped
+  // any attribute the backend set that we did not recognize
+  // (Partitioned, Priority, SameParty, custom prefixes, etc.) and was a
+  // fragile place to keep auth-cookie security in sync.
+  //
+  // `forwardSetCookies` centralizes:
+  //   - dev-only `Secure` stripping (so http://localhost still works),
+  //   - validation of HttpOnly/Secure/SameSite on auth cookies,
+  //   - Sentry reporting for any violation.
+  //
+  // The frontend is a pass-through; the Go backend is the source of
+  // truth for cookie attributes.
+  forwardSetCookies({
+    from: fromResponse,
+    to: toResponse,
+    reportViolation: (name, violations) => {
+      const { addBreadcrumb } = require('@sentry/nextjs') as typeof import('@sentry/nextjs');
+      addBreadcrumb({
+        category: 'auth.cookie',
+        level: 'warning',
+        data: {
+          cookie: name,
+          violations,
+          route: '/api/[...path]',
+        },
+      });
+    },
+  });
 }
 
 function handleErrorResponse(response: Response, errorText: string) {
@@ -319,12 +324,54 @@ async function handleProxy(
   const params = await props.params;
   const path = (params.path as string[]).join('/');
 
-  // Bypass media/storage files to avoid memory buffering proxy overhead and redirect directly to Supabase CDN
+  // SECURITY: /api/storage/* is a redirect-only fast path to the Supabase
+  // Storage CDN. A redirect is only safe when the target object is genuinely
+  // world-readable — for anything private (student work, certificates,
+  // invoices, teacher files) a 307 to Supabase would leak the object past
+  // every authorization layer on this proxy.
+  //
+  // Policy:
+  //   - Only redirect when the FIRST segment after "storage" names an
+  //     explicitly-public bucket. Unknown buckets => 404 (do NOT redirect).
+  //   - All other storage paths must be served via /api/storage/<bucket>/<...>
+  //     route handlers that create a short-lived signed URL after verifying
+  //     the caller's identity and ownership.
+  //   - Reject path traversal (no "..", no encoded slashes that escape the
+  //     bucket segment, no leading slashes).
   if (params.path[0] === 'storage') {
+    const PUBLIC_STORAGE_BUCKETS = new Set([
+      'public-assets',
+      'avatars',
+    ]);
+
+    const remaining = params.path.slice(1);
+    const bucket = remaining[0];
+    if (!bucket || !PUBLIC_STORAGE_BUCKETS.has(bucket)) {
+      console.warn(
+        `[API Proxy] Refused storage bypass for bucket=${bucket || '(none)'} path=/api/${path}. ` +
+        `Only public buckets may be redirected; private content must be served via a signed URL route.`
+      );
+      return NextResponse.json(
+        { error: 'Not found' },
+        { status: 404 }
+      );
+    }
+
+    // Reject any traversal segment anywhere in the remainder.
+    const hasTraversal = remaining.some(
+      (segment) => segment === '' || segment === '.' || segment === '..' || segment.includes('\\')
+    );
+    if (hasTraversal) {
+      return NextResponse.json({ error: 'Invalid storage path' }, { status: 400 });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vowortqooklkavlaqigr.supabase.co';
     const { search } = new URL(request.url);
-    const redirectUrl = `${supabaseUrl}/storage/${params.path.slice(1).join('/')}${search}`;
-    console.log(`[API Proxy] Media redirect: /api/${path} -> ${redirectUrl}`);
+    const objectPath = remaining.slice(1).join('/');
+    const redirectUrl = objectPath
+      ? `${supabaseUrl}/storage/${bucket}/${objectPath}${search}`
+      : `${supabaseUrl}/storage/${bucket}${search}`;
+    console.log(`[API Proxy] Media redirect (public bucket): /api/${path} -> ${redirectUrl}`);
     return NextResponse.redirect(redirectUrl, { status: 307 });
   }
 
@@ -345,15 +392,16 @@ async function handleProxy(
   }
 
   const { search } = new URL(request.url);
-  const backendUrl = getBackendUrl();
-
-  // Fail fast with a clear 503 if no backend is configured.
-  // This makes the root cause obvious in browser DevTools (and avoids
-  // a confusing generic 502 from fetch's network error).
-  if (!backendUrl) {
+  let backendUrl: string;
+  try {
+    backendUrl = getProxyBackendUrl();
+  } catch (err) {
+    // getBackendUrl() throws in production when neither INTERNAL_API_URL
+    // nor NEXT_PUBLIC_API_URL is configured. Surface that as a structured
+    // 503 with a remediation hint rather than letting fetch fail opaquely.
     console.error(
-      `[API Proxy] Refusing ${request.method} /api/${path} - no backend URL configured. ` +
-      `Set INTERNAL_API_URL or NEXT_PUBLIC_API_URL in Vercel Environment Variables.`
+      `[API Proxy] Refusing ${request.method} /api/${path} - no backend URL configured.`,
+      err
     );
     return NextResponse.json(
       {

@@ -22,7 +22,9 @@ import React, {
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { requestCache } from "@/lib/api/request-cache";
 import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
+import type { SessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
+import { clearClientCaches } from "@/lib/cache/clear-client-caches";
 import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services/auth/login-service";
 
@@ -76,10 +78,31 @@ export interface AuthUser {
   experienceYears?: string | null;
 }
 
+/**
+ * Canonical authentication status.
+ *
+ * The auth provider distinguishes four states so a transient backend outage
+ * is NOT confused with "the user is a guest":
+ *
+ *   - "loading"      — /auth/me has not resolved yet
+ *   - "authenticated"— /auth/me returned 200 with a valid user payload
+ *   - "anonymous"    — /auth/me returned 401 (or 200 with no user). The user
+ *                      has NO session; treat as a signed-out guest.
+ *   - "unavailable"  — /auth/me failed for a reason that does NOT prove the
+ *                      user is signed out (5xx, network error, timeout).
+ *                      We must NOT downgrade the UI to a guest in this case,
+ *                      otherwise a temporary backend outage would erase the
+ *                      user's session from the client's view and could even
+ *                      trigger redirect loops.
+ */
+export type AuthStatus = "loading" | "authenticated" | "anonymous" | "unavailable";
+
 interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** Canonical status — supersedes the boolean `isAuthenticated` for new code. */
+  status: AuthStatus;
   error: string | null;
 }
 
@@ -113,11 +136,12 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/** Signed-out state — shared so every failure path resets identically. */
-const GUEST_STATE: AuthState = {
+/** Signed-out state — shared so every anonymous path resets identically. */
+const ANONYMOUS_STATE: AuthState = {
   user: null,
   isLoading: false,
   isAuthenticated: false,
+  status: "anonymous",
   error: null,
 };
 
@@ -132,14 +156,58 @@ function getMeUrl(): string {
   return apiRoutes.auth.me;
 }
 
-/** Maps a failed `/auth/me` into guest state, distinguishing 401 from a real fault. */
-function guestStateFromError(err: unknown): AuthState {
+/**
+ * Maps a failed `/auth/me` to the right AuthState.
+ *
+ * The previous implementation collapsed every non-success into a single
+ * "guest + error" state, which silently turned temporary backend outages
+ * (5xx / network / timeout) into signed-out sessions and could trigger
+ * redirect loops in `handleUnauthorized`.
+ *
+ * Now we preserve the four-way distinction:
+ *   - 401                  → anonymous (genuine signed-out)
+ *   - 5xx / network / etc. → unavailable (backend unreachable, keep session
+ *                            until proven absent)
+ */
+function stateFromMeError(err: unknown): AuthState {
   const is401 = err instanceof ApiError && err.status === 401;
-  return {
-    ...GUEST_STATE,
+  if (is401) {
     // A 401 is the expected answer for a guest, not an error worth surfacing.
-    error: is401 ? null : "تعذر الاتصال بالخادم. تحقّق من اتصالك بالإنترنت.",
+    return { ...ANONYMOUS_STATE };
+  }
+  return {
+    user: null,
+    isLoading: false,
+    isAuthenticated: false,
+    status: "unavailable",
+    error: "تعذر الاتصال بالخادم. تحقّق من اتصالك بالإنترنت.",
   };
+}
+
+// ─── AuthStatus → SessionPresence mapping ────────────────────────────────────
+
+/**
+ * Translates the canonical `AuthStatus` into the `SessionPresence` vocabulary
+ * the redirect guard speaks. Kept here because the `AuthStatus` enum is
+ * defined in this module; the mapping is the boundary between the two
+ * types.
+ *
+ *   "loading"      → "loading"     (auth state has not converged)
+ *   "authenticated"→ "present"     (we have positive proof of a session)
+ *   "anonymous"    → "absent"      (401 confirmed: the user is signed out)
+ *   "unavailable"  → "unavailable" (backend unreachable; keep prior signal)
+ */
+function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
+  switch (status) {
+    case "authenticated":
+      return "present";
+    case "anonymous":
+      return "absent";
+    case "loading":
+      return "loading";
+    case "unavailable":
+      return "unavailable";
+  }
 }
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -149,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     isLoading: true,
     isAuthenticated: false,
+    status: "loading",
     error: null,
   });
 
@@ -166,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // it as authenticated would leave `user` null behind an auth guard.
         if (!data?.user) {
           requestCache.setIdentity(null);
-          setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
+          setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
           return;
         }
 
@@ -179,14 +248,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: data.user,
           isLoading: false,
           isAuthenticated: true,
+          status: "authenticated",
           error: null,
         });
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
-        requestCache.setIdentity(null);
-        setState(guestStateFromError(err));
+        // Only drop the identity binding on a confirmed 401. On a backend
+        // outage ("unavailable") we keep the previous user-scoped cache
+        // untouched — the session is presumed still valid and we must not
+        // invalidate it just because /auth/me is temporarily unreachable.
+        if (err instanceof ApiError && err.status === 401) {
+          requestCache.setIdentity(null);
+        }
+        setState(stateFromMeError(err));
       }
     };
 
@@ -197,13 +273,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Report session presence to the API layer: a 401 may only auto-redirect
-  // to /login for a browser that actually HAD a session. Guests keep their
-  // empty states instead of being bounced (see redirect-loop-guard.ts).
+  // Report session presence to the API layer. The redirect guard now
+  // accepts the full four-way status so it can keep the conservative
+  // 'unknown' on transient failures instead of treating a 5xx as 'absent'
+  // and risking a redirect loop. See redirect-loop-guard.ts.
   useEffect(() => {
-    if (state.isLoading) return; // still resolving — stay 'unknown'
-    setSessionPresence(state.isAuthenticated ? "present" : "absent");
-  }, [state.isAuthenticated, state.isLoading]);
+    setSessionPresence(mapAuthStatusToSessionPresence(state.status));
+  }, [state.status]);
 
   const redirectToLogin = useCallback(async () => {
     window.location.href = "/login";
@@ -220,11 +296,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // A failed logout call must not trap the user in a signed-in UI — the
       // local state is cleared and we navigate away regardless.
     }
-    // Drop any cached authenticated data (e.g. /auth/me with its 5-min TTL) so
-    // the next authenticated fetch reflects the logged-out state immediately.
-    requestCache.clear();
-    requestCache.setIdentity(null);
-    setState(GUEST_STATE);
+    // Wipe every client-side cache that holds identity-dependent data so
+    // the next visitor (or the same user re-authenticating as someone else)
+    // never replays the previous session. See clear-client-caches.ts for
+    // the rationale on the three layers (request-cache, React Query,
+    // service worker) and the order in which they must be invalidated.
+    // queryClient is intentionally not passed here: React Query
+    // persistence reacts to the user.id transition via its own effect
+    // and clears the in-memory cache once the provider re-renders.
+    await clearClientCaches();
+    setState(ANONYMOUS_STATE);
     window.location.href = "/login";
   }, []);
 
@@ -235,7 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!data?.user) {
         requestCache.setIdentity(null);
-        setState({ ...GUEST_STATE, error: "استجابة غير صالحة من الخادم" });
+        setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
         return false;
       }
 
@@ -248,12 +329,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: data.user,
         isLoading: false,
         isAuthenticated: true,
+        status: "authenticated",
         error: null,
       });
       return true;
     } catch (err: unknown) {
-      requestCache.setIdentity(null);
-      setState(guestStateFromError(err));
+      if (err instanceof ApiError && err.status === 401) {
+        requestCache.setIdentity(null);
+      }
+      setState(stateFromMeError(err));
       return false;
     }
   }, []);
@@ -285,6 +369,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: result.error ?? "فشل تسجيل الدخول" };
       }
 
+      // Identity is about to change. Drop everything that could let a
+      // concurrent request from the previous identity bleed into the
+      // new session: in-flight dedup promises, the identity binding,
+      // and the CSRF token. `refreshUser()` will re-establish them
+      // under the new user.
+      await clearClientCaches();
+
       // The session cookie is set; load the user so guards see the new role.
       const refreshed = await refreshUser();
       return refreshed
@@ -305,6 +396,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!result.success) {
         return { success: false, error: result.error ?? "فشل التحقق من الرمز" };
       }
+
+      // Same identity-transition cleanup as `adminLogin`: an MFA success
+      // moves the user from a pre-auth (or partial-auth) state to a
+      // fully-authenticated state, so any cached data from before must
+      // be wiped to prevent it from being replayed under the new session.
+      await clearClientCaches();
 
       const refreshed = await refreshUser();
       return refreshed

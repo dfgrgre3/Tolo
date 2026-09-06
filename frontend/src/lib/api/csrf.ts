@@ -13,6 +13,29 @@
 let csrfBootstrapPromise: Promise<void> | null = null;
 let lastCsrfToken: string | null = null;
 
+/**
+ * Upper bound for the bootstrap GET to /api/auth/csrf. The backend route
+ * itself caps the upstream call at 10s (see src/app/api/auth/csrf/route.ts);
+ * this client-side abort is a defence-in-depth so a hung fetch cannot stall
+ * the first state-changing request indefinitely (single-flight pattern would
+ * otherwise leave every concurrent caller waiting on the same dead promise).
+ */
+const CSRF_BOOTSTRAP_TIMEOUT_MS = 10_000;
+
+/**
+ * Drops the cached CSRF token held in module memory. Must be invoked on:
+ *   - logout        (token bound to previous account, must not leak across)
+ *   - account switch (identity changed; old token must not be replayed)
+ *   - auth reset    (forced re-bootstrap on next write request)
+ */
+export function clearCsrfToken(): void {
+    lastCsrfToken = null;
+    // Also reset any in-flight bootstrap so the next caller re-bootstraps
+    // instead of reusing a stale promise that may resolve to a token
+    // issued for the previous identity.
+    csrfBootstrapPromise = null;
+}
+
 export function getCookie(name: string): string | null {
     if (typeof document === 'undefined') return null;
     const nameEQ = name + "=";
@@ -52,6 +75,12 @@ export async function ensureCsrfToken(forceRefresh = false): Promise<void> {
             method: 'GET',
             credentials: 'include',
             cache: 'no-store',
+            // Defence-in-depth: cap the bootstrap at CSRF_BOOTSTRAP_TIMEOUT_MS
+            // so a hung upstream (backend down, stuck connection) cannot
+            // leave concurrent callers waiting on a dead single-flight
+            // promise. The backend route itself enforces a 10s timeout on
+            // its upstream call; aborting here keeps the surface consistent.
+            signal: AbortSignal.timeout(CSRF_BOOTSTRAP_TIMEOUT_MS),
         })
             .then((response) => {
                 if (!response.ok) {
@@ -61,6 +90,16 @@ export async function ensureCsrfToken(forceRefresh = false): Promise<void> {
                 if (token) {
                     lastCsrfToken = token;
                 }
+            })
+            .catch((err) => {
+                // Clear the cached value on any failure (timeout, network,
+                // non-2xx) so a subsequent attempt doesn't try to replay
+                // a stale token from a previous bootstrap.
+                if (err instanceof DOMException && err.name === 'TimeoutError') {
+                    lastCsrfToken = null;
+                    throw new Error(`CSRF bootstrap timed out after ${CSRF_BOOTSTRAP_TIMEOUT_MS}ms`);
+                }
+                throw err;
             })
             .finally(() => { csrfBootstrapPromise = null; });
     }
