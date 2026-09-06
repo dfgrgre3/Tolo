@@ -17,6 +17,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -108,6 +109,8 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
+  /** Server-rendered hint that auth cookies were present on the request. */
+  hasSessionHint: boolean;
   /** Increments whenever the session is established, refreshed, or cleared. */
   authSessionVersion: number;
   /** Redirect to login page (for protected routes) */
@@ -215,26 +218,54 @@ function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  hasSessionHint = false,
+}: {
+  children: React.ReactNode;
+  hasSessionHint?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [authSessionVersion, setAuthSessionVersion] = useState(0);
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-    status: "loading",
-    error: null,
-  });
+  // Monotonically invalidates older /auth/me requests. This matters when a
+  // login completes while the initial auth probe is still in flight: the
+  // late guest response must not overwrite the newly authenticated state.
+  const authRequestGeneration = useRef(0);
+  const [state, setState] = useState<AuthState>(() =>
+    hasSessionHint
+      ? {
+          user: null,
+          isLoading: true,
+          isAuthenticated: false,
+          status: "loading",
+          error: null,
+        }
+      : ANONYMOUS_STATE,
+  );
 
   // Fetch current user exactly once on mount
   useEffect(() => {
+    // A guest page already has authoritative server-side evidence that no
+    // auth cookie exists. Do not probe /auth/me in that case: a 401 is
+    // expected for guests, but still appears as a failed request in DevTools
+    // and adds needless work on every public page load.
+    if (!hasSessionHint) {
+      requestCache.setIdentity(null);
+      return;
+    }
+
     const controller = new AbortController();
+    const requestGeneration = ++authRequestGeneration.current;
+
+    const isCurrentRequest = () =>
+      requestGeneration === authRequestGeneration.current;
 
     const fetchUser = async () => {
       try {
         const data = await apiClient.get<AuthMeResponse>(getMeUrl(), {
           signal: controller.signal,
         });
+        if (!isCurrentRequest()) return;
 
         // A 200 with no user object means the backend contract broke; treating
         // it as authenticated would leave `user` null behind an auth guard.
@@ -262,6 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
+        if (!isCurrentRequest()) return;
         // Only drop the identity binding on a confirmed 401. On a backend
         // outage ("unavailable") we keep the previous user-scoped cache
         // untouched — the session is presumed still valid and we must not
@@ -279,7 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [hasSessionHint]);
 
   // Report session presence to the API layer. The redirect guard now
   // accepts the full four-way status so it can keep the conservative
@@ -298,6 +330,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Invalidate any auth probe that may still be in flight before clearing
+    // local state, so a late response cannot resurrect the session UI.
+    authRequestGeneration.current += 1;
     try {
       await apiClient.post<void>(apiRoutes.auth.logout, {});
     } catch {
@@ -316,9 +351,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const refreshUser = useCallback(async () => {
+    const requestGeneration = ++authRequestGeneration.current;
+    const isCurrentRequest = () =>
+      requestGeneration === authRequestGeneration.current;
+
     try {
       requestCache.clear();
       const data = await apiClient.get<AuthMeResponse>(getMeUrl());
+      if (!isCurrentRequest()) return false;
 
       if (!data?.user) {
         requestCache.setIdentity(null);
@@ -342,6 +382,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return true;
     } catch (err: unknown) {
+      if (!isCurrentRequest()) return false;
       if (err instanceof ApiError && err.status === 401) {
         requestCache.setIdentity(null);
         setAuthSessionVersion((version) => version + 1);
@@ -426,6 +467,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
+      hasSessionHint,
       authSessionVersion,
       redirectToLogin,
       redirectToRegister,
@@ -439,6 +481,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       state,
+      hasSessionHint,
       authSessionVersion,
       redirectToLogin,
       redirectToRegister,

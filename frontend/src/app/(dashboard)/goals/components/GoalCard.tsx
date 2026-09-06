@@ -78,13 +78,13 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
       {!goal.isCompleted && (
         <div className="flex space-x-2">
           <button
-            onClick={() => onUpdateProgress(goal.id, goal.currentValue + 1)}
+            onClick={() => onUpdateProgress(goal.id, Number(goal.currentValue) + 1)}
             className="flex-1 bg-emerald-100 text-emerald-700 py-2 px-4 rounded-lg font-medium hover:bg-emerald-200 transition-colors"
           >
             + إضافة تقدم
           </button>
           <button
-            onClick={() => onComplete(goal.id, goal.targetValue)}
+            onClick={() => onComplete(goal.id, Number(goal.targetValue))}
             className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
           >
             إكمال

@@ -12,14 +12,18 @@ import { DASH_GRID, DASH_BUTTON } from "../../shared/design-system";
 import { SubjectCard } from "./SubjectCard";
 import { ExamsModal } from "./ExamsModal";
 import { SubjectCardSkeleton } from "./SubjectCardSkeleton";
+import { CallerAbortError } from "@/lib/api/retry-policy";
 
 type ExamsResponse = {
   exams: Exam[];
 };
 
 function isAbortError(error: unknown): boolean {
+  if (error instanceof CallerAbortError) return true;
+
   return error instanceof Error && (
     error.name === 'AbortError' ||
+    error.message.includes('Aborted by caller') ||
     error.message.includes('signal is aborted') ||
     error.message.includes('Request was aborted') ||
     error.message.includes('Component unmounted') ||

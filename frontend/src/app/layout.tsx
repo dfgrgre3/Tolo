@@ -11,7 +11,7 @@ import {
   ConditionalAnalytics,
   ConditionalSpeedInsights,
 } from '@/components/layout/ConditionalAnalytics';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import Script from 'next/script';
 import { SITE } from '@thanawy/shared/site-config';
 
@@ -80,6 +80,10 @@ export default async function RootLayout({
   // Default to undefined to ensure consistent SSR/CSR rendering
   // (avoids hydration mismatch when nonce prop is undefined).
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const cookieStore = await cookies();
+  const hasSessionHint = Boolean(
+    cookieStore.get('access_token')?.value || cookieStore.get('refresh_token')?.value,
+  );
 
   return (
     <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
@@ -161,7 +165,7 @@ export default async function RootLayout({
             disableTransitionOnChange
             storageKey="tolo-theme"
           >
-            <GlobalProviders>
+            <GlobalProviders hasSessionHint={hasSessionHint}>
               <Header />
               <main id="main-content" tabIndex={-1}>
                 {children}

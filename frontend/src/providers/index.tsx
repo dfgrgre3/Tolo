@@ -76,9 +76,15 @@ function CoreRuntime({ children }: { children: React.ReactNode }) {
   );
 }
 
-const SessionRuntime = ({ children }: { children: React.ReactNode }) => (
+const SessionRuntime = ({
+  children,
+  hasSessionHint,
+}: {
+  children: React.ReactNode;
+  hasSessionHint: boolean;
+}) => (
   <SettingsProvider>
-    <AuthProvider>
+    <AuthProvider hasSessionHint={hasSessionHint}>
       {children}
     </AuthProvider>
   </SettingsProvider>
@@ -123,9 +129,15 @@ const UIRuntime = ({ children }: { children: React.ReactNode }) => (
  * lifecycle-only providers. Keep this order explicit because each layer
  * consumes the context established by the layer above it.
  */
-const RuntimeProviders = ({ children }: { children: React.ReactNode }) => (
+const RuntimeProviders = ({
+  children,
+  hasSessionHint,
+}: {
+  children: React.ReactNode;
+  hasSessionHint: boolean;
+}) => (
   <CoreRuntime>
-    <SessionRuntime>
+    <SessionRuntime hasSessionHint={hasSessionHint}>
       {/*
         ReactQueryPersistence must be INSIDE AuthProvider so it can read
         the current user via useAuth() and key the IndexedDB store by
@@ -157,6 +169,7 @@ function AuthGatedFeatureProviders({ children }: { children: React.ReactNode }) 
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
+  hasSessionHint?: boolean;
 };
 
 /**
@@ -175,10 +188,10 @@ type GlobalProvidersProps = {
  * so `LazyMotion` is provided here, once, at the root of the app tree.
  * Heavy providers like OfflineSyncManager are lazy loaded to reduce initial bundle size.
  */
-export function GlobalProviders({ children }: GlobalProvidersProps) {
+export function GlobalProviders({ children, hasSessionHint = false }: GlobalProvidersProps) {
   return (
     <LazyMotion features={domAnimation}>
-      <RuntimeProviders>{children}</RuntimeProviders>
+      <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>
     </LazyMotion>
   );
 }

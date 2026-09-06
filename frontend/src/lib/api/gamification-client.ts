@@ -11,11 +11,29 @@ import { apiRoutes } from './routes';
  * one would only invite IDOR/BOLA-style mistakes.
  */
 
+// The backend serializes CustomGoal.currentValue/targetValue as
+// shopspring/decimal values, which encode to JSON as quoted strings (e.g.
+// "12.0000"), not numbers. CustomGoal is typed as `number` for those fields,
+// so every goal coming from the API is normalized here — the alternative is
+// every call site remembering to Number() them before doing arithmetic (a
+// mistake that previously broke goal progress updates).
+function normalizeGoal(goal: CustomGoal): CustomGoal {
+    return {
+        ...goal,
+        currentValue: Number(goal.currentValue),
+        targetValue: Number(goal.targetValue)
+    };
+}
+
 /** Gamification progress of the authenticated user (GET /gamification/progress). */
 export async function fetchMyProgress(): Promise<UserProgress | null> {
-    return apiClient.get<UserProgress>(apiRoutes.gamification.progress, {
+    const progress = await apiClient.get<UserProgress>(apiRoutes.gamification.progress, {
         retries: 0
     });
+    if (progress?.customGoals) {
+        progress.customGoals = progress.customGoals.map(normalizeGoal);
+    }
+    return progress;
 }
 
 export async function fetchAchievements(): Promise<Achievement[]> {
@@ -37,9 +55,11 @@ export async function fetchLeaderboard(type: 'global' | 'friends' = 'global', li
 export async function createCustomGoal(
     goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>
 ): Promise<CustomGoal> {
-    return apiClient.post<CustomGoal>(apiRoutes.gamification.goals, goalData);
+    const goal = await apiClient.post<CustomGoal>(apiRoutes.gamification.goals, goalData);
+    return normalizeGoal(goal);
 }
 
 export async function updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {
-    return apiClient.patch<CustomGoal>(`${apiRoutes.gamification.goals}/${goalId}`, { currentValue });
+    const goal = await apiClient.patch<CustomGoal>(`${apiRoutes.gamification.goals}/${goalId}`, { currentValue });
+    return normalizeGoal(goal);
 }

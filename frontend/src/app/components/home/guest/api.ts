@@ -31,16 +31,15 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export async function fetchCourses(sort: CourseSort): Promise<CourseItem[]> {
-  const url = `/api/subjects?isPublished=true&isActive=true&limit=8&sort=${SORT_FIELDS[sort]}&order=desc`;
+  // The public catalog is exposed as /courses. /subjects is the authenticated
+  // user's enrollment endpoint and returns 401 for visitors.
+  const url = `/api/courses?isPublished=true&isActive=true&limit=8&sort=${SORT_FIELDS[sort]}&order=desc`;
   const { data, error } = await safeFetch<ApiSubjectsResponse>(url, undefined, null);
   if (error || !data) {
-    // Log authentication errors for debugging but return empty array
-    if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
-      console.log('[Guest API] Subjects endpoint requires authentication, returning empty array');
-    }
     return [];
   }
-  return data.items || data.courses || data.subjects || data.data || [];
+  const list = data.items || data.courses || data.subjects || data.data || [];
+  return Array.isArray(list) ? list : [];
 }
 
 export async function fetchInstructors(): Promise<Instructor[]> {

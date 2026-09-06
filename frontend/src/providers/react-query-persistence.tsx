@@ -64,10 +64,18 @@ function enqueuePersistence(task: () => Promise<void>): Promise<void> {
 }
 
 function shouldPersistQuery(query: Parameters<typeof defaultShouldDehydrateQuery>[0]) {
-  if ((query.meta as { persist?: boolean } | undefined)?.persist === true) {
-    return defaultShouldDehydrateQuery(query);
+  // Persist successful queries by default. The cache is already isolated by
+  // the authenticated user's bucket (`cacheKeyForScope`), so requiring every
+  // query to opt in makes the persistence layer silently useless: currently
+  // none of the application's queries set `meta.persist: true`.
+  //
+  // Sensitive or highly volatile queries can still opt out explicitly with
+  // `meta: { persist: false }`.
+  if ((query.meta as { persist?: boolean } | undefined)?.persist === false) {
+    return false;
   }
-  return false;
+
+  return defaultShouldDehydrateQuery(query);
 }
 
 /**

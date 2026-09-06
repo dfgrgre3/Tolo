@@ -33,6 +33,16 @@ html body[data-scroll-locked] {
   transition: none !important;
 }
 
+/* Header controls stay visually still on hover: no lift, glow, or text shadow. */
+[data-header-root] a:hover,
+[data-header-root] button:hover,
+[data-header-root] [role="button"]:hover {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
 @layer base {
   :root {
     /* Tolo Logo Brand Identity — Navy Blue + Orange */
@@ -698,4 +708,15 @@ html body[data-scroll-locked] {
 }
 .animate-stagger-3 .animate-reveal {
   animation-delay: 0.3s;
+}
+
+/* Disable hover underline effects site-wide (no animated underline/shadow under text on hover) */
+a:hover,
+button:hover,
+[class*="hover:underline"]:hover {
+  text-decoration: none !important;
+}
+a,
+button {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform !important;
 }

@@ -71,6 +71,19 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
     return createRefreshedResponse(requestHeaders, session, nonce);
   }
 
+  // A refresh was attempted but did not produce a valid session. Clear the
+  // stale cookies now so every following request does not retry the same
+  // invalid refresh token (which otherwise creates a 401 -> refresh storm
+  // and eventually trips the backend rate limiter).
+  if (session.refreshAttempted && isApiRequest(pathname)) {
+    const response = NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 },
+    );
+    clearAuthCookies(response);
+    return finalizeProxyResponse(response, nonce);
+  }
+
   if (isProtected) {
     if (!accessToken && !refreshToken) {
       if (isApiRequest(pathname)) {

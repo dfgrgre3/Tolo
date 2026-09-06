@@ -17,8 +17,7 @@ import {
 	ChevronLeft,
 	Sparkles,
 	History,
-	Star,
-	Mic
+	Star
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -26,7 +25,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { safeGetItem } from "@/lib/safe-client-utils";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -47,38 +45,6 @@ interface CommandItem {
 interface CommandPaletteProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-}
-
-interface SpeechRecognitionEvent extends Event {
-	results: {
-		[0]: {
-			[0]: {
-				transcript: string;
-			};
-		};
-	};
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-	error: string;
-}
-
-interface SpeechRecognitionInstance extends EventTarget {
-	continuous: boolean;
-	interimResults: boolean;
-	lang: string;
-	start(): void;
-	stop(): void;
-	onresult: ((event: SpeechRecognitionEvent) => void) | null;
-	onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-	onend: (() => void) | null;
-}
-
-declare global {
-	interface Window {
-		webkitSpeechRecognition: new () => SpeechRecognitionInstance;
-		SpeechRecognition: new () => SpeechRecognitionInstance;
-	}
 }
 
 // ─── Constants ───────────────────────────────────────────────────
@@ -104,60 +70,16 @@ function saveRecentItems(items: string[]): void {
 	}
 }
 
-function createSpeechRecognition(): SpeechRecognitionInstance | null {
-	if (typeof window === "undefined") return null;
-	const RecognitionClass = window.webkitSpeechRecognition ?? window.SpeechRecognition;
-	if (!RecognitionClass) return null;
-
-	const instance = new RecognitionClass();
-	instance.continuous = false;
-	instance.interimResults = false;
-	instance.lang = "ar-SA";
-	return instance;
-}
-
 // ─── Component ───────────────────────────────────────────────────
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const router = useRouter();
-	const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [recentItems, setRecentItems] = useState<string[]>(getInitialRecentItems);
-	const [isListening, setIsListening] = useState(false);
-
-	// ── Speech Recognition Setup ──────────────────────────────────
-
-	useEffect(() => {
-		const recognition = createSpeechRecognition();
-		if (!recognition) return;
-
-		recognition.onresult = (event: SpeechRecognitionEvent) => {
-			const transcript = event.results[0][0].transcript;
-			setSearchQuery(transcript);
-			setSelectedIndex(0);
-			setIsListening(false);
-		};
-
-		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-			logger.error("Speech recognition error:", event.error);
-			setIsListening(false);
-		};
-
-		recognition.onend = () => {
-			setIsListening(false);
-		};
-
-		recognitionRef.current = recognition;
-
-		return () => {
-			recognition.stop();
-			recognitionRef.current = null;
-		};
-	}, []);
 
 	// ── Auto-focus on open ────────────────────────────────────────
 
@@ -176,8 +98,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const handleOpenChange = useCallback(
 		(nextOpen: boolean) => {
 			if (!nextOpen) {
-				recognitionRef.current?.stop();
-				setIsListening(false);
 				setSearchQuery("");
 				setSelectedIndex(0);
 			}
@@ -190,19 +110,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		setSearchQuery(value);
 		setSelectedIndex(0);
 	}, []);
-
-	const toggleListening = useCallback(() => {
-		const recognition = recognitionRef.current;
-		if (!recognition) return;
-
-		if (isListening) {
-			recognition.stop();
-			setIsListening(false);
-		} else {
-			recognition.start();
-			setIsListening(true);
-		}
-	}, [isListening]);
 
 	// ── Commands ──────────────────────────────────────────────────
 
@@ -401,10 +308,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 	// ── Render ────────────────────────────────────────────────────
 
-	const hasSpeechRecognition =
-		typeof window !== "undefined" &&
-		("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
-
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden" aria-label="لوحة الأوامر">
@@ -422,24 +325,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 						/>
 
 						<div className="flex items-center gap-2">
-							{hasSpeechRecognition && (
-								<Button
-									variant="ghost"
-									size="icon"
-									className={cn(
-										"h-8 w-8 rounded-full",
-										isListening
-											? "bg-red-500/10 text-red-500"
-											: "hover:bg-primary/10 text-muted-foreground hover:text-primary"
-									)}
-									onClick={toggleListening}
-									aria-label={isListening ? "إيقاف الاستماع" : "بحث صوتي"}
-									aria-pressed={isListening}
-								>
-									<Mic className={cn("h-4 w-4", isListening && "fill-current")} aria-hidden="true" />
-								</Button>
-							)}
-
 							{searchQuery && (
 								<Button
 									variant="ghost"

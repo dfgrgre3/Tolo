@@ -42,8 +42,8 @@ export function useLoginForm() {
       setError("تعذر تحميل بيانات المستخدم بعد تسجيل الدخول");
       return;
     }
-    router.refresh();
     router.push(targetPath);
+    router.refresh();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

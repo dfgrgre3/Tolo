@@ -144,7 +144,7 @@ export default async function Page({ params }: Props) {
 
   // Pre-fetch lessons on server side (cached for revalidate optimization)
   try {
-    const lessonsRes = await fetch(`${apiUrl}/courses/${id}/lessons`, {
+    const lessonsRes = await fetch(getBackendApiUrl(`/courses/${id}/lessons`), {
       next: { revalidate: 3600 }
     });
     if (lessonsRes.ok) {

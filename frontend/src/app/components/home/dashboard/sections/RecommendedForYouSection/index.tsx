@@ -28,6 +28,12 @@ interface SearchHistoryItem {
   timestamp: string;
 }
 
+function isExpectedAbort(error: unknown, signal: AbortSignal): boolean {
+  if (signal.aborted) return true;
+  if (!(error instanceof Error)) return false;
+  return error.name === "AbortError" || error.name === "CallerAbortError";
+}
+
 export const RecommendedForYouSection = memo(function RecommendedForYouSection() {
   const [courses, setCourses] = useState<RecommendedCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,14 +70,9 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
       );
 
       // Ignore response if request was aborted or component unmounted
-      if (controller.signal.aborted || !isMountedRef.current) return;
+      if (isExpectedAbort(fetchError, controller.signal) || !isMountedRef.current) return;
 
       if (fetchError || !data) {
-        // Ignore abort errors
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          logger.debug("Fetch aborted as expected");
-          return;
-        }
         logger.warn("Failed to fetch recommended courses:", fetchError);
         setError("فشل في تحميل التوصيات. يرجى المحاولة مرة أخرى.");
         setCourses([]);
@@ -85,13 +86,7 @@ export const RecommendedForYouSection = memo(function RecommendedForYouSection()
       setPage(data.page || 1);
       setError(null);
     } catch (err) {
-      if (controller.signal.aborted || !isMountedRef.current) return;
-
-      // Ignore abort errors that are expected (user navigation, component unmount, etc.)
-      if (err instanceof Error && err.name === 'AbortError') {
-        logger.debug("Request aborted as expected");
-        return;
-      }
+      if (isExpectedAbort(err, controller.signal) || !isMountedRef.current) return;
 
       logger.error("Error fetching recommended courses:", err);
       setError("حدث خطأ أثناء تحميل التوصيات");

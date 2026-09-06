@@ -10,7 +10,7 @@ export const navLinkStyles = cva("relative", {
     active: { true: "", false: "" },
   },
   compoundVariants: [
-    { variant: "desktop", active: true, className: "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_hsl(var(--primary)_/_0.12)]" },
+    { variant: "desktop", active: true, className: "bg-primary/10 text-primary border border-primary/20" },
     { variant: "desktop", active: false, className: "text-gray-400 border border-transparent hover:text-primary" },
     { variant: "mobile", active: true, className: "bg-primary/10 text-primary font-bold shadow-sm border-primary/10" },
     { variant: "mobile", active: false, className: "hover:bg-muted font-medium text-foreground/80 hover:text-foreground" },
@@ -37,7 +37,7 @@ export const navIconStyles = cva("", {
 export const navTextStyles = cva("", {
   variants: {
     variant: {
-      desktop: "relative z-10 group-hover/btn:rpg-neon-text",
+      desktop: "relative z-10",
       mobile: "flex-1 text-[15px]",
       search: "text-sm font-semibold truncate",
     },

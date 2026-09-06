@@ -50,7 +50,7 @@ export function HeaderNavigation({
                   className={cn(
                     "relative h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black text-[13px] tracking-normal",
                     isActiveRoute(item.href) ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground border border-transparent hover:text-primary hover:bg-primary/5",
-                    openMegaMenu === item.href && "bg-primary/20 text-primary shadow-[0_0_20px_hsl(var(--primary)_/_0.3)] border-primary/40"
+                    openMegaMenu === item.href && "bg-primary/20 text-primary border-primary/40"
                   )}
                 />
               ) : (

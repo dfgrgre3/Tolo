@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useMounted } from "@/hooks/use-mounted";
-import { Search, Command, Mic, X, Zap, ZapOff } from "lucide-react";
+import { Search, Command, X, Zap, ZapOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -43,43 +43,6 @@ interface CacheEntry {
 	timestamp: number;
 }
 
-// ─── Minimal Web Speech API typings (no official lib.dom coverage) ───────────
-// Window.SpeechRecognition / webkitSpeechRecognition are declared globally in
-// CommandPalette.tsx — reuse that shape here instead of re-declaring it.
-
-interface SpeechRecognitionResultEvent extends Event {
-	results: {
-		[index: number]: {
-			[index: number]: {
-				transcript: string;
-			};
-		};
-	};
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-	error: string;
-}
-
-interface SpeechRecognitionInstance extends EventTarget {
-	lang: string;
-	interimResults: boolean;
-	maxAlternatives: number;
-	onstart: () => void;
-	onresult: (event: SpeechRecognitionResultEvent) => void;
-	onerror: (event: SpeechRecognitionErrorEvent) => void;
-	onend: () => void;
-	start: () => void;
-	stop: () => void;
-}
-
-function getSpeechRecognitionConstructor(): (new () => SpeechRecognitionInstance) | null {
-	if (typeof window === "undefined") return null;
-	return (window.webkitSpeechRecognition ?? window.SpeechRecognition ?? null) as unknown as
-		| (new () => SpeechRecognitionInstance)
-		| null;
-}
-
 // ─── Component ───────────────────────────────────────────────────
 
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
@@ -91,14 +54,12 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [searchScope, setSearchScope] = useState<SearchScope>("all");
 	const [isSearching, setIsSearching] = useState(false);
-	const [isVoiceActive, setIsVoiceActive] = useState(false);
 	const [recentSearches, setRecentSearches] = useState<string[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(-1);
 	const mounted = useMounted();
 
 	const inputRef = useRef<HTMLInputElement>(null);
 	const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
-	const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
 	// ── Mount ─────────────────────────────────────────────────────
 
@@ -388,60 +349,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		inputRef.current?.focus();
 	}, []);
 
-	// ── Voice Search ──────────────────────────────────────────────
-
-	const handleVoiceSearch = useCallback(() => {
-		// Toggle off if already listening
-		if (isVoiceActive && recognitionRef.current) {
-			recognitionRef.current.stop();
-			return;
-		}
-
-		const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
-
-		if (!SpeechRecognitionCtor) {
-			toast.warning("البحث الصوتي غير متاح في هذا المتصفح.");
-			return;
-		}
-
-		const recognition = new SpeechRecognitionCtor();
-		recognition.lang = "ar-SA";
-		recognition.interimResults = false;
-		recognition.maxAlternatives = 1;
-
-		recognition.onstart = () => setIsVoiceActive(true);
-
-		recognition.onresult = (event: SpeechRecognitionResultEvent) => {
-			const transcript = event.results?.[0]?.[0]?.transcript?.trim();
-			if (transcript) {
-				setSearchQuery(transcript);
-				setShowSuggestions(true);
-				inputRef.current?.focus();
-			}
-		};
-
-		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-			if (event.error !== "no-speech" && event.error !== "aborted") {
-				toast.warning("البحث الصوتي غير متاح في هذا المتصفح.");
-			}
-		};
-
-		recognition.onend = () => {
-			setIsVoiceActive(false);
-			recognitionRef.current = null;
-		};
-
-		recognitionRef.current = recognition;
-		recognition.start();
-	}, [isVoiceActive]);
-
-	// Stop any active speech recognition on unmount to avoid leaking listeners
-	useEffect(() => {
-		return () => {
-			recognitionRef.current?.stop();
-		};
-	}, []);
-
 	// ── Efficiency Mode Toggle ────────────────────────────────────
 
 	const toggleEfficiency = useCallback(() => {
@@ -492,23 +399,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 							className="flex-1 pe-10 focus:ring-2 focus:ring-primary/20 bg-background border-border text-base"
 							aria-label="بحث"
 						/>
-						<Button
-							type="button"
-							size="icon"
-							variant="ghost"
-							onClick={(e) => {
-								e.preventDefault();
-								handleVoiceSearch();
-							}}
-							className={cn(
-								"absolute start-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 touch-manipulation",
-								isVoiceActive && "text-primary"
-							)}
-							aria-label="البحث الصوتي"
-							aria-pressed={isVoiceActive}
-						>
-							<Mic className="h-4 w-4" aria-hidden="true" />
-						</Button>
 					</div>
 
 					<Button
@@ -604,24 +494,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						<Command className="h-3 w-3" />
 						<span className="hidden lg:inline font-semibold">K</span>
 					</span>
-
-					<Button
-						type="button"
-						size="icon"
-						variant="ghost"
-						onClick={(e) => {
-							e.preventDefault();
-							handleVoiceSearch();
-						}}
-						className={cn(
-							"absolute left-10 rtl:left-auto rtl:right-10 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary rounded-xl",
-							isVoiceActive && "text-primary bg-primary/10"
-						)}
-						aria-label="البحث الصوتي"
-						aria-pressed={isVoiceActive}
-					>
-						<Mic className="h-4 w-4" aria-hidden="true" />
-					</Button>
 
 				</div>
 

@@ -21,7 +21,7 @@ interface HomePageProps {
 }
 
 export default function HomePage({ user, hasSession }: HomePageProps) {
-  const { user: authUser, isLoading } = useAuth();
+  const { user: authUser, isLoading, status: authStatus, hasSessionHint } = useAuth();
 
   // Use the passed user prop or fall back to auth context
   const currentUser = user || (authUser as User | null);
@@ -48,7 +48,10 @@ export default function HomePage({ user, hasSession }: HomePageProps) {
   // للزائر تُعرض صفحة الهبوط فورًا. أما صاحب الجلسة فيرى هيكل اللوحة
   // أثناء جلب بياناته، فلا يحدث وميض بين الصفحتين.
   if (!currentUser) {
-    if (hasSession && isLoading) {
+    // A session cookie is positive evidence that this is not a guest. Keep
+    // the dashboard shell visible while auth is resolving or temporarily
+    // unavailable; rendering GuestHome here causes a logout flash on reload.
+    if ((hasSession || hasSessionHint) && (isLoading || authStatus === 'unavailable')) {
       return <UserHomeSkeleton />;
     }
     return <GuestHome />;

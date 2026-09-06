@@ -103,11 +103,11 @@ export default function AIAssistant({
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?action=conversations`);
+      const response = await apiClient.fetch(apiRoutes.ai.conversations);
 
       if (response.ok) {
         const data = await response.json();
-        setConversations(data.conversations || []);
+        setConversations(data.data?.conversations || data.conversations || []);
       }
     } catch (error) {
       logger.error('Failed to load conversations:', error);
@@ -124,11 +124,12 @@ export default function AIAssistant({
 
   const loadConversation = async (convId: string) => {
     try {
-      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?action=conversation&id=${convId}`);
+      const response = await apiClient.fetch(apiRoutes.ai.conversation(convId));
 
       if (response.ok) {
         const data = await response.json();
-        const loadedMessages: Message[] = data.messages?.map((msg: any) => ({
+        const payload = data.data || data;
+        const loadedMessages: Message[] = payload.messages?.map((msg: any) => ({
           role: msg.role,
           content: msg.content,
           timestamp: new Date(msg.createdAt),
@@ -149,7 +150,7 @@ export default function AIAssistant({
     if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
 
     try {
-      const response = await apiClient.fetch(`${apiRoutes.ai.chat}?id=${convId}`, {
+      const response = await apiClient.fetch(apiRoutes.ai.deleteConversation(convId), {
         method: 'DELETE'
       });
 
@@ -242,12 +243,13 @@ export default function AIAssistant({
         await processSSEStream(response);
       } else {
         const data = await response.json();
+        const payload = data.data || data;
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.message || data.reply || 'عذراً، حدث خطأ',
+          content: payload.message || payload.reply || 'عذراً، حدث خطأ',
           timestamp: new Date()
         }]);
-        setConversationId(data.conversationId || conversationId);
+        setConversationId(payload.conversationId || conversationId);
       }
     } catch (error) {
       logger.error('Chat error:', error);
