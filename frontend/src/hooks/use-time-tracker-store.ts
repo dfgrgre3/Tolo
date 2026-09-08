@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
+import { apiClient } from '@/lib/api/api-client';
 
 export type PomodoroState = 'work' | 'shortBreak' | 'longBreak';
 
@@ -165,42 +166,23 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           // If a session exists (per the auth provider), sync to the database.
           // The server resolves the user from the JWT — no userId is sent.
           if (getSessionPresence() === 'present') {
-            fetch('/api/study-sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                durationMin: durationVal,
-                startTime: startTimeVal,
-                endTime: endTimeVal,
-                focusScore: 100, // Default full focus
-                subjectId: activeCourseId || undefined,
-              }),
-            })
-              .then((res) => {
-                if (!res.ok) console.warn('Failed to sync study session to database:', res.statusText);
-              })
-              .catch((err) => console.warn('Failed to sync study session to database:', err));
+            apiClient.postJson('/api/study-sessions', {
+              durationMin: durationVal,
+              startTime: startTimeVal,
+              endTime: endTimeVal,
+              focusScore: 100, // Default full focus
+              subjectId: activeCourseId || undefined,
+            }).catch((err) => console.warn('Failed to sync study session to database:', err));
 
             // Sync the actual time to the active task
             if (activeTaskId) {
-              fetch(`/api/tasks/${activeTaskId}`)
-                .then((res) => {
-                  if (res.ok) return res.json();
-                  throw new Error('Failed to fetch task details');
-                })
+              apiClient.get<{ actualTime?: number }>(`/api/tasks/${activeTaskId}`)
                 .then((task) => {
                   const updatedTask = {
                     ...task,
                     actualTime: (task.actualTime || 0) + durationVal,
                   };
-                  return fetch(`/api/tasks/${activeTaskId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedTask),
-                  });
-                })
-                .then((res) => {
-                  if (!res.ok) console.warn('Failed to update task actual time:', res.statusText);
+                  return apiClient.put(`/api/tasks/${activeTaskId}`, updatedTask);
                 })
                 .catch((err) => console.warn('Failed to update task actual time:', err));
             }

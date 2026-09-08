@@ -7,6 +7,8 @@ import {
 import { usePlaybackStore } from "../stores/playback-store";
 import { clamp } from "../utils";
 import type { StoredVideoProgress } from "../types";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type ProgressPersistenceOptions = {
   lessonId: string;
@@ -26,6 +28,22 @@ function readStoredProgress(storageKey: string) {
   }
 }
 
+type PendingProgress = {
+  lastWatchedPosition: number;
+  timeSpentDeltaSeconds: number;
+  status: "IN_PROGRESS" | "NOT_STARTED";
+};
+
+function readPendingProgress(storageKey: string): PendingProgress[] {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useProgressPersistence({
   lessonId,
   storageKey,
@@ -39,6 +57,48 @@ export function useProgressPersistence({
   const autoCompleteTriggeredRef = useRef(alreadyCompleted);
   const sessionStartTimeRef = useRef(0);
   const accumulatedTimeRef = useRef(0);
+  const pendingKey = `${storageKey}:pending`;
+
+  const persistPending = useCallback((queue: PendingProgress[]) => {
+    try {
+      if (queue.length === 0) localStorage.removeItem(pendingKey);
+      else localStorage.setItem(pendingKey, JSON.stringify(queue.slice(-20)));
+    } catch {
+      // Keep retrying in memory when local storage is unavailable.
+    }
+  }, [pendingKey]);
+
+  const sendProgress = useCallback(async (payload: PendingProgress) => {
+    await apiClient.fetch(apiRoutes.courses.lessonProgress(lessonId), {
+      method: "POST",
+      body: JSON.stringify(payload),
+      keepalive: true,
+    });
+  }, [lessonId]);
+
+  const flushPending = useCallback(async () => {
+    const queue = readPendingProgress(pendingKey);
+    while (queue.length > 0) {
+      try {
+        await sendProgress(queue[0]!);
+        queue.shift();
+        persistPending(queue);
+      } catch {
+        break;
+      }
+    }
+  }, [pendingKey, persistPending, sendProgress]);
+
+  useEffect(() => {
+    const retry = () => { void flushPending(); };
+    const interval = window.setInterval(retry, 15000);
+    window.addEventListener("online", retry);
+    retry();
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("online", retry);
+    };
+  }, [flushPending]);
 
   useEffect(() => {
     autoCompleteTriggeredRef.current = alreadyCompleted;
@@ -78,19 +138,17 @@ export function useProgressPersistence({
         currentSessionTime = (Date.now() - sessionStartTimeRef.current) / 1000;
       }
       
-      const totalTimeSpent = Math.floor(accumulatedTimeRef.current + currentSessionTime);
-      const status = percent >= AUTO_COMPLETE_PERCENT ? 'COMPLETED' : (percent > 0 ? 'IN_PROGRESS' : 'NOT_STARTED');
+      // The backend contract treats this value as a delta and adds it to the
+      // stored total. It is never a cumulative session total.
+      const timeSpentDeltaSeconds = Math.floor(accumulatedTimeRef.current + currentSessionTime);
+      const status = percent > 0 ? 'IN_PROGRESS' : 'NOT_STARTED';
 
-      fetch(`/api/courses/lessons/${lessonId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          lastWatchedPosition: positionSeconds, 
-          timeSpentSeconds: totalTimeSpent,
-          status: status
-        }),
-        keepalive: true,
-      }).catch(() => undefined);
+      const payload: PendingProgress = { lastWatchedPosition: positionSeconds, timeSpentDeltaSeconds, status };
+      void flushPending().then(() => sendProgress(payload)).catch(() => {
+        const queue = readPendingProgress(pendingKey);
+        queue.push(payload);
+        persistPending(queue);
+      });
       
       // Reset accumulator after sync if we want to send incremental or total?
       // Assuming backend adds it incrementally if we send delta, or we send delta?
@@ -98,7 +156,7 @@ export function useProgressPersistence({
       accumulatedTimeRef.current = 0;
       sessionStartTimeRef.current = Date.now();
     },
-    [lessonId]
+    [flushPending, pendingKey, persistPending, sendProgress]
   );
 
   const saveProgress = useCallback(
@@ -130,11 +188,14 @@ export function useProgressPersistence({
       }
 
       lastSaveTimeRef.current = now;
-      syncProgressToServer(Math.round(currentTime), percent);
-
       if (percent >= AUTO_COMPLETE_PERCENT && !autoCompleteTriggeredRef.current) {
         autoCompleteTriggeredRef.current = true;
+        // The parent owns the authoritative completion command. Avoid sending
+        // a second progress mutation here, which previously caused duplicate
+        // lesson-completion writes and competing course-progress responses.
         triggerAutoComplete();
+      } else {
+        syncProgressToServer(Math.round(currentTime), percent);
       }
     },
     [getDuration, getCurrentTime, storageKey, syncProgressToServer, triggerAutoComplete]
@@ -148,27 +209,30 @@ export function useProgressPersistence({
     let latestTimestamp = readStoredProgress(storageKey)?.updatedAt ?? 0;
 
     try {
-      const response = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
-        cache: "no-store",
-      });
+      const payload = await apiClient.get<{
+        data?: {
+          lastWatchedPosition?: number;
+          lastVideoPosition?: number;
+          updatedAt?: string;
+        };
+      }>(apiRoutes.courses.lessonProgress(lessonId));
 
-      if (response.ok) {
-        const payload = await response.json();
-        const data = payload?.data ?? payload ?? {};
-        const serverPosition =
-          typeof data.lastWatchedPosition === "number" ? data.lastWatchedPosition : (typeof data.lastVideoPosition === "number" ? data.lastVideoPosition : null);
-        const serverUpdatedAt = data.updatedAt
-          ? new Date(data.updatedAt).getTime()
-          : 0;
+      const data = payload?.data ?? {};
+      const serverPosition =
+        typeof data.lastWatchedPosition === "number"
+          ? data.lastWatchedPosition
+          : typeof data.lastVideoPosition === "number"
+            ? data.lastVideoPosition
+            : null;
+      const serverUpdatedAt = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
 
-        if (
-          serverPosition !== null &&
-          serverPosition > 0 &&
-          serverUpdatedAt >= latestTimestamp
-        ) {
-          resumeCandidate = serverPosition;
-          latestTimestamp = serverUpdatedAt;
-        }
+      if (
+        serverPosition !== null &&
+        serverPosition > 0 &&
+        serverUpdatedAt >= latestTimestamp
+      ) {
+        resumeCandidate = serverPosition;
+        latestTimestamp = serverUpdatedAt;
       }
     } catch {
       // Fallback to local storage if server fetch fails

@@ -5,9 +5,8 @@ import { Lock, HelpCircle, Loader2, ClipboardList, CheckCircle2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CourseLesson } from "./types";
-import { useCourseQuiz, useQuizResults, useSubmitQuiz } from "@/hooks/use-course-quizzes";
+import { useLessonQuizzes, useQuizResults, useStartQuiz, useSubmitQuiz } from "@/hooks/use-course-quizzes";
 import { QuizPlayer } from "@/components/quiz/QuizPlayer";
-import type { QuizResult } from "@/types/course-quiz";
 
 /**
  * Renders the interactive quiz experience for a QUIZ-type lesson.
@@ -25,15 +24,27 @@ export function QuizLessonArea({
   courseId: string;
   onEnroll: () => void;
 }) {
-  const [submittedResult, setSubmittedResult] = useState<QuizResult | null>(null);
-  const { data: quizzes, isLoading } = useCourseQuiz(courseId, lessonData.id);
+  const { data: quizzes, isLoading } = useLessonQuizzes(courseId, lessonData.id);
   const { data: results } = useQuizResults(
     canAccess ? courseId : undefined,
     canAccess && quizzes?.[0]?.id ? quizzes[0].id : undefined
   );
   const submitQuizMutation = useSubmitQuiz();
+  const startQuizMutation = useStartQuiz();
+  const [attemptId, setAttemptId] = useState<string | null>(null);
 
   const quiz = quizzes?.[0];
+
+  // The backend enforces one quiz per lesson. Keep this explicit so legacy
+  // duplicate data is never silently presented as a valid single activity.
+  if (quizzes && quizzes.length > 1) {
+    return (
+      <div className="rounded-[28px] border border-amber-500/30 bg-amber-500/5 p-8 text-center">
+        <p className="font-bold text-amber-700 dark:text-amber-300">يوجد أكثر من اختبار مرتبط بهذا الدرس.</p>
+        <p className="mt-2 text-sm text-gray-500">يرجى التواصل مع إدارة الدورة لإصلاح إعدادات المنهج.</p>
+      </div>
+    );
+  }
 
   if (!canAccess) {
     return (
@@ -71,9 +82,9 @@ export function QuizLessonArea({
   }
 
   // If the user has already passed and can't retake, show their last result
-  const bestPassed = results?.some((r) => r.attempt.passed);
-  const canRetake = quiz.maxAttempts > 1;
-  if (bestPassed && !canRetake && !submittedResult) {
+  const bestPassed = results?.hasPassed ?? false;
+  const canRetake = results?.canRetake ?? true;
+  if (bestPassed && !canRetake) {
     return (
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8 flex flex-col items-center text-center space-y-3">
         <div className="h-14 w-14 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500">
@@ -84,10 +95,10 @@ export function QuizLessonArea({
           حصلت على أفضل نتيجة. لقد أتممت متطلبات هذا الدرس.
         </p>
         <div className="flex items-center justify-center gap-3 pt-2">
-          {results?.map((r) => (
-            <div key={r.attempt.id} className="rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 p-3 text-center">
-              <p className="text-xl font-black text-emerald-500">{r.attempt.percentage}%</p>
-              <p className="text-[10px] text-gray-400">{r.attempt.score} / {r.attempt.maxScore} نقطة</p>
+          {results?.attempts.map((attempt) => (
+            <div key={attempt.id} className="rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 p-3 text-center">
+              <p className="text-xl font-black text-emerald-500">{attempt.percentage}%</p>
+              <p className="text-[10px] text-gray-400">{attempt.score} / {attempt.maxScore} نقطة</p>
             </div>
           ))}
         </div>
@@ -98,14 +109,24 @@ export function QuizLessonArea({
   return (
     <QuizPlayer
       quiz={quiz}
+      canRetake={results?.canRetake ?? true}
+      onStart={async () => {
+        try {
+          const started = await startQuizMutation.mutateAsync({ courseId, quizId: quiz.id });
+          setAttemptId(started.attemptId);
+          return true;
+        } catch {
+          return false;
+        }
+      }}
       onSubmit={async (answers, timeSpentSeconds) => {
+        if (!attemptId) return null;
         try {
           const result = await submitQuizMutation.mutateAsync({
             courseId,
             quizId: quiz.id,
-            payload: { answers, timeSpentSeconds },
+            payload: { attemptId, answers, timeSpentSeconds },
           });
-          setSubmittedResult(result);
           return result;
         } catch {
           return null;
@@ -116,7 +137,7 @@ export function QuizLessonArea({
 }
 
 /** Small header used above the quiz area showing lesson type badge. */
-export function QuizLessonBadge({ lesson }: { lesson: CourseLesson }) {
+export function QuizLessonBadge({ lesson: _lesson }: { lesson: CourseLesson }) {
   return (
     <span
       className={cn(

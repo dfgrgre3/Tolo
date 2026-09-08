@@ -22,17 +22,23 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Default Vercel Function maxDuration is 10s on Hobby, 60s on Pro, 900s on
-// Enterprise. Bumping to 30s gives us enough headroom for:
+// Enterprise. Bumping to 60s gives us enough headroom for:
 //   cold start (1-3s) + Go backend (1-5s)
 //   + the extra round-trip to vercel.app (1-3s when same region).
-// 30s is well within the Pro plan limit.
-export const maxDuration = 30;
+// 60s is well within the Pro plan limit and prevents the Vercel-level
+// timeout from firing before our own FETCH_TIMEOUT_MS (25s) on slow routes
+// such as /api/analytics/mega-menu where the first request after a cold
+// start can take 20-30s to compile the route + warm the Go backend pool.
+export const maxDuration = 60;
 
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // Hard timeout for requests before failing fast to avoid blocking serverless threads.
-// Set to 12s to be slightly less than client timeout (15s) for proper error propagation.
-const FETCH_TIMEOUT_MS = 12000;
+// Set to 25s so it remains below the client-side API_TIMEOUT (30s) and allows
+// proper error propagation back to the browser. The previous 12s value was too
+// aggressive for cold-start routes where the Go backend needed 15-20s to warm
+// up its DB pool on the very first request after a serverless cold start.
+const FETCH_TIMEOUT_MS = 25_000;
 
 // Maximum allowed request body size forwarded through the proxy.
 // Requests advertising a larger Content-Length are rejected immediately (413)

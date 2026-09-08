@@ -7,6 +7,13 @@ import { apiClient } from "@/lib/api/api-client";
 
 const SETTINGS_CACHE_KEY = "tolo-system-settings-v1";
 
+// Settings are non-critical: if the backend is warming up (cold start, DB
+// pool exhaustion) we fall back to cached/default values. Use a longer
+// timeout than the default 30s so the first request after a Vercel
+// cold start has a chance to complete — the Go backend pool can take
+// 20-40s to warm up the very first time.
+const SETTINGS_TIMEOUT_MS = 45_000;
+
 interface SystemFeatures {
   registration: boolean;
   engagement: boolean;
@@ -94,7 +101,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const fetchSettings = async () => {
     try {
-      const data = await apiClient.get<{ settings: SystemSettings }>("/settings");
+      const data = await apiClient.get<{ settings: SystemSettings }>(
+        "/settings",
+        { timeout: SETTINGS_TIMEOUT_MS },
+      );
       if (data && data.settings) {
         writeSettingsToStorage(data.settings);
         setSettings(data.settings);
@@ -111,15 +121,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       // Check if this is a backend startup race (503/service unavailable).
       // The app falls back to defaults so this is informational, not critical.
+      // Also handle TimeoutError (the proxy's 25s timeout fired because the
+      // Go backend pool was still warming up on cold start).
+      const status = (error as { status?: number })?.status;
       const isServiceUnavailable =
         error instanceof Error &&
         (error.message?.toLowerCase().includes('unavailable') ||
-          (error as { status?: number }).status === 503);
+          error.message?.toLowerCase().includes('timed out') ||
+          status === 503 ||
+          status === 504 ||
+          status === 502);
 
       if (isAbortError) {
         logger.debug("System settings fetch aborted (component unmount or timeout)");
       } else if (isServiceUnavailable) {
-        logger.warn("Backend not yet available — using cached/default settings", error);
+        logger.warn("Backend not yet available — using cached/default settings", {
+          error: error instanceof Error ? error.message : String(error),
+          status,
+        });
       } else {
         logger.error("Failed to fetch system settings", error);
       }

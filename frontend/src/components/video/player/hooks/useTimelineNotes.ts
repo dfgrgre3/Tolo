@@ -8,6 +8,8 @@ import {
   serializeCloudTimelineNotes,
 } from "../utils";
 import type { PlayerFeedback, TimelineNote } from "../types";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type TimelineNotesOptions = {
   lessonId: string;
@@ -30,15 +32,7 @@ export function useTimelineNotes({
       try {
         setIsNotesSyncing(true);
         const content = serializeCloudTimelineNotes(freeformContent, nextNotes);
-        const response = await fetch(`/api/courses/lessons/${lessonId}/notes`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to save notes.");
-        }
+        await apiClient.postJson(apiRoutes.courses.createNote(lessonId), { content });
       } catch {
         setUIState({
           errorMessage: "تعذر مزامنة الملاحظات السحابية لهذا الدرس.",
@@ -54,13 +48,11 @@ export function useTimelineNotes({
     async (isCancelled: () => boolean) => {
       setIsNotesSyncing(true);
       try {
-        const response = await fetch(`/api/courses/lessons/${lessonId}/notes`, {
-          cache: "no-store",
-        });
+        const payload = await apiClient.get<{ data?: { content?: string } }>(
+          `/api/courses/lessons/${lessonId}/notes`
+        );
         if (isCancelled()) return;
-        if (!response.ok) return;
 
-        const payload = await response.json();
         const content = payload?.data?.content ?? "";
         const parsed = parseCloudTimelineNotes(content);
 

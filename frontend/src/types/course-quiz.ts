@@ -66,6 +66,7 @@ export interface CourseQuiz {
   timeLimitMinutes?: number;
   passingScore: number;          // percentage 0-100
   maxAttempts: number;
+  required: boolean;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -81,20 +82,31 @@ export interface CourseQuiz {
   questionCount: number;
 }
 
-export interface QuizAnswer {
+/**
+ * The answer as the client submits it — student input only.
+ * NEVER carries grading metadata; the server (or an explicit graded view)
+ * owns `isCorrect` / `pointsEarned`.
+ */
+export interface QuizSubmissionAnswer {
   questionId: string;
   selectedOptionIds?: string[];          // MCQ_SINGLE / MCQ_MULTIPLE / TRUE_FALSE
   textAnswer?: string;                   // SHORT_ANSWER / ESSAY
   matches?: Record<string, string>;      // leftOptionId -> rightOptionId
   orderedItemIds?: string[];             // ORDERING selection ids
   blankAnswers?: Record<number, string>; // FILL_BLANK blankIndex -> answer
-  // grading meta
+  answeredAt?: string;
+}
+
+/**
+ * A graded answer — what the backend (or a grading service) returns.
+ * Extends the submission with grading metadata that clients must never forge.
+ */
+export interface QuizGradedAnswer extends QuizSubmissionAnswer {
   isCorrect?: boolean;
   pointsEarned?: number;
   pointsPossible: number;
   gradedBy?: GradingMethod;
   graderNotes?: string;
-  answeredAt?: string;
 }
 
 export interface QuizAttempt {
@@ -102,7 +114,8 @@ export interface QuizAttempt {
   quizId: string;
   courseId: string;
   userId: string;
-  answers: QuizAnswer[];
+  /** Answers returned by the server, including grading metadata when available. */
+  answers: QuizGradedAnswer[];
   score?: number;
   maxScore: number;
   percentage?: number;
@@ -116,22 +129,41 @@ export interface QuizAttempt {
 
 export interface QuizResultItem {
   question: QuizQuestion;
-  answer?: QuizAnswer;
+  answer?: QuizGradedAnswer;
   isCorrect: boolean;
   pointsEarned: number;
   pointsPossible: number;
   feedback?: string;
 }
 
+export interface QuizCompletionUpdate {
+  lessonCompleted: boolean;
+  courseProgress: number;
+  courseCompleted: boolean;
+  certificateEligible: boolean;
+}
+
 export interface QuizResult {
   attempt: QuizAttempt;
   quiz: CourseQuiz;
   items: QuizResultItem[];
+  /** Server-authoritative progress transition produced by this submission. */
+  completion?: QuizCompletionUpdate;
+}
+
+export interface QuizResultsSummary {
+  attempts: QuizAttempt[];
+  attemptsUsed: number;
+  attemptsRemaining: number;
+  canRetake: boolean;
+  hasPassed: boolean;
+  latestAttempt?: QuizAttempt;
+  bestAttempt?: QuizAttempt;
 }
 
 export interface CreateQuizPayload {
-  courseId: string;
   lessonId?: string;
+  required?: boolean;
   title: string;
   description?: string;
   instructions?: string;
@@ -147,14 +179,13 @@ export interface CreateQuizPayload {
 }
 
 export interface SubmitQuizPayload {
-  answers: Omit<QuizAnswer, 'isCorrect' | 'pointsEarned' | 'pointsPossible' | 'gradedBy'>[];
+  attemptId: string;
+  answers: QuizSubmissionAnswer[];
   timeSpentSeconds: number;
 }
 
-/** Client-side auto-grading result for immediately-gradable questions */
-export interface AutoGradeResult {
-  answer: QuizAnswer;
-  isCorrect: boolean;
-  pointsEarned: number;
-  feedback?: string;
+export interface StartQuizResponse {
+  attemptId: string;
+  startedAt: string;
+  deadline?: string;
 }

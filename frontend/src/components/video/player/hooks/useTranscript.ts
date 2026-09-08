@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { parseTranscript } from "../utils";
 import type { TranscriptCue } from "../types";
+import { apiClient } from "@/lib/api/api-client";
 
 /**
  * Fetches and parses a lesson's transcript (admin-uploaded SRT/VTT, see
@@ -15,16 +16,11 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
   const loadTranscript = useCallback(async (isCancelled: () => boolean) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/courses/lessons/${lessonId}/transcript`, {
-        cache: "no-store",
-      });
+      const payload = await apiClient.get<{ data?: { content?: string } }>(
+        `/api/courses/lessons/${lessonId}/transcript`
+      );
       if (isCancelled()) return;
-      if (!response.ok) {
-        setCues([]);
-        return;
-      }
 
-      const payload = await response.json();
       const content: string = payload?.data?.content ?? "";
       if (isCancelled()) return;
       setCues(content ? parseTranscript(content) : []);

@@ -18,6 +18,8 @@ export function CourseActionCard({
   enrolling,
   bookmarked,
   setBookmarked,
+  onToggleBookmark,
+  bookmarkBusy = false,
   onEnroll,
   firstFreeLesson,
   onPreviewCertificate,
@@ -30,6 +32,8 @@ export function CourseActionCard({
   enrolling: boolean;
   bookmarked: boolean;
   setBookmarked: (v: boolean) => void;
+  onToggleBookmark?: () => void;
+  bookmarkBusy?: boolean;
   onEnroll: () => void;
   firstFreeLesson?: { id: string; title: string; videoUrl?: string };
   onPreviewCertificate?: () => void;
@@ -133,7 +137,8 @@ export function CourseActionCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setBookmarked(!bookmarked)}
+            onClick={() => (onToggleBookmark ? onToggleBookmark() : setBookmarked(!bookmarked))}
+            disabled={bookmarkBusy}
             className={cn("h-11 w-11 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5", bookmarked ? "text-primary bg-primary/10 border-primary/20" : "text-gray-400 hover:text-gray-500")}
           >
             {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}

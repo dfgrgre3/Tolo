@@ -48,7 +48,6 @@ import { SuspendedInteractiveQuestionOverlay } from "./player/components/LazyCom
 import { ActiveNotePopup } from "./player/components/ActiveNotePopup";
 
 // Hooks
-import { useAuth } from "@/hooks/use-auth";
 import { useYouTubePlayer } from "./player/hooks/useYouTubePlayer";
 import { useKeyboardShortcuts } from "./player/hooks/useKeyboardShortcuts";
 import { useTouchGestures } from "./player/hooks/useTouchGestures";
@@ -60,6 +59,10 @@ import { useFrameCapture } from "./player/hooks/useFrameCapture";
 import { useMediaSession } from "./player/hooks/useMediaSession";
 import { useCastSession } from "./player/hooks/useCastSession";
 import { useTranscript } from "./player/hooks/useTranscript";
+import { usePlayerWatermark } from "./player/hooks/usePlayerWatermark";
+import { useThumbnailCues } from "./player/hooks/useThumbnailCues";
+import { useMiniPlayer } from "./player/hooks/useMiniPlayer";
+import { usePlayerViewport } from "./player/hooks/usePlayerViewport";
 
 // Store & Types
 import { usePlaybackStore } from "./player/stores/playback-store";
@@ -79,7 +82,6 @@ import {
   formatSecondsToTimestamp,
   getProvider,
   mergeChapterMarkers,
-  parseThumbnailVtt,
   parseYouTubeId,
   readPlayerPreferences,
   shouldUseHls,
@@ -93,7 +95,7 @@ export function CourseVideoPlayer({
   alreadyCompleted = false,
   onLessonAutoComplete,
   onNextVideo,
-  playerApiRef: _playerApiRef,
+  playerApiRef,
   className,
   watermarkText = "Thanawy Academy",
   bookmarks = [],
@@ -129,7 +131,6 @@ export function CourseVideoPlayer({
   const pendingSourceSwitchRef = useRef<{ time: number; shouldResume: boolean } | null>(null);
   const lastCheckedSecondRef = useRef<number>(-1);
 
-  const [thumbnailCues, setThumbnailCues] = useState<ReturnType<typeof parseThumbnailVtt>>([]);
   const [youtubePlaybackRates, setYoutubePlaybackRates] = useState<number[]>([]);
 
   // Stores State selection
@@ -235,43 +236,10 @@ export function CourseVideoPlayer({
   });
 
   // --- Security & Content Protection ---
-  const { user } = useAuth();
   const [isRecordingDetected, setIsRecordingDetected] = useState(false);
 
   // --- Zoom, Pan & Mini-player ---
-  const isPanningRef = useRef(false);
-  const startPanRef = useRef({ x: 0, y: 0 });
-
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    const storeState = useSettingsStore.getState();
-    if (storeState.zoomFactor > 1) {
-      isPanningRef.current = true;
-      startPanRef.current = { x: e.clientX - storeState.panOffset.x, y: e.clientY - storeState.panOffset.y };
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-  }, []);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isPanningRef.current) return;
-    const storeState = useSettingsStore.getState();
-    const newX = e.clientX - startPanRef.current.x;
-    const newY = e.clientY - startPanRef.current.y;
-    const maxPanX = (storeState.zoomFactor - 1) * 350;
-    const maxPanY = (storeState.zoomFactor - 1) * 200;
-    setSettingsState({
-      panOffset: {
-        x: clamp(newX, -maxPanX, maxPanX),
-        y: clamp(newY, -maxPanY, maxPanY)
-      }
-    });
-  }, [setSettingsState]);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    if (isPanningRef.current) {
-      isPanningRef.current = false;
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  }, []);
+  const { handlePointerDown, handlePointerMove, handlePointerUp } = usePlayerViewport();
 
   const handleDoubleClick = useCallback(() => {
     const storeState = useSettingsStore.getState();
@@ -306,32 +274,9 @@ export function CourseVideoPlayer({
     };
   }, [flashFeedback, setSettingsState]);
 
-  useEffect(() => {
-    const container = playerContainerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        const isPlaying = usePlaybackStore.getState().isPlaying;
-        const isFullscreen = useUIStore.getState().isFullscreen;
-        const shouldFloat = !entry.isIntersecting && isPlaying && !isFullscreen;
-        setUIState({ isMiniPlayer: shouldFloat });
-      },
-      { threshold: 0.15 }
-    );
-
-    observer.observe(container);
-    return () => {
-      observer.unobserve(container);
-    };
-  }, [setUIState]);
-  
-  const dynamicWatermark = useMemo(() => {
-    if (!user) return watermarkText;
-    return `${user.name || user.username} | ${user.phone || "Verified"} | ${new Date().toLocaleDateString('ar-EG')}`;
-  }, [user, watermarkText]);
+  const dynamicWatermark = usePlayerWatermark(watermarkText);
+  const thumbnailCues = useThumbnailCues(thumbnailVttUrl);
+  useMiniPlayer(playerContainerRef);
 
   useEffect(() => {
     const container = playerContainerRef.current;
@@ -567,6 +512,24 @@ export function CourseVideoPlayer({
     resetControlsTimeout();
   }, [flashFeedback, getAdapter, provider, resetControlsTimeout, setPlaybackState, youtubePlaybackRates]);
 
+  // Expose the declared imperative API to the parent. Previously this prop
+  // was renamed to `_playerApiRef` and silently ignored, leaving external
+  // play/pause/seek controls disconnected from the real player.
+  useEffect(() => {
+    if (!playerApiRef) return;
+    playerApiRef.current = {
+      play: () => { void getAdapter()?.play(); },
+      pause: () => getAdapter()?.pause(),
+      seek: (time) => getAdapter()?.seekTo(time),
+      getCurrentTime: () => getAdapter()?.getCurrentTime() ?? 0,
+      getDuration: () => getAdapter()?.getDuration() ?? 0,
+      setPlaybackRate: (rate) => getAdapter()?.setPlaybackRate(rate),
+    };
+    return () => {
+      if (playerApiRef.current) playerApiRef.current = null;
+    };
+  }, [getAdapter, playerApiRef]);
+
   const toggleFullscreen = useCallback(async () => {
     const container = playerContainerRef.current;
     if (!container) return;
@@ -759,14 +722,6 @@ export function CourseVideoPlayer({
       sidebarTab: store.sidebarTab,
     }));
   }, [store.brightness, store.isAmbientMode, store.isMuted, store.playbackRate, store.selectedSubtitle, store.volume, store.isSidebarOpen, store.sidebarTab]);
-
-  useEffect(() => {
-    if (!thumbnailVttUrl) return;
-    fetch(thumbnailVttUrl, { cache: "force-cache" })
-      .then(r => r.ok ? r.text() : "")
-      .then(txt => txt && setThumbnailCues(parseThumbnailVtt(txt, thumbnailVttUrl)))
-      .catch(() => setThumbnailCues([]));
-  }, [thumbnailVttUrl]);
 
   useEffect(() => {
     const onFullscreen = () => setUIState({ isFullscreen: !!document.fullscreenElement });

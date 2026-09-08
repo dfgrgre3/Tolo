@@ -1,3 +1,5 @@
+import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
+
 export type Review = {
   id: string;
   rating: number;
@@ -38,44 +40,13 @@ export type Question = {
   answers?: QuestionAnswer[];
 };
 
-export type Course = {
-  id: string;
-  title: string;
-  description: string;
-  instructor: string;
-  subject: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  duration: number;
-  thumbnailUrl?: string;
-  price: number;
-  rating: number;
-  enrolledCount: number;
-  createdAt: string;
-  tags?: string[];
-  enrolled: boolean;
-  progress?: number;
-  lessonsCount?: number;
-  whatYouLearn?: string[];
-  coursePrerequisites?: string[];
-  targetAudience?: string[];
-  requirements?: string;
-  learningObjectives?: string;
-};
-
-export type CourseLesson = {
-  id: string;
-  title: string;
-  description?: string;
-  content?: string;
-  videoUrl?: string;
-  type: "VIDEO" | "ARTICLE" | "QUIZ" | "FILE" | "ASSIGNMENT";
-  isFree: boolean;
-  locked: boolean;
-  duration: number;
-  order: number;
-  completed: boolean;
-  progress: number;
-};
+/**
+ * Course detail page view models.
+ * Defined ONCE in `@/types/domain/mappers` and projected from the canonical
+ * domain model (`@/types/domain/course`). Do not re-declare fields here.
+ */
+export type Course = CourseSummaryView;
+export type CourseLesson = LessonCardView;
 
 export const levelConfig = {
   BEGINNER: { label: "مبتدئ", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },

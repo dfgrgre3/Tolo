@@ -7,18 +7,29 @@ import type {
   QuizResult,
   CreateQuizPayload,
   SubmitQuizPayload,
+  StartQuizResponse,
+  QuizResultsSummary,
 } from '@/types/course-quiz';
 
-/** Fetch quizzes for a course (optionally scoped to a lesson). */
-export function useCourseQuizzes(courseId?: string, lessonId?: string) {
-  return useQuery({
-    queryKey: ['course-quizzes', courseId, lessonId],
-    queryFn: () => courseQuizRepository.getCourseQuizzes(courseId!, lessonId),
+/** Fetch every quiz belonging to a course. */
+export function useCourseQuizzes(courseId?: string) {
+  return useQuery<CourseQuiz[]>({
+    queryKey: ['course-quizzes', courseId],
+    queryFn: () => courseQuizRepository.getCourseQuizzes(courseId!),
     enabled: !!courseId,
   });
 }
 
-/** Fetch a single quiz. */
+/** Fetch the quiz activity attached to one lesson (at most one by contract). */
+export function useLessonQuizzes(courseId?: string, lessonId?: string) {
+  return useQuery({
+    queryKey: ['lesson-quizzes', courseId, lessonId],
+    queryFn: () => courseQuizRepository.getLessonQuizzes(courseId!, lessonId!),
+    enabled: !!courseId && !!lessonId,
+  });
+}
+
+/** Fetch a single quiz by id. */
 export function useCourseQuiz(courseId?: string, quizId?: string) {
   return useQuery({
     queryKey: ['course-quiz', courseId, quizId],
@@ -29,7 +40,7 @@ export function useCourseQuiz(courseId?: string, quizId?: string) {
 
 /** Fetch user's results for a quiz. */
 export function useQuizResults(courseId?: string, quizId?: string) {
-  return useQuery({
+  return useQuery<QuizResultsSummary>({
     queryKey: ['course-quiz-results', courseId, quizId],
     queryFn: () => courseQuizRepository.getQuizResults(courseId!, quizId!),
     enabled: !!courseId && !!quizId,
@@ -63,8 +74,18 @@ export function useSubmitQuiz() {
     }) => courseQuizRepository.submitQuiz(courseId, quizId, payload),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['course-quiz-results', vars.courseId, vars.quizId] });
+      qc.invalidateQueries({ queryKey: ['course-enrollment-status', vars.courseId] });
+      qc.invalidateQueries({ queryKey: ['course-lessons', vars.courseId] });
     },
   });
 }
 
+export function useStartQuiz() {
+  return useMutation({
+    mutationFn: ({ courseId, quizId }: { courseId: string; quizId: string }) =>
+      courseQuizRepository.startQuiz(courseId, quizId),
+  });
+}
+
 export type { CourseQuiz, QuizResult };
+export type { StartQuizResponse };

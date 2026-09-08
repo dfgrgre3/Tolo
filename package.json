@@ -19,11 +19,13 @@
     "build": "npm run build:frontend",
     "contracts:fetch": "node scripts/fetch-swagger.mjs",
     "contracts:generate": "npm run contracts:fetch && npm run generate:api-types",
+    "integration:sync": "npm run contracts:fetch -- --source ../backend/docs/swagger.json && npm run generate:api-types && npm run contracts:type-check",
     "generate:api-types": "openapi-typescript packages/contracts/swagger.json -o packages/contracts/src/generated/api.ts",
     "contracts:check": "node scripts/check-api-types-fresh.mjs",
     "contracts:type-check": "npm run type-check --workspace @thanawy/contracts"
   },
   "devDependencies": {
-    "openapi-typescript": "^7.4.4"
+    "openapi-typescript": "^7.4.4",
+    "swagger2openapi": "^7.0.8"
   }
 }

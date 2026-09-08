@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./generated": "./src/generated/api.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./backend-url": "./src/backend-url.ts"
   },
   "scripts": {
     "generate": "openapi-typescript swagger.json -o src/generated/api.ts",
@@ -16,6 +17,7 @@
     "type-check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@thanawy/shared": "*",
     "openapi-fetch": "^0.13.5"
   },
   "devDependencies": {

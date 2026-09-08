@@ -1,6 +1,6 @@
 # @thanawy/contracts
 
-Generated API contract for the Thanawy backend (OpenAPI 2.0).
+Generated API contract for the Thanawy backend (OpenAPI 3.0).
 
 ## Layout
 
@@ -17,10 +17,10 @@ packages/contracts/
 ## How it stays in sync
 
 1. Backend CI (`d:\backend\.github\workflows\ci.yml`) produces
-   `backend/docs/swagger.json` and uploads it as a GitHub Actions artifact.
-2. The artifact is downloaded by `scripts/fetch-swagger.mjs` into this
-   directory's `swagger.json`.
-3. `openapi-typescript` turns the spec into a strict TS module:
+   `backend/docs/swagger.json` (Swagger 2.0) and uploads it as an artifact.
+2. `scripts/fetch-swagger.mjs` converts that artifact to OpenAPI 3.0 and
+   writes it into this directory's `swagger.json`.
+3. `openapi-typescript` turns the converted spec into a strict TS module:
    `src/generated/api.ts`.
 4. `src/client.ts` wraps `openapi-fetch` with the runtime config the
    frontend needs (base URL, auth header injection, retry policy).
@@ -31,6 +31,9 @@ packages/contracts/
 # One-off: regenerate from a local backend checkout.
 npm run contracts:fetch -- --source ../backend/docs/swagger.json
 npm run generate:api-types
+
+# Shortcut for the three-repository local integration
+npm run integration:sync
 
 # CI workflow: download artifact + generate + type-check.
 npm run contracts:generate

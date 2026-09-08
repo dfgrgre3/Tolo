@@ -44,10 +44,17 @@ type JsonBody<T> = T extends FormData | Blob | ArrayBuffer | URLSearchParams | R
     ? never
     : T;
 
-const API_TIMEOUT = 15000;
-// Proxy timeout is 12s (FETCH_TIMEOUT_MS in /api/[...path]/route.ts)
-// Client timeout should be slightly larger than proxy timeout to allow
-// proper error propagation, but not so large that it masks backend issues.
+// Client-side request timeout. Set to 30s — slightly larger than the
+// proxy's FETCH_TIMEOUT_MS (25s in /api/[...path]/route.ts) so a slow
+// cold-start backend gets a chance to respond before the client gives up.
+// The previous 15s was too tight: when the Go backend's DB pool was still
+// warming up on a cold start, the proxy's 12s timeout + client 15s timeout
+// would both fire within ~15s and surface a TimeoutError to the user even
+// though the backend would have succeeded a few seconds later.
+const API_TIMEOUT = 30_000;
+// Proxy timeout is 25s (FETCH_TIMEOUT_MS in /api/[...path]/route.ts)
+// Client timeout is slightly larger to allow proper error propagation,
+// but not so large that it masks backend issues.
 // One retry is enabled for methods explicitly marked safe by retry-policy.
 // POST/PATCH remain excluded; GET/HEAD/OPTIONS use the existing backoff.
 const MAX_RETRIES = 1;

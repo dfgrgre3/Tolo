@@ -292,16 +292,19 @@ export async function attemptTokenRefresh(
         payload = await verifyAccessToken(tokenStr);
       }
 
-      if ((!setCookies || setCookies.length === 0) && tokenStr) {
-        setCookies = [
-          `access_token=${tokenStr}; Path=/; HttpOnly; SameSite=Lax`,
-          `refresh_token=${newRefreshTokenStr || refreshToken}; Path=/; HttpOnly; SameSite=Lax`,
-        ];
+      // NOTE: If the backend doesn't return Set-Cookie headers, we treat the
+      // refresh as failed. The backend is the sole source of truth for cookie
+      // attributes, token rotation, and session lifetime. The frontend must not
+      // construct cookies or override cookie attributes — that was the root cause
+      // of inconsistencies between what the backend sets and what the frontend
+      // imposed.
+      if (!setCookies || setCookies.length === 0) {
+        return { payload: null, cookies: [] };
       }
 
       return {
         payload,
-        cookies: setCookies || [],
+        cookies: setCookies,
         accessToken: tokenStr,
         refreshToken: newRefreshTokenStr || refreshToken,
       };

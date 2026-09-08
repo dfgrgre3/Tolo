@@ -71,10 +71,18 @@ class PerformanceMonitor {
    */
   recordMetric(metric: PerformanceMetric) {
     // Log important metrics to ELK/Console
-    const threshold = process.env.NODE_ENV === 'development' ? 5000 : 1500;
+    // Threshold was lowered from 5000 → 3000 in dev (and 1500 → 2000 in prod)
+    // so cold-start bottlenecks show up in the terminal early enough to act on,
+    // not after the user has already given up and refreshed the page.
+    // Override via SLOW_THRESHOLD_MS env var for ad-hoc tuning without a rebuild.
+    const envOverride = Number(process.env.SLOW_THRESHOLD_MS);
+    const threshold = Number.isFinite(envOverride) && envOverride > 0
+      ? envOverride
+      : process.env.NODE_ENV === 'development' ? 3000 : 2000;
     if (metric.value > threshold && metric.unit === 'ms') {
       logger.warn(`Slow Performance detected: ${metric.name}`, {
         duration: `${metric.value.toFixed(2)}ms`,
+        threshold: `${threshold}ms`,
         ...metric.tags
       });
     }

@@ -3,6 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   Brain,
   Bot,
@@ -20,20 +21,26 @@ import {
 
 import { m, AnimatePresence } from "framer-motion";
 
-import AIAssistant from './components/AIAssistant';
-import ExamGenerator from './components/ExamGenerator';
-import TeacherSearch from './components/TeacherSearch';
-import TipsGenerator from './components/TipsGenerator';
-import StudyPlanner from './features/StudyPlanner';
-import LessonSummarizer from './features/LessonSummarizer';
-import EssayGrader from './features/EssayGrader';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';const STYLES = {
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
   card: "rpg-card h-full p-8 transition-all",
   neonText: "rpg-neon-text font-black",
   goldText: "rpg-gold-text font-black"
 };
+
+// Keep inactive AI workflows out of the initial route bundle. They are
+// loaded only when their tab is rendered, reducing first-load JS and parse
+// time on the dashboard.
+const AIAssistant = dynamic(() => import('./components/AIAssistant'), { ssr: false });
+const ExamGenerator = dynamic(() => import('./components/ExamGenerator'), { ssr: false });
+const TeacherSearch = dynamic(() => import('./components/TeacherSearch'), { ssr: false });
+const TipsGenerator = dynamic(() => import('./components/TipsGenerator'), { ssr: false });
+const StudyPlanner = dynamic(() => import('./features/StudyPlanner'), { ssr: false });
+const LessonSummarizer = dynamic(() => import('./features/LessonSummarizer'), { ssr: false });
+const EssayGrader = dynamic(() => import('./features/EssayGrader'), { ssr: false });
 
 export default function AILearningPage() {
   const { user, isLoading } = useAuth();

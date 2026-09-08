@@ -18,45 +18,53 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type {
   CourseQuiz,
-  QuizAnswer,
+  QuizSubmissionAnswer,
   QuizQuestion,
   QuizResult,
   QuizResultItem,
 } from "@/types/course-quiz";
 import {
-  gradeQuestion,
   prepareQuestionForAttempt,
   shuffleArray,
   canAutoGrade,
-  computeTotalPoints,
 } from "@/lib/quiz/grading";
 import { QuizQuestionRenderer } from "./QuizQuestionRenderer";
 
 interface QuizPlayerProps {
   quiz: CourseQuiz;
-  /** External submit handler — typically wires to the backend. Returns grading result or null if deferred. */
-  onSubmit?: (
-    answers: QuizAnswer[],
+  onStart?: () => Promise<boolean>;
+  canRetake?: boolean;
+  /**
+   * Backend submit handler. This is REQUIRED — the player never grades
+   * locally. If the handler fails or returns null, the player enters an
+   * error state with a retry instead of declaring an official result.
+   */
+  onSubmit: (
+    answers: QuizSubmissionAnswer[],
     timeSpentSeconds: number
   ) => Promise<QuizResult | null>;
 }
 
-type Phase = "intro" | "taking" | "result";
+type Phase = "intro" | "taking" | "result" | "error";
+type AttemptStatus = "IDLE" | "ACTIVE" | "SUBMITTING" | "SUBMITTED" | "GRADED";
 
-export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
+export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPlayerProps) {
+  const draftKey = `quiz-draft:${quiz.id}`;
   const [phase, setPhase] = useState<Phase>("intro");
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answersByQ, setAnswersByQ] = useState<Record<string, QuizAnswer>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [answersByQ, setAnswersByQ] = useState<Record<string, QuizSubmissionAnswer>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const answersRef = useRef<Record<string, QuizAnswer>>({});
+  const [attemptStatus, setAttemptStatus] = useState<AttemptStatus>("IDLE");
+  const attemptStatusRef = useRef<AttemptStatus>("IDLE");
+  const expiredRef = useRef(false);
+  const submissionStartedRef = useRef(false);
+  const answersRef = useRef<Record<string, QuizSubmissionAnswer>>({});
   const handleSubmitRef = useRef<(auto?: boolean) => Promise<void>>(async () => {});
 
   // Keep the latest answers in a ref so the timer's auto-submit never uses stale data.
-  const setAnswer = (qid: string, answer: QuizAnswer) => {
+  const setAnswer = (qid: string, answer: QuizSubmissionAnswer) => {
     setAnswersByQ((prev) => {
       const next = { ...prev, [qid]: answer };
       answersRef.current = next;
@@ -73,20 +81,24 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz.id]);
 
-  const totalPoints = useMemo(() => computeTotalPoints(questions), [questions]);
-
   // Timer
   useEffect(() => {
     if (phase !== "taking" || !startTime) return;
     const interval = setInterval(() => {
       const now = Math.floor((Date.now() - startTime) / 1000);
       setElapsed(now);
-      if (quiz.timeLimitMinutes && now >= quiz.timeLimitMinutes * 60) {
+      if (
+        quiz.timeLimitMinutes &&
+        now >= quiz.timeLimitMinutes * 60 &&
+        attemptStatusRef.current === "ACTIVE" &&
+        !expiredRef.current &&
+        !submissionStartedRef.current
+      ) {
+        expiredRef.current = true;
         void handleSubmitRef.current(true);
       }
     }, 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, startTime, quiz.timeLimitMinutes]);
 
   // Keep handleSubmitRef pointing at the latest handleSubmit closure.
@@ -94,16 +106,39 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
     handleSubmitRef.current = handleSubmit;
   });
 
-  const startQuiz = () => {
+  // Keep an unsent attempt recoverable across refreshes. This is only a draft;
+  // it is never presented as a result and is removed after server submission.
+  useEffect(() => {
+    if ((phase !== "taking" && phase !== "error") || Object.keys(answersByQ).length === 0) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify(answersByQ));
+    } catch {
+      // Storage can be disabled or full; the in-memory retry path still works.
+    }
+  }, [answersByQ, draftKey, phase]);
+
+  const startQuiz = async () => {
+    if (onStart && !(await onStart())) return;
     setStartTime(Date.now());
     setElapsed(0);
     setPhase("taking");
+    expiredRef.current = false;
+    submissionStartedRef.current = false;
+    attemptStatusRef.current = "ACTIVE";
+    setAttemptStatus("ACTIVE");
     setCurrentIndex(0);
-    const empty: Record<string, QuizAnswer> = {};
-    setAnswersByQ(empty);
-    answersRef.current = empty;
+    let draft: Record<string, QuizSubmissionAnswer> = {};
+    try {
+      const stored = window.localStorage.getItem(draftKey);
+      if (stored) draft = JSON.parse(stored) as Record<string, QuizSubmissionAnswer>;
+    } catch {
+      // A corrupt or unavailable local draft must not prevent starting the quiz.
+    }
+    setAnswersByQ(draft);
+    answersRef.current = draft;
     setResult(null);
-    setSubmitted(false);
   };
 
   const timeLeft = quiz.timeLimitMinutes
@@ -114,71 +149,44 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
     isAnswered(a, questions.find((q) => q.id === a.questionId))
   ).length;
 
-  const handleSubmit = async (auto = false) => {
-    if (submitting) return;
-    setSubmitting(true);
+  async function handleSubmit(auto = false) {
+    if (attemptStatusRef.current !== "ACTIVE" || submissionStartedRef.current) return;
+    submissionStartedRef.current = true;
+    attemptStatusRef.current = "SUBMITTING";
+    setAttemptStatus("SUBMITTING");
     const timeSpentSeconds = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
     const currentAnswers = answersRef.current;
     const finalAnswers = questions
       .map((q) => currentAnswers[q.id])
-      .filter(Boolean) as QuizAnswer[];
+      .filter(Boolean) as QuizSubmissionAnswer[];
 
     try {
-      if (onSubmit) {
-        const res = await onSubmit(finalAnswers, timeSpentSeconds);
-        if (res) {
-          setResult(res);
-          setPhase("result");
-          setSubmitted(true);
-          return;
-        }
+      const res = await onSubmit(finalAnswers, timeSpentSeconds);
+      if (res) {
+        attemptStatusRef.current = "SUBMITTED";
+        setAttemptStatus("SUBMITTED");
+        attemptStatusRef.current = "GRADED";
+        setAttemptStatus("GRADED");
+        window.localStorage.removeItem(draftKey);
+        setResult(res);
+        setPhase("result");
+      } else {
+        // Submission failed — never declare a locally-graded official result.
+        // Answers are kept intact so the student can retry the submission.
+        setPhase("error");
+        attemptStatusRef.current = "ACTIVE";
+        setAttemptStatus("ACTIVE");
+        submissionStartedRef.current = false;
       }
-      // Fallback: local auto-grading
-      const items: QuizResultItem[] = questions.map((q) => {
-        const answer = currentAnswers[q.id];
-        if (!answer) {
-          return { question: q, isCorrect: false, pointsEarned: 0, pointsPossible: q.points };
-        }
-        const g = gradeQuestion(q, answer);
-        return {
-          question: q,
-          answer,
-          isCorrect: g.isCorrect,
-          pointsEarned: g.pointsEarned,
-          pointsPossible: q.points,
-          feedback: g.feedback,
-        };
-      });
-      const earned = items.reduce((s, i) => s + i.pointsEarned, 0);
-      const percentage = totalPoints > 0 ? Math.round((earned / totalPoints) * 100) : 0;
-      const passed = percentage >= quiz.passingScore;
-      const attempt = {
-        id: `local-${Date.now()}`,
-        quizId: quiz.id,
-        courseId: quiz.courseId,
-        userId: "local",
-        answers: finalAnswers,
-        score: earned,
-        maxScore: totalPoints,
-        percentage,
-        passed,
-        status: "graded" as const,
-        startedAt: new Date(startTime ?? Date.now()).toISOString(),
-        submittedAt: new Date().toISOString(),
-        timeSpentSeconds,
-      };
-      setResult({
-        attempt,
-        quiz,
-        items,
-      });
-      setPhase("result");
-      setSubmitted(true);
+    } catch {
+      setPhase("error");
+      attemptStatusRef.current = "ACTIVE";
+      setAttemptStatus("ACTIVE");
+      submissionStartedRef.current = false;
     } finally {
-      setSubmitting(false);
       if (auto) setStartTime(null);
     }
-  };
+  }
 
   if (phase === "intro") {
     return <QuizIntro quiz={quiz} onStart={startQuiz} />;
@@ -189,13 +197,52 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
       <QuizResultView
         quiz={quiz}
         result={result}
-        onRetry={quiz.maxAttempts > 1 ? startQuiz : undefined}
+        onRetry={canRetake ? startQuiz : undefined}
         onReviewFirstIncorrect={() => {
           const firstWrong = result.items.findIndex((i) => !i.isCorrect);
           setPhase("taking");
           setCurrentIndex(firstWrong === -1 ? 0 : firstWrong);
         }}
       />
+    );
+  }
+
+  if (phase === "error") {
+    return (
+      <m.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center space-y-4"
+      >
+        <div className="mx-auto h-14 w-14 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center">
+          <AlertCircle className="h-8 w-8" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          تعذّر تسليم إجاباتك
+        </h3>
+        <p className="text-sm text-gray-500 max-w-md mx-auto">
+          لم يتم حفظ نتيجتك على الخادم، لذلك لا يمكن عرض نتيجة رسمية الآن.
+          إجاباتك محفوظة في هذه الجلسة — أعد المحاولة لإرسالها مرة أخرى.
+        </p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button onClick={() => void handleSubmit()} className="rounded-xl">
+            {attemptStatus === "SUBMITTING" ? "جاري التسليم..." : "إعادة المحاولة"}
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => setPhase("taking")}
+          >
+            العودة إلى الأسئلة
+          </Button>
+        </div>
+        {attemptStatus === "SUBMITTING" && (
+          <div className="flex items-center justify-center gap-2 text-sm text-primary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            جاري التصحيح...
+          </div>
+        )}
+      </m.div>
     );
   }
 
@@ -263,9 +310,7 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
       <QuizQuestionRenderer
         question={currentQ}
         value={answersByQ[currentQ.id]}
-        onChange={(answer) =>
-          setAnswersByQ((prev) => ({ ...prev, [currentQ.id]: answer }))
-        }
+        onChange={(answer) => setAnswer(currentQ.id, answer)}
       />
 
       {/* Footer nav */}
@@ -305,7 +350,7 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
         </div>
       </div>
 
-      {submitting && (
+      {attemptStatus === "SUBMITTING" && (
         <div className="flex items-center justify-center gap-2 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
           جاري التصحيح...
@@ -315,7 +360,7 @@ export function QuizPlayer({ quiz, onSubmit }: QuizPlayerProps) {
   );
 }
 
-function isAnswered(answer: QuizAnswer | undefined, q?: QuizQuestion): boolean {
+function isAnswered(answer: QuizSubmissionAnswer | undefined, q?: QuizQuestion): boolean {
   if (!answer || !q) return false;
   switch (q.type) {
     case "MCQ_SINGLE":
@@ -342,7 +387,7 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function QuizIntro({ quiz, onStart }: { quiz: CourseQuiz; onStart: () => void }) {
+function QuizIntro({ quiz, onStart }: { quiz: CourseQuiz; onStart: () => void | Promise<void> }) {
   const autoGradable = quiz.questions.filter(canAutoGrade).length;
   const manual = quiz.questions.length - autoGradable;
   return (

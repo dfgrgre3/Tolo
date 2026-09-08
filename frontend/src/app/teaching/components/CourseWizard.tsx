@@ -13,6 +13,7 @@ import LessonBuilder from "./LessonBuilder";
 import { QuizBuilder } from "./QuizBuilder";
 import { Course, Chapter } from "../hooks/use-teaching-data";
 import type { QuizQuestion } from "@/types/course-quiz";
+import { useUpload } from "@/hooks/use-upload";
 
 interface CourseWizardProps {
   course?: Course | null; // If null, we are creating a new course
@@ -27,6 +28,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [description, setDescription] = useState(course?.description || "");
   const [category, setCategory] = useState(course?.category || "البرمجة والتطوير");
   const [price, setPrice] = useState(course?.price?.toString() || "0");
+  const [level, setLevel] = useState<Course["level"]>(course?.level || "INTERMEDIATE");
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
   const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
@@ -35,6 +37,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   );
   const [quizSettings, setQuizSettings] = useState({
     passingScore: course?.quiz?.passingScore ?? 60,
+    required: course?.quiz?.required ?? true,
     timeLimitMinutes: course?.quiz?.timeLimitMinutes ?? 15,
     shuffleQuestions: course?.quiz?.shuffleQuestions ?? false,
     shuffleOptions: course?.quiz?.shuffleOptions ?? false,
@@ -42,8 +45,15 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   });
   const [errorMsg, setErrorMsg] = useState("");
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const { upload: uploadThumbnail, isUploading: isThumbnailUploading, progress: thumbnailProgress } = useUpload({
+    bucket: "course-thumbnails",
+    folder: "courses",
+    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
+    maxSize: 2 * 1024 * 1024,
+    useLargeFileUpload: false,
+  });
 
-  const handleThumbnailFile = (file: File | undefined) => {
+  const handleThumbnailFile = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("يرجى اختيار ملف صورة صالح (PNG / JPG / WEBP)");
@@ -53,9 +63,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
       toast.error("حجم الصورة كبير جداً، الحد الأقصى 2MB");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setThumbnail(typeof reader.result === "string" ? reader.result : "");
-    reader.readAsDataURL(file);
+    const result = await uploadThumbnail(file);
+    if (result) setThumbnail(result.publicUrl);
   };
 
   const steps = [
@@ -94,6 +103,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         title,
         description,
         category,
+        level,
         price: parseFloat(price) || 0,
         thumbnail,
         status,
@@ -102,6 +112,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         quiz: {
           title: `${title} — اختبار`,
           passingScore: quizSettings.passingScore,
+          required: quizSettings.required,
           timeLimitMinutes: quizSettings.timeLimitMinutes,
           shuffleQuestions: quizSettings.shuffleQuestions,
           shuffleOptions: quizSettings.shuffleOptions,
@@ -123,7 +134,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
               {course ? "تعديل الكورس التعليمي" : "إنشاء كورس جديد"}
             </h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">أكمل الخطوات الأربع لتجهيز الكورس الخاص بك</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">أكمل الخطوات الخمس لتجهيز الكورس الخاص بك</p>
           </div>
           <button
             onClick={onClose}
@@ -194,10 +205,23 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                     <SelectItem value="التسويق الرقمي">التسويق الرقمي</SelectItem>
                     <SelectItem value="اللغات والترجمة">اللغات والترجمة</SelectItem>
                   </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+                 </Select>
+               </div>
+               <div className="space-y-1.5">
+                 <label className="text-slate-500">مستوى الدورة</label>
+                 <Select value={level} onValueChange={(value) => setLevel(value as Course["level"])}>
+                   <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-right">
+                     <SelectValue placeholder="اختر مستوى الدورة" />
+                   </SelectTrigger>
+                   <SelectContent className="text-right">
+                     <SelectItem value="BEGINNER">مبتدئ</SelectItem>
+                     <SelectItem value="INTERMEDIATE">متوسط</SelectItem>
+                     <SelectItem value="ADVANCED">متقدم</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+             </div>
+           )}
 
           {/* STEP 2: Thumbnail & Trailer */}
           {currentStep === 2 && (
@@ -210,7 +234,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
-                    handleThumbnailFile(e.target.files?.[0]);
+                    void handleThumbnailFile(e.target.files?.[0]);
                     e.target.value = "";
                   }}
                 />
@@ -219,7 +243,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
-                    handleThumbnailFile(e.dataTransfer.files?.[0]);
+                    void handleThumbnailFile(e.dataTransfer.files?.[0]);
                   }}
                   className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10 cursor-pointer hover:border-primary/50 transition-colors"
                 >
@@ -242,16 +266,11 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                         <Upload className="w-6 h-6" />
                       </div>
                       <p className="text-xs text-slate-400">اضغط لرفع الغلاف أو اسحب الصورة وأفلتها هنا</p>
-                      <p className="text-[10px] text-slate-400/70">PNG / JPG / WEBP — حتى 2MB، أو ضع الرابط أدناه</p>
+                      <p className="text-[10px] text-slate-400/70">PNG / JPG / WEBP — حتى 2MB</p>
                     </div>
                   )}
                 </div>
-                <Input
-                  value={thumbnail}
-                  onChange={(e) => setThumbnail(e.target.value)}
-                  placeholder="رابط غلاف الكورس (URL)"
-                  className="rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-right mt-3"
-                />
+                {isThumbnailUploading && <p className="mt-2 text-[10px] text-primary">جاري رفع الغلاف... {thumbnailProgress}%</p>}
               </div>
             </div>
           )}
@@ -301,6 +320,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                   </div>
                 </div>
                 <div className="space-y-2.5">
+                  <ToggleRow label="الاختبار مطلوب لإكمال الدورة" checked={quizSettings.required} onChange={(v) => setQuizSettings((s) => ({ ...s, required: v }))} />
                   <ToggleRow label="خلط ترتيب الأسئلة" checked={quizSettings.shuffleQuestions} onChange={(v) => setQuizSettings((s) => ({ ...s, shuffleQuestions: v }))} />
                   <ToggleRow label="خلط ترتيب الخيارات" checked={quizSettings.shuffleOptions} onChange={(v) => setQuizSettings((s) => ({ ...s, shuffleOptions: v }))} />
                   <ToggleRow label="إظهار الإجابات الصحيحة بعد الحل" checked={quizSettings.showCorrectAnswers} onChange={(v) => setQuizSettings((s) => ({ ...s, showCorrectAnswers: v }))} />

@@ -21,6 +21,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import {
+  toLessonCards,
+  type CourseLessonsResponse,
+  type EnrollmentResponse,
+  type LessonProgressResponse,
+  type EnrollmentStatusResponse,
+} from "@/types/domain/mappers";
 import type { Course, CourseLesson, Review, ReviewStats } from "./_components/types";
 import { container, fadeUp, getListItems } from "./_components/types";
 import { LessonVideoArea } from "./_components/lesson-video-area";
@@ -52,6 +60,7 @@ export default function CourseDetailClient({
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<"curriculum" | "overview" | "reviews" | "questions">("curriculum");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
@@ -60,6 +69,33 @@ export default function CourseDetailClient({
   const [userComment, setUserComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+    apiClient.get<{ items?: Array<{ subjectId: string }> }>(apiRoutes.courses.wishlistList)
+      .then((data) => setBookmarked(Boolean(data.items?.some((item) => item.subjectId === courseId))))
+      .catch(() => undefined);
+  }, [courseId, userId]);
+
+  const toggleBookmark = async () => {
+    if (bookmarkBusy || !userId) {
+      if (!userId) router.push(`/login?redirect=/courses/${courseId}`);
+      return;
+    }
+    setBookmarkBusy(true);
+    try {
+      if (bookmarked) {
+        await apiClient.delete(apiRoutes.courses.wishlist(courseId));
+      } else {
+        await apiClient.post(apiRoutes.courses.wishlist(courseId), {});
+      }
+      setBookmarked((current) => !current);
+    } finally {
+      setBookmarkBusy(false);
+    }
+  };
 
   // Sync user-specific progress when user logs in
   useEffect(() => {
@@ -70,59 +106,28 @@ export default function CourseDetailClient({
         try {
           // Session-scoped: the backend resolves the caller from the JWT, so
           // no ?userId= is appended (IDOR/BOLA hardening).
-          const courseData = await apiClient.get<any>(`/courses/${courseId}`);
-          
-          if (courseData?.subject) {
-            const subject = courseData.subject;
-            setCourse({
-              id: subject.id,
-              title: subject.nameAr || subject.name,
-              description: subject.description || "لا يوجد وصف متاح لهذه الدورة.",
-              instructor: subject.instructorName || "المنصة التعليمية",
-              subject: subject.nameAr || subject.name,
-              level: subject.level as Course['level'] || "INTERMEDIATE",
-              duration: subject.durationHours || 0,
-              thumbnailUrl: subject.thumbnailUrl || undefined,
-              price: subject.price || 0,
-              rating: subject.rating || 0,
-              enrolledCount: subject.enrolledCount || 0,
-              createdAt: subject.createdAt || new Date().toISOString(),
-              tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
-              enrolled: Boolean(courseData.enrollment),
-              progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined,
-              whatYouLearn: subject.whatYouLearn,
-              coursePrerequisites: subject.coursePrerequisites,
-              targetAudience: subject.targetAudience,
-              requirements: subject.requirements,
-              learningObjectives: subject.learningObjectives,
-            });
-          }
+          const enrollmentStatus = await apiClient.get<EnrollmentStatusResponse>(apiRoutes.courses.enrollmentStatus(courseId));
+          setCourse((prev) => ({
+            ...prev,
+            enrolled: enrollmentStatus.isEnrolled,
+            progress: enrollmentStatus.progress,
+          }));
 
-          const data = await apiClient.get<any>(`/courses/${courseId}/lessons`);
-          const payload = data.data ?? data;
-          const rawLessons = Array.isArray(payload) ? payload : (payload.lessons ?? []);
-          const progressMap = payload.progress || {};
-
-          const normalized = rawLessons.map((l: any, i: number) => {
-            const durationMinutes = typeof l.durationMinutes === "number" ? l.durationMinutes : l.duration || 0;
+          // Authenticated users use the access-aware endpoint, while the
+          // public endpoint intentionally omits protected media URLs.
+          const payload = await apiClient.get<CourseLessonsResponse>(apiRoutes.courses.lessonsAccess(courseId));
+          const rawLessons = payload.lessons || [];
+          const normalized = toLessonCards(rawLessons.map((lesson) => {
+            const progress = payload.progress?.[lesson.id];
             return {
-              id: l.id,
-              title: l.title || l.name || `الدرس ${i + 1}`,
-              description: l.description || undefined,
-              content: l.content || undefined,
-              videoUrl: l.videoUrl || undefined,
-              type: l.type || "VIDEO",
-              isFree: Boolean(l.isFree),
-              locked: Boolean(l.locked),
-              duration: durationMinutes > 0 ? durationMinutes * 60 : 600,
-              order: l.order || i + 1,
-              completed: l.completed || Boolean(progressMap[l.id]),
-              progress: l.completed ? 100 : l.progress || 0
+              ...lesson,
+              completed: lesson.completed || (typeof progress === "object" ? progress.completed : progress) || false,
+              progress: lesson.progress ?? (typeof progress === "object" ? progress.percentage : progress ? 100 : 0),
             };
-          });
+          }));
           setLessons(normalized);
           if (normalized.length > 0) {
-            setActiveLesson(prev => prev ?? (normalized.find((lesson: any) => !lesson.locked)?.id || normalized[0].id));
+            setActiveLesson(prev => prev ?? (normalized.find((lesson) => !lesson.locked)?.id || normalized[0]?.id || null));
           }
         } catch (error) {
           logger.error("Error syncing user course details:", error);
@@ -130,7 +135,7 @@ export default function CourseDetailClient({
       } else {
         // Fallback for guests: select first playable lesson
         if (initialLessons.length > 0) {
-          setActiveLesson(prev => prev ?? (initialLessons.find((lesson: any) => !lesson.locked)?.id || initialLessons[0]?.id || null));
+          setActiveLesson(prev => prev ?? (initialLessons.find((lesson) => !lesson.locked)?.id || initialLessons[0]?.id || null));
         }
       }
     };
@@ -147,9 +152,7 @@ export default function CourseDetailClient({
     }
     setEnrolling(true);
     try {
-      const data = await apiClient.post<any>(`/courses/${courseId}/enroll`, { 
-        subject: courseId 
-      });
+      const data = await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseId), {});
       
       if (data.requiresPayment) {
         router.push(`/courses/${courseId}/checkout`);
@@ -169,14 +172,26 @@ export default function CourseDetailClient({
   };
 
   const handleLessonComplete = async (lessonId: string) => {
+    const previousLessons = lessons;
+    const previousProgress = course.progress;
     if (!userId || !course) return;
     try {
-      setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: 100 } : l));
-      await apiClient.post<any>(`/courses/lessons/${lessonId}/progress`, {
-        completed: true,
-        subject: course.subject
-      });
+      const data = await apiClient.post<LessonProgressResponse>(
+        apiRoutes.courses.lessonProgress(lessonId),
+        { completed: true },
+      );
+      if (data.isCourseComplete) {
+        await apiClient.post(apiRoutes.courses.complete(courseId), {});
+      }
+      setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: data.lessonProgress ?? 100 } : l));
+      if (typeof data.courseProgress === "number") {
+        setCourse((prev) => ({ ...prev, progress: data.courseProgress }));
+      }
     } catch (err) {
+      setLessons(previousLessons);
+      if (typeof previousProgress === "number") {
+        setCourse((prev) => ({ ...prev, progress: previousProgress }));
+      }
       logger.error("Error marking lesson complete:", err);
     }
   };
@@ -190,7 +205,7 @@ export default function CourseDetailClient({
     [activeLessonData?.content]
   );
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
-  const courseProgress = lessons.length > 0 ? Math.round(completedCount / lessons.length * 100) : 0;
+  const courseProgress = course.progress ?? 0;
   const canAccessActiveLesson = Boolean(course.enrolled || activeLessonData?.isFree);
   const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.videoUrl), [lessons]);
 
@@ -218,6 +233,8 @@ export default function CourseDetailClient({
             enrolling={enrolling}
             bookmarked={bookmarked}
             setBookmarked={setBookmarked}
+            onToggleBookmark={toggleBookmark}
+            bookmarkBusy={bookmarkBusy}
             onEnroll={handleEnroll}
             firstFreeLesson={firstFreeLesson}
             onPreviewCertificate={() => setIsCertModalOpen(true)}
@@ -348,8 +365,6 @@ export default function CourseDetailClient({
                           lessonData={activeLessonData}
                           courseId={course.id}
                           courseEnrolled={course.enrolled}
-                          authName={authUser?.name}
-                          userId={userId}
                           onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
                           onEnroll={handleEnroll}
                         />

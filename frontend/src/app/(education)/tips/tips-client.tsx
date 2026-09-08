@@ -1,6 +1,6 @@
 "use client";
 
-import { m, LazyMotion, domAnimation } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Lightbulb,
   Sparkles,
@@ -66,12 +66,8 @@ export default function TipsPage() {
   function scroll(props: any) {return <Scroll {...props} />;}
 
   return (
-    // LazyMotion supplies the `domAnimation` features `m.*` needs to actually
-    // animate. Framer Motion isn't loaded globally (see providers/index.tsx),
-    // so without this wrapper every m.div here stays frozen at its `initial`
-    // state (opacity: 0) forever — the page keeps its layout space but
-    // nothing is visible.
-    <LazyMotion features={domAnimation}>
+    // `m.*` here is animated by the global LazyMotion provider in
+    // providers/index.tsx — don't add a nested one, it can desync under HMR.
     <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
       {/* --- Ambient Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -180,7 +176,6 @@ export default function TipsPage() {
            </div>
         </m.div>
       </div>
-    </div>
-    </LazyMotion>);
+    </div>);
 
 }

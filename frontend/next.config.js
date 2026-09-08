@@ -16,7 +16,10 @@ const nextConfig = {
   // ─── Basics ────────────────────────────────────────────────────────────────
   // 'standalone' يُخرج خادماً مستقلاً (.next/standalone) يحوي فقط الاعتمادات
   // اللازمة لوقت التشغيل — يجعل صورة Docker صغيرة وسريعة الإقلاع.
-  output: 'standalone',
+  // ملاحظة: في وضع التطوير يتم تعطيله لأن `outputFileTracingRoot` المرتبط
+  // به يجبر Next.js على مسح كامل شجرة الـ monorepo في كل تحميل للإعدادات،
+  // مما يطيل زمن "Loading next.config.js" من ثوانٍ إلى دقائق.
+  output: isDev ? undefined : 'standalone',
   reactStrictMode: true,
   // SECURITY: never publish public .map files alongside the client bundle.
   // Source maps are uploaded privately to Sentry via SENTRY_AUTH_TOKEN
@@ -35,6 +38,7 @@ const nextConfig = {
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
+      { protocol: 'http', hostname: '127.0.0.1', pathname: '/thanawy/uploads/**' },
       { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
       { protocol: 'https', hostname: '**.supabase.in', pathname: '/storage/v1/object/public/**' },
       { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/vi/**' },
@@ -51,7 +55,10 @@ const nextConfig = {
     'ioredis',
   ],
 
-  outputFileTracingRoot: path.resolve(__dirname, '..'),
+  // `outputFileTracingRoot` مطلوب فقط في الإنتاج لـ `output: 'standalone'`.
+  // في التطوير يُكلّف Next.js بمسح كامل شجرة الـ monorepo في كل تحميل
+  // للإعدادات — نعطّله لتسريع الإقلاع من دقيقتين إلى ثوانٍ.
+  ...(isDev ? {} : { outputFileTracingRoot: path.resolve(__dirname, '..') }),
   // ─── Experimental ──────────────────────────────────────────────────────────
   experimental: {
     // Tree-shake heavy packages — avoids importing the full library

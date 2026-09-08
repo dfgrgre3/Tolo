@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   },
 };
 
+// The catalog is backed by frequently-changing course data. Keep the page
+// dynamic so a newly-published course is fetched on the next visit instead of
+// serving an old statically-rendered catalog.
+export const dynamic = "force-dynamic";
+
 // كتالوج الدورات يُجمَّع على الخادم حتى يصل HTML مكتاملاً لمحركات البحث
 // ولتحسين LCP — التصفية والبحث يبقيان تفاعليين في المتصفح.
 export default async function CoursesPage() {

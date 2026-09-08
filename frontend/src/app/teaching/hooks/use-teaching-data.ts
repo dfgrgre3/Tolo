@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { usePermission } from "@/hooks/use-permission";
 import type { QuizQuestion } from "@/types/course-quiz";
+import { courseQuizRepository } from "@/data-access/repositories/course-quiz-repository";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -39,9 +40,13 @@ export interface ActivityLog {
 
 export interface Lesson {
   id: string;
+  /** Draft-only identity; never sent as a database primary key. */
+  clientId?: string;
   title: string;
-  duration: string;
-  type: "video" | "pdf" | "quiz" | "assignment";
+  durationMinutes: number;
+  pageCount?: number;
+  questionCount?: number;
+  type: "VIDEO" | "ARTICLE" | "QUIZ" | "ASSIGNMENT";
   url?: string;
   isPreview?: boolean;
   description?: string;
@@ -50,6 +55,8 @@ export interface Lesson {
 
 export interface Chapter {
   id: string;
+  /** Draft-only identity; never sent as a database primary key. */
+  clientId?: string;
   title: string;
   lessons: Lesson[];
 }
@@ -66,17 +73,68 @@ export interface Course {
   price: number;
   duration: string;
   category: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   createdDate: string;
   chapters: Chapter[];
   quiz?: {
+    id?: string;
     title: string;
     passingScore: number;
+    required?: boolean;
     timeLimitMinutes?: number;
     shuffleQuestions: boolean;
     shuffleOptions: boolean;
     showCorrectAnswers: boolean;
     questions: QuizQuestion[];
   };
+}
+
+function mapTeachingLesson(lesson: Lesson) {
+  return {
+    ...(lesson.id && !lesson.id.startsWith("ls-") ? { id: lesson.id } : {}),
+    title: lesson.title,
+    durationMinutes: lesson.durationMinutes,
+    type: lesson.type,
+    url: lesson.url ?? "",
+    isPreview: lesson.isPreview ?? false,
+    description: lesson.description ?? "",
+  };
+}
+
+async function persistCourseQuiz(courseId: string, quiz: NonNullable<Course["quiz"]>) {
+  if (quiz.questions.length === 0) return;
+  const payload = {
+    title: quiz.title,
+    passingScore: quiz.passingScore,
+    required: quiz.required ?? true,
+    maxAttempts: 1,
+    timeLimitMinutes: quiz.timeLimitMinutes,
+    shuffleQuestions: quiz.shuffleQuestions,
+    shuffleOptions: quiz.shuffleOptions,
+    showResultsImmediately: true,
+    showCorrectAnswers: quiz.showCorrectAnswers,
+    allowReview: true,
+    status: "draft" as const,
+    questions: quiz.questions,
+  };
+  if (quiz.id) {
+    await courseQuizRepository.updateQuiz(courseId, quiz.id, payload);
+    return;
+  }
+  const existing = await courseQuizRepository.getCourseQuizzes(courseId);
+  if (existing[0]?.id) {
+    await courseQuizRepository.updateQuiz(courseId, existing[0].id, payload);
+  } else {
+    await courseQuizRepository.createQuiz(courseId, payload);
+  }
+}
+
+function mapTeachingChapters(chapters: Chapter[] = []) {
+  return chapters.map((chapter) => ({
+    ...(chapter.id && !chapter.id.startsWith("ch-") ? { id: chapter.id } : {}),
+    title: chapter.title,
+    lessons: chapter.lessons.map(mapTeachingLesson),
+  }));
 }
 
 export type { QuizQuestion } from "@/types/course-quiz";
@@ -104,6 +162,7 @@ export interface ReviewReply {
 
 export interface Review {
   id: string;
+  courseId?: string;
   studentName: string;
   studentAvatar: string;
   courseTitle: string;
@@ -281,25 +340,16 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // Course mutations
   const createCourse = useMutation({
-    mutationFn: (newCourse: Partial<Course>) => {
+    mutationFn: async (newCourse: Partial<Course>) => {
       const body: Record<string, unknown> = {
         title: newCourse.title,
         description: newCourse.description,
         thumbnail: newCourse.thumbnail,
         price: newCourse.price ?? 0,
         status: newCourse.status ?? "draft",
-        level: "INTERMEDIATE",
+        level: newCourse.level ?? "INTERMEDIATE",
         language: "ar",
-        chapters: (newCourse.chapters ?? []).map((ch: Chapter) => ({
-          title: ch.title,
-          lessons: ch.lessons.map((l: Lesson) => ({
-            title: l.title,
-            duration: l.duration,
-            type: l.type,
-            url: l.url ?? "",
-            isPreview: l.isPreview ?? false,
-          })),
-        })),
+        chapters: mapTeachingChapters(newCourse.chapters),
         ...(newCourse.quiz
           ? {
               quiz: {
@@ -314,7 +364,9 @@ export function useTeachingData(activeTab: string = "dashboard") {
             }
           : {}),
       };
-      return apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
+      const response = await apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
+      if (newCourse.quiz && response.course?.id) await persistCourseQuiz(response.course.id, newCourse.quiz);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -323,14 +375,18 @@ export function useTeachingData(activeTab: string = "dashboard") {
   });
 
   const updateCourse = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Course> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Course> }) => {
       const body: Record<string, unknown> = {};
       if (data.title !== undefined) body.title = data.title;
       if (data.description !== undefined) body.description = data.description;
       if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
       if (data.price !== undefined) body.price = data.price;
       if (data.status !== undefined) body.status = data.status;
-      return apiClient.patch<ApiSuccessResponse>(apiRoutes.teaching.courses.byId(id), body);
+      if (data.chapters !== undefined) body.chapters = mapTeachingChapters(data.chapters);
+      if (data.quiz !== undefined) body.quiz = data.quiz;
+      const response = await apiClient.patch<ApiSuccessResponse>(apiRoutes.teaching.courses.byId(id), body);
+      if (data.quiz) await persistCourseQuiz(id, data.quiz);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -381,7 +437,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const getReviewsForCourse = (courseId: string) =>
     allReviews.filter(
-      (r: Review) => (r as unknown as { courseId?: string }).courseId === courseId
+      (r: Review) => r.courseId === courseId
     );
 
   const replyToReview = useMutation({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import {
   persistQueryClientRestore,
@@ -103,7 +103,7 @@ function shouldPersistQuery(query: Parameters<typeof defaultShouldDehydrateQuery
  * the main thread on large caches. This version is fully non-blocking AND
  * identity-scoped.
  */
-export function ReactQueryPersistence() {
+export function ReactQueryPersistence({ children }: { children?: ReactNode } = {}) {
   const queryClient = useQueryClient();
   // Read auth state via context. The provider tree guarantees this hook
   // resolves to a value (it is mounted under <AuthProvider>).
@@ -117,9 +117,26 @@ export function ReactQueryPersistence() {
   const transitionGenerationRef = useRef(0);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
+  // Gates the first render of `children` until the initial IndexedDB
+  // restore has settled. Without this, `useQuery` consumers mount and
+  // fire their network fetch in the SAME commit as this component (this
+  // effect only runs afterwards), so the restored cache always arrives
+  // too late to be used — every refresh looked like a cold, un-cached
+  // load. Mirrors what `PersistQueryClientProvider` does upstream.
+  // Deliberately never flips back to `false` on later identity
+  // transitions (login/logout) — those already clear/restore correctly
+  // in the background, and re-hiding already-rendered UI would just
+  // cause a jarring blank flash.
+  const [isReady, setIsReady] = useState(false);
 
+  useEffect(() => {
+    // NOTE: we intentionally do NOT wait for `status !== 'loading'` here.
+    // Anonymous-safe data (courses, public settings, …) should restore
+    // from its bucket immediately on mount; once auth resolves, the
+    // transition logic below detects the identity change (previousKey
+    // !== nextKey) and re-clears/restores under the correct user bucket.
+    // Gating the whole restore on the auth network round-trip is what
+    // made caching effectively invisible before.
     const nextKey = cacheKeyForScope(user?.id);
     const previousKey = currentScopeRef.current;
     const isSessionTransition =
@@ -186,6 +203,7 @@ export function ReactQueryPersistence() {
       unsubscribeRef.current = persistQueryClientSubscribe(
         saveOptions as unknown as Parameters<typeof persistQueryClientSubscribe>[0],
       );
+      setIsReady(true);
     };
 
     void runTransition();
@@ -205,5 +223,6 @@ export function ReactQueryPersistence() {
     };
   }, [authSessionVersion, queryClient, status, user?.id]);
 
-  return null;
+  if (!isReady) return null;
+  return <>{children}</>;
 }

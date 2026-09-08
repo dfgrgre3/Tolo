@@ -6,6 +6,7 @@ import Link from "next/link";
 import { m } from "framer-motion";
 import { Loader2, Heart, Trash2, ArrowLeft, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api/api-client";
 
 type WishlistItem = {
   id: string;
@@ -29,12 +30,8 @@ export default function WishlistPage() {
   const fetchWishlist = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/wishlist");
-      if (res.ok) {
-        const data = await res.json();
-        const payload = data.data || data;
-        setItems(payload.items || []);
-      }
+      const data = await apiClient.get<{ items?: WishlistItem[] }>("/api/wishlist");
+      setItems(data.items || []);
     } catch {
       // silently handled
     } finally {
@@ -49,15 +46,11 @@ export default function WishlistPage() {
   const handleRemove = async (subjectId: string) => {
     setBusy((prev) => ({ ...prev, [subjectId]: true }));
     try {
-      const res = await fetch(`/api/courses/${subjectId}/wishlist`, { method: "DELETE" });
-      if (res.ok) {
-        setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
-        toast.success("تمت الإزالة من المفضلة");
-      } else {
-        toast.error("فشلت الإزالة");
-      }
+      await apiClient.delete(`/api/courses/${subjectId}/wishlist`);
+      setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
+      toast.success("تمت الإزالة من المفضلة");
     } catch {
-      toast.error("حدث خطأ");
+      toast.error("فشلت الإزالة");
     } finally {
       setBusy((prev) => ({ ...prev, [subjectId]: false }));
     }
@@ -65,18 +58,10 @@ export default function WishlistPage() {
 
   const handleAddToCart = async (subjectId: string) => {
     try {
-      const res = await fetch("/api/cart/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectId }),
-      });
-      if (res.ok) {
-        toast.success("تمت الإضافة للسلة");
-      } else {
-        toast.error("فشلت الإضافة للسلة");
-      }
+      await apiClient.postJson("/api/cart/items", { subjectId });
+      toast.success("تمت الإضافة للسلة");
     } catch {
-      toast.error("حدث خطأ");
+      toast.error("فشلت الإضافة للسلة");
     }
   };
 

@@ -8,7 +8,10 @@ import CourseDetailClient from "./CourseDetailClient";
 import { SITE } from "@thanawy/shared/site-config";
 import type { Course, CourseLesson } from "./_components/types";
 import { levelConfig } from "./_components/types";
-import { getBackendApiUrl } from "@/lib/api/backend-url";
+import { toCourseSummary, toLessonCards } from "@/types/domain/mappers";
+import { apiRoutes } from "@/lib/api/routes";
+import { apiClient } from "@/lib/api/api-client";
+import type { CourseDetailResponse, CourseLessonsResponse } from "@/types/domain/mappers";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -18,22 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
   try {
-    const res = await fetch(getBackendApiUrl(`/courses/${id}`), {
-      next: { revalidate: 3600 } // Cache for 1 hour
-    });
-
-    if (!res.ok) {
-      return {
-        title: `كورس غير موجود | ${SITE.name}`,
-        description: "تفاصيل الدورة التعليمية المطلوبة غير متوفرة حالياً."
-      };
-    }
-
-    const courseData = await res.json();
-    // API returns { success: true, data: { subject: {...}, data: {...} } }
-    // Unwrap the envelope to get the actual payload
-    const payload = courseData?.data ?? courseData;
-    const subject = payload?.subject ?? payload;
+    const courseData = await apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(id));
+    const subject = courseData.subject;
 
     if (!subject || !subject.id) {
       return {
@@ -85,15 +74,8 @@ export default async function Page({ params }: Props) {
   let initialLessons: CourseLesson[] = [];
 
   try {
-    const res = await fetch(getBackendApiUrl(`/courses/${id}`), {
-      next: { revalidate: 3600 }
-    });
-    if (res.ok) {
-      const courseData = await res.json();
-      // API returns { success: true, data: { subject: {...}, data: {...} } }
-      // Unwrap the envelope to get the actual payload
-      const payload = courseData?.data ?? courseData;
-      const subject = payload?.subject ?? payload;
+    const courseData = await apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(id));
+      const subject = courseData.subject;
       if (subject && subject.id) {
         schema = {
           "@context": "https://schema.org",
@@ -108,69 +90,25 @@ export default async function Page({ params }: Props) {
           },
           "offers": {
             "@type": "Offer",
-            "category": "Free",
-            "price": "0",
+            "category": subject.price > 0 ? "Paid" : "Free",
+            "price": String(subject.price ?? 0),
             "priceCurrency": "EGP"
           }
         };
 
-        initialCourseData = {
-          id: subject.id,
-          title: subject.nameAr || subject.name,
-          description: subject.description || `لا يوجد وصف متاح لهذه الدورة.`,
-          instructor: subject.instructorName || "المنصة التعليمية",
-          subject: subject.nameAr || subject.name,
-          level: (subject.level as Course["level"]) || "INTERMEDIATE",
-          duration: subject.durationHours || 0,
-          thumbnailUrl: subject.thumbnailUrl || undefined,
-          price: subject.price || 0,
-          rating: subject.rating || 0,
-          enrolledCount: subject.enrolledCount || 0,
-          createdAt: subject.createdAt || new Date().toISOString(),
-          tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
+        initialCourseData = toCourseSummary(subject, {
           enrolled: Boolean(courseData.enrollment),
           progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined,
-          whatYouLearn: subject.whatYouLearn,
-          coursePrerequisites: subject.coursePrerequisites,
-          targetAudience: subject.targetAudience,
-          requirements: subject.requirements,
-          learningObjectives: subject.learningObjectives,
-        };
+        });
       }
-    }
   } catch (error) {
     console.error("Error generating Course schema:", error);
   }
 
   // Pre-fetch lessons on server side (cached for revalidate optimization)
   try {
-    const lessonsRes = await fetch(getBackendApiUrl(`/courses/${id}/lessons`), {
-      next: { revalidate: 3600 }
-    });
-    if (lessonsRes.ok) {
-      const lessonsData = await lessonsRes.json();
-      // API returns { success: true, data: { lessons: [...] } }
-      // Unwrap the envelope
-      const payload = lessonsData?.data ?? lessonsData;
-      const rawLessons = Array.isArray(payload) ? payload : (payload.lessons ?? []);
-      initialLessons = rawLessons.map((l: any, i: number) => {
-        const durationMinutes = typeof l.durationMinutes === "number" ? l.durationMinutes : l.duration || 0;
-        return {
-          id: l.id,
-          title: l.title || l.name || `الدرس ${i + 1}`,
-          description: l.description || undefined,
-          content: l.content || undefined,
-          videoUrl: l.videoUrl || undefined,
-          type: l.type || "VIDEO",
-          isFree: Boolean(l.isFree),
-          locked: Boolean(l.locked),
-          duration: durationMinutes > 0 ? durationMinutes * 60 : 600,
-          order: l.order || i + 1,
-          completed: false, // Resolves client-side for logged-in users
-          progress: 0
-        };
-      });
-    }
+    const lessonsData = await apiClient.get<CourseLessonsResponse>(apiRoutes.courses.lessons(id));
+    initialLessons = toLessonCards(lessonsData.lessons || []);
   } catch (error) {
     console.error("Error fetching lessons on server:", error);
   }

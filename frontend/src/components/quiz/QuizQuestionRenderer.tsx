@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import type { QuizAnswer, QuizQuestion } from "@/types/course-quiz";
+import type { QuizSubmissionAnswer, QuizQuestion } from "@/types/course-quiz";
 import { GripVertical } from "lucide-react";
 
 interface Props {
   question: QuizQuestion;
-  value?: QuizAnswer;
-  onChange: (answer: QuizAnswer) => void;
+  value?: QuizSubmissionAnswer;
+  onChange: (answer: QuizSubmissionAnswer) => void;
 }
 
 export function QuizQuestionRenderer({ question, value, onChange }: Props) {
@@ -62,7 +62,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               selectedOptionIds: [id],
-              pointsPossible: question.points,
             })
           }
         />
@@ -80,7 +79,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               selectedOptionIds: next,
-              pointsPossible: question.points,
             });
           }}
         />
@@ -93,7 +91,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               textAnswer: e.target.value,
-              pointsPossible: question.points,
             })
           }
           placeholder="اكتب إجابتك هنا..."
@@ -108,7 +105,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               textAnswer: e.target.value,
-              pointsPossible: question.points,
             })
           }
           placeholder="اكتب إجابتك بالتفصيل هنا..."
@@ -122,7 +118,7 @@ function QuestionBody({ question, value, onChange }: Props) {
           question={question}
           matches={value?.matches ?? {}}
           onChange={(matches) =>
-            onChange({ questionId: question.id, matches, pointsPossible: question.points })
+            onChange({ questionId: question.id, matches })
           }
         />
       );
@@ -135,7 +131,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               orderedItemIds: ordered,
-              pointsPossible: question.points,
             })
           }
         />
@@ -149,7 +144,6 @@ function QuestionBody({ question, value, onChange }: Props) {
             onChange({
               questionId: question.id,
               blankAnswers,
-              pointsPossible: question.points,
             })
           }
         />

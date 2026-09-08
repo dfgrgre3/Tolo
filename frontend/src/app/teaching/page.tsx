@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { errorService } from "@/lib/logging/error-service";
+import { apiClient } from "@/lib/api/api-client";
 
 // Tabs Panels
 import DashboardOverview from "./components/DashboardOverview";
@@ -129,27 +130,18 @@ export default function TeachingPage() {
       setIsSubmitting(true);
       setApplyError("");
       try {
-        const response = await fetch("/api/teaching/apply", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: applyName || user?.name || "مقدم الطلب",
-            email: applyFormEmail || user?.email || "",
-            experience: applyExperience,
-            bio: applyBio,
-          }),
+        const data = await apiClient.postJson<{ code?: string; email?: string }>("/api/teaching/apply", {
+          name: applyName || user?.name || "مقدم الطلب",
+          email: applyFormEmail || user?.email || "",
+          experience: applyExperience,
+          bio: applyBio,
         });
-        if (response.ok) {
-          const data = await response.json();
-          setApplyCode(data.code || `TOLO-TCHR-${Math.floor(100000 + Math.random() * 900000)}`);
-          setApplyEmail(data.email || applyFormEmail || user?.email || "");
-          setApplySuccess(true);
-        } else {
-          setApplyError("تعذر تقديم الطلب حالياً، يرجى التحقق من البيانات وإعادة المحاولة.");
-        }
+        setApplyCode(data.code || `TOLO-TCHR-${Math.floor(100000 + Math.random() * 900000)}`);
+        setApplyEmail(data.email || applyFormEmail || user?.email || "");
+        setApplySuccess(true);
       } catch (err) {
         errorService.logError(err, { source: "teaching:apply", severity: "medium" });
-        setApplyError("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
+        setApplyError("تعذر تقديم الطلب حالياً، يرجى التحقق من البيانات وإعادة المحاولة.");
       } finally {
         setIsSubmitting(false);
       }
@@ -160,23 +152,24 @@ export default function TeachingPage() {
       const codeTrimmed = lookupCode.trim().toUpperCase();
       if (!codeTrimmed) return;
       try {
-        const response = await fetch(`/api/teaching/apply/status?code=${encodeURIComponent(codeTrimmed)}`);
-        if (response.ok) {
-          const data = await response.json();
-          setLookupStatus(data.status || "pending");
-          switch (data.status) {
-            case "approved":
-              setLookupMessage("مبروك! تمت الموافقة على طلبك. يمكنك تسجيل الدخول للوصول إلى لوحة تحكم المعلم.");
-              break;
-            case "rejected":
-              setLookupMessage("نأسف، لم يتم قبول طلبك هذه المرة. يمكنك التواصل مع الدعم الفني لمعرفة التفاصيل.");
-              break;
-            default:
-              setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
-          }
-        } else {
-          setLookupStatus("error");
-          setLookupMessage("كود الطلب غير صحيح أو تعذر العثور على الطلب.");
+        const data = await apiClient.get<{ status?: string; message?: string }>(
+          `/api/teaching/apply/status?code=${encodeURIComponent(codeTrimmed)}`
+        );
+        const nextStatus = data.status;
+        setLookupStatus(
+          nextStatus === "approved" || nextStatus === "rejected" || nextStatus === "error" || nextStatus === "none"
+            ? nextStatus
+            : "pending"
+        );
+        switch (data.status) {
+          case "approved":
+            setLookupMessage("مبروك! تمت الموافقة على طلبك. يمكنك تسجيل الدخول للوصول إلى لوحة تحكم المعلم.");
+            break;
+          case "rejected":
+            setLookupMessage("نأسف، لم يتم قبول طلبك هذه المرة. يمكنك التواصل مع الدعم الفني لمعرفة التفاصيل.");
+            break;
+          default:
+            setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
         }
       } catch (_err) {
         setLookupStatus("error");

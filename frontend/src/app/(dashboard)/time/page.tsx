@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { m, LazyMotion, domAnimation } from "framer-motion";
+import { m } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -324,14 +324,10 @@ export default function TimeManagementPage() {
 
   return (
     <ComponentErrorBoundary onError={fetchData}>
-      {/* LazyMotion provides the `domAnimation` features that `m.*` components
-          (used throughout this page and its descendants — WeeklySchedule,
-          TimeManagementHeader, DashboardTab, etc.) need to actually animate.
-          Framer Motion is intentionally not loaded globally (see providers/index.tsx),
-          so each route that uses `m.*` must supply its own LazyMotion ancestor —
-          otherwise `m.div` stays frozen at its `initial` state (e.g. opacity: 0)
-          forever, making content invisible while still taking up layout space. */}
-      <LazyMotion features={domAnimation}>
+      {/* `m.*` components throughout this page and its descendants — WeeklySchedule,
+          TimeManagementHeader, DashboardTab, etc. — are animated by the global
+          LazyMotion provider in providers/index.tsx. Don't nest another LazyMotion
+          here; it can desync from the root provider's context under HMR. */}
       {/* Premium Background Layer */}
       <div className="min-h-screen bg-[#050B14] text-slate-100 relative overflow-hidden">
         {/* Animated Deep Space / RPG Glowing Orbs Background */}
@@ -664,7 +660,6 @@ export default function TimeManagementPage() {
           </Tabs>
         </div>
       </div>
-      </LazyMotion>
     </ComponentErrorBoundary>
   );
 }

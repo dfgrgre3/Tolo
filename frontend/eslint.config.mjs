@@ -222,6 +222,44 @@ export default [
           ],
         },
       ],
+      // Ban direct fetch() in application code — all HTTP calls must go through
+      // apiClient to ensure consistent retry/timeout/CSRF/error handling.
+      // Infrastructure files (api-client, csrf, retry-policy, etc.) are exempt.
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "fetch",
+          message:
+            "Direct fetch() is forbidden in application code. " +
+            "Use 'apiClient' from '@/lib/api/api-client' instead. " +
+            "This ensures consistent retry/timeout/CSRF/error handling across the codebase.",
+        },
+      ],
+    },
+  },
+  // Infrastructure files that are allowed to use fetch directly
+  {
+    files: [
+      "src/lib/api/**/*.ts",
+      "src/app/api/**/*.ts",
+      "src/middleware/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-globals": "off",
+    },
+  },
+  // Test files that need fetch for mocking
+  {
+    files: [
+      "**/__tests__/**/*.ts",
+      "**/__tests__/**/*.tsx",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx",
+    ],
+    rules: {
+      "no-restricted-globals": "off",
     },
   },
   // Jest globals for test files

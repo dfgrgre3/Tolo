@@ -22,8 +22,6 @@ export function LessonVideoArea({
   canAccess,
   lessonData,
   courseId,
-  authName,
-  userId,
   onAutoComplete,
   onEnroll,
 }: {
@@ -31,8 +29,6 @@ export function LessonVideoArea({
   lessonData: CourseLesson;
   courseId: string;
   courseEnrolled: boolean;
-  authName?: string | null;
-  userId: string | null;
   onAutoComplete: () => void;
   onEnroll: () => void;
 }) {
@@ -54,7 +50,6 @@ export function LessonVideoArea({
           lessonTitle={lessonData.title}
           videoUrl={lessonData.videoUrl}
           alreadyCompleted={lessonData.completed}
-          watermarkText={authName || userId || "Student"}
           onLessonAutoComplete={onAutoComplete}
           onProgress={(currentTime, duration) => {
             const percent = duration > 0 ? Math.round((currentTime / duration) * 100) : 0;

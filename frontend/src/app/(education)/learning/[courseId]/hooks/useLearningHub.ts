@@ -15,22 +15,16 @@ import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
 import type { Course, Chapter, LessonQuestion, TabKey } from "../types";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import type {
+  CourseDetailResponse,
+  LearningHubResponse,
+  LessonNotesResponse,
+  LessonProgressResponse,
+  LessonQuestionsResponse,
+} from "@/types/domain/mappers";
+import { toLearningChaptersFromTopics } from "@/types/domain/mappers";
 import { useAuth } from "@/hooks/use-auth";
-
-function applyMockInteractiveQuestions(chapters: Chapter[]) {
-  if (chapters.length > 0 && chapters[0]!.subTopics.length > 0) {
-    chapters[0]!.subTopics[0]!.interactiveQuestions = [
-      {
-        id: "q1",
-        time: 15,
-        question: "ما هي الوحدة الأساسية لقياس المادة في الكيمياء؟",
-        options: ["المول", "الجرام", "اللتر", "المتر"],
-        correctOptionIndex: 0,
-        explanation: "المول هو الوحدة الأساسية لقياس كمية المادة في النظام الدولي للوحدات.",
-      },
-    ];
-  }
-}
 
 function resolveInitialLessonState(
   courseId: string,
@@ -118,8 +112,8 @@ export function useLearningHub() {
         // Session-scoped: the backend resolves the caller from the JWT, so
         // no ?userId= is appended (IDOR/BOLA hardening).
         const [curriculumPayload, coursePayload] = await Promise.all([
-          apiClient.get<any>(`/courses/${courseId}/curriculum`),
-          apiClient.get<any>(`/courses/${courseId}`),
+          apiClient.get<LearningHubResponse>(apiRoutes.courses.curriculum(courseId)),
+          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseId)),
         ]);
 
         if (!coursePayload?.enrollment) {
@@ -135,11 +129,17 @@ export function useLearningHub() {
           instructor: subject.instructorName || "فريق ثانوي",
           rating: subject.rating || 0,
           thumbnailUrl: subject.thumbnailUrl || null,
+          completion: curriculumPayload.completion || (coursePayload.enrollment
+            ? {
+                isComplete: coursePayload.enrollment.progress >= 100,
+                progress: coursePayload.enrollment.progress,
+              }
+            : undefined),
         });
 
-        const nextChapters: Chapter[] = curriculumPayload?.curriculum || [];
-
-        applyMockInteractiveQuestions(nextChapters);
+        const nextChapters: Chapter[] = curriculumPayload.curriculum?.length
+          ? curriculumPayload.curriculum
+          : toLearningChaptersFromTopics(curriculumPayload.topics || []);
         setChapters(nextChapters);
 
         const initialLessonId = resolveInitialLessonState(courseId, nextChapters, {
@@ -209,12 +209,12 @@ export function useLearningHub() {
     const loadLessonExtras = async () => {
       try {
         const [notePayload, questionsPayload] = await Promise.all([
-          apiClient.get<any>(`/courses/lessons/${activeLessonId}/notes`).catch(() => null),
-          apiClient.get<any>(`/courses/lessons/${activeLessonId}/questions`).catch(() => null),
+          apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId)).catch(() => null),
+          apiClient.get<LessonQuestionsResponse>(apiRoutes.courses.lessonQuestions(activeLessonId)).catch(() => null),
         ]);
 
         setNoteContent(notePayload?.content || "");
-        setQuestions(questionsPayload || []);
+        setQuestions(questionsPayload?.questions || []);
       } catch (extrasError) {
         logger.error("Error loading lesson extras", extrasError);
       }
@@ -224,10 +224,10 @@ export function useLearningHub() {
   }, [activeLessonId]);
 
   const progress = useMemo(() => {
-    if (allLessons.length === 0) return 0;
-    const completedLessons = allLessons.filter((lesson) => lesson.completed).length;
-    return Math.round((completedLessons / allLessons.length) * 100);
-  }, [allLessons]);
+    // Course completion is server-owned. Lesson count is only a curriculum
+    // view and cannot account for required quizzes or assignments.
+    return course?.completion?.progress ?? 0;
+  }, [course?.completion]);
 
   const totalDurationMinutes = useMemo(
     () => allLessons.reduce((sum, lesson) => sum + (lesson.durationMinutes || 0), 0),
@@ -294,9 +294,23 @@ export function useLearningHub() {
   const handleLessonComplete = useCallback(
     async (lessonId: string) => {
       try {
-        const data = await apiClient.post<any>(`/courses/lessons/${lessonId}/progress`, { completed: true });
+        const data = await apiClient.post<LessonProgressResponse>(apiRoutes.courses.lessonProgress(lessonId), { completed: true });
+
+        if (data.isCourseComplete) {
+          // Completion is a domain command, not merely a derived 100% label.
+          await apiClient.post(apiRoutes.courses.complete(courseId), {});
+        }
 
         setChapters((current) => markLessonCompletedInChapters(current, lessonId));
+        if (typeof data.courseProgress === "number") {
+          setCourse((current) => current ? {
+            ...current,
+            completion: {
+              progress: data.courseProgress!,
+              isComplete: Boolean(data.isCourseComplete),
+            },
+          } : current);
+        }
 
         if (data?.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
         else toast.success("تم تسجيل الدرس كمكتمل.");
@@ -307,7 +321,7 @@ export function useLearningHub() {
         toast.error("تعذر تسجيل إكمال الدرس.");
       }
     },
-    []
+    [courseId]
   );
 
   const saveNote = useCallback(async () => {
@@ -315,7 +329,7 @@ export function useLearningHub() {
 
     try {
       setSavingNote(true);
-      await apiClient.post(`/courses/lessons/${activeLessonId}/notes`, { content: noteContent });
+      await apiClient.post(apiRoutes.courses.createNote(activeLessonId), { content: noteContent });
       toast.success("تم حفظ الملاحظات.");
     } catch (saveError) {
       logger.error("Error saving note", saveError);
@@ -342,7 +356,7 @@ export function useLearningHub() {
 
     try {
       setPostingQuestion(true);
-      const data = await apiClient.post<any>(`/courses/lessons/${activeLessonId}/questions`, {
+      const data = await apiClient.post<LessonQuestion>(apiRoutes.courses.lessonQuestions(activeLessonId), {
         content: newQuestion.trim(),
       });
 

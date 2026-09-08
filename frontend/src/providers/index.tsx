@@ -91,12 +91,11 @@ const SessionRuntime = ({
 );
 
 const DataRuntime = ({ children }: { children: React.ReactNode }) => (
-  <>
-    <ReactQueryPersistence />
+  <ReactQueryPersistence>
     <EfficiencyProvider>
       <GlobalSettingsApplier>{children}</GlobalSettingsApplier>
     </EfficiencyProvider>
-  </>
+  </ReactQueryPersistence>
 );
 
 const RealtimeRuntime = ({ children }: { children: React.ReactNode }) => (

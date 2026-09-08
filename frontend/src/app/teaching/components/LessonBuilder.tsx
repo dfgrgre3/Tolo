@@ -20,7 +20,7 @@ interface EditLessonModalProps {
 
 function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
   const [title, setTitle] = useState(lesson.title);
-  const [duration, setDuration] = useState(lesson.duration);
+  const [durationMinutes, setDurationMinutes] = useState(String(lesson.durationMinutes));
   const [url, setUrl] = useState(lesson.url || "");
   const [description, setDescription] = useState(lesson.description || "");
   const [isPreview, setIsPreview] = useState(lesson.isPreview || false);
@@ -50,15 +50,15 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
                 onChange={(e) => setType(e.target.value as Lesson["type"])}
                 className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-background px-3 text-xs"
               >
-                <option value="video">فيديو (Video)</option>
-                <option value="pdf">ملف (PDF)</option>
-                <option value="quiz">اختبار (Quiz)</option>
-                <option value="assignment">واجب (Assignment)</option>
+                <option value="VIDEO">فيديو (Video)</option>
+                <option value="ARTICLE">مقال / PDF</option>
+                <option value="QUIZ">اختبار (Quiz)</option>
+                <option value="ASSIGNMENT">واجب (Assignment)</option>
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-slate-500">المدة / الحجم</label>
-              <Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="مثال: 15 دقيقة" className="rounded-xl text-right text-xs" />
+              <Input type="number" min={0} value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} placeholder="بالدقائق" className="rounded-xl text-right text-xs" />
             </div>
           </div>
 
@@ -87,7 +87,7 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
         <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <Button
             onClick={() => {
-              onSave({ title, duration, url, description, isPreview, type });
+              onSave({ title, durationMinutes: Math.max(0, Number(durationMinutes) || 0), url, description, isPreview, type });
               onClose();
             }}
             className="flex-1 bg-primary text-white rounded-xl text-xs"
@@ -105,8 +105,10 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
   const [editingLessonInfo, setEditingLessonInfo] = useState<{ chapterId: string; lesson: Lesson } | null>(null);
 
   const addChapter = () => {
+    const clientId = `ch-${Date.now()}`;
     const newChapter: Chapter = {
-      id: `ch-${Date.now()}`,
+      id: clientId,
+      clientId,
       title: `الوحدة/الفصل ${chapters.length + 1}`,
       lessons: [],
     };
@@ -127,10 +129,12 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
     onChange(
       chapters.map((c) => {
         if (c.id === chapterId) {
+          const clientId = `ls-${Date.now()}`;
           const newLesson: Lesson = {
-            id: `ls-${Date.now()}`,
-            title: `درس جديد - ${type === "video" ? "فيديو" : type === "quiz" ? "اختبار" : "ملف PDF"}`,
-            duration: type === "video" ? "15 دقيقة" : type === "quiz" ? "10 أسئلة" : "5 صفحات",
+            id: clientId,
+            clientId,
+            title: `درس جديد - ${type === "VIDEO" ? "فيديو" : type === "QUIZ" ? "اختبار" : "ملف"}`,
+            durationMinutes: type === "VIDEO" ? 15 : 0,
             type,
             isPreview: false,
           };
@@ -192,9 +196,9 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
 
   const getLessonIcon = (type: Lesson["type"]) => {
     switch (type) {
-      case "video":
+      case "VIDEO":
         return Video;
-      case "quiz":
+      case "QUIZ":
         return HelpCircle;
       default:
         return FileText;
@@ -235,9 +239,9 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
                 </div>
                 <div className="flex items-center gap-2">
                   <DropdownActions
-                    onAddVideo={() => addLesson(chapter.id, "video")}
-                    onAddQuiz={() => addLesson(chapter.id, "quiz")}
-                    onAddPdf={() => addLesson(chapter.id, "pdf")}
+                    onAddVideo={() => addLesson(chapter.id, "VIDEO")}
+                    onAddQuiz={() => addLesson(chapter.id, "QUIZ")}
+                    onAddPdf={() => addLesson(chapter.id, "ARTICLE")}
                     onDelete={() => deleteChapter(chapter.id)}
                   />
                 </div>
@@ -271,8 +275,8 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
                         <div className="flex items-center gap-3">
                           <input
                             type="text"
-                            value={lesson.duration}
-                            onChange={(e) => updateLesson(chapter.id, lesson.id, { duration: e.target.value })}
+                            value={lesson.durationMinutes}
+                            onChange={(e) => updateLesson(chapter.id, lesson.id, { durationMinutes: Math.max(0, Number(e.target.value) || 0) })}
                             placeholder="المدة"
                             className="w-20 text-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-slate-500"
                           />

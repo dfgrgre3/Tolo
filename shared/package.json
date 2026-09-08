@@ -14,6 +14,10 @@
       "types": "./src/site-config.ts",
       "default": "./src/site-config.ts"
     },
+    "./backend-url": {
+      "types": "./src/backend-url.ts",
+      "default": "./src/backend-url.ts"
+    },
     "./types/api": {
       "types": "./src/types/api.ts",
       "default": "./src/types/api.ts"
