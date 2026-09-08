@@ -101,6 +101,7 @@ export interface CourseSummaryView {
   tags?: string[];
   enrolled: boolean;
   progress?: number;
+  hasCertificate: boolean;
   lessonsCount?: number;
   whatYouLearn?: string[];
   coursePrerequisites?: string[];
@@ -116,7 +117,7 @@ export interface LessonCardView {
   description?: string;
   content?: string;
   videoUrl?: string;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT';
   isFree: boolean;
   locked: boolean;
   /** seconds (normalized from durationMinutes) */
@@ -126,10 +127,10 @@ export interface LessonCardView {
   progress: number;
 }
 
-const LESSON_TYPES = new Set(['VIDEO', 'ARTICLE', 'QUIZ', 'FILE', 'ASSIGNMENT']);
+const LESSON_TYPES = new Set(['VIDEO', 'ARTICLE', 'QUIZ', 'ASSIGNMENT', 'DOCUMENT']);
 
 function normalizeLessonType(type?: string | null): LessonCardView['type'] {
-  return type && LESSON_TYPES.has(type) ? (type as LessonCardView['type']) : 'VIDEO';
+  return type === 'DOCUMENT' ? 'ARTICLE' : type && LESSON_TYPES.has(type) ? (type as LessonCardView['type']) : 'VIDEO';
 }
 
 /** Subject (course) + enrollment state → course-detail view model. */
@@ -153,6 +154,7 @@ export function toCourseSummary(
     tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
     enrolled: Boolean(opts.enrolled),
     progress: opts.enrolled ? opts.progress || 0 : undefined,
+    hasCertificate: Boolean(subject.hasCertificate),
     whatYouLearn: subject.whatYouLearn,
     coursePrerequisites: subject.coursePrerequisites,
     targetAudience: subject.targetAudience,
@@ -174,7 +176,7 @@ export function toLessonCard(raw: LessonRowDTO, index = 0): LessonCardView {
     type: normalizeLessonType(raw.type),
     isFree: Boolean(raw.isFree),
     locked: Boolean(raw.locked),
-    duration: durationMinutes > 0 ? durationMinutes * 60 : 600,
+    duration: durationMinutes > 0 ? durationMinutes * 60 : 0,
     order: raw.order || index + 1,
     completed: Boolean(raw.completed),
     progress: typeof raw.progress === 'number' ? raw.progress : raw.completed ? 100 : 0,
@@ -206,7 +208,7 @@ export interface LearningLessonView {
   description: string | null;
   content: string | null;
   videoUrl: string | null;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT';
   completed: boolean;
   order: number;
   durationMinutes: number;

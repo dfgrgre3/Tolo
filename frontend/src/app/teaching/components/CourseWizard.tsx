@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Save, X, Upload, HelpCircle } from "lucide-react";
@@ -14,6 +14,9 @@ import { QuizBuilder } from "./QuizBuilder";
 import { Course, Chapter } from "../hooks/use-teaching-data";
 import type { QuizQuestion } from "@/types/course-quiz";
 import { useUpload } from "@/hooks/use-upload";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import { validateQuizQuestions } from "@/lib/quiz/validation";
 
 interface CourseWizardProps {
   course?: Course | null; // If null, we are creating a new course
@@ -26,7 +29,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [currentStep, setCurrentStep] = useState(1);
   const [title, setTitle] = useState(course?.title || "");
   const [description, setDescription] = useState(course?.description || "");
-  const [category, setCategory] = useState(course?.category || "البرمجة والتطوير");
+  const [categoryId, setCategoryId] = useState(course?.categoryId || "");
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; nameAr?: string }>>([]);
   const [price, setPrice] = useState(course?.price?.toString() || "0");
   const [level, setLevel] = useState<Course["level"]>(course?.level || "INTERMEDIATE");
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
@@ -52,6 +56,23 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
     maxSize: 2 * 1024 * 1024,
     useLargeFileUpload: false,
   });
+
+  useEffect(() => {
+    let active = true;
+    apiClient.get<unknown>(apiRoutes.categories).then((payload) => {
+      const value = payload as { categories?: unknown; data?: unknown } | unknown[];
+      const raw = Array.isArray(value) ? value : Array.isArray(value.categories) ? value.categories : Array.isArray(value.data) ? value.data : [];
+      const next = raw.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const row = item as { id?: unknown; name?: unknown; nameAr?: unknown };
+        return typeof row.id === "string" && typeof row.name === "string"
+          ? [{ id: row.id, name: row.name, nameAr: typeof row.nameAr === "string" ? row.nameAr : undefined }]
+          : [];
+      });
+      if (active) setCategories(next);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   const handleThumbnailFile = async (file: File | undefined) => {
     if (!file) return;
@@ -98,11 +119,23 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
       setErrorMsg("يرجى إدخال عنوان الكورس");
       return;
     }
+    const quizLessons = chapters.flatMap((chapter) => chapter.lessons).filter((lesson) => lesson.type === "QUIZ");
+    if (quizQuestions.length > 0 && quizLessons.length !== 1) {
+      setErrorMsg("يجب إضافة درس QUIZ واحد فقط وربط أسئلته به قبل حفظ الدورة");
+      setCurrentStep(3);
+      return;
+    }
+    const quizIssues = validateQuizQuestions(quizQuestions);
+    if (quizIssues.length > 0) {
+      setErrorMsg(`راجع أسئلة الاختبار: ${quizIssues[0]?.message}`);
+      setCurrentStep(4);
+      return;
+    }
     try {
       await onSave({
         title,
         description,
-        category,
+        categoryId: categoryId || null,
         level,
         price: parseFloat(price) || 0,
         thumbnail,
@@ -117,6 +150,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
           shuffleQuestions: quizSettings.shuffleQuestions,
           shuffleOptions: quizSettings.shuffleOptions,
           showCorrectAnswers: quizSettings.showCorrectAnswers,
+          lessonId: quizLessons[0]?.id,
           questions: quizQuestions,
         },
       });
@@ -195,15 +229,16 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
               </div>
               <div className="space-y-1.5">
                 <label className="text-slate-500">تصنيف الكورس</label>
-                <Select value={category} onValueChange={(val) => setCategory(val)}>
+                <Select value={categoryId} onValueChange={(val) => {
+                  setCategoryId(val);
+                }}>
                   <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-right">
                     <SelectValue placeholder="اختر تصنيف الكورس" />
                   </SelectTrigger>
                   <SelectContent className="text-right">
-                    <SelectItem value="البرمجة والتطوير">البرمجة والتطوير</SelectItem>
-                    <SelectItem value="التصميم والواجهات">التصميم والواجهات</SelectItem>
-                    <SelectItem value="التسويق الرقمي">التسويق الرقمي</SelectItem>
-                    <SelectItem value="اللغات والترجمة">اللغات والترجمة</SelectItem>
+                    {categories.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>{item.nameAr || item.name}</SelectItem>
+                    ))}
                   </SelectContent>
                  </Select>
                </div>

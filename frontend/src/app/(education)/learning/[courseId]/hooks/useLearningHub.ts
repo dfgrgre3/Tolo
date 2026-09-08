@@ -296,11 +296,6 @@ export function useLearningHub() {
       try {
         const data = await apiClient.post<LessonProgressResponse>(apiRoutes.courses.lessonProgress(lessonId), { completed: true });
 
-        if (data.isCourseComplete) {
-          // Completion is a domain command, not merely a derived 100% label.
-          await apiClient.post(apiRoutes.courses.complete(courseId), {});
-        }
-
         setChapters((current) => markLessonCompletedInChapters(current, lessonId));
         if (typeof data.courseProgress === "number") {
           setCourse((current) => current ? {

@@ -5,6 +5,7 @@ import { Lock, HelpCircle, Loader2, ClipboardList, CheckCircle2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CourseLesson } from "./types";
+import type { QuizCompletionUpdate } from "@/types/course-quiz";
 import { useLessonQuizzes, useQuizResults, useStartQuiz, useSubmitQuiz } from "@/hooks/use-course-quizzes";
 import { QuizPlayer } from "@/components/quiz/QuizPlayer";
 
@@ -18,11 +19,13 @@ export function QuizLessonArea({
   lessonData,
   courseId,
   onEnroll,
+  onCompletion,
 }: {
   canAccess: boolean;
   lessonData: CourseLesson;
   courseId: string;
   onEnroll: () => void;
+  onCompletion?: (completion: QuizCompletionUpdate) => void;
 }) {
   const { data: quizzes, isLoading } = useLessonQuizzes(courseId, lessonData.id);
   const { data: results } = useQuizResults(
@@ -114,9 +117,9 @@ export function QuizLessonArea({
         try {
           const started = await startQuizMutation.mutateAsync({ courseId, quizId: quiz.id });
           setAttemptId(started.attemptId);
-          return true;
+          return started;
         } catch {
-          return false;
+          return null;
         }
       }}
       onSubmit={async (answers, timeSpentSeconds) => {
@@ -127,6 +130,7 @@ export function QuizLessonArea({
             quizId: quiz.id,
             payload: { attemptId, answers, timeSpentSeconds },
           });
+          if (result.completion) onCompletion?.(result.completion);
           return result;
         } catch {
           return null;

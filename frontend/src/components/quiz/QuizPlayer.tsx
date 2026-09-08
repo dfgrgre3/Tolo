@@ -22,6 +22,7 @@ import type {
   QuizQuestion,
   QuizResult,
   QuizResultItem,
+  StartQuizResponse,
 } from "@/types/course-quiz";
 import {
   prepareQuestionForAttempt,
@@ -32,7 +33,7 @@ import { QuizQuestionRenderer } from "./QuizQuestionRenderer";
 
 interface QuizPlayerProps {
   quiz: CourseQuiz;
-  onStart?: () => Promise<boolean>;
+  onStart?: () => Promise<StartQuizResponse | null>;
   canRetake?: boolean;
   /**
    * Backend submit handler. This is REQUIRED — the player never grades
@@ -52,6 +53,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
   const draftKey = `quiz-draft:${quiz.id}`;
   const [phase, setPhase] = useState<Phase>("intro");
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [serverDeadline, setServerDeadline] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answersByQ, setAnswersByQ] = useState<Record<string, QuizSubmissionAnswer>>({});
@@ -88,8 +90,8 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
       const now = Math.floor((Date.now() - startTime) / 1000);
       setElapsed(now);
       if (
-        quiz.timeLimitMinutes &&
-        now >= quiz.timeLimitMinutes * 60 &&
+        ((serverDeadline && Date.now() >= serverDeadline) ||
+          (!serverDeadline && quiz.timeLimitMinutes && now >= quiz.timeLimitMinutes * 60)) &&
         attemptStatusRef.current === "ACTIVE" &&
         !expiredRef.current &&
         !submissionStartedRef.current
@@ -99,7 +101,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [phase, startTime, quiz.timeLimitMinutes]);
+  }, [phase, startTime, serverDeadline, quiz.timeLimitMinutes]);
 
   // Keep handleSubmitRef pointing at the latest handleSubmit closure.
   useEffect(() => {
@@ -120,8 +122,12 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
   }, [answersByQ, draftKey, phase]);
 
   const startQuiz = async () => {
-    if (onStart && !(await onStart())) return;
-    setStartTime(Date.now());
+    const started = onStart ? await onStart() : null;
+    if (onStart && !started) return;
+    const startedAt = started?.startedAt ? Date.parse(started.startedAt) : Date.now();
+    const deadline = started?.deadline ? Date.parse(started.deadline) : NaN;
+    setStartTime(Number.isFinite(startedAt) ? startedAt : Date.now());
+    setServerDeadline(Number.isFinite(deadline) ? deadline : null);
     setElapsed(0);
     setPhase("taking");
     expiredRef.current = false;
@@ -184,7 +190,10 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
       setAttemptStatus("ACTIVE");
       submissionStartedRef.current = false;
     } finally {
-      if (auto) setStartTime(null);
+      if (auto) {
+        setStartTime(null);
+        setServerDeadline(null);
+      }
     }
   }
 

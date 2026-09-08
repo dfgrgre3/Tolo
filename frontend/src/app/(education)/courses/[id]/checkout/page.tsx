@@ -28,6 +28,7 @@ import { toast } from "sonner";interface CourseCheckoutInfo {
   price: number;
   thumbnailUrl?: string;
   description?: string;
+  hasCertificate: boolean;
 }
 
 export default function CourseCheckoutPage() {
@@ -64,7 +65,8 @@ export default function CourseCheckoutPage() {
             nameAr: courseData.subject.nameAr,
             price: courseData.subject.price || 0,
             thumbnailUrl: courseData.subject.thumbnailUrl,
-            description: courseData.subject.description
+            description: courseData.subject.description,
+            hasCertificate: Boolean(courseData.subject.hasCertificate),
           });
         }
         setWalletBalance(walletData.balance || 0);
@@ -215,9 +217,8 @@ export default function CourseCheckoutPage() {
                   </div>
                   
                   <div className="space-y-3 pt-6 border-t border-white/10">
-                     {[
-                  "وصول مدى الحياة للمحتوى",
-                  "شهادة إكمال معتمدة",
+                     {["الوصول للمحتوى حسب سياسة الدورة",
+                  ...(course.hasCertificate ? ["شهادة إكمال معتمدة"] : []),
                   "ملفات مساعدة للتحميل"].
                   map((text, i) =>
                   <div key={i} className="flex items-center gap-3 text-sm text-gray-300">

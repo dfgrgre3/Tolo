@@ -193,7 +193,7 @@ export function CourseActionCard({
           { icon: BookOpen, text: `${lessonsCount} دروس تعليمية منظمة` },
           { icon: Clock, text: `${course.duration} ساعات من الشرح الوافي` },
           { icon: Download, text: "وصول كامل ودائم لمحتويات الدورة" },
-          {
+          ...(course.hasCertificate ? [{
             icon: Award,
             text: "شهادة إتمام معتمدة وقابلة للمشاركة",
             action: onPreviewCertificate ? (
@@ -207,7 +207,7 @@ export function CourseActionCard({
                 معاينة الشهادة
               </button>
             ) : undefined,
-          },
+          }] : []),
           { icon: MessageSquare, text: "دعم فني ومناقشات تفاعلية مستمرة" },
         ].map((feature, i) => (
           <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">

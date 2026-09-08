@@ -28,6 +28,7 @@ export interface Subject {
     seoTitle?: string | null;
     seoDescription?: string | null;
     isFeatured: boolean;
+    hasCertificate?: boolean;
     language: string;
 
     // New arrays mapped from Go

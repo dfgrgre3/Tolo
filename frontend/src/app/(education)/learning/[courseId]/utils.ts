@@ -6,8 +6,6 @@ export function formatLessonType(type: Lesson["type"]) {
       return "فيديو";
     case "QUIZ":
       return "اختبار";
-    case "FILE":
-      return "ملف";
     case "ARTICLE":
       return "شرح نصي";
     case "ASSIGNMENT":

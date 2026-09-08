@@ -180,9 +180,6 @@ export default function CourseDetailClient({
         apiRoutes.courses.lessonProgress(lessonId),
         { completed: true },
       );
-      if (data.isCourseComplete) {
-        await apiClient.post(apiRoutes.courses.complete(courseId), {});
-      }
       setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: data.lessonProgress ?? 100 } : l));
       if (typeof data.courseProgress === "number") {
         setCourse((prev) => ({ ...prev, progress: data.courseProgress }));
@@ -207,7 +204,7 @@ export default function CourseDetailClient({
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
   const courseProgress = course.progress ?? 0;
   const canAccessActiveLesson = Boolean(course.enrolled || activeLessonData?.isFree);
-  const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.videoUrl), [lessons]);
+  const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.type === "VIDEO" && l.videoUrl), [lessons]);
 
   return (
     <m.div
@@ -356,6 +353,16 @@ export default function CourseDetailClient({
                               lessonData={activeLessonData}
                               courseId={course.id}
                               onEnroll={handleEnroll}
+                              onCompletion={(completion) => {
+                                setCourse((prev) => ({ ...prev, progress: completion.courseProgress }));
+                                if (completion.lessonCompleted) {
+                                  setLessons((prev) => prev.map((lesson) =>
+                                    lesson.id === activeLessonData.id
+                                      ? { ...lesson, completed: true, progress: 100, locked: false }
+                                      : lesson
+                                  ));
+                                }
+                              }}
                             />
                           </div>
                         </>

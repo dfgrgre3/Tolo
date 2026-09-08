@@ -18,21 +18,14 @@ export function shuffleArray<T>(array: T[]): T[] {
   return copy;
 }
 
-/** Options are automatically re-keyed per quiz attempt to avoid leaking correct answers. */
+/** Shuffle option order while preserving server-owned option ids. */
 export function prepareQuestionForAttempt(
   question: QuizQuestion,
   shuffleOptions: boolean
 ): QuizQuestion {
   if (!question.options || question.options.length === 0) return question;
   const options = shuffleOptions ? shuffleArray(question.options) : [...question.options];
-  // Re-key ids deterministically from the shuffled order so answers map correctly.
-  const idMap = new Map<string, string>();
-  const newOptions = options.map((opt, i) => {
-    const newId = `${question.id}-opt-${i}`;
-    idMap.set(opt.id, newId);
-    return { ...opt, id: newId };
-  });
-  return { ...question, options: newOptions };
+  return { ...question, options };
 }
 
 export function canAutoGrade(question: QuizQuestion): boolean {

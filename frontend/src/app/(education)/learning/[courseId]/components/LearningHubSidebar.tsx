@@ -4,7 +4,6 @@ import { m } from "framer-motion";
 import {
   CheckCircle2,
   Clock3,
-  FileCode2,
   FileText,
   HelpCircle,
   Layers3,
@@ -22,7 +21,6 @@ import { formatLessonType, formatMinutes } from "../utils";
 const lessonTypeIcons: Record<string, typeof Play> = {
   VIDEO: Play,
   QUIZ: HelpCircle,
-  FILE: FileCode2,
 };
 
 function getLessonIcon(lesson: Lesson) {
