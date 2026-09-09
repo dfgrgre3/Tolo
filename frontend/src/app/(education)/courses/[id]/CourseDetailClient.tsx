@@ -22,14 +22,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import { updateLessonProgress } from "@/lib/course-progress";
 import {
   toLessonCards,
-  type CourseLessonsResponse,
+  type CourseDetailHydrationResponse,
   type EnrollmentResponse,
-  type LessonProgressResponse,
-  type EnrollmentStatusResponse,
+  type EnrollmentEligibilityResponse,
 } from "@/types/domain/mappers";
-import type { Course, CourseLesson, Review, ReviewStats } from "./_components/types";
+import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
+import type { Review, ReviewStats } from "./_components/types";
 import { container, fadeUp, getListItems } from "./_components/types";
 import { LessonVideoArea } from "./_components/lesson-video-area";
 import { QuizLessonArea, QuizLessonBadge } from "./_components/quiz-lesson-area";
@@ -44,8 +45,8 @@ export default function CourseDetailClient({
   initialLessons
 }: {
   children: React.ReactNode;
-  initialCourseData: Course;
-  initialLessons: CourseLesson[];
+  initialCourseData: CourseSummaryView;
+  initialLessons: LessonCardView[];
 }) {
   const params = useParams();
   const router = useRouter();
@@ -55,8 +56,8 @@ export default function CourseDetailClient({
   // Session-derived id (watermark display + auth gates only) — never sent to
   // the server, which resolves the caller from the JWT (IDOR/BOLA hardening).
   const userId = authUser?.id ?? null;
-  const [course, setCourse] = useState<Course>(initialCourseData);
-  const [lessons, setLessons] = useState<CourseLesson[]>(initialLessons);
+  const [course, setCourse] = useState<CourseSummaryView>(initialCourseData);
+  const [lessons, setLessons] = useState<LessonCardView[]>(initialLessons);
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -65,6 +66,7 @@ export default function CourseDetailClient({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -106,16 +108,16 @@ export default function CourseDetailClient({
         try {
           // Session-scoped: the backend resolves the caller from the JWT, so
           // no ?userId= is appended (IDOR/BOLA hardening).
-          const enrollmentStatus = await apiClient.get<EnrollmentStatusResponse>(apiRoutes.courses.enrollmentStatus(courseId));
+          // Refresh the same aggregate endpoint after authentication. This
+          // keeps enrollment, access, lessons, and progress from one snapshot.
+          const payload = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId));
           setCourse((prev) => ({
             ...prev,
-            enrolled: enrollmentStatus.isEnrolled,
-            progress: enrollmentStatus.progress,
+            enrolled: payload.access.isEnrolled,
+            progress: payload.completion?.progress ?? payload.enrollment?.progress ?? 0,
+            completion: payload.completion,
           }));
 
-          // Authenticated users use the access-aware endpoint, while the
-          // public endpoint intentionally omits protected media URLs.
-          const payload = await apiClient.get<CourseLessonsResponse>(apiRoutes.courses.lessonsAccess(courseId));
           const rawLessons = payload.lessons || [];
           const normalized = toLessonCards(rawLessons.map((lesson) => {
             const progress = payload.progress?.[lesson.id];
@@ -152,12 +154,18 @@ export default function CourseDetailClient({
     }
     setEnrolling(true);
     try {
-      const data = await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseId), {});
-      
-      if (data.requiresPayment) {
+      const eligibility = await apiClient.get<EnrollmentEligibilityResponse>(apiRoutes.courses.eligibility(courseId));
+      if (eligibility.isEnrolled) {
+        setCourse((prev) => ({ ...prev, enrolled: true }));
+        return;
+      }
+
+      if (eligibility.requiresPayment) {
         router.push(`/courses/${courseId}/checkout`);
         return;
       }
+
+      await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseId), {});
       setCourse(prev => ({ ...prev, enrolled: true, progress: 0 }));
     } catch (err: unknown) {
       const apiErr = err as { status?: number; data?: { requiresPayment?: boolean } };
@@ -176,13 +184,21 @@ export default function CourseDetailClient({
     const previousProgress = course.progress;
     if (!userId || !course) return;
     try {
-      const data = await apiClient.post<LessonProgressResponse>(
-        apiRoutes.courses.lessonProgress(lessonId),
-        { completed: true },
-      );
+      const data = await updateLessonProgress(lessonId, { completed: true });
       setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: data.lessonProgress ?? 100 } : l));
       if (typeof data.courseProgress === "number") {
-        setCourse((prev) => ({ ...prev, progress: data.courseProgress }));
+        setCourse((prev) => {
+          const progress = data.courseProgress ?? prev.progress ?? 0;
+          return {
+          ...prev,
+          progress,
+          completion: {
+            isComplete: Boolean(data.isCourseComplete),
+            progress,
+            certificateEligible: Boolean(data.certificateEligible),
+          },
+        };
+        });
       }
     } catch (err) {
       setLessons(previousLessons);
@@ -203,7 +219,13 @@ export default function CourseDetailClient({
   );
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
   const courseProgress = course.progress ?? 0;
-  const canAccessActiveLesson = Boolean(course.enrolled || activeLessonData?.isFree);
+  const canAccessActiveLesson = Boolean(
+    course.enrolled || (activeLessonData?.isFree && !activeLessonData.locked)
+  );
+  const selectLesson = (lesson: LessonCardView) => {
+    if (lesson.locked && !course.enrolled) return;
+    setActiveLesson(lesson.id);
+  };
   const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.type === "VIDEO" && l.videoUrl), [lessons]);
 
   return (
@@ -234,7 +256,7 @@ export default function CourseDetailClient({
             bookmarkBusy={bookmarkBusy}
             onEnroll={handleEnroll}
             firstFreeLesson={firstFreeLesson}
-            onPreviewCertificate={() => setIsCertModalOpen(true)}
+            onPreviewCertificate={course.completion?.certificateEligible ? () => setIsCertModalOpen(true) : undefined}
           />
         </div>
       </m.div>
@@ -284,7 +306,8 @@ export default function CourseDetailClient({
                 {lessons.map((lesson, idx) =>
                   <button
                     key={lesson.id}
-                    onClick={() => setActiveLesson(lesson.id)}
+                    onClick={() => selectLesson(lesson)}
+                    disabled={lesson.locked && !course.enrolled}
                     className={cn(
                       "w-full p-4 rounded-2xl text-start flex gap-4 items-center transition-all group",
                       activeLesson === lesson.id ?
@@ -354,14 +377,44 @@ export default function CourseDetailClient({
                               courseId={course.id}
                               onEnroll={handleEnroll}
                               onCompletion={(completion) => {
-                                setCourse((prev) => ({ ...prev, progress: completion.courseProgress }));
+                                setCourse((prev) => ({
+                                  ...prev,
+                                  progress: completion.courseProgress,
+                                  completion: {
+                                    isComplete: completion.courseCompleted,
+                                    progress: completion.courseProgress,
+                                    certificateEligible: completion.certificateEligible,
+                                  },
+                                }));
                                 if (completion.lessonCompleted) {
                                   setLessons((prev) => prev.map((lesson) =>
                                     lesson.id === activeLessonData.id
                                       ? { ...lesson, completed: true, progress: 100, locked: false }
-                                      : lesson
+                                    : lesson
                                   ));
                                 }
+                                // Quiz mutations invalidate React Query data, but this
+                                // page owns its course snapshot in local state. Re-read
+                                // the same hydration endpoint to reconcile all rules.
+                                void apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId))
+                                  .then((snapshot) => {
+                                    setCourse((prev) => ({
+                                      ...prev,
+                                      enrolled: snapshot.access.isEnrolled,
+                                      progress: snapshot.completion?.progress ?? 0,
+                                      completion: snapshot.completion,
+                                    }));
+                                    const normalized = toLessonCards((snapshot.lessons || []).map((lesson) => {
+                                      const progress = snapshot.progress?.[lesson.id];
+                                      return {
+                                        ...lesson,
+                                        completed: lesson.completed || (typeof progress === "object" ? progress.completed : progress) || false,
+                                        progress: lesson.progress ?? (typeof progress === "object" ? progress.percentage : progress ? 100 : 0),
+                                      };
+                                    }));
+                                    setLessons(normalized);
+                                  })
+                                  .catch((error) => logger.error("Error refreshing course after quiz", error));
                               }}
                             />
                           </div>
@@ -412,7 +465,7 @@ export default function CourseDetailClient({
                         className="gap-2 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700"
                         onClick={() => {
                           const idx = lessons.findIndex((l) => l.id === activeLesson);
-                          if (idx > 0) setActiveLesson(lessons[idx - 1]!.id);
+                          if (idx > 0) selectLesson(lessons[idx - 1]!);
                         }}>
                         <ChevronRight className="w-4 h-4" />
                         <span>الدرس السابق</span>
@@ -422,7 +475,7 @@ export default function CourseDetailClient({
                         className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-bold"
                         onClick={() => {
                           const idx = lessons.findIndex((l) => l.id === activeLesson);
-                          if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1]!.id);
+                          if (idx < lessons.length - 1) selectLesson(lessons[idx + 1]!);
                         }}>
                         <span>الدرس التالي</span>
                         <ChevronLeft className="w-4 h-4" />
@@ -537,6 +590,8 @@ export default function CourseDetailClient({
             setReviewStats={setReviewStats}
             reviewsLoading={reviewsLoading}
             setReviewsLoading={setReviewsLoading}
+            reviewsError={reviewsError}
+            setReviewsError={setReviewsError}
             userRating={userRating}
             setUserRating={setUserRating}
             userComment={userComment}

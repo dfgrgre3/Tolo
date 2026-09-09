@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { courseQuizRepository } from '@/data-access/repositories/course-quiz-repository';
 import type {
   CourseQuiz,
+  StudentCourseQuiz,
   QuizResult,
   CreateQuizPayload,
   SubmitQuizPayload,
@@ -22,7 +23,7 @@ export function useCourseQuizzes(courseId?: string) {
 
 /** Fetch the quiz activity attached to one lesson (at most one by contract). */
 export function useLessonQuizzes(courseId?: string, lessonId?: string) {
-  return useQuery({
+  return useQuery<StudentCourseQuiz[]>({
     queryKey: ['lesson-quizzes', courseId, lessonId],
     queryFn: () => courseQuizRepository.getLessonQuizzes(courseId!, lessonId!),
     enabled: !!courseId && !!lessonId,
@@ -31,7 +32,7 @@ export function useLessonQuizzes(courseId?: string, lessonId?: string) {
 
 /** Fetch a single quiz by id. */
 export function useCourseQuiz(courseId?: string, quizId?: string) {
-  return useQuery({
+  return useQuery<StudentCourseQuiz>({
     queryKey: ['course-quiz', courseId, quizId],
     queryFn: () => courseQuizRepository.getQuiz(courseId!, quizId!),
     enabled: !!courseId && !!quizId,

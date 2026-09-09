@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { levelMap } from "./constants";
 import { formatPrice, formatHours } from "./utils";
 import type { CourseSummary } from "./types";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export function CourseCard({
   course,
@@ -41,7 +43,7 @@ export function CourseCard({
     if (wishlistBusy) return;
     setWishlistBusy(true);
     try {
-      const res = await fetch(`/api/courses/${course.id}/wishlist`, {
+      const res = await apiClient.fetch(apiRoutes.courses.wishlist(course.id), {
         method: isWishlisted ? "DELETE" : "POST",
       });
       if (res.ok) {
@@ -65,7 +67,7 @@ export function CourseCard({
     if (cartBusy || inCart) return;
     setCartBusy(true);
     try {
-      const res = await fetch(`/api/cart/items`, {
+      const res = await apiClient.fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subjectId: course.id }),

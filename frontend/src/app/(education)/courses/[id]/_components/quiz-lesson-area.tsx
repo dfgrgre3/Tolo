@@ -4,10 +4,22 @@ import { useState } from "react";
 import { Lock, HelpCircle, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { CourseLesson } from "./types";
-import type { QuizCompletionUpdate } from "@/types/course-quiz";
+import type { LessonCardView } from "@/types/domain/mappers";
+import type { QuizCompletionUpdate, StartQuizResponse } from "@/types/course-quiz";
 import { useLessonQuizzes, useQuizResults, useStartQuiz, useSubmitQuiz } from "@/hooks/use-course-quizzes";
 import { QuizPlayer } from "@/components/quiz/QuizPlayer";
+
+function quizErrorMessage(error: unknown, fallback: string): string {
+  const status = typeof error === "object" && error !== null && "status" in error
+    ? Number((error as { status?: unknown }).status)
+    : 0;
+  if (status === 403) return "لا تملك صلاحية الوصول إلى هذا الاختبار.";
+  if (status === 409) return "هذه المحاولة انتهت أو لم تعد صالحة. ابدأ محاولة جديدة.";
+  if (status === 422) return "إجابات الاختبار غير صالحة، راجعها ثم حاول مرة أخرى.";
+  if (status === 429) return "تم تجاوز حد المحاولات مؤقتًا. انتظر قليلًا ثم حاول مرة أخرى.";
+  if (status >= 500) return "الخادم غير متاح حاليًا. حاول مرة أخرى لاحقًا.";
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 /**
  * Renders the interactive quiz experience for a QUIZ-type lesson.
@@ -22,7 +34,7 @@ export function QuizLessonArea({
   onCompletion,
 }: {
   canAccess: boolean;
-  lessonData: CourseLesson;
+  lessonData: LessonCardView;
   courseId: string;
   onEnroll: () => void;
   onCompletion?: (completion: QuizCompletionUpdate) => void;
@@ -115,11 +127,27 @@ export function QuizLessonArea({
       canRetake={results?.canRetake ?? true}
       onStart={async () => {
         try {
+          const storageKey = `quiz-attempt:${quiz.id}`;
+          const saved = window.localStorage.getItem(storageKey);
+          if (saved) {
+            const previous = JSON.parse(saved) as { attemptId?: string; startedAt?: string; deadline?: string };
+            if (previous.attemptId && previous.startedAt) {
+              setAttemptId(previous.attemptId);
+              const resumed: StartQuizResponse = {
+                attemptId: previous.attemptId,
+                startedAt: previous.startedAt,
+                deadline: previous.deadline,
+              };
+              return resumed;
+            }
+          }
           const started = await startQuizMutation.mutateAsync({ courseId, quizId: quiz.id });
           setAttemptId(started.attemptId);
+          window.localStorage.setItem(storageKey, JSON.stringify(started));
           return started;
-        } catch {
-          return null;
+        } catch (error) {
+          window.localStorage.removeItem(`quiz-attempt:${quiz.id}`);
+          throw new Error(quizErrorMessage(error, "تعذر بدء المحاولة"));
         }
       }}
       onSubmit={async (answers, timeSpentSeconds) => {
@@ -131,9 +159,10 @@ export function QuizLessonArea({
             payload: { attemptId, answers, timeSpentSeconds },
           });
           if (result.completion) onCompletion?.(result.completion);
+          window.localStorage.removeItem(`quiz-attempt:${quiz.id}`);
           return result;
-        } catch {
-          return null;
+        } catch (error) {
+          throw new Error(quizErrorMessage(error, "تعذر تسليم الإجابات"));
         }
       }}
     />
@@ -141,7 +170,7 @@ export function QuizLessonArea({
 }
 
 /** Small header used above the quiz area showing lesson type badge. */
-export function QuizLessonBadge({ lesson: _lesson }: { lesson: CourseLesson }) {
+export function QuizLessonBadge({ lesson: _lesson }: { lesson: LessonCardView }) {
   return (
     <span
       className={cn(

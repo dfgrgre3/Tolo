@@ -16,15 +16,22 @@ import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer"
 import type { Course, Chapter, LessonQuestion, TabKey } from "../types";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import { updateLessonProgress } from "@/lib/course-progress";
 import type {
-  CourseDetailResponse,
   LearningHubResponse,
   LessonNotesResponse,
-  LessonProgressResponse,
   LessonQuestionsResponse,
 } from "@/types/domain/mappers";
-import { toLearningChaptersFromTopics } from "@/types/domain/mappers";
 import { useAuth } from "@/hooks/use-auth";
+
+const VALID_TABS: readonly TabKey[] = ["content", "resources", "qna", "notes", "ai"];
+type StoredLearningHubState = {
+  activeLessonId?: unknown;
+  activeTab?: unknown;
+  sidebarOpen?: unknown;
+  isTheaterMode?: unknown;
+  autoPlayNext?: unknown;
+};
 
 function resolveInitialLessonState(
   courseId: string,
@@ -37,11 +44,25 @@ function resolveInitialLessonState(
   }
 ): string | null {
   const storedStateRaw = localStorage.getItem(`learning-hub-state:${courseId}`);
-  const storedState = storedStateRaw ? JSON.parse(storedStateRaw) : null;
+  let storedState: StoredLearningHubState | null = null;
+
+  if (storedStateRaw) {
+    try {
+      const parsed: unknown = JSON.parse(storedStateRaw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        storedState = parsed as StoredLearningHubState;
+      }
+    } catch {
+      // Corrupt local state must not prevent the hub from initializing.
+      localStorage.removeItem(`learning-hub-state:${courseId}`);
+    }
+  }
   const allAvailableLessons = chapters.flatMap((chapter) => chapter.subTopics);
 
-  if (storedState?.activeLessonId && allAvailableLessons.some((l) => l.id === storedState.activeLessonId)) {
-    if (storedState.activeTab) callbacks.setActiveTab(storedState.activeTab);
+  if (typeof storedState?.activeLessonId === "string" && allAvailableLessons.some((l) => l.id === storedState.activeLessonId)) {
+    if (typeof storedState.activeTab === "string" && VALID_TABS.includes(storedState.activeTab as TabKey)) {
+      callbacks.setActiveTab(storedState.activeTab as TabKey);
+    }
     if (typeof storedState.sidebarOpen === 'boolean') callbacks.setSidebarOpen(storedState.sidebarOpen);
     if (typeof storedState.isTheaterMode === 'boolean') callbacks.setIsTheaterMode(storedState.isTheaterMode);
     if (typeof storedState.autoPlayNext === 'boolean') callbacks.setAutoPlayNext(storedState.autoPlayNext);
@@ -97,6 +118,7 @@ export function useLearningHub() {
     },
   ]);
   const [aiInput, setAiInput] = useState("");
+  const [aiConversationId, setAiConversationId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -111,35 +133,30 @@ export function useLearningHub() {
 
         // Session-scoped: the backend resolves the caller from the JWT, so
         // no ?userId= is appended (IDOR/BOLA hardening).
-        const [curriculumPayload, coursePayload] = await Promise.all([
-          apiClient.get<LearningHubResponse>(apiRoutes.courses.curriculum(courseId)),
-          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseId)),
-        ]);
+        const curriculumPayload = await apiClient.get<LearningHubResponse>(apiRoutes.courses.curriculum(courseId));
 
-        if (!coursePayload?.enrollment) {
+        if (!curriculumPayload?.enrollment || !curriculumPayload.subject) {
           toast.error("يجب التسجيل في الدورة للوصول إلى بيئة التعلم.");
           router.replace(`/courses/${courseId}`);
           return;
         }
 
-        const subject = coursePayload.subject;
+        const subject = curriculumPayload.subject;
         setCourse({
           id: subject.id,
           title: subject.nameAr || subject.name,
           instructor: subject.instructorName || "فريق ثانوي",
           rating: subject.rating || 0,
           thumbnailUrl: subject.thumbnailUrl || null,
-          completion: curriculumPayload.completion || (coursePayload.enrollment
+          completion: curriculumPayload.completion || (curriculumPayload.enrollment
             ? {
-                isComplete: coursePayload.enrollment.progress >= 100,
-                progress: coursePayload.enrollment.progress,
+                isComplete: curriculumPayload.enrollment.progress >= 100,
+                progress: curriculumPayload.enrollment.progress,
               }
             : undefined),
         });
 
-        const nextChapters: Chapter[] = curriculumPayload.curriculum?.length
-          ? curriculumPayload.curriculum
-          : toLearningChaptersFromTopics(curriculumPayload.topics || []);
+        const nextChapters: Chapter[] = curriculumPayload.curriculum || [];
         setChapters(nextChapters);
 
         const initialLessonId = resolveInitialLessonState(courseId, nextChapters, {
@@ -294,7 +311,7 @@ export function useLearningHub() {
   const handleLessonComplete = useCallback(
     async (lessonId: string) => {
       try {
-        const data = await apiClient.post<LessonProgressResponse>(apiRoutes.courses.lessonProgress(lessonId), { completed: true });
+        const data = await updateLessonProgress(lessonId, { completed: true });
 
         setChapters((current) => markLessonCompletedInChapters(current, lessonId));
         if (typeof data.courseProgress === "number") {
@@ -303,6 +320,7 @@ export function useLearningHub() {
             completion: {
               progress: data.courseProgress!,
               isComplete: Boolean(data.isCourseComplete),
+              certificateEligible: Boolean(data.certificateEligible),
             },
           } : current);
         }
@@ -375,25 +393,35 @@ export function useLearningHub() {
       setAiMessages((current) => [...current, { role: "user", content: prompt }]);
       setAiLoading(true);
 
-      const lessonName = activeLesson?.name || "هذا الدرس";
+      try {
+        const lessonContext = (activeLesson?.content || "").slice(0, 600);
+        const boundedPrompt = prompt.slice(0, 1200);
+        const response = await apiClient.post<{
+          reply?: string;
+          conversationId?: string;
+        }>(apiRoutes.ai.chat, {
+          message: `أنت مدرس مساعد داخل درس بعنوان "${activeLesson?.name || "هذا الدرس"}". محتوى مختصر:\n${lessonContext}\nسؤال الطالب: ${boundedPrompt}`,
+          conversationId: aiConversationId || undefined,
+          subjectId: courseId,
+          stream: false,
+        });
 
-      window.setTimeout(() => {
+        if (response.conversationId) setAiConversationId(response.conversationId);
         setAiMessages((current) => [
           ...current,
-          {
-            role: "assistant",
-            content:
-              prompt.includes("لخّص") || prompt.includes("تلخيص")
-                ? `ملخص سريع لدرس "${lessonName}": ابدأ بالفكرة الأساسية، ثم اربطها بالأمثلة الموجودة داخل الشرح، وبعدها راجع النقاط الزمنية المهمة في المشغل والملاحظات التي أضفتها.`
-                : prompt.includes("أسئلة") || prompt.includes("اختبار")
-                ? `يمكنك تحويل درس "${lessonName}" إلى مراجعة فعالة عبر 3 خطوات: سؤال مباشر عن المفهوم، سؤال تطبيقي، ثم سؤال يقارن بين الحالات المختلفة.`
-                : `بخصوص "${lessonName}"، أنصحك بالتركيز على الأجزاء التي تحمل طابعًا تطبيقيًا، ثم تثبيت الفهم بملخص من 5 نقاط وسؤالين ذاتيين بعد الانتهاء من المشاهدة.`,
-          },
+          { role: "assistant", content: response.reply || "تعذر الحصول على رد من المساعد." },
         ]);
+      } catch (aiError) {
+        logger.error("Error sending Learning Hub AI message", aiError);
+        setAiMessages((current) => [
+          ...current,
+          { role: "assistant", content: "تعذر الاتصال بالمساعد الذكي. حاول مرة أخرى لاحقًا." },
+        ]);
+      } finally {
         setAiLoading(false);
-      }, 1000);
+      }
     },
-    [activeLesson?.name, aiInput, aiLoading]
+    [activeLesson?.content, activeLesson?.name, aiConversationId, aiInput, aiLoading, courseId]
   );
 
   return {

@@ -34,12 +34,13 @@ export const dynamic = "force-dynamic";
 // كتالوج الدورات يُجمَّع على الخادم حتى يصل HTML مكتاملاً لمحركات البحث
 // ولتحسين LCP — التصفية والبحث يبقيان تفاعليين في المتصفح.
 export default async function CoursesPage() {
-  const { courses, categories } = await fetchCoursesCatalog();
+  const { courses, categories, status } = await fetchCoursesCatalog();
 
   return (
-    <CoursesClient
-      initialCourses={courses}
-      initialCategories={categories}
-    />
+      <CoursesClient
+        initialCourses={courses}
+        initialCategories={categories}
+        initialCatalogStatus={status}
+      />
   );
 }

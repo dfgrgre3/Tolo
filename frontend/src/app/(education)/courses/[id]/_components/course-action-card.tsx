@@ -7,7 +7,7 @@ import { GraduationCap, Play, BookmarkCheck, Bookmark, Share2, BookOpen, Clock, 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { Course } from "./types";
+import type { CourseSummaryView } from "@/types/domain/mappers";
 
 export function CourseActionCard({
   course,
@@ -24,7 +24,7 @@ export function CourseActionCard({
   firstFreeLesson,
   onPreviewCertificate,
 }: {
-  course: Course;
+  course: CourseSummaryView;
   courseProgress: number;
   completedCount: number;
   lessonsCount: number;
@@ -192,7 +192,7 @@ export function CourseActionCard({
         {[
           { icon: BookOpen, text: `${lessonsCount} دروس تعليمية منظمة` },
           { icon: Clock, text: `${course.duration} ساعات من الشرح الوافي` },
-          { icon: Download, text: "وصول كامل ودائم لمحتويات الدورة" },
+          { icon: Download, text: "وصول للمحتوى وفق سياسة الدورة" },
           ...(course.hasCertificate ? [{
             icon: Award,
             text: "شهادة إتمام معتمدة وقابلة للمشاركة",

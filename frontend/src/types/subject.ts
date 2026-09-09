@@ -45,6 +45,13 @@ export interface Subject {
 
     // Relations
     topics?: Topic[];
+    tags?: SubjectTag[];
+}
+
+export interface SubjectTag {
+    id: string;
+    name: string;
+    slug: string;
 }
 
 export interface Topic {

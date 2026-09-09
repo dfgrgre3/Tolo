@@ -7,8 +7,7 @@ import {
 import { usePlaybackStore } from "../stores/playback-store";
 import { clamp } from "../utils";
 import type { StoredVideoProgress } from "../types";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { readLessonProgress, updateLessonProgress } from "@/lib/course-progress";
 
 type ProgressPersistenceOptions = {
   lessonId: string;
@@ -57,6 +56,8 @@ export function useProgressPersistence({
   const autoCompleteTriggeredRef = useRef(alreadyCompleted);
   const sessionStartTimeRef = useRef(0);
   const accumulatedTimeRef = useRef(0);
+  const drainRef = useRef<Promise<void> | null>(null);
+  const queueRef = useRef<PendingProgress[] | null>(null);
   const pendingKey = `${storageKey}:pending`;
 
   const persistPending = useCallback((queue: PendingProgress[]) => {
@@ -69,25 +70,40 @@ export function useProgressPersistence({
   }, [pendingKey]);
 
   const sendProgress = useCallback(async (payload: PendingProgress) => {
-    await apiClient.fetch(apiRoutes.courses.lessonProgress(lessonId), {
-      method: "POST",
-      body: JSON.stringify(payload),
-      keepalive: true,
-    });
+    await updateLessonProgress(lessonId, payload, { keepalive: true });
   }, [lessonId]);
 
   const flushPending = useCallback(async () => {
-    const queue = readPendingProgress(pendingKey);
-    while (queue.length > 0) {
-      try {
-        await sendProgress(queue[0]!);
-        queue.shift();
-        persistPending(queue);
-      } catch {
-        break;
+    if (drainRef.current) return drainRef.current;
+    const drain = (async () => {
+      const queue = queueRef.current ?? readPendingProgress(pendingKey);
+      queueRef.current = queue;
+      while (queue.length > 0) {
+        try {
+          await sendProgress(queue[0]!);
+          queue.shift();
+          persistPending(queue);
+        } catch {
+          break;
+        }
       }
+    })();
+    drainRef.current = drain;
+    try {
+      await drain;
+    } finally {
+      drainRef.current = null;
     }
   }, [pendingKey, persistPending, sendProgress]);
+
+  const enqueueProgress = useCallback((payload: PendingProgress) => {
+    const queue = queueRef.current ?? readPendingProgress(pendingKey);
+    queueRef.current = queue;
+    queue.push(payload);
+    if (queue.length > 20) queue.splice(0, queue.length - 20);
+    persistPending(queue);
+    void flushPending();
+  }, [flushPending, pendingKey, persistPending]);
 
   useEffect(() => {
     const retry = () => { void flushPending(); };
@@ -144,11 +160,7 @@ export function useProgressPersistence({
       const status = percent > 0 ? 'IN_PROGRESS' : 'NOT_STARTED';
 
       const payload: PendingProgress = { lastWatchedPosition: positionSeconds, timeSpentDeltaSeconds, status };
-      void flushPending().then(() => sendProgress(payload)).catch(() => {
-        const queue = readPendingProgress(pendingKey);
-        queue.push(payload);
-        persistPending(queue);
-      });
+      enqueueProgress(payload);
       
       // Reset accumulator after sync if we want to send incremental or total?
       // Assuming backend adds it incrementally if we send delta, or we send delta?
@@ -156,7 +168,7 @@ export function useProgressPersistence({
       accumulatedTimeRef.current = 0;
       sessionStartTimeRef.current = Date.now();
     },
-    [flushPending, pendingKey, persistPending, sendProgress]
+    [enqueueProgress]
   );
 
   const saveProgress = useCallback(
@@ -209,13 +221,7 @@ export function useProgressPersistence({
     let latestTimestamp = readStoredProgress(storageKey)?.updatedAt ?? 0;
 
     try {
-      const payload = await apiClient.get<{
-        data?: {
-          lastWatchedPosition?: number;
-          lastVideoPosition?: number;
-          updatedAt?: string;
-        };
-      }>(apiRoutes.courses.lessonProgress(lessonId));
+      const payload = await readLessonProgress(lessonId);
 
       const data = payload?.data ?? {};
       const serverPosition =

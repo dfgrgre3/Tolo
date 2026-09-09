@@ -24,7 +24,6 @@ export interface LessonRowDTO {
   isFree?: boolean | null;
   locked?: boolean | null;
   durationMinutes?: number | null;
-  duration?: number | null;
   order?: number | null;
   completed?: boolean | null;
   progress?: number | null;
@@ -33,6 +32,15 @@ export interface LessonRowDTO {
 export interface CourseDetailResponse {
   subject: Subject;
   enrollment?: Enrollment | null;
+}
+
+export interface CourseDetailHydrationResponse {
+  subject: Subject;
+  enrollment?: Enrollment | null;
+  lessons: LessonRowDTO[];
+  progress?: CourseLessonsResponse["progress"];
+  access: { isEnrolled: boolean };
+  completion?: CompletionSnapshot;
 }
 
 export interface EnrollmentStatusResponse {
@@ -51,9 +59,11 @@ export interface CourseLessonsResponse {
 }
 
 export interface LearningHubResponse {
+  subject?: Subject;
+  enrollment?: Enrollment | null;
   curriculum?: ChapterView[];
   topics?: Topic[];
-  completion?: { isComplete: boolean; progress: number };
+  completion?: CompletionSnapshot;
 }
 
 export interface LessonNotesResponse {
@@ -78,10 +88,29 @@ export interface LessonProgressResponse {
   totalLessons?: number;
   requiredExams?: number;
   completedRequiredExams?: number;
+  certificateEligible?: boolean;
 }
 
 export interface EnrollmentResponse {
   requiresPayment?: boolean;
+}
+
+export interface EnrollmentEligibilityResponse {
+  courseId: string;
+  isEnrolled: boolean;
+  eligible: boolean;
+  requiresPayment: boolean;
+  price: number;
+}
+
+export interface CompletionSnapshot {
+  isComplete: boolean;
+  progress: number;
+  certificateEligible: boolean;
+  completedRequiredExams?: number;
+  requiredExams?: number;
+  completedCourseQuizzes?: number;
+  requiredCourseQuizzes?: number;
 }
 
 /** View model for the course-detail page hero / sidebar. */
@@ -102,6 +131,7 @@ export interface CourseSummaryView {
   enrolled: boolean;
   progress?: number;
   hasCertificate: boolean;
+  completion?: CompletionSnapshot;
   lessonsCount?: number;
   whatYouLearn?: string[];
   coursePrerequisites?: string[];
@@ -117,7 +147,7 @@ export interface LessonCardView {
   description?: string;
   content?: string;
   videoUrl?: string;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT' | 'DOCUMENT' | 'AUDIO' | 'LIVE' | 'LINK' | 'INVALID';
   isFree: boolean;
   locked: boolean;
   /** seconds (normalized from durationMinutes) */
@@ -127,16 +157,26 @@ export interface LessonCardView {
   progress: number;
 }
 
-const LESSON_TYPES = new Set(['VIDEO', 'ARTICLE', 'QUIZ', 'ASSIGNMENT', 'DOCUMENT']);
+const LESSON_TYPES = new Set(['VIDEO', 'ARTICLE', 'QUIZ', 'ASSIGNMENT', 'DOCUMENT', 'AUDIO', 'LIVE', 'LINK', 'INVALID']);
 
 function normalizeLessonType(type?: string | null): LessonCardView['type'] {
-  return type === 'DOCUMENT' ? 'ARTICLE' : type && LESSON_TYPES.has(type) ? (type as LessonCardView['type']) : 'VIDEO';
+  const normalized = type?.trim().toUpperCase();
+  return normalized && LESSON_TYPES.has(normalized)
+    ? (normalized as LessonCardView['type'])
+    : reportInvalidLessonType(type);
+}
+
+function reportInvalidLessonType(type?: string | null): 'INVALID' {
+  if (typeof console !== 'undefined') {
+    console.warn('[LessonMapper] rejected unknown lesson type', { type: type ?? null });
+  }
+  return 'INVALID';
 }
 
 /** Subject (course) + enrollment state → course-detail view model. */
 export function toCourseSummary(
-  subject: Subject & { tags?: string[] },
-  opts: { enrolled?: boolean; progress?: number } = {}
+  subject: Subject,
+  opts: { enrolled?: boolean; progress?: number; completion?: CompletionSnapshot } = {}
 ): CourseSummaryView {
   return {
     id: subject.id,
@@ -151,10 +191,11 @@ export function toCourseSummary(
     rating: subject.rating || 0,
     enrolledCount: subject.enrolledCount || 0,
     createdAt: String(subject.createdAt || new Date().toISOString()),
-    tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
+    tags: [subject.nameAr || subject.name, ...(subject.tags || []).map((tag) => tag.name)],
     enrolled: Boolean(opts.enrolled),
     progress: opts.enrolled ? opts.progress || 0 : undefined,
     hasCertificate: Boolean(subject.hasCertificate),
+    completion: opts.completion,
     whatYouLearn: subject.whatYouLearn,
     coursePrerequisites: subject.coursePrerequisites,
     targetAudience: subject.targetAudience,
@@ -165,8 +206,7 @@ export function toCourseSummary(
 
 /** Raw lesson row → curriculum card. Duration is normalized to seconds. */
 export function toLessonCard(raw: LessonRowDTO, index = 0): LessonCardView {
-  const durationMinutes =
-    typeof raw.durationMinutes === 'number' ? raw.durationMinutes : raw.duration || 0;
+  const durationMinutes = typeof raw.durationMinutes === 'number' ? raw.durationMinutes : 0;
   return {
     id: raw.id,
     title: raw.title || raw.name || `الدرس ${index + 1}`,
@@ -208,7 +248,7 @@ export interface LearningLessonView {
   description: string | null;
   content: string | null;
   videoUrl: string | null;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT' | 'DOCUMENT' | 'AUDIO' | 'LIVE' | 'LINK' | 'INVALID';
   completed: boolean;
   order: number;
   durationMinutes: number;

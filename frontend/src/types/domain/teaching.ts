@@ -8,18 +8,18 @@
 import type { Subject, Topic, SubTopic } from "@/types/subject";
 import type { QuizQuestion } from "@/types/course-quiz";
 
-export type TeachingLesson = Pick<SubTopic, "id" | "title" | "type"> & {
+/** Explicit authoring DTO for the canonical SubTopic contract. */
+export type TeachingLessonInput = Pick<SubTopic, "id" | "title" | "type"> & Partial<Pick<SubTopic, "description" | "content" | "videoUrl" | "examId" | "durationMinutes" | "isFree" | "order" | "attachments">> & {
   clientId?: string;
-  durationMinutes: number;
-  url?: string;
   isPreview?: boolean;
-  description?: string;
-  attachmentName?: string;
 };
+
+/** @deprecated Use TeachingLessonInput for write operations. */
+export type TeachingLesson = TeachingLessonInput;
 
 export type TeachingChapter = Pick<Topic, "id" | "title"> & {
   clientId?: string;
-  lessons: TeachingLesson[];
+  lessons: TeachingLessonInput[];
 };
 
 export type TeachingQuiz = {
@@ -54,6 +54,7 @@ export type TeachingCourse = Pick<
   createdDate: string;
   chapters: TeachingChapter[];
   quiz?: TeachingQuiz;
+  quizzes?: TeachingQuiz[];
 };
 
 export type { QuizQuestion } from "@/types/course-quiz";

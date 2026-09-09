@@ -1,5 +1,3 @@
-import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
-
 export type Review = {
   id: string;
   rating: number;
@@ -13,7 +11,7 @@ export type ReviewComment = {
   id: string;
   comment: string;
   createdAt: string;
-  user: {name: string | null;avatar: string | null;};
+  user: {id?: string;name: string | null;avatar: string | null;};
 };
 
 export type ReviewStats = {
@@ -45,9 +43,6 @@ export type Question = {
  * Defined ONCE in `@/types/domain/mappers` and projected from the canonical
  * domain model (`@/types/domain/course`). Do not re-declare fields here.
  */
-export type Course = CourseSummaryView;
-export type CourseLesson = LessonCardView;
-
 export const levelConfig = {
   BEGINNER: { label: "مبتدئ", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
   INTERMEDIATE: { label: "متوسط", color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },

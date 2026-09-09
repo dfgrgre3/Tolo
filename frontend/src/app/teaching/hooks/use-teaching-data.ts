@@ -5,8 +5,7 @@ import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { usePermission } from "@/hooks/use-permission";
 import type { QuizQuestion } from "@/types/course-quiz";
-import { courseQuizRepository } from "@/data-access/repositories/course-quiz-repository";
-import type { TeachingCourse, TeachingChapter, TeachingLesson } from "@/types/domain/teaching";
+import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -39,25 +38,45 @@ export interface ActivityLog {
   rating?: number;
 }
 
-export type Lesson = TeachingLesson;
+export type Lesson = TeachingLessonInput;
 export type Chapter = TeachingChapter;
 export type Course = TeachingCourse;
 
-function mapTeachingLesson(lesson: Lesson) {
+export function mapTeachingLesson(lesson: Lesson) {
   return {
-    ...(lesson.id && !lesson.id.startsWith("ls-") ? { id: lesson.id } : {}),
+    ...(lesson.id ? { id: lesson.id } : {}),
     title: lesson.title,
     durationMinutes: lesson.durationMinutes,
     type: lesson.type,
-    url: lesson.url ?? "",
-    isPreview: lesson.isPreview ?? false,
-    description: lesson.description ?? "",
+    description: lesson.description ?? null,
+    videoUrl: lesson.videoUrl ?? null,
+    content: lesson.content ?? null,
+    examId: lesson.examId ?? null,
+    isFree: lesson.isFree ?? lesson.isPreview ?? false,
+    order: lesson.order,
+    attachments: lesson.attachments ?? [],
   };
 }
 
-async function persistCourseQuiz(courseId: string, quiz: NonNullable<Course["quiz"]>) {
-  if (quiz.questions.length === 0) return;
-  const payload = {
+/** Builds the PATCH contract without dropping valid course fields. */
+export function buildCourseUpdateBody(data: Partial<Course>): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (data.title !== undefined) body.title = data.title;
+  if (data.description !== undefined) body.description = data.description;
+  if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
+  if (data.price !== undefined) body.price = data.price;
+  if (data.status !== undefined) body.status = data.status;
+  if (data.level !== undefined) body.level = data.level;
+  if (data.categoryId !== undefined) body.categoryId = data.categoryId;
+  if (data.chapters !== undefined) body.chapters = mapTeachingChapters(data.chapters);
+  const quizzes = mapTeachingQuizzes(data);
+  if (quizzes.length > 0) body.quizzes = quizzes;
+  return body;
+}
+
+function mapTeachingQuiz(quiz: NonNullable<Course["quiz"]>) {
+  return {
+    ...(quiz.id ? { id: quiz.id } : {}),
     lessonId: quiz.lessonId,
     title: quiz.title,
     passingScore: quiz.passingScore,
@@ -72,37 +91,16 @@ async function persistCourseQuiz(courseId: string, quiz: NonNullable<Course["qui
     status: quiz.status ?? "draft",
     questions: quiz.questions,
   };
-  if (quiz.id) {
-    await courseQuizRepository.updateQuiz(courseId, quiz.id, payload);
-    return;
-  }
-  const existing = await courseQuizRepository.getCourseQuizzes(courseId);
-  if (existing.length > 1) {
-    throw new Error("Cannot save a quiz without an explicit quiz id when multiple quizzes exist");
-  }
-  const existingQuiz = existing[0];
-  if (existingQuiz?.id) {
-    await courseQuizRepository.updateQuiz(courseId, existingQuiz.id, payload);
-  } else {
-    await courseQuizRepository.createQuiz(courseId, payload);
-  }
 }
 
-function attachQuizLesson(course: Pick<Course, "chapters"> | undefined, quiz: NonNullable<Course["quiz"]>) {
-  const quizLessons = course?.chapters
-    ?.flatMap((chapter) => chapter.lessons)
-    .filter((lesson) => lesson.type === "QUIZ") ?? [];
-  const lessonId = quizLessons[0]?.id;
-  const currentLessonStillExists = quizLessons.some((lesson) => lesson.id === quiz.lessonId);
-  if (lessonId && (!quiz.lessonId || quiz.lessonId.startsWith("ls-") || !currentLessonStillExists)) {
-    return { ...quiz, lessonId };
-  }
-  return quiz;
+function mapTeachingQuizzes(course: Partial<Course>) {
+  const quizzes = course.quizzes ?? (course.quiz ? [course.quiz] : []);
+  return quizzes.filter((quiz) => quiz.questions.length > 0).map(mapTeachingQuiz);
 }
 
 function mapTeachingChapters(chapters: Chapter[] = []) {
   return chapters.map((chapter) => ({
-    ...(chapter.id && !chapter.id.startsWith("ch-") ? { id: chapter.id } : {}),
+    ...(chapter.id ? { id: chapter.id } : {}),
     title: chapter.title,
     lessons: chapter.lessons.map(mapTeachingLesson),
   }));
@@ -322,12 +320,9 @@ export function useTeachingData(activeTab: string = "dashboard") {
         language: "ar",
         categoryId: newCourse.categoryId ?? undefined,
         chapters: mapTeachingChapters(newCourse.chapters),
+        ...(mapTeachingQuizzes(newCourse).length > 0 ? { quizzes: mapTeachingQuizzes(newCourse) } : {}),
       };
-      const response = await apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
-      if (newCourse.quiz && response.course?.id) {
-        await persistCourseQuiz(response.course.id, attachQuizLesson(response.course, newCourse.quiz));
-      }
-      return response;
+      return apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -337,19 +332,8 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const updateCourse = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Course> }) => {
-      const body: Record<string, unknown> = {};
-      if (data.title !== undefined) body.title = data.title;
-      if (data.description !== undefined) body.description = data.description;
-      if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
-      if (data.price !== undefined) body.price = data.price;
-      if (data.status !== undefined) body.status = data.status;
-      if (data.categoryId !== undefined) body.categoryId = data.categoryId;
-      if (data.chapters !== undefined) body.chapters = mapTeachingChapters(data.chapters);
-      const response = await apiClient.patch<ApiSuccessResponse & { course?: Course }>(apiRoutes.teaching.courses.byId(id), body);
-      if (data.quiz) {
-        await persistCourseQuiz(id, attachQuizLesson(response.course, data.quiz));
-      }
-      return response;
+      const body = buildCourseUpdateBody(data);
+      return apiClient.patch<ApiSuccessResponse & { course?: Course }>(apiRoutes.teaching.courses.byId(id), body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });

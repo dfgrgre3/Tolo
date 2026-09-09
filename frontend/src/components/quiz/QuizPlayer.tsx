@@ -59,6 +59,8 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
   const [answersByQ, setAnswersByQ] = useState<Record<string, QuizSubmissionAnswer>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [attemptStatus, setAttemptStatus] = useState<AttemptStatus>("IDLE");
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const attemptStatusRef = useRef<AttemptStatus>("IDLE");
   const expiredRef = useRef(false);
   const submissionStartedRef = useRef(false);
@@ -81,7 +83,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
     // Prepare options for each question (re-keyed)
     return list.map((q) => prepareQuestionForAttempt(q, quiz.shuffleOptions));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quiz.id]);
+  }, [quiz.id, attemptId]);
 
   // Timer
   useEffect(() => {
@@ -111,18 +113,25 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
   // Keep an unsent attempt recoverable across refreshes. This is only a draft;
   // it is never presented as a result and is removed after server submission.
   useEffect(() => {
-    if ((phase !== "taking" && phase !== "error") || Object.keys(answersByQ).length === 0) {
+    if ((phase !== "taking" && phase !== "error") || !attemptId || Object.keys(answersByQ).length === 0) {
       return;
     }
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify(answersByQ));
+      window.localStorage.setItem(`${draftKey}:${attemptId}`, JSON.stringify(answersByQ));
     } catch {
       // Storage can be disabled or full; the in-memory retry path still works.
     }
-  }, [answersByQ, draftKey, phase]);
+  }, [answersByQ, attemptId, draftKey, phase]);
 
   const startQuiz = async () => {
-    const started = onStart ? await onStart() : null;
+    let started: StartQuizResponse | null = null;
+    try {
+      started = onStart ? await onStart() : null;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "تعذر بدء المحاولة");
+      setPhase("error");
+      return;
+    }
     if (onStart && !started) return;
     const startedAt = started?.startedAt ? Date.parse(started.startedAt) : Date.now();
     const deadline = started?.deadline ? Date.parse(started.deadline) : NaN;
@@ -130,6 +139,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
     setServerDeadline(Number.isFinite(deadline) ? deadline : null);
     setElapsed(0);
     setPhase("taking");
+    setAttemptId(started?.attemptId ?? null);
     expiredRef.current = false;
     submissionStartedRef.current = false;
     attemptStatusRef.current = "ACTIVE";
@@ -137,7 +147,9 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
     setCurrentIndex(0);
     let draft: Record<string, QuizSubmissionAnswer> = {};
     try {
-      const stored = window.localStorage.getItem(draftKey);
+      const stored = started?.attemptId
+        ? window.localStorage.getItem(`${draftKey}:${started.attemptId}`)
+        : null;
       if (stored) draft = JSON.parse(stored) as Record<string, QuizSubmissionAnswer>;
     } catch {
       // A corrupt or unavailable local draft must not prevent starting the quiz.
@@ -145,6 +157,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
     setAnswersByQ(draft);
     answersRef.current = draft;
     setResult(null);
+    setErrorMessage(null);
   };
 
   const timeLeft = quiz.timeLimitMinutes
@@ -155,7 +168,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
     isAnswered(a, questions.find((q) => q.id === a.questionId))
   ).length;
 
-  async function handleSubmit(auto = false) {
+  async function handleSubmit(_auto = false) {
     if (attemptStatusRef.current !== "ACTIVE" || submissionStartedRef.current) return;
     submissionStartedRef.current = true;
     attemptStatusRef.current = "SUBMITTING";
@@ -173,7 +186,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
         setAttemptStatus("SUBMITTED");
         attemptStatusRef.current = "GRADED";
         setAttemptStatus("GRADED");
-        window.localStorage.removeItem(draftKey);
+        if (attemptId) window.localStorage.removeItem(`${draftKey}:${attemptId}`);
         setResult(res);
         setPhase("result");
       } else {
@@ -184,16 +197,12 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
         setAttemptStatus("ACTIVE");
         submissionStartedRef.current = false;
       }
-    } catch {
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "تعذر تسليم الإجابات");
       setPhase("error");
       attemptStatusRef.current = "ACTIVE";
       setAttemptStatus("ACTIVE");
       submissionStartedRef.current = false;
-    } finally {
-      if (auto) {
-        setStartTime(null);
-        setServerDeadline(null);
-      }
     }
   }
 
@@ -229,6 +238,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
         <h3 className="text-lg font-bold text-gray-900 dark:text-white">
           تعذّر تسليم إجاباتك
         </h3>
+        {errorMessage ? <p className="text-sm font-semibold text-rose-600">{errorMessage}</p> : null}
         <p className="text-sm text-gray-500 max-w-md mx-auto">
           لم يتم حفظ نتيجتك على الخادم، لذلك لا يمكن عرض نتيجة رسمية الآن.
           إجاباتك محفوظة في هذه الجلسة — أعد المحاولة لإرسالها مرة أخرى.

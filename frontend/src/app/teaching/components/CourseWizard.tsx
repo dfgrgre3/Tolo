@@ -36,17 +36,45 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
   const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(
-    course?.quiz?.questions || []
+  const [quizDrafts, setQuizDrafts] = useState<NonNullable<Course["quiz"]>[]>(() =>
+    course?.quizzes ?? (course?.quiz ? [course.quiz] : [])
   );
-  const [quizSettings, setQuizSettings] = useState({
-    passingScore: course?.quiz?.passingScore ?? 60,
-    required: course?.quiz?.required ?? true,
-    timeLimitMinutes: course?.quiz?.timeLimitMinutes ?? 15,
-    shuffleQuestions: course?.quiz?.shuffleQuestions ?? false,
-    shuffleOptions: course?.quiz?.shuffleOptions ?? false,
-    showCorrectAnswers: course?.quiz?.showCorrectAnswers ?? true,
-  });
+  const [quizLessonId, setQuizLessonId] = useState(course?.quiz?.lessonId || course?.quizzes?.[0]?.lessonId || "");
+  const activeQuiz = quizDrafts.find((quiz) => quiz.lessonId === quizLessonId);
+  const quizQuestions = activeQuiz?.questions ?? [];
+  const quizSettings = {
+    passingScore: activeQuiz?.passingScore ?? 60,
+    required: activeQuiz?.required ?? true,
+    timeLimitMinutes: activeQuiz?.timeLimitMinutes ?? 15,
+    shuffleQuestions: activeQuiz?.shuffleQuestions ?? false,
+    shuffleOptions: activeQuiz?.shuffleOptions ?? false,
+    showCorrectAnswers: activeQuiz?.showCorrectAnswers ?? true,
+  };
+  const updateActiveQuiz = (patch: Partial<NonNullable<Course["quiz"]>>) => {
+    setQuizDrafts((drafts) => drafts.map((quiz) => quiz.lessonId === quizLessonId ? { ...quiz, ...patch } : quiz));
+  };
+  const setQuizQuestions = (questions: QuizQuestion[]) => updateActiveQuiz({ questions });
+  const setQuizSettings = (updater: (settings: typeof quizSettings) => typeof quizSettings) => {
+    updateActiveQuiz(updater(quizSettings));
+  };
+  const selectQuizLesson = (lessonId: string) => {
+    setQuizLessonId(lessonId);
+    if (!lessonId) return;
+    setQuizDrafts((drafts) => drafts.some((quiz) => quiz.lessonId === lessonId) ? drafts : [
+      ...drafts,
+      {
+        lessonId,
+        title: `${title} — اختبار`,
+        passingScore: 60,
+        required: true,
+        timeLimitMinutes: 15,
+        shuffleQuestions: false,
+        shuffleOptions: false,
+        showCorrectAnswers: true,
+        questions: [],
+      },
+    ]);
+  };
   const [errorMsg, setErrorMsg] = useState("");
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadThumbnail, isUploading: isThumbnailUploading, progress: thumbnailProgress } = useUpload({
@@ -120,12 +148,13 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
       return;
     }
     const quizLessons = chapters.flatMap((chapter) => chapter.lessons).filter((lesson) => lesson.type === "QUIZ");
-    if (quizQuestions.length > 0 && quizLessons.length !== 1) {
+    const quizzesToSave = quizDrafts.filter((quiz) => quiz.questions.length > 0);
+    if (quizzesToSave.some((quiz) => !quiz.lessonId || !quizLessons.some((lesson) => lesson.id === quiz.lessonId))) {
       setErrorMsg("يجب إضافة درس QUIZ واحد فقط وربط أسئلته به قبل حفظ الدورة");
       setCurrentStep(3);
       return;
     }
-    const quizIssues = validateQuizQuestions(quizQuestions);
+    const quizIssues = quizzesToSave.flatMap((quiz) => validateQuizQuestions(quiz.questions));
     if (quizIssues.length > 0) {
       setErrorMsg(`راجع أسئلة الاختبار: ${quizIssues[0]?.message}`);
       setCurrentStep(4);
@@ -142,7 +171,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         status,
         chapters,
         lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
-        quiz: {
+        quizzes: quizzesToSave.map((quiz) => ({ ...quiz, title: quiz.title || `${title} — اختبار` })),
+        /* quiz: {
           title: `${title} — اختبار`,
           passingScore: quizSettings.passingScore,
           required: quizSettings.required,
@@ -150,9 +180,9 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
           shuffleQuestions: quizSettings.shuffleQuestions,
           shuffleOptions: quizSettings.shuffleOptions,
           showCorrectAnswers: quizSettings.showCorrectAnswers,
-          lessonId: quizLessons[0]?.id,
+          lessonId: quizLessonId,
           questions: quizQuestions,
-        },
+        }, */
       });
     } catch {
       // Errors are surfaced by the caller via toasts; keep the wizard open
@@ -327,7 +357,21 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                 </div>
               </div>
 
-              <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
+              <QuizBuilder questions={quizQuestions} onChange={(questions) => updateActiveQuiz({ questions })} />
+
+              <div className="space-y-1 text-xs font-semibold">
+                <label className="text-slate-500">درس QUIZ المرتبط</label>
+                <select
+                  value={quizLessonId}
+                  onChange={(event) => selectQuizLesson(event.target.value)}
+                  className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-background px-3 text-xs"
+                >
+                  <option value="">اختر درس الاختبار</option>
+                  {chapters.flatMap((chapter) => chapter.lessons).filter((lesson) => lesson.type === "QUIZ").map((lesson) => (
+                    <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                  ))}
+                </select>
+              </div>
 
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-4 text-xs font-semibold">
                 <p className="text-slate-800 dark:text-slate-200 font-bold text-xs">إعدادات الاختبار</p>
@@ -339,7 +383,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                       min={0}
                       max={100}
                       value={String(quizSettings.passingScore)}
-                      onChange={(e) => setQuizSettings((s) => ({ ...s, passingScore: Number(e.target.value) || 0 }))}
+                      onChange={(e) => updateActiveQuiz({ passingScore: Number(e.target.value) || 0 })}
                       className="rounded-xl text-right text-xs"
                     />
                   </div>
@@ -349,7 +393,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                       type="number"
                       min={0}
                       value={String(quizSettings.timeLimitMinutes)}
-                      onChange={(e) => setQuizSettings((s) => ({ ...s, timeLimitMinutes: Number(e.target.value) || 0 }))}
+                      onChange={(e) => updateActiveQuiz({ timeLimitMinutes: Number(e.target.value) || 0 })}
                       className="rounded-xl text-right text-xs"
                     />
                   </div>

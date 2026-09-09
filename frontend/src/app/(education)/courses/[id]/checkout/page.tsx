@@ -21,7 +21,16 @@ import {
   Zap,
   Info } from
 "lucide-react";
-import { toast } from "sonner";interface CourseCheckoutInfo {
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import type { CourseDetailResponse } from "@/types/domain/mappers";
+
+interface WalletResponse { balance?: unknown; }
+type PaymentMethod = "card" | "fawry" | "wallet" | "internal_wallet";
+interface CheckoutResponse { success?: boolean; paymentKey?: string; iframeId?: string | number; error?: string; }
+
+interface CourseCheckoutInfo {
   id: string;
   name: string;
   nameAr?: string;
@@ -40,7 +49,7 @@ export default function CourseCheckoutPage() {
   const [course, setCourse] = useState<CourseCheckoutInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "fawry" | "wallet" | "internal_wallet">("card");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [couponCode, setCouponCode] = useState("");
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -50,26 +59,28 @@ export default function CourseCheckoutPage() {
 
     const fetchData = async () => {
       try {
-        const [courseRes, walletRes] = await Promise.all([
-        fetch(`/api/courses/${courseId}`),
-        fetch(`/api/billing/wallet`)]
-        );
+        const [courseData, walletData] = await Promise.all([
+          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseId)),
+          apiClient.get<WalletResponse>(apiRoutes.billing.wallet),
+        ]);
 
-        const courseData = await courseRes.json();
-        const walletData = await walletRes.json();
-
-        if (courseData.subject) {
+        if (courseData?.subject) {
           setCourse({
             id: courseData.subject.id,
             name: courseData.subject.name,
-            nameAr: courseData.subject.nameAr,
+            nameAr: courseData.subject.nameAr || undefined,
             price: courseData.subject.price || 0,
-            thumbnailUrl: courseData.subject.thumbnailUrl,
-            description: courseData.subject.description,
+            thumbnailUrl: courseData.subject.thumbnailUrl || undefined,
+            description: courseData.subject.description || undefined,
             hasCertificate: Boolean(courseData.subject.hasCertificate),
           });
         }
-        setWalletBalance(walletData.balance || 0);
+        const parsedBalance = typeof walletData?.balance === "number"
+          ? walletData.balance
+          : typeof walletData?.balance === "string"
+            ? Number(walletData.balance)
+            : 0;
+        setWalletBalance(Number.isFinite(parsedBalance) && parsedBalance >= 0 ? parsedBalance : 0);
       } catch (error) {
         console.error(error);
       } finally {
@@ -89,17 +100,12 @@ export default function CourseCheckoutPage() {
     setProcessing(true);
     setIframeUrl(null);
     try {
-      const res = await fetch(`/api/courses/${courseId}/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentMethod,
-          couponCode: couponCode || undefined
-        })
+      const data = await apiClient.post<CheckoutResponse>(apiRoutes.courses.checkout(courseId), {
+        paymentMethod,
+        couponCode: couponCode || undefined,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
+      /* apiClient throws standardized errors for non-2xx responses. */
+      if (data.error) {
         toast.error(data.error || "حدث خطأ أثناء تهيئة الدفع");
         return;
       }
@@ -262,7 +268,7 @@ export default function CourseCheckoutPage() {
                 map((opt) =>
                 <label
                   key={opt.id}
-                  onClick={() => setPaymentMethod(opt.id as any)}
+                  onClick={() => setPaymentMethod(opt.id as PaymentMethod)}
                   className={`group relative flex items-center gap-4 p-6 rounded-[2rem] border-2 cursor-pointer transition-all active:scale-[0.98] ${paymentMethod === opt.id ? `border-primary bg-primary/10 shadow-lg shadow-primary/5` : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'}`}>
                   
                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${paymentMethod === opt.id ? 'bg-primary text-white scale-110' : 'bg-white/5 text-gray-500 group-hover:text-white'}`}>

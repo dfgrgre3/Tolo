@@ -21,7 +21,8 @@ interface EditLessonModalProps {
 function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
   const [title, setTitle] = useState(lesson.title);
   const [durationMinutes, setDurationMinutes] = useState(String(lesson.durationMinutes));
-  const [url, setUrl] = useState(lesson.url || "");
+  const [videoUrl, setVideoUrl] = useState(lesson.videoUrl || "");
+  const [content, setContent] = useState(lesson.content || "");
   const [description, setDescription] = useState(lesson.description || "");
   const [isPreview, setIsPreview] = useState(lesson.isPreview || false);
   const [type, setType] = useState<Lesson["type"]>(lesson.type);
@@ -64,7 +65,7 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
 
           <div className="space-y-1">
             <label className="text-slate-500">رابط الفيديو أو الملف (URL)</label>
-            <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/video.mp4" className="rounded-xl font-mono text-left dir-ltr text-xs" dir="ltr" />
+            <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://example.com/video.mp4" className="rounded-xl font-mono text-left dir-ltr text-xs" dir="ltr" />
           </div>
 
           <div className="space-y-1">
@@ -78,6 +79,11 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
             />
           </div>
 
+          <div className="space-y-1">
+            <label className="text-slate-500">محتوى الدرس</label>
+            <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background p-2.5 text-xs text-right" />
+          </div>
+
           <div className="flex items-center justify-between pt-2">
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">سماح بالمعاينة المجانية (Free Preview)</span>
             <Switch checked={isPreview} onCheckedChange={setIsPreview} />
@@ -87,7 +93,7 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
         <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <Button
             onClick={() => {
-              onSave({ title, durationMinutes: Math.max(0, Number(durationMinutes) || 0), url, description, isPreview, type });
+              onSave({ title, durationMinutes: Math.max(0, Number(durationMinutes) || 0), videoUrl: videoUrl || null, content: content || null, description, isFree: isPreview, isPreview, type });
               onClose();
             }}
             className="flex-1 bg-primary text-white rounded-xl text-xs"
@@ -105,7 +111,7 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
   const [editingLessonInfo, setEditingLessonInfo] = useState<{ chapterId: string; lesson: Lesson } | null>(null);
 
   const addChapter = () => {
-    const clientId = `ch-${Date.now()}`;
+    const clientId = crypto.randomUUID();
     const newChapter: Chapter = {
       id: clientId,
       clientId,
@@ -129,13 +135,19 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
     onChange(
       chapters.map((c) => {
         if (c.id === chapterId) {
-          const clientId = `ls-${Date.now()}`;
+          const clientId = crypto.randomUUID();
           const newLesson: Lesson = {
             id: clientId,
             clientId,
             title: `درس جديد - ${type === "VIDEO" ? "فيديو" : type === "QUIZ" ? "اختبار" : "ملف"}`,
             durationMinutes: type === "VIDEO" ? 15 : 0,
             type,
+            content: null,
+            videoUrl: null,
+            examId: null,
+            attachments: [],
+            order: c.lessons.length + 1,
+            isFree: false,
             isPreview: false,
           };
           return {

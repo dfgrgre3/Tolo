@@ -2,7 +2,7 @@
 
 import { Lock, FileText, Shield, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { CourseLesson } from "./types";
+import type { LessonCardView } from "@/types/domain/mappers";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -26,7 +26,7 @@ export function LessonVideoArea({
   onEnroll,
 }: {
   canAccess: boolean;
-  lessonData: CourseLesson;
+  lessonData: LessonCardView;
   courseId: string;
   courseEnrolled: boolean;
   onAutoComplete: () => void;

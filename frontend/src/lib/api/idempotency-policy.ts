@@ -3,6 +3,8 @@ const IDEMPOTENT_WRITE_PREFIXES = [
   "/api/orders/",
 ] as const;
 
+const COURSE_CHECKOUT_PATH = /^\/api\/courses\/[^/]+\/checkout$/;
+
 const NON_IDEMPOTENT_ENDPOINTS = [
   "/api/auth/login",
   "/api/auth/logout",
@@ -54,7 +56,7 @@ export function requiresIdempotencyKey(method: string, endpoint: string): boolea
   }
 
   // Only explicitly whitelisted endpoints require idempotency keys
-  return IDEMPOTENT_WRITE_PREFIXES.some(
+  return COURSE_CHECKOUT_PATH.test(path) || IDEMPOTENT_WRITE_PREFIXES.some(
     (prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix),
   );
 }

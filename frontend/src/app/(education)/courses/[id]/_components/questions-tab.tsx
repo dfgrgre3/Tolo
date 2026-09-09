@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Question } from "./types";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export function QuestionsTab({
   courseId,
@@ -17,6 +19,7 @@ export function QuestionsTab({
 }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [answerInputs, setAnswerInputs] = useState<Record<string, string>>({});
   const [submittingAnswers, setSubmittingAnswers] = useState<Record<string, boolean>>({});
@@ -27,15 +30,16 @@ export function QuestionsTab({
 
   const fetchQuestions = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/courses/${courseId}/questions`);
+      const res = await apiClient.fetch(apiRoutes.courses.questions(courseId));
       if (res.ok) {
         const data = await res.json();
         const payload = data.data || data;
         setQuestions(payload.questions || []);
       }
-    } catch {
-      // silently handled
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "تعذر تحميل الأسئلة");
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,7 @@ export function QuestionsTab({
     }
     setSubmittingQuestion(true);
     try {
-      const res = await fetch(`/api/courses/${courseId}/questions`, {
+      const res = await apiClient.fetch(apiRoutes.courses.questions(courseId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTitle, body: newBody || undefined })
@@ -82,7 +86,7 @@ export function QuestionsTab({
     }
     setSubmittingAnswers((prev) => ({ ...prev, [questionId]: true }));
     try {
-      const res = await fetch(`/api/questions/${questionId}/answers`, {
+      const res = await apiClient.fetch(apiRoutes.courses.questionAnswers(questionId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body })
@@ -150,7 +154,11 @@ export function QuestionsTab({
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
           <p className="text-sm text-gray-500">جاري تحميل الأسئلة...</p>
         </div> :
-        questions.length > 0 ?
+        error ?
+          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 text-center space-y-3">
+            <p className="text-sm text-rose-600">{error}</p>
+            <Button variant="outline" onClick={fetchQuestions}>إعادة المحاولة</Button>
+          </div> : questions.length > 0 ?
           <div className="space-y-3">
             {questions.map((q) =>
               <div

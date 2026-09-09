@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Review, ReviewStats } from "./types";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import { useAuth } from "@/hooks/use-auth";
 
 export function ReviewsTab({
   courseId,
@@ -18,6 +21,8 @@ export function ReviewsTab({
   setReviewStats,
   reviewsLoading,
   setReviewsLoading,
+  reviewsError,
+  setReviewsError,
   userRating,
   setUserRating,
   userComment,
@@ -25,30 +30,36 @@ export function ReviewsTab({
   submittingReview,
   setSubmittingReview
 
-}: {courseId: string;courseRating: number;enrolled: boolean;reviews: Review[];setReviews: (r: Review[]) => void;reviewStats: ReviewStats | null;setReviewStats: (s: ReviewStats | null) => void;reviewsLoading: boolean;setReviewsLoading: (l: boolean) => void;userRating: number;setUserRating: (r: number) => void;userComment: string;setUserComment: (c: string) => void;submittingReview: boolean;setSubmittingReview: (s: boolean) => void;}) {
+}: {courseId: string;courseRating: number;enrolled: boolean;reviews: Review[];setReviews: (r: Review[]) => void;reviewStats: ReviewStats | null;setReviewStats: (s: ReviewStats | null) => void;reviewsLoading: boolean;setReviewsLoading: (l: boolean) => void;reviewsError: string | null;setReviewsError: (e: string | null) => void;userRating: number;setUserRating: (r: number) => void;userComment: string;setUserComment: (c: string) => void;submittingReview: boolean;setSubmittingReview: (s: boolean) => void;}) {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [submittingReplies, setSubmittingReplies] = useState<Record<string, boolean>>({});
+  const [reloadToken, setReloadToken] = useState(0);
+  const { user } = useAuth();
+  // Review comments are peer discussion; course staff may participate too.
+  const canReply = enrolled || ["TEACHER", "MODERATOR", "ADMIN", "SUPER_ADMIN"].includes(user?.role || "");
 
   useEffect(() => {
     const fetchReviews = async () => {
       setReviewsLoading(true);
+      setReviewsError(null);
       try {
-        const res = await fetch(`/api/courses/${courseId}/reviews`);
+        const res = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
         if (res.ok) {
           const data = await res.json();
           const reviewData = data.data || data;
           setReviews(reviewData.reviews || []);
           setReviewStats(reviewData.stats || null);
+        } else {
+          setReviewsError(`تعذر تحميل التقييمات (${res.status})`);
         }
-      } catch {
-
-        // silently handled
+      } catch (error) {
+        setReviewsError(error instanceof Error ? error.message : "تعذر تحميل التقييمات");
       } finally {setReviewsLoading(false);
       }
     };
     fetchReviews();
-  }, [courseId, setReviews, setReviewStats, setReviewsLoading]);
+  }, [courseId, setReviews, setReviewStats, setReviewsLoading, setReviewsError, reloadToken]);
 
   const handleSubmitReview = async () => {
     if (userRating === 0) {
@@ -57,7 +68,7 @@ export function ReviewsTab({
     }
     setSubmittingReview(true);
     try {
-      const res = await fetch(`/api/courses/${courseId}/reviews`, {
+      const res = await apiClient.fetch(apiRoutes.courses.createReview(courseId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating: userRating, comment: userComment || undefined })
@@ -68,7 +79,7 @@ export function ReviewsTab({
         setUserRating(0);
         setUserComment("");
         // Refresh reviews
-        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
+        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
           const reviewData = refreshData.data || refreshData;
@@ -95,7 +106,7 @@ export function ReviewsTab({
 
     setSubmittingReplies(prev => ({ ...prev, [reviewId]: true }));
     try {
-      const res = await fetch(`/api/courses/reviews/${reviewId}/comments`, {
+      const res = await apiClient.fetch(apiRoutes.courses.reviewComments(reviewId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment })
@@ -104,7 +115,7 @@ export function ReviewsTab({
         toast.success("تم إرسال ردك");
         setReplyInputs(prev => ({ ...prev, [reviewId]: "" }));
         // Refresh reviews
-        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
+        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
           const reviewData = refreshData.data || refreshData;
@@ -123,13 +134,13 @@ export function ReviewsTab({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const res = await fetch(`/api/courses/reviews/comments/${commentId}`, {
+      const res = await apiClient.fetch(apiRoutes.courses.reviewComment(commentId), {
         method: "DELETE"
       });
       if (res.ok) {
         toast.success("تم حذف الرد");
         // Refresh reviews
-        const refreshRes = await fetch(`/api/courses/${courseId}/reviews`);
+        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
           const reviewData = refreshData.data || refreshData;
@@ -254,7 +265,11 @@ export function ReviewsTab({
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
           <p className="text-sm text-gray-500">جاري تحميل التقييمات...</p>
         </div> :
-      reviews.length > 0 ?
+      reviewsError ?
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 text-center space-y-3">
+          <p className="text-sm text-rose-600">{reviewsError}</p>
+          <Button variant="outline" onClick={() => setReloadToken((token) => token + 1)}>إعادة المحاولة</Button>
+        </div> : reviews.length > 0 ?
       <div className="space-y-3">
           {reviews.map((review) =>
         <div
@@ -326,13 +341,15 @@ export function ReviewsTab({
                                 })}
                               </span>
                             </div>
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                              title="حذف الرد"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            {(comment.user?.id === user?.id || ["ADMIN", "SUPER_ADMIN", "MODERATOR", "TEACHER"].includes(user?.role || "")) && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                title="حذف الرد"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                           <p className="text-xs text-gray-600 dark:text-gray-400">{comment.comment}</p>
                         </div>
@@ -343,7 +360,7 @@ export function ReviewsTab({
               )}
 
               {/* Reply Input */}
-              {enrolled && (
+              {canReply && (
                 <div className="pt-3 border-t border-gray-100 dark:border-white/5">
                   <div className="flex gap-2">
                     <input

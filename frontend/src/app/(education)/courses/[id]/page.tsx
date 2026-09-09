@@ -6,12 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import CourseDetailClient from "./CourseDetailClient";
 import { SITE } from "@thanawy/shared/site-config";
-import type { Course, CourseLesson } from "./_components/types";
 import { levelConfig } from "./_components/types";
 import { toCourseSummary, toLessonCards } from "@/types/domain/mappers";
-import { apiRoutes } from "@/lib/api/routes";
-import { apiClient } from "@/lib/api/api-client";
-import type { CourseDetailResponse, CourseLessonsResponse } from "@/types/domain/mappers";
+import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
+import type { CourseDetailResponse, CourseDetailHydrationResponse } from "@/types/domain/mappers";
+import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
   try {
-    const courseData = await apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(id));
+    const courseData = await getCourseDetailHydration(id);
     const subject = courseData.subject;
 
     if (!subject || !subject.id) {
@@ -70,11 +69,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { id } = await params;
   let schema = null;
-  let initialCourseData: Course | null = null;
-  let initialLessons: CourseLesson[] = [];
+  let initialCourseData: CourseSummaryView | null = null;
+  let initialLessons: LessonCardView[] = [];
 
   try {
-    const courseData = await apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(id));
+    const hydration = await getCourseDetailHydration(id);
+    const courseData: CourseDetailResponse = hydration;
       const subject = courseData.subject;
       if (subject && subject.id) {
         schema = {
@@ -99,18 +99,19 @@ export default async function Page({ params }: Props) {
         initialCourseData = toCourseSummary(subject, {
           enrolled: Boolean(courseData.enrollment),
           progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined,
+          completion: hydration.completion,
         });
       }
+    initialLessons = toLessonCards((hydration.lessons || []).map((lesson) => {
+      const state = hydration.progress?.[lesson.id];
+      return {
+        ...lesson,
+        completed: typeof state === "object" && state !== null ? state.completed : Boolean(state),
+        progress: typeof state === "object" && state !== null ? state.percentage : state ? 100 : 0,
+      };
+    }));
   } catch (error) {
     console.error("Error generating Course schema:", error);
-  }
-
-  // Pre-fetch lessons on server side (cached for revalidate optimization)
-  try {
-    const lessonsData = await apiClient.get<CourseLessonsResponse>(apiRoutes.courses.lessons(id));
-    initialLessons = toLessonCards(lessonsData.lessons || []);
-  } catch (error) {
-    console.error("Error fetching lessons on server:", error);
   }
 
   const nonce = (await headers()).get('x-nonce') ?? undefined;

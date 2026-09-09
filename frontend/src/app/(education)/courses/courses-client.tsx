@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
-import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
 import { addSearchQuery } from "@/lib/search-history";
 import { sortCourses } from "./_components/utils";
 import { CatalogStats } from "./_components/catalog-stats";
 import { SpotlightCourses } from "./_components/spotlight-courses";
 import { CoursesControls } from "./_components/courses-controls";
 import { CoursesList } from "./_components/courses-list";
-import { mapCoursesPayload } from "./catalog-data";
+import { fetchCoursesCatalog } from "./catalog-data";
+import { useAuth } from "@/hooks/use-auth";
 import type { CourseLevel, CourseSummary, CourseCategory, SortOption } from "./_components/types";
 
 function pickSpotlightCourses(list: CourseSummary[]) {
@@ -29,13 +30,15 @@ interface CoursesClientProps {
   /** بيانات مجمّعة من الخادم (Server Component) — تُلغي الجلب الأولي في المتصفح. */
   initialCourses?: CourseSummary[];
   initialCategories?: CourseCategory[];
+  initialCatalogStatus?: "ok" | "error";
 }
 
 export default function CoursesClient({
   initialCourses,
   initialCategories,
+  initialCatalogStatus = "ok",
 }: CoursesClientProps) {
-  const hasServerData = Array.isArray(initialCourses) && initialCourses.length > 0;
+  const hasServerData = initialCatalogStatus === "ok";
 
   const [courses, setCourses] = useState<CourseSummary[]>(initialCourses ?? []);
   const [categories, setCategories] = useState<CourseCategory[]>(initialCategories ?? []);
@@ -47,6 +50,7 @@ export default function CoursesClient({
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [enrolledOnly, setEnrolledOnly] = useState(false);
+  const { user } = useAuth();
 
   const deferredSearch = useDeferredValue(searchQuery);
 
@@ -72,16 +76,14 @@ export default function CoursesClient({
         setLoading(true);
         setError(null);
 
-        const [coursesResult, categoriesResult] = await Promise.allSettled([
-          apiClient.get<any>("/courses?limit=48"),
-          apiClient.get<any>("/categories"),
-        ]);
+        const result = await fetchCoursesCatalog();
+        if (result.status === "error") throw new Error(result.errorMessage);
+        setCourses(result.courses);
+        setCategories(result.categories);
 
-        let coursesData: any[] = [];
+        /* let coursesData: Array<Record<string, unknown>> = [];
         if (coursesResult.status === "fulfilled") {
-          const payload = coursesResult.value;
-          const data = payload.data ?? payload;
-          coursesData = data.courses ?? data.items ?? data.subjects ?? [];
+          coursesData = readCatalogPayload(coursesResult.value).courses;
         } else {
           logger.error("Failed to load courses", coursesResult.reason);
           // A failed courses request must not be swallowed into a silent
@@ -98,15 +100,9 @@ export default function CoursesClient({
           );
         }
 
-        let categoriesData: Array<{ id: string; name: string; nameAr?: string }> = [];
+        let categoriesData: RawCategory[] = [];
         if (categoriesResult.status === "fulfilled") {
-          const payload = categoriesResult.value;
-          const data = payload.data ?? payload;
-          if (Array.isArray(data)) {
-            categoriesData = data;
-          } else if (Array.isArray(data.categories)) {
-            categoriesData = data.categories;
-          }
+          categoriesData = readCatalogPayload(categoriesResult.value).categories;
         } else {
           logger.error("Failed to load categories", categoriesResult.reason);
         }
@@ -115,7 +111,7 @@ export default function CoursesClient({
           mapCoursesPayload(coursesData, categoriesData);
 
         setCourses(mappedCourses);
-        setCategories(mappedCategories);
+        setCategories(mappedCategories); */
       } catch (loadError) {
         logger.error("Error loading courses catalog", loadError);
         setError(
@@ -130,6 +126,26 @@ export default function CoursesClient({
 
     loadCourses();
   }, [hasServerData]);
+
+  // The public catalog is cacheable and therefore cannot carry per-user
+  // enrollment state. Merge the authenticated user's private course list
+  // into the same view model so "دوراتي فقط" is based on server state.
+  useEffect(() => {
+    if (!user?.id || courses.length === 0) return;
+    apiClient.get<unknown>("/my-courses")
+      .then((payload) => {
+        const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+        const data = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : root;
+        const enrolledRows = data.courses ?? data.items ?? [];
+        const enrolledIds = new Set(
+          Array.isArray(enrolledRows)
+            ? enrolledRows.map((row) => row && typeof row === "object" ? String((row as Record<string, unknown>).id || (row as Record<string, unknown>).subjectId || "") : "")
+            : []
+        );
+        setCourses((current) => current.map((course) => ({ ...course, enrolled: enrolledIds.has(course.id) })));
+      })
+      .catch(() => undefined);
+  }, [courses.length, user?.id]);
 
   const catalogStats = useMemo(() => {
     const totalStudents = courses.reduce(

@@ -26,6 +26,9 @@ export interface QuizOption {
   orderIndex?: number;    // For ORDERING
 }
 
+/** Student transport contract: grading metadata must never cross this boundary. */
+export type StudentQuizOption = Omit<QuizOption, 'isCorrect' | 'matchTarget'>;
+
 export interface QuizMatchPair {
   left: string;
   right: string;
@@ -56,6 +59,10 @@ export interface QuizQuestion {
   gradingMethod?: GradingMethod;
 }
 
+export type StudentQuizQuestion = Omit<QuizQuestion, 'options' | 'referenceAnswer' | 'gradingMethod' | 'blanks' | 'matchPairs' | 'orderItems'> & {
+  options: StudentQuizOption[];
+};
+
 export interface CourseQuiz {
   id: string;
   courseId: string;
@@ -81,6 +88,10 @@ export interface CourseQuiz {
   totalPoints: number;
   questionCount: number;
 }
+
+export type StudentCourseQuiz = Omit<CourseQuiz, 'questions'> & {
+  questions: StudentQuizQuestion[];
+};
 
 /**
  * The answer as the client submits it — student input only.
@@ -175,8 +186,11 @@ export interface CreateQuizPayload {
   showResultsImmediately: boolean;
   showCorrectAnswers: boolean;
   allowReview: boolean;
-  questions: Omit<QuizQuestion, 'id' | 'quizId'>[];
+  questions: InstructorQuizQuestionInput[];
 }
+
+export type InstructorQuizOptionInput = Omit<QuizOption, 'id'>;
+export type InstructorQuizQuestionInput = Omit<QuizQuestion, 'id' | 'quizId'>;
 
 export interface SubmitQuizPayload {
   attemptId: string;
