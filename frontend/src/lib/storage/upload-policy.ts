@@ -1,6 +1,5 @@
-// Server-enforced upload policy shared by /api/storage/upload and
-// /api/storage/chunked-upload. Client-submitted restrictions can only
-// NARROW these limits, never widen them.
+// Client-side upload policy aligned with the backend upload contract.
+// Client-submitted restrictions can only narrow these limits, never widen them.
 
 export const MAX_SIMPLE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB hard cap for simple / direct uploads
 export const SERVER_MAX_FILE_SIZE = MAX_SIMPLE_UPLOAD_SIZE; // Backwards compatibility alias

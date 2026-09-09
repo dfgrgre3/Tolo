@@ -37,11 +37,17 @@ export enum TaskStatus {
 
 export enum UserRole {
     STUDENT = 'STUDENT',
-    PREMIUM = 'PREMIUM',
     TEACHER = 'TEACHER',
     MODERATOR = 'MODERATOR',
     ADMIN = 'ADMIN',
     SUPER_ADMIN = 'SUPER_ADMIN',
+    PARENT = 'PARENT',
+    SUPPORT = 'SUPPORT',
+}
+
+/** Access entitlements are subscription-derived, not authorization roles. */
+export enum Entitlement {
+    PREMIUM = 'PREMIUM',
 }
 
 export enum UserStatus {
@@ -65,13 +71,15 @@ export enum NotificationType {
     ERROR = 'ERROR',
 }
 
-export enum LessonType {
-    VIDEO = 'VIDEO',
-    ARTICLE = 'ARTICLE',
-    QUIZ = 'QUIZ',
-    FILE = 'FILE',
-    ASSIGNMENT = 'ASSIGNMENT',
-}
+/** Canonical lesson vocabulary; string literals remain assignable at DTO boundaries. */
+export const LessonType = {
+    VIDEO: 'VIDEO',
+    ARTICLE: 'ARTICLE',
+    QUIZ: 'QUIZ',
+    FILE: 'FILE',
+    ASSIGNMENT: 'ASSIGNMENT',
+} as const;
+export type LessonType = typeof LessonType[keyof typeof LessonType];
 
 export enum AchievementCategory {
     STUDY = 'STUDY',
@@ -112,3 +120,23 @@ export enum PaymentStatus {
     FAILED = 'FAILED',
     REFUNDED = 'REFUNDED',
 }
+
+export type {
+    CourseAccessState,
+    CourseLifecycle,
+    CourseState,
+    CourseStateInput,
+    EnrollmentLifecycle,
+} from './course-state';
+export {
+    canTransitionEnrollment,
+    deriveCourseAccessState,
+    normalizeCourseLifecycle,
+} from './course-state';
+export type {
+    CompletionEligibility,
+    CourseProgressSnapshot,
+    LessonProgressMutationResponse,
+    LessonProgressSnapshot,
+} from './progress';
+export { normalizeLessonProgressResponse } from './progress';

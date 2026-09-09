@@ -3,26 +3,14 @@
 import React from 'react';
 import { Flame, Clock, Star } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
+import type { CourseCardProps } from '@/components/common/CourseCard';
 import { DashSection, DashEmpty } from '../shared/SectionShell';
 import { DASH_RAIL, DASH_TABS } from '../shared/design-system';
 
-interface Course {
-  id: string;
-  title: string;
-  slug: string;
-  thumbnail: string;
-  price: number;
-  instructorName?: string;
-  categoryName?: string;
-  ratingAvg?: number | null;
-  reviewsCount?: number;
-  studentsCount?: number;
-  level?: string;
-  discountPrice?: number;
-}
+type ExploreCourseView = Pick<CourseCardProps, 'id' | 'title' | 'slug' | 'thumbnail' | 'price' | 'instructorName' | 'categoryName' | 'ratingAvg' | 'reviewsCount' | 'studentsCount' | 'level' | 'discountPrice'>;
 
 interface ExploreCoursesSectionProps {
-  courses?: Course[];
+  courses?: ExploreCourseView[];
   loading?: boolean;
   selectedTab?: 'popular' | 'latest' | 'top_rated';
   onTabChange?: (tab: 'popular' | 'latest' | 'top_rated') => void;
@@ -35,7 +23,7 @@ const TABS = [
 ];
 
 /** Module-level constants keep prop identities stable across parent renders. */
-const EMPTY_COURSES: Course[] = [];
+const EMPTY_COURSES: ExploreCourseView[] = [];
 const NOOP = () => {};
 
 /**

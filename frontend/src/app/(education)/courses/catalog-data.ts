@@ -58,7 +58,7 @@ export function readCatalogPayload(payload: unknown): {
     }) };
   }
   const data = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : root;
-  const coursesValue = data.items ?? data.courses ?? data.subjects;
+  const coursesValue = data.items;
   const categoriesValue = data.categories ?? (Array.isArray(data.data) ? data.data : undefined);
   return {
     courses: parseCatalogRecords(coursesValue),

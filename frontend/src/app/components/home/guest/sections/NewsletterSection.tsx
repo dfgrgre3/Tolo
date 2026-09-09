@@ -2,16 +2,14 @@
 
 import { useState } from 'react';
 import { Mail, Send, CheckCircle2 } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+import { apiClient } from '@/lib/api/api-client';
 
 type SubscribeStatus = 'idle' | 'loading' | 'success' | 'error';
 
 /**
- * Newsletter sign-up. Writes to Supabase, treating the existing-email error
- * (23505) as a success since the visitor is already subscribed.
+ * Newsletter sign-up through the canonical backend API.
  */
 export function NewsletterSection() {
-  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<SubscribeStatus>('idle');
 
@@ -20,8 +18,7 @@ export function NewsletterSection() {
     if (!email || !email.includes('@')) return;
     setStatus('loading');
     try {
-      const { error } = await supabase.from('subscribers').insert({ email });
-      if (error && error.code !== '23505') throw error;
+      await apiClient.post('/newsletter/subscribe', { email });
       setStatus('success');
       setEmail('');
     } catch {

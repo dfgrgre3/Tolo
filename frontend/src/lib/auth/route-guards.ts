@@ -38,7 +38,6 @@ export const ALLOWED_AUTHENTICATED_ROLES = [
   "MODERATOR",
 ] as const;
 
-export const ADMIN_PANEL_ROLES = ["ADMIN", "SUPER_ADMIN", "MODERATOR"] as const;
 export const TEACHER_ENDPOINT_ROLES = ["TEACHER", "ADMIN", "SUPER_ADMIN"] as const;
 export const STUDENT_ENDPOINT_ROLES = ["STUDENT", "ADMIN", "SUPER_ADMIN"] as const;
 
@@ -46,7 +45,8 @@ export const STUDENT_ENDPOINT_ROLES = ["STUDENT", "ADMIN", "SUPER_ADMIN"] as con
 
 const PROTECTED_ROUTES = ["/dashboard", "/learning", "/profile"];
 
-const GUEST_ROUTES = [
+/** Edge-only guest routes used by the proxy's session gate. */
+export const EDGE_GUEST_ROUTES = [
   "/login",
   "/register",
   "/forgot-password",
@@ -142,7 +142,7 @@ export function isProtectedRoute(pathname: string): boolean {
 }
 
 export function isGuestRoute(pathname: string): boolean {
-  return GUEST_ROUTES.some((route) => matchesPath(pathname, route));
+  return EDGE_GUEST_ROUTES.some((route) => matchesPath(pathname, route));
 }
 
 export function isPublicApiEndpoint(pathname: string): boolean {

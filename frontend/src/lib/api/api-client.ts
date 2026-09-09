@@ -31,11 +31,23 @@ interface FetchOptions extends RequestInit {
 }
 
 interface ApiEnvelope<T> {
-    success?: boolean;
+    success: boolean;
     data?: T;
     message?: string;
     error?: string;
     code?: string;
+}
+
+/** Thrown when an HTTP-success response violates the API envelope contract. */
+export class ApiContractError extends Error {
+    public readonly status = 502;
+    public readonly payload: unknown;
+
+    constructor(message: string, payload: unknown) {
+        super(message);
+        this.name = 'ApiContractError';
+        this.payload = payload;
+    }
 }
 
 export type JsonPrimitive = string | number | boolean | null;
@@ -55,8 +67,9 @@ const API_TIMEOUT = 30_000;
 // Proxy timeout is 25s (FETCH_TIMEOUT_MS in /api/[...path]/route.ts)
 // Client timeout is slightly larger to allow proper error propagation,
 // but not so large that it masks backend issues.
-// One retry is enabled for methods explicitly marked safe by retry-policy.
-// POST/PATCH remain excluded; GET/HEAD/OPTIONS use the existing backoff.
+// One retry is enabled for methods explicitly accepted by retry-policy.
+// Write methods qualify only when the endpoint policy supplied an
+// Idempotency-Key, so the backend can replay the same mutation.
 const MAX_RETRIES = 1;
 
 export class ApiError extends Error {
@@ -71,6 +84,12 @@ export class ApiError extends Error {
         this.code = code;
         this.data = data;
     }
+
+    get isUnauthorized(): boolean { return this.status === 401; }
+    get isForbidden(): boolean { return this.status === 403; }
+    get isNotFound(): boolean { return this.status === 404; }
+    get isValidation(): boolean { return this.status === 422; }
+    get isRateLimited(): boolean { return this.status === 429; }
 }
 
 function normalizeEndpoint(endpoint: string): string {
@@ -94,18 +113,28 @@ function normalizeEndpoint(endpoint: string): string {
 }
 
 
-function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
-    if (
-        payload &&
-        typeof payload === 'object' &&
-        !Array.isArray(payload) &&
-        'success' in payload &&
-        'data' in payload
-    ) {
-        return (payload as ApiEnvelope<T>).data as T;
+/**
+ * Converts the transport response into the application payload contract.
+ *
+ * `apiClient` is intentionally an unwrapped client: callers' `T` is always
+ * the value inside `data`. A response that advertises an envelope but omits
+ * its data is a contract failure, not a valid empty application payload.
+ */
+export function unwrapApplicationPayload<T>(payload: unknown): T {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return payload as T;
     }
 
-    return payload as T;
+    const envelope = payload as Partial<ApiEnvelope<T>> & Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(envelope, 'success')) {
+        return payload as T;
+    }
+
+    if (envelope.success !== true || !Object.prototype.hasOwnProperty.call(envelope, 'data')) {
+        throw new ApiContractError('Invalid API success envelope', payload);
+    }
+
+    return envelope.data as T;
 }
 
 /**
@@ -261,7 +290,10 @@ class ApiClient {
                     handleUnauthorized(endpoint);
                 }
 
-                const shouldRetry = canRetryMethod(method) && RETRYABLE_STATUSES.includes(response.status) && retryCount < retries;
+                const hasIdempotencyKey = headers.has('Idempotency-Key');
+                const shouldRetry = canRetryMethod(method, hasIdempotencyKey)
+                    && RETRYABLE_STATUSES.includes(response.status)
+                    && retryCount < retries;
                 if (shouldRetry) {
                     retryCount++;
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
@@ -292,7 +324,13 @@ class ApiClient {
                     throw classified;
                 }
 
-                if (isRetryableError(classified, retryCount, retries, customOptions.method || 'GET')) {
+                if (isRetryableError(
+                    classified,
+                    retryCount,
+                    retries,
+                    customOptions.method || 'GET',
+                    headers.has('Idempotency-Key'),
+                )) {
                     retryCount++;
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
                     continue;
@@ -321,8 +359,8 @@ class ApiClient {
             return {} as T;
         }
 
-        const payload = await response.json() as T | ApiEnvelope<T>;
-        return unwrapApiEnvelope<T>(payload);
+        const payload = await response.json();
+        return unwrapApplicationPayload<T>(payload);
     }
 
     public get<T>(endpoint: string, options?: FetchOptions): Promise<T> {

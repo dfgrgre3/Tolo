@@ -54,6 +54,8 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api/api-client";
 import { useWebSocket } from "@/contexts/websocket-context";
 import { formatDistanceToNow } from "date-fns";
+import { Entitlement } from "@/types/enums";
+import { isStaffAdminPanelRole } from "@/lib/auth/admin-panel-roles";
 
 type ThemeMode = "light" | "dark";
 
@@ -105,12 +107,6 @@ const LOGIN_PATH = "/login";
  * اجعل هذه القيمة false.
  */
 const REDIRECT_AFTER_LOGOUT = true;
-
-const STAFF_ROLES = new Set<string>([
-  "ADMIN",
-  "MODERATOR",
-  "SUPER_ADMIN",
-]);
 
 const MENU_LINKS = {
   admin: "/admin",
@@ -237,10 +233,6 @@ function normalizeUser(value: unknown): AuthUser | null {
   };
 }
 
-function isStaffAdminPanelRole(role?: string): boolean {
-  return Boolean(role && STAFF_ROLES.has(role));
-}
-
 function getInitials(user: AuthUser): string {
   const source = user.name || user.username || user.email || "";
 
@@ -357,7 +349,7 @@ function isPremiumUser(user: AuthUser): boolean {
   const plan = subscription.plan?.toLowerCase() ?? "";
 
   return (
-    plan.includes("premium") ||
+    plan.includes(Entitlement.PREMIUM.toLowerCase()) ||
     subscription.plan?.includes("بريميوم") === true
   );
 }

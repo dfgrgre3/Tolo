@@ -28,7 +28,13 @@ function hasPermission(
 }
 
 /**
- * usePermission — Centralised role & permission checks
+ * usePermission — client-side UX hints only.
+ *
+ * This hook must never be treated as an authorization boundary. Its values
+ * come from client auth state and can be stale or modified by the caller.
+ * Every privileged API operation must still be authorized by the backend
+ * using the authenticated JWT/session, server-side permissions, and resource
+ * ownership where applicable.
  *
  * Usage:
  *   const { can, is, hasAnyRole } = usePermission();

@@ -26,6 +26,14 @@ export type {
 } from '@/types/subject';
 
 import type { Subject, SubTopic, Topic } from '@/types/subject';
+import type { LessonProgressSnapshot } from '@thanawy/shared/types/enums';
+export type {
+  CourseAccessState,
+  CourseLifecycle,
+  CourseState,
+  CourseStateInput,
+  EnrollmentLifecycle,
+} from '@thanawy/shared/types/enums';
 
 /** A course is a Subject in the backend domain. */
 export type Course = Subject;
@@ -45,13 +53,8 @@ export interface Enrollment {
 }
 
 /** Per-lesson completion state (backend: /courses/lessons/{id}/progress). */
-export interface Progress {
-  lessonId: string;
+export interface Progress extends LessonProgressSnapshot {
   userId: string;
-  completed: boolean;
-  percentage: number;        // 0-100 within the lesson
-  secondsWatched?: number;
-  updatedAt: Date | string;
 }
 
 /** Interactive video question (backend: LmsInteractiveQuiz). */

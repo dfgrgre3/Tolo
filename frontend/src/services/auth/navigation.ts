@@ -8,7 +8,8 @@
 export const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
 export const DEFAULT_UNAUTHENTICATED_ROUTE = "/login";
 
-const PUBLIC_ROUTES = [
+/** Public routes used only by safe client-side redirect classification. */
+export const SAFE_REDIRECT_PUBLIC_ROUTES = [
   "/",
   "/login",
   "/admin-login",
@@ -41,7 +42,7 @@ export function sanitizeRedirectPath(
  * Checks whether a path is a public (unauthenticated) route.
  */
 export function isAuthPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(
+  return SAFE_REDIRECT_PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 }

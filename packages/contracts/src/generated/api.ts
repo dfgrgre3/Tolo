@@ -27,7 +27,7 @@ export interface paths {
             /** @description Conversion event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.ConversionEventRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ConversionEventRequest"];
                 };
             };
             responses: {
@@ -73,7 +73,7 @@ export interface paths {
             /** @description User journey data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.UserJourneyRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyRequest"];
                 };
             };
             responses: {
@@ -293,7 +293,7 @@ export interface paths {
             /** @description Backup configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.CreateBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateBackupRequest"];
                 };
             };
             responses: {
@@ -339,7 +339,7 @@ export interface paths {
             /** @description Schedule configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.ScheduleBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduleBackupRequest"];
                 };
             };
             responses: {
@@ -600,7 +600,7 @@ export interface paths {
             /** @description Restore options */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.RestoreBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.RestoreBackupRequest"];
                 };
             };
             responses: {
@@ -738,7 +738,7 @@ export interface paths {
             /** @description Notification details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -748,7 +748,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["handlers.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -834,7 +834,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["handlers.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -916,7 +916,7 @@ export interface paths {
             /** @description Notification details with scheduledFor */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -926,7 +926,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["handlers.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -1026,7 +1026,7 @@ export interface paths {
             /** @description Report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.CustomReportRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1135,7 +1135,7 @@ export interface paths {
             /** @description Updated report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.CustomReportRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1353,7 +1353,7 @@ export interface paths {
             /** @description Schedule details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.ScheduledItemRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduledItemRequest"];
                 };
             };
             responses: {
@@ -1636,7 +1636,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
                     };
                 };
             };
@@ -1692,225 +1692,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
                     };
                 };
             };
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/security/2fa/backup-codes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Regenerate backup codes
-         * @description Generate new backup codes for 2FA
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/security/2fa/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Disable 2FA
-         * @description Disable two-factor authentication
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["Request"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/security/2fa/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Initiate 2FA setup
-         * @description Start setting up two-factor authentication
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Setup method */
-            requestBody: {
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/security/2fa/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get 2FA status
-         * @description Get two-factor authentication status
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/security/2fa/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verify and activate 2FA
-         * @description Verify the 2FA code and activate two-factor authentication
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["Request"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2377,7 +2165,7 @@ export interface paths {
             /** @description Ticket details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.CreateTicketRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateTicketRequest"];
                 };
             };
             responses: {
@@ -2606,7 +2394,7 @@ export interface paths {
             /** @description Message details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.SendMessageRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SendMessageRequest"];
                 };
             };
             responses: {
@@ -2659,7 +2447,7 @@ export interface paths {
             /** @description Priority update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.UpdateTicketPriorityRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest"];
                 };
             };
             responses: {
@@ -2708,7 +2496,7 @@ export interface paths {
             /** @description Status update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.UpdateTicketStatusRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest"];
                 };
             };
             responses: {
@@ -2727,34 +2515,30 @@ export interface paths {
         };
         trace?: never;
     };
-    "/auth/login": {
+    "/api/ai/search/history": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * User login
-         * @description Authenticate user with email and password
+         * Get user search history
+         * @description Get the authenticated user's recent search queries
          */
-        post: {
+        get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Max results (default 20, max 100) */
+                    limit?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
-            /** @description Login credentials */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["handlers.LoginRequest"];
-                };
-            };
+            requestBody?: never;
             responses: {
-                /** @description Login successful */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -2765,14 +2549,51 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Unauthorized */
-                401: {
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/search/track": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track search history
+         * @description Track user search queries for analytics and personalization
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search history data */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SearchHistoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            [key: string]: unknown;
+                            [key: string]: boolean;
                         };
                     };
                 };
@@ -2784,7 +2605,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/me": {
+    "/api/analytics/mega-menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track mega menu event
+         * @description Track open/close interactions on the mega menu component
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Mega menu event data */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/promo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track promo event
+         * @description Track user interactions with promotional content
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Promo event data */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.PromoEventRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unified public search
+         * @description Search courses, resources, teachers, and videos with server-side filtering and relevance sorting
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Search query */
+                    q: string;
+                    /** @description Max results (default 10, max 50) */
+                    limit?: number;
+                    /** @description Filter by type (course,resource,teacher,video,all) */
+                    type?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UnifiedSearchResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/profile": {
         parameters: {
             query?: never;
             header?: never;
@@ -2793,7 +2752,7 @@ export interface paths {
         };
         /**
          * Get user profile
-         * @description Get detailed profile of the currently authenticated user
+         * @description Get the detailed profile of the currently authenticated user.
          */
         get: {
             parameters: {
@@ -2804,15 +2763,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Profile details */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileEnvelope"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2833,14 +2790,785 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update user profile
+         * @description Update one or more fields in the currently authenticated user's profile.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Profile fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * User login
+         * @description Authenticate a user and establish a session.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Login credentials */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify MFA challenge
+         * @description Verify a one-time MFA code and establish a session.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description MFA verification */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.VerifyMFARequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List courses */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination offset */
+                    offset?: number;
+                    /** @description Search term */
+                    search?: string;
+                    /** @description Course level */
+                    level?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/lessons/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get lesson progress */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Lesson ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Update lesson progress */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Lesson ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Progress payload */
+            requestBody: {
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/curriculum": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course curriculum */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get course detail
+         * @description Get the public/private course detail snapshot.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enroll in a course */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course lessons */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course questions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course reviews */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/my-courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List enrolled courses */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List instructor courses */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create instructor course */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["Request"];
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get instructor course */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete instructor course */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update instructor course */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["Request"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "handlers.ConversionEventRequest": {
+        "internal_infrastructure_api_handlers_protected.ConversionEventRequest": {
             goal: string;
             journeySteps?: number;
             sessionId: string;
@@ -2848,7 +3576,7 @@ export interface components {
             userId: string;
             value?: number;
         };
-        "handlers.CreateBackupRequest": {
+        "internal_infrastructure_api_handlers_protected.CreateBackupRequest": {
             includesDatabase?: boolean;
             includesFiles?: boolean;
             name: string;
@@ -2857,7 +3585,7 @@ export interface components {
             /** @enum {string} */
             type: "full" | "database" | "files" | "incremental";
         };
-        "handlers.CreateTicketRequest": {
+        "internal_infrastructure_api_handlers_protected.CreateTicketRequest": {
             /** @enum {string} */
             category: "technical" | "billing" | "content" | "account" | "other";
             description: string;
@@ -2868,13 +3596,13 @@ export interface components {
             subject: string;
             userId: string;
         };
-        "handlers.CustomReportRequest": {
+        "internal_infrastructure_api_handlers_protected.CustomReportRequest": {
             dateRange?: {
                 from?: string;
                 to?: string;
             };
             description?: string;
-            filters?: components["schemas"]["handlers.ReportFilter"][];
+            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
             isPublic?: boolean;
             name: string;
             schedule?: {
@@ -2882,14 +3610,23 @@ export interface components {
                 /** @enum {string} */
                 frequency: "daily" | "weekly" | "monthly";
             };
-            widgets: components["schemas"]["handlers.ReportWidget"][];
+            widgets: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportWidget"][];
         };
-        "handlers.LoginRequest": {
-            email: string;
-            password: string;
-            rememberMe?: boolean;
+        "internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest": {
+            /** @description "mega_menu" */
+            component?: string;
+            /** @description menu label */
+            label?: string;
+            /** @description e.g. { trigger: "toggle" } */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @description client epoch ms */
+            timestamp?: number;
+            /** @description "open" | "close" */
+            type: string;
         };
-        "handlers.NotificationRequest": {
+        "internal_infrastructure_api_handlers_protected.NotificationRequest": {
             actionUrl?: string;
             channels: string[];
             message: string;
@@ -2901,30 +3638,41 @@ export interface components {
             type?: "info" | "success" | "warning" | "error";
             userIds: string[];
         };
-        "handlers.NotificationResponse": {
+        "internal_infrastructure_api_handlers_protected.NotificationResponse": {
             broadcastId?: string;
             queued?: boolean;
-            summary?: components["schemas"]["handlers.NotificationSummary"];
+            summary?: components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationSummary"];
         };
-        "handlers.NotificationSummary": {
+        "internal_infrastructure_api_handlers_protected.NotificationSummary": {
             failure?: number;
             queued?: number;
             success?: number;
             total?: number;
         };
-        "handlers.ReportDimension": {
+        "internal_infrastructure_api_handlers_protected.PromoEventRequest": {
+            component?: string;
+            eventType?: string;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            promoId?: string;
+            timestamp?: number;
+            type?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportDimension": {
             field: string;
             /** @enum {string} */
             format?: "date" | "text" | "number";
             label: string;
         };
-        "handlers.ReportFilter": {
+        "internal_infrastructure_api_handlers_protected.ReportFilter": {
             field: string;
             /** @enum {string} */
             operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
             value: unknown;
         };
-        "handlers.ReportMetric": {
+        "internal_infrastructure_api_handlers_protected.ReportMetric": {
             /** @enum {string} */
             aggregation: "count" | "sum" | "avg" | "min" | "max" | "distinct_count";
             field: string;
@@ -2932,32 +3680,32 @@ export interface components {
             format?: "number" | "currency" | "percentage" | "date";
             name: string;
         };
-        "handlers.ReportSort": {
+        "internal_infrastructure_api_handlers_protected.ReportSort": {
             /** @enum {string} */
             direction: "asc" | "desc";
             field: string;
         };
-        "handlers.ReportWidget": {
+        "internal_infrastructure_api_handlers_protected.ReportWidget": {
             dataSource: string;
-            dimensions?: components["schemas"]["handlers.ReportDimension"][];
-            filters?: components["schemas"]["handlers.ReportFilter"][];
+            dimensions?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportDimension"][];
+            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
             id?: string;
             layout: {
                 [key: string]: unknown;
             };
             limit?: number;
-            metrics: components["schemas"]["handlers.ReportMetric"][];
-            sort?: components["schemas"]["handlers.ReportSort"];
+            metrics: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportMetric"][];
+            sort?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportSort"];
             title: string;
             /** @enum {string} */
             type: "table" | "bar" | "line" | "pie" | "area" | "metric";
         };
-        "handlers.RestoreBackupRequest": {
+        "internal_infrastructure_api_handlers_protected.RestoreBackupRequest": {
             dryRun?: boolean;
             skipExisting?: boolean;
             targetTables?: string[];
         };
-        "handlers.ScheduleBackupRequest": {
+        "internal_infrastructure_api_handlers_protected.ScheduleBackupRequest": {
             dayOfMonth?: number;
             dayOfWeek?: number;
             /** @enum {string} */
@@ -2967,7 +3715,7 @@ export interface components {
             /** @enum {string} */
             type: "full" | "database" | "files" | "incremental";
         };
-        "handlers.ScheduledItemRequest": {
+        "internal_infrastructure_api_handlers_protected.ScheduledItemRequest": {
             content: {
                 [key: string]: unknown;
             };
@@ -2981,29 +3729,52 @@ export interface components {
             /** @enum {string} */
             type: "announcement" | "exam" | "task" | "post" | "content";
         };
-        "handlers.SendMessageRequest": {
+        "internal_infrastructure_api_handlers_protected.SearchHistoryRequest": {
+            metadata?: {
+                [key: string]: unknown;
+            };
+            query: string;
+            results?: number;
+            timestamp?: number;
+            /** @description course, resource, teacher, video, all */
+            type?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.SearchResultItem": {
+            category?: string;
+            description?: string;
+            id?: string;
+            relevance?: number;
+            title?: string;
+            type?: string;
+            url?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.SendMessageRequest": {
             isInternal?: boolean;
             message: string;
         };
-        "handlers.UpdateTicketPriorityRequest": {
+        "internal_infrastructure_api_handlers_protected.UnifiedSearchResponse": {
+            results?: components["schemas"]["internal_infrastructure_api_handlers_protected.SearchResultItem"][];
+            total?: number;
+        };
+        "internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest": {
             /** @enum {string} */
             priority: "low" | "medium" | "high" | "urgent";
         };
-        "handlers.UpdateTicketStatusRequest": {
+        "internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest": {
             /** @enum {string} */
             status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
         };
-        "handlers.UserJourneyRequest": {
+        "internal_infrastructure_api_handlers_protected.UserJourneyRequest": {
             completed?: boolean;
             conversionGoal?: string;
             endedAt?: string;
             sessionId: string;
             startedAt: string;
-            steps: components["schemas"]["handlers.UserJourneyStep"][];
+            steps?: components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyStep"][];
             totalDuration?: number;
             userId: string;
         };
-        "handlers.UserJourneyStep": {
+        "internal_infrastructure_api_handlers_protected.UserJourneyStep": {
             action?: string;
             duration?: number;
             id?: string;
@@ -3015,7 +3786,472 @@ export interface components {
             timestamp?: string;
             userId?: string;
         };
-        "pagination.PaginatedResponse": {
+        "thanawy-backend_internal_application_dto.CourseDetailData": {
+            course?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+        };
+        "thanawy-backend_internal_application_dto.CourseDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailData"];
+            enrollment?: components["schemas"]["thanawy-backend_internal_domain_common.Enrollment"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.CourseListData": {
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"][];
+            offset?: number;
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
+        };
+        "thanawy-backend_internal_application_dto.CourseListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseListData"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.LoginRequest": {
+            deviceName?: string;
+            email: string;
+            fingerprint?: string;
+            password: string;
+            rememberMe?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.LoginResponse": {
+            accessToken?: string;
+            refreshToken?: string;
+            user?: components["schemas"]["thanawy-backend_internal_application_dto.UserDTO"];
+        };
+        "thanawy-backend_internal_application_dto.Pagination": {
+            limit?: number;
+            page?: number;
+            total?: number;
+            totalPages?: number;
+        };
+        "thanawy-backend_internal_application_dto.TeachingChapterContract": {
+            id?: string;
+            lessons?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingLessonContract"][];
+            title?: string;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseContract": {
+            category?: string;
+            categoryId?: string;
+            chapters?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingChapterContract"][];
+            createdDate?: string;
+            description?: string;
+            duration?: string;
+            id?: string;
+            language?: string;
+            lessonsCount?: number;
+            level?: string;
+            price?: number;
+            rating?: number;
+            shortDescription?: string;
+            status?: string;
+            studentsCount?: number;
+            thumbnail?: string;
+            title?: string;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseData": {
+            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseDeleteData": {
+            deleted?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteData"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseMutationData": {
+            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
+            message?: string;
+            warnings?: string[];
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseMutationResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationData"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCourseResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseData"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.TeachingCoursesListData": {
+            courses?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"][];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingPaginationContract"];
+        };
+        "thanawy-backend_internal_application_dto.TeachingCoursesListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListData"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.TeachingLessonContract": {
+            duration?: string;
+            durationMinutes?: number;
+            id?: string;
+            isPreview?: boolean;
+            title?: string;
+            type?: string;
+        };
+        "thanawy-backend_internal_application_dto.TeachingPaginationContract": {
+            limit?: number;
+            page?: number;
+            total?: number;
+            totalPages?: number;
+        };
+        "thanawy-backend_internal_application_dto.UserDTO": {
+            avatar?: string;
+            email?: string;
+            emailVerified?: boolean;
+            id?: string;
+            name?: string;
+            permissions?: string[];
+            phoneVerified?: boolean;
+            role?: string;
+            status?: string;
+            username?: string;
+        };
+        "thanawy-backend_internal_application_dto.UserProfileEnvelope": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileResponse"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.UserProfileResponse": {
+            alternativePhone?: string;
+            avatar?: string;
+            bio?: string;
+            city?: string;
+            country?: string;
+            dateOfBirth?: string;
+            educationType?: string;
+            email?: string;
+            emailVerified?: boolean;
+            experienceYears?: string;
+            gender?: string;
+            gradeLevel?: string;
+            id?: string;
+            mfaEnabled?: boolean;
+            name?: string;
+            phone?: string;
+            phoneVerified?: boolean;
+            school?: string;
+            section?: string;
+            studyGoal?: string;
+            subjectsTaught?: string[];
+            username?: string;
+        };
+        "thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateResponse"];
+            success?: boolean;
+        };
+        "thanawy-backend_internal_application_dto.UserProfileUpdateRequest": {
+            alternativePhone?: string;
+            avatar?: string;
+            bio?: string;
+            birthDate?: string;
+            city?: string;
+            country?: string;
+            educationType?: string;
+            experienceYears?: string;
+            gender?: string;
+            gradeLevel?: string;
+            name?: string;
+            phone?: string;
+            school?: string;
+            section?: string;
+            studyGoal?: string;
+            subjectsTaught?: string[];
+            username?: string;
+        };
+        "thanawy-backend_internal_application_dto.UserProfileUpdateResponse": {
+            message?: string;
+        };
+        "thanawy-backend_internal_application_dto.VerifyMFARequest": {
+            challengeId: string;
+            code: string;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
+        "thanawy-backend_internal_domain_common.CourseTag": {
+            createdAt?: string;
+            id?: string;
+            name?: string;
+            slug?: string;
+        };
+        "thanawy-backend_internal_domain_common.Enrollment": {
+            createdAt?: string;
+            enrolledAt?: string;
+            id?: string;
+            progress?: number;
+            /** @description Relations */
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subjectId?: string;
+            updatedAt?: string;
+            user?: components["schemas"]["thanawy-backend_internal_domain_common.User"];
+            userId?: string;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
+        "thanawy-backend_internal_domain_common.Exam": {
+            createdAt?: string;
+            description?: string;
+            difficulty?: string;
+            duration?: number;
+            id?: string;
+            isActive?: boolean;
+            maxScore?: number;
+            /** @description Virtual fields */
+            questionCount?: number;
+            questions?: components["schemas"]["thanawy-backend_internal_domain_common.Question"][];
+            /** @description Relations */
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subjectId?: string;
+            title?: string;
+            type?: components["schemas"]["thanawy-backend_internal_domain_common.ExamType"];
+            updatedAt?: string;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
+        "thanawy-backend_internal_domain_common.LessonAttachment": {
+            createdAt?: string;
+            fileSize?: number;
+            /** @description PDF, ZIP, etc. */
+            fileType?: string;
+            fileUrl?: string;
+            id?: string;
+            subTopicId?: string;
+            title?: string;
+        };
+        "thanawy-backend_internal_domain_common.LessonSubtitle": {
+            createdAt?: string;
+            id?: string;
+            isDefault?: boolean;
+            isForHearingImpaired?: boolean;
+            language?: string;
+            languageName?: string;
+            /** @description Relations */
+            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
+            subTopicId?: string;
+            subtitleFormat?: components["schemas"]["thanawy-backend_internal_domain_common.SubtitleFormat"];
+            subtitleUrl?: string;
+            updatedAt?: string;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.Level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+        "thanawy-backend_internal_domain_common.Question": {
+            examId?: string;
+            id?: string;
+            options?: string;
+            text?: string;
+            type?: string;
+        };
+        "thanawy-backend_internal_domain_common.SubTopic": {
+            /** @description Relations */
+            attachments?: components["schemas"]["thanawy-backend_internal_domain_common.LessonAttachment"][];
+            audioDurationSeconds?: number;
+            /** @description Phase 1: Advanced lesson fields (migration 0109) */
+            audioUrl?: string;
+            avgWatchTimeSeconds?: number;
+            chapters?: components["schemas"]["thanawy-backend_internal_domain_common.VideoChapter"][];
+            completionCount?: number;
+            content?: string;
+            createdAt?: string;
+            description?: string;
+            dripReleaseDate?: string;
+            durationMinutes?: number;
+            exam?: components["schemas"]["thanawy-backend_internal_domain_common.Exam"];
+            examId?: string;
+            externalLinkTitle?: string;
+            externalLinkUrl?: string;
+            id?: string;
+            isContentProtected?: boolean;
+            isDripEnabled?: boolean;
+            isFree?: boolean;
+            order?: number;
+            /** @description Non-DB mapped fields */
+            subtitles?: components["schemas"]["thanawy-backend_internal_domain_common.LessonSubtitle"][];
+            title?: string;
+            /** @description Relations */
+            topic?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"];
+            topicId?: string;
+            type?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopicType"];
+            updatedAt?: string;
+            videoUrl?: string;
+            /** @description Denormalized stats */
+            viewCount?: number;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.SubTopicType": "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT" | "AUDIO" | "LINK" | "LIVE" | "DOCUMENT";
+        "thanawy-backend_internal_domain_common.Subject": {
+            archivedAt?: string;
+            archivedBy?: string;
+            availableFrom?: string;
+            availableUntil?: string;
+            categoryId?: string;
+            certificateIssueAfterCompletion?: boolean;
+            certificateMinCompletionPct?: number;
+            /** @description Certificate config (Phase 1) */
+            certificateTemplate?: string;
+            code?: string;
+            color?: string;
+            completionRate?: number;
+            /** @description New fields to match DB and frontend */
+            coursePrerequisites?: string[];
+            createdAt?: string;
+            description?: string;
+            durationHours?: number;
+            enrolledCount?: number;
+            /** @description Operational & enrollment (Phase 1) */
+            enrollmentType?: components["schemas"]["thanawy-backend_internal_domain_common.EnrollmentType"];
+            hasCertificate?: boolean;
+            icon?: string;
+            id?: string;
+            instructorId?: string;
+            instructorName?: string;
+            isActive?: boolean;
+            isFeatured?: boolean;
+            isNew?: boolean;
+            isPublished?: boolean;
+            isTrending?: boolean;
+            language?: string;
+            lastContentUpdate?: string;
+            learningObjectives?: string;
+            level?: components["schemas"]["thanawy-backend_internal_domain_common.Level"];
+            longDescription?: string;
+            maxStudents?: number;
+            name: string;
+            nameAr?: string;
+            newUntil?: string;
+            price: number;
+            publishedAt?: string;
+            rating: number;
+            rejectionReason?: string;
+            requirements?: string;
+            reviewedAt?: string;
+            reviewedBy?: string;
+            secondaryLanguages?: string[];
+            seoDescription?: string;
+            seoTitle?: string;
+            shortDescription?: string;
+            slug?: string;
+            /** @description Lifecycle and enhanced fields (migration 0064 + 0109) */
+            status?: components["schemas"]["thanawy-backend_internal_domain_common.CourseStatus"];
+            /** @description Workflow metadata (Phase 1: 0109) */
+            submittedForReviewAt?: string;
+            tags?: components["schemas"]["thanawy-backend_internal_domain_common.CourseTag"][];
+            targetAudience?: string[];
+            thumbnailUrl?: string;
+            /** @description Relations */
+            topics?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"][];
+            trailerDurationMinutes?: number;
+            trailerUrl?: string;
+            type?: string;
+            updatedAt?: string;
+            version?: string;
+            videoCount?: number;
+            whatYouLearn?: string[];
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.SubtitleFormat": "vtt" | "srt" | "json";
+        "thanawy-backend_internal_domain_common.Topic": {
+            createdAt?: string;
+            description?: string;
+            id?: string;
+            order?: number;
+            /** @description Relations */
+            subTopics?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"][];
+            subjectId?: string;
+            title?: string;
+            updatedAt?: string;
+        };
+        "thanawy-backend_internal_domain_common.User": {
+            /** @description Subscriptions */
+            activeSubscriptionId?: string;
+            additionalAiCredits?: number;
+            additionalExamCredits?: number;
+            aiCredits?: number;
+            alternativePhone?: string;
+            avatar?: string;
+            /** @description Billing & Credits */
+            balance?: number;
+            bio?: string;
+            biometricEnabled?: boolean;
+            challengeXP?: number;
+            city?: string;
+            classesTaught?: string[];
+            commissionRate?: number;
+            country?: string;
+            createdAt?: string;
+            /** @description Gamification (stats) */
+            currentStreak?: number;
+            dateOfBirth?: string;
+            educationType?: string;
+            email: string;
+            emailNotifications?: boolean;
+            emailVerified?: boolean;
+            examCredits?: number;
+            examXP?: number;
+            examsPassed?: number;
+            experienceYears?: string;
+            focusStrategy?: string;
+            gender?: string;
+            githubId?: string;
+            googleId?: string;
+            gradeLevel?: string;
+            id?: string;
+            instructorLanguages?: string[];
+            instructorSpecialties?: string[];
+            instructorStatus?: string;
+            interestedSubjects?: string[];
+            /** @description Security & Auth */
+            lastLogin?: string;
+            level?: number;
+            longestStreak?: number;
+            name?: string;
+            /** @description Access Control */
+            permissions?: string[];
+            /** @description Profile fields */
+            phone?: string;
+            phoneVerified?: boolean;
+            questXP?: number;
+            referralCode?: string;
+            /** @enum {unknown} */
+            role: "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
+            school?: string;
+            seasonXP?: number;
+            section?: string;
+            sleepTime?: string;
+            smsNotifications?: boolean;
+            /** @enum {unknown} */
+            status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
+            statusExpiresAt?: string;
+            statusReason?: string;
+            studyGoal?: string;
+            /** @description Multi-layer XP */
+            studyXP?: number;
+            subjectsTaught?: string[];
+            subscriptionExpiresAt?: string;
+            taskXP?: number;
+            tasksCompleted?: number;
+            totalStudyTime?: number;
+            /** @description Gamification (core) */
+            totalXP?: number;
+            twoFactorEnabled?: boolean;
+            updatedAt?: string;
+            username?: string;
+            /** @description Profile extended */
+            wakeUpTime?: string;
+        };
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.UserRole": "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
+        /** @enum {string} */
+        "thanawy-backend_internal_domain_common.UserStatus": "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
+        "thanawy-backend_internal_domain_common.VideoChapter": {
+            createdAt?: string;
+            id?: string;
+            isActive?: boolean;
+            sortOrder?: number;
+            /** @description Relations */
+            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
+            subTopicId?: string;
+            timeSeconds?: number;
+            title?: string;
+            titleAr?: string;
+            updatedAt?: string;
+        };
+        "thanawy-backend_internal_shared_utils.PaginatedResponse": {
             data?: unknown;
             pagination?: {
                 count?: number;
@@ -3029,11 +4265,11 @@ export interface components {
     responses: never;
     parameters: never;
     requestBodies: {
-        /** @description Verification code */
+        /** @description Course payload */
         Request: {
             content: {
                 "application/json": {
-                    [key: string]: string;
+                    [key: string]: unknown;
                 };
             };
         };

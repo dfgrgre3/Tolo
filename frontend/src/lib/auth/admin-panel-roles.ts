@@ -1,4 +1,9 @@
 /**
+ * The single source of truth for roles allowed into the staff admin panel.
+ *
+ * Keep this list shared by every client-side admin-panel entry point. The
+ * backend remains authoritative for the actual authorization decision.
+ *
  * Admin panel role helpers.
  *
  * The Go backend is authoritative for permissions (GET /api/auth/me), but we need

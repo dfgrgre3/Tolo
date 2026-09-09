@@ -96,22 +96,24 @@ export interface UserSummary {
     role: UserRole;
 }
 
-/** Profile update payload — PATCH /api/auth/profile */
+/** Profile update payload — PATCH /api/users/profile */
 export interface UpdateProfilePayload {
     name?: string;
     username?: string;
     phone?: string;
+    alternativePhone?: string;
     country?: string;
+    city?: string;
+    gender?: string;
+    school?: string;
     gradeLevel?: string;
     educationType?: string;
     section?: string;
     bio?: string;
-    dateOfBirth?: string;
-    wakeUpTime?: string;
-    sleepTime?: string;
-    focusStrategy?: string;
+    /** YYYY-MM-DD. The wire field is birthDate; the database field is dateOfBirth. */
+    birthDate?: string;
     studyGoal?: string;
-    interestedSubjects?: string[];
-    emailNotifications?: boolean;
-    smsNotifications?: boolean;
+    subjectsTaught?: string[];
+    experienceYears?: string;
+    avatar?: string;
 }

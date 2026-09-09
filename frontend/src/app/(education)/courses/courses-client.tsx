@@ -136,7 +136,7 @@ export default function CoursesClient({
       .then((payload) => {
         const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
         const data = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : root;
-        const enrolledRows = data.courses ?? data.items ?? [];
+        const enrolledRows = data.items ?? [];
         const enrolledIds = new Set(
           Array.isArray(enrolledRows)
             ? enrolledRows.map((row) => row && typeof row === "object" ? String((row as Record<string, unknown>).id || (row as Record<string, unknown>).subjectId || "") : "")

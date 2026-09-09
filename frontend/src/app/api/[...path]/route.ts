@@ -43,8 +43,7 @@ const FETCH_TIMEOUT_MS = 25_000;
 // Maximum allowed request body size forwarded through the proxy.
 // Requests advertising a larger Content-Length are rejected immediately (413)
 // before any upstream connection is made, preventing memory exhaustion and
-// keeping serverless billing low. Routes with their own body-size enforcement
-// (e.g. /api/storage/chunked-upload) never reach this gateway.
+// keeping serverless billing low.
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
 
 // =============================================================================
@@ -293,6 +292,11 @@ async function handleProxy(
 ) {
   const params = await props.params;
   const path = params.path.join('/');
+
+  // This route is transport-only. It forwards the caller's auth context to
+  // the backend but never makes an authorization decision. Privileged
+  // operations must be rejected by the backend using JWT/session identity,
+  // server-side permissions, and resource ownership checks.
 
   // SECURITY: /api/storage/* is a redirect-only fast path to the Supabase
   // Storage CDN. A redirect is only safe when the target object is genuinely

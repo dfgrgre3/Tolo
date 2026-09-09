@@ -20,6 +20,32 @@ export interface ApiErrorResponse {
 
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
+/** Backward-compatible name used by frontend consumers. */
+export type PaginatedMeta = PaginationMeta;
+
+/** Runtime guard for the discriminated API envelope. */
+export function isApiResponse(value: unknown): value is ApiResponse {
+    if (typeof value !== 'object' || value === null || !('success' in value)) {
+        return false;
+    }
+
+    const response = value as Record<string, unknown>;
+    if (response.success === true) {
+        return 'data' in response && response.data !== undefined;
+    }
+
+    if (response.success !== false || typeof response.error !== 'string') {
+        return false;
+    }
+
+    return (
+        (response.code === undefined || typeof response.code === 'string') &&
+        (response.status === undefined || typeof response.status === 'number') &&
+        (response.details === undefined ||
+            (typeof response.details === 'object' && response.details !== null && !Array.isArray(response.details)))
+    );
+}
+
 export interface PaginationParams {
     page?: number;
     limit?: number;
@@ -41,8 +67,8 @@ export interface PaginationMeta {
     page: number;
     limit: number;
     totalPages: number;
-    hasNextPage?: boolean;
-    hasPrevPage?: boolean;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
 }
 
 export interface ApiListData<T> {
@@ -55,29 +81,4 @@ export interface PaginatedResponse<T> {
     data: T[];
     meta: PaginationMeta;
     total?: number;
-}
-
-export class ApiError extends Error {
-    public readonly status: number;
-    public readonly code?: string;
-    public readonly data?: Record<string, unknown>;
-
-    constructor(
-        message: string,
-        status: number,
-        code?: string,
-        data?: Record<string, unknown>
-    ) {
-        super(message);
-        this.name = 'ApiError';
-        this.status = status;
-        this.code = code;
-        this.data = data;
-    }
-
-    get isUnauthorized(): boolean { return this.status === 401; }
-    get isForbidden(): boolean { return this.status === 403; }
-    get isNotFound(): boolean { return this.status === 404; }
-    get isValidation(): boolean { return this.status === 422; }
-    get isRateLimited(): boolean { return this.status === 429; }
 }

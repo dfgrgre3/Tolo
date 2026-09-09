@@ -38,7 +38,7 @@ export async function fetchCourses(sort: CourseSort): Promise<CourseItem[]> {
   if (error || !data) {
     return [];
   }
-  const list = data.items || data.courses || data.subjects || data.data || [];
+  const list = data.items || data.data?.items || [];
   return Array.isArray(list) ? list : [];
 }
 

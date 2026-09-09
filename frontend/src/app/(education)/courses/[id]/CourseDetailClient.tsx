@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { updateLessonProgress } from "@/lib/course-progress";
+import { normalizeLessonProgressResponse } from "@thanawy/shared/types/enums";
 import {
   toLessonCards,
   type CourseDetailHydrationResponse,
@@ -185,17 +186,21 @@ export default function CourseDetailClient({
     if (!userId || !course) return;
     try {
       const data = await updateLessonProgress(lessonId, { completed: true });
-      setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: data.lessonProgress ?? 100 } : l));
+      const snapshot = normalizeLessonProgressResponse(data, lessonId);
+      setLessons((prev) => prev.map((l) => l.id === lessonId ? {
+        ...l,
+        completed: snapshot.lesson.completed,
+        progress: snapshot.lesson.percentage,
+      } : l));
       if (typeof data.courseProgress === "number") {
         setCourse((prev) => {
-          const progress = data.courseProgress ?? prev.progress ?? 0;
+          const progress = snapshot.courseProgress;
           return {
           ...prev,
           progress,
           completion: {
-            isComplete: Boolean(data.isCourseComplete),
+            ...snapshot.eligibility,
             progress,
-            certificateEligible: Boolean(data.certificateEligible),
           },
         };
         });
@@ -384,6 +389,10 @@ export default function CourseDetailClient({
                                     isComplete: completion.courseCompleted,
                                     progress: completion.courseProgress,
                                     certificateEligible: completion.certificateEligible,
+                                    requiredExams: 0,
+                                    completedRequiredExams: 0,
+                                    requiredCourseQuizzes: 0,
+                                    completedCourseQuizzes: 0,
                                   },
                                 }));
                                 if (completion.lessonCompleted) {

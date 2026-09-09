@@ -44,6 +44,12 @@ describe("canRetryMethod", () => {
     expect(canRetryMethod("POST")).toBe(false);
     expect(canRetryMethod("PATCH")).toBe(false);
   });
+
+  it("allows write retries only when the request has an idempotency key", () => {
+    expect(canRetryMethod("POST", true)).toBe(true);
+    expect(canRetryMethod("PATCH", true)).toBe(true);
+    expect(canRetryMethod("DELETE", true)).toBe(true);
+  });
 });
 
 describe("error class taxonomy", () => {
@@ -143,6 +149,11 @@ describe("isRetryableError", () => {
   it("never retries PATCH regardless of the error", () => {
     expect(isRetryableError(new TimeoutError(), 0, 3, "PATCH")).toBe(false);
     expect(isRetryableError(new NetworkError(), 0, 3, "PATCH")).toBe(false);
+  });
+
+  it("retries keyed POST and PATCH requests", () => {
+    expect(isRetryableError(new TimeoutError(), 0, 3, "POST", true)).toBe(true);
+    expect(isRetryableError(new NetworkError(), 0, 3, "PATCH", true)).toBe(true);
   });
 
   it("stops once the retry budget is exhausted", () => {

@@ -16,6 +16,7 @@
     "audit": "node scripts/comprehensive-error-check.mjs",
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix",
     "knip": "npx knip --directory frontend",
+    "knip:check": "node scripts/check-knip-baseline.mjs",
     "build": "npm run build:frontend",
     "contracts:fetch": "node scripts/fetch-swagger.mjs",
     "contracts:generate": "npm run contracts:fetch && npm run generate:api-types",

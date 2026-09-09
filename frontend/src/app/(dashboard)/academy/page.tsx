@@ -48,11 +48,7 @@ export default function GamifiedCoursesDashboard() {
         const res = await apiClient.fetch(apiRoutes.courses.list);
         if (res.ok) {
           const data = await res.json();
-          const fetchedCourses = Array.isArray(data.courses) ?
-          data.courses :
-          Array.isArray(data.subjects) ?
-          data.subjects :
-          [];
+          const fetchedCourses = Array.isArray(data.data?.items) ? data.data.items : [];
           setCourses(fetchedCourses);
         }
       } catch (err) {

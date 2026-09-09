@@ -35,8 +35,10 @@ export const sleep = (ms: number) =>
     // simultaneously they would hammer the backend in lockstep without jitter.
     new Promise<void>((resolve) => setTimeout(resolve, ms + Math.random() * ms * 0.1));
 
-export function canRetryMethod(method: string): boolean {
-    return RETRYABLE_METHODS.includes(method.toUpperCase());
+export function canRetryMethod(method: string, hasIdempotencyKey = false): boolean {
+    const normalized = method.toUpperCase();
+    return RETRYABLE_METHODS.includes(normalized)
+        || (hasIdempotencyKey && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalized));
 }
 
 // ---------------------------------------------------------------------------
@@ -114,8 +116,9 @@ export function isRetryableError(
     retryCount: number,
     retries: number,
     method: string,
+    hasIdempotencyKey = false,
 ): boolean {
-    if (!canRetryMethod(method)) return false;
+    if (!canRetryMethod(method, hasIdempotencyKey)) return false;
     if (retryCount >= retries) return false;
 
     const classified = classifyFetchError(error);
@@ -125,6 +128,6 @@ export function isRetryableError(
     if (classified instanceof CallerAbortError) return false;
 
     // Internal timeouts and network failures are transient and safe to retry
-    // for idempotent methods (already gated by canRetryMethod above).
+    // for methods accepted by canRetryMethod above.
     return classified instanceof TimeoutError || classified instanceof NetworkError;
 }

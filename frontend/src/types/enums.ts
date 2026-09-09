@@ -31,11 +31,17 @@ export enum TaskStatus {
 
 export enum UserRole {
     STUDENT = 'STUDENT',
-    PREMIUM = 'PREMIUM',
     TEACHER = 'TEACHER',
-    MODERATOR = 'MODERATOR',
-    ADMIN = 'ADMIN',
-    SUPER_ADMIN = 'SUPER_ADMIN',
+  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  PARENT = 'PARENT',
+  SUPPORT = 'SUPPORT',
+}
+
+/** Access entitlements are subscription-derived, not authorization roles. */
+export enum Entitlement {
+  PREMIUM = 'PREMIUM',
 }
 
 export enum UserStatus {
@@ -58,13 +64,9 @@ export enum NotificationType {
   ERROR = 'ERROR',
 }
 
-export enum LessonType {
-  VIDEO = 'VIDEO',
-  ARTICLE = 'ARTICLE',
-  QUIZ = 'QUIZ',
-  FILE = 'FILE',
-  ASSIGNMENT = 'ASSIGNMENT',
-}
+/** Canonical lesson type; unknown server values are adapter-level INVALID. */
+export { LessonType } from '@thanawy/shared/types/enums';
+export type { LessonType as CanonicalLessonType } from '@thanawy/shared/types/enums';
 
 export enum AchievementCategory {
   STUDY = 'STUDY',

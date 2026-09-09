@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
         if (coursesRes.ok) {
           const data = await coursesRes.json();
-          const courses = data.data?.courses || data.courses || [];
+          const courses = data.data?.items || data.items || [];
           if (courses.length > 0) setLastCourse(courses[0]);
         }
       } catch (error) {

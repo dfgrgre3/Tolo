@@ -53,7 +53,7 @@ export function LearningSuggestions() {
         // Fetch courses and pick suggestions based on recent searches
         const res = await apiClient.get<any>("/courses?limit=20");
         const payload = res.data ?? res;
-        const courses: any[] = payload.courses ?? payload.items ?? payload.subjects ?? [];
+        const courses: any[] = payload.items ?? [];
 
         if (searches.length > 0 && courses.length > 0) {
           // Score courses by relevance to recent searches

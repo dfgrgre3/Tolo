@@ -94,12 +94,8 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/thanawy_ci?sslmode=disable
 
   knip:
-    name: Dead code report (knip)
+    name: Dead code baseline gate (knip)
     runs-on: ubuntu-latest
-    # Report-only for now: the audit documented known dead code
-    # (src/data-access, exams/components, unused hooks, ...). Remove this
-    # flag once the cleanup lands so knip becomes a hard gate.
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -114,8 +110,14 @@ jobs:
       - name: Install dependencies (workspaces root)
         run: npm ci
 
-      - name: Run knip
+      # Keep the complete report visible while the existing backlog is removed.
+      - name: Run full Knip report
         run: npm run knip
+        continue-on-error: true
+
+      # Existing unused files are baselined. New unused files fail the check.
+      - name: Check Knip baseline
+        run: npm run knip:check
 
   audit:
     name: Security audit (npm)

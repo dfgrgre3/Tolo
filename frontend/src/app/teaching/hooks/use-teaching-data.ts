@@ -3,6 +3,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import {
+  contractCreateTeachingCourse,
+  contractDeleteTeachingCourse,
+  contractListTeachingCourses,
+  contractUpdateTeachingCourse,
+} from "@/services/api/contracts-teaching-courses-service";
 import { usePermission } from "@/hooks/use-permission";
 import type { QuizQuestion } from "@/types/course-quiz";
 import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
@@ -226,12 +232,6 @@ export interface ReviewsResponse {
   reviews: Review[];
 }
 
-export interface ApiSuccessResponse {
-  success: boolean;
-  data?: Record<string, unknown>;
-  error?: string;
-}
-
 const EMPTY_STATS: InstructorStats = {
   totalCourses: 0,
   publishedCourses: 0,
@@ -297,7 +297,10 @@ export function useTeachingData(activeTab: string = "dashboard") {
   // Courses: when dashboard or courses tab is active
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
-    queryFn: () => apiClient.get<CoursesListResponse>(apiRoutes.teaching.courses.list),
+    queryFn: async () => {
+      const result = await contractListTeachingCourses();
+      return result.data?.data as unknown as CoursesListResponse;
+    },
     enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses" || activeTab === "quizzes"),
     retry: 1,
     staleTime: STALE_TIME,
@@ -322,7 +325,8 @@ export function useTeachingData(activeTab: string = "dashboard") {
         chapters: mapTeachingChapters(newCourse.chapters),
         ...(mapTeachingQuizzes(newCourse).length > 0 ? { quizzes: mapTeachingQuizzes(newCourse) } : {}),
       };
-      return apiClient.post<{ course: Course }>(apiRoutes.teaching.courses.create, body);
+      const result = await contractCreateTeachingCourse(body);
+      return result.data?.data as unknown as { course: Course };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -333,7 +337,8 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const updateCourse = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Course> }) => {
       const body = buildCourseUpdateBody(data);
-      return apiClient.patch<ApiSuccessResponse & { course?: Course }>(apiRoutes.teaching.courses.byId(id), body);
+      const result = await contractUpdateTeachingCourse(id, body);
+      return result.data?.data as unknown as { message?: string; course?: Course };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
@@ -342,7 +347,10 @@ export function useTeachingData(activeTab: string = "dashboard") {
   });
 
   const deleteCourse = useMutation({
-    mutationFn: (id: string) => apiClient.delete<{ deleted: boolean }>(apiRoutes.teaching.courses.byId(id)),
+    mutationFn: async (id: string) => {
+      const result = await contractDeleteTeachingCourse(id);
+      return result.data?.data as unknown as { deleted: boolean };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "courses"] });
       queryClient.invalidateQueries({ queryKey: ["teaching", "stats"] });

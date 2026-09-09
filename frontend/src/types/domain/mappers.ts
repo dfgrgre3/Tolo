@@ -7,6 +7,12 @@
  * `Course` / `CourseLesson` / `Lesson` drift started).
  */
 import type { Subject, Topic, SubTopic, LessonAttachment, InteractiveQuestion, Enrollment, Progress } from './course';
+import { LessonType } from '@thanawy/shared/types/enums';
+import type { CompletionEligibility, CourseProgressSnapshot, LessonProgressMutationResponse } from '@thanawy/shared/types/enums';
+export type { CompletionEligibility, CourseProgressSnapshot, LessonProgressMutationResponse };
+
+export type InvalidLessonType = 'INVALID';
+export type LessonViewType = LessonType | InvalidLessonType;
 
 // ──────────────────────────────────────────────
 // Course detail page (app/(education)/courses/[id])
@@ -79,7 +85,7 @@ export interface LessonQuestionsResponse {
   }>;
 }
 
-export interface LessonProgressResponse {
+export interface LessonProgressResponse extends Partial<LessonProgressMutationResponse> {
   xpAwarded?: number;
   isCourseComplete?: boolean;
   lessonProgress?: number;
@@ -103,15 +109,7 @@ export interface EnrollmentEligibilityResponse {
   price: number;
 }
 
-export interface CompletionSnapshot {
-  isComplete: boolean;
-  progress: number;
-  certificateEligible: boolean;
-  completedRequiredExams?: number;
-  requiredExams?: number;
-  completedCourseQuizzes?: number;
-  requiredCourseQuizzes?: number;
-}
+export type CompletionSnapshot = CompletionEligibility & { progress: number };
 
 /** View model for the course-detail page hero / sidebar. */
 export interface CourseSummaryView {
@@ -147,7 +145,7 @@ export interface LessonCardView {
   description?: string;
   content?: string;
   videoUrl?: string;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT' | 'DOCUMENT' | 'AUDIO' | 'LIVE' | 'LINK' | 'INVALID';
+  type: LessonViewType;
   isFree: boolean;
   locked: boolean;
   /** seconds (normalized from durationMinutes) */
@@ -157,13 +155,36 @@ export interface LessonCardView {
   progress: number;
 }
 
-const LESSON_TYPES = new Set(['VIDEO', 'ARTICLE', 'QUIZ', 'ASSIGNMENT', 'DOCUMENT', 'AUDIO', 'LIVE', 'LINK', 'INVALID']);
+const LESSON_TYPES: ReadonlySet<string> = new Set(Object.values(LessonType));
 
 function normalizeLessonType(type?: string | null): LessonCardView['type'] {
   const normalized = type?.trim().toUpperCase();
   return normalized && LESSON_TYPES.has(normalized)
-    ? (normalized as LessonCardView['type'])
+    ? (normalized as LessonType)
     : reportInvalidLessonType(type);
+}
+
+/** View model for catalog cards and catalog filtering. */
+export interface CourseCatalogView {
+  id: string;
+  title: string;
+  description: string;
+  instructor: string;
+  subject: string;
+  categoryId: string;
+  categoryName: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  duration: number;
+  thumbnailUrl?: string;
+  price: number;
+  rating: number;
+  enrolledCount: number;
+  createdAt: string;
+  tags?: string[];
+  enrolled: boolean;
+  progress?: number;
+  isFeatured: boolean;
+  lessonsCount: number;
 }
 
 function reportInvalidLessonType(type?: string | null): 'INVALID' {
@@ -248,7 +269,7 @@ export interface LearningLessonView {
   description: string | null;
   content: string | null;
   videoUrl: string | null;
-  type: 'VIDEO' | 'ARTICLE' | 'QUIZ' | 'ASSIGNMENT' | 'DOCUMENT' | 'AUDIO' | 'LIVE' | 'LINK' | 'INVALID';
+  type: LessonViewType;
   completed: boolean;
   order: number;
   durationMinutes: number;

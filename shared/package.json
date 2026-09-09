@@ -30,6 +30,14 @@
       "types": "./src/types/user.ts",
       "default": "./src/types/user.ts"
     },
+    "./types/course-state": {
+      "types": "./src/types/course-state.ts",
+      "default": "./src/types/course-state.ts"
+    },
+    "./types/progress": {
+      "types": "./src/types/progress.ts",
+      "default": "./src/types/progress.ts"
+    },
     "./types/auth": {
       "types": "./src/types/auth.ts",
       "default": "./src/types/auth.ts"

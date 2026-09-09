@@ -1,35 +1,18 @@
-export type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+import type { CourseCatalogView } from '@/types/domain/mappers';
+
+/** Catalog view shape is owned by the domain mapper layer. */
+export type CourseSummary = CourseCatalogView;
+
+export type CourseLevel = CourseCatalogView['level'];
 
 export type SortOption =
-  | "newest"
-  | "popular"
-  | "rated"
-  | "price-low"
-  | "price-high"
-  | "duration-short"
-  | "duration-long";
-
-export type CourseSummary = {
-  id: string;
-  title: string;
-  description: string;
-  instructor: string;
-  subject: string;
-  categoryId: string;
-  categoryName: string;
-  level: CourseLevel;
-  duration: number;
-  thumbnailUrl?: string;
-  price: number;
-  rating: number;
-  enrolledCount: number;
-  createdAt: string;
-  tags?: string[];
-  enrolled: boolean;
-  progress?: number;
-  isFeatured: boolean;
-  lessonsCount: number;
-};
+  | 'newest'
+  | 'popular'
+  | 'rated'
+  | 'price-low'
+  | 'price-high'
+  | 'duration-short'
+  | 'duration-long';
 
 export type CourseCategory = {
   id: string;

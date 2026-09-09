@@ -1,9 +1,13 @@
 const IDEMPOTENT_WRITE_PREFIXES = [
   "/api/payments/",
   "/api/orders/",
+  "/api/subscriptions/",
+  "/api/billing/wallet",
 ] as const;
 
 const COURSE_CHECKOUT_PATH = /^\/api\/courses\/[^/]+\/checkout$/;
+const COURSE_ENROLL_PATH = /^\/api\/courses\/[^/]+\/enroll$/;
+const CART_CHECKOUT_PATH = /^\/api\/cart\/checkout$/;
 
 const NON_IDEMPOTENT_ENDPOINTS = [
   "/api/auth/login",
@@ -14,8 +18,6 @@ const NON_IDEMPOTENT_ENDPOINTS = [
   "/api/telemetry/",
   "/api/ws",
   "/api/search/",
-  "/api/storage/upload",
-  "/api/storage/chunked-upload",
 ] as const;
 
 function pathnameOnly(endpoint: string): string {
@@ -56,7 +58,10 @@ export function requiresIdempotencyKey(method: string, endpoint: string): boolea
   }
 
   // Only explicitly whitelisted endpoints require idempotency keys
-  return COURSE_CHECKOUT_PATH.test(path) || IDEMPOTENT_WRITE_PREFIXES.some(
+  return COURSE_CHECKOUT_PATH.test(path)
+    || COURSE_ENROLL_PATH.test(path)
+    || CART_CHECKOUT_PATH.test(path)
+    || IDEMPOTENT_WRITE_PREFIXES.some(
     (prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix),
   );
 }

@@ -75,9 +75,7 @@ export interface HomepageResponse {
 
 export interface ApiSubjectsResponse {
   items?: CourseItem[];
-  courses?: CourseItem[];
-  subjects?: CourseItem[];
-  data?: CourseItem[];
+  data?: { items?: CourseItem[] };
 }
 
 export interface ApiCategoriesResponse {

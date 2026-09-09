@@ -1,5 +1,7 @@
 export type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-export type SubTopicType = 'VIDEO' | 'QUIZ' | 'ARTICLE' | 'ASSIGNMENT';
+import type { LessonType } from '@thanawy/shared/types/enums';
+
+export type SubTopicType = LessonType;
 
 export interface Subject {
     id: string;
