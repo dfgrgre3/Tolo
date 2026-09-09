@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { Plus, BookOpen, PenTool, MessageSquare, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,16 +16,12 @@ export function QuickActions() {
 
   return (
     <div className="fixed bottom-8 left-8 z-50 flex flex-col items-center gap-4">
-      <AnimatePresence>
+      <>
         {isOpen && (
           <div className="flex flex-col items-center gap-3 mb-2">
             {actions.map((action, idx) => (
-              <m.div
+              <div
                 key={idx}
-                initial={{ opacity: 0, scale: 0, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0, y: 20 }}
-                transition={{ delay: idx * 0.05, type: "spring", stiffness: 260, damping: 20 }}
                 className="group relative"
               >
                 <div className="absolute right-full me-4 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md text-white text-xs font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10 shadow-2xl">
@@ -38,11 +33,11 @@ export function QuickActions() {
                 >
                   <action.icon className="w-5 h-5 text-white" />
                 </Button>
-              </m.div>
+              </div>
             ))}
           </div>
         )}
-      </AnimatePresence>
+      </>
 
       <Button
         onClick={() => setIsOpen(!isOpen)}

@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface VirtualListProps<T> {
@@ -98,15 +97,12 @@ export function VirtualList<T>({
 					}}
 				>
 					{visibleItems.map(({ item, index }) => (
-						<m.div
+						<div
 							key={keyExtractor ? keyExtractor(item, index) : index}
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.2, delay: (index % 10) * 0.01 }}
 							style={{ height: itemHeight }}
 						>
 							{renderItem(item, index)}
-						</m.div>
+						</div>
 					))}
 				</div>
 			</div>

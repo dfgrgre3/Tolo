@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { logger } from "@/lib/logger";
-import { useTokenStreamBuffer } from "@/app/(common)/hooks/useTokenStreamBuffer";
+import { useAIWorkspace } from "../context/AIWorkspaceContext";
 
 export interface Message {
   role: "user" | "assistant";
@@ -10,7 +10,7 @@ export interface Message {
   timestamp: Date;
   sentiment?: {
     sentiment: string;
-    score: number;
+    score?: number;
     suggestions?: string[];
   };
 }
@@ -49,6 +49,7 @@ export function useAIAssistant({
   initialMessage = "مرحباً! أنا مساعدك الذكي في منصة ثناوي. كيف يمكنني مساعدتك اليوم؟",
   userId: _userId,
 }: UseAIAssistantProps = {}) {
+  const { chat } = useAIWorkspace();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -65,25 +66,6 @@ export function useAIAssistant({
   } | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  // Streaming batch handler
-  const onBatch = useCallback((tokens: string[]) => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.role === "assistant") {
-        const updated = { ...last, content: last.content + tokens.join("") };
-        return [...prev.slice(0, -1), updated];
-      }
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: tokens.join(""),
-        timestamp: new Date(),
-      };
-      return [...prev, assistantMessage];
-    });
-  }, []);
-
-  const { addItem, flush } = useTokenStreamBuffer<string>(onBatch, 150);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -178,52 +160,29 @@ export function useAIAssistant({
       const abortController = new AbortController();
 
       try {
-        const response = await fetch("/api/ai/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const data = await chat<{
+          message?: string;
+          sentiment?: { sentiment: string; score?: number; suggestions?: string[] };
+        }>({
             message: currentInput,
             image: image,
             history: messages.slice(-5).map((m) => ({ role: m.role, content: m.content })),
-          }),
-          signal: abortController.signal,
-        });
+        }, { signal: abortController.signal });
         setImage(null);
 
-        if (!response.ok) {
-          throw new Error("فشلت عملية الاتصال بالمساعد الذكي");
+        if (data.sentiment && (data.sentiment.sentiment === "frustrated" || data.sentiment.sentiment === "tired")) {
+          setSentimentAlert({
+            sentiment: data.sentiment.sentiment,
+            suggestions: data.sentiment.suggestions,
+          });
         }
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        if (reader) {
-          let done = false;
-          while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            if (value) {
-              const chunk = decoder.decode(value, { stream: true });
-              const tokens = chunk.split(/\n/).filter(Boolean);
-              tokens.forEach((t) => addItem(t));
-            }
-          }
-          flush();
-        } else {
-          const data = await response.json();
-          if (data.sentiment && (data.sentiment.sentiment === "frustrated" || data.sentiment.sentiment === "tired")) {
-            setSentimentAlert({
-              sentiment: data.sentiment.sentiment,
-              suggestions: data.sentiment.suggestions,
-            });
-          }
-          const assistantMessage: Message = {
-            role: "assistant",
-            content: data.message,
-            timestamp: new Date(),
-            sentiment: data.sentiment,
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-        }
+        const assistantMessage: Message = {
+          role: "assistant",
+          content: data.message || "عذراً، لم تصل إجابة من المساعد.",
+          timestamp: new Date(),
+          sentiment: data.sentiment ? { ...data.sentiment, score: data.sentiment.score ?? 0 } : undefined,
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
       } catch (error: unknown) {
         logger.error("Error sending message:", error instanceof Error ? error.message : String(error));
         const errorMessage: Message = {
@@ -237,7 +196,7 @@ export function useAIAssistant({
         abortController.abort();
       }
     },
-    [input, isLoading, image, messages, addItem, flush]
+    [chat, input, isLoading, image, messages]
   );
 
   return {

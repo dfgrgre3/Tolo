@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { m } from 'framer-motion';
 import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +28,7 @@ export default function TipsGenerator({
   userId,
   className = ""
 }: TipsGeneratorProps) {
+  const { tips } = useAIWorkspace();
   const [selectedSubject, setSelectedSubject] = useState('');
   const [studyGoal, setStudyGoal] = useState('');
   const [challenges, setChallenges] = useState('');
@@ -43,27 +44,13 @@ export default function TipsGenerator({
     setTipsData(null);
 
     try {
-      const response = await fetch('/api/ai/tips', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId,
-          subject: selectedSubject || undefined,
-          studyGoal: studyGoal || undefined,
-          challenges: challenges || undefined,
-          currentGrade: currentGrade || undefined,
-          provider: 'gemini'
-        })
+      const data = await tips<{tips?: Tip[]; summary?: string}>({
+        userId,
+        subject: selectedSubject || undefined,
+        studyGoal: studyGoal || undefined,
+        challenges: challenges || undefined,
+        currentGrade: currentGrade || undefined,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'فشلت عملية إنشاء النصائح');
-      }
-
-      const data = await response.json();
       setTipsData(data);
     } catch (err) {
       logger.error('Error generating tips:', err);
@@ -150,7 +137,7 @@ export default function TipsGenerator({
         </div>
         <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
           <Zap className="h-3 w-3" />
-          <span>Gemini 2.0 Flash</span>
+          <span>المساعد الذكي الموحد</span>
         </div>
       </div>
 
@@ -242,9 +229,7 @@ export default function TipsGenerator({
             </Button>
           </form>
         ) : (
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             className="space-y-6"
           >
             <div className="flex items-center justify-between">
@@ -290,7 +275,7 @@ export default function TipsGenerator({
                 </div>
               ))}
             </div>
-          </m.div>
+          </div>
         )}
       </div>
     </div>

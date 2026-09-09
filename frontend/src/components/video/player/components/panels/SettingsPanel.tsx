@@ -1,4 +1,3 @@
-import { AnimatePresence, m } from "framer-motion";
 import {
   ChevronRight,
   Keyboard,
@@ -93,13 +92,9 @@ function QualitySettings({
         iconRing="ring-blue-500/20 group-hover:ring-blue-500/40"
         iconColor="text-blue-300"
       />
-      <AnimatePresence initial={false}>
+      <>
         {isOpen && (
-          <m.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
             className="overflow-hidden"
           >
             <div className="space-y-1.5 rounded-2xl border border-white/5 bg-black/20 p-2">
@@ -131,9 +126,9 @@ function QualitySettings({
                 </button>
               ))}
             </div>
-          </m.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }
@@ -231,13 +226,9 @@ export function SettingsPanel({
   const isMobilePanel = typeof window !== "undefined" && window.innerWidth < 640;
 
   return (
-    <AnimatePresence>
+    <>
       {isSettingsOpen ? (
-        <m.div
-          initial={{ opacity: 0, y: "100%" }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: "100%" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        <div
           className={cn(
             "fixed inset-0 z-[100] flex items-end sm:absolute sm:bottom-28 sm:right-5 sm:w-[360px] sm:max-h-[70vh] sm:items-start",
             isMobilePanel ? "bg-slate-950" : "pointer-events-none"
@@ -429,26 +420,13 @@ export function SettingsPanel({
         </div>
 
           {/* Keyboard Shortcuts Popup */}
-          <AnimatePresence>
+          <>
             {isShortcutsOpen && (
-              <m.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+              <div
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
                 onClick={onToggleShortcuts}
               >
-                <m.div
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 300, 
-                    damping: 25,
-                    duration: 0.3
-                  }}
+                <div
                   className="w-full max-w-2xl rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 to-slate-900 p-6 shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -474,16 +452,13 @@ export function SettingsPanel({
                   <div className="max-h-[60vh] overflow-y-auto pr-1">
                     <div className="grid gap-2 sm:grid-cols-2">
                       {shortcuts.map(([shortcut, description], index) => (
-                        <m.div
+                        <div
                           key={shortcut}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
                           className="group flex items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-r from-white/5 to-transparent px-4 py-3.5 transition-all hover:border-white/20 hover:bg-white/10 hover:scale-[1.02]"
                         >
                           <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">{description}</span>
                           <kbd className="rounded-xl border border-white/20 bg-gradient-to-br from-black/50 to-black/70 px-3 py-1.5 text-xs font-black text-blue-300 shadow-lg ring-1 ring-white/10 group-hover:ring-blue-500/30 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">{shortcut}</kbd>
-                        </m.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -492,10 +467,10 @@ export function SettingsPanel({
                       💡 نصيحة: استخدم هذه الاختصارات للتحكم السريع في المشغل
                     </p>
                   </div>
-                </m.div>
-              </m.div>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
           
           {/* Mobile: Close handle bar */}
           {isMobilePanel && (
@@ -503,8 +478,8 @@ export function SettingsPanel({
               <div className="h-1 w-12 rounded-full bg-white/20" />
             </div>
           )}
-        </m.div>
+        </div>
       ) : null}
-    </AnimatePresence>
+    </>
   );
 }

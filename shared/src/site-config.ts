@@ -6,12 +6,12 @@
 export const SITE = {
   name: "TOLO",
   nameAr: "تولو",
-  tagline: "المستقبل يبدأ هنا",
+  tagline: "",
   taglineEn: "THE REALM OF KNOWLEDGE",
   description: "منصة تعليمية تفاعلية للثانوية العامة - كورسات، امتحانات، ومدرسين",
   descriptionShort: "منصة تعليمية لإدارة التعلم والمحتوى.",
   url: "https://tolo.app",
-  logo: "/logo-tolo.jpg",
+  logo: "/logo-tolo.webp",
   favicon: "/favicon.svg",
   locale: "ar_AR",
   dir: "rtl" as const,
@@ -21,8 +21,8 @@ export const SITE = {
 export const CONTACT = {
   email: "support@tolo.app",
   adminEmail: "admin@tolo.app",
-  phone: "+20 1000 000 000",
-  phoneTel: "+201000000000",
+  phone: "+20 1025380294",
+  phoneTel: "+201025380294",
   dpoEmail: "dpo@tolo.app",
 } as const;
 

@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Calendar, AlertCircle } from 'lucide-react';
-import { m, AnimatePresence } from "framer-motion";
 
 interface TaskListProps {
   tasks: Task[];
@@ -51,19 +50,14 @@ export const TaskList: FC<TaskListProps> = ({
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-      <AnimatePresence mode="popLayout">
+      <>
         {tasks.map((task, index) => {
           const overdue = isOverdue(task.dueAt) && task.status !== 'COMPLETED';
           const completed = task.status === 'COMPLETED';
 
           return (
-            <m.div
+            <div
               key={task.id}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
-              transition={{ delay: index * 0.05, type: 'spring', stiffness: 200, damping: 20 }}
-              layout
               className="h-full">
               
               <Card className={`${STYLES.card} ${completed ? 'opacity-50 grayscale-[50%]' : 'hover:-translate-y-2'} ${overdue ? 'ring-2 ring-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : ''}`}>
@@ -154,10 +148,10 @@ export const TaskList: FC<TaskListProps> = ({
                     </div>
                  </CardContent>
               </Card>
-            </m.div>
+            </div>
           );
         })}
-      </AnimatePresence>
+      </>
     </div>
   );
 };

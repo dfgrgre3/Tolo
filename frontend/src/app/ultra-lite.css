@@ -117,3 +117,12 @@
 .tolo-perf-indicator.performance {
   background: rgba(168, 85, 247, 0.85);
 }
+
+/* Motion is disabled globally, including elements declared in this stylesheet. */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

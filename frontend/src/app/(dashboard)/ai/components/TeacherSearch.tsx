@@ -7,6 +7,7 @@ import { m } from 'framer-motion';
 import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,20 +25,6 @@ interface TeacherSearchProps {
   subjects: string[];
   platforms?: string[];
   className?: string;
-}
-
-async function resolveErrorMessage(response: Response): Promise<string> {
-  try {
-    const errorData = await response.json();
-    if (errorData?.error) return errorData.error;
-  } catch (e) {
-    logger.error('Error parsing error response:', e);
-    if (response.status === 401) return 'مشكلة في المصادقة. يرجى تسجيل الدخول والمحاولة مرة أخرى.';
-    if (response.status === 403) return 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم.';
-    if (response.status === 500) return 'مشكلة في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
-    if (response.status === 429) return 'تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى بعد قليل.';
-  }
-  return 'فشلت عملية البحث عن المدرسين';
 }
 
 function validateAndFormatTeachers(data: any) {
@@ -74,6 +61,7 @@ export default function TeacherSearch({
   platforms = ['يوتيوب', 'منصة دروس', 'منصة مدرستي', 'أخرى'],
   className = ""
 }: TeacherSearchProps) {
+  const { teachers: searchTeachers } = useAIWorkspace();
   const [selectedSubject, setSelectedSubject] = useState('');
   const [keywords, setKeywords] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('');
@@ -97,25 +85,10 @@ export default function TeacherSearch({
     setTeachers(null);
 
     try {
-      const response = await fetch('/api/ai/teachers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: selectedSubject,
-          keywords: keywords || undefined,
-          platform: selectedPlatform || undefined,
-          provider: 'gemini'
-        })
-      });
-
-      if (!response.ok) {
-        setError(await resolveErrorMessage(response));
-        return;
-      }
-
-      const rawData = await response.json().catch(err => {
-        logger.error('Error parsing response data:', err);
-        throw new Error('حدث خطأ في تحليل بيانات الاستجابة. يرجى المحاولة مرة أخرى.');
+      const rawData = await searchTeachers<unknown>({
+        subject: selectedSubject,
+        keywords: keywords || undefined,
+        platform: selectedPlatform || undefined,
       });
 
       setTeachers(validateAndFormatTeachers(rawData));
@@ -230,7 +203,7 @@ export default function TeacherSearch({
         </div>
         <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
           <Zap className="h-3 w-3" />
-          <span>Gemini 2.0 Flash</span>
+          <span>المساعد الذكي الموحد</span>
         </div>
       </div>
 

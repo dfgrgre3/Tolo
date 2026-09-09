@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useState } from 'react';
-import { m, AnimatePresence } from "framer-motion";
 import { CustomGoal } from '@/hooks/use-gamification';
 
 interface CreateGoalModalProps {
@@ -49,17 +48,11 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+    <>
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       >
-        <m.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+        <div
           className="bg-white rounded-xl max-w-md w-full p-6"
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -145,8 +138,8 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
               </button>
             </div>
           </form>
-        </m.div>
-      </m.div>
-    </AnimatePresence>
+        </div>
+      </div>
+    </>
   );
 }

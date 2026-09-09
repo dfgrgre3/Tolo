@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Eye, EyeOff } from 'lucide-react';
-import { m } from "framer-motion";
 import type { Reminder } from '../types';
 
 interface UpcomingRemindersCardProps {
@@ -39,17 +38,8 @@ export default function UpcomingRemindersCard({
         </Button>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <m.div 
+        <div 
           className="space-y-3 max-h-80 overflow-y-auto pe-1 custom-scrollbar"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: { staggerChildren: 0.1 }
-            }
-          }}
         >
           {reminders
             .filter(reminder => {
@@ -61,13 +51,8 @@ export default function UpcomingRemindersCard({
             .map((reminder) => {
               const isUpcoming = new Date(reminder.remindAt) > new Date();
               return (
-                <m.div 
-                  key={reminder.id} 
-                  variants={{
-                    hidden: { x: 20, opacity: 0 },
-                    visible: { x: 0, opacity: 1 }
-                  }}
-                  whileHover={{ scale: 1.02 }}
+                <div 
+                  key={reminder.id}
                   className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-white/5 hover:border-yellow-500/30 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden"
                   onClick={() => onTabChange("reminders")}
                 >
@@ -97,7 +82,7 @@ export default function UpcomingRemindersCard({
                   >
                     {isUpcoming ? 'مهمة قادمة' : 'منتهي'}
                   </Badge>
-                </m.div>
+                </div>
               );
             })}
           {reminders
@@ -105,8 +90,7 @@ export default function UpcomingRemindersCard({
               if (!showUpcomingOnly) return true;
               return new Date(reminder.remindAt) > new Date();
             }).length === 0 && (
-            <m.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            <div
               className="text-center py-10 flex flex-col items-center"
             >
               <div className="mb-4 text-5xl opacity-50 grayscale">🔔</div>
@@ -116,11 +100,10 @@ export default function UpcomingRemindersCard({
               <p className="text-sm text-muted-foreground mt-1">
                 {showUpcomingOnly ? 'جميع تذكيراتك استُكملت' : 'قم بإنشاء تذكير جديد'}
               </p>
-            </m.div>
+            </div>
           )}
-        </m.div>
+        </div>
       </CardContent>
     </Card>
   );
 }
-

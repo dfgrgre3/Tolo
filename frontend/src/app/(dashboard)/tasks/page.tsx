@@ -28,7 +28,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { m, AnimatePresence } from "framer-motion";
 import { safeFetch } from '@/lib/safe-client-utils';
 
 import { logger } from '@/lib/logger';
@@ -311,9 +310,7 @@ export default function TasksPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* --- Header Section --- */}
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="flex flex-col md:flex-row justify-between items-center gap-6">
           
           <div className="space-y-4 text-center md:text-start">
@@ -351,7 +348,7 @@ export default function TasksPage() {
               </form>
             </DialogContent>
           </Dialog>
-        </m.div>
+        </div>
 
         {/* --- Analytics Row --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -416,22 +413,16 @@ export default function TasksPage() {
 
           {/* Task List Component */}
           <div className="min-h-[400px]">
-            <AnimatePresence mode="wait">
+            <>
               {loading ?
-              <m.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+              <div
                 className="flex items-center justify-center h-[400px]">
                 
                   <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
-                </m.div> :
+                </div> :
 
-              <m.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}>
+              <div
+                key={activeTab}>
                 
                    <TaskList
                   tasks={filteredAndSortedTasks}
@@ -453,9 +444,9 @@ export default function TasksPage() {
                          </div>
                       </div>
                 }
-                </m.div>
+                </div>
               }
-            </AnimatePresence>
+            </>
           </div>
         </div>
 

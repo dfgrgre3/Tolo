@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import { m, AnimatePresence } from "framer-motion";
 import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { CreateGoalModal } from './components/CreateGoalModal';
@@ -56,9 +55,7 @@ export default function GoalsPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
-        <m.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="text-center mb-8">
           
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
@@ -67,13 +64,10 @@ export default function GoalsPage() {
           <p className="text-gray-600">
             حدد أهدافك الخاصة وسجل تقدمك نحو تحقيقها
           </p>
-        </m.div>
+        </div>
 
         {/* Filter Tabs */}
-        <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
+        <div
           className="flex justify-center mb-8">
           
           <div className="bg-white rounded-lg p-1 shadow-md">
@@ -95,13 +89,10 @@ export default function GoalsPage() {
               </button>
             )}
           </div>
-        </m.div>
+        </div>
 
         {/* Create Goal Button */}
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="mb-8">
           
           <button
@@ -110,11 +101,11 @@ export default function GoalsPage() {
             
             â‍• إنشاء هدف جديد
           </button>
-        </m.div>
+        </div>
 
         {/* Goals Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AnimatePresence>
+          <>
             {filteredGoals.map((goal, _idx) =>
             <GoalCard
               key={goal.id}
@@ -123,13 +114,11 @@ export default function GoalsPage() {
               onComplete={handleUpdateGoal} />
 
             )}
-          </AnimatePresence>
+          </>
         </div>
 
         {filteredGoals.length === 0 &&
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="text-center py-16">
           
             <div className="text-6xl mb-4">🎯</div>
@@ -147,7 +136,7 @@ export default function GoalsPage() {
             
               إنشاء أول هدف
             </button>
-          </m.div>
+          </div>
         }
       </div>
 

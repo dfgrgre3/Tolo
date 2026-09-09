@@ -31,7 +31,7 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	return (
 		<div
 			className={cn(
-				"grid",
+				"grid items-start auto-rows-min",
 				gridCols,
 				isCompact ? "gap-x-8 gap-y-6" : "gap-x-10 gap-y-8"
 			)}

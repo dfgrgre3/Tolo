@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { m } from "framer-motion";
 import { Loader2, Heart, Trash2, ArrowLeft, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/api-client";
@@ -91,10 +90,8 @@ export default function WishlistPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {items.map((item) => (
-            <m.div
+            <div
               key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/[0.06] dark:bg-gray-900/70"
             >
               <Link href={`/courses/${item.subjectId}`} className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
@@ -125,7 +122,7 @@ export default function WishlistPage() {
               >
                 <Trash2 className="h-5 w-5" />
               </button>
-            </m.div>
+            </div>
           ))}
         </div>
       )}

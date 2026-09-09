@@ -37,9 +37,17 @@ export function getSupabaseClient() {
 }
 
 async function prepareUploadFile(file: File): Promise<File> {
-  if (file.type !== "image/svg+xml" && !file.name.toLowerCase().endsWith(".svg")) {
-    return file;
+  const lowerName = file.name.toLowerCase();
+  const isSvg = file.type === "image/svg+xml" || lowerName.endsWith(".svg");
+
+  const isRasterImage = file.type.startsWith("image/") ||
+    /\.(png|jpe?g|gif|bmp|tiff?|avif)$/i.test(lowerName);
+
+  if (!isSvg && isRasterImage) {
+    return convertRasterImageToWebP(file);
   }
+
+  if (!isSvg) return file;
 
   // Every upload mode must sanitize SVG before bytes leave the browser.
   let sanitizedText: string;
@@ -60,14 +68,76 @@ async function prepareUploadFile(file: File): Promise<File> {
   });
 }
 
+/**
+ * Convert raster images before they leave the browser.
+ *
+ * Keeping this in the shared storage client means simple uploads, large
+ * uploads, avatars, thumbnails, and library images all use the same policy.
+ * SVG is intentionally handled separately: it must remain vector data and is
+ * sanitized above instead of being rasterized.
+ */
+async function convertRasterImageToWebP(file: File): Promise<File> {
+  if (file.type === "image/webp") {
+    if (file.name.toLowerCase().endsWith(".webp")) return file;
+    return new File([file], file.name.replace(/\.[^.]+$/, ".webp"), {
+      type: "image/webp",
+      lastModified: file.lastModified,
+    });
+  }
+
+  if (typeof document === "undefined" || typeof URL === "undefined") {
+    throw new Error("Image conversion is only available in the browser.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = objectUrl;
+
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("The image could not be decoded."));
+    });
+
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new Error("The image has invalid dimensions.");
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) throw new Error("The browser does not support image conversion.");
+    context.drawImage(image, 0, 0);
+
+    const webpBlob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.82),
+    );
+
+    if (!webpBlob) throw new Error("The image could not be converted to WebP.");
+
+    const webpName = file.name.replace(/\.[^.]+$/, "") + ".webp";
+    return new File([webpBlob], webpName, {
+      type: "image/webp",
+      lastModified: file.lastModified,
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export async function uploadFile(options: UploadOptions): Promise<UploadResult> {
   const { bucket, file, onProgress } = options;
 
-  if (file.size > MAX_FILE_SIZE) {
+  const fileToUpload = await prepareUploadFile(file);
+
+  if (fileToUpload.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
   }
 
-  const fileToUpload = await prepareUploadFile(file);
   /*
     // SECURITY: fail closed. If sanitization rejects the SVG (likely hostile),
     // we MUST NOT upload the original bytes — that would re-introduce the
@@ -109,10 +179,10 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
   const data = await apiClient.postForm<{ fileUrl: string; fileKey: string; fileName: string; fileSize: number; mimeType: string }>('/upload', formData);
 
   const metadata: FileMetadata = {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    lastModified: file.lastModified,
+    name: fileToUpload.name,
+    size: fileToUpload.size,
+    type: fileToUpload.type,
+    lastModified: fileToUpload.lastModified,
     uploadedAt: new Date().toISOString(),
   };
 
@@ -129,7 +199,7 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
 }
 
 export async function uploadLargeFile(options: UploadOptions): Promise<UploadResult> {
-  const { bucket, file, contentType, onProgress } = options;
+  const { bucket, file, onProgress } = options;
 
   if (file.size <= MAX_FILE_SIZE) {
     return uploadFile(options);
@@ -143,19 +213,19 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
 
   // 1. Get presigned URL
   const presignData = await apiClient.post<{ uploadUrl: string; fileKey: string; publicUrl: string; expiresIn: number }>('/upload/presign', {
-    fileName: file.name,
-    contentType: contentType || file.type,
+    fileName: fileToUpload.name,
+    contentType: fileToUpload.type,
     fileSize: fileToUpload.size,
     context: bucket,
     category: "any"
   });
 
   // 2. Upload directly to S3 via fetch
-  const response = await fetch(presignData.uploadUrl, {
+  const response = await globalThis.fetch(presignData.uploadUrl, {
     method: 'PUT',
     body: fileToUpload,
     headers: {
-      'Content-Type': contentType || file.type,
+      'Content-Type': fileToUpload.type,
     }
   });
 
@@ -168,10 +238,10 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
   }
 
   const metadata: FileMetadata = {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    lastModified: file.lastModified,
+    name: fileToUpload.name,
+    size: fileToUpload.size,
+    type: fileToUpload.type,
+    lastModified: fileToUpload.lastModified,
     uploadedAt: new Date().toISOString(),
   };
 

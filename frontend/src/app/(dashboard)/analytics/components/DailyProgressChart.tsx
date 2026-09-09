@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { m, AnimatePresence } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 
@@ -94,17 +93,14 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   // التحقق من صحة البيانات
   if (!Array.isArray(chartData) || chartData.length === 0) {
     return (
-      <m.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+      <div
         className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6"
         ref={chartRef}
       >
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           لا تتوفر بيانات لعرض الرسم البياني.
         </div>
-      </m.div>
+      </div>
     );
   }
 
@@ -151,10 +147,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   const lastY = scaleY(lastProgress);
 
   return (
-    <m.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+    <div
       className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6"
       ref={chartRef}
     >
@@ -310,24 +303,20 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
         ملاحظة: هذا الرسم البياني يمثل تطورك على مدار آخر سبع وحدات دراسية أو أيام.
       </p>
 
-      <AnimatePresence>
+      <>
         {isLoading && (
-          <m.div 
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-70 flex items-center justify-center"
           >
-            <m.div 
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            <div
               className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"
               role="status"
               aria-label="جارٍ التحميل"
             />
-          </m.div>
+          </div>
         )}
-      </AnimatePresence>
-    </m.div>
+      </>
+    </div>
   );
 });
 

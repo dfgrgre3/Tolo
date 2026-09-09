@@ -14,14 +14,14 @@ export function HeaderLogo() {
 			scroll={true}
 			aria-label={`${SITE.name} - الصفحة الرئيسية`}
 		>
-			<div className="relative shrink-0 flex items-center">
+			<div className="relative shrink-0 flex items-center translate-y-44">
 				<Image
 					src={SITE.logo}
 					alt=""
-					width={52}
-					height={52}
-					className="h-13 w-13 object-contain"
-					sizes="52px"
+					width={64}
+					height={64}
+					className="h-16 w-16 object-contain"
+					sizes="64px"
 					priority
 				/>
 			</div>

@@ -3,18 +3,18 @@
 // Re-build trigger: 2026-06-06 — Async job queue pattern
 
 import React, { useState } from 'react';
-import { m } from 'framer-motion';
 import { FileText, Map, Sparkles, Copy, Loader2, ListChecks, Brain, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { safeFetch } from '@/lib/safe-client-utils';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { pollAIJobResult } from '@/lib/pollJobResult';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function LessonSummarizer() {
+  const { summarize } = useAIWorkspace();
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -26,15 +26,9 @@ export default function LessonSummarizer() {
     setSummary(null);
     try {
       // Step 1 — enqueue the job (returns 202 + jobId in < 50 ms)
-      const { data, error: fetchErr } = await safeFetch<{ jobId: string; status: string }>(
-        '/api/ai/summarize',
-        {
-          method: 'POST',
-          body: JSON.stringify({ content }),
-        },
-      );
+      const data = await summarize<{ jobId: string; status: string }>({ content });
 
-      if (fetchErr || !data?.jobId) {
+      if (!data?.jobId) {
         setError('فشل في إرسال الطلب. حاول مرة أخرى.');
         return;
       }
@@ -98,22 +92,18 @@ export default function LessonSummarizer() {
           </div>
 
           {error && (
-            <m.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+            <div
               className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
             >
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
               <p className="text-red-400 text-sm font-medium">{error}</p>
-            </m.div>
+            </div>
           )}
         </div>
       </Card>
 
       {summary && (
-        <m.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <div
           className="space-y-6">
           <Tabs defaultValue="summary" className="w-full">
             <div className="flex items-center justify-between mb-6">
@@ -157,7 +147,7 @@ export default function LessonSummarizer() {
               </Card>
             </TabsContent>
           </Tabs>
-        </m.div>
+        </div>
       )}
     </div>
   );

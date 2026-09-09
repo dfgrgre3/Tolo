@@ -138,17 +138,23 @@ export default function Header() {
 			const updatedMainNav = mainNavItemsWithMegaMenu.map((item) => {
 				if (!item.megaMenu) return item;
 				let targetSlugs: string[] = [];
-				if (item.href === "/courses") {
-					targetSlugs = ["study", "exams", "time_management", "goals"];
-				} else if (item.href === "/library") {
-					targetSlugs = ["digital_library", "awareness", "dashboard"];
-				} else if (item.href === "/leaderboard") {
-					targetSlugs = ["leaderboard", "community"];
+				if (item.href === "/all-features") {
+					targetSlugs = [
+						"study_and_planning",
+						"library_and_ai",
+						"competition_and_community",
+						"account_and_connections",
+					];
 				}
 				const newMegaMenu = targetSlugs
 					.map((slug) => categoriesBySlug[slug])
 					.filter(Boolean);
-				return { ...item, megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu };
+				return {
+					...item,
+					megaMenu: newMegaMenu.length === targetSlugs.length && newMegaMenu.length > 0
+						? newMegaMenu
+						: item.megaMenu,
+				};
 			});
 
 			const updatedHeaderNav = fallbackHeaderNavItems.map((item) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { m } from "framer-motion";
 import { Star, Loader2, MessageSquare, Reply, ChevronDown, ChevronUp, Send, User, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -165,9 +164,7 @@ export function ReviewsTab({
   const totalReviews = reviewStats?.totalReviews || 0;
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="max-w-3xl space-y-6">
       
       {/* Review summary */}
@@ -392,5 +389,5 @@ export function ReviewsTab({
           </p>
         </div>
       }
-    </m.div>);
+    </div>);
 }

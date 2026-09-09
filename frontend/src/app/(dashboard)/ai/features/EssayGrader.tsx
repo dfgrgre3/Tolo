@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { safeFetch } from '@/lib/safe-client-utils';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { pollAIJobResult } from '@/lib/pollJobResult';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function EssayGrader() {
+  const { gradeEssay: requestGradeEssay } = useAIWorkspace();
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('Arabic');
@@ -28,15 +29,9 @@ export default function EssayGrader() {
     setEvaluation(null);
     try {
       // Step 1 — enqueue the job (returns 202 + jobId in < 50 ms)
-      const { data, error: fetchErr } = await safeFetch<{ jobId: string; status: string }>(
-        '/api/ai/grade-essay',
-        {
-          method: 'POST',
-          body: JSON.stringify({ content, topic, language }),
-        },
-      );
+      const data = await requestGradeEssay<{ jobId: string; status: string }>({ content, topic, language });
 
-      if (fetchErr || !data?.jobId) {
+      if (!data?.jobId) {
         setError('فشل في إرسال الطلب. حاول مرة أخرى.');
         return;
       }

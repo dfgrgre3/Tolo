@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import { X, Download, Star, Eye, Calendar, User, BookOpen, Share2, Heart, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { Book } from "./types";
@@ -26,19 +25,13 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" dir="rtl">
       {/* Backdrop */}
-      <m.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+      <div
         onClick={onClose}
         className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
       />
 
       {/* Modal */}
-      <m.div
-        initial={{ opacity: 0, scale: 0.9, y: 50 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 50 }}
+      <div
         className="relative w-full max-w-6xl h-full max-h-[850px] bg-black/40 border border-white/10 rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
       >
         {/* Left Side: Visuals */}
@@ -196,7 +189,7 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
             </div>
           )}
         </div>
-      </m.div>
+      </div>
     </div>
   );
 }

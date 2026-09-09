@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, m } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AudioTrack } from "../../types";
@@ -20,13 +19,9 @@ interface StatsPanelProps {
 
 export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, onCloseStats }: StatsPanelProps) {
   return (
-    <AnimatePresence>
+    <>
       {isStatsOpen ? (
-        <m.div
-          initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}
-          animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}
-          transition={isEfficiencyMode ? { duration: 0 } : undefined}
+        <div
           className={cn("absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6", !isEfficiencyMode && "backdrop-blur-xl")}
           onClick={onCloseStats}>
           <div className="w-full max-w-lg rounded-[30px] border border-white/10 bg-slate-950/90 p-6 shadow-2xl"
@@ -62,8 +57,8 @@ export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTra
               </div>
             ) : null}
           </div>
-        </m.div>
+        </div>
       ) : null}
-    </AnimatePresence>
+    </>
   );
 }

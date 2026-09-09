@@ -13,7 +13,6 @@ import {
   Loader2,
   HelpCircle,
 } from "lucide-react";
-import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type {
@@ -227,9 +226,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
 
   if (phase === "error") {
     return (
-      <m.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center space-y-4"
       >
         <div className="mx-auto h-14 w-14 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center">
@@ -261,7 +258,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
             جاري التصحيح...
           </div>
         )}
-      </m.div>
+      </div>
     );
   }
 
@@ -271,9 +268,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
   if (!currentQ) return null;
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="space-y-6"
     >
       {/* Top bar */}
@@ -375,7 +370,7 @@ export function QuizPlayer({ quiz, onStart, onSubmit, canRetake = true }: QuizPl
           جاري التصحيح...
         </div>
       )}
-    </m.div>
+    </div>
   );
 }
 
@@ -410,9 +405,7 @@ function QuizIntro({ quiz, onStart }: { quiz: CourseQuiz; onStart: () => void | 
   const autoGradable = quiz.questions.filter(canAutoGrade).length;
   const manual = quiz.questions.length - autoGradable;
   return (
-    <m.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-gray-900/70 p-6 sm:p-8 space-y-5"
     >
       <div className="flex items-center gap-3">
@@ -456,7 +449,7 @@ function QuizIntro({ quiz, onStart }: { quiz: CourseQuiz; onStart: () => void | 
       <Button onClick={onStart} className="w-full sm:w-auto rounded-xl px-8 h-11 font-bold">
         بدء الاختبار
       </Button>
-    </m.div>
+    </div>
   );
 }
 
@@ -489,9 +482,7 @@ export function QuizResultView({
   );
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="space-y-6"
     >
       {/* Result hero */}
@@ -573,7 +564,7 @@ export function QuizResultView({
           تم إخفاء الإجابات الصحيحة حسب إعدادات الاختبار.
         </div>
       )}
-    </m.div>
+    </div>
   );
 }
 

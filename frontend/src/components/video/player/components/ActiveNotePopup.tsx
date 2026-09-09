@@ -1,6 +1,5 @@
 "use client";
 
-import { m, AnimatePresence } from "framer-motion";
 import { StickyNote, Clock3 } from "lucide-react";
 import { formatDuration } from "../utils";
 import { usePlaybackStore } from "../stores/playback-store";
@@ -18,13 +17,9 @@ export function ActiveNotePopup({ notes }: ActiveNotePopupProps) {
   const time = activeNote?.time;
 
   return (
-    <AnimatePresence>
+    <>
       {visible && (
-        <m.div
-          initial={{ opacity: 0, x: 20, scale: 0.9, y: -5 }}
-          animate={{ opacity: 1, x: 0, scale: 1, y: 0 }}
-          exit={{ opacity: 0, x: 20, scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        <div
           className="absolute right-6 top-20 z-50 max-w-[300px]"
         >
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-xl">
@@ -52,8 +47,8 @@ export function ActiveNotePopup({ notes }: ActiveNotePopupProps) {
             {/* Subtle glow */}
             <div className="pointer-events-none absolute -bottom-4 -left-4 h-12 w-12 rounded-full bg-orange-500/20 blur-xl" />
           </div>
-        </m.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

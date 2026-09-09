@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
 import { Lock } from "lucide-react";
 
 interface RecordingDetectionOverlayProps {
@@ -9,12 +8,9 @@ interface RecordingDetectionOverlayProps {
 
 export function RecordingDetectionOverlay({ isDetected }: RecordingDetectionOverlayProps) {
   return (
-    <AnimatePresence>
+    <>
       {isDetected && (
-        <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
           className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center text-center p-8"
         >
           <div className="space-y-4">
@@ -24,8 +20,8 @@ export function RecordingDetectionOverlay({ isDetected }: RecordingDetectionOver
               يرجى العودة إلى نافذة المتصفح للمتابعة. يمنع تسجيل الشاشة أو تصوير المحتوى حرصاً على حقوق المنصة.
             </p>
           </div>
-        </m.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

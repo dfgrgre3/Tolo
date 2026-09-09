@@ -38,10 +38,10 @@ export function LoadingPage() {
         <LoadingSpinner />
 
         <div className="flex flex-col items-center gap-2 text-center px-4">
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent animate-[fadeInUp_0.5s_ease-out]">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent">
             جاري تحضير المحتوى...
           </h3>
-          <p className="text-muted-foreground max-w-xs animate-[fadeIn_0.7s_ease-out]">
+          <p className="text-muted-foreground max-w-xs">
             نحن نجهز لك تجربة تعليمية فريدة ومنظمة.
           </p>
         </div>
@@ -53,21 +53,6 @@ export function LoadingPage() {
         <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-orange-500/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Add CSS animations */}
-      <style jsx>{`
-        @keyframes slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

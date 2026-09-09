@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { m, AnimatePresence } from "framer-motion";
 import { 
   Megaphone, 
   Trophy, 
@@ -137,9 +136,7 @@ export default function AnnouncementsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
         
         {/* --- Hero Section: The Royal Square --- */}
-        <m.div 
-           initial={{ opacity: 0, y: 30 }}
-           animate={{ opacity: 1, y: 0 }}
+        <div
            className={STYLES.glass + " p-12 md:p-24 relative group overflow-hidden"}
         >
            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
@@ -172,9 +169,7 @@ export default function AnnouncementsPage() {
 
               <div className="relative w-72 h-72 hidden lg:block">
                  <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full animate-pulse" />
-                 <m.div 
-                   animate={{ rotate: 360 }}
-                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                 <div
                    className="absolute inset-0 border border-dashed border-primary/20 rounded-full"
                  />
                  <div className="absolute inset-6 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
@@ -182,7 +177,7 @@ export default function AnnouncementsPage() {
                  </div>
               </div>
            </div>
-        </m.div>
+        </div>
 
         {/* --- Switcher & Search Armory --- */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -231,25 +226,19 @@ export default function AnnouncementsPage() {
         </div>
 
         {/* --- Main Content Grid --- */}
-        <AnimatePresence mode="wait">
+        <>
            {loading ? (
              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                 {[1, 2, 3].map(i => <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />)}
              </div>
            ) : activeTab === "announcements" ? (
-             <m.div 
+             <div 
                key="announcements"
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: 20 }}
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
                 {filteredAnnouncements.map((item, idx) => (
-                  <m.div
+                  <div
                     key={item.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
                     className={STYLES.glass + " group cursor-default hover:border-primary/40 transition-all flex flex-col"}
                   >
                      <div className="relative aspect-video overflow-hidden">
@@ -293,23 +282,17 @@ export default function AnnouncementsPage() {
                            </Button>
                         </Link>
                      </div>
-                  </m.div>
+                  </div>
                 ))}
-             </m.div>
+             </div>
            ) : (
-             <m.div 
+             <div 
                key="contests"
-               initial={{ opacity: 0, x: 20 }}
-               animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: -20 }}
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
                 {filteredContests.map((item, idx) => (
-                  <m.div
+                  <div
                     key={item.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
                     className={STYLES.glass + " border-amber-500/10 group cursor-default hover:border-amber-500/40 transition-all flex flex-col"}
                   >
                      <div className="relative aspect-video bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors">
@@ -351,11 +334,11 @@ export default function AnnouncementsPage() {
                            </Button>
                         </Link>
                      </div>
-                  </m.div>
+                  </div>
                 ))}
-             </m.div>
+             </div>
            )}
-        </AnimatePresence>
+        </>
       </div>
     </div>
   );

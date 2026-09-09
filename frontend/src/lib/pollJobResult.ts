@@ -1,5 +1,7 @@
 export type AIJobStatus = 'processing' | 'completed' | 'failed';
 
+import { aiClient } from '@/lib/ai/ai-client';
+
 export interface AIJobResult<T> {
   status: AIJobStatus;
   result?: T;
@@ -19,12 +21,7 @@ export async function pollAIJobResult<T>(
   intervalMs = 1500,
 ): Promise<T> {
   const poll = async (): Promise<AIJobResult<T>> => {
-    const res = await fetch(`${endpointBase}/${jobId}`);
-    if (!res.ok) {
-      throw new Error(`Polling failed with status ${res.status}`);
-    }
-    const data = (await res.json()) as AIJobResult<T>;
-    return data;
+    return aiClient.poll<AIJobResult<T>>(endpointBase, jobId);
   };
 
   return new Promise<T>((resolve, reject) => {

@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,32 +18,23 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
   return (
     <section className="relative w-full h-[600px] md:h-[700px] rounded-[3rem] overflow-hidden group">
       {/* Background Image with Parallax-ish Effect */}
-      <m.div 
-        initial={{ scale: 1.1 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 1.5 }}
-        className="absolute inset-0"
-      >
+      <div className="absolute inset-0">
         <Image 
-          src="/images/library/hero.png" 
+          src="/images/library/hero.webp" 
           alt="Royal Library"
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+          quality={70}
           className="object-cover"
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-      </m.div>
+      </div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col justify-center px-10 md:px-20 space-y-8" dir="rtl">
-        <m.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-4"
-        >
+        <div className="space-y-4">
           <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 backdrop-blur-md">
             <Sparkles className="w-5 h-5 text-amber-500" />
             <span className="text-xs font-black uppercase tracking-widest text-amber-500">
@@ -60,14 +50,9 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
             استكشف آلاف المجلدات، المذكرات، والكنوز التعليمية المنسقة بعناية. 
             مكان حيث تلتقي الحكمة القديمة بتقنيات المستقبل.
           </p>
-        </m.div>
+        </div>
 
-        <m.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="flex flex-wrap gap-6 items-center"
-        >
+        <div className="flex flex-wrap gap-6 items-center">
           <Button
             onClick={onUploadClick}
             className="h-20 px-12 bg-amber-500 text-black font-black rounded-3xl gap-4 shadow-2xl shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all text-xl group/btn"
@@ -94,7 +79,7 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
               <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">باحث</span>
             </div>
           </div>
-        </m.div>
+        </div>
       </div>
 
       {/* Decorative Particles (Static simulation) */}

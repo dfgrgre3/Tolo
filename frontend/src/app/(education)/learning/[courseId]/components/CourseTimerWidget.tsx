@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { m, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -100,12 +99,8 @@ export function CourseTimerWidget({ courseId, courseTitle }: CourseTimerWidgetPr
   if (dismissed) return null;
 
   return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-        transition={{ duration: 0.25 }}
+    <>
+      <div
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-xl',
           'bg-slate-950/90 dark:bg-white/5 backdrop-blur-md',
@@ -181,7 +176,7 @@ export function CourseTimerWidget({ courseId, courseTitle }: CourseTimerWidgetPr
         >
           <X className="h-3.5 w-3.5" />
         </button>
-      </m.div>
-    </AnimatePresence>
+      </div>
+    </>
   );
 }

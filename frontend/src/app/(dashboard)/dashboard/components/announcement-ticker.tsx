@@ -17,24 +17,14 @@ export function AnnouncementTicker() {
       <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background/20 to-transparent z-10 pointer-events-none" />
       <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background/20 to-transparent z-10 pointer-events-none" />
       
-      <div className="flex animate-marquee gap-10">
-        {[...announcements, ...announcements].map((text, i) => (
+      <div className="flex gap-10">
+        {announcements.map((text, i) => (
           <span key={i} className="text-primary font-bold text-xs flex items-center gap-2">
             <Sparkles className="w-3 h-3" />
             {text}
           </span>
         ))}
       </div>
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-        .animate-marquee {
-          display: inline-flex;
-          animation: marquee 40s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

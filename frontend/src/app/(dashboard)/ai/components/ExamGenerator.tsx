@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { m } from "framer-motion";
 import {
   FileText,
   Brain,
@@ -71,7 +70,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
         </div>
         <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
           <Zap className="h-3 w-3" />
-          <span>Gemini 2.0 Flash</span>
+          <span>المساعد الذكي الموحد</span>
         </div>
       </div>
 
@@ -228,7 +227,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
             </Button>
           </form>
         ) : (
-          <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div className="space-y-6">
             <div className="flex items-center gap-3 text-emerald-400">
               <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
                 <CheckCircle className="h-5 w-5" />
@@ -347,7 +346,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
                 )}
               </Button>
             </div>
-          </m.div>
+          </div>
         )}
       </div>
     </div>

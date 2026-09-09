@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { m } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, CheckSquare, Calendar } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -38,12 +37,8 @@ export function OperationsGrid({ cardStyle }: OperationsGridProps) {
       {quickLinks.map((link) => {
         const Icon = link.icon;
         return (
-          <m.div
+          <div
             key={link.href}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: link.delay }}
-            whileHover={{ scale: 1.02 }}
           >
             <Link href={link.href} className="block group h-full">
               <Card className={cardStyle + " border-white/5 hover:border-primary/30 p-8"}>
@@ -58,10 +53,7 @@ export function OperationsGrid({ cardStyle }: OperationsGridProps) {
                 </div>
                 <div className="mt-10 flex items-center justify-between">
                   <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden me-6 shadow-inner border border-white/5">
-                    <m.div
-                      initial={{ width: 0 }}
-                      animate={{ width: "75%" }}
-                      transition={{ duration: 1.5, delay: 1 }}
+                    <div
                       className={`h-full bg-gradient-to-r ${link.color === 'text-blue-400' ? 'from-blue-600 to-blue-300' : link.color === 'text-amber-400' ? 'from-amber-600 to-amber-300' : link.color === 'text-emerald-400' ? 'from-emerald-600 to-emerald-300' : 'from-purple-600 to-purple-300'} shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
                     />
                   </div>
@@ -72,7 +64,7 @@ export function OperationsGrid({ cardStyle }: OperationsGridProps) {
                 </div>
               </Card>
             </Link>
-          </m.div>
+          </div>
         );
       })}
     </div>

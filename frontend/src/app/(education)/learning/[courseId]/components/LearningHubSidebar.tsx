@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import {
   CheckCircle2,
   Clock3,
@@ -55,12 +54,7 @@ export function LearningHubSidebar({
   totalAttachments,
 }: LearningHubSidebarProps) {
   return (
-    <m.aside
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 16 }}
-      className="space-y-4 rounded-[32px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:shadow-none"
-    >
+    <aside className="space-y-4 rounded-[24px] border border-slate-200/80 bg-white p-4 dark:border-white/10 dark:bg-slate-950">
       <div className="space-y-4 rounded-[28px] bg-slate-50 p-4 dark:bg-white/[0.03]">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -195,6 +189,6 @@ export function LearningHubSidebar({
           );
         })}
       </div>
-    </m.aside>
+    </aside>
   );
 }

@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -43,6 +44,7 @@ export default function AIAssistant({
   title = "المساعد الذكي",
   className = ""
 }: AIAssistantProps) {
+  const { context, streamChat } = useAIWorkspace();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -223,13 +225,13 @@ export default function AIAssistant({
     setIsLoading(true);
 
     try {
-      const response = await apiClient.fetch(apiRoutes.ai.chat, {
-        method: 'POST',
+      const response = await streamChat({
         body: JSON.stringify({
           message: userMessage.content,
           conversationId,
           stream: true,
-          messages: updatedMessages.map(msg => ({ role: msg.role, content: msg.content }))
+          messages: updatedMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          context: { ...context, feature: 'chat' },
         })
       });
 
@@ -376,7 +378,7 @@ export default function AIAssistant({
           </div>
           <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
             <Zap className="h-3 w-3" />
-            <span>Gemini 2.0 Flash</span>
+            <span>المساعد الذكي الموحد</span>
           </div>
         </div>
 

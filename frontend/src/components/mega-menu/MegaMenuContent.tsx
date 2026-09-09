@@ -12,14 +12,8 @@ export const MegaMenuContent = React.memo(function MegaMenuContent({ categories,
   const categoryRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const gridCols = useMemo(() => {
-    const count = categories.length;
-    if (count === 1) return "grid-cols-1";
-    if (count === 2) return "grid-cols-1 sm:grid-cols-2";
-    if (count === 3) return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
-    if (count === 4) return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-    if (count === 5) return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5";
-    return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-  }, [categories.length]);
+    return "grid-flow-col auto-cols-[minmax(180px,1fr)] min-w-max";
+  }, []);
 
   const isCompact = useMemo(
     () => categories.reduce((sum, cat) => sum + cat.items.length, 0) > 15,

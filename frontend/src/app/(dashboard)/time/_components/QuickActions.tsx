@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { m } from "framer-motion";
 import { 
   PlusCircle, 
   Clock, 
@@ -90,29 +89,14 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <m.div 
+        <div 
           className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: { staggerChildren: 0.05 }
-            }
-          }}
         >
           {actions.map((action) => {
             const Icon = action.icon;
             return (
-              <m.div
+              <div
                 key={action.id}
-                variants={{
-                  hidden: { y: 20, opacity: 0 },
-                  visible: { y: 0, opacity: 1 }
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
               >
                 <Button
                   onClick={() => onAction(action.id)}
@@ -122,12 +106,11 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
                   <Icon className="h-6 w-6" />
                   <span className="text-xs font-bold text-center leading-tight">{action.label}</span>
                 </Button>
-              </m.div>
+              </div>
             );
           })}
-        </m.div>
+        </div>
       </CardContent>
     </Card>
   );
 }
-

@@ -227,24 +227,24 @@ export function useLearningHub() {
       : null;
 
   useEffect(() => {
-    if (!activeLessonId) return;
+    if (!activeLessonId || (activeTab !== "notes" && activeTab !== "qna")) return;
 
     const loadLessonExtras = async () => {
       try {
-        const [notePayload, questionsPayload] = await Promise.all([
-          apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId)).catch(() => null),
-          apiClient.get<LessonQuestionsResponse>(apiRoutes.courses.lessonQuestions(activeLessonId)).catch(() => null),
-        ]);
-
-        setNoteContent(notePayload?.content || "");
-        setQuestions(questionsPayload?.questions || []);
+        if (activeTab === "notes") {
+          const notePayload = await apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId));
+          setNoteContent(notePayload?.content || "");
+        } else {
+          const questionsPayload = await apiClient.get<LessonQuestionsResponse>(apiRoutes.courses.lessonQuestions(activeLessonId));
+          setQuestions(questionsPayload?.questions || []);
+        }
       } catch (extrasError) {
         logger.error("Error loading lesson extras", extrasError);
       }
     };
 
     loadLessonExtras();
-  }, [activeLessonId]);
+  }, [activeLessonId, activeTab]);
 
   const progress = useMemo(() => {
     // Course completion is server-owned. Lesson count is only a curriculum
@@ -356,6 +356,11 @@ export function useLearningHub() {
       }
     },
     []
+  );
+
+  const completedLessonsCount = useMemo(
+    () => allLessons.reduce((count, lesson) => count + (lesson.completed ? 1 : 0), 0),
+    [allLessons]
   );
 
   const saveNote = useCallback(async () => {
@@ -481,6 +486,7 @@ export function useLearningHub() {
     progress,
     totalDurationMinutes,
     totalAttachments,
+    completedLessonsCount,
     filteredChapters,
     bookmarks,
     playerApiRef,

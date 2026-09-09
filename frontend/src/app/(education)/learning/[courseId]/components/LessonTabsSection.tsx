@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
-import { AnimatePresence, m } from "framer-motion";
 import {
   BookOpen,
   Bot,
@@ -64,8 +63,8 @@ export function LessonTabsSection({
   // Lesson HTML comes from the backend (teacher-authored) — sanitize before
   // injecting via dangerouslySetInnerHTML (stored XSS protection).
   const sanitizedContent = useMemo(
-    () => sanitizeRichTextHtml(activeLesson.content),
-    [activeLesson.content]
+    () => activeTab === "content" ? sanitizeRichTextHtml(activeLesson.content) : "",
+    [activeLesson.content, activeTab]
   );
 
   const tabs = [
@@ -83,7 +82,7 @@ export function LessonTabsSection({
   ];
 
   return (
-    <section className="rounded-[32px] border border-slate-200/80 bg-white/90 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-950/80">
+    <section className="rounded-[24px] border border-slate-200/80 bg-white p-5 dark:border-white/10 dark:bg-slate-950">
       <div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-white/5">
         {tabs.map((tab) => (
           <button
@@ -103,13 +102,9 @@ export function LessonTabsSection({
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        <m.div
+      <>
+        <div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
         >
           {activeTab === "content" && (
             activeLesson.content ? (
@@ -320,10 +315,8 @@ export function LessonTabsSection({
               <div className="flex h-[420px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.03]">
                 <div className="flex-1 space-y-4 overflow-y-auto p-5">
                   {aiMessages.map((message, index) => (
-                    <m.div
+                    <div
                       key={`${message.role}-${index}`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
                       className={cn(
                         "max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-7",
                         message.role === "assistant"
@@ -332,7 +325,7 @@ export function LessonTabsSection({
                       )}
                     >
                       {message.content}
-                    </m.div>
+                    </div>
                   ))}
 
                   {aiLoading ? (
@@ -369,8 +362,8 @@ export function LessonTabsSection({
               </div>
             </div>
           )}
-        </m.div>
-      </AnimatePresence>
+        </div>
+      </>
     </section>
   );
 }

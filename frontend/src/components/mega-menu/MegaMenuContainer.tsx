@@ -28,7 +28,7 @@ export const MegaMenuContainer = memo(function MegaMenuContainer({
       aria-labelledby={labelledBy}
       aria-label={!labelledBy ? (ariaLabel || "القائمة الموسعة") : undefined}
     >
-      <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-y-auto overscroll-contain", menuWidth)}>
+      <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-x-auto overflow-y-auto overscroll-contain", menuWidth)}>
         {children}
       </div>
     </div>

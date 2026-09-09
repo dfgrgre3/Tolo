@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, HelpCircle, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,10 +37,7 @@ export function InteractiveQuestionOverlay({
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <m.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      <div
         className="w-full max-w-lg overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/90 shadow-2xl backdrop-blur-xl"
       >
         <div className="bg-orange-500/10 p-6 flex items-center gap-4 border-b border-white/5">
@@ -97,12 +93,9 @@ export function InteractiveQuestionOverlay({
             ))}
           </div>
 
-          <AnimatePresence>
+          <>
             {isSubmitted && (
-              <m.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                transition={{ duration: 0.3 }}
+              <div
                 className={cn(
                   "rounded-2xl p-4 text-sm font-medium leading-relaxed flex items-start gap-3",
                   isCorrect ? "bg-emerald-500/10 text-emerald-300" : "bg-rose-500/10 text-rose-300"
@@ -117,9 +110,9 @@ export function InteractiveQuestionOverlay({
                   <p className="font-black mb-1">{isCorrect ? "أحسنت! إجابة صحيحة." : "إجابة غير دقيقة. يرجى المراجعة."}</p>
                   {question.explanation && <p>{question.explanation}</p>}
                 </div>
-              </m.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           {!isSubmitted && (
             <p className="text-xs text-slate-400 text-center animate-pulse">
@@ -155,7 +148,7 @@ export function InteractiveQuestionOverlay({
             </Button>
           )}
         </div>
-      </m.div>
+      </div>
     </div>
   );
 }

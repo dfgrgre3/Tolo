@@ -240,10 +240,12 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   ai: {
     exam: '/api/ai/exam',
+    examStatusBase: '/api/ai/exam/status',
     examStatus: (jobId: string) => `/api/ai/exam/status/${jobId}`,
     suggest: '/api/ai/suggest',
     chat: '/api/ai/chat',
     tips: '/api/ai/tips',
+    teachers: '/api/ai/teachers',
     conversations: '/api/ai/conversations',
     conversation: (id: string) => `/api/ai/conversation/${id}`,
     deleteConversation: (id: string) => `/api/ai/conversation/${id}`,

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { m } from "framer-motion";
 import { ArrowLeft, Clock3, Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,11 +23,8 @@ export function SpotlightCourses({ courses }: { courses: CourseSummary[] }) {
 
       <div className="grid gap-5 lg:grid-cols-3">
         {courses.map((course, index) => (
-          <m.div
+          <div
             key={course.id}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
             className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-slate-950/75 dark:shadow-none"
           >
             <div className="absolute left-0 top-0 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
@@ -66,7 +62,7 @@ export function SpotlightCourses({ courses }: { courses: CourseSummary[] }) {
                 </Link>
               </Button>
             </div>
-          </m.div>
+          </div>
         ))}
       </div>
     </section>

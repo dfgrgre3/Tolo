@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
 import { Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -28,11 +27,6 @@ export default function AdvancedLearningHub() {
 
   return (
     <div className="min-h-screen bg-[#fffdf9] text-slate-900 dark:bg-[#09090b] dark:text-white" dir="rtl">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute right-[-10%] top-[-8%] h-[380px] w-[380px] rounded-full bg-orange-500/12 blur-[120px]" />
-        <div className="absolute left-[-8%] top-[20%] h-[320px] w-[320px] rounded-full bg-sky-500/10 blur-[120px]" />
-      </div>
-
       <LearningHubHeader
         course={hub.course}
         courseId={hub.courseId}
@@ -46,23 +40,21 @@ export default function AdvancedLearningHub() {
 
       <div className="mx-auto max-w-[1700px] px-4 py-6 sm:px-6">
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <AnimatePresence initial={false}>
-            {hub.sidebarOpen && (
-              <LearningHubSidebar
-                course={hub.course}
-                chapters={hub.chapters}
-                filteredChapters={hub.filteredChapters}
-                activeLessonId={hub.activeLessonId}
-                lessonSearch={hub.lessonSearch}
-                setLessonSearch={hub.setLessonSearch}
-                navigateToLesson={hub.navigateToLesson}
-                progress={hub.progress}
-                allLessons={hub.allLessons}
-                totalDurationMinutes={hub.totalDurationMinutes}
-                totalAttachments={hub.totalAttachments}
-              />
-            )}
-          </AnimatePresence>
+          {hub.sidebarOpen && (
+            <LearningHubSidebar
+              course={hub.course}
+              chapters={hub.chapters}
+              filteredChapters={hub.filteredChapters}
+              activeLessonId={hub.activeLessonId}
+              lessonSearch={hub.lessonSearch}
+              setLessonSearch={hub.setLessonSearch}
+              navigateToLesson={hub.navigateToLesson}
+              progress={hub.progress}
+              allLessons={hub.allLessons}
+              totalDurationMinutes={hub.totalDurationMinutes}
+              totalAttachments={hub.totalAttachments}
+            />
+          )}
 
           <main className="space-y-6">
             <LessonPlayerSection
@@ -85,7 +77,7 @@ export default function AdvancedLearningHub() {
             <LessonStatsSection
               progress={hub.progress}
               allLessonsCount={hub.allLessons.length}
-              completedLessonsCount={hub.allLessons.filter(l => l.completed).length}
+              completedLessonsCount={hub.completedLessonsCount}
               activeLesson={hub.activeLesson}
               bookmarksCount={hub.bookmarks.length}
             />

@@ -6,7 +6,6 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import type { TimeBlock } from './types';
 import { TimeBlockCard } from './TimeBlockCard';
-import { m } from "framer-motion";
 
 interface TimeGridProps {
   currentWeek: Date;
@@ -85,11 +84,8 @@ export function TimeGrid({
               const dayBlocks = getBlocksForTimeSlot(timeBlocks, dayIndex, time);
 
               return (
-                <m.div
+                <div
                   key={`${dayIndex}-${time}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: (timeIndex * 7 + dayIndex) * 0.005 }}
                   className={cn(
                     "min-h-[80px] border-b border-r border-white/5 cursor-pointer hover:bg-white/[0.02] relative group transition-colors duration-200",
                     compactView && "min-h-[50px]",
@@ -110,7 +106,7 @@ export function TimeGrid({
                       onDragStart={onBlockDragStart}
                     />
                   ))}
-                </m.div>
+                </div>
               );
             })}
           </React.Fragment>

@@ -69,12 +69,14 @@ export function LessonPlayerSection({
   // Lesson HTML comes from the backend (teacher-authored) — sanitize before
   // injecting via dangerouslySetInnerHTML (stored XSS protection).
   const sanitizedContent = useMemo(
-    () => sanitizeRichTextHtml(activeLesson.content),
-    [activeLesson.content]
+    () => ["ARTICLE", "ASSIGNMENT"].includes(activeLesson.type)
+      ? sanitizeRichTextHtml(activeLesson.content)
+      : "",
+    [activeLesson.content, activeLesson.type]
   );
 
   return (
-    <section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.07)] backdrop-blur dark:border-white/10 dark:bg-slate-950/80 dark:shadow-none">
+    <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white dark:border-white/10 dark:bg-slate-950">
       <div className="border-b border-slate-200/80 px-5 py-4 dark:border-white/10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">

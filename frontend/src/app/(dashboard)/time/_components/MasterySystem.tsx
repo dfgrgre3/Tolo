@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Shield, Zap, Award, Flame } from 'lucide-react';
 import type { TimeStats } from '../types';
@@ -50,10 +49,7 @@ const MasterySystem = ({ stats }: MasterySystemProps) => {
             <span className="font-mono">{xp} / {nextLevelXp}</span>
           </div>
           <div className="relative h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
-            <m.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
+            <div
               className="absolute inset-y-0 start-0 bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
             />
           </div>

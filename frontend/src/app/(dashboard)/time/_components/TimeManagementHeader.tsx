@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, TrendingUp, Target, Clock, Zap, Award } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { m } from "framer-motion";
 
 import CreateTaskDialog from './CreateTaskDialog';
 import type { SubjectType, Task, TimeStats } from '../types';
@@ -83,10 +82,7 @@ export default function TimeManagementHeader({
         <div className="space-y-4 flex-1 relative z-10 w-full lg:w-auto">
           <div className="flex items-start lg:items-center gap-4 flex-col lg:flex-row">
             {/* Player Level Badge */}
-            <m.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              whileHover={{ scale: 1.05 }}
+            <div
               className="relative shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)] border-2 border-emerald-300/50">
               
               <div className="text-center">
@@ -98,7 +94,7 @@ export default function TimeManagementHeader({
               <div className="absolute -bottom-2 -right-2 bg-amber-400 p-1.5 rounded-full shadow-lg border-2 border-white/20">
                 <Award className="h-4 w-4 text-amber-900" />
               </div>
-            </m.div>
+            </div>
 
             {/* Title & Rank Info */}
             <div className="space-y-1.5">
@@ -120,14 +116,11 @@ export default function TimeManagementHeader({
                      <span>التالي: {gameMetrics.xpForNextLevel} XP</span>
                    </div>
                    <div className="relative h-2.5 w-full bg-muted/50 rounded-full overflow-hidden border border-white/5">
-                     <m.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${gameMetrics.progressPercentage}%` }}
-                    transition={{ duration: 1, delay: 0.2 }}
+                     <div
                     className="absolute top-0 start-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full">
                     
                        <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:10px_10px] animate-stripe" />
-                     </m.div>
+                     </div>
                    </div>
                 </div>
               }
@@ -212,8 +205,7 @@ export default function TimeManagementHeader({
       {/* Productivity Indicator Stats - RPG Floating Look */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Card 1 */}
-        <m.div
-          whileHover={{ y: -5, scale: 1.02 }}
+        <div
           className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
           
           <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -225,11 +217,10 @@ export default function TimeManagementHeader({
           <div className="relative z-10 p-4 bg-primary/10 rounded-2xl border border-primary/20 rotate-3 group-hover:-rotate-3 transition-transform">
             <Calendar className="h-6 w-6 text-primary" />
           </div>
-        </m.div>
+        </div>
 
         {/* Card 2 */}
-        <m.div
-          whileHover={{ y: -5, scale: 1.02 }}
+        <div
           className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
           
           <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -241,11 +232,10 @@ export default function TimeManagementHeader({
           <div className="relative z-10 p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 rotate-3 group-hover:-rotate-3 transition-transform">
             <Target className="h-6 w-6 text-emerald-500" />
           </div>
-        </m.div>
+        </div>
 
         {/* Card 3 */}
-        <m.div
-          whileHover={{ y: -5, scale: 1.02 }}
+        <div
           className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
           
           <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -257,11 +247,10 @@ export default function TimeManagementHeader({
           <div className="relative z-10 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20 -rotate-3 group-hover:rotate-3 transition-transform">
             <Clock className="h-6 w-6 text-rose-500" />
           </div>
-        </m.div>
+        </div>
 
         {/* Card 4 */}
-        <m.div
-          whileHover={{ y: -5, scale: 1.02 }}
+        <div
           className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
           
           <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -273,7 +262,7 @@ export default function TimeManagementHeader({
           <div className="relative z-10 p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 -rotate-3 group-hover:rotate-3 transition-transform">
             <TrendingUp className="h-6 w-6 text-amber-500" />
           </div>
-        </m.div>
+        </div>
       </div>
     </div>);
 

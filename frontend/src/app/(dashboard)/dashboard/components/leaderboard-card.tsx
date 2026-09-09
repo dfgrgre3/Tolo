@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { m } from "framer-motion";
 import { AlertCircle, Trophy, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchLeaderboard } from "@/lib/api/gamification-client";
@@ -43,9 +42,7 @@ export function LeaderboardCard() {
   };
 
   return (
-    <m.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+    <div
       className={STYLES.glass + " p-6 space-y-4 hover:border-amber-500/20 transition-all duration-500"}>
 
       <div className="flex items-center justify-between mb-4">
@@ -103,6 +100,6 @@ export function LeaderboardCard() {
       <Link href="/leaderboard" className="block w-full py-3 text-center text-xs font-black text-gray-500 hover:text-white transition-colors border-t border-white/5 mt-2">
         عرض القائمة الكاملة
       </Link>
-    </m.div>);
+    </div>);
 
 }

@@ -19,7 +19,7 @@ import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
 import { useAuth } from '@/hooks/use-auth';
-import { LazyMotion, domAnimation } from 'framer-motion';
+import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
 
 function makeQueryClient() {
   const isDev = process.env.NODE_ENV === 'development';
@@ -189,9 +189,11 @@ type GlobalProvidersProps = {
  */
 export function GlobalProviders({ children, hasSessionHint = false }: GlobalProvidersProps) {
   return (
-    <LazyMotion features={domAnimation}>
-      <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>
-    </LazyMotion>
+    <MotionConfig reducedMotion="always" transition={{ duration: 0 }}>
+      <LazyMotion features={domAnimation}>
+        <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>
+      </LazyMotion>
+    </MotionConfig>
   );
 }
 

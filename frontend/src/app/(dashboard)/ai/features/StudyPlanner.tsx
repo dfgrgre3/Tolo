@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { safeFetch } from '@/lib/safe-client-utils';
+import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 
 export default function StudyPlanner() {
+  const { generateStudyPlan } = useAIWorkspace();
   const [examDate, setExamDate] = useState('');
   const [targetGrade, setTargetGrade] = useState('');
   const [dailyHours, setDailyHours] = useState(4);
@@ -21,11 +22,8 @@ export default function StudyPlanner() {
   const generatePlan = async () => {
     setIsLoading(true);
     try {
-      const { data } = await safeFetch<{ plan: string }>('/api/ai/study-planner', {
-        method: 'POST',
-        body: JSON.stringify({ examDate, targetGrade, dailyHours }),
-      });
-      if (data) setPlan(data.plan);
+      const data = await generateStudyPlan<{ plan: string }>({ examDate, targetGrade, dailyHours });
+      if (data?.plan) setPlan(data.plan);
     } catch (e) {
       console.error(e);
     } finally {

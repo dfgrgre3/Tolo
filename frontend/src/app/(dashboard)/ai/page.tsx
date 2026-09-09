@@ -22,6 +22,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AIWorkspaceProvider } from './context/AIWorkspaceContext';
 
 const STYLES = {
    glass: "relative overflow-hidden border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -81,6 +82,7 @@ export default function AILearningPage() {
   const years = [1, 2, 3];
 
   return (
+      <AIWorkspaceProvider>
       <div
          className="min-h-screen overflow-hidden bg-background text-foreground [&_*]:!rounded-none [&_*]:!transition-none [&_*]:!animate-none [&_*]:!transform-none"
          dir="rtl"
@@ -279,6 +281,7 @@ export default function AILearningPage() {
           )}
         </div>
       </div>
-    </div>);
+   </div>
+   </AIWorkspaceProvider>);
 
 }

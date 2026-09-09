@@ -1,6 +1,5 @@
 "use client";
 
-import { m } from "framer-motion";
 import {
   Lightbulb,
   Sparkles,
@@ -79,9 +78,7 @@ export default function TipsPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Header: Wisdom Arrival --- */}
-        <m.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="text-center space-y-6">
           
            <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
@@ -94,16 +91,13 @@ export default function TipsPage() {
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
               استراتيجيات وتكتيكات محصنة باليقين، جمڪا لك كبار الحكماء لتختصر عليك طريق السيادة وتضاعف من سرعة تطورك العلمي.
            </p>
-        </m.div>
+        </div>
 
         {/* --- Categories Grid --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {categories.map((cat, i) =>
-          <m.div
+          <div
             key={i}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
             className={STYLES.glass + " p-10 group hover:border-primary/50 transition-all"}>
             
                  <div className="flex items-center gap-6 mb-8">
@@ -123,7 +117,7 @@ export default function TipsPage() {
                        </div>
               )}
                  </div>
-              </m.div>
+              </div>
           )}
         </div>
 
@@ -141,11 +135,8 @@ export default function TipsPage() {
 
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {subjects.map((sub, i) =>
-            <m.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
               className={STYLES.glass + " p-8 space-y-4 group hover:bg-primary/5 transition-all text-center"}>
               
                     <div className="p-4 bg-white/5 rounded-2xl w-max mx-auto group-hover:scale-110 group-hover:bg-primary/20 transition-all">
@@ -153,15 +144,13 @@ export default function TipsPage() {
                     </div>
                     <h3 className="text-xl font-black text-white">{sub.name}</h3>
                     <p className="text-[11px] text-gray-500 font-bold leading-relaxed">{sub.desc}</p>
-                 </m.div>
+                 </div>
             )}
            </div>
         </div>
 
         {/* --- Bottom Call to Action: The Oath --- */}
-        <m.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={STYLES.glass + " p-12 text-center border-emerald-500/20 shadow-emerald-500/5"}>
           
            <div className="max-w-2xl mx-auto space-y-6">
@@ -174,7 +163,7 @@ export default function TipsPage() {
                  <Badge className="bg-emerald-500 text-black font-black px-6 h-10 text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20">انطلق للمهمة التالية &gt;</Badge>
               </div>
            </div>
-        </m.div>
+        </div>
       </div>
     </div>);
 

@@ -3,7 +3,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { m, AnimatePresence } from "framer-motion";
 import { logger } from "@/lib/logger";
 import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import {
@@ -251,15 +250,11 @@ export default function CourseDetailClient({
   const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.type === "VIDEO" && l.videoUrl), [lessons]);
 
   return (
-    <m.div
-      variants={container}
-      initial="hidden"
-      animate="show"
+    <div
       className="space-y-10"
     >
       {/* Course Header Grid (Left static children pre-rendered, Right dynamic card) */}
-      <m.div
-        variants={fadeUp}
+      <div
         className="grid grid-cols-1 lg:grid-cols-5 gap-8"
       >
         {children}
@@ -281,10 +276,10 @@ export default function CourseDetailClient({
             onPreviewCertificate={course.completion?.certificateEligible ? () => setIsCertModalOpen(true) : undefined}
           />
         </div>
-      </m.div>
+      </div>
 
       {/* Tabs & Content */}
-      <m.div variants={fadeUp} className="space-y-8">
+      <div className="space-y-8">
         <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-gray-150/60 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/5 max-w-fit shadow-inner">
           {[
             { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
@@ -377,13 +372,10 @@ export default function CourseDetailClient({
 
             {/* Lesson content */}
             <div className="lg:col-span-7 space-y-6">
-              <AnimatePresence mode="wait">
+              <>
                 {activeLessonData &&
-                  <m.div
+                  <div
                     key={activeLessonData.id}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 16 }}
                     className="space-y-6">
                     {/* Video / Quiz player */}
                     <div className="rounded-[28px] overflow-hidden border border-gray-250 dark:border-white/[0.08] bg-white dark:bg-gray-900/80 shadow-md">
@@ -507,18 +499,16 @@ export default function CourseDetailClient({
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
                     </div>
-                  </m.div>
+                  </div>
                 }
-              </AnimatePresence>
+              </>
             </div>
           </div>
         }
 
         {/* Overview Tab */}
         {activeTab === "overview" &&
-          <m.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl">
             <div className="space-y-6">
               <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.05] bg-white dark:bg-gray-900/60 p-6 space-y-4 shadow-sm">
@@ -601,7 +591,7 @@ export default function CourseDetailClient({
                 </div>
               </div>
             </div>
-          </m.div>
+          </div>
         }
 
         {/* Reviews Tab */}
@@ -630,14 +620,13 @@ export default function CourseDetailClient({
         {activeTab === "questions" &&
           <QuestionsTab courseId={courseId} enrolled={course.enrolled} />
         }
-      </m.div>
+      </div>
 
       {/* Separator */}
       <div className="border-t border-gray-200 dark:border-white/5 my-10" />
 
       {/* Certificate Preview Banner */}
-      <m.div
-        variants={fadeUp}
+      <div
         className="rounded-[28px] border border-amber-500/20 dark:border-amber-500/10 bg-gradient-to-br from-amber-500/[0.03] to-amber-500/[0.01] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6"
       >
         <div className="flex items-center gap-4 text-start">
@@ -658,7 +647,7 @@ export default function CourseDetailClient({
           <Award className="h-5 w-5" />
           <span>معاينة شهادتك التفاعلية</span>
         </Button>
-      </m.div>
+      </div>
 
       {/* Certificate Modal */}
       <CertificatePreviewModal
@@ -668,6 +657,6 @@ export default function CourseDetailClient({
         courseTitle={course.title}
         instructorName={course.instructor}
       />
-    </m.div>
+    </div>
   );
 }

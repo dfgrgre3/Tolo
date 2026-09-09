@@ -41,7 +41,7 @@ export const MegaMenuItem = memo(function MegaMenuItem({
         rel={isExternal ? "noopener noreferrer" : undefined}
         aria-current={isActive ? "page" : undefined}
         className={cn(
-          "block rounded-md px-2 py-1.5 leading-snug",
+          "inline-flex w-fit rounded-md px-2 py-1.5 leading-snug",
           isCompact ? "text-xs md:text-sm" : "text-sm md:text-base",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           isActive

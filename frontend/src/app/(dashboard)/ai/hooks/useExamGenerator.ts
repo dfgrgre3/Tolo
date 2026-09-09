@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { logger } from "@/lib/logger";
 import { safeFetch } from "@/lib/safe-client-utils";
+import { apiRoutes } from "@/lib/api/routes";
+import { useAIWorkspace } from "../context/AIWorkspaceContext";
 
 export interface Question {
   question: string;
@@ -27,7 +29,6 @@ interface ExamStatusResponse {
 
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 120000;
-const POLL_BACKOFF_MAX_MS = 5000;
 
 interface UseExamGeneratorProps {
   subjects: string[];
@@ -35,6 +36,7 @@ interface UseExamGeneratorProps {
 }
 
 export function useExamGenerator(_props: UseExamGeneratorProps) {
+  const { generateExam, setContext, poll } = useAIWorkspace();
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [lesson, setLesson] = useState("");
@@ -85,8 +87,6 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
   const pollExamStatus = useCallback(
     async (jobId: string, signal: AbortSignal): Promise<Question[] | null> => {
       const start = Date.now();
-      let consecutiveErrors = 0;
-
       while (Date.now() - start < POLL_TIMEOUT_MS) {
         if (signal.aborted) return null;
 
@@ -97,28 +97,9 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
         }, 1000);
 
         try {
-          const { data, error: responseError, response } = await safeFetch<ExamStatusResponse>(
-            `/api/ai/exam/status/${encodeURIComponent(jobId)}`,
-            { method: "GET", signal },
-            null
-          );
+          const data = await poll<ExamStatusResponse>(apiRoutes.ai.examStatusBase, jobId, { signal });
 
           window.clearTimeout(tick);
-
-          if (responseError) {
-            if (response?.status === 404) {
-              throw new Error("انتهت صلاحية عملية التوليد. يرجى المحاولة مرة أخرى.");
-            }
-            consecutiveErrors++;
-            if (consecutiveErrors > 6) {
-              throw new Error("فشل الاتصال بالخادم. يرجى المحاولة مرة أخرى.");
-            }
-            const delay = Math.min(1000 * consecutiveErrors, POLL_BACKOFF_MAX_MS);
-            await new Promise((r) => setTimeout(r, delay));
-            continue;
-          }
-
-          consecutiveErrors = 0;
 
           if (!data) {
             await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
@@ -147,14 +128,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
 
       throw new Error("استغرق توليد الامتحان وقتاً طويلاً. يرجى المحاولة مرة أخرى.");
     },
-    []
+    [poll]
   );
-
-  const handleExamApiError = (responseError: any) => {
-    const errorMessage = responseError.message || "فشلت عملية إنشاء الامتحان";
-    setError(errorMessage);
-    logger.error("Error generating exam:", responseError);
-  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -173,28 +148,14 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
     setExamData(null);
 
     try {
-      const { data: enq, error: enqError } = await safeFetch<ExamEnqueueResponse>(
-        "/api/ai/exam",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subject: selectedSubject,
-            year: selectedYear,
-            lesson: lesson.trim(),
-            difficulty: difficulty && difficulty !== "none" ? difficulty : undefined,
-            questionCount: Math.min(Math.max(1, questionCount), 50),
-            provider: "gemini",
-          }),
-          signal: controller.signal,
-        },
-        null
-      );
-
-      if (enqError) {
-        handleExamApiError(enqError);
-        return;
-      }
+      setContext({ subject: selectedSubject, year: selectedYear });
+      const enq = await generateExam<ExamEnqueueResponse>({
+        subject: selectedSubject,
+        year: selectedYear,
+        lesson: lesson.trim(),
+        difficulty: difficulty && difficulty !== "none" ? difficulty : undefined,
+        questionCount: Math.min(Math.max(1, questionCount), 50),
+      }, { signal: controller.signal });
 
       if (!enq) {
         setError("لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.");

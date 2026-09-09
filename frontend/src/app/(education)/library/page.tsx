@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-import { m, AnimatePresence } from "framer-motion";
 import {
   Upload,
   Book as BookIcon,
@@ -177,7 +176,7 @@ export default function LibraryPage() {
               </h2>
            </div>
 
-           <AnimatePresence mode="wait">
+           <>
               {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
@@ -185,8 +184,7 @@ export default function LibraryPage() {
                   ))}
                 </div>
               ) : sortedBooks.length > 0 ? (
-                <m.div 
-                  layout
+                <div 
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-10"
                 >
                   {sortedBooks.map((book, idx) => (
@@ -197,11 +195,9 @@ export default function LibraryPage() {
                       onClick={setSelectedBook}
                     />
                   ))}
-                </m.div>
+                </div>
               ) : (
-                <m.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                <div
                   className="rpg-glass p-32 text-center space-y-6"
                 >
                    <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto">
@@ -214,16 +210,13 @@ export default function LibraryPage() {
                    <Button variant="outline" onClick={() => {setSearchTerm(""); setActiveCategory("all")}} className="rounded-2xl border-white/10 text-gray-500">
                      إعادة تعيين المرشحات
                    </Button>
-                </m.div>
+                </div>
               )}
-           </AnimatePresence>
+           </>
         </section>
 
         {/* Footer Banner: Join the Scribes */}
-        <m.div 
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="rpg-glass p-12 md:p-20 relative overflow-hidden group"
         >
            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:rotate-12 transition-transform duration-1000">
@@ -244,32 +237,26 @@ export default function LibraryPage() {
                 <Plus className="w-5 h-5" />
               </Button>
            </div>
-        </m.div>
+        </div>
       </div>
 
       {/* Overlays */}
-      <AnimatePresence>
+      <>
         {selectedBook && (
           <BookDetails book={selectedBook} onClose={() => setSelectedBook(null)} />
         )}
-      </AnimatePresence>
+      </>
 
       {/* Upload Modal (The Forge) */}
-      <AnimatePresence>
+      <>
         {showUploadModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
               onClick={() => setShowUploadModal(false)}
               className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
             />
           
-            <m.div
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            <div
               className="rpg-glass w-full max-w-4xl p-10 md:p-16 relative z-10 space-y-12 border-amber-500/20"
             >
               <div className="flex items-center justify-between">
@@ -358,10 +345,10 @@ export default function LibraryPage() {
                   </Button>
                 </div>
               </form>
-            </m.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

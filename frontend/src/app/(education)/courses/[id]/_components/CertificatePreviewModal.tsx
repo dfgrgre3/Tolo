@@ -1,6 +1,5 @@
 "use client";
 
-import { m, AnimatePresence } from "framer-motion";
 import { X, Award, ShieldCheck, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,24 +25,17 @@ export function CertificatePreviewModal({
   });
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={onClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
           {/* Modal Container */}
-          <m.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", duration: 0.5 }}
+          <div
             className="relative w-full max-w-4xl bg-white dark:bg-[#11131C] rounded-[24px] border border-gray-200 dark:border-white/[0.08] shadow-2xl overflow-hidden z-10 p-6 sm:p-8"
             dir="rtl"
           >
@@ -159,9 +151,9 @@ export function CertificatePreviewModal({
                 </Button>
               </div>
             </div>
-          </m.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -126,9 +125,7 @@ export default function BlogClient({
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-16">
 
         {/* --- Hero: Chronicles of the Sages --- */}
-        <m.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={cn(STYLES.glass, "p-12 md:p-24 relative group overflow-hidden")}>
 
            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -161,9 +158,7 @@ export default function BlogClient({
 
               <div className="relative w-80 h-80 hidden lg:block">
                  <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full animate-pulse" />
-                 <m.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                 <div
                 className="absolute inset-0 border border-dashed border-primary/20 rounded-full" />
 
                  <div className="absolute inset-8 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
@@ -171,7 +166,7 @@ export default function BlogClient({
                  </div>
               </div>
            </div>
-        </m.div>
+        </div>
 
         {/* --- Tools of Discovery: Search & Filter --- */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
@@ -222,24 +217,19 @@ export default function BlogClient({
         </div>
 
         {/* --- Main Chronicles Grid --- */}
-        <AnimatePresence mode="wait">
+        <>
            {loading ?
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                 {[1, 2, 3].map((i) => <div key={i} className="h-[450px] bg-white/5 rounded-[2.5rem] animate-pulse" />)}
              </div> :
           filteredPosts.length > 0 ?
-          <m.div
+          <div
             key="posts"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
 
                 {filteredPosts.map((post, idx) =>
-            <m.div
+            <div
               key={post.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
               className={cn(STYLES.glass, "group flex flex-col hover:border-primary/30 transition-all duration-500 cursor-default")}>
 
                      <div className="relative aspect-[16/10] overflow-hidden">
@@ -287,9 +277,9 @@ export default function BlogClient({
                            </Button>
                         </Link>
                      </div>
-                  </m.div>
+                  </div>
             )}
-             </m.div> :
+             </div> :
 
           <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
                 <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10">
@@ -302,13 +292,10 @@ export default function BlogClient({
                 <Button onClick={() => {setSearchTerm("");setActiveCategory("all");}} className="h-14 px-10 bg-primary/20 text-primary border border-primary/30 rounded-2xl font-black">إعادة تصفير الأرشيف</Button>
              </div>
           }
-        </AnimatePresence>
+        </>
 
         {/* --- Bottom CTA: The Author Guild --- */}
-        <m.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className={cn(STYLES.glass, "p-16 text-center border-primary/20 bg-primary/[0.02] overflow-hidden group")}>
 
            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(var(--primary),0.1),transparent_70%)]" />
@@ -334,7 +321,7 @@ export default function BlogClient({
                 </Link>
             }
            </div>
-        </m.div>
+        </div>
       </div>
     </div>);
 

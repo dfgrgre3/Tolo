@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Cairo } from 'next/font/google';
-import { Geist } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
@@ -23,16 +22,10 @@ const cairo = Cairo({
   variable: '--font-cairo',
   display: 'swap',
   preload: true,
-  weight: ['400', '500', '600', '700', '900'],
+  // Keep only weights used by the UI to reduce the critical font payload.
+  weight: ['400', '600', '700', '900'],
   adjustFontFallback: true,
   fallback: ['system-ui', 'sans-serif'],
-});
-
-const geist = Geist({
-  subsets: ['latin'],
-  variable: '--font-geist',
-  display: 'swap',
-  preload: false,
 });
 
 // إزالة force-dynamic لتمكين Static Generation للصفحات الثابتة وتحسين الأداء
@@ -86,7 +79,7 @@ export default async function RootLayout({
   );
 
   return (
-    <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" nonce={nonce} data-scroll-behavior="auto" suppressHydrationWarning>
 
       <head>
 
@@ -139,7 +132,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${cairo.variable} ${geist.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${cairo.variable} font-sans`} suppressHydrationWarning>
         <div suppressHydrationWarning>
           {/* Skip to main content - WCAG 2.1 AA
               Kept permanently `fixed` (not just on :focus) so its geometry never
