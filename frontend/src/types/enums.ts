@@ -44,11 +44,7 @@ export enum Entitlement {
   PREMIUM = 'PREMIUM',
 }
 
-export enum UserStatus {
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
-    SUSPENDED = 'SUSPENDED',
-}
+export { UserStatus } from '@thanawy/shared/types/enums';
 
 export enum Difficulty {
   EASY = 'EASY',

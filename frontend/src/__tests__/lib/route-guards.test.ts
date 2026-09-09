@@ -86,7 +86,7 @@ describe("isPublicApiEndpoint", () => {
     expect(isPublicApiEndpoint("/api/categories")).toBe(true);
     expect(isPublicApiEndpoint("/api/teachers")).toBe(true);
     expect(isPublicApiEndpoint("/api/homepage")).toBe(true);
-    expect(isPublicApiEndpoint("/api/settings")).toBe(true);
+    expect(isPublicApiEndpoint("/api/settings")).toBe(false);
     expect(isPublicApiEndpoint("/api/settings/private")).toBe(false);
     expect(isPublicApiEndpoint("/api/blog/admin")).toBe(false);
   });

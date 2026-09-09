@@ -143,7 +143,6 @@ class RequestCacheManager {
     "/api/search": { scope: "user", ttl: 30000 },
 
     // Public / Shared resources
-    "/api/settings": { scope: "public", ttl: 300000 },
     "/api/categories": { scope: "public", ttl: 300000 },
     "/api/courses": { scope: "public", ttl: 60000 },
     "/api/teachers": { scope: "public", ttl: 300000 },

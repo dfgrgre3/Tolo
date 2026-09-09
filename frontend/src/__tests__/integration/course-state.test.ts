@@ -29,6 +29,22 @@ describe('course state contract', () => {
     }).access).toBe('UNAVAILABLE');
   });
 
+  it('does not derive completion from progress when the user is not enrolled', () => {
+    expect(deriveCourseAccessState({
+      status: 'PUBLISHED',
+      isActive: true,
+      isPublished: true,
+      isEnrolled: false,
+      progress: 100,
+      completedAt: '2026-01-01T00:00:00Z',
+    })).toMatchObject({
+      enrollment: 'ELIGIBLE',
+      access: 'PREVIEW',
+      isComplete: false,
+      certificateEligible: false,
+    });
+  });
+
   it('rejects skipping from eligible to completed', () => {
     expect(canTransitionEnrollment('ELIGIBLE', 'COMPLETED')).toBe(false);
     expect(canTransitionEnrollment('ACTIVE', 'COMPLETED')).toBe(true);

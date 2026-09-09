@@ -190,7 +190,7 @@ export function LessonPlayerSection({
               dangerouslySetInnerHTML={{ __html: sanitizedContent || "لا يوجد محتوى نصي متاح." }}
             />
           </div>
-        ) : activeLesson.type === "FILE" ? (
+        ) : activeLesson.type === "DOCUMENT" ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[28px] bg-slate-100 p-8 text-center dark:bg-white/5">
             <FileText className="mb-4 h-14 w-14 text-sky-500" />
             <h3 className="text-xl font-black">Ù…Ù„Ù Ø§Ù„Ø¯Ø±Ø³</h3>

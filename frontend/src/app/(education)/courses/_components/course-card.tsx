@@ -227,7 +227,7 @@ export function CourseCard({
           <div className="text-left">
             <p className="mb-2 text-xs font-bold text-slate-400">المدة</p>
             <p className="font-bold text-slate-700 dark:text-slate-200">
-              {formatHours(course.duration)}
+              {formatHours(course.durationHours)}
             </p>
           </div>
         </div>

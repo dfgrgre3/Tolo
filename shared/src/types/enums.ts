@@ -54,7 +54,7 @@ export enum UserStatus {
     ACTIVE = 'ACTIVE',
     INACTIVE = 'INACTIVE',
     SUSPENDED = 'SUSPENDED',
-    DELETED = 'DELETED',
+    BANNED = 'BANNED',
 }
 
 export enum Difficulty {
@@ -76,8 +76,11 @@ export const LessonType = {
     VIDEO: 'VIDEO',
     ARTICLE: 'ARTICLE',
     QUIZ: 'QUIZ',
-    FILE: 'FILE',
     ASSIGNMENT: 'ASSIGNMENT',
+    AUDIO: 'AUDIO',
+    LINK: 'LINK',
+    LIVE: 'LIVE',
+    DOCUMENT: 'DOCUMENT',
 } as const;
 export type LessonType = typeof LessonType[keyof typeof LessonType];
 

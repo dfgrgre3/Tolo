@@ -33,10 +33,10 @@ export function sortCourses(courses: CourseSummary[], sortBy: SortOption) {
       sorted.sort((left, right) => right.price - left.price);
       break;
     case "duration-short":
-      sorted.sort((left, right) => left.duration - right.duration);
+    sorted.sort((left, right) => left.durationHours - right.durationHours);
       break;
     case "duration-long":
-      sorted.sort((left, right) => right.duration - left.duration);
+    sorted.sort((left, right) => right.durationHours - left.durationHours);
       break;
     case "newest":
     default:

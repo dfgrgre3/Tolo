@@ -32,12 +32,8 @@ export function QuestionsTab({
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.questions(courseId));
-      if (res.ok) {
-        const data = await res.json();
-        const payload = data.data || data;
-        setQuestions(payload.questions || []);
-      }
+      const payload = await apiClient.get<{ questions: Question[] }>(apiRoutes.courses.questions(courseId));
+      setQuestions(payload.questions);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "تعذر تحميل الأسئلة");
     } finally {

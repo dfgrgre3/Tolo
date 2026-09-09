@@ -58,8 +58,10 @@ export function normalizeCourseLifecycle(input: CourseStateInput): CourseLifecyc
 export function deriveCourseAccessState(input: CourseStateInput): CourseState {
   const lifecycle = normalizeCourseLifecycle(input);
   const progress = Math.max(0, Math.min(100, Number(input.progress ?? 0)));
-  const isComplete = Boolean(input.completedAt) || progress >= 100;
   const isEnrolled = Boolean(input.isEnrolled);
+  // Completion is an enrollment-owned state. A stale or malformed public
+  // payload must not grant COMPLETED access from progress alone.
+  const isComplete = isEnrolled && (Boolean(input.completedAt) || progress >= 100);
   const isPublic = lifecycle === 'PUBLISHED' && input.isActive !== false && input.isPublished !== false;
   const enrollment: EnrollmentLifecycle = isComplete
     ? 'COMPLETED'

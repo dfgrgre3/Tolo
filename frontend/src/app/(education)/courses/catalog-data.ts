@@ -104,7 +104,7 @@ export function mapCoursesPayload(
       categoryId: String(course.categoryId || ""),
       categoryName: categoryMap.get(String(course.categoryId || "")) || "",
       level: (course.level as CourseLevel) || "BEGINNER",
-      duration: Number(course.durationHours || 0),
+      durationHours: Number(course.durationHours || 0),
       thumbnailUrl: typeof course.thumbnailUrl === "string" ? course.thumbnailUrl : undefined,
       price: Number(course.price || 0),
       rating: Number(course.rating || 0),

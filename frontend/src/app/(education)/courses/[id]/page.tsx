@@ -217,7 +217,7 @@ export default async function Page({ params }: Props) {
                 {[
                   { icon: Star, label: "التقييم", value: initialCourseData.rating.toFixed(1), color: "text-amber-500" },
                   { icon: Users, label: "المسجلين", value: `${initialCourseData.enrolledCount}+ طالب`, color: "text-blue-500" },
-                  { icon: Clock, label: "المدة", value: `${initialCourseData.duration} ساعة`, color: "text-purple-500" },
+                  { icon: Clock, label: "المدة", value: `${initialCourseData.durationHours} ساعة`, color: "text-purple-500" },
                   { icon: BookOpen, label: "الدروس", value: `${initialLessons.length} درس`, color: "text-emerald-500" }
                 ].map((stat, i) =>
                   <div

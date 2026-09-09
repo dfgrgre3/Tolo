@@ -43,11 +43,17 @@ const authMiddleware: Middleware = {
   },
 };
 
-export const client = createClient<paths>({
-  baseUrl: typeof window === "undefined" ? getContractsBaseUrl() : "",
-  credentials: "include",
-});
+export function createContractsClient(fetcher: typeof fetch = globalThis.fetch) {
+  const client = createClient<paths>({
+    baseUrl: typeof window === "undefined" ? getContractsBaseUrl() : "",
+    credentials: "include",
+    fetch: fetcher,
+  });
 
-client.use(authMiddleware);
+  client.use(authMiddleware);
+  return client;
+}
+
+export const client = createContractsClient();
 
 export type Client = typeof client;

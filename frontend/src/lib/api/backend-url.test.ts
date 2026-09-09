@@ -8,7 +8,7 @@ describe('getBackendApiUrl', () => {
     __resetBackendUrlCache();
   });
 
-  it.each(['/courses', 'courses', '/api/courses', '/api/v1/courses'])(
+  it.each(['/courses', 'courses', '/api/courses', '/v1/courses', '/api/v1/courses'])(
     'normalizes %s to one API prefix',
     (path) => {
       expect(getBackendApiUrl(path)).toBe('https://backend.example.test/api/v1/courses');

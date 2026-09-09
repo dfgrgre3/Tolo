@@ -48,7 +48,7 @@ export function SpotlightCourses({ courses }: { courses: CourseSummary[] }) {
                 </span>
                 <span className="flex items-center gap-2">
                   <Clock3 className="h-4 w-4 text-orange-500" />
-                  {formatHours(course.duration)}
+                  {formatHours(course.durationHours)}
                 </span>
                 <span className="flex items-center gap-2">
                   <Star className="h-4 w-4 fill-current text-amber-400" />

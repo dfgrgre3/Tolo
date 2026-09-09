@@ -50,8 +50,8 @@ export type Lesson = TeachingLessonInput;
 export type Chapter = TeachingChapter;
 export type Course = TeachingCourse;
 
-export function toTeachingStatusTransport(status: CourseLifecycle): string {
-  return status.toLowerCase();
+export function toTeachingStatusTransport(status: CourseLifecycle): CourseLifecycle {
+  return status;
 }
 
 export function normalizeTeachingCourse(course: Course): Course {

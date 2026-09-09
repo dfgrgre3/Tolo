@@ -121,7 +121,8 @@ export interface CourseSummaryView {
   instructor: string;
   subject: string;
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  duration: number;
+  /** Total course duration in hours. */
+  durationHours: number;
   thumbnailUrl?: string;
   price: number;
   rating: number;
@@ -176,7 +177,8 @@ export interface CourseCatalogView {
   categoryId: string;
   categoryName: string;
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  duration: number;
+  /** Total course duration in hours. */
+  durationHours: number;
   thumbnailUrl?: string;
   price: number;
   rating: number;
@@ -208,7 +210,7 @@ export function toCourseSummary(
     instructor: subject.instructorName || 'المنصة التعليمية',
     subject: subject.nameAr || subject.name,
     level: subject.level || 'INTERMEDIATE',
-    duration: subject.durationHours || 0,
+    durationHours: subject.durationHours || 0,
     thumbnailUrl: subject.thumbnailUrl || undefined,
     price: subject.price || 0,
     rating: subject.rating || 0,

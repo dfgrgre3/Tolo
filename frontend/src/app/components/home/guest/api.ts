@@ -1,4 +1,4 @@
-import { safeFetch } from '@/lib/safe-client-utils';
+import { apiClient } from '@/lib/api/api-client';
 import type {
   ApiCategoriesResponse,
   ApiSubjectsResponse,
@@ -20,46 +20,40 @@ const SORT_FIELDS: Record<CourseSort, string> = {
 };
 
 export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await safeFetch<ApiCategoriesResponse | Category[]>(
-    '/api/categories?limit=12',
-    undefined,
-    null
-  );
-  if (error || !data) return [];
-  if (Array.isArray(data)) return data;
-  return data.data || data.categories || [];
+  try {
+    return await apiClient.get<Category[]>('/api/categories?limit=12');
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchCourses(sort: CourseSort): Promise<CourseItem[]> {
   // The public catalog is exposed as /courses. /subjects is the authenticated
   // user's enrollment endpoint and returns 401 for visitors.
   const url = `/api/courses?isPublished=true&isActive=true&limit=8&sort=${SORT_FIELDS[sort]}&order=desc`;
-  const { data, error } = await safeFetch<ApiSubjectsResponse>(url, undefined, null);
-  if (error || !data) {
+  try {
+    const data = await apiClient.get<ApiSubjectsResponse>(url);
+    return data.items || [];
+  } catch {
     return [];
   }
-  const list = data.items || data.data?.items || [];
-  return Array.isArray(list) ? list : [];
 }
 
 export async function fetchInstructors(): Promise<Instructor[]> {
-  const { data, error } = await safeFetch<
-    { teachers?: Instructor[]; data?: Instructor[] } | Instructor[]
-  >('/api/teachers?limit=6', undefined, null);
-  if (error || !data) return [];
-  if (Array.isArray(data)) return data;
-  return data.teachers || data.data || [];
+  try {
+    return await apiClient.get<Instructor[]>('/api/teachers?limit=6');
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchBlogPosts(): Promise<BlogPost[]> {
-  const { data, error } = await safeFetch<
-    | { posts?: BlogPost[]; items?: BlogPost[]; data?: { posts?: BlogPost[]; items?: BlogPost[] } | BlogPost[] }
-    | BlogPost[]
-  >('/api/blog?limit=4&published=true', undefined, null);
-  if (error || !data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.data)) return data.data;
-  return data.posts || data.items || data.data?.posts || data.data?.items || [];
+  try {
+    const data = await apiClient.get<{ posts: BlogPost[] }>('/api/blog?limit=4&published=true');
+    return data.posts;
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -68,16 +62,14 @@ export async function fetchBlogPosts(): Promise<BlogPost[]> {
  * rather than display invented numbers.
  */
 export async function fetchStats(): Promise<PlatformStats | null> {
-  const { data, error } = await safeFetch<HomepageResponse>('/api/homepage', undefined, null);
-  if (error || !data?.stats) return null;
-
-  const { totalCourses, totalStudents, totalTeachers, totalEnrollments } = data.stats;
-  return {
-    courses: totalCourses,
-    students: totalStudents,
-    instructors: totalTeachers,
-    enrollments: totalEnrollments,
-  };
+  try {
+    const data = await apiClient.get<HomepageResponse>('/api/homepage');
+    if (!data.stats) return null;
+    const { totalCourses, totalStudents, totalTeachers, totalEnrollments } = data.stats;
+    return { courses: totalCourses, students: totalStudents, instructors: totalTeachers, enrollments: totalEnrollments };
+  } catch {
+    return null;
+  }
 }
 
 /** All home data fetched in a single batch call. */

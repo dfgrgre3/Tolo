@@ -21,8 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/auth-context";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
-import type { UpdateProfilePayload } from "@/types/user";
 import { useProfileData, type UserProfileData } from "./useProfileData";
+import { buildProfilePatch, type ProfileFormState } from "./profile-patch";
 import {
   MAX_NAME_LEN,
   MAX_USERNAME_LEN,
@@ -40,22 +40,7 @@ import {
 /** Sentinel for "no selection" — Radix SelectItem cannot use an empty string. */
 const NONE = "__none__";
 
-interface FormState {
-  name: string;
-  username: string;
-  phone: string;
-  alternativePhone: string;
-  country: string;
-  city: string;
-  gender: string;
-  school: string;
-  gradeLevel: string;
-  educationType: string;
-  section: string;
-  birthDate: string;
-  bio: string;
-  studyGoal: string;
-}
+type FormState = ProfileFormState;
 
 function toFormState(profile: UserProfileData): FormState {
   return {
@@ -153,31 +138,6 @@ export default function AccountSettingsForm() {
     return null;
   }
 
-  function buildPatch(state: FormState): UpdateProfilePayload {
-    if (!initial) return {};
-    const opt = (v: string) => (v.trim() ? v.trim() : undefined);
-    const pick = <K extends keyof FormState>(k: K) =>
-      state[k] !== initial[k] ? opt(state[k]) : undefined;
-
-    const patch: UpdateProfilePayload = {
-      name: state.name.trim() !== initial.name.trim() ? state.name.trim() : undefined,
-      username: pick("username"),
-      phone: pick("phone"),
-      alternativePhone: pick("alternativePhone"),
-      country: pick("country"),
-      city: pick("city"),
-      gender: pick("gender"),
-      school: pick("school"),
-      gradeLevel: pick("gradeLevel"),
-      educationType: pick("educationType"),
-      section: pick("section"),
-      birthDate: pick("birthDate"),
-      bio: state.bio !== initial.bio ? state.bio.trim() || undefined : undefined,
-      studyGoal: pick("studyGoal"),
-    };
-    return Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) as UpdateProfilePayload;
-  }
-
   async function handleSave() {
     if (!form) return;
     const validationError = validate(form);
@@ -186,7 +146,7 @@ export default function AccountSettingsForm() {
       return;
     }
 
-    const patch = buildPatch(form);
+    const patch = buildProfilePatch(form, initial);
     if (Object.keys(patch).length === 0) {
       toast.info("لا توجد تغييرات لحفظها");
       return;

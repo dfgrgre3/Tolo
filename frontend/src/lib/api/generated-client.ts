@@ -13,6 +13,29 @@
  *
  * See `packages/contracts/README.md` for the full migration plan.
  */
-export { client, getContractsBaseUrl } from "@thanawy/contracts";
+import { apiClient } from "./api-client";
+import { createContractsClient, getContractsBaseUrl } from "@thanawy/contracts";
+
+/**
+ * Keep OpenAPI's generated typing while routing requests through the same
+ * fetch policy as the rest of the frontend (CSRF, retries, cache, idempotency,
+ * credentials, and 401 handling).
+ */
+const sharedTransport: typeof fetch = async (input, init) => {
+  const request = new Request(input, init);
+  const body = request.body && request.method !== "GET" && request.method !== "HEAD"
+    ? await request.clone().arrayBuffer()
+    : undefined;
+
+  return apiClient.fetch(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body,
+    signal: request.signal,
+  });
+};
+
+export const client = createContractsClient(sharedTransport);
+export { getContractsBaseUrl };
 export { unwrapOpenApiPayload } from "@thanawy/contracts";
 export type { paths, components, operations } from "@thanawy/contracts";

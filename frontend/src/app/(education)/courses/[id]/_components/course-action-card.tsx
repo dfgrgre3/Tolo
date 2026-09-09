@@ -191,7 +191,7 @@ export function CourseActionCard({
         <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">مزايا ومحتويات الدورة:</h4>
         {[
           { icon: BookOpen, text: `${lessonsCount} دروس تعليمية منظمة` },
-          { icon: Clock, text: `${course.duration} ساعات من الشرح الوافي` },
+          { icon: Clock, text: `${course.durationHours} ساعات من الشرح الوافي` },
           { icon: Download, text: "وصول للمحتوى وفق سياسة الدورة" },
           ...(course.hasCertificate ? [{
             icon: Award,

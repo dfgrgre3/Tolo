@@ -74,13 +74,14 @@ export function __resetBackendUrlCache(): void {
 /**
  * Build a canonical URL for a backend API route.
  *
- * Accepts `/courses`, `/api/courses`, or `/api/v1/courses` and always returns
+ * Accepts `/courses`, `/api/courses`, `/v1/courses`, or `/api/v1/courses` and always returns
  * exactly one `/api/v1` prefix. Query strings and fragments are preserved.
  */
 export function getBackendApiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const apiPath = normalizedPath
     .replace(/^\/api\/v1(?=\/|\?|#|$)/, "")
+    .replace(/^\/v1(?=\/|\?|#|$)/, "")
     .replace(/^\/api(?=\/|\?|#|$)/, "");
   return `${getBackendUrl()}/api/v1${apiPath || "/"}`;
 }

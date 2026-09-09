@@ -167,7 +167,24 @@ export default function CourseDetailClient({
       }
 
       await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseId), {});
-      setCourse(prev => ({ ...prev, enrolled: true, progress: 0 }));
+      // Reconcile the complete server-owned snapshot so access, locks,
+      // enrollment and completion cannot remain from the guest state.
+      const snapshot = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId));
+      setCourse((prev) => ({
+        ...prev,
+        enrolled: snapshot.access.isEnrolled,
+        progress: snapshot.completion?.progress ?? snapshot.enrollment?.progress ?? 0,
+        completion: snapshot.completion,
+      }));
+      const normalized = toLessonCards((snapshot.lessons || []).map((lesson) => {
+        const progress = snapshot.progress?.[lesson.id];
+        return {
+          ...lesson,
+          completed: lesson.completed || (typeof progress === "object" ? progress.completed : progress) || false,
+          progress: lesson.progress ?? (typeof progress === "object" ? progress.percentage : progress ? 100 : 0),
+        };
+      }));
+      setLessons(normalized);
     } catch (err: unknown) {
       const apiErr = err as { status?: number; data?: { requiresPayment?: boolean } };
       if (apiErr?.status === 402 || apiErr?.data?.requiresPayment) {

@@ -63,7 +63,6 @@ const PUBLIC_API_ENDPOINTS = [
   "/api/homepage",
   "/api/blog",
   "/api/navigation/menu",
-  "/api/settings",
 ];
 
 // ─── Coarse role gating table ────────────────────────────────────────────────

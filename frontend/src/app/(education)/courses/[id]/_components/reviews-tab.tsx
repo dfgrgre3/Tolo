@@ -44,15 +44,9 @@ export function ReviewsTab({
       setReviewsLoading(true);
       setReviewsError(null);
       try {
-        const res = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
-        if (res.ok) {
-          const data = await res.json();
-          const reviewData = data.data || data;
-          setReviews(reviewData.reviews || []);
-          setReviewStats(reviewData.stats || null);
-        } else {
-          setReviewsError(`تعذر تحميل التقييمات (${res.status})`);
-        }
+        const reviewData = await apiClient.get<Review[]>(apiRoutes.courses.reviews(courseId));
+        setReviews(reviewData);
+        setReviewStats(null);
       } catch (error) {
         setReviewsError(error instanceof Error ? error.message : "تعذر تحميل التقييمات");
       } finally {setReviewsLoading(false);
