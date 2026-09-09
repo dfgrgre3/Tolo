@@ -168,7 +168,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         level,
         price: parseFloat(price) || 0,
         thumbnail,
-        status,
+        ...(course ? {} : { status: "draft" as const }),
         chapters,
         lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
         quizzes: quizzesToSave.map((quiz) => ({ ...quiz, title: quiz.title || `${title} — اختبار` })),
@@ -430,8 +430,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                   </SelectTrigger>
                   <SelectContent className="text-right">
                     <SelectItem value="draft">حفظ كمسودة (غير مرئي للطلاب)</SelectItem>
-                    <SelectItem value="published">نشر فوري (متاح للجميع)</SelectItem>
-                    <SelectItem value="archived">أرشفة الكورس</SelectItem>
+                    <SelectItem value="published" disabled>النشر بعد المراجعة والاعتماد</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -11,6 +11,7 @@ import { toCourseSummary, toLessonCards } from "@/types/domain/mappers";
 import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
 import type { CourseDetailResponse, CourseDetailHydrationResponse } from "@/types/domain/mappers";
 import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
+import { ApiError } from "@/lib/api/api-client";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -58,7 +59,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       }
     };
   } catch (error) {
-    console.error("Error generating dynamic metadata:", error);
+    if (!(error instanceof ApiError && error.status === 404)) {
+      console.error("Error generating dynamic metadata:", error);
+    }
     return {
       title: `تفاصيل الكورس | ${SITE.name}`,
       description: `منصة ${SITE.name} التعليمية للثانوية العامة`
@@ -111,7 +114,9 @@ export default async function Page({ params }: Props) {
       };
     }));
   } catch (error) {
-    console.error("Error generating Course schema:", error);
+    if (!(error instanceof ApiError && error.status === 404)) {
+      console.error("Error generating Course schema:", error);
+    }
   }
 
   const nonce = (await headers()).get('x-nonce') ?? undefined;
