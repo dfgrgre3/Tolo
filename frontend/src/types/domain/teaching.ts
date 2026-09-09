@@ -7,6 +7,7 @@
  */
 import type { Subject, Topic, SubTopic } from "@/types/subject";
 import type { QuizQuestion } from "@/types/course-quiz";
+import type { CourseLifecycle } from "@thanawy/shared/types/course-state";
 
 /** Explicit authoring DTO for the canonical SubTopic contract. */
 export type TeachingLessonInput = Pick<SubTopic, "id" | "title" | "type"> & Partial<Pick<SubTopic, "description" | "content" | "videoUrl" | "examId" | "durationMinutes" | "isFree" | "order" | "attachments">> & {
@@ -16,6 +17,7 @@ export type TeachingLessonInput = Pick<SubTopic, "id" | "title" | "type"> & Part
 
 /** @deprecated Use TeachingLessonInput for write operations. */
 export type TeachingLesson = TeachingLessonInput;
+export type TeachingCourseStatus = CourseLifecycle;
 
 export type TeachingChapter = Pick<Topic, "id" | "title"> & {
   clientId?: string;
@@ -46,7 +48,7 @@ export type TeachingCourse = Pick<
 > & {
   title: string;
   thumbnail: string;
-  status: "published" | "draft" | "archived";
+  status: TeachingCourseStatus;
   studentsCount: number;
   lessonsCount: number;
   duration: string;

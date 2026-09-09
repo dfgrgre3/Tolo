@@ -45,7 +45,9 @@ export default function CourseManagement({
   const filteredCourses = courses.filter((c) => {
     const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) ||
                           c.category.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" ? true : c.status === statusFilter;
+    const matchesStatus = statusFilter === "all"
+      ? true
+      : c.status === statusFilter.toUpperCase();
     return matchesSearch && matchesStatus;
   });
 

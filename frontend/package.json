@@ -4,8 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --webpack",
+        "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack",
         "dev:turbo": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack",
+        "dev:webpack": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --webpack",
         "clear-cache": "npx rimraf .next/cache",
         "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
         "build:turbo": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --turbopack",

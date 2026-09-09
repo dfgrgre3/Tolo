@@ -223,7 +223,7 @@ export function useProgressPersistence({
     try {
       const payload = await readLessonProgress(lessonId);
 
-      const data = payload?.data ?? {};
+      const data = payload ?? {};
       const serverPosition =
         typeof data.lastWatchedPosition === "number"
           ? data.lastWatchedPosition

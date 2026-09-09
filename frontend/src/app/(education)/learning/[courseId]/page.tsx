@@ -120,7 +120,7 @@ export default function AdvancedLearningHub() {
               totalLessons={hub.allLessons.length}
             />
 
-            {hub.progress === 100 && (
+            {hub.course.completion?.isComplete && (
               <section className="rounded-[32px] border border-emerald-500/20 bg-emerald-500/10 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">

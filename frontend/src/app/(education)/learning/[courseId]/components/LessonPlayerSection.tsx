@@ -190,6 +190,36 @@ export function LessonPlayerSection({
               dangerouslySetInnerHTML={{ __html: sanitizedContent || "لا يوجد محتوى نصي متاح." }}
             />
           </div>
+        ) : activeLesson.type === "FILE" ? (
+          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[28px] bg-slate-100 p-8 text-center dark:bg-white/5">
+            <FileText className="mb-4 h-14 w-14 text-sky-500" />
+            <h3 className="text-xl font-black">Ù…Ù„Ù Ø§Ù„Ø¯Ø±Ø³</h3>
+            {activeLesson.attachments?.length ? (
+              <div className="mt-5 flex w-full max-w-lg flex-col gap-2">
+                {activeLesson.attachments.map((attachment) => (
+                  <a
+                    key={attachment.id}
+                    href={attachment.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right text-sm font-bold text-sky-700 hover:bg-sky-50 dark:border-white/10 dark:bg-slate-900 dark:text-sky-300"
+                  >
+                    {attachment.title}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù„ÙØ§Øª Ù…Ø±ÙÙ‚Ø© Ø¨Ù‡Ø°Ø§ Ø§Ù„Ø¯Ø±Ø³.</p>
+            )}
+          </div>
+        ) : activeLesson.type === "ASSIGNMENT" ? (
+          <div className="min-h-[320px] rounded-[28px] bg-violet-50 p-8 shadow-inner dark:bg-violet-500/5">
+            <h3 className="text-xl font-black text-violet-900 dark:text-violet-100">Ù…ØªØ·Ù„Ø¨ Ø§Ù„Ø¯Ø±Ø³</h3>
+            <div
+              className="prose prose-lg mt-5 max-w-none leading-relaxed dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: sanitizedContent || "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªØ¹Ù„ÙŠÙ…Ø§Øª Ù„Ù„ÙˆØ§Ø¬Ø¨ Ø­Ø§Ù„ÙŠØ§Ù‹." }}
+            />
+          </div>
         ) : (
           <div className="flex aspect-video flex-col items-center justify-center rounded-[28px] bg-slate-100 text-center dark:bg-white/5">
             <FileText className="mb-4 h-12 w-12 text-slate-400" />

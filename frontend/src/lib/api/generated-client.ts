@@ -14,4 +14,5 @@
  * See `packages/contracts/README.md` for the full migration plan.
  */
 export { client, getContractsBaseUrl } from "@thanawy/contracts";
+export { unwrapOpenApiPayload } from "@thanawy/contracts";
 export type { paths, components, operations } from "@thanawy/contracts";

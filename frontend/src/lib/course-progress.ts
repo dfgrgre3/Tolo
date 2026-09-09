@@ -28,10 +28,8 @@ export function updateLessonProgress(
 
 export function readLessonProgress(lessonId: string) {
   return apiClient.get<{
-    data?: {
-      lastWatchedPosition?: number;
-      lastVideoPosition?: number;
-      updatedAt?: string;
-    };
+    lastWatchedPosition?: number;
+    lastVideoPosition?: number;
+    updatedAt?: string;
   }>(apiRoutes.courses.lessonProgress(lessonId));
 }

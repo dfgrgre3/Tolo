@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from 'date-fns';
 import { m } from "framer-motion";
@@ -126,14 +126,16 @@ export default function WeeklySchedule({
   const [showTimeLabels, setShowTimeLabels] = useState(true);
   const [defaultDuration, setDefaultDuration] = useState(60); // minutes
   const [hasInitialized, setHasInitialized] = useState(false);
+  const skipNextAutoSave = useRef(false);
 
   const loadScheduleData = useCallback(() => {
+    skipNextAutoSave.current = true;
     setTimeBlocks(extractTimeBlocks(schedule?.planJson));
     setHasInitialized(true);
   }, [schedule]);
 
   useEffect(() => {
-    queueMicrotask(loadScheduleData);
+    loadScheduleData();
   }, [loadScheduleData]);
 
   // Memoize week stats calculation
@@ -166,7 +168,12 @@ export default function WeeklySchedule({
 
   // Debounced auto-save
   useEffect(() => {
-    if (!autoSave || !hasInitialized) return;
+    if (!hasInitialized) return;
+    if (skipNextAutoSave.current) {
+      skipNextAutoSave.current = false;
+      return;
+    }
+    if (!autoSave) return;
     const timer = setTimeout(() => { saveSchedule(); }, 1000);
     return () => clearTimeout(timer);
   }, [timeBlocks, autoSave, hasInitialized, saveSchedule]);

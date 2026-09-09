@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { sanitizeSvg } from "@/lib/storage/svg-sanitizer";
+import { uploadLargeFile } from "@/lib/storage/client";
+import { apiClient } from "@/lib/api/api-client";
 
 /**
  * اختبارات معقّم SVG — يحمي مسار الرفع من تهريب سكربتات داخل ملفات SVG
@@ -64,5 +66,39 @@ describe("sanitizeSvg", () => {
     const result = sanitizeSvg(evil);
     expect(result).not.toContain("data:text/html");
     expect(result).not.toContain("<script");
+  });
+});
+
+describe("large SVG upload invariant", () => {
+  it("sanitizes bytes before the presigned PUT", async () => {
+    const post = vi.spyOn(apiClient, "post").mockResolvedValue({
+      uploadUrl: "https://upload.example/put",
+      fileKey: "uploads/clean.svg",
+      publicUrl: "https://cdn.example/clean.svg",
+      expiresIn: 900,
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 200 }),
+    );
+    const rawSvg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>';
+    const largeSvg = {
+      name: "image.svg",
+      type: "image/svg+xml",
+      size: 51 * 1024 * 1024,
+      lastModified: 0,
+      text: async () => rawSvg,
+    } as File;
+
+    await uploadLargeFile({ bucket: "uploads", file: largeSvg });
+
+    const body = fetchSpy.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(File);
+    expect(await (body as File).text()).not.toContain("<script");
+    expect(post).toHaveBeenCalledWith("/upload/presign", expect.objectContaining({
+      fileName: "image.svg",
+      contentType: "image/svg+xml",
+    }));
+    post.mockRestore();
+    fetchSpy.mockRestore();
   });
 });

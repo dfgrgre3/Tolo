@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { contractGetCourse, contractListCourses } from '@/services/api/contracts-courses-service';
+import { unwrapOpenApiPayload } from '@/lib/api/generated-client';
 import type { Subject } from '@/types/subject';
 
 export function useCourses() {
@@ -7,7 +8,8 @@ export function useCourses() {
     queryKey: ['courses'],
     queryFn: async () => {
       const result = await contractListCourses();
-      return (result.data?.data?.items ?? []) as unknown as Subject[];
+      const payload = unwrapOpenApiPayload<{ items?: Subject[] }>(result.data);
+      return payload?.items ?? [];
     },
   });
 }
@@ -18,7 +20,8 @@ export function useCourse(id: string) {
     queryFn: async () => {
       const result = await contractGetCourse(id);
       if (result.error) throw result.error;
-      return (result.data?.data?.subject ?? result.data?.subject) as unknown as Subject;
+      const payload = unwrapOpenApiPayload<{ subject?: Subject } | Subject>(result.data);
+      return (payload && "subject" in payload ? payload.subject : payload) as Subject;
     },
     enabled: !!id,
   });

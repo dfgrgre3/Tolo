@@ -48,12 +48,12 @@ export function useTimelineNotes({
     async (isCancelled: () => boolean) => {
       setIsNotesSyncing(true);
       try {
-        const payload = await apiClient.get<{ data?: { content?: string } }>(
+        const payload = await apiClient.get<{ content?: string }>(
           `/api/courses/lessons/${lessonId}/notes`
         );
         if (isCancelled()) return;
 
-        const content = payload?.data?.content ?? "";
+        const content = payload?.content ?? "";
         const parsed = parseCloudTimelineNotes(content);
 
         if (isCancelled()) return;

@@ -8,8 +8,8 @@
  */
 import createClient, { type Middleware } from "openapi-fetch";
 
-import { getContractsBaseUrl } from "./backend-url.js";
-import type { paths } from "./generated/api.js";
+import { getContractsBaseUrl } from "./backend-url";
+import type { paths } from "./generated/api";
 
 /**
  * Auth middleware: browser requests stay same-origin and use the HttpOnly

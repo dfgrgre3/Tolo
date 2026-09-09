@@ -25,6 +25,10 @@ export async function uploadFileServer(options: UploadOptions): Promise<UploadRe
   const supabase = await getSupabaseServerClient();
   const { bucket, path, file, upsert = false, contentType, cacheControl = "3600" } = options;
 
+  if (!path) {
+    throw new Error("Upload path is required for direct server storage uploads");
+  }
+
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
   }

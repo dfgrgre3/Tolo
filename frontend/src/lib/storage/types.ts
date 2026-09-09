@@ -1,6 +1,7 @@
 export interface UploadOptions {
   bucket: string;
-  path: string;
+  /** Optional for server-owned upload routes; required by direct Supabase uploads. */
+  path?: string;
   file: File;
   upsert?: boolean;
   contentType?: string;

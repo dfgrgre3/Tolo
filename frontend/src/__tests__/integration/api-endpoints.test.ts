@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 const API_BASE = "http://localhost:8082/api";
+const OPENAPI_PATH = process.env.THANAWY_OPENAPI_PATH
+  ? resolve(process.env.THANAWY_OPENAPI_PATH)
+  : resolve(process.cwd(), "../../backend/docs/swagger.json");
 
 let requestCount = 0;
 
 beforeAll(() => {
+  if (!existsSync(OPENAPI_PATH)) {
+    throw new Error(
+      `API endpoint smoke tests require the backend OpenAPI artifact: ${OPENAPI_PATH}`,
+    );
+  }
   requestCount = 0;
   vi.stubGlobal("fetch", async (urlStr: string, options?: RequestInit) => {
     requestCount++;

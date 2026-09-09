@@ -16,12 +16,12 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
   const loadTranscript = useCallback(async (isCancelled: () => boolean) => {
     setIsLoading(true);
     try {
-      const payload = await apiClient.get<{ data?: { content?: string } }>(
+      const payload = await apiClient.get<{ content?: string }>(
         `/api/courses/lessons/${lessonId}/transcript`
       );
       if (isCancelled()) return;
 
-      const content: string = payload?.data?.content ?? "";
+      const content: string = payload?.content ?? "";
       if (isCancelled()) return;
       setCues(content ? parseTranscript(content) : []);
     } catch {

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Video, FileText, HelpCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Chapter, Lesson } from "../hooks/use-teaching-data";
+import { Chapter, Lesson, reorderTeachingLessons } from "../hooks/use-teaching-data";
 import { Switch } from "@/components/ui/switch";
 
 interface LessonBuilderProps {
@@ -192,14 +192,10 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
     onChange(
       chapters.map((c) => {
         if (c.id === chapterId) {
-          const list = [...c.lessons];
-          const targetIndex = direction === "up" ? lessonIndex - 1 : lessonIndex + 1;
-          if (targetIndex >= 0 && targetIndex < list.length) {
-            const temp = list[lessonIndex]!;
-            list[lessonIndex] = list[targetIndex]!;
-            list[targetIndex] = temp;
-          }
-          return { ...c, lessons: list };
+          return {
+            ...c,
+            lessons: reorderTeachingLessons(c.lessons, lessonIndex, direction),
+          };
         }
         return c;
       })

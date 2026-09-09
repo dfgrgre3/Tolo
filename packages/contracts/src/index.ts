@@ -7,6 +7,7 @@
  * Do NOT import from "./generated/api" directly — the file is regenerated
  * on every `npm run generate:api-types` and its export shape may grow.
  */
-export { client } from "./client.js";
-export { getContractsBaseUrl } from "./backend-url.js";
-export type { paths, components, operations } from "./generated/api.js";
+export { client } from "./client";
+export { getContractsBaseUrl } from "./backend-url";
+export { unwrapOpenApiPayload } from "./application-envelope";
+export type { paths, components, operations } from "./generated/api";

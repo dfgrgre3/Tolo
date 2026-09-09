@@ -94,6 +94,8 @@ export interface LessonProgressResponse extends Partial<LessonProgressMutationRe
   totalLessons?: number;
   requiredExams?: number;
   completedRequiredExams?: number;
+  requiredCourseQuizzes?: number;
+  completedCourseQuizzes?: number;
   certificateEligible?: boolean;
 }
 
@@ -238,7 +240,7 @@ export function toLessonCard(raw: LessonRowDTO, index = 0): LessonCardView {
     isFree: Boolean(raw.isFree),
     locked: Boolean(raw.locked),
     duration: durationMinutes > 0 ? durationMinutes * 60 : 0,
-    order: raw.order || index + 1,
+    order: raw.order ?? index + 1,
     completed: Boolean(raw.completed),
     progress: typeof raw.progress === 'number' ? raw.progress : raw.completed ? 100 : 0,
   };
@@ -295,8 +297,8 @@ export interface LearningCourseView {
   instructor: string;
   rating: number;
   thumbnailUrl?: string | null;
-  /** Server-owned completion state; lesson count alone is not certification. */
-  completion?: { isComplete: boolean; progress: number };
+  /** Server-owned completion state; progress alone is not completion. */
+  completion?: CompletionSnapshot;
 }
 
 /** LessonAttachment (domain) → resources-tab projection. */

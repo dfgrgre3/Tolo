@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { uploadFile, uploadLargeFile, generateUserPath, validateFileType, validateFileSize, type UploadOptions, type UploadResult, type FileMetadata } from "@/lib/storage/client";
+import { uploadFile, uploadLargeFile, validateFileType, validateFileSize, type UploadOptions, type UploadResult, type FileMetadata } from "@/lib/storage/client";
 
 export interface UseUploadOptions {
   bucket: string;
@@ -105,12 +105,8 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
       setCurrentFile(file);
 
       try {
-        const userId = "anonymous";
-        const path = generateUserPath(userId, file.name, folder);
-
         const uploadOptions: UploadOptions = {
           bucket,
-          path,
           file,
           onProgress: handleProgress,
         };

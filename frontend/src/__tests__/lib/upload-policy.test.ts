@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   SERVER_MAX_FILE_SIZE,
   MAX_SIMPLE_UPLOAD_SIZE,
@@ -96,6 +96,33 @@ describe("generateUserPath", () => {
     expect(fileName).not.toContain("<");
     expect(fileName).not.toMatch(/[^a-zA-Z0-9._-]/);
     expect(path.split("/").length).toBe(2); // userId/fileName — لا أعماق إضافية
+  });
+});
+
+describe("server-owned upload identity", () => {
+  it("does not use a client-generated anonymous path for uploads", async () => {
+    const { apiClient } = await import("@/lib/api/api-client");
+    const postForm = vi.spyOn(apiClient, "postForm").mockResolvedValue({
+      fileUrl: "https://cdn.example/upload-1.png",
+      fileKey: "uploads/server-generated-1.png",
+      fileName: "photo.png",
+      fileSize: 1,
+      mimeType: "image/png",
+    });
+
+    const { uploadFile } = await import("@/lib/storage/client");
+    await uploadFile({
+      bucket: "avatars",
+      file: new File([new Uint8Array([1])], "photo.png", { type: "image/png" }),
+    });
+
+    expect(postForm).toHaveBeenCalledWith("/upload", expect.any(FormData));
+    const formData = postForm.mock.calls[0]?.[1] as FormData;
+    expect(formData.get("context")).toBe("avatars");
+    expect(formData.get("path")).toBeNull();
+    expect(formData.get("userId")).toBeNull();
+    expect(formData.get("fileKey")).toBeNull();
+    postForm.mockRestore();
   });
 });
 

@@ -49,7 +49,9 @@ export function normalizeLessonProgressResponse(
   const courseProgress = clampPercentage(input.courseProgress ?? 0);
   const lessonPercentage = clampPercentage(input.lessonProgress ?? (input.isCourseComplete ? 100 : 0));
   const eligibility: CompletionEligibility = {
-    isComplete: Boolean(input.isCourseComplete) || courseProgress >= 100,
+    // Progress is a display metric; completion is server-authoritative and
+    // may remain false while required exams or course quizzes are pending.
+    isComplete: Boolean(input.isCourseComplete),
     certificateEligible: Boolean(input.certificateEligible),
     requiredExams: input.requiredExams ?? 0,
     completedRequiredExams: input.completedRequiredExams ?? 0,

@@ -36,6 +36,30 @@ export function getSupabaseClient() {
   return createClient();
 }
 
+async function prepareUploadFile(file: File): Promise<File> {
+  if (file.type !== "image/svg+xml" && !file.name.toLowerCase().endsWith(".svg")) {
+    return file;
+  }
+
+  // Every upload mode must sanitize SVG before bytes leave the browser.
+  let sanitizedText: string;
+  try {
+    sanitizedText = sanitizeSvg(await file.text());
+  } catch (error) {
+    console.error("SVG sanitization failed; refusing to upload raw file", error);
+    throw new Error("SVG validation failed: the file could not be safely sanitized and was rejected.");
+  }
+
+  if (!sanitizedText || !sanitizedText.trim()) {
+    throw new Error("SVG validation failed: sanitizer produced empty output (file rejected as unsafe).");
+  }
+
+  return new File([sanitizedText], file.name, {
+    type: "image/svg+xml",
+    lastModified: file.lastModified,
+  });
+}
+
 export async function uploadFile(options: UploadOptions): Promise<UploadResult> {
   const { bucket, file, onProgress } = options;
 
@@ -43,8 +67,8 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
     throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
   }
 
-  let fileToUpload = file;
-  if (file.type === "image/svg+xml" || file.name.endsWith(".svg")) {
+  const fileToUpload = await prepareUploadFile(file);
+  /*
     // SECURITY: fail closed. If sanitization rejects the SVG (likely hostile),
     // we MUST NOT upload the original bytes — that would re-introduce the
     // very payloads (script tags, on-handlers, foreignObject XSS) the
@@ -75,6 +99,7 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
       lastModified: file.lastModified,
     });
   }
+  */
 
   const formData = new FormData();
   formData.append("file", fileToUpload);
@@ -110,6 +135,8 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
     return uploadFile(options);
   }
 
+  const fileToUpload = await prepareUploadFile(file);
+
   if (onProgress) {
     onProgress(0);
   }
@@ -118,7 +145,7 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
   const presignData = await apiClient.post<{ uploadUrl: string; fileKey: string; publicUrl: string; expiresIn: number }>('/upload/presign', {
     fileName: file.name,
     contentType: contentType || file.type,
-    fileSize: file.size,
+    fileSize: fileToUpload.size,
     context: bucket,
     category: "any"
   });
@@ -126,7 +153,7 @@ export async function uploadLargeFile(options: UploadOptions): Promise<UploadRes
   // 2. Upload directly to S3 via fetch
   const response = await fetch(presignData.uploadUrl, {
     method: 'PUT',
-    body: file,
+    body: fileToUpload,
     headers: {
       'Content-Type': contentType || file.type,
     }
@@ -353,6 +380,12 @@ export function getImageTransformUrl(
   }).data.publicUrl;
 }
 
+/**
+ * Legacy client-side path helper. Upload routes must not use this for
+ * ownership: authenticated upload endpoints generate the storage key on the
+ * backend. Keep this only for callers that explicitly need a local preview
+ * path, never as an authorization boundary.
+ */
 export function generateUserPath(userId: string, fileName: string, folder?: string): string {
   const timestamp = Date.now();
   const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");

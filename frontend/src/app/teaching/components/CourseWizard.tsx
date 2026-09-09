@@ -34,7 +34,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [price, setPrice] = useState(course?.price?.toString() || "0");
   const [level, setLevel] = useState<Course["level"]>(course?.level || "INTERMEDIATE");
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
-  const [status, setStatus] = useState<Course["status"]>(course?.status || "draft");
+  const [status, setStatus] = useState<Course["status"]>(course?.status || "DRAFT");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
   const [quizDrafts, setQuizDrafts] = useState<NonNullable<Course["quiz"]>[]>(() =>
     course?.quizzes ?? (course?.quiz ? [course.quiz] : [])
@@ -168,7 +168,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         level,
         price: parseFloat(price) || 0,
         thumbnail,
-        ...(course ? {} : { status: "draft" as const }),
+        ...(course ? {} : { status: "DRAFT" as const }),
         chapters,
         lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
         quizzes: quizzesToSave.map((quiz) => ({ ...quiz, title: quiz.title || `${title} — اختبار` })),
@@ -429,8 +429,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                     <SelectValue placeholder="حالة الكورس" />
                   </SelectTrigger>
                   <SelectContent className="text-right">
-                    <SelectItem value="draft">حفظ كمسودة (غير مرئي للطلاب)</SelectItem>
-                    <SelectItem value="published" disabled>النشر بعد المراجعة والاعتماد</SelectItem>
+                    <SelectItem value="DRAFT">حفظ كمسودة (غير مرئي للطلاب)</SelectItem>
+                    <SelectItem value="PUBLISHED" disabled>النشر بعد المراجعة والاعتماد</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

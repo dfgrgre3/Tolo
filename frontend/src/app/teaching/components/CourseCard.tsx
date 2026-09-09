@@ -29,11 +29,11 @@ export default function CourseCard({
 }: CourseCardProps) {
   const getStatusBadge = (status: Course["status"]) => {
     switch (status) {
-      case "published":
+      case "PUBLISHED":
         return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-2.5 py-0.5">منشور</Badge>;
-      case "draft":
+      case "DRAFT":
         return <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 rounded-full px-2.5 py-0.5">مسودة</Badge>;
-      case "archived":
+      case "ARCHIVED":
         return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-white rounded-full px-2.5 py-0.5">مؤرشف</Badge>;
       default:
         return null;

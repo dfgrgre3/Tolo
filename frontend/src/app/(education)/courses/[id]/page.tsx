@@ -100,7 +100,7 @@ export default async function Page({ params }: Props) {
         };
 
         initialCourseData = toCourseSummary(subject, {
-          enrolled: Boolean(courseData.enrollment),
+          enrolled: hydration.access.isEnrolled,
           progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined,
           completion: hydration.completion,
         });

@@ -10,6 +10,7 @@ import type {
 } from '@thanawy/shared/types/api';
 import { ApiContractError, ApiError as ClientApiError, unwrapApplicationPayload } from '@/lib/api/api-client';
 import { ApiError as ResponseApiError } from '@/types/api/responses';
+import { unwrapOpenApiPayload } from '@/lib/api/generated-client';
 
 // Compile-time contract test: both import paths accept the same envelope.
 const successResponse = {
@@ -59,6 +60,13 @@ describe('shared API response contract', () => {
       success: true,
       data: { id: 'course-1' },
     })).toEqual({ id: 'course-1' });
+  });
+
+  it('keeps the openapi-fetch boundary separate from apiClient', () => {
+    const httpBody = { success: true, data: { items: [{ id: 'course-1' }] } };
+
+    expect(unwrapOpenApiPayload<{ items: { id: string }[] }>(httpBody)).toEqual(httpBody.data);
+    expect(unwrapOpenApiPayload<{ id: string }>({ id: 'course-1' })).toEqual({ id: 'course-1' });
   });
 
   it('rejects malformed envelopes instead of hiding contract errors', () => {

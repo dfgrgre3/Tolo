@@ -48,6 +48,8 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   progress: number;          // percentage 0-100
+  requiredCourseQuizzes?: number;
+  completedCourseQuizzes?: number;
   enrolledAt: Date | string;
   completedAt?: Date | string | null;
 }

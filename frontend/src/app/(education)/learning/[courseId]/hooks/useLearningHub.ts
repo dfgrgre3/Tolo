@@ -23,6 +23,7 @@ import type {
   LessonQuestionsResponse,
 } from "@/types/domain/mappers";
 import { useAuth } from "@/hooks/use-auth";
+import { normalizeLessonProgressResponse } from "@thanawy/shared/types/enums";
 
 const VALID_TABS: readonly TabKey[] = ["content", "resources", "qna", "notes", "ai"];
 type StoredLearningHubState = {
@@ -150,7 +151,12 @@ export function useLearningHub() {
           thumbnailUrl: subject.thumbnailUrl || null,
           completion: curriculumPayload.completion || (curriculumPayload.enrollment
             ? {
-                isComplete: curriculumPayload.enrollment.progress >= 100,
+                isComplete: false,
+                certificateEligible: false,
+                requiredExams: 0,
+                completedRequiredExams: 0,
+                requiredCourseQuizzes: curriculumPayload.enrollment.requiredCourseQuizzes ?? 0,
+                completedCourseQuizzes: curriculumPayload.enrollment.completedCourseQuizzes ?? 0,
                 progress: curriculumPayload.enrollment.progress,
               }
             : undefined),
@@ -315,14 +321,29 @@ export function useLearningHub() {
 
         setChapters((current) => markLessonCompletedInChapters(current, lessonId));
         if (typeof data.courseProgress === "number") {
-          setCourse((current) => current ? {
-            ...current,
-            completion: {
-              progress: data.courseProgress!,
-              isComplete: Boolean(data.isCourseComplete),
-              certificateEligible: Boolean(data.certificateEligible),
-            },
-          } : current);
+          setCourse((current) => {
+            if (!current) return current;
+
+            const previous = current.completion;
+            const snapshot = normalizeLessonProgressResponse({
+              lessonProgress: data.lessonProgress,
+              courseProgress: data.courseProgress,
+              isCourseComplete: data.isCourseComplete ?? previous?.isComplete,
+              certificateEligible: data.certificateEligible ?? previous?.certificateEligible,
+              requiredExams: data.requiredExams ?? previous?.requiredExams,
+              completedRequiredExams: data.completedRequiredExams ?? previous?.completedRequiredExams,
+              requiredCourseQuizzes: data.requiredCourseQuizzes ?? previous?.requiredCourseQuizzes,
+              completedCourseQuizzes: data.completedCourseQuizzes ?? previous?.completedCourseQuizzes,
+            }, lessonId);
+
+            return {
+              ...current,
+              completion: {
+                ...snapshot.eligibility,
+                progress: snapshot.courseProgress,
+              },
+            };
+          });
         }
 
         if (data?.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
@@ -334,7 +355,7 @@ export function useLearningHub() {
         toast.error("تعذر تسجيل إكمال الدرس.");
       }
     },
-    [courseId]
+    []
   );
 
   const saveNote = useCallback(async () => {

@@ -12,6 +12,8 @@ import {
 import { usePermission } from "@/hooks/use-permission";
 import type { QuizQuestion } from "@/types/course-quiz";
 import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
+import { normalizeCourseLifecycle, type CourseLifecycle } from "@thanawy/shared/types/course-state";
+import { unwrapOpenApiPayload } from "@/lib/api/generated-client";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -48,6 +50,32 @@ export type Lesson = TeachingLessonInput;
 export type Chapter = TeachingChapter;
 export type Course = TeachingCourse;
 
+export function toTeachingStatusTransport(status: CourseLifecycle): string {
+  return status.toLowerCase();
+}
+
+export function normalizeTeachingCourse(course: Course): Course {
+  return { ...course, status: normalizeCourseLifecycle({ status: course.status }) };
+}
+
+/** Keeps the persisted lesson order identical to the editor's array order. */
+export function reorderTeachingLessons(
+  lessons: Lesson[],
+  lessonIndex: number,
+  direction: "up" | "down",
+): Lesson[] {
+  const list = [...lessons];
+  const targetIndex = direction === "up" ? lessonIndex - 1 : lessonIndex + 1;
+
+  if (targetIndex >= 0 && targetIndex < list.length) {
+    const current = list[lessonIndex]!;
+    list[lessonIndex] = list[targetIndex]!;
+    list[targetIndex] = current;
+  }
+
+  return list.map((lesson, index) => ({ ...lesson, order: index + 1 }));
+}
+
 export function mapTeachingLesson(lesson: Lesson) {
   return {
     ...(lesson.id ? { id: lesson.id } : {}),
@@ -71,7 +99,7 @@ export function buildCourseUpdateBody(data: Partial<Course>): Record<string, unk
   if (data.description !== undefined) body.description = data.description;
   if (data.thumbnail !== undefined) body.thumbnail = data.thumbnail;
   if (data.price !== undefined) body.price = data.price;
-  if (data.status !== undefined) body.status = data.status;
+  if (data.status !== undefined) body.status = toTeachingStatusTransport(data.status);
   if (data.level !== undefined) body.level = data.level;
   if (data.categoryId !== undefined) body.categoryId = data.categoryId;
   if (data.chapters !== undefined) body.chapters = mapTeachingChapters(data.chapters);
@@ -299,7 +327,12 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "courses"],
     queryFn: async () => {
       const result = await contractListTeachingCourses();
-      return result.data?.data as unknown as CoursesListResponse;
+      if (result.error) {
+        throw new Error("Failed to load teaching courses");
+      }
+
+      const payload = unwrapOpenApiPayload<CoursesListResponse>(result.data) ?? { courses: [] };
+      return { ...payload, courses: payload.courses.map(normalizeTeachingCourse) };
     },
     enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses" || activeTab === "quizzes"),
     retry: 1,
@@ -318,7 +351,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
         description: newCourse.description,
         thumbnail: newCourse.thumbnail,
         price: newCourse.price ?? 0,
-        status: newCourse.status ?? "draft",
+        status: toTeachingStatusTransport(newCourse.status ?? "DRAFT"),
         level: newCourse.level ?? "INTERMEDIATE",
         language: "ar",
         categoryId: newCourse.categoryId ?? undefined,
