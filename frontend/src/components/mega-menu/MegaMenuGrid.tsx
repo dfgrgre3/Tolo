@@ -13,23 +13,7 @@ interface MegaMenuGridProps {
 }
 
 export function groupMegaMenuCategories(categories: CategoryType[]): CategoryType[][] {
-	// Categories sharing the same columnKey stack into one visual column,
-	// each keeping its own heading with its links below it. This keeps the
-	// number of columns low and lets a column hold many links (8+) instead
-	// of spreading every category into its own column.
-	const order: string[] = [];
-	const groups = new Map<string, CategoryType[]>();
-
-	categories.forEach((category) => {
-		const key = category.columnKey || category.slug || category.id || category.title;
-		if (!groups.has(key)) {
-			order.push(key);
-			groups.set(key, []);
-		}
-		groups.get(key)!.push(category);
-	});
-
-	return order.map((key) => groups.get(key)!);
+	return categories.map((category) => [category]);
 }
 
 export const MegaMenuGrid = React.memo(function MegaMenuGrid({
@@ -43,10 +27,8 @@ export const MegaMenuGrid = React.memo(function MegaMenuGrid({
 	return (
 		<div
 			className={cn(
-				// Columns share the full menu width instead of hugging one side
-				// with empty space left over. Each column stacks its categories
-				// vertically (heading + links), so a long list never creates
-				// another column or pushes columns onto a second row.
+				// Each category owns one column so headings and their link groups
+				// stay visually independent and predictable.
 				"flex w-full flex-nowrap items-start",
 				isCompact ? "gap-x-4" : "gap-x-8"
 			)}

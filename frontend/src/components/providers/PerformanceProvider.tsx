@@ -41,7 +41,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
         if (navigator.sendBeacon) {
           navigator.sendBeacon("/api/analytics/web-vitals", body);
         } else {
-          fetch("/api/analytics/web-vitals", {
+          globalThis.fetch("/api/analytics/web-vitals", {
             body,
             method: "POST",
             keepalive: true,

@@ -16,9 +16,17 @@ import { logger } from '@/lib/logger';
 type PreferencesResponse = {
   success?: boolean;
   data?: {
-    settings: any;
+    settings?: unknown;
   };
 };
+
+type SettingsRecord = Record<string, unknown>;
+
+function asSettingsRecord(value: unknown): SettingsRecord | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as SettingsRecord
+    : null;
+}
 
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
@@ -53,73 +61,85 @@ async function parseErrorMessage(response: Response): Promise<string> {
   return `Failed to process settings request (HTTP ${response.status})`;
 }
 
-function mapBackendToFrontend(settings: any): SettingsPreferences {
+function mapBackendToFrontend(rawSettings: unknown): SettingsPreferences {
+  const settings = asSettingsRecord(rawSettings);
   if (!settings) return {
     appearance: DEFAULT_APPEARANCE_SETTINGS,
     language: DEFAULT_LANGUAGE_SETTINGS,
     notifications: DEFAULT_NOTIFICATION_SETTINGS,
     privacy: DEFAULT_PRIVACY_SETTINGS,
   };
+
+  const readString = (key: string, fallback: string): string =>
+    typeof settings[key] === 'string' ? settings[key] as string : fallback;
+  const readBoolean = (key: string, fallback: boolean): boolean =>
+    typeof settings[key] === 'boolean' ? settings[key] as boolean : fallback;
+  const readNumber = (key: string, fallback: number): number =>
+    typeof settings[key] === 'number' ? settings[key] as number : fallback;
+  const readEnum = <T extends string>(key: string, values: readonly T[], fallback: T): T => {
+    const value = settings[key];
+    return typeof value === 'string' && values.includes(value as T) ? value as T : fallback;
+  };
   
   return {
     appearance: {
       ...DEFAULT_APPEARANCE_SETTINGS,
-      theme: settings.theme || DEFAULT_APPEARANCE_SETTINGS.theme,
-      fontSize: settings.fontSize || DEFAULT_APPEARANCE_SETTINGS.fontSize,
-      reducedMotion: settings.reducedMotion ?? DEFAULT_APPEARANCE_SETTINGS.reducedMotion,
-      highContrast: settings.highContrast ?? DEFAULT_APPEARANCE_SETTINGS.highContrast,
-      compactMode: settings.compactMode ?? DEFAULT_APPEARANCE_SETTINGS.compactMode,
-      efficiencyMode: settings.efficiencyMode ?? DEFAULT_APPEARANCE_SETTINGS.efficiencyMode,
+      theme: readEnum('theme', ['light', 'dark', 'system'], DEFAULT_APPEARANCE_SETTINGS.theme),
+      fontSize: readEnum('fontSize', ['small', 'medium', 'large'], DEFAULT_APPEARANCE_SETTINGS.fontSize),
+      reducedMotion: readBoolean('reducedMotion', DEFAULT_APPEARANCE_SETTINGS.reducedMotion),
+      highContrast: readBoolean('highContrast', DEFAULT_APPEARANCE_SETTINGS.highContrast),
+      compactMode: readBoolean('compactMode', DEFAULT_APPEARANCE_SETTINGS.compactMode ?? false),
+      efficiencyMode: readBoolean('efficiencyMode', DEFAULT_APPEARANCE_SETTINGS.efficiencyMode ?? false),
     },
     language: {
       ...DEFAULT_LANGUAGE_SETTINGS,
-      language: settings.language || DEFAULT_LANGUAGE_SETTINGS.language,
-      numberFormat: settings.numberFormat || DEFAULT_LANGUAGE_SETTINGS.numberFormat,
+      language: readString('language', DEFAULT_LANGUAGE_SETTINGS.language),
+      numberFormat: readEnum('numberFormat', ['arabic', 'western'], DEFAULT_LANGUAGE_SETTINGS.numberFormat),
     },
     notifications: {
       ...DEFAULT_NOTIFICATION_SETTINGS,
-      notificationsEnabled: settings.notificationsEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.notificationsEnabled,
-      studyReminders: settings.studyReminders ?? DEFAULT_NOTIFICATION_SETTINGS.studyReminders,
-      emailNotifications: settings.emailNotifications ?? DEFAULT_NOTIFICATION_SETTINGS.emailNotifications,
-      pushNotifications: settings.pushNotifications ?? DEFAULT_NOTIFICATION_SETTINGS.pushNotifications,
-      taskReminders: settings.taskReminders ?? DEFAULT_NOTIFICATION_SETTINGS.taskReminders,
-      taskReminderTime: settings.taskReminderTime || DEFAULT_NOTIFICATION_SETTINGS.taskReminderTime,
-      dailyGoalReminders: settings.dailyGoalReminders ?? DEFAULT_NOTIFICATION_SETTINGS.dailyGoalReminders,
-      examReminders: settings.examReminders ?? DEFAULT_NOTIFICATION_SETTINGS.examReminders,
-      examReminderDays: settings.examReminderDays ?? DEFAULT_NOTIFICATION_SETTINGS.examReminderDays,
-      deadlineReminders: settings.deadlineReminders ?? DEFAULT_NOTIFICATION_SETTINGS.deadlineReminders,
-      progressReports: settings.progressReports ?? DEFAULT_NOTIFICATION_SETTINGS.progressReports,
-      weeklyReport: settings.weeklyReport ?? DEFAULT_NOTIFICATION_SETTINGS.weeklyReport,
-      achievementAlerts: settings.achievementAlerts ?? DEFAULT_NOTIFICATION_SETTINGS.achievementAlerts,
-      commentNotifications: settings.commentNotifications ?? DEFAULT_NOTIFICATION_SETTINGS.commentNotifications,
-      mentionNotifications: settings.mentionNotifications ?? DEFAULT_NOTIFICATION_SETTINGS.mentionNotifications,
-      pushEnabled: settings.pushEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.pushEnabled,
-      emailEnabled: settings.emailEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.emailEnabled,
-      smsEnabled: settings.smsEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.smsEnabled,
-      quietHoursEnabled: settings.quietHoursEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled,
-      quietHoursStart: settings.quietHoursStart || DEFAULT_NOTIFICATION_SETTINGS.quietHoursStart,
-      quietHoursEnd: settings.quietHoursEnd || DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnd,
-      soundEnabled: settings.soundEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled,
-      vibrationEnabled: settings.vibrationEnabled ?? DEFAULT_NOTIFICATION_SETTINGS.vibrationEnabled,
+      notificationsEnabled: readBoolean('notificationsEnabled', DEFAULT_NOTIFICATION_SETTINGS.notificationsEnabled),
+      studyReminders: readBoolean('studyReminders', DEFAULT_NOTIFICATION_SETTINGS.studyReminders),
+      emailNotifications: readBoolean('emailNotifications', DEFAULT_NOTIFICATION_SETTINGS.emailNotifications),
+      pushNotifications: readBoolean('pushNotifications', DEFAULT_NOTIFICATION_SETTINGS.pushNotifications),
+      taskReminders: readBoolean('taskReminders', DEFAULT_NOTIFICATION_SETTINGS.taskReminders),
+      taskReminderTime: readString('taskReminderTime', DEFAULT_NOTIFICATION_SETTINGS.taskReminderTime),
+      dailyGoalReminders: readBoolean('dailyGoalReminders', DEFAULT_NOTIFICATION_SETTINGS.dailyGoalReminders),
+      examReminders: readBoolean('examReminders', DEFAULT_NOTIFICATION_SETTINGS.examReminders),
+      examReminderDays: readNumber('examReminderDays', DEFAULT_NOTIFICATION_SETTINGS.examReminderDays),
+      deadlineReminders: readBoolean('deadlineReminders', DEFAULT_NOTIFICATION_SETTINGS.deadlineReminders),
+      progressReports: readBoolean('progressReports', DEFAULT_NOTIFICATION_SETTINGS.progressReports),
+      weeklyReport: readBoolean('weeklyReport', DEFAULT_NOTIFICATION_SETTINGS.weeklyReport),
+      achievementAlerts: readBoolean('achievementAlerts', DEFAULT_NOTIFICATION_SETTINGS.achievementAlerts),
+      commentNotifications: readBoolean('commentNotifications', DEFAULT_NOTIFICATION_SETTINGS.commentNotifications),
+      mentionNotifications: readBoolean('mentionNotifications', DEFAULT_NOTIFICATION_SETTINGS.mentionNotifications),
+      pushEnabled: readBoolean('pushEnabled', DEFAULT_NOTIFICATION_SETTINGS.pushEnabled),
+      emailEnabled: readBoolean('emailEnabled', DEFAULT_NOTIFICATION_SETTINGS.emailEnabled),
+      smsEnabled: readBoolean('smsEnabled', DEFAULT_NOTIFICATION_SETTINGS.smsEnabled),
+      quietHoursEnabled: readBoolean('quietHoursEnabled', DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled),
+      quietHoursStart: readString('quietHoursStart', DEFAULT_NOTIFICATION_SETTINGS.quietHoursStart),
+      quietHoursEnd: readString('quietHoursEnd', DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnd),
+      soundEnabled: readBoolean('soundEnabled', DEFAULT_NOTIFICATION_SETTINGS.soundEnabled),
+      vibrationEnabled: readBoolean('vibrationEnabled', DEFAULT_NOTIFICATION_SETTINGS.vibrationEnabled),
     },
     privacy: {
       ...DEFAULT_PRIVACY_SETTINGS,
-      profileVisibility: settings.profileVisibility || DEFAULT_PRIVACY_SETTINGS.profileVisibility,
-      showOnlineStatus: settings.showOnlineStatus ?? DEFAULT_PRIVACY_SETTINGS.showOnlineStatus,
-      showProgress: settings.showProgress ?? DEFAULT_PRIVACY_SETTINGS.showProgress,
-      showLastSeen: settings.showLastSeen ?? DEFAULT_PRIVACY_SETTINGS.showLastSeen,
-      showAchievements: settings.showAchievements ?? DEFAULT_PRIVACY_SETTINGS.showAchievements,
-      allowMessages: settings.allowMessages || DEFAULT_PRIVACY_SETTINGS.allowMessages,
-      allowFriendRequests: settings.allowFriendRequests ?? DEFAULT_PRIVACY_SETTINGS.allowFriendRequests,
-      dataCollection: settings.dataCollection ?? DEFAULT_PRIVACY_SETTINGS.dataCollection,
-      personalization: settings.personalization ?? DEFAULT_PRIVACY_SETTINGS.personalization,
-      analytics: settings.analytics ?? DEFAULT_PRIVACY_SETTINGS.analytics,
+      profileVisibility: readEnum('profileVisibility', ['public', 'friends', 'private'], DEFAULT_PRIVACY_SETTINGS.profileVisibility),
+      showOnlineStatus: readBoolean('showOnlineStatus', DEFAULT_PRIVACY_SETTINGS.showOnlineStatus),
+      showProgress: readBoolean('showProgress', DEFAULT_PRIVACY_SETTINGS.showProgress),
+      showLastSeen: readBoolean('showLastSeen', DEFAULT_PRIVACY_SETTINGS.showLastSeen ?? false),
+      showAchievements: readBoolean('showAchievements', DEFAULT_PRIVACY_SETTINGS.showAchievements ?? false),
+      allowMessages: readEnum<'everyone' | 'friends' | 'none'>('allowMessages', ['everyone', 'friends', 'none'], DEFAULT_PRIVACY_SETTINGS.allowMessages ?? 'everyone'),
+      allowFriendRequests: readBoolean('allowFriendRequests', DEFAULT_PRIVACY_SETTINGS.allowFriendRequests ?? false),
+      dataCollection: readBoolean('dataCollection', DEFAULT_PRIVACY_SETTINGS.dataCollection ?? false),
+      personalization: readBoolean('personalization', DEFAULT_PRIVACY_SETTINGS.personalization ?? false),
+      analytics: readBoolean('analytics', DEFAULT_PRIVACY_SETTINGS.analytics ?? false),
     }
   };
 }
 
-function mapFrontendPatchToBackend(patch: SettingsPreferencesPatch): any {
-  const flat: any = {};
+function mapFrontendPatchToBackend(patch: SettingsPreferencesPatch): Record<string, unknown> {
+  const flat: Record<string, unknown> = {};
   if (patch.appearance) Object.assign(flat, patch.appearance);
   if (patch.language) Object.assign(flat, patch.language);
   if (patch.notifications) Object.assign(flat, patch.notifications);
@@ -142,7 +162,7 @@ export async function fetchSettingsPreferences(
     throw new Error(await parseErrorMessage(response));
   }
 
-  const payload = (await response.json()) as PreferencesResponse;
+  const payload = (await response.json()) as unknown as PreferencesResponse;
   return mapBackendToFrontend(payload?.data?.settings);
 }
 
@@ -166,6 +186,6 @@ export async function saveSettingsPreferences(
     throw new Error(errorMsg);
   }
 
-  const payload = (await response.json()) as PreferencesResponse;
+  const payload = (await response.json()) as unknown as PreferencesResponse;
   return mapBackendToFrontend(payload?.data?.settings);
 }

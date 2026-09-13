@@ -67,6 +67,9 @@ export function canUseLegacyJwtSecret(): boolean {
 }
 
 export function resolveTrustedClientIp(request: NextRequest): string {
+  // With no explicitly trusted proxy, no request header is a safe client
+  // identity. Callers must fail closed instead of putting every client in a
+  // shared "unknown" rate-limit bucket.
   if (TRUSTED_PROXY_COUNT <= 0) return '';
   const xff = request.headers.get('x-forwarded-for');
   if (!xff) return '';

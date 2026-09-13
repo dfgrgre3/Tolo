@@ -12,12 +12,6 @@ const MAX_CSP_BODY_BYTES = 16 * 1024; // 16 KB hard cap
 // either a misconfigured extension or an attacker spamming the route.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
-// When the client IP can't be resolved (e.g. TRUSTED_PROXY_COUNT is 0 or
-// misconfigured), every such request would otherwise share one 'unknown'
-// bucket and one noisy client could exhaust the whole endpoint's budget for
-// every other client behind the same proxy config. Give the unresolved-IP
-// bucket a much smaller, fixed budget instead of the normal per-IP allowance.
-const UNKNOWN_IP_RATE_LIMIT_MAX = 3;
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
 // Production samples 10% of reports. Sampling is deterministic by IP so
@@ -25,20 +19,19 @@ const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 // avoiding partial visibility that hides an active attack.
 const SAMPLE_RATE_PROD = 0.1;
 
-function clientIp(request: NextRequest): string {
-  return resolveTrustedClientIp(request) || 'unknown';
+function clientIp(request: NextRequest): string | null {
+  return resolveTrustedClientIp(request) || null;
 }
 
 function rateLimit(ip: string): boolean {
   const now = Date.now();
-  const max = ip === 'unknown' ? UNKNOWN_IP_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
   const bucket = rateLimitBuckets.get(ip);
   if (!bucket || bucket.resetAt <= now) {
     rateLimitBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
   bucket.count += 1;
-  if (bucket.count > max) return false;
+  if (bucket.count > RATE_LIMIT_MAX) return false;
   return true;
 }
 
@@ -94,7 +87,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 2. Rate-limit per IP.
   const ip = clientIp(request);
-  if (!rateLimit(ip)) {
+  // There is no trustworthy per-client identity when neither a configured
+  // proxy chain nor a platform IP header is available. Do not put all such
+  // clients in a shared bucket; fail closed for this observability endpoint.
+  if (!ip || !rateLimit(ip)) {
     maybeEvict();
     return NextResponse.json({ success: false }, { status: 429 });
   }

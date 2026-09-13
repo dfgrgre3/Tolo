@@ -4,6 +4,7 @@ import BlogClient from "./blog-client";
 import type { BlogPost, BlogCategory } from "./blog-client";
 import { apiClient } from "@/lib/api/api-client";
 import { logger } from "@/lib/logger";
+import { z } from "zod";
 
 export const metadata: Metadata = {
   title: `المدونة | ${SITE.name}`,
@@ -29,20 +30,46 @@ export const metadata: Metadata = {
 };
 
 // يحوّل تدوينة خام من الـ API إلى الشكل الذي تتوقعه الواجهة (BlogPost).
-function mapBlogPost(item: any): BlogPost {
+const blogPostSchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  title: z.string().optional(),
+  excerpt: z.string().optional(),
+  content: z.string().optional(),
+  authorName: z.string().optional(),
+  author: z.object({ name: z.string().optional() }).optional().nullable(),
+  categoryId: z.union([z.string(), z.number()]).optional(),
+  categoryName: z.string().optional(),
+  category: z.object({ name: z.string().optional() }).optional().nullable(),
+  coverImageUrl: z.string().optional().nullable(),
+  publishedAt: z.string().optional(),
+  readTime: z.coerce.number().optional(),
+  views: z.coerce.number().optional(),
+  tags: z.array(z.string()).optional(),
+}).passthrough();
+
+const blogCategorySchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  name: z.string().optional(),
+  icon: z.string().optional(),
+}).passthrough();
+
+function mapBlogPost(item: unknown): BlogPost | null {
+  const parsed = blogPostSchema.safeParse(item);
+  if (!parsed.success) return null;
+  const value = parsed.data;
   return {
-    id: item.id ?? "",
-    title: item.title ?? "",
-    excerpt: item.excerpt ?? "",
-    content: item.content ?? "",
-    authorName: item.authorName ?? item.author?.name ?? "",
-    categoryId: item.categoryId ?? "",
-    categoryName: item.categoryName ?? item.category?.name ?? "",
-    coverImageUrl: item.coverImageUrl,
-    publishedAt: item.publishedAt ?? "",
-    readTime: item.readTime ?? 0,
-    views: item.views ?? 0,
-    tags: Array.isArray(item.tags) ? item.tags : [],
+    id: String(value.id ?? ""),
+    title: value.title ?? "",
+    excerpt: value.excerpt ?? "",
+    content: value.content ?? "",
+    authorName: value.authorName ?? value.author?.name ?? "",
+    categoryId: String(value.categoryId ?? ""),
+    categoryName: value.categoryName ?? value.category?.name ?? "",
+    coverImageUrl: value.coverImageUrl ?? undefined,
+    publishedAt: value.publishedAt ?? "",
+    readTime: value.readTime ?? 0,
+    views: value.views ?? 0,
+    tags: value.tags ?? [],
   };
 }
 
@@ -56,8 +83,8 @@ async function fetchBlogData(): Promise<{
   categories?: BlogCategory[];
 }> {
   const [postsResult, categoriesResult] = await Promise.allSettled([
-    apiClient.get<any>("/blog/posts"),
-    apiClient.get<any>("/blog/categories"),
+    apiClient.get<unknown>("/blog/posts"),
+    apiClient.get<unknown>("/blog/categories"),
   ]);
 
   let posts: BlogPost[] | undefined;
@@ -67,9 +94,15 @@ async function fetchBlogData(): Promise<{
     const payload = postsResult.value;
     const items = Array.isArray(payload)
       ? payload
-      : payload?.posts ?? payload?.data;
+      : payload && typeof payload === "object"
+        ? (payload as { posts?: unknown; data?: unknown }).posts ??
+          (payload as { data?: unknown }).data
+        : undefined;
     if (Array.isArray(items)) {
-      posts = items.map(mapBlogPost);
+      posts = items.flatMap((item) => {
+        const mapped = mapBlogPost(item);
+        return mapped ? [mapped] : [];
+      });
     }
   } else {
     logger.error("SSR: failed to load blog posts", postsResult.reason);
@@ -80,13 +113,21 @@ async function fetchBlogData(): Promise<{
     const payload = categoriesResult.value;
     const items = Array.isArray(payload)
       ? payload
-      : payload?.data ?? payload?.categories ?? [];
+      : payload && typeof payload === "object"
+        ? (payload as { data?: unknown; categories?: unknown }).data ??
+          (payload as { categories?: unknown }).categories ?? []
+        : [];
     if (Array.isArray(items)) {
-      categories = items.map((item: any) => ({
-        id: item.id ?? "",
-        name: item.name ?? "",
-        icon: item.icon ?? "",
-      }));
+      categories = items.flatMap((item) => {
+        const parsed = blogCategorySchema.safeParse(item);
+        return parsed.success
+          ? [{
+              id: String(parsed.data.id ?? ""),
+              name: parsed.data.name ?? "",
+              icon: parsed.data.icon ?? "",
+            }]
+          : [];
+      });
     }
   } else {
     logger.error("SSR: failed to load blog categories", categoriesResult.reason);

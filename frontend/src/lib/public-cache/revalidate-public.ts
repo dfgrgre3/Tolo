@@ -5,7 +5,7 @@
 export async function requestPublicCacheRevalidation(
   paths: string[],
 ): Promise<void> {
-  const res = await fetch("/api/cache/revalidate", {
+  const res = await globalThis.fetch("/api/cache/revalidate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

@@ -9,6 +9,8 @@ interface UseKeyboardShortcutsOptions {
     setIsMobileMenuOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
 }
 
+type HeaderRouter = ReturnType<typeof useRouter>;
+
 export type KeyboardShortcut = {
     key: string;
     ctrl?: boolean;
@@ -86,7 +88,11 @@ const handleActionShortcuts = (e: KeyboardEvent): boolean => {
     return false;
 };
 
-const handleMenuShortcuts = (e: KeyboardEvent, isMobileMenuOpen: boolean, setIsMobileMenuOpen: any): boolean => {
+const handleMenuShortcuts = (
+    e: KeyboardEvent,
+    isMobileMenuOpen: boolean,
+    setIsMobileMenuOpen: UseKeyboardShortcutsOptions["setIsMobileMenuOpen"],
+): boolean => {
     if (e.key === "Escape" && isMobileMenuOpen) {
         e.preventDefault();
         setIsMobileMenuOpen(false);
@@ -100,7 +106,7 @@ const handleMenuShortcuts = (e: KeyboardEvent, isMobileMenuOpen: boolean, setIsM
     return false;
 };
 
-const handleNavigationShortcuts = (e: KeyboardEvent, router: any): boolean => {
+const handleNavigationShortcuts = (e: KeyboardEvent, router: HeaderRouter): boolean => {
     const isCmd = e.ctrlKey || e.metaKey;
     
     if (e.altKey && e.key >= "1" && e.key <= "9") {

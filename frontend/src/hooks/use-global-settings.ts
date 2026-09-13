@@ -17,6 +17,21 @@ import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
 
 import { logger } from '@/lib/logger';
+import type { SettingsPreferences } from '@/types/user-ui-preferences';
+
+type AppearancePayload = Partial<SettingsPreferences['appearance']> & {
+  primaryColor?: string;
+  accentColor?: string;
+};
+type LanguagePayload = Partial<SettingsPreferences['language']>;
+type SettingsPayload = {
+  preferences?: {
+    appearance?: AppearancePayload;
+    language?: LanguagePayload;
+  };
+  appearance?: AppearancePayload;
+  language?: LanguagePayload;
+};
 
 export function useGlobalSettings() {
   const { user } = useAuth();
@@ -127,7 +142,7 @@ export function useGlobalSettings() {
     }
   }, [applyTheme, applyFontSize, applyColors, applyEfficiencyMode]);
 
-  const applyAppearanceSettings = useCallback((appearance: any) => {
+  const applyAppearanceSettings = useCallback((appearance?: AppearancePayload) => {
     if (!appearance) return;
     const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode, efficiencyMode } = appearance;
 
@@ -140,7 +155,7 @@ export function useGlobalSettings() {
     if (efficiencyMode !== undefined) applyEfficiencyMode(efficiencyMode);
   }, [applyTheme, applyFontSize, applyColors, applyReducedMotion, applyHighContrast, applyCompactMode, applyEfficiencyMode]);
 
-  const applyLanguageSettings = useCallback((languagePrefs: any) => {
+  const applyLanguageSettings = useCallback((languagePrefs?: LanguagePayload) => {
     if (!languagePrefs) return;
     const { language, numberFormat } = languagePrefs;
     if (language) applyLanguage(language);
@@ -152,7 +167,7 @@ export function useGlobalSettings() {
     if (!user?.id) return;
 
     try {
-      const response = await apiClient.get<any>(apiRoutes.settings.preferences);
+      const response = await apiClient.get<SettingsPayload>(apiRoutes.settings.preferences);
       const preferences = response?.preferences || response;
 
       if (!preferences) return;
@@ -190,7 +205,7 @@ export function useGlobalSettings() {
         if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
           window.cancelIdleCallback(idleId);
         } else {
-          clearTimeout(idleId as any);
+          clearTimeout(idleId as number);
         }
       };
     }

@@ -53,7 +53,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
       if (active) setLoadingSize(true);
     });
 
-    fetch(resource.url, { method: "HEAD" })
+    globalThis.fetch(resource.url, { method: "HEAD" })
       .then((res) => {
         if (!active) return;
         const sizeBytes = res.headers.get("content-length");

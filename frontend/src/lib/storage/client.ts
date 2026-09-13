@@ -89,6 +89,16 @@ async function convertRasterImageToWebP(file: File): Promise<File> {
     throw new Error("Image conversion is only available in the browser.");
   }
 
+  // Browser-like runtimes such as jsdom may expose the DOM without image
+  // decoding or a 2D canvas. Let the server-owned upload endpoint handle
+  // those bytes instead of waiting forever for an Image load event.
+  try {
+    const probe = document.createElement("canvas");
+    if (!probe.getContext("2d")) return file;
+  } catch {
+    return file;
+  }
+
   const objectUrl = URL.createObjectURL(file);
 
   try {

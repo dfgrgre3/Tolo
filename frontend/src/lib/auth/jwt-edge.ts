@@ -299,7 +299,7 @@ export async function attemptTokenRefresh(
       headers["User-Agent"] = userAgent;
     }
 
-    const refreshRes = await fetch(getBackendApiUrl('/auth/refresh'), {
+    const refreshRes = await globalThis.fetch(getBackendApiUrl('/auth/refresh'), {
       method: "POST",
       headers,
       // AbortSignal.timeout() is available in Node 17.3+ / Edge runtime.
