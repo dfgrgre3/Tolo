@@ -13,9 +13,9 @@ export function contractListCourses(params?: {
   search?: string;
   level?: string;
 }) {
-  return client.GET('/api/courses', { params: { query: params } });
+  return client.GET('/api/v1/courses', { params: { query: params } });
 }
 
 export function contractGetCourse(id: string) {
-  return client.GET('/api/courses/{id}', { params: { path: { id } } });
+  return client.GET('/api/v1/courses/{id}', { params: { path: { id } } });
 }

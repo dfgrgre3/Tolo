@@ -262,7 +262,7 @@ export async function attemptTokenRefresh(
   accessToken?: string;
   refreshToken?: string;
 }> {
-  // getBackendApiUrl() applies the canonical /api composition and throws
+  // getBackendApiUrl() applies the canonical /api/v1 composition and throws
   // in production when no backend URL is configured.
   try {
     getBackendApiUrl('/auth/refresh');

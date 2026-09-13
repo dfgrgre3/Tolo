@@ -389,7 +389,7 @@ async function handleProxy(
 
   // Connect-RPC routes are registered under both root and /api/ prefixes on the backend.
   // We route them under /api/ here so that Vercel serverless routing forwards them correctly.
-  // Backend routes are registered under /api (internal/infrastructure/api/*_routes.go).
+  // Backend routes are versioned at /api/v1 (internal/infrastructure/api/*_routes.go).
   const targetUrl = `${getBackendApiUrl(`/${path}`)}${search}`;
 
   if (process.env.NODE_ENV !== 'production') {

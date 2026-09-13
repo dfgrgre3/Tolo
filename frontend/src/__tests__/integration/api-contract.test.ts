@@ -31,10 +31,10 @@ const SWAGGER_CANDIDATES = [
 // عند حذف أي منها من الـbackend بدون تحديث هنا، يفشل الـCI.
 // تتم صيانتها يدوياً حتى يُولّد client type-safe من OpenAPI (TODO).
 const KNOWN_API_PATHS: ReadonlyArray<string> = [
-  "/api/auth/login",
-  "/api/courses",
-  "/api/courses/{id}",
-  "/api/courses/{id}/enroll",
+  "/api/v1/auth/login",
+  "/api/v1/courses",
+  "/api/v1/courses/{id}",
+  "/api/v1/courses/{id}/enroll",
 ];
 
 function findSwagger(): string | null {

@@ -2843,7 +2843,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/auth/login": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -2898,7 +2898,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/mfa/verify": {
+    "/api/v1/auth/mfa/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -2955,7 +2955,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses": {
+    "/api/v1/courses": {
         parameters: {
             query?: never;
             header?: never;
@@ -3002,7 +3002,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/lessons/{id}/progress": {
+    "/api/v1/courses/lessons/{id}/progress": {
         parameters: {
             query?: never;
             header?: never;
@@ -3075,7 +3075,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}": {
+    "/api/v1/courses/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3125,7 +3125,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/curriculum": {
+    "/api/v1/courses/{id}/curriculum": {
         parameters: {
             query?: never;
             header?: never;
@@ -3166,7 +3166,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/detail": {
+    "/api/v1/courses/{id}/detail": {
         parameters: {
             query?: never;
             header?: never;
@@ -3221,7 +3221,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/enroll": {
+    "/api/v1/courses/{id}/enroll": {
         parameters: {
             query?: never;
             header?: never;
@@ -3262,7 +3262,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/lessons": {
+    "/api/v1/courses/{id}/lessons": {
         parameters: {
             query?: never;
             header?: never;
@@ -3303,7 +3303,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/questions": {
+    "/api/v1/courses/{id}/questions": {
         parameters: {
             query?: never;
             header?: never;
@@ -3344,7 +3344,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{id}/reviews": {
+    "/api/v1/courses/{id}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -3385,7 +3385,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/my-courses": {
+    "/api/v1/my-courses": {
         parameters: {
             query?: never;
             header?: never;
@@ -3423,7 +3423,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/teaching/courses": {
+    "/api/v1/teaching/courses": {
         parameters: {
             query?: never;
             header?: never;
@@ -3479,7 +3479,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/teaching/courses/{id}": {
+    "/api/v1/teaching/courses/{id}": {
         parameters: {
             query?: never;
             header?: never;
