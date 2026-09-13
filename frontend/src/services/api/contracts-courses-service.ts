@@ -2,9 +2,9 @@
 import { client, type components } from '@/lib/api/generated-client';
 
 export type ContractCourseListResponse =
-  components['schemas']['thanawy-backend_internal_application_dto.CourseListResponse'];
+  components['schemas']['authdto.CourseListResponse'];
 export type ContractCourseDetailResponse =
-  components['schemas']['thanawy-backend_internal_application_dto.CourseDetailResponse'];
+  components['schemas']['authdto.CourseDetailResponse'];
 
 export function contractListCourses(params?: {
   page?: number;

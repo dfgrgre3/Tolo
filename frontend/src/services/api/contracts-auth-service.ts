@@ -6,7 +6,7 @@
  */
 import { client, type components } from '@/lib/api/generated-client';
 
-export type ContractLoginRequest = components['schemas']['thanawy-backend_internal_application_dto.LoginRequest'];
+export type ContractLoginRequest = components['schemas']['authdto.LoginRequest'];
 
 export function contractLogin(payload: ContractLoginRequest) {
   return client.POST('/api/v1/auth/login', { body: payload });
