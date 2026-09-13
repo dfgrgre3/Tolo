@@ -5,6 +5,7 @@ import { getBackendApiUrl, getBackendUrl } from '@/lib/api/backend-url';
 import { forwardSetCookies } from '@/lib/security/cookie-attrs';
 import { decodeStorageSegments, isPublicStorageBucket, FORWARDED_COOKIE_NAMES } from '@/lib/security/policy/storage-policy';
 import { getUpstreamAuthorization, resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
+import { isSameOriginRequest } from '@/lib/security/origin-check';
 
 // =============================================================================
 // Configuration
@@ -292,6 +293,13 @@ async function handleProxy(
 ) {
   const params = await props.params;
   const path = params.path.join('/');
+
+  // Defense in depth for every state-changing request that reaches the
+  // transport proxy. The backend still validates CSRF and authorization;
+  // this rejects cross-origin browser requests before they are forwarded.
+  if (METHODS_WITH_BODY.has(request.method) && !isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Cross-origin request rejected' }, { status: 403 });
+  }
 
   // This route is transport-only. It forwards the caller's auth context to
   // the backend but never makes an authorization decision. Privileged

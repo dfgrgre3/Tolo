@@ -38,3 +38,19 @@ if (newlyUnused.length > 0) {
 }
 
 console.log(`Knip baseline check passed (${current.size} unused files, ${baseline.size} baselined).`);
+
+// Exports are intentionally advisory for now: the repository contains a
+// sizeable existing export backlog, but reporting them here prevents dead
+// production wiring from becoming invisible to CI again.
+const exportArgs = ["knip", "--directory", "frontend", "--include", "exports", "--reporter", "compact"];
+const exportCommandArgs = process.platform === "win32"
+  ? ["/d", "/s", "/c", `npx ${exportArgs.join(" ")}`]
+  : exportArgs;
+const exportResult = spawnSync(command, exportCommandArgs, { encoding: "utf8" });
+if (exportResult.stdout?.trim()) {
+  console.warn("Knip unused-export report (advisory):");
+  console.warn(exportResult.stdout.trim());
+}
+if (exportResult.error) {
+  console.warn(`Unable to run Knip export report: ${exportResult.error.message}`);
+}
