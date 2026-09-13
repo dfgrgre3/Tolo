@@ -56,12 +56,17 @@ export const EDGE_GUEST_ROUTES = [
   "/mfa",
 ];
 
-/** Endpoints that don't require authentication even under the general API gate. */
-const PUBLIC_API_ENDPOINTS = [
+/**
+ * Endpoints that don't require authentication even under the general API
+ * gate. This is the single source of truth — `route-policy.ts` re-exports
+ * it rather than keeping a parallel list, so the two can no longer drift.
+ */
+export const PUBLIC_API_ENDPOINTS = [
   "/api/categories",
   "/api/teachers",
   "/api/homepage",
   "/api/blog",
+  "/api/courses",
   "/api/navigation/menu",
   "/api/settings",
 ];

@@ -12,6 +12,12 @@ const MAX_CSP_BODY_BYTES = 16 * 1024; // 16 KB hard cap
 // either a misconfigured extension or an attacker spamming the route.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
+// When the client IP can't be resolved (e.g. TRUSTED_PROXY_COUNT is 0 or
+// misconfigured), every such request would otherwise share one 'unknown'
+// bucket and one noisy client could exhaust the whole endpoint's budget for
+// every other client behind the same proxy config. Give the unresolved-IP
+// bucket a much smaller, fixed budget instead of the normal per-IP allowance.
+const UNKNOWN_IP_RATE_LIMIT_MAX = 3;
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
 // Production samples 10% of reports. Sampling is deterministic by IP so
@@ -25,13 +31,14 @@ function clientIp(request: NextRequest): string {
 
 function rateLimit(ip: string): boolean {
   const now = Date.now();
+  const max = ip === 'unknown' ? UNKNOWN_IP_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
   const bucket = rateLimitBuckets.get(ip);
   if (!bucket || bucket.resetAt <= now) {
     rateLimitBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
   bucket.count += 1;
-  if (bucket.count > RATE_LIMIT_MAX) return false;
+  if (bucket.count > max) return false;
   return true;
 }
 

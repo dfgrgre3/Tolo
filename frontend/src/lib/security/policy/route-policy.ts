@@ -1,8 +1,9 @@
-import { matchesPath } from '@/lib/auth/route-guards';
+import { matchesPath, PUBLIC_API_ENDPOINTS } from '@/lib/auth/route-guards';
 
 export const PROTECTED_PAGE_ROUTES = ['/dashboard', '/learning', '/profile', '/admin'] as const;
 export const GUEST_PAGE_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/admin-login', '/mfa'] as const;
-export const PUBLIC_API_ROUTES = ['/api/categories', '/api/teachers', '/api/homepage', '/api/blog', '/api/courses', '/api/navigation/menu', '/api/settings'] as const;
+/** Re-exported for compatibility; canonical list lives in route-guards.ts. */
+export const PUBLIC_API_ROUTES = PUBLIC_API_ENDPOINTS;
 
 export function isProtectedPage(pathname: string): boolean {
   return PROTECTED_PAGE_ROUTES.some((route) => matchesPath(pathname, route));
@@ -13,5 +14,5 @@ export function isGuestPage(pathname: string): boolean {
 }
 
 export function isPublicApiPath(pathname: string): boolean {
-  return PUBLIC_API_ROUTES.includes(pathname as (typeof PUBLIC_API_ROUTES)[number]);
+  return PUBLIC_API_ROUTES.includes(pathname);
 }
