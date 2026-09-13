@@ -18,7 +18,11 @@
  *    used in production.
  *
  * `getBackendUrl()` returns only the origin. Use `getBackendApiUrl()` for
- * backend API paths so `/api/v1` is composed in exactly one place.
+ * backend API paths so `/api` is composed in exactly one place.
+ *
+ * Canonical API prefix: `/api` (NOT `/api/v1`). The backend registers all
+ * routes under `/api/...`; there is no `/api/v1` route group. See
+ * Tolo_Static_Engineering_Audit.md P001.
  */
 
 const DEV_FALLBACK = "http://127.0.0.1:8082";
@@ -75,7 +79,8 @@ export function __resetBackendUrlCache(): void {
  * Build a canonical URL for a backend API route.
  *
  * Accepts `/courses`, `/api/courses`, `/v1/courses`, or `/api/v1/courses` and always returns
- * exactly one `/api/v1` prefix. Query strings and fragments are preserved.
+ * exactly one `/api` prefix (the backend does not expose `/api/v1`). Query strings and
+ * fragments are preserved.
  */
 export function getBackendApiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -83,5 +88,5 @@ export function getBackendApiUrl(path: string): string {
     .replace(/^\/api\/v1(?=\/|\?|#|$)/, "")
     .replace(/^\/v1(?=\/|\?|#|$)/, "")
     .replace(/^\/api(?=\/|\?|#|$)/, "");
-  return `${getBackendUrl()}/api/v1${apiPath || "/"}`;
+  return `${getBackendUrl()}/api${apiPath || "/"}`;
 }

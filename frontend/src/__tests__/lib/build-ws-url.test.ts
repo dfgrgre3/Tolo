@@ -8,7 +8,7 @@ describe("buildAppUserWebSocketUrl", () => {
 
     const url = buildAppUserWebSocketUrl();
 
-    expect(url).toBe("wss://ws.example.test/api/v1/ws");
+    expect(url).toBe("wss://ws.example.test/api/ws");
     expect(url).not.toContain("access_token");
     expect(url).not.toContain("token=");
   });

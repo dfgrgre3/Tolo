@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 // See frontend/src/lib/auth/jwt-edge.ts:321 for the documented rationale.
 
 vi.mock("@/lib/api/backend-url", () => ({
-  getBackendApiUrl: (path: string) => `https://backend.test/api/v1${path}`,
+  getBackendApiUrl: (path: string) => `https://backend.test/api${path}`,
 }));
 
 vi.mock("@sentry/nextjs", () => ({

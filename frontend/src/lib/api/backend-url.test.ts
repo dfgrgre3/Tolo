@@ -11,13 +11,13 @@ describe('getBackendApiUrl', () => {
   it.each(['/courses', 'courses', '/api/courses', '/v1/courses', '/api/v1/courses'])(
     'normalizes %s to one API prefix',
     (path) => {
-      expect(getBackendApiUrl(path)).toBe('https://backend.example.test/api/v1/courses');
+      expect(getBackendApiUrl(path)).toBe('https://backend.example.test/api/courses');
     },
   );
 
   it('preserves query strings', () => {
     expect(getBackendApiUrl('/courses?limit=10')).toBe(
-      'https://backend.example.test/api/v1/courses?limit=10',
+      'https://backend.example.test/api/courses?limit=10',
     );
   });
 });

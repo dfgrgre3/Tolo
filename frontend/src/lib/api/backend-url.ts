@@ -21,7 +21,7 @@
  *    used in production.
  *
  * `getBackendUrl()` returns only the origin. Use `getBackendApiUrl()` for
- * backend API paths so `/api/v1` is composed in exactly one place.
+ * backend API paths so `/api` is composed in exactly one place.
  */
 
 export {

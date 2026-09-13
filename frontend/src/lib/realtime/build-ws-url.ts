@@ -39,5 +39,5 @@ export function buildAppUserWebSocketUrl(): string {
   // Ensure host doesn't end with slash
   host = host.replace(/\/+$/, "");
 
-  return `${wsProtocol}//${host}/api/v1/ws`;
+  return `${wsProtocol}//${host}/api/ws`;
 }
