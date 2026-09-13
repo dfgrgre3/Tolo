@@ -23,12 +23,12 @@ export const MegaMenuContainer = memo(function MegaMenuContainer({
   return (
     <div
       // لا يحدد موضعه بنفسه — الحاوية الأب (MegaMenu) هي التي تثبّته أسفل الـ Header مباشرة
-      className={cn("w-full bg-background border-b border-border", className)}
+      className={cn("w-full bg-background border-b border-border overflow-hidden", className)}
       data-mega-menu-container
       aria-labelledby={labelledBy}
       aria-label={!labelledBy ? (ariaLabel || "القائمة الموسعة") : undefined}
     >
-      <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-x-auto overflow-y-auto overscroll-contain", menuWidth)}>
+      <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-auto overscroll-contain", menuWidth)}>
         {children}
       </div>
     </div>

@@ -1,87 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { navigationApi, type BackendNavCategory, type MegaMenuCategory } from "@/lib/api/navigation-api";
+import { navigationApi, type BackendNavCategory, type BackendNavMenuEntry } from "@/lib/api/navigation-api";
+import type { MegaMenuCategory } from "./types";
 import { logger } from "@/lib/logger";
+import { getNavigationIcon } from "./navigationIconMapper";
 import {
-  BookOpen,
-  Award,
-  Clock,
-  Target,
-  Library,
-  Lightbulb,
-  BarChart3,
-  Trophy,
-  Users,
-  GraduationCap,
-  CreditCard,
-  Settings,
-  Calendar,
-  BookMarked,
-  FileText,
-  FolderOpen,
-  Gamepad2,
-  Home,
-  History,
-  Sparkles,
-  Star,
-  TrendingUp,
-  Bell,
-  Activity,
-  Shield,
-  MessageSquare,
-  Megaphone,
-  Brain,
-  type LucideIcon,
-} from "lucide-react";
-
-// Icon name to component mapping
-const ICON_MAP: Record<string, LucideIcon> = {
-  "book-open": BookOpen,
-  "award": Award,
-  "clock": Clock,
-  "target": Target,
-  "library": Library,
-  "lightbulb": Lightbulb,
-  "bar-chart": BarChart3,
-  "bar_chart": BarChart3,
-  "trophy": Trophy,
-  "users": Users,
-  "graduation-cap": GraduationCap,
-  "graduation_cap": GraduationCap,
-  "credit-card": CreditCard,
-  "credit_card": CreditCard,
-  "settings": Settings,
-  "calendar": Calendar,
-  "book-marked": BookMarked,
-  "book_marked": BookMarked,
-  "file-text": FileText,
-  "file_text": FileText,
-  "folder-open": FolderOpen,
-  "folder_open": FolderOpen,
-  "gamepad": Gamepad2,
-  "gamepad2": Gamepad2,
-  "home": Home,
-  "history": History,
-  "sparkles": Sparkles,
-  "star": Star,
-  "trending-up": TrendingUp,
-  "trending_up": TrendingUp,
-  "bell": Bell,
-  "shield": Shield,
-  "activity": Activity,
-  "message-square": MessageSquare,
-  "message_square": MessageSquare,
-  "megaphone": Megaphone,
-  "brain": Brain,
-  "user-plus": Users,
-  "user_plus": Users,
-};
-
-function iconFromName(name?: string): LucideIcon {
-  if (!name) return Sparkles;
-  return ICON_MAP[name] || Sparkles;
-}
+  headerNavItems,
+  mainNavItemsWithMegaMenu,
+  type NavItemWithMegaMenu,
+} from "./navData";
 
 // Transform backend nav category to MegaMenuCategory
 function transformBackendCategory(cat: BackendNavCategory): MegaMenuCategory {
@@ -89,11 +17,13 @@ function transformBackendCategory(cat: BackendNavCategory): MegaMenuCategory {
     id: cat.id,
     title: cat.title,
     slug: cat.slug,
+    menuKey: cat.menuKey,
+    columnKey: cat.columnKey,
     items: Array.isArray(cat.items)
       ? cat.items.map((item) => ({
           href: item.href,
           label: item.label,
-          icon: iconFromName(item.icon),
+          icon: getNavigationIcon(item.icon),
           description: item.description,
           badge: item.badge,
         }))
@@ -103,8 +33,41 @@ function transformBackendCategory(cat: BackendNavCategory): MegaMenuCategory {
   };
 }
 
+function transformBackendMenu(entry: BackendNavMenuEntry, categories: MegaMenuCategory[]): NavItemWithMegaMenu {
+  return {
+    href: entry.href,
+    label: entry.label,
+    description: entry.description,
+    badge: entry.badge,
+    icon: getNavigationIcon(entry.icon),
+    megaMenu: categories.filter((category) => category.menuKey === entry.key),
+  };
+}
+
+function getMenuEntries(menu: Awaited<ReturnType<typeof navigationApi.getMenu>>, categories: MegaMenuCategory[]) {
+  if (menu.menus.length > 0) return menu.menus;
+
+  // Compatibility with an older backend response: the grouping key and
+  // category title still come from the API; no frontend navigation data is added.
+  const groups = new Map<string, MegaMenuCategory>();
+  for (const category of categories) {
+    if (category.menuKey && !groups.has(category.menuKey)) {
+      groups.set(category.menuKey, category);
+    }
+  }
+
+  return [...groups.entries()].map(([key, category], index) => ({
+    key,
+    href: `/${key}`,
+    label: category.title,
+    icon: undefined,
+    order: index,
+  }));
+}
+
 export function useNavigationMenu() {
   const [categories, setCategories] = useState<MegaMenuCategory[]>([]);
+  const [navItems, setNavItems] = useState<NavItemWithMegaMenu[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -112,11 +75,25 @@ export function useNavigationMenu() {
     try {
       setLoading(true);
       setError(null);
-      const menu = await navigationApi.getMenuWithCache();
+      const menu = await navigationApi.getMenu();
       const categories = Array.isArray(menu?.categories) ? menu.categories : [];
-      setCategories(categories.map(transformBackendCategory));
+      const transformedCategories = categories.map(transformBackendCategory);
+      setCategories(transformedCategories);
+      setNavItems(
+        [...getMenuEntries(menu, transformedCategories)]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((entry) => transformBackendMenu(entry, transformedCategories))
+      );
     } catch (err) {
-      logger.error('Failed to fetch navigation menu:', err);
+      // Navigation is shared public content. Keep the header usable during a
+      // backend restart, cold start, or short network outage instead of
+      // rendering an empty navigation bar.
+      logger.warn('Navigation backend unavailable; using static fallback:', err);
+      setCategories([
+        ...mainNavItemsWithMegaMenu.flatMap((item) => item.megaMenu ?? []),
+        ...headerNavItems.flatMap((item) => item.megaMenu ?? []),
+      ]);
+      setNavItems([...mainNavItemsWithMegaMenu, ...headerNavItems]);
       setError(err instanceof Error ? err : new Error('Failed to fetch navigation'));
     } finally {
       setLoading(false);
@@ -131,6 +108,7 @@ export function useNavigationMenu() {
 
   return {
     categories,
+    navItems,
     loading,
     error,
     refetch: fetchNavigation,

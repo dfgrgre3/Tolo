@@ -2,9 +2,8 @@
 
 import React from "react";
 import { MegaMenu } from "@/components/mega-menu";
-import { mainNavItemsWithMegaMenu, type NavItemWithMegaMenu } from "@/components/mega-menu/navData";
+import type { NavItemWithMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
-import type { AuthUser } from "@/contexts/auth-context";
 import { HeaderNavLink } from "@/components/navigation";
 
 interface HeaderNavigationProps {
@@ -12,20 +11,18 @@ interface HeaderNavigationProps {
   setOpenMegaMenu: React.Dispatch<React.SetStateAction<string | null>>;
   isActiveRoute: (href: string) => boolean;
   mounted: boolean;
-  user?: AuthUser | null;
-  navItems?: NavItemWithMegaMenu[];
+  navItems: NavItemWithMegaMenu[];
 }
 
 export function HeaderNavigation({
   openMegaMenu,
   setOpenMegaMenu,
   isActiveRoute,
-  user,
-  navItems = mainNavItemsWithMegaMenu,
+  navItems,
 }: HeaderNavigationProps) {
   return (
     <nav 
-      className="hidden lg:flex items-center gap-2 flex-1 justify-center relative" 
+      className="hidden lg:flex items-center gap-1 flex-1 justify-center relative"
       aria-label="القائمة الرئيسية"
     >
       {navItems.map((item) => {
@@ -45,10 +42,10 @@ export function HeaderNavigation({
                   onOpen={() => setOpenMegaMenu(item.href)}
                   activeRoute={isActiveRoute}
                   label={item.label}
+                  icon={item.icon}
                   badge={item.badge}
-                  user={user}
                   className={cn(
-                    "relative h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black text-[13px] tracking-normal",
+                    "relative h-10 px-4 flex items-center gap-2 rounded-xl font-bold text-xs tracking-normal",
                     isActiveRoute(item.href) ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground border border-transparent hover:text-primary hover:bg-primary/5",
                     openMegaMenu === item.href && "bg-primary/20 text-primary border-primary/40"
                   )}
@@ -57,6 +54,7 @@ export function HeaderNavigation({
                 <HeaderNavLink
                   href={item.href}
                   label={item.label}
+                  icon={item.icon}
                   badge={item.badge}
                   active={isActiveRoute(item.href)}
                   variant="desktop"

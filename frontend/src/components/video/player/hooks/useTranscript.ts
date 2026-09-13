@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { parseTranscript } from "../utils";
 import type { TranscriptCue } from "../types";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 /**
  * Fetches and parses a lesson's transcript (admin-uploaded SRT/VTT, see
@@ -17,7 +18,7 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
     setIsLoading(true);
     try {
       const payload = await apiClient.get<{ content?: string }>(
-        `/api/courses/lessons/${lessonId}/transcript`
+        apiRoutes.courses.lessonTranscript(lessonId)
       );
       if (isCancelled()) return;
 

@@ -10,6 +10,7 @@ export interface MfaChallenge {
 export interface MfaVerifyRequest {
   challengeId: string;
   code: string;
+  rememberMe?: boolean;
 }
 
 export type MfaVerifyPayload = MfaVerifyRequest;

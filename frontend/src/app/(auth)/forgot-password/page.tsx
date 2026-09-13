@@ -1,38 +1,65 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { AlertCircle, CheckCircle, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, KeyRound, AlertCircle, CheckCircle, Mail } from "lucide-react";
-import Link from "next/link";
-import { forgotPassword } from "@/services/auth";
+import { forgotPassword, verifyForgotPasswordCode } from "@/services/auth";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setError("يرجى إدخال البريد الإلكتروني");
-      return;
-    }
-
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
-    await forgotPassword(email.trim());
+    if (step === "email") {
+      if (!email.trim()) {
+        setError("يرجى إدخال البريد الإلكتروني");
+        setIsLoading(false);
+        return;
+      }
 
-    // Regardless of success/failure we show the same neutral message to avoid
-    // leaking whether an email is registered (account-enumeration protection).
-    setSuccess("إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رابط لإعادة تعيين كلمة المرور.");
-    setIsLoading(false);
+      const result = await forgotPassword(email.trim());
+      if (!result.success) {
+        setError(result.error || "تعذر إرسال رمز الاستعادة");
+        setIsLoading(false);
+        return;
+      }
+
+      setStep("code");
+      setSuccess("إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رمز التحقق إليه.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+      setError("أدخل رمز التحقق المكون من 6 أرقام");
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await verifyForgotPasswordCode(email.trim(), code);
+    if (!result.success || !result.resetToken) {
+      setError(result.error || "رمز التحقق غير صالح أو منتهي الصلاحية");
+      setIsLoading(false);
+      return;
+    }
+
+    router.push(`/reset-password?token=${encodeURIComponent(result.resetToken)}`);
   };
 
   return (
@@ -46,7 +73,9 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50">استعادة كلمة المرور</CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400">أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور</CardDescription>
+            <CardDescription className="text-slate-500 dark:text-slate-400">
+              {step === "email" ? "أدخل بريدك الإلكتروني لإرسال رمز التحقق" : "أدخل رمز التحقق المرسل إلى بريدك الإلكتروني"}
+            </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="grid gap-5">
@@ -67,38 +96,26 @@ export default function ForgotPasswordPage() {
               <div className="grid gap-2">
                 <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
-                    <Mail className="h-4 w-4" />
-                  </span>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    dir="ltr"
-                    className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
+                  <span className="absolute inset-y-0 start-3 flex items-center text-slate-400"><Mail className="h-4 w-4" /></span>
+                  <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={isLoading || step === "code"} dir="ltr" className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary" />
                 </div>
               </div>
+              {step === "code" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="code" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">رمز التحقق</Label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 start-3 flex items-center text-slate-400"><ShieldCheck className="h-4 w-4" /></span>
+                    <Input id="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="000000" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} required disabled={isLoading} dir="ltr" className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary" />
+                  </div>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4 pt-4">
-              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !!success}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="ms-2 h-4 w-4 animate-spin" />
-                    جاري الإرسال...
-                  </>
-                ) : (
-                  "إرسال رابط الاستعادة"
-                )}
+              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="ms-2 h-4 w-4 animate-spin" />{step === "email" ? "جاري الإرسال..." : "جاري التحقق..."}</> : step === "email" ? "إرسال رمز الاستعادة" : "التحقق والمتابعة"}
               </Button>
               <div className="text-sm text-center text-slate-500 dark:text-slate-400 font-medium">
-                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
-                  العودة لتسجيل الدخول
-                </Link>
+                <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">العودة لتسجيل الدخول</Link>
               </div>
             </CardFooter>
           </form>

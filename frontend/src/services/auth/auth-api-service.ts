@@ -32,6 +32,24 @@ export async function forgotPassword(
   }
 }
 
+export async function verifyForgotPasswordCode(
+  email: string,
+  code: string
+): Promise<AuthActionResult & { resetToken?: string }> {
+  try {
+    const data = await apiClient.post<{ resetToken?: string; message?: string }>(
+      `${apiRoutes.auth.forgotPassword}/verify-code`,
+      { email, code }
+    );
+    return { success: true, message: data?.message, resetToken: data?.resetToken };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
+  }
+}
+
 export async function resetPassword(
   token: string,
   newPassword: string

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, memo, startTransition } from "react";
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,11 +17,10 @@ import { HeaderNotifications } from "./HeaderNotifications";
 import { HeaderCartIcon } from "./HeaderCartIcon";
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
-import { headerNavItems as fallbackHeaderNavItems, mainNavItemsWithMegaMenu, utilityNavItems } from "@/components/mega-menu/navData";
-import { apiClient } from "@/lib/api/api-client";
-import { getLucideIcon } from "./headerIconMapper";
+import { utilityNavItems } from "@/components/mega-menu/navData";
 import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useNavigationMenu } from "@/components/mega-menu";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/hooks/use-auth";
 import { UserMenu } from "./UserMenu";
@@ -106,115 +105,16 @@ export default function Header() {
 
 	const { user } = useAuth();
 	const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
+	const { navItems: backendNavItems } = useNavigationMenu();
 
-	const [dynamicMainNav, setDynamicMainNav] = useState(mainNavItemsWithMegaMenu);
-	const [dynamicHeaderNav, setDynamicHeaderNav] = useState(fallbackHeaderNavItems);
-
-	useEffect(() => {
-		if (!mounted) return;
-
-		// ── Session cache: nav data rarely changes — reuse within a session ──
-		const NAV_CACHE_KEY = 'tolo:navMenu';
-		const NAV_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-		const applyNavData = (categories: any[]) => {
-			const categoriesBySlug = categories.reduce((acc, cat) => {
-				acc[cat.slug] = {
-					title: cat.title,
-					slug: cat.slug,
-					isPriority: cat.isPriority,
-					priorityLabel: cat.priorityLabel,
-					items: (cat.items || []).map((item: any) => ({
-						href: item.href,
-						label: item.label,
-						description: item.description,
-						icon: getLucideIcon(item.icon),
-						badge: item.badge
-					}))
-				};
-				return acc;
-			}, {} as Record<string, any>);
-
-			const updatedMainNav = mainNavItemsWithMegaMenu.map((item) => {
-				if (!item.megaMenu) return item;
-				let targetSlugs: string[] = [];
-				if (item.href === "/all-features") {
-					targetSlugs = [
-						"study_and_planning",
-						"library_and_ai",
-						"competition_and_community",
-						"account_and_connections",
-					];
-				}
-				const newMegaMenu = targetSlugs
-					.map((slug) => categoriesBySlug[slug])
-					.filter(Boolean);
-				return {
-					...item,
-					megaMenu: newMegaMenu.length === targetSlugs.length && newMegaMenu.length > 0
-						? newMegaMenu
-						: item.megaMenu,
-				};
-			});
-
-			const updatedHeaderNav = fallbackHeaderNavItems.map((item) => {
-				if (!item.megaMenu) return item;
-				let targetSlugs: string[] = [];
-				if (item.href === "/schools") {
-					targetSlugs = ["primary", "middle", "high_school"];
-				}
-				const newMegaMenu = targetSlugs
-					.map((slug) => categoriesBySlug[slug])
-					.filter(Boolean);
-				return { ...item, megaMenu: newMegaMenu.length > 0 ? newMegaMenu : item.megaMenu };
-			});
-
-			// Non-urgent state update — won't block the current render
-			startTransition(() => {
-				setDynamicMainNav(updatedMainNav);
-				setDynamicHeaderNav(updatedHeaderNav);
-			});
-		};
-
-		const fetchNavData = async () => {
-			// 1. Serve from session cache if still fresh
-			try {
-				const cached = sessionStorage.getItem(NAV_CACHE_KEY);
-				if (cached) {
-					const { ts, categories } = JSON.parse(cached);
-					if (Date.now() - ts < NAV_CACHE_TTL) {
-						applyNavData(categories);
-						return; // cache hit — skip the network request entirely
-					}
-				}
-			} catch { /* sessionStorage unavailable (private mode) — continue to fetch */ }
-
-			// 2. Network fetch — non-critical, runs after initial render
-			try {
-				const response = await apiClient.get<{ categories: any[] }>("/navigation/menu");
-				if (response && response.categories) {
-					try {
-						sessionStorage.setItem(
-							NAV_CACHE_KEY,
-							JSON.stringify({ ts: Date.now(), categories: response.categories })
-						);
-					} catch { /* storage full or unavailable */ }
-					applyNavData(response.categories);
-				}
-			} catch (err) {
-				// Falls back silently to the static navData.tsx above — logged so we can
-				// track in production how often the backend nav menu is unavailable.
-				logger.warn("Failed to fetch dynamic navigation menu from backend", {
-					error: err instanceof Error ? err.message : String(err),
-				});
-			}
-		};
-
-		// Defer to after first paint so the nav fetch doesn't contend with
-		// rendering the initial shell (header visible instantly with fallback data).
-		const timeout = setTimeout(fetchNavData, 0);
-		return () => clearTimeout(timeout);
-	}, [mounted]);
+	const dynamicMainNav = useMemo(
+		() => backendNavItems.filter((item) => item.href !== "/schools" && item.href !== "/"),
+		[backendNavItems]
+	);
+	const dynamicHeaderNav = useMemo(
+		() => backendNavItems.filter((item) => item.href === "/schools"),
+		[backendNavItems]
+	);
 
 	const headerClasses = useHeaderClasses(isScrolled, mounted, user, isHidden);
 	const containerHeight = useContainerHeight(isShrunk);
@@ -260,11 +160,20 @@ export default function Header() {
 		const observer = new ResizeObserver(updateMetrics);
 		observer.observe(headerRef.current);
 		window.addEventListener("resize", updateMetrics, { passive: true });
+		window.addEventListener("scroll", updateMetrics, { passive: true });
+		const viewport = window.visualViewport;
+		viewport?.addEventListener("resize", updateMetrics);
+		viewport?.addEventListener("scroll", updateMetrics);
 
 		return () => {
 			cancelAnimationFrame(rafId);
 			observer.disconnect();
 			window.removeEventListener("resize", updateMetrics);
+			window.removeEventListener("scroll", updateMetrics);
+			viewport?.removeEventListener("resize", updateMetrics);
+			viewport?.removeEventListener("scroll", updateMetrics);
+			document.documentElement.style.removeProperty("--header-height");
+			document.documentElement.style.removeProperty("--header-bottom");
 		};
 	}, [mounted]);
 
@@ -301,6 +210,11 @@ export default function Header() {
 
 	const schoolsNavItem = dynamicHeaderNav[0];
 
+	// A hidden sticky header must not leave a portal menu detached from its trigger.
+	useEffect(() => {
+		if (isHidden && openMegaMenu) setOpenMegaMenu(null);
+	}, [isHidden, openMegaMenu, setOpenMegaMenu]);
+
 	// ── Render ────────────────────────────────────────────────────
 
 	return (
@@ -319,14 +233,14 @@ export default function Header() {
 				<div className="container mx-auto px-2 sm:px-3 md:px-4 lg:px-6 max-w-full">
 					<div
 						className={cn(
-							"flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6",
+							"flex min-w-0 items-center justify-between gap-1.5 sm:gap-2 md:gap-3 lg:gap-4",
 							containerHeight
 						)}
 					>
 						{/* ── Left: Logo & Teaching Links ────────────────── */}
-						<div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+						<div className="flex min-w-0 items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
 							<MemoizedHeaderLogo />
-						<div className="hidden lg:flex items-center gap-2">
+						<div className="hidden lg:flex min-w-0 items-center gap-2">
 							{utilityNavItems
 								.filter((item) => item.position === "left")
 								.map((item) => (
@@ -342,13 +256,13 @@ export default function Header() {
 						</div>
 
 						{/* ── Center: Search ─────────────────────────────── */}
-						<div className="flex-1 max-w-2xl mx-4">
+						<div className="mx-1 sm:mx-2 md:mx-3 min-w-0 flex-1 max-w-2xl">
 							<MemoizedHeaderSearch />
 						</div>
 
 						{/* ── Right: Widgets & Actions ───────────────────── */}
 						<div
-							className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0"
+							className="flex min-w-0 items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0"
 							aria-label="أدوات الرأس"
 						>
 							{isShrunk && widgets.progress && (
@@ -367,9 +281,9 @@ export default function Header() {
 										onOpen={() => setOpenMegaMenu(schoolsNavItem.href)}
 										activeRoute={isActiveRoute}
 										label={schoolsNavItem.label}
-										user={user}
+										icon={schoolsNavItem.icon}
 										zIndex={50}
-										className="relative h-11 px-4 flex items-center gap-2 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+									className="relative h-10 px-3 flex items-center gap-2 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 									/>
 								</div>
 							)}
@@ -380,7 +294,7 @@ export default function Header() {
 									<Link
 										key={item.href}
 										href={item.href}
-										className="hidden lg:flex items-center h-11 px-4 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+										className="hidden lg:flex items-center h-10 px-3 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 									>
 										{item.label}
 									</Link>
@@ -448,13 +362,12 @@ export default function Header() {
 					</div>
 
 					{/* ── Second Row: Navigation ─────────────────────────── */}
-					<div className="hidden lg:flex items-center justify-center border-t border-border/40 py-1.5">
+					<div className="hidden lg:flex items-center justify-center border-t border-border/40 py-0.5">
 						<MemoizedHeaderNavigation
 							openMegaMenu={openMegaMenu}
 							setOpenMegaMenu={setOpenMegaMenu}
 							isActiveRoute={isActiveRoute}
 							mounted={mounted}
-							user={user}
 							navItems={dynamicMainNav}
 						/>
 					</div>

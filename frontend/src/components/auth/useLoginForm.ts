@@ -63,7 +63,8 @@ export function useLoginForm() {
     setIsLoading(true);
     setError(null);
 
-    const result = await login({
+    try {
+      const result = await login({
       email: trimmedEmail,
       password,
       rememberMe,
@@ -84,8 +85,12 @@ export function useLoginForm() {
       return;
     }
 
-    await completeLogin();
-    setIsLoading(false);
+      await completeLogin();
+    } catch {
+      setError("Login could not be completed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
@@ -99,7 +104,8 @@ export function useLoginForm() {
     setIsLoading(true);
     setError(null);
 
-    const result = await verifyMfa(mfaChallenge ?? "", mfaCode);
+    try {
+      const result = await verifyMfa(mfaChallenge ?? "", mfaCode, rememberMe);
 
     if (!result.success) {
       setError(result.error ?? "فشل التحقق من الهوية");
@@ -107,8 +113,12 @@ export function useLoginForm() {
       return;
     }
 
-    await completeLogin();
-    setIsLoading(false);
+      await completeLogin();
+    } catch {
+      setError("Verification could not be completed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /** Leaves the MFA step and returns to the credentials form. */

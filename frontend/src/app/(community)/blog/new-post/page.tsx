@@ -8,6 +8,8 @@ import { Layout } from "@/components/layout/Layout";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type BlogCategory = {
   id: string;
@@ -35,9 +37,8 @@ export default function NewBlogPostPage() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch("/api/blog/categories");
-      const data = await res.json() as BlogCategory[];
-      setCategories(data);
+      const data = await apiClient.get<BlogCategory[]>(apiRoutes.blog.categories);
+      setCategories(Array.isArray(data) ? data : []);
       if (Array.isArray(data) && data.length > 0 && data[0]) {
         setCategoryId(data[0].id);
       }
@@ -63,26 +64,16 @@ export default function NewBlogPostPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/blog/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          title,
-          excerpt,
-          content,
-          categoryId,
-          coverImageUrl,
-          tags
-        }),
+      const newPost = await apiClient.postJson<{ id: string }>(apiRoutes.blog.posts, {
+        userId,
+        title,
+        excerpt,
+        content,
+        categoryId,
+        coverImageUrl,
+        tags
       });
-
-      if (res.ok) {
-        const newPost = await res.json() as { id: string };
-        router.push(`/blog/post/${newPost.id}`);
-      } else {
-        alert("حدث خطأ أثناء إنشاء المقال");
-      }
+      router.push(`/blog/post/${newPost.id}`);
     } catch (error) {
       logger.error("Error creating post:", error);
       alert("حدث خطأ أثناء إنشاء المقال");

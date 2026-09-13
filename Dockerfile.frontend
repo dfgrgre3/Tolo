@@ -3,7 +3,8 @@
 # ==============================================================================
 # Frontend Dockerfile (Next.js 16 monorepo with npm workspaces)
 # Build context MUST be the monorepo root (d:\thanawy) so the workspace
-# packages (frontend + shared) and the root lockfile are available.
+# packages (frontend + shared + packages/contracts) and the root lockfile
+# are available.
 # ==============================================================================
 
 # ─── Stage 1: install dependencies ───────────────────────────────────────────
@@ -15,6 +16,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 COPY shared/package.json ./shared/
+COPY packages/contracts/package.json ./packages/contracts/
 
 # Deterministic install from the lockfile (includes all workspaces).
 RUN npm ci
@@ -30,6 +32,7 @@ COPY --from=deps /app ./
 
 # Copy the monorepo sources over the manifests.
 COPY shared/ ./shared/
+COPY packages/contracts/ ./packages/contracts/
 COPY frontend/ ./frontend/
 
 # Sentry source-map upload and telemetry are opt-in. Skipping keeps builds

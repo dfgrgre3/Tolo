@@ -45,12 +45,9 @@ export default function GamifiedCoursesDashboard() {
     const fetchMyCourses = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.fetch(apiRoutes.courses.list);
-        if (res.ok) {
-          const data = await res.json();
-          const fetchedCourses = Array.isArray(data.data?.items) ? data.data.items : [];
-          setCourses(fetchedCourses);
-        }
+        const data = await apiClient.get<{ items?: any[] }>(apiRoutes.courses.list);
+        const fetchedCourses = Array.isArray(data?.items) ? data.items : [];
+        setCourses(fetchedCourses);
       } catch (err) {
         logger.error("Failed to load dashboard courses", err);
       } finally {

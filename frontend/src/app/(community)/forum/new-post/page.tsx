@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type ForumCategory = {
   id: string;
@@ -30,10 +32,9 @@ export default function NewPostPage() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch("/api/forum/categories");
-      const data = await res.json() as ForumCategory[];
-      setCategories(data);
-      if (data.length > 0 && data[0]) {
+      const data = await apiClient.get<ForumCategory[]>(apiRoutes.forum.categories);
+      setCategories(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0 && data[0]) {
         setCategoryId(data[0].id);
       }
     };
@@ -47,23 +48,13 @@ export default function NewPostPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/forum/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          title,
-          content,
-          categoryId
-        }),
+      const newPost = await apiClient.postJson<{ id: string }>(apiRoutes.forum.createPost, {
+        userId,
+        title,
+        content,
+        categoryId
       });
-
-      if (res.ok) {
-        const newPost = await res.json() as { id: string };
-        router.push(`/forum/post/${newPost.id}`);
-      } else {
-        alert("حدث خطأ أثناء إنشاء الموضوع");
-      }
+      router.push(`/forum/post/${newPost.id}`);
     } catch (error) {
       logger.error("Error creating post:", error);
       alert("حدث خطأ أثناء إنشاء الموضوع");

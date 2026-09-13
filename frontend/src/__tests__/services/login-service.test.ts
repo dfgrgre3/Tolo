@@ -182,6 +182,22 @@ describe("verifyMfa", () => {
     expect(mockedPost).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed MFA codes locally", async () => {
+    const result = await verifyMfa("challenge-1", "12345");
+
+    expect(result.success).toBe(false);
+    expect(mockedPost).not.toHaveBeenCalled();
+  });
+
+  it("accepts recovery codes", async () => {
+    mockedPost.mockResolvedValueOnce({});
+
+    const result = await verifyMfa("challenge-1", "ABCD-1234");
+
+    expect(result.success).toBe(true);
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the challengeId and surfaces the error on failure", async () => {
     mockedPost.mockRejectedValueOnce(new ApiError("رمز غير صالح", 400));
 

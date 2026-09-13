@@ -99,7 +99,7 @@ export default function GoalsPage() {
             onClick={() => setIsCreateModalOpen(true)}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl">
             
-            â‍• إنشاء هدف جديد
+            ✦ إنشاء هدف جديد
           </button>
         </div>
 

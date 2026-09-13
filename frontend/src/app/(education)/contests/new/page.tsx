@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export default function NewContestPage() {
   const router = useRouter();
@@ -43,28 +45,18 @@ export default function NewContestPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/contests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          title,
-          description,
-          imageUrl,
-          startDate,
-          endDate,
-          prize: prize || null,
-          category,
-          tags
-        }),
+      const newContest = await apiClient.postJson<{ id: string }>(apiRoutes.contests.list, {
+        userId,
+        title,
+        description,
+        imageUrl,
+        startDate,
+        endDate,
+        prize: prize || null,
+        category,
+        tags
       });
-
-      if (res.ok) {
-        const newContest = await res.json();
-        router.push(`/contests/${newContest.id}`);
-      } else {
-        alert("حدث خطأ أثناء إنشاء المسابقة");
-      }
+      router.push(`/contests/${newContest.id}`);
     } catch (error) {
       logger.error("Error creating contest:", error);
       alert("حدث خطأ أثناء إنشاء المسابقة");

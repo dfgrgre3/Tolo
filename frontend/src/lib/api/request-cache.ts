@@ -254,6 +254,15 @@ class RequestCacheManager {
       }
     }
 
+    // Overflow escape: avoid growing the deduplication map without bound.
+    // This does not promise a global concurrency cap. Checked BEFORE
+    // starting the fetch below — otherwise the fetch already in flight
+    // from this call would be orphaned by a second, redundant fetcher()
+    // call here, doubling the network request.
+    if (key && this.inFlight.size >= this.maxInFlightEntries) {
+      return fetcher();
+    }
+
     const promise = (async (): Promise<Response> => {
       try {
         const response = await fetcher();
@@ -267,11 +276,6 @@ class RequestCacheManager {
     })();
 
     if (key) {
-      // Overflow escape: avoid growing the deduplication map without bound.
-      // This does not promise a global concurrency cap.
-      if (this.inFlight.size >= this.maxInFlightEntries) {
-        return fetcher();
-      }
       this.inFlight.set(key, promise);
     }
     return promise;

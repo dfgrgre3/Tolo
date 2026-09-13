@@ -40,7 +40,13 @@ function loadYouTubeApi() {
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
-      script.onerror = () => reject(new Error("Failed to load YouTube API."));
+      script.onerror = () => {
+        // Clear the cache so a later retry (e.g. reconnect, next lesson) issues
+        // a fresh load instead of replaying this same rejected promise forever.
+        youtubeApiPromise = null;
+        script.remove();
+        reject(new Error("Failed to load YouTube API."));
+      };
       document.body.appendChild(script);
     }
 
@@ -50,6 +56,7 @@ function loadYouTubeApi() {
       if (window.YT?.Player) {
         resolve(window.YT);
       } else {
+        youtubeApiPromise = null;
         reject(new Error("YouTube API did not initialize."));
       }
     };

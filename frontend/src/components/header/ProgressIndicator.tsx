@@ -6,7 +6,9 @@ import { useMounted } from "@/hooks/use-mounted";
 import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { BookOpen, Clock, Award } from "lucide-react";import { requestCache } from "@/lib/api/request-cache";
+import { BookOpen, Clock, Award } from "lucide-react";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import { logger } from "@/lib/logger";
 
 interface ProgressData {
@@ -41,18 +43,7 @@ function ProgressIndicator() {
 
     const doFetch = async () => {
       try {
-        const options: RequestInit = { credentials: "include" };
-        const response = await requestCache.getResponse(
-          "/api/progress/summary",
-          options,
-          () => fetch("/api/progress/summary", options)
-        );
-
-        if (!response.ok) {
-          throw new Error(`Progress request failed: ${response.status}`);
-        }
-
-        const summary = await response.json() as ProgressSummary;
+        const summary = await apiClient.get<ProgressSummary>(apiRoutes.progress.summary);
         const hours = Math.round((summary.totalMinutes || 0) / 60);
         const data: ProgressData[] = [
           {

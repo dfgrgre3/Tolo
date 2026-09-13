@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, memo } from "react";
+import React, { memo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { NavItem } from "./types";
+import { repairMojibake } from "@/lib/i18n/repair-mojibake";
 
 interface MegaMenuItemProps {
   item: NavItem;
   isActive: boolean;
   onClick: () => void;
   isCompact?: boolean;
-  isFocused?: boolean;
 }
 
 export const MegaMenuItem = memo(function MegaMenuItem({
@@ -18,23 +18,12 @@ export const MegaMenuItem = memo(function MegaMenuItem({
   isActive,
   onClick,
   isCompact = false,
-  isFocused = false,
 }: MegaMenuItemProps) {
-  const linkRef = useRef<HTMLAnchorElement>(null);
-
-  useEffect(() => {
-    if (isFocused && linkRef.current) {
-      linkRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      linkRef.current.focus();
-    }
-  }, [isFocused]);
-
   const isExternal = item.href?.startsWith("http") || item.href?.startsWith("//");
 
   return (
-    <div role="listitem">
+    <li>
       <Link
-        ref={linkRef}
         href={item.href}
         onClick={onClick}
         target={isExternal ? "_blank" : undefined}
@@ -49,9 +38,9 @@ export const MegaMenuItem = memo(function MegaMenuItem({
             : "text-foreground/80 hover:text-primary hover:bg-primary/5"
         )}
       >
-        {item.label}
+        {repairMojibake(item.label)}
       </Link>
-    </div>
+    </li>
   );
 });
 

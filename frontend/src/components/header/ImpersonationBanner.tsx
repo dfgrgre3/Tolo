@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 // ─── Constants ───────────────────────────────────────────────────
 
@@ -47,16 +49,8 @@ export function ImpersonationBanner() {
 		setIsStopping(true);
 
 		try {
-			const response = await fetch("/api/admin/impersonate", {
-				method: "DELETE",
-				credentials: "include"
-			});
-
-			if (response.ok) {
-				window.location.href = ADMIN_DASHBOARD_URL;
-			} else {
-				window.location.reload();
-			}
+			await apiClient.delete(apiRoutes.admin.impersonate);
+			window.location.href = ADMIN_DASHBOARD_URL;
 		} catch (error) {
 			logger.error("Error stopping impersonation:", error);
 			window.location.reload();

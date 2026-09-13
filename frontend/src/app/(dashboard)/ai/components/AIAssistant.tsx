@@ -105,12 +105,8 @@ export default function AIAssistant({
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const response = await apiClient.fetch(apiRoutes.ai.conversations);
-
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.data?.conversations || data.conversations || []);
-      }
+      const data = await apiClient.get<{ conversations?: Conversation[] }>(apiRoutes.ai.conversations);
+      setConversations(data?.conversations || []);
     } catch (error) {
       logger.error('Failed to load conversations:', error);
     } finally {
@@ -126,22 +122,17 @@ export default function AIAssistant({
 
   const loadConversation = async (convId: string) => {
     try {
-      const response = await apiClient.fetch(apiRoutes.ai.conversation(convId));
+      const payload = await apiClient.get<{ messages?: any[] }>(apiRoutes.ai.conversation(convId));
+      const loadedMessages: Message[] = payload.messages?.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+        messageId: msg.id
+      })) || [];
 
-      if (response.ok) {
-        const data = await response.json();
-        const payload = data.data || data;
-        const loadedMessages: Message[] = payload.messages?.map((msg: any) => ({
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(msg.createdAt),
-          messageId: msg.id
-        })) || [];
-        
-        setMessages(loadedMessages);
-        setConversationId(convId);
-        setShowSidebar(false);
-      }
+      setMessages(loadedMessages);
+      setConversationId(convId);
+      setShowSidebar(false);
     } catch (error) {
       logger.error('Failed to load conversation:', error);
     }
@@ -152,15 +143,10 @@ export default function AIAssistant({
     if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
 
     try {
-      const response = await apiClient.fetch(apiRoutes.ai.deleteConversation(convId), {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        setConversations(conversations.filter(c => c.id !== convId));
-        if (conversationId === convId) {
-          startNewConversation();
-        }
+      await apiClient.delete(apiRoutes.ai.deleteConversation(convId));
+      setConversations(conversations.filter(c => c.id !== convId));
+      if (conversationId === convId) {
+        startNewConversation();
       }
     } catch (error) {
       logger.error('Failed to delete conversation:', error);

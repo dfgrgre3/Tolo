@@ -14,24 +14,24 @@ export function HeaderLogo() {
 			scroll={true}
 			aria-label={`${SITE.name} - الصفحة الرئيسية`}
 		>
-			<div className="relative shrink-0 flex items-center translate-y-44">
+			<div className="relative shrink-0 flex items-center">
 				<Image
 					src={SITE.logo}
 					alt=""
 					width={64}
 					height={64}
-					className="h-16 w-16 object-contain"
-					sizes="64px"
+					className="h-11 w-11 sm:h-12 sm:w-12 object-contain"
+					sizes="48px"
 					priority
 				/>
 			</div>
 
 			<div className="flex flex-col min-w-0 justify-center">
-				<span className="text-2xl font-black tracking-tighter leading-none text-foreground">
+				<span className="text-xl sm:text-2xl font-black tracking-tighter leading-none text-foreground">
 					{SITE.name}
 				</span>
 				{SITE.tagline && (
-					<span className="text-[9px] font-black tracking-[0.2em] text-orange-700 dark:text-primary whitespace-nowrap mt-0.5 truncate">
+					<span className="text-[8px] sm:text-[9px] font-black tracking-[0.16em] sm:tracking-[0.2em] text-orange-700 dark:text-primary whitespace-nowrap mt-0.5 truncate">
 						{SITE.tagline}
 					</span>
 				)}

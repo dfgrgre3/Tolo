@@ -8,8 +8,8 @@ import {
 
 describe("teaching course payload", () => {
   it("maps canonical course lifecycle values only at the transport boundary", () => {
-    expect(toTeachingStatusTransport("UNDER_REVIEW")).toBe("under_review");
-    expect(buildCourseUpdateBody({ status: "ARCHIVED" })).toMatchObject({ status: "archived" });
+    expect(toTeachingStatusTransport("UNDER_REVIEW")).toBe("UNDER_REVIEW");
+    expect(buildCourseUpdateBody({ status: "ARCHIVED" })).toMatchObject({ status: "ARCHIVED" });
   });
 
   it("includes level when updating a course", () => {

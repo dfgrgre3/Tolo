@@ -61,28 +61,17 @@ export function ReviewsTab({
     }
     setSubmittingReview(true);
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.createReview(courseId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: userRating, comment: userComment || undefined })
+      const data = await apiClient.postJson<{ xpAwarded?: number }>(apiRoutes.courses.createReview(courseId), {
+        rating: userRating,
+        comment: userComment || undefined
       });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(`تم إرسال تقييمك! +${data.data?.xpAwarded || 10} XP`);
-        setUserRating(0);
-        setUserComment("");
-        // Refresh reviews
-        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const reviewData = refreshData.data || refreshData;
-          setReviews(reviewData.reviews || []);
-          setReviewStats(reviewData.stats || null);
-        }
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل إرسال التقييم");
-      }
+      toast.success(`تم إرسال تقييمك! +${data?.xpAwarded || 10} XP`);
+      setUserRating(0);
+      setUserComment("");
+      // Refresh reviews
+      const refreshData = await apiClient.get<{ reviews?: Review[]; stats?: ReviewStats }>(apiRoutes.courses.reviews(courseId));
+      setReviews(refreshData.reviews || []);
+      setReviewStats(refreshData.stats || null);
     } catch {
       toast.error("حدث خطأ أثناء إرسال التقييم");
     } finally {
@@ -99,25 +88,12 @@ export function ReviewsTab({
 
     setSubmittingReplies(prev => ({ ...prev, [reviewId]: true }));
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.reviewComments(reviewId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment })
-      });
-      if (res.ok) {
-        toast.success("تم إرسال ردك");
-        setReplyInputs(prev => ({ ...prev, [reviewId]: "" }));
-        // Refresh reviews
-        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const reviewData = refreshData.data || refreshData;
-          setReviews(reviewData.reviews || []);
-        }
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل إرسال الرد");
-      }
+      await apiClient.postJson(apiRoutes.courses.reviewComments(reviewId), { comment });
+      toast.success("تم إرسال ردك");
+      setReplyInputs(prev => ({ ...prev, [reviewId]: "" }));
+      // Refresh reviews
+      const refreshData = await apiClient.get<{ reviews?: Review[] }>(apiRoutes.courses.reviews(courseId));
+      setReviews(refreshData.reviews || []);
     } catch {
       toast.error("حدث خطأ أثناء إرسال الرد");
     } finally {
@@ -127,22 +103,11 @@ export function ReviewsTab({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.reviewComment(commentId), {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        toast.success("تم حذف الرد");
-        // Refresh reviews
-        const refreshRes = await apiClient.fetch(apiRoutes.courses.reviews(courseId));
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const reviewData = refreshData.data || refreshData;
-          setReviews(reviewData.reviews || []);
-        }
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل حذف الرد");
-      }
+      await apiClient.delete(apiRoutes.courses.reviewComment(commentId));
+      toast.success("تم حذف الرد");
+      // Refresh reviews
+      const refreshData = await apiClient.get<{ reviews?: Review[] }>(apiRoutes.courses.reviews(courseId));
+      setReviews(refreshData.reviews || []);
     } catch {
       toast.error("حدث خطأ أثناء حذف الرد");
     }

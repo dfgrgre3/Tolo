@@ -1,7 +1,8 @@
 "use client";
 
 import { forwardRef } from "react";
-import { ChevronDown } from "lucide-react";
+
+import { type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { triggerStyles } from "./navigationTokens";
@@ -13,10 +14,11 @@ interface HeaderMenuTriggerProps {
   className?: string;
   badge?: string;
   ariaControls?: string;
+  icon?: LucideIcon;
 }
 
 export const HeaderMenuTrigger = forwardRef<HTMLButtonElement, HeaderMenuTriggerProps>(
-  function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge, ariaControls }, ref) {
+  function HeaderMenuTrigger({ label, isOpen = false, onClick, className, badge, ariaControls, icon: Icon }, ref) {
     return (
       <Button
         ref={ref}
@@ -26,10 +28,10 @@ export const HeaderMenuTrigger = forwardRef<HTMLButtonElement, HeaderMenuTrigger
         className={cn(triggerStyles({ variant: "header", open: isOpen, size: "header" }), className)}
         aria-expanded={isOpen}
         aria-controls={ariaControls}
-        aria-label={`${label} - ${isOpen ? "مفتوح" : "مغلق"}`}
+        aria-label={`${label} - ${isOpen ? "مفتوحة" : "مغلقة"}`}
       >
+        {Icon && <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
         <span className="font-medium">{label}</span>
-        <ChevronDown className={cn("h-4 w-4", isOpen && "rotate-180")} aria-hidden="true" />
         {badge && (
           <span className="absolute -top-1 -end-1 h-4 px-2 bg-primary text-black text-[9px] font-black italic rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_hsl(var(--primary)_/_0.5)]">
             {badge}

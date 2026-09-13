@@ -9,6 +9,8 @@ import { Layout } from "@/components/layout/Layout";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type BlogPost = {
   id: string;
@@ -43,14 +45,8 @@ export default function BlogPostPage() {
 
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/blog/posts/${postId}`);
-        if (res.ok) {
-          const postData = (await res.json()) as BlogPost;
-          setPost(postData);
-        } else {
-          // Post not found
-          router.push("/blog");
-        }
+        const postData = await apiClient.get<BlogPost>(apiRoutes.blog.post(postId));
+        setPost(postData);
       } catch (error) {
         logger.error("Error fetching post:", error);
         router.push("/blog");
@@ -59,7 +55,7 @@ export default function BlogPostPage() {
 
     const incrementViews = async () => {
       try {
-        await fetch(`/api/blog/posts/${postId}/view`, { method: "POST" });
+        await apiClient.postJson(apiRoutes.blog.incrementView(postId), {});
       } catch (error) {
         logger.error("Error incrementing views:", error);
       }

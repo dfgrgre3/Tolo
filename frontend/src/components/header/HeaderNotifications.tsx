@@ -134,7 +134,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 				onClick={toggleOpen}
 				data-notification-trigger
 				className="relative hover:bg-primary/10 dark:hover:bg-primary/15 hover:text-primary h-9 w-9 sm:h-10 sm:w-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-				aria-label={`الإشعارات${hasUnread ? `، ${unreadCount} غير مقروء` : ""}`}
+				aria-label={`الإشعارات${hasUnread ? `، ${unreadCount} غير مقروءة` : ""}`}
 				aria-expanded={isOpen}
 				aria-haspopup="dialog"
 			>

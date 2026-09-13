@@ -14,6 +14,7 @@
     "lint:frontend": "npm run lint --prefix frontend",
     "test:frontend": "npm run test --prefix frontend",
     "audit": "node scripts/comprehensive-error-check.mjs",
+    "check:encoding": "node scripts/check-utf8.mjs",
     "audit:fix": "node scripts/comprehensive-error-check.mjs --fix",
     "knip": "npx knip --directory frontend",
     "knip:check": "node scripts/check-knip-baseline.mjs",

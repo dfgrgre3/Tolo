@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export default function NewAnnouncementPage() {
   const router = useRouter();
@@ -87,34 +89,23 @@ export default function NewAnnouncementPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          title: title.trim(),
-          content: content.trim(),
-          imageUrl,
-          expiresAt: expiresAt || null,
-          priority,
-          category,
-          tags
-        }),
+      const newAnnouncement = await apiClient.postJson<{ id: string }>(apiRoutes.community.createAnnouncement, {
+        userId,
+        title: title.trim(),
+        content: content.trim(),
+        imageUrl,
+        expiresAt: expiresAt || null,
+        priority,
+        category,
+        tags
       });
-
-      if (res.ok) {
-        setSuccess(true);
-        const newAnnouncement = await res.json() as { id: string };
-        setTimeout(() => {
-          router.push(`/announcements/${newAnnouncement.id}`);
-        }, 1500);
-      } else {
-        const errorData = await res.json();
-        alert(errorData.message || "حدث خطأ أثناء إنشاء الإعلان");
-      }
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/announcements/${newAnnouncement.id}`);
+      }, 1500);
     } catch (error) {
       logger.error("Error creating announcement:", error);
-      alert("حدث خطأ أثناء إنشاء الإعلان");
+      alert(error instanceof ApiError ? error.message : "حدث خطأ أثناء إنشاء الإعلان");
     } finally {
       setIsSubmitting(false);
     }

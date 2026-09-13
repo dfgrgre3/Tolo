@@ -33,7 +33,14 @@ export function useKeyboardShortcuts({
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (
+        target &&
+        (["INPUT", "TEXTAREA", "BUTTON", "SELECT", "OPTION", "A"].includes(target.tagName) ||
+          target.isContentEditable ||
+          target.closest('[role="button"], [role="menuitem"], [role="tab"], [role="slider"], [role="switch"], [role="checkbox"], [role="radio"], [contenteditable="true"]'))
+      ) {
+        return;
+      }
 
       const key = event.key.toLowerCase();
       const shift = event.shiftKey;

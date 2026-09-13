@@ -43,8 +43,8 @@ export const useHeaderClasses = (isScrolled: boolean, mounted: boolean, user: Au
 
 export const useContainerHeight = (isShrunk: boolean) => {
   return useMemo(() => {
-    if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-10 sm:h-12";
-    return "h-12 sm:h-14";
+    if (HEADER_PREFERENCES.compactMode || isShrunk) return "h-10 sm:h-11";
+    return "h-11 sm:h-12";
   }, [isShrunk]);
 };
 

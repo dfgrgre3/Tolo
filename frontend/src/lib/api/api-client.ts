@@ -142,7 +142,7 @@ export function unwrapApplicationPayload<T>(payload: unknown): T {
  * `error`/`message`/`code` fields and falling back to the raw body text.
  * Consumes the response body — call at most once per response.
  */
-async function buildApiError(response: Response): Promise<ApiError> {
+export async function buildApiError(response: Response): Promise<ApiError> {
     let errorMessage = `Server error: ${response.statusText}`;
     let errorCode = 'HTTP_ERROR';
     let errorData: Record<string, unknown> | undefined;

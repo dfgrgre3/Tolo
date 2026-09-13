@@ -19,8 +19,8 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export type Resource = {
   id: string;
@@ -183,17 +183,11 @@ export default function ResourcesClient({
     queueMicrotask(() => {
       setIsLoading(true);
       setError(null);
-      fetch(`${API_URL}/resources`)
-        .then((r) => {
-          if (!r.ok) {
-            throw new Error(`HTTP error! status: ${r.status}`);
-          }
-          return r.json();
-        })
+      apiClient.get<unknown>(apiRoutes.resources.list)
         .then((data) => {
           // Backend wraps every response as `{ success, data }`
           // (see response.Success in response.go) — never a bare array.
-          const items = Array.isArray(data) ? data : data?.data;
+          const items = Array.isArray(data) ? data : (data as { data?: unknown })?.data;
           if (Array.isArray(items)) {
             setResources(items);
           } else {

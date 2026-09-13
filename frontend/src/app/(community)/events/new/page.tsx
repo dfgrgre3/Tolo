@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -45,30 +47,20 @@ export default function NewEventPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          title,
-          description,
-          location,
-          startDate,
-          endDate,
-          imageUrl,
-          category,
-          isPublic,
-          maxAttendees: maxAttendees === "" ? null : maxAttendees,
-          tags
-        }),
+      const newEvent = await apiClient.postJson<{ id: string }>(apiRoutes.events.list, {
+        userId,
+        title,
+        description,
+        location,
+        startDate,
+        endDate,
+        imageUrl,
+        category,
+        isPublic,
+        maxAttendees: maxAttendees === "" ? null : maxAttendees,
+        tags
       });
-
-      if (res.ok) {
-        const newEvent = await res.json() as { id: string };
-        router.push(`/events/${newEvent.id}`);
-      } else {
-        alert("حدث خطأ أثناء إنشاء المناسبة");
-      }
+      router.push(`/events/${newEvent.id}`);
     } catch (error) {
       logger.error("Error creating event:", error);
       alert("حدث خطأ أثناء إنشاء المناسبة");
@@ -80,7 +72,7 @@ export default function NewEventPage() {
   const categories = [
     { id: "academic", name: "أكاديمي", icon: "🎓" },
     { id: "social", name: "اجتماعي", icon: "👥" },
-    { id: "sports", name: "رياضي", icon: "âڑ½" },
+    { id: "sports", name: "رياضي", icon: "🏅" },
     { id: "cultural", name: "ثقافي", icon: "🎭" },
     { id: "workshop", name: "ورشة عمل", icon: "🛠️" },
   ];

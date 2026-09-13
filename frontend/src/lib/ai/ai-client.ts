@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/api-client';
+import { apiClient, buildApiError } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
 
 interface AIRequestOptions extends RequestInit {
@@ -38,6 +38,9 @@ function unwrap<T>(payload: T | APIEnvelope<T>): T {
 
 export async function aiRequest<T>(endpoint: string, options: AIRequestOptions = {}): Promise<T> {
   const response = await apiClient.fetch(endpoint, options);
+  if (!response.ok) {
+    throw await buildApiError(response);
+  }
   const payload = await response.json() as T | APIEnvelope<T>;
   return unwrap(payload);
 }

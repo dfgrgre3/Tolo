@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type ForumPost = {
   id: string;
@@ -49,14 +51,8 @@ export default function ForumPostPage() {
 
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/forum/posts/${postId}`);
-        if (res.ok) {
-          const postData = await res.json() as ForumPost;
-          setPost(postData);
-        } else {
-          // Post not found
-          router.push("/forum");
-        }
+        const postData = await apiClient.get<ForumPost>(apiRoutes.forum.post(postId));
+        setPost(postData);
       } catch (error) {
         logger.error("Error fetching post:", error);
         router.push("/forum");
@@ -65,11 +61,8 @@ export default function ForumPostPage() {
 
     const fetchReplies = async () => {
       try {
-        const res = await fetch(`/api/forum/posts/${postId}/replies`);
-        if (res.ok) {
-          const repliesData = await res.json() as ForumReply[];
-          setReplies(repliesData);
-        }
+        const repliesData = await apiClient.get<ForumReply[]>(apiRoutes.forum.replies(postId));
+        setReplies(Array.isArray(repliesData) ? repliesData : []);
       } catch (error) {
         logger.error("Error fetching replies:", error);
       }
@@ -77,7 +70,7 @@ export default function ForumPostPage() {
 
     const incrementViews = async () => {
       try {
-        await fetch(`/api/forum/posts/${postId}/view`, { method: "POST" });
+        await apiClient.postJson(apiRoutes.forum.incrementView(postId), {});
       } catch (error) {
         logger.error("Error incrementing views:", error);
       }
@@ -98,29 +91,19 @@ export default function ForumPostPage() {
 
     setIsSubmittingReply(true);
     try {
-      const res = await fetch(`/api/forum/posts/${postId}/replies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          content: replyContent
-        }),
+      const newReply = await apiClient.postJson<ForumReply>(apiRoutes.forum.createReply(postId), {
+        userId,
+        content: replyContent
       });
+      setReplies([...replies, newReply]);
+      setReplyContent("");
 
-      if (res.ok) {
-        const newReply = await res.json() as ForumReply;
-        setReplies([...replies, newReply]);
-        setReplyContent("");
-
-        // Update reply count
-        if (post) {
-          setPost({
-            ...post,
-            repliesCount: post.repliesCount + 1
-          });
-        }
-      } else {
-        alert("حدث خطأ أثناء إضافة الرد");
+      // Update reply count
+      if (post) {
+        setPost({
+          ...post,
+          repliesCount: post.repliesCount + 1
+        });
       }
     } catch (error) {
       logger.error("Error adding reply:", error);

@@ -15,39 +15,14 @@ export interface MegaMenuCategory {
 	priorityLabel?: string;
 	id?: string;
 	slug?: string;
+	menuKey?: "all-features" | "schools";
+	columnKey?: string;
 }
-
-import type { AuthUser } from "@/contexts/auth-context";
 
 export interface MegaMenuProps {
 	categories: MegaMenuCategory[];
 	isOpen: boolean;
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
-	user?: AuthUser | null;
+  icon?: LucideIcon;
 }
-
-// Backend API response types
-export interface BackendNavItem {
-	id: string;
-	href: string;
-	label: string;
-	description?: string;
-	icon?: string;
-	badge?: string;
-}
-
-export interface BackendNavCategory {
-	id: string;
-	title: string;
-	slug: string;
-	items: BackendNavItem[];
-	isPriority?: boolean;
-	priorityLabel?: string;
-}
-
-export interface BackendNavMenu {
-	categories: BackendNavCategory[];
-	updatedAt: string;
-}
-

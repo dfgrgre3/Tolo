@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { levelMap } from "./constants";
 import { formatPrice, formatHours } from "./utils";
 import type { CourseSummary } from "./types";
-import { apiClient } from "@/lib/api/api-client";
+import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 
 export function CourseCard({
@@ -43,19 +43,19 @@ export function CourseCard({
     if (wishlistBusy) return;
     setWishlistBusy(true);
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.wishlist(course.id), {
-        method: isWishlisted ? "DELETE" : "POST",
-      });
-      if (res.ok) {
-        setIsWishlisted((prev) => !prev);
-        toast.success(isWishlisted ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة");
-      } else if (res.status === 401) {
+      if (isWishlisted) {
+        await apiClient.delete(apiRoutes.courses.wishlist(course.id));
+      } else {
+        await apiClient.postJson(apiRoutes.courses.wishlist(course.id), {});
+      }
+      setIsWishlisted((prev) => !prev);
+      toast.success(isWishlisted ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة");
+    } catch (error) {
+      if (error instanceof ApiError && error.isUnauthorized) {
         toast.error("سجّل الدخول أولاً");
       } else {
         toast.error("حدث خطأ، حاول مرة أخرى");
       }
-    } catch {
-      toast.error("حدث خطأ، حاول مرة أخرى");
     } finally {
       setWishlistBusy(false);
     }
@@ -67,21 +67,15 @@ export function CourseCard({
     if (cartBusy || inCart) return;
     setCartBusy(true);
     try {
-      const res = await apiClient.fetch("/api/cart/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectId: course.id }),
-      });
-      if (res.ok) {
-        setInCart(true);
-        toast.success("تمت الإضافة للسلة");
-      } else if (res.status === 401) {
+      await apiClient.postJson(apiRoutes.cart.items, { subjectId: course.id });
+      setInCart(true);
+      toast.success("تمت الإضافة للسلة");
+    } catch (error) {
+      if (error instanceof ApiError && error.isUnauthorized) {
         toast.error("سجّل الدخول أولاً");
       } else {
         toast.error("حدث خطأ، حاول مرة أخرى");
       }
-    } catch {
-      toast.error("حدث خطأ، حاول مرة أخرى");
     } finally {
       setCartBusy(false);
     }

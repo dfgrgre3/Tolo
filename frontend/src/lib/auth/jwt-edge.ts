@@ -107,6 +107,32 @@ function resolveClientIp(request: NextRequest): string {
 
 let loggedMissingKey = false;
 
+/**
+ * Headers.getSetCookie() is not available in every Edge/Fetch runtime.
+ * Keep the backend's Set-Cookie headers intact, but fall back to parsing the
+ * combined header when the runtime only exposes Headers.get().
+ */
+function getSetCookieHeaders(headers: Headers): string[] {
+  const getSetCookie = (headers as Headers & {
+    getSetCookie?: () => string[];
+  }).getSetCookie;
+
+  if (typeof getSetCookie === "function") {
+    const cookies = getSetCookie.call(headers);
+    if (cookies.length > 0) return cookies;
+  }
+
+  const combined = headers.get("set-cookie");
+  if (!combined) return [];
+
+  // Commas inside Expires=... are not cookie separators. A cookie separator
+  // is followed by another cookie name and an equals sign.
+  return combined
+    .split(/,\s*(?=[^;,\s=]+\s*=)/)
+    .map((cookie) => cookie.trim())
+    .filter(Boolean);
+}
+
 type VerifyKey =
   | { kind: "spki"; cryptoKey: CryptoKey }
   | { kind: "hs256"; key: Uint8Array };
@@ -282,7 +308,7 @@ export async function attemptTokenRefresh(
     });
 
     if (refreshRes.ok) {
-      let setCookies = refreshRes.headers.getSetCookie ? refreshRes.headers.getSetCookie() : [];
+      const setCookies = getSetCookieHeaders(refreshRes.headers);
       const data = await refreshRes.json().catch(() => null);
       const tokenStr = data?.data?.accessToken || data?.accessToken;
       const newRefreshTokenStr = data?.data?.refreshToken || data?.refreshToken;

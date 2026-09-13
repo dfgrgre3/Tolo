@@ -20,6 +20,8 @@ import {
 	type LucideIcon
 } from "lucide-react";
 import { SITE, CONTACT, LEGAL, SOCIAL, APP_VERSION } from "@thanawy/shared/site-config";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -119,10 +121,8 @@ export default function Footer({ nonce }: { nonce?: string }) {
 		queryKey: ["footer-top-categories"],
 		queryFn: async () => {
 			try {
-				const response = await fetch("/api/categories?limit=8");
-				if (!response.ok) return [];
-				const data = await response.json();
-				return data.data || [];
+				const data = await apiClient.get<{ data?: Category[] } | Category[]>(`${apiRoutes.categories}?limit=8`);
+				return Array.isArray(data) ? data : data?.data || [];
 			} catch {
 				return [];
 			}

@@ -4,7 +4,7 @@ import { Lock, FileText, Shield, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { LessonCardView } from "@/types/domain/mappers";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const CourseVideoPlayer = dynamic(
   () => import("@/components/video/CourseVideoPlayer").then((mod) => mod.CourseVideoPlayer),
@@ -33,6 +33,7 @@ export function LessonVideoArea({
   onEnroll: () => void;
 }) {
   const [progressPercent, setProgressPercent] = useState(0);
+  const lastPercentRef = useRef(0);
 
   if (canAccess && lessonData.videoUrl) {
     return (
@@ -53,7 +54,10 @@ export function LessonVideoArea({
           onLessonAutoComplete={onAutoComplete}
           onProgress={(currentTime, duration) => {
             const percent = duration > 0 ? Math.round((currentTime / duration) * 100) : 0;
-            setProgressPercent(percent);
+            if (percent !== lastPercentRef.current) {
+              lastPercentRef.current = percent;
+              setProgressPercent(percent);
+            }
           }}
         />
       </div>

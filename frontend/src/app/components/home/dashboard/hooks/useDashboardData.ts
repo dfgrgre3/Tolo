@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDashboardResource } from "./useDashboardResource";
+import { apiRoutes } from "@/lib/api/routes";
 import type {
   PerformanceMetric,
   Prediction,
@@ -15,8 +16,8 @@ import type {
 const API_ENDPOINTS = {
   PERFORMANCE: "/api/analytics/performance",
   PREDICTIONS: "/api/analytics/predictions",
-  RECOMMENDATIONS: "/api/recommendations",
-  TIPS: "/api/tips",
+  RECOMMENDATIONS: apiRoutes.ai.recommendations,
+  TIPS: apiRoutes.ai.tips,
   COURSE_PROGRESS: "/api/users/progress/courses",
 } as const;
 

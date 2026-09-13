@@ -195,7 +195,7 @@ export function LessonPlayerSection({
         ) : activeLesson.type === "DOCUMENT" ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[28px] bg-slate-100 p-8 text-center dark:bg-white/5">
             <FileText className="mb-4 h-14 w-14 text-sky-500" />
-            <h3 className="text-xl font-black">Ù…Ù„Ù Ø§Ù„Ø¯Ø±Ø³</h3>
+            <h3 className="text-xl font-black">ملف الدرس</h3>
             {activeLesson.attachments?.length ? (
               <div className="mt-5 flex w-full max-w-lg flex-col gap-2">
                 {activeLesson.attachments.map((attachment) => (
@@ -211,15 +211,15 @@ export function LessonPlayerSection({
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-500">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù„ÙØ§Øª Ù…Ø±ÙÙ‚Ø© Ø¨Ù‡Ø°Ø§ Ø§Ù„Ø¯Ø±Ø³.</p>
+              <p className="mt-3 text-sm text-slate-500">لا توجد ملفات مرفقة بهذا الدرس.</p>
             )}
           </div>
         ) : activeLesson.type === "ASSIGNMENT" ? (
           <div className="min-h-[320px] rounded-[28px] bg-violet-50 p-8 shadow-inner dark:bg-violet-500/5">
-            <h3 className="text-xl font-black text-violet-900 dark:text-violet-100">Ù…ØªØ·Ù„Ø¨ Ø§Ù„Ø¯Ø±Ø³</h3>
+            <h3 className="text-xl font-black text-violet-900 dark:text-violet-100">متطلب الدرس</h3>
             <div
               className="prose prose-lg mt-5 max-w-none leading-relaxed dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: sanitizedContent || "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªØ¹Ù„ÙŠÙ…Ø§Øª Ù„Ù„ÙˆØ§Ø¬Ø¨ Ø­Ø§Ù„ÙŠØ§Ù‹." }}
+              dangerouslySetInnerHTML={{ __html: sanitizedContent || "لا توجد تعليمات للواجب حالياً." }}
             />
           </div>
         ) : (

@@ -32,19 +32,6 @@ function saveAuditLogs(logs: AuditLogEntry[]) {
   }
 }
 
-async function sendAuditLogToServer(entry: AuditLogEntry) {
-  try {
-    await fetch("/api/admin/audit-logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(entry),
-    });
-  } catch {
-    // Server logging is optional, don't block the UI
-  }
-}
-
 export function logAdminAction(
   action: AdminAction,
   entityType: string,
@@ -66,8 +53,6 @@ export function logAdminAction(
   const logs = getAuditLogs();
   logs.push(entry);
   saveAuditLogs(logs);
-
-  void sendAuditLogToServer(entry);
 }
 
 export function getRecentAuditLogs(limit: number = 50): AuditLogEntry[] {

@@ -20,6 +20,8 @@ import {
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export type BlogPost = {
   id: string;
@@ -83,17 +85,13 @@ export default function BlogClient({
       setLoading(true);
       try {
         const [catRes, postRes] = await Promise.all([
-        fetch("/api/blog/categories"),
-        fetch("/api/blog/posts")]
-        );
-        if (catRes.ok) {
-          const res = await catRes.json();
-          setCategories(Array.isArray(res) ? res : res.data || []);
-        }
-        if (postRes.ok) {
-          const res = await postRes.json();
-          setPosts(res.data || []);
-        }
+          apiClient.get<unknown>(apiRoutes.blog.categories),
+          apiClient.get<unknown>(apiRoutes.blog.posts)
+        ]);
+        const catData = catRes as { data?: BlogCategory[] } | BlogCategory[];
+        setCategories(Array.isArray(catData) ? catData : catData?.data || []);
+        const postData = postRes as { data?: BlogPost[] };
+        setPosts(postData?.data || []);
       } finally {setLoading(false);}
     };
     fetchData();

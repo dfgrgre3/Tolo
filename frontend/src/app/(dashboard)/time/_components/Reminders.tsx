@@ -20,6 +20,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { differenceInMinutes, addMinutes, addDays } from 'date-fns';
 
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 
 import type { Reminder, ReminderFormData } from './_components/types';
 import { QUICK_TIMES, SNOOZE_OPTIONS, getReminderTypeInfo, REMINDER_TYPES } from './_components/types';
@@ -333,9 +335,6 @@ export default function Reminders({
       return;
     }
 
-    const endpoint = reminderToEdit?.id ? `/api/reminders/${reminderToEdit.id}` : '/api/reminders';
-    const method = reminderToEdit?.id ? 'PATCH' : 'POST';
-
     const tags = formData.tags
       ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
       : [];
@@ -352,34 +351,9 @@ export default function Reminders({
         remindAt: remindAtDate.toISOString()
       };
 
-      const response = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reminderData)
-      });
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          logger.error('Server returned HTML instead of JSON');
-          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-        }
-        throw new Error(`Failed to save reminder: ${response.status} ${response.statusText}`);
-      }
-
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        logger.error('Server returned HTML instead of JSON');
-        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-      }
-
-      let savedReminder;
-      try {
-        savedReminder = JSON.parse(text);
-      } catch (error) {
-        logger.error('Error parsing JSON:', error);
-        throw new Error('فشل في معالجة استجابة الخادم');
-      }
+      const savedReminder = reminderToEdit?.id
+        ? await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderToEdit.id), reminderData)
+        : await apiClient.postJson<Reminder>(apiRoutes.reminders.create, reminderData);
 
       if (reminderToEdit) {
         setReminders(prev => prev.map(r => r.id === savedReminder.id ? savedReminder : r));
@@ -407,10 +381,7 @@ export default function Reminders({
     if (!reminderId) return;
 
     try {
-      const response = await fetch(`/api/reminders/${reminderId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error(`Failed to delete reminder: ${response.status}`);
-      }
+      await apiClient.delete(apiRoutes.reminders.byId(reminderId));
 
       setReminders(prev => prev.filter(r => r.id !== reminderId));
       onReminderDelete?.(reminderId);
@@ -421,37 +392,10 @@ export default function Reminders({
 
   const handleComplete = async (reminderId: string) => {
     try {
-      const response = await fetch(`/api/reminders/${reminderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isCompleted: true,
-          completedAt: new Date().toISOString()
-        })
+      const updatedReminder = await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderId), {
+        isCompleted: true,
+        completedAt: new Date().toISOString()
       });
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          logger.error('Server returned HTML instead of JSON');
-          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-        }
-        throw new Error('Failed to complete reminder');
-      }
-
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        logger.error('Server returned HTML instead of JSON');
-        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-      }
-
-      let updatedReminder;
-      try {
-        updatedReminder = JSON.parse(text);
-      } catch (error) {
-        logger.error('Error parsing JSON:', error);
-        throw new Error('فشل في معالجة استجابة الخادم');
-      }
 
       setReminders(prev => prev.map(r => r.id === reminderId ? updatedReminder : r));
       if (onReminderUpdate) onReminderUpdate(updatedReminder);
@@ -466,37 +410,10 @@ export default function Reminders({
     const snoozeUntil = addMinutes(new Date(), minutes);
 
     try {
-      const response = await fetch(`/api/reminders/${reminderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isSnoozed: true,
-          snoozeUntil: snoozeUntil.toISOString()
-        })
+      const updatedReminder = await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderId), {
+        isSnoozed: true,
+        snoozeUntil: snoozeUntil.toISOString()
       });
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          logger.error('Server returned HTML instead of JSON');
-          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-        }
-        throw new Error('Failed to snooze reminder');
-      }
-
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        logger.error('Server returned HTML instead of JSON');
-        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
-      }
-
-      let updatedReminder;
-      try {
-        updatedReminder = JSON.parse(text);
-      } catch (error) {
-        logger.error('Error parsing JSON:', error);
-        throw new Error('فشل في معالجة استجابة الخادم');
-      }
 
       setReminders(prev => prev.map(r => r.id === reminderId ? updatedReminder : r));
       if (onReminderUpdate) onReminderUpdate(updatedReminder);

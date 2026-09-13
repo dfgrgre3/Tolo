@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { AuthUser } from "@/contexts/auth-context";
 import type { MegaMenuCategory } from "./types";
@@ -8,9 +8,10 @@ interface UseMegaMenuProps {
   isOpen: boolean;
   onClose: () => void;
   user?: AuthUser | null;
+  direction?: "ltr" | "rtl";
 }
 
-export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
+export function useMegaMenu({ categories, isOpen, onClose, direction = "rtl" }: UseMegaMenuProps) {
   const router = useRouter();
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(-1);
   const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
@@ -56,7 +57,7 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
   }, [focusedCategoryIndex, focusedItemIndex, categories]);
 
   const handleArrowRight = useCallback(() => {
-    const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+    const isRtl = direction === "rtl";
     if (isRtl) {
       if (focusedCategoryIndex > 0) {
         setFocusedCategoryIndex(prev => prev - 1);
@@ -68,10 +69,10 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
         setFocusedItemIndex(0);
       }
     }
-  }, [focusedCategoryIndex, categories.length]);
+  }, [focusedCategoryIndex, categories.length, direction]);
 
   const handleArrowLeft = useCallback(() => {
-    const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+    const isRtl = direction === "rtl";
     if (isRtl) {
       if (focusedCategoryIndex < categories.length - 1) {
         setFocusedCategoryIndex(prev => prev + 1);
@@ -83,7 +84,7 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
         setFocusedItemIndex(0);
       }
     }
-  }, [focusedCategoryIndex, categories.length]);
+  }, [focusedCategoryIndex, categories.length, direction]);
 
   const handleEnter = useCallback(() => {
     if (focusedCategoryIndex < 0 || focusedItemIndex < 0) return;
@@ -94,11 +95,10 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
     }
   }, [focusedCategoryIndex, focusedItemIndex, categories, onClose, router]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
     switch (e.key) {
-      case "Escape":
-        onClose();
-        break;
       case "ArrowDown":
         e.preventDefault();
         handleArrowDown();
@@ -116,16 +116,11 @@ export function useMegaMenu({ categories, isOpen, onClose }: UseMegaMenuProps) {
         handleArrowLeft();
         break;
       case "Enter":
+        e.preventDefault();
         handleEnter();
         break;
     }
-  }, [onClose, handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
+  }, [handleArrowDown, handleArrowUp, handleArrowRight, handleArrowLeft, handleEnter]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleKeyDown]);
-
-  return { focusedCategoryIndex, focusedItemIndex };
+  return { focusedCategoryIndex, focusedItemIndex, handleKeyDown };
 }

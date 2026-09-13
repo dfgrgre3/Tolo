@@ -16,6 +16,8 @@ import { toast } from "sonner";
 
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface ReferralStats {
   referralCode: string;
@@ -33,11 +35,8 @@ export default function ReferralsPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch('/api/users/referrals');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
+        const data = await apiClient.get<ReferralStats>(apiRoutes.users.referrals);
+        setStats(data);
       } catch (err) {
         logger.error("Error: " + (err instanceof Error ? err.message : String(err)));
       } finally {

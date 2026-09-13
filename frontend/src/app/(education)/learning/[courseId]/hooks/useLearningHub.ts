@@ -24,6 +24,10 @@ import type {
 } from "@/types/domain/mappers";
 import { useAuth } from "@/hooks/use-auth";
 import { normalizeLessonProgressResponse } from "@thanawy/shared/types/enums";
+import {
+  parseCloudTimelineNotes,
+  serializeCloudTimelineNotes,
+} from "@/components/video/player/utils";
 
 const VALID_TABS: readonly TabKey[] = ["content", "resources", "qna", "notes", "ai"];
 type StoredLearningHubState = {
@@ -60,7 +64,10 @@ function resolveInitialLessonState(
   }
   const allAvailableLessons = chapters.flatMap((chapter) => chapter.subTopics);
 
-  if (typeof storedState?.activeLessonId === "string" && allAvailableLessons.some((l) => l.id === storedState.activeLessonId)) {
+  if (
+    typeof storedState?.activeLessonId === "string" &&
+    allAvailableLessons.some((l) => l.id === storedState.activeLessonId && !l.locked)
+  ) {
     if (typeof storedState.activeTab === "string" && VALID_TABS.includes(storedState.activeTab as TabKey)) {
       callbacks.setActiveTab(storedState.activeTab as TabKey);
     }
@@ -300,11 +307,20 @@ export function useLearningHub() {
   }, [activeLessonContent]);
 
   const navigateToLesson = useCallback((lessonId: string) => {
+    // Frontend-only guard: this is UX, not an authorization boundary. Real
+    // entitlement enforcement (issuing the video URL only once unlocked)
+    // must happen server-side; this just stops the local UI state from
+    // activating a lesson the curriculum marked as locked.
+    const target = allLessons.find((lesson) => lesson.id === lessonId);
+    if (target?.locked) {
+      toast.error("هذا الدرس مغلق حاليًا.");
+      return;
+    }
     startTransition(() => {
       setActiveLessonId(lessonId);
       setActiveTab("content");
     });
-  }, []);
+  }, [allLessons]);
 
   const navigateRelative = useCallback(
     (direction: "next" | "prev") => {
@@ -368,7 +384,26 @@ export function useLearningHub() {
 
     try {
       setSavingNote(true);
-      await apiClient.post(apiRoutes.courses.createNote(activeLessonId), { content: noteContent });
+
+      // This tab and the video player's timeline notes both persist to the same
+      // lesson-notes resource as a full-document write. Re-read the latest content
+      // first and re-attach its timeline block so saving here can't clobber a
+      // timeline note added (from the player) after this tab last loaded its
+      // stale snapshot. This doesn't fully solve concurrent-writer races (that
+      // needs a backend revision/ETag), but it removes the common single-session
+      // case where an open Notes tab silently discards newer timeline notes.
+      let timelineNotes: ReturnType<typeof parseCloudTimelineNotes>["notes"] = [];
+      try {
+        const latest = await apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId));
+        timelineNotes = parseCloudTimelineNotes(latest?.content || "").notes;
+      } catch {
+        // If the re-read fails, fall back to saving the freeform text as-is.
+      }
+
+      const { freeformContent } = parseCloudTimelineNotes(noteContent);
+      const mergedContent = serializeCloudTimelineNotes(freeformContent, timelineNotes);
+
+      await apiClient.post(apiRoutes.courses.createNote(activeLessonId), { content: mergedContent });
       toast.success("تم حفظ الملاحظات.");
     } catch (saveError) {
       logger.error("Error saving note", saveError);

@@ -4,11 +4,11 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, Search, X, Moon, Sun, Home, LogIn, UserPlus, LogOut } from "lucide-react";
+import { ChevronDown, Search, X, Moon, Sun, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { mainNavItemsWithMegaMenu, headerNavItems as fallbackHeaderNavItems, type NavItemWithMegaMenu } from "@/components/mega-menu/navData";
+import type { NavItemWithMegaMenu } from "@/components/mega-menu/navData";
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras } from "./headerMenuUtils";
 import type { MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink } from "@/components/navigation";
@@ -36,8 +36,8 @@ interface HeaderMobileMenuEnhancedProps {
 	setIsMobileMenuOpen: (open: boolean) => void;
 	isActiveRoute: (href: string) => boolean;
 	mounted: boolean;
-	navItems?: NavItemWithMegaMenu[];
-	headerNavItems?: NavItemWithMegaMenu[];
+	navItems: NavItemWithMegaMenu[];
+	headerNavItems: NavItemWithMegaMenu[];
 }
 
 // ─── Component ───────────────────────────────────────────────────
@@ -47,8 +47,8 @@ export function HeaderMobileMenuEnhanced({
 	setIsMobileMenuOpen,
 	isActiveRoute,
 	mounted,
-	navItems = mainNavItemsWithMegaMenu,
-	headerNavItems = fallbackHeaderNavItems,
+	navItems,
+	headerNavItems,
 }: HeaderMobileMenuEnhancedProps) {
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const pathname = usePathname();
@@ -180,7 +180,7 @@ export function HeaderMobileMenuEnhanced({
 		if (!query) return [];
 
 		return buildMobileSearchResultsWithExtras(allNavItems, [
-			{ label: "مدارس", categories: headerNavItems?.[0]?.megaMenu }
+			{ label: headerNavItems[0]?.label ?? "", categories: headerNavItems[0]?.megaMenu }
 		])
 			.filter(
 				(entry) =>
@@ -377,7 +377,7 @@ export function HeaderMobileMenuEnhanced({
 					{/* User Section */}
 					<div className="px-4 py-2">
 						{isLoading ? (
-							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="جاري التحميل" />
+							<div className="h-16 w-full rounded-2xl bg-muted" role="status" aria-label="جارٍ التحميل" />
 						) : user ? (
 							<div className="p-3 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/10 shadow-sm">
 								<div className="flex items-center gap-2.5">
@@ -460,15 +460,6 @@ export function HeaderMobileMenuEnhanced({
 							</div>
 						) : (
 							<>
-								<HeaderNavLink
-									href="/"
-									label="الرئيسية"
-									icon={Home}
-									active={mounted && isActiveRoute("/")}
-									variant="mobile"
-									onClick={closeMobileMenu}
-								/>
-
 								{allNavItems.map((item) => {
 									const active = mounted && isActiveRoute(item.href);
 									const hasMegaMenu = !!item.megaMenu?.length;
@@ -483,6 +474,7 @@ export function HeaderMobileMenuEnhanced({
 														type="button"
 														onClick={() => toggleMegaMenu(item.href)}
 														aria-expanded={isExpanded}
+														aria-controls={`mobile-mega-menu-${item.href}`}
 														className={cn(
 															"w-full flex items-center justify-between gap-2.5 p-3 rounded-xl border border-transparent touch-manipulation outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
 															active
@@ -516,7 +508,12 @@ export function HeaderMobileMenuEnhanced({
 													</button>
 
 													{isExpanded && (
-														<div className="ms-3 ps-3 border-s-2 border-primary/10 space-y-1 py-1 my-1">
+														<div
+															id={`mobile-mega-menu-${item.href}`}
+															role="region"
+															aria-label={item.label}
+															className="ms-3 ps-3 border-s-2 border-primary/10 space-y-1 py-1 my-1"
+														>
 															{item.megaMenu!.map((category, catIndex) => (
 																<div key={`${item.href}-cat-${catIndex}`} className="space-y-1">
 																	{catIndex > 0 && <div className="h-px bg-border/40 my-2 w-3/4 mx-auto" />}

@@ -8,6 +8,8 @@ import Image from "next/image";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type Event = {
   id: string;
@@ -54,14 +56,8 @@ export default function EventPage() {
 
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}`);
-        if (res.ok) {
-          const eventData = await res.json() as Event;
-          setEvent(eventData);
-        } else {
-          // Event not found
-          router.push("/events");
-        }
+        const eventData = await apiClient.get<Event>(apiRoutes.events.byId(eventId));
+        setEvent(eventData);
       } catch (error) {
         logger.error("Error fetching event:", error);
         router.push("/events");
@@ -70,15 +66,12 @@ export default function EventPage() {
 
     const fetchAttendees = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}/attendees`);
-        if (res.ok) {
-          const attendeesData = await res.json() as Attendee[];
-          setAttendees(attendeesData);
+        const attendeesData = await apiClient.get<Attendee[]>(apiRoutes.events.attendees(eventId));
+        setAttendees(Array.isArray(attendeesData) ? attendeesData : []);
 
-          // Check if current user is attending
-          if (userId) {
-            setIsAttending(attendeesData.some((a: Attendee) => a.id === userId));
-          }
+        // Check if current user is attending
+        if (userId) {
+          setIsAttending((Array.isArray(attendeesData) ? attendeesData : []).some((a: Attendee) => a.id === userId));
         }
       } catch (error) {
         logger.error("Error fetching attendees:", error);
@@ -99,32 +92,24 @@ export default function EventPage() {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/attend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      await apiClient.postJson(apiRoutes.events.attend(eventId), { userId });
 
-      if (res.ok) {
-        setIsAttending(true);
+      setIsAttending(true);
 
-        // Update attendees list
-        const newAttendee = {
-          id: userId,
-          name: "أنت", // In a real app, you'd fetch the user's name
-          joinedAt: new Date().toISOString()
-        };
-        setAttendees([...attendees, newAttendee]);
+      // Update attendees list
+      const newAttendee = {
+        id: userId,
+        name: "أنت", // In a real app, you'd fetch the user's name
+        joinedAt: new Date().toISOString()
+      };
+      setAttendees([...attendees, newAttendee]);
 
-        // Update event attendees count
-        if (event) {
-          setEvent({
-            ...event,
-            currentAttendees: event.currentAttendees + 1
-          });
-        }
-      } else {
-        alert("حدث خطأ أثناء الانضمام للمناسبة");
+      // Update event attendees count
+      if (event) {
+        setEvent({
+          ...event,
+          currentAttendees: event.currentAttendees + 1
+        });
       }
     } catch (error) {
       logger.error("Error joining event:", error);
@@ -139,27 +124,19 @@ export default function EventPage() {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/attend`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      await apiClient.delete(apiRoutes.events.attend(eventId), { body: JSON.stringify({ userId }) });
 
-      if (res.ok) {
-        setIsAttending(false);
+      setIsAttending(false);
 
-        // Update attendees list
-        setAttendees(attendees.filter(a => a.id !== userId));
+      // Update attendees list
+      setAttendees(attendees.filter(a => a.id !== userId));
 
-        // Update event attendees count
-        if (event) {
-          setEvent({
-            ...event,
-            currentAttendees: event.currentAttendees - 1
-          });
-        }
-      } else {
-        alert("حدث خطأ أثناء مغادرة المناسبة");
+      // Update event attendees count
+      if (event) {
+        setEvent({
+          ...event,
+          currentAttendees: event.currentAttendees - 1
+        });
       }
     } catch (error) {
       logger.error("Error leaving event:", error);

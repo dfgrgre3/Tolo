@@ -53,7 +53,10 @@ export default function AvatarUploader() {
 
   async function handleRemove() {
     try {
-      await apiClient.patch(apiRoutes.users.profile, { avatar: null });
+      // The profile PATCH contract uses a pointer field. Sending JSON null is
+      // indistinguishable from an omitted field after Go unmarshalling, so an
+      // empty string is the explicit "clear avatar" value.
+      await apiClient.patch(apiRoutes.users.profile, { avatar: "" });
       await Promise.all([refreshUser(), refetchProfile()]);
       toast.success("تم حذف الصورة الشخصية");
     } catch (err) {

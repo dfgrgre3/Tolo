@@ -150,6 +150,7 @@ export const PUBLIC_ENV_KEYS = new Set([
     'NEXT_PUBLIC_RP_ID',
     'NEXT_PUBLIC_APP_NAME',
     'NEXT_PUBLIC_ENABLE_LOGIN_COMPLEXITY',
+    'NEXT_PUBLIC_ENABLE_SERVICE_WORKER',
     // WebSocket & analytics — whitelisted
     'NEXT_PUBLIC_WS_HOST',
     'NEXT_PUBLIC_WS_URL',

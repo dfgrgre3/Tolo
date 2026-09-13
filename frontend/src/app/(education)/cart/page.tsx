@@ -8,6 +8,8 @@ import { m } from "framer-motion";
 import { Loader2, ShoppingCart, Trash2, Tag, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type CartItem = {
   id: string;
@@ -63,12 +65,8 @@ export default function CartPage() {
   const fetchCart = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/cart");
-      if (res.ok) {
-        const data = await res.json();
-        const payload = data.data || data;
-        setItems(payload.items || []);
-      }
+      const data = await apiClient.get<{ items?: CartItem[] }>(apiRoutes.cart.get);
+      setItems(data.items || []);
     } catch {
       // silently handled
     } finally {
@@ -83,15 +81,11 @@ export default function CartPage() {
   const handleRemove = async (subjectId: string) => {
     setRemoving((prev) => ({ ...prev, [subjectId]: true }));
     try {
-      const res = await fetch(`/api/cart/items/${subjectId}`, { method: "DELETE" });
-      if (res.ok) {
-        setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
-        toast.success("تم الحذف من السلة");
-      } else {
-        toast.error("فشل الحذف");
-      }
+      await apiClient.delete(apiRoutes.cart.item(subjectId));
+      setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
+      toast.success("تم الحذف من السلة");
     } catch {
-      toast.error("حدث خطأ");
+      toast.error("فشل الحذف");
     } finally {
       setRemoving((prev) => ({ ...prev, [subjectId]: false }));
     }
@@ -110,13 +104,10 @@ export default function CartPage() {
     setValidatingCoupon(true);
     setCouponError(null);
     try {
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponInput.trim() }),
-      });
-      const data = await res.json();
-      const payload = data.data || data;
+      const payload = await apiClient.postJson<{ valid: boolean; discountType: string; discount: number; message: string }>(
+        apiRoutes.coupons.validate,
+        { code: couponInput.trim() }
+      );
       if (payload.valid) {
         setCoupon({
           code: couponInput.trim(),
@@ -145,35 +136,32 @@ export default function CartPage() {
   const handleCheckout = async (paymentMethod: string) => {
     setCheckingOutMethod(paymentMethod);
     try {
-      const res = await fetch("/api/cart/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod, couponCode: coupon?.code || undefined }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const payload = data.data || data;
-        if (payload.redirectUrl) {
-          window.location.href = payload.redirectUrl;
-          return;
-        }
-        if (payload.paymentKey && payload.iframeId) {
-          window.location.href = `https://accept.paymob.com/api/acceptance/iframes/${payload.iframeId}?payment_token=${payload.paymentKey}`;
-          return;
-        }
-        toast.success("تم الشراء بنجاح!");
-        router.push("/courses");
-      } else if (res.status === 401) {
+      const payload = await apiClient.postJson<{ redirectUrl?: string; paymentKey?: string; iframeId?: string }>(
+        apiRoutes.cart.checkout,
+        { paymentMethod, couponCode: coupon?.code || undefined }
+      );
+      if (payload.redirectUrl) {
+        window.location.href = payload.redirectUrl;
+        return;
+      }
+      if (payload.paymentKey && payload.iframeId) {
+        window.location.href = `https://accept.paymob.com/api/acceptance/iframes/${payload.iframeId}?payment_token=${payload.paymentKey}`;
+        return;
+      }
+      toast.success("تم الشراء بنجاح!");
+      router.push("/courses");
+    } catch (error) {
+      if (error instanceof ApiError && error.isUnauthorized) {
         toast.error("سجّل الدخول أولاً لإتمام الشراء");
         router.push("/login?redirect=/cart");
-      } else if (res.status === 409) {
-        toast.error(data.error || "أنت مسجّل بالفعل في إحدى دورات السلة");
+      } else if (error instanceof ApiError && error.status === 409) {
+        toast.error(error.message || "أنت مسجّل بالفعل في إحدى دورات السلة");
         fetchCart();
+      } else if (error instanceof ApiError) {
+        toast.error(error.message || "فشلت عملية الدفع، حاول مرة أخرى");
       } else {
-        toast.error(data.error || "فشلت عملية الدفع، حاول مرة أخرى");
+        toast.error("حدث خطأ أثناء الدفع، تحقق من اتصالك وحاول مرة أخرى");
       }
-    } catch {
-      toast.error("حدث خطأ أثناء الدفع، تحقق من اتصالك وحاول مرة أخرى");
     } finally {
       setCheckingOutMethod(null);
     }

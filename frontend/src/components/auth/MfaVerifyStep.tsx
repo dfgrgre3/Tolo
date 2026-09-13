@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 
 /** Length of a TOTP code; backup recovery codes are longer. */
-const MFA_CODE_MAX_LENGTH = 10;
+const MFA_CODE_MAX_LENGTH = 32;
 
 interface MfaVerifyStepProps {
   code: string;
@@ -57,9 +57,10 @@ export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, on
               disabled={isLoading}
               dir="ltr"
               maxLength={MFA_CODE_MAX_LENGTH}
+              aria-describedby="mfa-code-help"
               className="bg-white dark:bg-slate-950 text-center tracking-widest text-lg font-bold border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p id="mfa-code-help" className="text-xs text-slate-400 dark:text-slate-500">
               يمكنك أيضاً استخدام أحد رموز الاسترداد الاحتياطية.
             </p>
           </div>

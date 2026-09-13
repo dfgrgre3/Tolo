@@ -51,15 +51,10 @@ export default function DashboardPage() {
       if (!user) return;
       try {
         setIsDataLoading(true);
-        const [coursesRes] = await Promise.all([
-          apiClient.fetch(`${apiRoutes.subjects.myCourses}?limit=1`)
-        ]);
-
-        if (coursesRes.ok) {
-          const data = await coursesRes.json();
-          const courses = data.data?.items || data.items || [];
-          if (courses.length > 0) setLastCourse(courses[0]);
-        }
+        const data = await apiClient.get<{ items?: typeof lastCourse[] }>(`${apiRoutes.subjects.myCourses}?limit=1`);
+        const courses = data.items || [];
+        const [firstCourse] = courses;
+        if (firstCourse) setLastCourse(firstCourse);
       } catch (error) {
         logger.error("Error fetching dashboard data:", error);
       } finally {

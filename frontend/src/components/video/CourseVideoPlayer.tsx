@@ -374,13 +374,18 @@ export function CourseVideoPlayer({
     const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = usePlaybackStore.getState();
     
     // Interactive Questions Detection
+    // FIX: `lastCheckedSecondRef` used to be advanced only when a question was
+    // found, so on every second with no match `.find()` re-ran on every single
+    // animation frame (≈60x/sec) for the whole interactiveQuestions array
+    // until a match appeared. Advancing it unconditionally caps this lookup
+    // to once per second regardless of outcome.
     const currentSecond = Math.floor(nextTime);
     if (interactiveQuestions.length > 0 && !activeQuestionId && currentSecond !== lastCheckedSecondRef.current) {
-      const question = interactiveQuestions.find(q => 
+      lastCheckedSecondRef.current = currentSecond;
+      const question = interactiveQuestions.find(q =>
         Math.abs((q.timePosition ?? q.time ?? 0) - nextTime) < 0.8 && !answeredQuestionIds.includes(q.id)
       );
       if (question) {
-        lastCheckedSecondRef.current = currentSecond;
         adapter.pause();
         setPlaybackState({ activeQuestionId: question.id });
         setPlaybackState({ isPlaying: false });

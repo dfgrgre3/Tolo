@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type Teacher = {
   id: string;
@@ -56,12 +58,11 @@ export default function TeacherExamsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/teachers");
-        const ts = await res.json();
+        const ts = await apiClient.get<unknown>(apiRoutes.teachers);
         // Defensive: API may return an error object (e.g. { error, status }) when the
         // backend route is missing or the proxy is misconfigured. Only set state when
         // we actually got an array back, otherwise `teachers.map` would throw.
-        setTeachers(Array.isArray(ts) ? ts : []);
+        setTeachers(Array.isArray(ts) ? (ts as Teacher[]) : []);
       } catch (err) {
         console.error("[TeacherExams] Failed to load teachers:", err);
         setTeachers([]);
@@ -75,13 +76,11 @@ export default function TeacherExamsPage() {
       try {
         // Session-scoped: the backend resolves the user from the JWT, so no
         // ?userId= is appended (IDOR/BOLA hardening).
-        const resultsRes = await fetch("/api/exams/results");
-        const results = await resultsRes.json();
-        setExamResults(Array.isArray(results) ? results : []);
+        const results = await apiClient.get<unknown>(apiRoutes.exams.results);
+        setExamResults(Array.isArray(results) ? (results as ExamResult[]) : []);
 
-        const gradesRes = await fetch("/api/grades");
-        const grades = await gradesRes.json();
-        setUserGrades(Array.isArray(grades) ? grades : []);
+        const grades = await apiClient.get<unknown>(apiRoutes.grades.list);
+        setUserGrades(Array.isArray(grades) ? (grades as UserGrade[]) : []);
       } catch (err) {
         console.error("[TeacherExams] Failed to load exam results/grades:", err);
         setExamResults([]);
@@ -94,37 +93,34 @@ export default function TeacherExamsPage() {
     e.preventDefault();
     if (!isAuthenticated || !teacherId || !subject || !examTitle || !examDate) return;
 
-    // First create the exam
-    const examRes = await fetch("/api/exams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    // This flow is 3 separate backend mutations with no server-side transaction.
+    // We can't make it atomic from the client, but we can avoid leaving orphaned
+    // records behind: if a later step fails, best-effort delete what already
+    // succeeded (compensating actions / manual saga) before surfacing the error.
+    let examId: string | undefined;
+    let resultId: string | undefined;
+
+    try {
+      // First create the exam
+      const exam = await apiClient.postJson<{ id: string }>(apiRoutes.exams.list, {
         subject,
         title: examTitle,
         year: new Date(examDate).getFullYear(),
         type: "OTHER"
-      })
-    });
-    const exam = await examRes.json();
+      });
+      examId = exam?.id;
 
-    // Then create the exam result with teacher
-    const resultRes = await fetch("/api/exams/results", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      // Then create the exam result with teacher
+      const result = await apiClient.postJson<{ id: string }>(apiRoutes.exams.results, {
         examId: exam.id,
         score: Number(score),
         takenAt: examDate,
         teacherId
-      })
-    });
-    const _result = await resultRes.json();
+      });
+      resultId = result?.id;
 
-    // Also add as a user grade
-    await fetch("/api/grades", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      // Also add as a user grade
+      await apiClient.postJson(apiRoutes.grades.list, {
         subject,
         grade: Number(score),
         maxGrade: Number(maxScore),
@@ -133,15 +129,26 @@ export default function TeacherExamsPage() {
         isOnline,
         assignmentType,
         teacherId
-      })
-    });
+      });
+    } catch (err) {
+      console.error("[TeacherExams] addTeacherExam failed, rolling back partial writes:", err);
+      // Best-effort compensation — a failure here just gets logged, since there's
+      // nothing more the client can do about an orphaned record at that point.
+      if (resultId) {
+        await apiClient.delete(apiRoutes.exams.result(resultId)).catch(() => {});
+      }
+      if (examId) {
+        await apiClient.delete(apiRoutes.exams.byId(examId)).catch(() => {});
+      }
+      return;
+    }
 
     // Refresh data — defend against non-array responses (e.g. 404/502 error objects).
-    const updatedResults = await fetch("/api/exams/results").then((r) => r.json());
-    setExamResults(Array.isArray(updatedResults) ? updatedResults : []);
+    const updatedResults = await apiClient.get<unknown>(apiRoutes.exams.results);
+    setExamResults(Array.isArray(updatedResults) ? (updatedResults as ExamResult[]) : []);
 
-    const updatedGrades = await fetch("/api/grades").then((r) => r.json());
-    setUserGrades(Array.isArray(updatedGrades) ? updatedGrades : []);
+    const updatedGrades = await apiClient.get<unknown>(apiRoutes.grades.list);
+    setUserGrades(Array.isArray(updatedGrades) ? (updatedGrades as UserGrade[]) : []);
 
     // Reset form
     setTeacherId("");
@@ -156,12 +163,12 @@ export default function TeacherExamsPage() {
   }
 
   async function deleteExamResult(id: string) {
-    await fetch(`/api/exams/results/${id}`, { method: "DELETE" });
+    await apiClient.delete(apiRoutes.exams.result(id));
     setExamResults((r) => Array.isArray(r) ? r.filter((x) => x.id !== id) : []);
   }
 
   async function deleteGrade(id: string) {
-    await fetch(`/api/grades/${id}`, { method: "DELETE" });
+    await apiClient.delete(apiRoutes.grades.byId(id));
     setUserGrades((g) => Array.isArray(g) ? g.filter((x) => x.id !== id) : []);
   }
 

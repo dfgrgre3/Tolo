@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger';
 const SW_PATH = "/sw.js";
 const SW_SCOPE = "/";
 const SW_CACHE_PREFIX = "tolo-search";
+const ENABLED_IN_DEVELOPMENT = process.env.NEXT_PUBLIC_ENABLE_SERVICE_WORKER === "true";
 
 async function cleanupServiceWorkerArtifacts(): Promise<void> {
 	try {
@@ -40,8 +41,9 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 		return null;
 	}
 
-	// Avoid stale dev assets/chunks by disabling and cleaning Service Workers outside production.
-	if (process.env.NODE_ENV !== "production") {
+	// Avoid stale dev assets/chunks by disabling and cleaning Service Workers outside
+	// production unless explicitly enabled for Cache Storage testing.
+	if (process.env.NODE_ENV !== "production" && !ENABLED_IN_DEVELOPMENT) {
 		await cleanupServiceWorkerArtifacts();
 		logger.debug("Service Worker disabled outside production");
 		return null;

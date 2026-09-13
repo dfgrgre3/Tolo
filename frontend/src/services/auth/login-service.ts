@@ -34,7 +34,12 @@ const loginRequestSchema = z.object({
 
 const mfaVerifyPayloadSchema = z.object({
   challengeId: z.string().trim().min(1),
-  code: z.string().trim().min(1),
+  // TOTP codes are six digits; recovery codes may contain letters and dashes.
+  code: z.string().trim().refine(
+    (value) => /^\d{6}$/.test(value) || /^[A-Za-z0-9-]{8,32}$/.test(value),
+    "Invalid MFA code",
+  ),
+  rememberMe: z.boolean().optional(),
 });
 
 const loginChallengeSchema = z.object({
@@ -149,9 +154,10 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
  */
 export async function verifyMfa(
   challengeId: string,
-  code: string
+  code: string,
+  rememberMe = false
 ): Promise<LoginOutcome> {
-  const payload: MfaVerifyPayload = { challengeId, code: code.trim() };
+  const payload: MfaVerifyPayload = { challengeId, code: code.trim(), rememberMe };
 
   const parsed = mfaVerifyPayloadSchema.safeParse(payload);
   if (!parsed.success) {

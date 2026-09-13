@@ -1,9 +1,9 @@
 import { cva } from "class-variance-authority";
 
-export const navLinkStyles = cva("relative", {
+export const navLinkStyles = cva("relative no-underline decoration-transparent underline-offset-0 hover:no-underline", {
   variants: {
     variant: {
-      desktop: "h-11 px-6 flex items-center gap-3 rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest group/btn hover:bg-white/5",
+      desktop: "h-10 px-4 flex items-center gap-2 rounded-xl font-black uppercase text-[11px] tracking-wide group/btn",
       mobile: "flex items-center gap-3 p-3.5 rounded-xl border border-transparent",
       search: "flex items-center gap-3 p-3 rounded-xl border",
     },
@@ -34,10 +34,10 @@ export const navIconStyles = cva("", {
   defaultVariants: { active: false },
 });
 
-export const navTextStyles = cva("", {
+export const navTextStyles = cva("relative z-10", {
   variants: {
     variant: {
-      desktop: "relative z-10",
+      desktop: "",
       mobile: "flex-1 text-[15px]",
       search: "text-sm font-semibold truncate",
     },
@@ -75,9 +75,9 @@ export const navIconWrapStyles = cva("flex items-center justify-center rounded-l
   defaultVariants: { active: false },
 });
 
-export const triggerStyles = cva("relative flex items-center gap-3", {
+export const triggerStyles = cva("relative flex items-center gap-3 no-underline decoration-transparent underline-offset-0 hover:no-underline", {
   variants: {
-    variant: { header: "hover:bg-white/10 hover:text-primary", menu: "hover:bg-primary/15 hover:text-primary" },
+    variant: { header: "", menu: "" },
     size: { header: "px-4 py-2.5", menu: "px-4 py-2.5" },
     open: { true: "text-primary shadow-[0_0_25px_hsl(var(--primary)_/_0.5)]", false: "" },
   },

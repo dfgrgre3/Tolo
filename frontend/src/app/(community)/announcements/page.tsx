@@ -24,6 +24,8 @@ import { logger } from '@/lib/logger';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type Announcement = {
   id: string;
@@ -76,20 +78,14 @@ export default function AnnouncementsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [annRes, conRes] = await Promise.all([
-          fetch("/api/announcements"),
-          fetch("/api/contests")
+        const [annJson, conJson] = await Promise.all([
+          apiClient.get<unknown>(apiRoutes.community.announcements),
+          apiClient.get<unknown>(apiRoutes.contests.list)
         ]);
-        if (annRes.ok) {
-          const annJson = await annRes.json();
-          const annData = Array.isArray(annJson) ? annJson : annJson?.data;
-          setAnnouncements(Array.isArray(annData) ? annData : []);
-        }
-        if (conRes.ok) {
-          const conJson = await conRes.json();
-          const conData = Array.isArray(conJson) ? conJson : conJson?.data;
-          setContests(Array.isArray(conData) ? conData : []);
-        }
+        const annData = Array.isArray(annJson) ? annJson : (annJson as { data?: unknown })?.data;
+        setAnnouncements(Array.isArray(annData) ? annData : []);
+        const conData = Array.isArray(conJson) ? conJson : (conJson as { data?: unknown })?.data;
+        setContests(Array.isArray(conData) ? conData : []);
       } catch (err) {
         logger.error("Failed to fetch community data", err);
       } finally {

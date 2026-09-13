@@ -17,6 +17,8 @@ import {
 import { isPast } from 'date-fns';
 
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 import { TaskFormDialog } from './_components/TaskFormDialog';
 import { TaskFilters } from './_components/TaskFilters';
 import { TaskStatsPanel } from './_components/TaskStatsPanel';
@@ -137,27 +139,19 @@ export default function TaskManagement({
   }, [form]);
 
   const onSubmit = useCallback(async (values: z.infer<typeof taskSchema>) => {
-    const endpoint = taskToEdit ? `/api/tasks/${taskToEdit.id}` : '/api/tasks';
-    const method = taskToEdit ? 'PATCH' : 'POST';
-
     const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
     // The task owner is resolved server-side from the session — no userId.
-    const body = JSON.stringify({
+    const body = {
       ...values,
       tags,
       status: taskToEdit?.status || 'PENDING'
-    });
+    };
 
     try {
-      const response = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body
-      });
-
-      if (!response.ok) throw new Error('Failed to save task');
-      const savedTask = await response.json();
+      const savedTask = taskToEdit
+        ? await apiClient.patch<Task>(apiRoutes.tasks.update(taskToEdit.id), body)
+        : await apiClient.postJson<Task>(apiRoutes.tasks.create, body);
 
       if (taskToEdit) {
         setTasks(prev => prev.map(t => t.id === savedTask.id ? savedTask : t));
@@ -177,10 +171,7 @@ export default function TaskManagement({
     if (!taskId) return;
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error(`Failed to delete task: ${response.status}`);
-      }
+      await apiClient.delete(apiRoutes.tasks.delete(taskId));
 
       setTasks(prev => prev.filter(t => t.id !== taskId));
       onTaskDelete?.(taskId);
@@ -197,14 +188,7 @@ export default function TaskManagement({
         updateData.actualTime = timerSeconds > 0 ? Math.round(timerSeconds / 60) : undefined;
       }
 
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) throw new Error('Failed to update task status');
-      const updatedTask = await response.json();
+      const updatedTask = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), updateData);
 
       setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
       if (onTaskUpdate) onTaskUpdate(updatedTask);
@@ -238,14 +222,7 @@ export default function TaskManagement({
 
   const updateTaskField = async (taskId: string, field: string, value: unknown) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value })
-      });
-
-      if (!response.ok) throw new Error('Failed to update task');
-      const updatedTask = await response.json() as Task;
+      const updatedTask = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), { [field]: value });
 
       setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
       onTaskUpdate?.(updatedTask);

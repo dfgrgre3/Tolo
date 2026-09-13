@@ -93,6 +93,7 @@ export const apiRoutes = {
     lessonNotes: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     createNote: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     lessonQuestions: (lessonId: string) => `/api/courses/lessons/${lessonId}/questions`,
+    lessonTranscript: (lessonId: string) => `/api/courses/lessons/${lessonId}/transcript`,
     quizzes: (id: string) => `/api/courses/${id}/quizzes`,
     lessonQuizzes: (courseId: string, lessonId: string) => `/api/courses/${courseId}/lessons/${lessonId}/quizzes`,
     quiz: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}`,
@@ -134,8 +135,18 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   exams: {
     list: '/api/exams',
+    byId: (id: string) => `/api/exams/${id}`,
     results: '/api/exams/results',
+    result: (id: string) => `/api/exams/results/${id}`,
     submit: (id: string) => `/api/exams/${id}/submit`,
+  },
+
+  // ──────────────────────────────────────────
+  // Grades  (protected_routes.go)
+  // ──────────────────────────────────────────
+  grades: {
+    list: '/api/grades',
+    byId: (id: string) => `/api/grades/${id}`,
   },
 
   // ──────────────────────────────────────────
@@ -158,6 +169,7 @@ export const apiRoutes = {
   reminders: {
     list: '/api/reminders',
     create: '/api/reminders',
+    byId: (id: string) => `/api/reminders/${id}`,
   },
   lessons: {
     list: '/api/lessons',
@@ -191,6 +203,7 @@ export const apiRoutes = {
     guest: '/api/users/guest',
     billingSummary: '/api/users/billing-summary',
     profile: '/api/users/profile',
+    referrals: '/api/users/referrals',
   },
 
   // ──────────────────────────────────────────
@@ -216,12 +229,23 @@ export const apiRoutes = {
   },
 
   // ──────────────────────────────────────────
+  // Cart  (protected_routes.go)
+  // ──────────────────────────────────────────
+  cart: {
+    get: '/api/cart',
+    items: '/api/cart/items',
+    item: (subjectId: string) => `/api/cart/items/${subjectId}`,
+    checkout: '/api/cart/checkout',
+  },
+
+  // ──────────────────────────────────────────
   // Payments  (protected_routes.go + public_routes.go)
   // ──────────────────────────────────────────
   payments: {
     create: '/api/payments/create',
     history: '/api/payments/history',
     paymobCallback: '/api/payments/paymob/callback',
+    byOrder: (orderId: string) => `/api/payments/by-order/${orderId}`,
   },
 
   // ──────────────────────────────────────────
@@ -294,6 +318,8 @@ export const apiRoutes = {
   community: {
     announcements: '/api/announcements',
     createAnnouncement: '/api/announcements',
+    users: '/api/community/users',
+    userById: (id: string) => `/api/community/users/${id}`,
     // Session-scoped: the caller's identity comes from the JWT, so the
     // conversations endpoint takes no userId and the messages endpoint takes
     // only the counterpart user id (IDOR/BOLA hardening).
@@ -302,6 +328,13 @@ export const apiRoutes = {
       messages: (chatUserId: string) => `/api/chat/messages/${chatUserId}`,
       sendMessage: '/api/chat/messages',
     },
+  },
+
+  // ──────────────────────────────────────────
+  // Contests  (public_routes.go)
+  // ──────────────────────────────────────────
+  contests: {
+    list: '/api/contests',
   },
 
   // ──────────────────────────────────────────
@@ -341,6 +374,9 @@ export const apiRoutes = {
     list: '/api/blog',
     bySlug: (slug: string) => `/api/blog/${slug}`,
     categories: '/api/blog/categories',
+    posts: '/api/blog/posts',
+    post: (id: string) => `/api/blog/posts/${id}`,
+    incrementView: (id: string) => `/api/blog/posts/${id}/view`,
   },
 
   // ──────────────────────────────────────────
@@ -348,6 +384,9 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   events: {
     list: '/api/events',
+    byId: (id: string) => `/api/events/${id}`,
+    attendees: (id: string) => `/api/events/${id}/attendees`,
+    attend: (id: string) => `/api/events/${id}/attend`,
   },
   resources: {
     list: '/api/resources',
@@ -379,7 +418,6 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   navigation: {
     menu: '/api/navigation/menu',
-    main: '/api/navigation/main',
   },
 
   // ──────────────────────────────────────────

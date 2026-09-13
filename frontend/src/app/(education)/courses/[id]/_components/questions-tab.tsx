@@ -53,20 +53,11 @@ export function QuestionsTab({
     }
     setSubmittingQuestion(true);
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.questions(courseId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle, body: newBody || undefined })
-      });
-      if (res.ok) {
-        toast.success("تم إرسال سؤالك");
-        setNewTitle("");
-        setNewBody("");
-        fetchQuestions();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل إرسال السؤال");
-      }
+      await apiClient.postJson(apiRoutes.courses.questions(courseId), { title: newTitle, body: newBody || undefined });
+      toast.success("تم إرسال سؤالك");
+      setNewTitle("");
+      setNewBody("");
+      fetchQuestions();
     } catch {
       toast.error("حدث خطأ أثناء إرسال السؤال");
     } finally {
@@ -82,19 +73,10 @@ export function QuestionsTab({
     }
     setSubmittingAnswers((prev) => ({ ...prev, [questionId]: true }));
     try {
-      const res = await apiClient.fetch(apiRoutes.courses.questionAnswers(questionId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body })
-      });
-      if (res.ok) {
-        toast.success("تم إرسال ردك");
-        setAnswerInputs((prev) => ({ ...prev, [questionId]: "" }));
-        fetchQuestions();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل إرسال الرد");
-      }
+      await apiClient.postJson(apiRoutes.courses.questionAnswers(questionId), { body });
+      toast.success("تم إرسال ردك");
+      setAnswerInputs((prev) => ({ ...prev, [questionId]: "" }));
+      fetchQuestions();
     } catch {
       toast.error("حدث خطأ أثناء إرسال الرد");
     } finally {

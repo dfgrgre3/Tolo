@@ -49,7 +49,7 @@ export function useTimelineNotes({
       setIsNotesSyncing(true);
       try {
         const payload = await apiClient.get<{ content?: string }>(
-          `/api/courses/lessons/${lessonId}/notes`
+          apiRoutes.courses.lessonNotes(lessonId)
         );
         if (isCancelled()) return;
 

@@ -478,7 +478,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 								setShowSuggestions(false);
 							}
 						}}
-						className="w-full h-12 pe-11 ps-20 bg-background/50 hover:bg-background/80 focus:bg-background border-border/50 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 text-base rounded-2xl shadow-sm outline-none"
+						className="w-full h-10 pe-10 ps-16 bg-background/50 hover:bg-background/80 focus:bg-background border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 text-sm rounded-xl shadow-sm outline-none"
 						aria-label="بحث في الموقع"
 						aria-expanded={showSuggestions}
 						aria-controls="search-results-panel"
@@ -547,7 +547,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				type="submit"
 				size="icon"
 				variant="ghost"
-				className="hover:bg-primary/15 hover:text-primary shadow-md h-12 w-12 rounded-2xl bg-primary/10"
+					className="hover:bg-primary/15 hover:text-primary shadow-md h-10 w-10 rounded-xl bg-primary/10"
 				aria-label="تنفيذ البحث"
 			>
 				<Search className="h-5 w-5" aria-hidden="true" />
@@ -559,7 +559,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 					size="icon"
 					variant="ghost"
 					onClick={handleClearAll}
-					className="hover:bg-destructive/15 hover:text-destructive h-12 w-12 rounded-2xl"
+					className="hover:bg-destructive/15 hover:text-destructive h-10 w-10 rounded-xl"
 					aria-label="مسح البحث"
 				>
 					<X className="h-5 w-5" aria-hidden="true" />

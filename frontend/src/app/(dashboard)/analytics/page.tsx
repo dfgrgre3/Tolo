@@ -45,9 +45,7 @@ export default function AnalyticsPage() {
   const loadAnalyticsData = useCallback(async () => {
     const fetchJson = async <T,>(url: string, name: string): Promise<T | null> => {
       try {
-        const res = await apiClient.fetch(url);
-        if (!res.ok) return null;
-        return (await res.json()) as T;
+        return await apiClient.get<T>(url);
       } catch (e) {
         logger.error(`Error fetching ${name} data:`, e);
         return null;

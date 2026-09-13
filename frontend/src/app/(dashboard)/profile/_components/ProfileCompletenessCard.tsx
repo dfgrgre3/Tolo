@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Gauge, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { COMPLETENESS_FIELDS } from "./profile.constants";
 import { useProfileData } from "./useProfileData";
+import InlineErrorState from "./InlineErrorState";
 
 /**
  * Completeness meter — nudges the user toward a fuller profile by listing
@@ -19,7 +20,7 @@ import { useProfileData } from "./useProfileData";
  */
 export default function ProfileCompletenessCard() {
   const router = useRouter();
-  const { profile, isLoading } = useProfileData();
+  const { profile, isLoading, error, refetch } = useProfileData();
 
   const { completed, total, percent, missing } = useMemo(() => {
     if (!profile) return { completed: 0, total: 0, percent: 0, missing: [] };
@@ -41,6 +42,21 @@ export default function ProfileCompletenessCard() {
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-2 w-full mt-3" />
         </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error && !profile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gauge className="w-5 h-5" /> اكتمال الملف الشخصي
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InlineErrorState message={error} onRetry={refetch} />
+        </CardContent>
       </Card>
     );
   }

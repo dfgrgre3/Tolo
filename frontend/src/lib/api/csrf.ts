@@ -32,6 +32,17 @@ export function clearCsrfToken(): void {
     // Also reset any in-flight bootstrap so the next caller re-bootstraps
     // instead of reusing a stale promise after an auth reset.
     csrfBootstrapPromise = null;
+
+    // Expire the _csrf cookie itself. It's a double-submit cookie (not
+    // httpOnly, by design — the client must be able to read it back into the
+    // X-CSRF-Token header), so leaving it in place after logout means the
+    // next account to sign in on this browser would inherit the previous
+    // account's token until the backend happens to rotate it. Clearing it
+    // here forces ensureCsrfToken() to bootstrap a fresh one on the next
+    // write request, scoped to whoever is now authenticated.
+    if (typeof document !== 'undefined') {
+        document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
+    }
 }
 
 export function getCookie(name: string): string | null {

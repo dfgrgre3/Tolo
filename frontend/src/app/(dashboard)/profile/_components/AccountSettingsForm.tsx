@@ -22,6 +22,7 @@ import { useAuthContext } from "@/contexts/auth-context";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { useProfileData, type UserProfileData } from "./useProfileData";
+import InlineErrorState from "./InlineErrorState";
 import { buildProfilePatch, type ProfileFormState } from "./profile-patch";
 import {
   MAX_NAME_LEN,
@@ -78,7 +79,12 @@ function toFormState(profile: UserProfileData): FormState {
  */
 export default function AccountSettingsForm() {
   const { user, refreshUser } = useAuthContext();
-  const { profile, isLoading: isProfileLoading, refetch } = useProfileData();
+  const {
+    profile,
+    isLoading: isProfileLoading,
+    error: profileError,
+    refetch,
+  } = useProfileData();
 
   // The "saved" baseline is derived from the fetched profile, so a
   // background refetch (avatar upload, …) can never make this form drift
@@ -177,6 +183,19 @@ export default function AccountSettingsForm() {
   }
 
   if (!user) return null;
+
+  if (profileError && !profile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>بيانات الحساب</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InlineErrorState message={profileError} onRetry={refetch} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isProfileLoading || !form) {
     return (

@@ -9,6 +9,8 @@ import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type User = {
   id: string;
@@ -291,12 +293,9 @@ export default function ChatPage() {
       try {
         // Session-scoped: the caller's identity comes from the JWT, so no
         // userId path segment is sent (IDOR/BOLA hardening).
-        const res = await fetch("/api/chat/conversations");
-        if (res.ok) {
-          const payload = await res.json();
-          const data = unwrap<Conversation[]>(payload);
-          setConversations(Array.isArray(data) ? data : []);
-        }
+        const payload = await apiClient.get<unknown>(apiRoutes.community.chat.conversations);
+        const data = unwrap<Conversation[]>(payload);
+        setConversations(Array.isArray(data) ? data : []);
       } catch (error) {
         logger.error("Error fetching conversations:", error);
       }
@@ -311,20 +310,14 @@ export default function ChatPage() {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const userRes = await fetch(`/api/community/users/${chatUserId}`);
-        if (userRes.ok) {
-          const payload = await userRes.json();
-          setSelectedUser(unwrap<User>(payload));
-        }
+        const userPayload = await apiClient.get<unknown>(apiRoutes.community.userById(chatUserId));
+        setSelectedUser(unwrap<User>(userPayload));
 
         // Only the counterpart user id is a parameter — the sender is the
         // JWT session user.
-        const messagesRes = await fetch(`/api/chat/messages/${chatUserId}`);
-        if (messagesRes.ok) {
-          const payload = await messagesRes.json();
-          const messagesData = unwrap<Message[]>(payload);
-          setMessages(Array.isArray(messagesData) ? messagesData : []);
-        }
+        const messagesPayload = await apiClient.get<unknown>(apiRoutes.community.chat.messages(chatUserId));
+        const messagesData = unwrap<Message[]>(messagesPayload);
+        setMessages(Array.isArray(messagesData) ? messagesData : []);
       } catch (error) {
         logger.error("Error fetching messages:", error);
       } finally {
@@ -345,30 +338,20 @@ export default function ChatPage() {
 
     setSending(true);
     try {
-      const res = await fetch("/api/chat/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          receiverId: chatUserId,
-          content: newMessage.trim()
-        }),
+      const payload = await apiClient.postJson<unknown>(apiRoutes.community.chat.sendMessage, {
+        receiverId: chatUserId,
+        content: newMessage.trim()
       });
+      const newMsg = unwrap<Message>(payload);
+      setMessages([...messages, newMsg]);
+      setNewMessage("");
 
-      if (res.ok) {
-        const payload = await res.json();
-        const newMsg = unwrap<Message>(payload);
-        setMessages([...messages, newMsg]);
-        setNewMessage("");
-
-        const updatedConversations = conversations.map(conv => 
-          conv.userId === chatUserId 
-            ? { ...conv, lastMessage: newMessage.trim(), lastMessageTime: new Date().toISOString(), unreadCount: 0 }
-            : conv
-        );
-        setConversations(updatedConversations);
-      } else {
-        alert("حدث خطأ أثناء إرسال الرسالة");
-      }
+      const updatedConversations = conversations.map(conv =>
+        conv.userId === chatUserId
+          ? { ...conv, lastMessage: newMessage.trim(), lastMessageTime: new Date().toISOString(), unreadCount: 0 }
+          : conv
+      );
+      setConversations(updatedConversations);
     } catch (error) {
       logger.error("Error sending message:", error);
       alert("حدث خطأ أثناء إرسال الرسالة");

@@ -8,6 +8,8 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
+import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 export default function PaymentSuccessPage() {
   return (
@@ -28,9 +30,7 @@ function PaymentSuccessContent() {
     setDownloading(true);
     try {
       if (!paymentData) {
-        const res = await fetch(`/api/payments/by-order/${orderId}`);
-        if (!res.ok) throw new Error("Could not find payment data");
-        const data = await res.json();
+        const data = await apiClient.get<{ id: string }>(apiRoutes.payments.byOrder(orderId));
         setPaymentData(data);
         // Small delay to ensure it's rendered off-screen
         setTimeout(() => {

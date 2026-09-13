@@ -6,6 +6,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { QualityOption } from "../types";
+import { WATERMARK_POSITIONS } from "../constants";
 
 interface SettingsState {
   // Video quality
@@ -96,7 +97,7 @@ export const useSettingsStore = create<SettingsStore>()(
     
     incrementWatermarkIndex: () =>
       set((state) => ({
-        watermarkIndex: (state.watermarkIndex + 1) % 12, // Assuming 12 positions
+        watermarkIndex: (state.watermarkIndex + 1) % WATERMARK_POSITIONS.length,
       })),
     
     incrementWatchSeconds: (seconds) =>
