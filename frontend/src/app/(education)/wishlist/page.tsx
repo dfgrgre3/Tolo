@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, Heart, Trash2, ArrowLeft, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 
 type WishlistItem = {
   id: string;
@@ -29,7 +30,7 @@ export default function WishlistPage() {
   const fetchWishlist = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.get<{ items?: WishlistItem[] }>("/api/wishlist");
+      const data = await apiClient.get<{ items?: WishlistItem[] }>(apiRoutes.courses.wishlistList);
       setItems(data.items || []);
     } catch {
       // silently handled
@@ -45,7 +46,7 @@ export default function WishlistPage() {
   const handleRemove = async (subjectId: string) => {
     setBusy((prev) => ({ ...prev, [subjectId]: true }));
     try {
-      await apiClient.delete(`/api/courses/${subjectId}/wishlist`);
+      await apiClient.delete(apiRoutes.courses.wishlist(subjectId));
       setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
       toast.success("تمت الإزالة من المفضلة");
     } catch {
@@ -57,7 +58,7 @@ export default function WishlistPage() {
 
   const handleAddToCart = async (subjectId: string) => {
     try {
-      await apiClient.postJson("/api/cart/items", { subjectId });
+      await apiClient.postJson(apiRoutes.cart.items, { subjectId });
       toast.success("تمت الإضافة للسلة");
     } catch {
       toast.error("فشلت الإضافة للسلة");

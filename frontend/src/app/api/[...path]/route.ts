@@ -265,7 +265,6 @@ function handleErrorResponse(response: Response, errorText: string) {
     errorData = {
       error: response.status === 404 ? 'Resource not found on backend' : 'Backend error',
       status: response.status,
-      details: errorText.substring(0, 500)
     };
   }
   // Always include status in response

@@ -37,7 +37,12 @@ export const LEGACY_TOKEN_COOKIE_NAMES = ['auth_token', 'bearer_token'] as const
  *
  * Set this in your environment (.env.production) to match your deployment.
  */
-export const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
+// Vercel terminates one trusted proxy hop before the application. Keep the
+// explicit environment override for other topologies, while avoiding an
+// unsafe client-IP default on direct/self-hosted deployments.
+export const TRUSTED_PROXY_COUNT = Number(
+  process.env.TRUSTED_PROXY_COUNT ?? (process.env.VERCEL === '1' ? 1 : 0),
+);
 
 /**
  * Validate TRUSTED_PROXY_COUNT configuration.
@@ -45,7 +50,11 @@ export const TRUSTED_PROXY_COUNT = Number(process.env.TRUSTED_PROXY_COUNT || 0);
  * indicate misconfiguration for CDN/deployed environments.
  */
 export function validateTrustedProxyCount(): void {
-  if (process.env.NODE_ENV === 'production' && !process.env.TRUSTED_PROXY_COUNT) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !process.env.TRUSTED_PROXY_COUNT &&
+    process.env.VERCEL !== '1'
+  ) {
     console.warn(
       '[auth-policy] TRUSTED_PROXY_COUNT not set in production. ' +
       'If using a CDN or reverse proxy, this will cause IP-based security ' +

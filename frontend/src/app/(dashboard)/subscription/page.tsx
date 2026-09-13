@@ -27,6 +27,7 @@ import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
 import { logger } from '@/lib/logger';
@@ -173,8 +174,8 @@ export default function SubscriptionPage() {
       try {
         const [, summaryData, addonsData] = await Promise.allSettled([
           Promise.resolve(),
-          apiClient.get<BillingSummary>('/api/users/billing-summary'),
-          apiClient.get<unknown>('/api/subscriptions/addons'),
+          apiClient.get<BillingSummary>(apiRoutes.users.billingSummary),
+          apiClient.get<unknown>(apiRoutes.subscriptions.addons),
         ]);
 
         // Billing summary
@@ -218,9 +219,9 @@ export default function SubscriptionPage() {
   const handlePurchaseAddon = async (addonId: string) => {
     setPurchasing(addonId);
     try {
-      await apiClient.post('/api/subscriptions/addons', { addonId });
+      await apiClient.post(apiRoutes.subscriptions.addons, { addonId });
       toast.success("تمت عملية الشراء بنجاح!");
-      const updated = await apiClient.get<BillingSummary>('/api/users/billing-summary');
+      const updated = await apiClient.get<BillingSummary>(apiRoutes.users.billingSummary);
       setSummary(normalizeBillingSummary(updated));
     } catch (err: unknown) {
       const apiErr = err instanceof ApiError ? err : null;

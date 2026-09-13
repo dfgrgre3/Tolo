@@ -78,7 +78,10 @@ function ResourceCard({ resource }: { resource: Resource }) {
   }, [resource.url]);
 
   const isPdf = resource.url.toLowerCase().endsWith(".pdf") || resource.url.includes("/documents/");
-  const googleDocsViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(resource.url)}&embedded=true`;
+  const isPublicViewerUrl = isPublicResourceUrl(resource.url);
+  const googleDocsViewerUrl = isPublicViewerUrl
+    ? `https://docs.google.com/gview?url=${encodeURIComponent(resource.url)}&embedded=true`
+    : null;
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-card/50 hover:bg-accent/10 transition-all duration-300 gap-4 shadow-sm hover:shadow-md">
@@ -112,7 +115,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
       </div>
 
       <div className="flex items-center gap-2 mt-2 sm:mt-0 shrink-0">
-        {isPdf && (
+        {isPdf && googleDocsViewerUrl && (
           <>
             <button
               onClick={() => setIsPreviewOpen(true)}
@@ -159,6 +162,16 @@ function ResourceCard({ resource }: { resource: Resource }) {
       </div>
     </div>
   );
+}
+
+/** Only public object URLs may be sent to a third-party document viewer. */
+function isPublicResourceUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.pathname.includes("/storage/v1/object/public/");
+  } catch {
+    return false;
+  }
 }
 
 interface ResourcesClientProps {

@@ -505,7 +505,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   // Conversations: only when messages tab is active
   const conversationsQuery = useQuery<{ conversations: Conversation[] }>({
     queryKey: ["teaching", "conversations"],
-    queryFn: () => apiClient.get<{ conversations: Conversation[] }>("/api/teaching/conversations"),
+    queryFn: () => apiClient.get<{ conversations: Conversation[] }>(apiRoutes.teaching.conversations),
     enabled: canFetch && activeTab === "messages",
     retry: 1,
     staleTime: STALE_TIME,
@@ -517,7 +517,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ convId, text }: { convId: string; text: string }) =>
-      apiClient.post<{ message: Message }>(`/api/teaching/conversations/${convId}/messages`, { text }),
+      apiClient.post<{ message: Message }>(apiRoutes.teaching.messages(convId), { text }),
     onMutate: async ({ convId, text }) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "conversations"] });
       const prev = queryClient.getQueryData<{ conversations: Conversation[] }>(["teaching", "conversations"]);
@@ -555,7 +555,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   // Calendar: only when calendar tab is active
   const calendarEventsQuery = useQuery<{ events: CalendarEvent[] }>({
     queryKey: ["teaching", "calendar"],
-    queryFn: () => apiClient.get<{ events: CalendarEvent[] }>("/api/teaching/calendar"),
+    queryFn: () => apiClient.get<{ events: CalendarEvent[] }>(apiRoutes.teaching.calendar),
     enabled: canFetch && activeTab === "calendar",
     retry: 1,
     staleTime: STALE_TIME,
@@ -567,7 +567,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const addCalendarEventMutation = useMutation({
     mutationFn: (event: Omit<CalendarEvent, "id">) =>
-      apiClient.post<{ event: CalendarEvent }>("/api/teaching/calendar", event),
+      apiClient.post<{ event: CalendarEvent }>(apiRoutes.teaching.calendar, event),
     onMutate: async (newEvent) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "calendar"] });
       const prev = queryClient.getQueryData<{ events: CalendarEvent[] }>(["teaching", "calendar"]);
@@ -591,7 +591,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   // Transactions: only when earnings tab is active
   const transactionsQuery = useQuery<{ transactions: Transaction[] }>({
     queryKey: ["teaching", "transactions"],
-    queryFn: () => apiClient.get<{ transactions: Transaction[] }>("/api/teaching/transactions"),
+    queryFn: () => apiClient.get<{ transactions: Transaction[] }>(apiRoutes.teaching.transactions),
     enabled: canFetch && activeTab === "earnings",
     retry: 1,
     staleTime: STALE_TIME,

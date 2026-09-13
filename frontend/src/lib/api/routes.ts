@@ -195,7 +195,6 @@ export const apiRoutes = {
     system: '/api/settings',
     privacyActions: '/api/settings/privacy/actions',
   },
-
   // ──────────────────────────────────────────
   // Users & Profile  (protected_routes.go)
   // ──────────────────────────────────────────
@@ -364,6 +363,10 @@ export const apiRoutes = {
       markRead: (id: string) => `/api/teaching/notifications/${id}/read`,
       markAllRead: '/api/teaching/notifications/read-all',
     },
+    conversations: '/api/teaching/conversations',
+    messages: (conversationId: string) => `/api/teaching/conversations/${conversationId}/messages`,
+    calendar: '/api/teaching/calendar',
+    transactions: '/api/teaching/transactions',
     apply: '/api/teaching/apply',
   },
 

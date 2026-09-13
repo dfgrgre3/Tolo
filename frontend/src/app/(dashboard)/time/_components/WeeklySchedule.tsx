@@ -18,6 +18,7 @@ import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
 import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 
 function extractTimeBlocks(planJson?: string): TimeBlock[] {
   if (!planJson) return [];
@@ -154,7 +155,7 @@ export default function WeeklySchedule({
       // Backend expects `planJson` as a required JSON-encoded string
       // (see UpdateSchedule in activity_handler.go), not a nested object.
       // The user is resolved server-side from the session.
-      const savedSchedule = await apiClient.post<Schedule>('/api/schedule', {
+      const savedSchedule = await apiClient.post<Schedule>(apiRoutes.schedule.update, {
         version: typeof (schedule as any)?.version === 'number'
           ? (schedule as any).version
           : undefined,

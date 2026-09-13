@@ -13,6 +13,7 @@ import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
 
 interface TimeSettingsProps {
@@ -78,7 +79,7 @@ function TimeSettings({ onSave }: TimeSettingsProps) {
     // 3. Sync to backend when a session is present (the server resolves the
     // user from the JWT; the store no longer tracks a userId).
     if (getSessionPresence() === 'present') {
-      apiClient.put('/api/settings', {
+      apiClient.put(apiRoutes.settings.system, {
         soundEnabled: settings.soundEnabled,
         notificationsEnabled: settings.notificationsEnabled,
         theme: settings.theme,

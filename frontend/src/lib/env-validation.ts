@@ -17,7 +17,7 @@ import { logger } from './logger';
  * These MUST be set in every production deployment. A missing value here
  * fails the contract at startup — see `ensureValidEnvironment()`.
  *
- * - INTERNAL_API_URL          — server-to-server backend base (no /api suffix)
+ * - INTERNAL_API_URL or NEXT_PUBLIC_API_URL — backend base (no /api suffix)
  * - JWT_PUBLIC_KEY            — asymmetric public verification key (production)
  * - JWT_EXPECTED_ISSUER       — required JWT issuer (production)
  * - JWT_EXPECTED_AUDIENCE     — required JWT audience (production)
@@ -31,7 +31,12 @@ const serverEnvSchema = z
   .object({
     INTERNAL_API_URL: z
       .string()
-      .url('INTERNAL_API_URL must be a valid URL (e.g. https://api.example.com)'),
+      .url('INTERNAL_API_URL must be a valid URL (e.g. https://api.example.com)')
+      .optional(),
+    NEXT_PUBLIC_API_URL: z
+      .string()
+      .url('NEXT_PUBLIC_API_URL must be a valid URL (e.g. https://api.example.com)')
+      .optional(),
     JWT_SECRET: z
       .string()
       .min(32, 'JWT_SECRET must be at least 32 characters')
@@ -45,6 +50,13 @@ const serverEnvSchema = z
   })
   .superRefine((env, ctx) => {
     if (isProductionEnvironment()) {
+      if (!env.INTERNAL_API_URL && !env.NEXT_PUBLIC_API_URL) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Set INTERNAL_API_URL or NEXT_PUBLIC_API_URL in production',
+          path: ['INTERNAL_API_URL'],
+        });
+      }
       // Production: JWT_PUBLIC_KEY is mandatory, JWT_SECRET is forbidden
       if (!env.JWT_PUBLIC_KEY) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'JWT_PUBLIC_KEY is required in production', path: ['JWT_PUBLIC_KEY'] });

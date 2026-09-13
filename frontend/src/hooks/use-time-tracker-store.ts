@@ -5,6 +5,7 @@ import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middl
 import { toast } from 'sonner';
 import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
 import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 
 export type PomodoroState = 'work' | 'shortBreak' | 'longBreak';
 
@@ -166,7 +167,7 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           // If a session exists (per the auth provider), sync to the database.
           // The server resolves the user from the JWT — no userId is sent.
           if (getSessionPresence() === 'present') {
-            apiClient.postJson('/api/study-sessions', {
+            apiClient.postJson(apiRoutes.studySessions.create, {
               durationMin: durationVal,
               startTime: startTimeVal,
               endTime: endTimeVal,
@@ -176,13 +177,13 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
 
             // Sync the actual time to the active task
             if (activeTaskId) {
-              apiClient.get<{ actualTime?: number }>(`/api/tasks/${activeTaskId}`)
+              apiClient.get<{ actualTime?: number }>(apiRoutes.tasks.update(activeTaskId))
                 .then((task) => {
                   const updatedTask = {
                     ...task,
                     actualTime: (task.actualTime || 0) + durationVal,
                   };
-                  return apiClient.put(`/api/tasks/${activeTaskId}`, updatedTask);
+                  return apiClient.put(apiRoutes.tasks.update(activeTaskId), updatedTask);
                 })
                 .catch((err) => console.warn('Failed to update task actual time:', err));
             }
