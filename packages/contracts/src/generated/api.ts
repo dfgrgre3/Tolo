@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/admin/analytics/conversion": {
+    "/api/v1/admin/analytics/conversion": {
         parameters: {
             query?: never;
             header?: never;
@@ -27,7 +27,7 @@ export interface paths {
             /** @description Conversion event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ConversionEventRequest"];
+                    "application/json": components["schemas"]["protected.ConversionEventRequest"];
                 };
             };
             responses: {
@@ -50,7 +50,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/analytics/journey": {
+    "/api/v1/admin/analytics/journey": {
         parameters: {
             query?: never;
             header?: never;
@@ -73,7 +73,7 @@ export interface paths {
             /** @description User journey data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyRequest"];
+                    "application/json": components["schemas"]["protected.UserJourneyRequest"];
                 };
             };
             responses: {
@@ -96,7 +96,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/analytics/journeys": {
+    "/api/v1/admin/analytics/journeys": {
         parameters: {
             query?: never;
             header?: never;
@@ -148,7 +148,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/analytics/journeys/export": {
+    "/api/v1/admin/analytics/journeys/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -199,7 +199,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/analytics/metrics": {
+    "/api/v1/admin/analytics/metrics": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,7 +245,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups": {
+    "/api/v1/admin/backups": {
         parameters: {
             query?: never;
             header?: never;
@@ -293,7 +293,7 @@ export interface paths {
             /** @description Backup configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateBackupRequest"];
+                    "application/json": components["schemas"]["protected.CreateBackupRequest"];
                 };
             };
             responses: {
@@ -316,7 +316,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/schedule": {
+    "/api/v1/admin/backups/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -339,7 +339,7 @@ export interface paths {
             /** @description Schedule configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduleBackupRequest"];
+                    "application/json": components["schemas"]["protected.ScheduleBackupRequest"];
                 };
             };
             responses: {
@@ -362,7 +362,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/stats": {
+    "/api/v1/admin/backups/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -403,7 +403,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/tables": {
+    "/api/v1/admin/backups/tables": {
         parameters: {
             query?: never;
             header?: never;
@@ -444,7 +444,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/{id}": {
+    "/api/v1/admin/backups/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -488,7 +488,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/{id}/download": {
+    "/api/v1/admin/backups/{id}/download": {
         parameters: {
             query?: never;
             header?: never;
@@ -530,7 +530,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/{id}/progress": {
+    "/api/v1/admin/backups/{id}/progress": {
         parameters: {
             query?: never;
             header?: never;
@@ -574,7 +574,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/{id}/restore": {
+    "/api/v1/admin/backups/{id}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -600,7 +600,7 @@ export interface paths {
             /** @description Restore options */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.RestoreBackupRequest"];
+                    "application/json": components["schemas"]["protected.RestoreBackupRequest"];
                 };
             };
             responses: {
@@ -623,7 +623,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/backups/{id}/verify": {
+    "/api/v1/admin/backups/{id}/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -667,7 +667,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/broadcasts": {
+    "/api/v1/admin/broadcasts": {
         parameters: {
             query?: never;
             header?: never;
@@ -715,7 +715,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/broadcast": {
+    "/api/v1/admin/notifications/broadcast": {
         parameters: {
             query?: never;
             header?: never;
@@ -738,7 +738,7 @@ export interface paths {
             /** @description Notification details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
+                    "application/json": components["schemas"]["protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -748,7 +748,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["protected.NotificationResponse"];
                     };
                 };
             };
@@ -759,7 +759,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/broadcast/{broadcastId}/cancel": {
+    "/api/v1/admin/notifications/broadcast/{broadcastId}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -803,7 +803,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/broadcast/{broadcastId}/retry": {
+    "/api/v1/admin/notifications/broadcast/{broadcastId}/retry": {
         parameters: {
             query?: never;
             header?: never;
@@ -834,7 +834,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["protected.NotificationResponse"];
                     };
                 };
             };
@@ -845,7 +845,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/push": {
+    "/api/v1/admin/notifications/push": {
         parameters: {
             query?: never;
             header?: never;
@@ -893,7 +893,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/schedule": {
+    "/api/v1/admin/notifications/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -916,7 +916,7 @@ export interface paths {
             /** @description Notification details with scheduledFor */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
+                    "application/json": components["schemas"]["protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -926,7 +926,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["protected.NotificationResponse"];
                     };
                 };
             };
@@ -937,7 +937,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/notifications/stats": {
+    "/api/v1/admin/notifications/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -978,7 +978,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports": {
+    "/api/v1/admin/reports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1026,7 +1026,7 @@ export interface paths {
             /** @description Report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
+                    "application/json": components["schemas"]["protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1049,7 +1049,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports/{id}": {
+    "/api/v1/admin/reports/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1135,7 +1135,7 @@ export interface paths {
             /** @description Updated report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
+                    "application/json": components["schemas"]["protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1154,7 +1154,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/admin/reports/{id}/execute": {
+    "/api/v1/admin/reports/{id}/execute": {
         parameters: {
             query?: never;
             header?: never;
@@ -1198,7 +1198,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports/{id}/export": {
+    "/api/v1/admin/reports/{id}/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -1245,7 +1245,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports/{id}/schedule": {
+    "/api/v1/admin/reports/{id}/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -1296,7 +1296,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler": {
+    "/api/v1/admin/scheduler": {
         parameters: {
             query?: never;
             header?: never;
@@ -1353,7 +1353,7 @@ export interface paths {
             /** @description Schedule details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduledItemRequest"];
+                    "application/json": components["schemas"]["protected.ScheduledItemRequest"];
                 };
             };
             responses: {
@@ -1376,7 +1376,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler/stats": {
+    "/api/v1/admin/scheduler/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -1417,7 +1417,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler/{id}": {
+    "/api/v1/admin/scheduler/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1461,7 +1461,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler/{id}/cancel": {
+    "/api/v1/admin/scheduler/{id}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -1505,7 +1505,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler/{id}/execute": {
+    "/api/v1/admin/scheduler/{id}/execute": {
         parameters: {
             query?: never;
             header?: never;
@@ -1549,7 +1549,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/scheduler/{id}/retry": {
+    "/api/v1/admin/scheduler/{id}/retry": {
         parameters: {
             query?: never;
             header?: never;
@@ -1593,7 +1593,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/search/content": {
+    "/api/v1/admin/search/content": {
         parameters: {
             query?: never;
             header?: never;
@@ -1636,7 +1636,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
+                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
                     };
                 };
             };
@@ -1649,7 +1649,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/search/users": {
+    "/api/v1/admin/search/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -1692,7 +1692,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
+                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
                     };
                 };
             };
@@ -1705,7 +1705,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/ip-whitelist": {
+    "/api/v1/admin/security/ip-whitelist": {
         parameters: {
             query?: never;
             header?: never;
@@ -1778,7 +1778,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/ip-whitelist/settings": {
+    "/api/v1/admin/security/ip-whitelist/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1851,7 +1851,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/admin/security/ip-whitelist/{id}": {
+    "/api/v1/admin/security/ip-whitelist/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1895,7 +1895,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/sessions": {
+    "/api/v1/admin/security/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1936,7 +1936,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/sessions/revoke-others": {
+    "/api/v1/admin/security/sessions/revoke-others": {
         parameters: {
             query?: never;
             header?: never;
@@ -1977,7 +1977,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/sessions/stats": {
+    "/api/v1/admin/security/sessions/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -2018,7 +2018,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/sessions/user/{userId}/revoke-all": {
+    "/api/v1/admin/security/sessions/user/{userId}/revoke-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -2062,7 +2062,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/security/sessions/{id}/revoke": {
+    "/api/v1/admin/security/sessions/{id}/revoke": {
         parameters: {
             query?: never;
             header?: never;
@@ -2106,7 +2106,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets": {
+    "/api/v1/admin/tickets": {
         parameters: {
             query?: never;
             header?: never;
@@ -2165,7 +2165,7 @@ export interface paths {
             /** @description Ticket details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateTicketRequest"];
+                    "application/json": components["schemas"]["protected.CreateTicketRequest"];
                 };
             };
             responses: {
@@ -2188,7 +2188,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/stats": {
+    "/api/v1/admin/tickets/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -2229,7 +2229,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/{id}": {
+    "/api/v1/admin/tickets/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2273,7 +2273,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/{id}/assign": {
+    "/api/v1/admin/tickets/{id}/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -2324,7 +2324,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/{id}/close": {
+    "/api/v1/admin/tickets/{id}/close": {
         parameters: {
             query?: never;
             header?: never;
@@ -2368,7 +2368,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/{id}/messages": {
+    "/api/v1/admin/tickets/{id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -2394,7 +2394,7 @@ export interface paths {
             /** @description Message details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SendMessageRequest"];
+                    "application/json": components["schemas"]["protected.SendMessageRequest"];
                 };
             };
             responses: {
@@ -2417,7 +2417,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/tickets/{id}/priority": {
+    "/api/v1/admin/tickets/{id}/priority": {
         parameters: {
             query?: never;
             header?: never;
@@ -2447,7 +2447,7 @@ export interface paths {
             /** @description Priority update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest"];
+                    "application/json": components["schemas"]["protected.UpdateTicketPriorityRequest"];
                 };
             };
             responses: {
@@ -2466,7 +2466,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/admin/tickets/{id}/status": {
+    "/api/v1/admin/tickets/{id}/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -2496,7 +2496,7 @@ export interface paths {
             /** @description Status update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest"];
+                    "application/json": components["schemas"]["protected.UpdateTicketStatusRequest"];
                 };
             };
             responses: {
@@ -2515,7 +2515,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/ai/search/history": {
+    "/api/v1/ai/search/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -2559,7 +2559,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/search/track": {
+    "/api/v1/ai/search/track": {
         parameters: {
             query?: never;
             header?: never;
@@ -2582,7 +2582,7 @@ export interface paths {
             /** @description Search history data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SearchHistoryRequest"];
+                    "application/json": components["schemas"]["protected.SearchHistoryRequest"];
                 };
             };
             responses: {
@@ -2605,7 +2605,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/analytics/mega-menu": {
+    "/api/v1/analytics/mega-menu": {
         parameters: {
             query?: never;
             header?: never;
@@ -2628,7 +2628,7 @@ export interface paths {
             /** @description Mega menu event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest"];
+                    "application/json": components["schemas"]["protected.MegaMenuTrackRequest"];
                 };
             };
             responses: {
@@ -2651,7 +2651,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/analytics/promo": {
+    "/api/v1/analytics/promo": {
         parameters: {
             query?: never;
             header?: never;
@@ -2674,7 +2674,7 @@ export interface paths {
             /** @description Promo event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.PromoEventRequest"];
+                    "application/json": components["schemas"]["protected.PromoEventRequest"];
                 };
             };
             responses: {
@@ -2695,152 +2695,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Unified public search
-         * @description Search courses, resources, teachers, and videos with server-side filtering and relevance sorting
-         */
-        get: {
-            parameters: {
-                query: {
-                    /** @description Search query */
-                    q: string;
-                    /** @description Max results (default 10, max 50) */
-                    limit?: number;
-                    /** @description Filter by type (course,resource,teacher,video,all) */
-                    type?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UnifiedSearchResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get user profile
-         * @description Get the detailed profile of the currently authenticated user.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileEnvelope"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update user profile
-         * @description Update one or more fields in the currently authenticated user's profile.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Profile fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
         trace?: never;
     };
     "/api/v1/auth/login": {
@@ -2866,7 +2720,7 @@ export interface paths {
             /** @description Login credentials */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginRequest"];
+                    "application/json": components["schemas"]["authdto.LoginRequest"];
                 };
             };
             responses: {
@@ -2876,7 +2730,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginResponse"];
+                        "application/json": components["schemas"]["authdto.LoginResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2921,7 +2775,7 @@ export interface paths {
             /** @description MFA verification */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.VerifyMFARequest"];
+                    "application/json": components["schemas"]["authdto.VerifyMFARequest"];
                 };
             };
             responses: {
@@ -2989,7 +2843,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseListResponse"];
+                        "application/json": components["schemas"]["authdto.CourseListResponse"];
                     };
                 };
             };
@@ -3101,7 +2955,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailResponse"];
+                        "application/json": components["schemas"]["authdto.CourseDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -3423,6 +3277,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unified public search
+         * @description Search courses, resources, teachers, and videos with server-side filtering and relevance sorting
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Search query */
+                    q: string;
+                    /** @description Max results (default 10, max 50) */
+                    limit?: number;
+                    /** @description Filter by type (course,resource,teacher,video,all) */
+                    type?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["protected.UnifiedSearchResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/teaching/courses": {
         parameters: {
             query?: never;
@@ -3446,7 +3346,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListResponse"];
+                        "application/json": components["schemas"]["authdto.TeachingCoursesListResponse"];
                     };
                 };
             };
@@ -3468,7 +3368,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
+                        "application/json": components["schemas"]["authdto.TeachingCourseMutationResponse"];
                     };
                 };
             };
@@ -3505,7 +3405,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseResponse"];
+                        "application/json": components["schemas"]["authdto.TeachingCourseResponse"];
                     };
                 };
             };
@@ -3531,7 +3431,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse"];
+                        "application/json": components["schemas"]["authdto.TeachingCourseDeleteResponse"];
                     };
                 };
             };
@@ -3557,7 +3457,107 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
+                        "application/json": components["schemas"]["authdto.TeachingCourseMutationResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/users/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user profile
+         * @description Get the detailed profile of the currently authenticated user.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.UserProfileEnvelope"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update user profile
+         * @description Update one or more fields in the currently authenticated user's profile.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Profile fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["authdto.UserProfileUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.UserProfileUpdateEnvelope"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
                     };
                 };
             };
@@ -3568,270 +3568,52 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "internal_infrastructure_api_handlers_protected.ConversionEventRequest": {
-            goal: string;
-            journeySteps?: number;
-            sessionId: string;
-            timestamp: string;
-            userId: string;
-            value?: number;
+        "authdto.CourseDetailData": {
+            course?: components["schemas"]["models.Subject"];
+            subject?: components["schemas"]["models.Subject"];
         };
-        "internal_infrastructure_api_handlers_protected.CreateBackupRequest": {
-            includesDatabase?: boolean;
-            includesFiles?: boolean;
-            name: string;
-            retentionDays?: number;
-            tables?: string[];
-            /** @enum {string} */
-            type: "full" | "database" | "files" | "incremental";
-        };
-        "internal_infrastructure_api_handlers_protected.CreateTicketRequest": {
-            /** @enum {string} */
-            category: "technical" | "billing" | "content" | "account" | "other";
-            description: string;
-            /** @enum {string} */
-            priority?: "low" | "medium" | "high" | "urgent";
-            relatedEntityId?: string;
-            relatedEntityType?: string;
-            subject: string;
-            userId: string;
-        };
-        "internal_infrastructure_api_handlers_protected.CustomReportRequest": {
-            dateRange?: {
-                from?: string;
-                to?: string;
-            };
-            description?: string;
-            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
-            isPublic?: boolean;
-            name: string;
-            schedule?: {
-                emailTo: string[];
-                /** @enum {string} */
-                frequency: "daily" | "weekly" | "monthly";
-            };
-            widgets: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportWidget"][];
-        };
-        "internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest": {
-            /** @description "mega_menu" */
-            component?: string;
-            /** @description menu label */
-            label?: string;
-            /** @description e.g. { trigger: "toggle" } */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** @description client epoch ms */
-            timestamp?: number;
-            /** @description "open" | "close" */
-            type: string;
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationRequest": {
-            actionUrl?: string;
-            channels: string[];
-            message: string;
-            /** @enum {string} */
-            priority?: "high" | "normal" | "low";
-            scheduledFor?: string;
-            title: string;
-            /** @enum {string} */
-            type?: "info" | "success" | "warning" | "error";
-            userIds: string[];
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationResponse": {
-            broadcastId?: string;
-            queued?: boolean;
-            summary?: components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationSummary"];
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationSummary": {
-            failure?: number;
-            queued?: number;
-            success?: number;
-            total?: number;
-        };
-        "internal_infrastructure_api_handlers_protected.PromoEventRequest": {
-            component?: string;
-            eventType?: string;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            promoId?: string;
-            timestamp?: number;
-            type?: string;
-        };
-        "internal_infrastructure_api_handlers_protected.ReportDimension": {
-            field: string;
-            /** @enum {string} */
-            format?: "date" | "text" | "number";
-            label: string;
-        };
-        "internal_infrastructure_api_handlers_protected.ReportFilter": {
-            field: string;
-            /** @enum {string} */
-            operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
-            value: unknown;
-        };
-        "internal_infrastructure_api_handlers_protected.ReportMetric": {
-            /** @enum {string} */
-            aggregation: "count" | "sum" | "avg" | "min" | "max" | "distinct_count";
-            field: string;
-            /** @enum {string} */
-            format?: "number" | "currency" | "percentage" | "date";
-            name: string;
-        };
-        "internal_infrastructure_api_handlers_protected.ReportSort": {
-            /** @enum {string} */
-            direction: "asc" | "desc";
-            field: string;
-        };
-        "internal_infrastructure_api_handlers_protected.ReportWidget": {
-            dataSource: string;
-            dimensions?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportDimension"][];
-            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
-            id?: string;
-            layout: {
-                [key: string]: unknown;
-            };
-            limit?: number;
-            metrics: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportMetric"][];
-            sort?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportSort"];
-            title: string;
-            /** @enum {string} */
-            type: "table" | "bar" | "line" | "pie" | "area" | "metric";
-        };
-        "internal_infrastructure_api_handlers_protected.RestoreBackupRequest": {
-            dryRun?: boolean;
-            skipExisting?: boolean;
-            targetTables?: string[];
-        };
-        "internal_infrastructure_api_handlers_protected.ScheduleBackupRequest": {
-            dayOfMonth?: number;
-            dayOfWeek?: number;
-            /** @enum {string} */
-            frequency: "daily" | "weekly" | "monthly";
-            retentionDays: number;
-            time: string;
-            /** @enum {string} */
-            type: "full" | "database" | "files" | "incremental";
-        };
-        "internal_infrastructure_api_handlers_protected.ScheduledItemRequest": {
-            content: {
-                [key: string]: unknown;
-            };
-            description?: string;
-            /** @enum {string} */
-            frequency?: "once" | "daily" | "weekly" | "monthly";
-            maxRetries?: number;
-            scheduledFor: string;
-            timezone?: string;
-            title: string;
-            /** @enum {string} */
-            type: "announcement" | "exam" | "task" | "post" | "content";
-        };
-        "internal_infrastructure_api_handlers_protected.SearchHistoryRequest": {
-            metadata?: {
-                [key: string]: unknown;
-            };
-            query: string;
-            results?: number;
-            timestamp?: number;
-            /** @description course, resource, teacher, video, all */
-            type?: string;
-        };
-        "internal_infrastructure_api_handlers_protected.SearchResultItem": {
-            category?: string;
-            description?: string;
-            id?: string;
-            relevance?: number;
-            title?: string;
-            type?: string;
-            url?: string;
-        };
-        "internal_infrastructure_api_handlers_protected.SendMessageRequest": {
-            isInternal?: boolean;
-            message: string;
-        };
-        "internal_infrastructure_api_handlers_protected.UnifiedSearchResponse": {
-            results?: components["schemas"]["internal_infrastructure_api_handlers_protected.SearchResultItem"][];
-            total?: number;
-        };
-        "internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest": {
-            /** @enum {string} */
-            priority: "low" | "medium" | "high" | "urgent";
-        };
-        "internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest": {
-            /** @enum {string} */
-            status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
-        };
-        "internal_infrastructure_api_handlers_protected.UserJourneyRequest": {
-            completed?: boolean;
-            conversionGoal?: string;
-            endedAt?: string;
-            sessionId: string;
-            startedAt: string;
-            steps?: components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyStep"][];
-            totalDuration?: number;
-            userId: string;
-        };
-        "internal_infrastructure_api_handlers_protected.UserJourneyStep": {
-            action?: string;
-            duration?: number;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            page?: string;
-            sessionId?: string;
-            timestamp?: string;
-            userId?: string;
-        };
-        "thanawy-backend_internal_application_dto.CourseDetailData": {
-            course?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
-            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
-        };
-        "thanawy-backend_internal_application_dto.CourseDetailResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailData"];
-            enrollment?: components["schemas"]["thanawy-backend_internal_domain_common.Enrollment"];
-            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+        "authdto.CourseDetailResponse": {
+            data?: components["schemas"]["authdto.CourseDetailData"];
+            enrollment?: components["schemas"]["models.Enrollment"];
+            subject?: components["schemas"]["models.Subject"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.CourseListData": {
-            items?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"][];
+        "authdto.CourseListData": {
+            items?: components["schemas"]["models.Subject"][];
             offset?: number;
-            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
+            pagination?: components["schemas"]["authdto.Pagination"];
         };
-        "thanawy-backend_internal_application_dto.CourseListResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseListData"];
+        "authdto.CourseListResponse": {
+            data?: components["schemas"]["authdto.CourseListData"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.LoginRequest": {
+        "authdto.LoginRequest": {
             deviceName?: string;
             email: string;
             fingerprint?: string;
             password: string;
             rememberMe?: boolean;
         };
-        "thanawy-backend_internal_application_dto.LoginResponse": {
+        "authdto.LoginResponse": {
             accessToken?: string;
             refreshToken?: string;
-            user?: components["schemas"]["thanawy-backend_internal_application_dto.UserDTO"];
+            user?: components["schemas"]["authdto.UserDTO"];
         };
-        "thanawy-backend_internal_application_dto.Pagination": {
+        "authdto.Pagination": {
             limit?: number;
             page?: number;
             total?: number;
             totalPages?: number;
         };
-        "thanawy-backend_internal_application_dto.TeachingChapterContract": {
+        "authdto.TeachingChapterContract": {
             id?: string;
-            lessons?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingLessonContract"][];
+            lessons?: components["schemas"]["authdto.TeachingLessonContract"][];
             title?: string;
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseContract": {
+        "authdto.TeachingCourseContract": {
             category?: string;
             categoryId?: string;
-            chapters?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingChapterContract"][];
+            chapters?: components["schemas"]["authdto.TeachingChapterContract"][];
             createdDate?: string;
             description?: string;
             duration?: string;
@@ -3847,38 +3629,38 @@ export interface components {
             thumbnail?: string;
             title?: string;
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseData": {
-            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
+        "authdto.TeachingCourseData": {
+            course?: components["schemas"]["authdto.TeachingCourseContract"];
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseDeleteData": {
+        "authdto.TeachingCourseDeleteData": {
             deleted?: boolean;
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteData"];
+        "authdto.TeachingCourseDeleteResponse": {
+            data?: components["schemas"]["authdto.TeachingCourseDeleteData"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseMutationData": {
-            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
+        "authdto.TeachingCourseMutationData": {
+            course?: components["schemas"]["authdto.TeachingCourseContract"];
             message?: string;
             warnings?: string[];
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseMutationResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationData"];
+        "authdto.TeachingCourseMutationResponse": {
+            data?: components["schemas"]["authdto.TeachingCourseMutationData"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.TeachingCourseResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseData"];
+        "authdto.TeachingCourseResponse": {
+            data?: components["schemas"]["authdto.TeachingCourseData"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.TeachingCoursesListData": {
-            courses?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"][];
-            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingPaginationContract"];
+        "authdto.TeachingCoursesListData": {
+            courses?: components["schemas"]["authdto.TeachingCourseContract"][];
+            pagination?: components["schemas"]["authdto.TeachingPaginationContract"];
         };
-        "thanawy-backend_internal_application_dto.TeachingCoursesListResponse": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListData"];
+        "authdto.TeachingCoursesListResponse": {
+            data?: components["schemas"]["authdto.TeachingCoursesListData"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.TeachingLessonContract": {
+        "authdto.TeachingLessonContract": {
             duration?: string;
             durationMinutes?: number;
             id?: string;
@@ -3886,13 +3668,13 @@ export interface components {
             title?: string;
             type?: string;
         };
-        "thanawy-backend_internal_application_dto.TeachingPaginationContract": {
+        "authdto.TeachingPaginationContract": {
             limit?: number;
             page?: number;
             total?: number;
             totalPages?: number;
         };
-        "thanawy-backend_internal_application_dto.UserDTO": {
+        "authdto.UserDTO": {
             avatar?: string;
             email?: string;
             emailVerified?: boolean;
@@ -3904,11 +3686,11 @@ export interface components {
             status?: string;
             username?: string;
         };
-        "thanawy-backend_internal_application_dto.UserProfileEnvelope": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileResponse"];
+        "authdto.UserProfileEnvelope": {
+            data?: components["schemas"]["authdto.UserProfileResponse"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.UserProfileResponse": {
+        "authdto.UserProfileResponse": {
             alternativePhone?: string;
             avatar?: string;
             bio?: string;
@@ -3932,11 +3714,11 @@ export interface components {
             subjectsTaught?: string[];
             username?: string;
         };
-        "thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope": {
-            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateResponse"];
+        "authdto.UserProfileUpdateEnvelope": {
+            data?: components["schemas"]["authdto.UserProfileUpdateResponse"];
             success?: boolean;
         };
-        "thanawy-backend_internal_application_dto.UserProfileUpdateRequest": {
+        "authdto.UserProfileUpdateRequest": {
             alternativePhone?: string;
             avatar?: string;
             bio?: string;
@@ -3955,36 +3737,37 @@ export interface components {
             subjectsTaught?: string[];
             username?: string;
         };
-        "thanawy-backend_internal_application_dto.UserProfileUpdateResponse": {
+        "authdto.UserProfileUpdateResponse": {
             message?: string;
         };
-        "thanawy-backend_internal_application_dto.VerifyMFARequest": {
+        "authdto.VerifyMFARequest": {
             challengeId: string;
             code: string;
+            rememberMe?: boolean;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
-        "thanawy-backend_internal_domain_common.CourseTag": {
+        "models.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
+        "models.CourseTag": {
             createdAt?: string;
             id?: string;
             name?: string;
             slug?: string;
         };
-        "thanawy-backend_internal_domain_common.Enrollment": {
+        "models.Enrollment": {
             createdAt?: string;
             enrolledAt?: string;
             id?: string;
             progress?: number;
             /** @description Relations */
-            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subject?: components["schemas"]["models.Subject"];
             subjectId?: string;
             updatedAt?: string;
-            user?: components["schemas"]["thanawy-backend_internal_domain_common.User"];
+            user?: components["schemas"]["models.User"];
             userId?: string;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
-        "thanawy-backend_internal_domain_common.Exam": {
+        "models.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
+        "models.Exam": {
             createdAt?: string;
             description?: string;
             difficulty?: string;
@@ -3994,17 +3777,17 @@ export interface components {
             maxScore?: number;
             /** @description Virtual fields */
             questionCount?: number;
-            questions?: components["schemas"]["thanawy-backend_internal_domain_common.Question"][];
+            questions?: components["schemas"]["models.Question"][];
             /** @description Relations */
-            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subject?: components["schemas"]["models.Subject"];
             subjectId?: string;
             title?: string;
-            type?: components["schemas"]["thanawy-backend_internal_domain_common.ExamType"];
+            type?: components["schemas"]["models.ExamType"];
             updatedAt?: string;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
-        "thanawy-backend_internal_domain_common.LessonAttachment": {
+        "models.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
+        "models.LessonAttachment": {
             createdAt?: string;
             fileSize?: number;
             /** @description PDF, ZIP, etc. */
@@ -4014,7 +3797,7 @@ export interface components {
             subTopicId?: string;
             title?: string;
         };
-        "thanawy-backend_internal_domain_common.LessonSubtitle": {
+        "models.LessonSubtitle": {
             createdAt?: string;
             id?: string;
             isDefault?: boolean;
@@ -4022,36 +3805,36 @@ export interface components {
             language?: string;
             languageName?: string;
             /** @description Relations */
-            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
+            subTopic?: components["schemas"]["models.SubTopic"];
             subTopicId?: string;
-            subtitleFormat?: components["schemas"]["thanawy-backend_internal_domain_common.SubtitleFormat"];
+            subtitleFormat?: components["schemas"]["models.SubtitleFormat"];
             subtitleUrl?: string;
             updatedAt?: string;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.Level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-        "thanawy-backend_internal_domain_common.Question": {
+        "models.Level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+        "models.Question": {
             examId?: string;
             id?: string;
             options?: string;
             text?: string;
             type?: string;
         };
-        "thanawy-backend_internal_domain_common.SubTopic": {
+        "models.SubTopic": {
             /** @description Relations */
-            attachments?: components["schemas"]["thanawy-backend_internal_domain_common.LessonAttachment"][];
+            attachments?: components["schemas"]["models.LessonAttachment"][];
             audioDurationSeconds?: number;
             /** @description Phase 1: Advanced lesson fields (migration 0109) */
             audioUrl?: string;
             avgWatchTimeSeconds?: number;
-            chapters?: components["schemas"]["thanawy-backend_internal_domain_common.VideoChapter"][];
+            chapters?: components["schemas"]["models.VideoChapter"][];
             completionCount?: number;
             content?: string;
             createdAt?: string;
             description?: string;
             dripReleaseDate?: string;
             durationMinutes?: number;
-            exam?: components["schemas"]["thanawy-backend_internal_domain_common.Exam"];
+            exam?: components["schemas"]["models.Exam"];
             examId?: string;
             externalLinkTitle?: string;
             externalLinkUrl?: string;
@@ -4061,20 +3844,20 @@ export interface components {
             isFree?: boolean;
             order?: number;
             /** @description Non-DB mapped fields */
-            subtitles?: components["schemas"]["thanawy-backend_internal_domain_common.LessonSubtitle"][];
+            subtitles?: components["schemas"]["models.LessonSubtitle"][];
             title?: string;
             /** @description Relations */
-            topic?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"];
+            topic?: components["schemas"]["models.Topic"];
             topicId?: string;
-            type?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopicType"];
+            type?: components["schemas"]["models.SubTopicType"];
             updatedAt?: string;
             videoUrl?: string;
             /** @description Denormalized stats */
             viewCount?: number;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.SubTopicType": "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT" | "AUDIO" | "LINK" | "LIVE" | "DOCUMENT";
-        "thanawy-backend_internal_domain_common.Subject": {
+        "models.SubTopicType": "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT" | "AUDIO" | "LINK" | "LIVE" | "DOCUMENT";
+        "models.Subject": {
             archivedAt?: string;
             archivedBy?: string;
             availableFrom?: string;
@@ -4094,7 +3877,7 @@ export interface components {
             durationHours?: number;
             enrolledCount?: number;
             /** @description Operational & enrollment (Phase 1) */
-            enrollmentType?: components["schemas"]["thanawy-backend_internal_domain_common.EnrollmentType"];
+            enrollmentType?: components["schemas"]["models.EnrollmentType"];
             hasCertificate?: boolean;
             icon?: string;
             id?: string;
@@ -4108,7 +3891,7 @@ export interface components {
             language?: string;
             lastContentUpdate?: string;
             learningObjectives?: string;
-            level?: components["schemas"]["thanawy-backend_internal_domain_common.Level"];
+            level?: components["schemas"]["models.Level"];
             longDescription?: string;
             maxStudents?: number;
             name: string;
@@ -4127,14 +3910,14 @@ export interface components {
             shortDescription?: string;
             slug?: string;
             /** @description Lifecycle and enhanced fields (migration 0064 + 0109) */
-            status?: components["schemas"]["thanawy-backend_internal_domain_common.CourseStatus"];
+            status?: components["schemas"]["models.CourseStatus"];
             /** @description Workflow metadata (Phase 1: 0109) */
             submittedForReviewAt?: string;
-            tags?: components["schemas"]["thanawy-backend_internal_domain_common.CourseTag"][];
+            tags?: components["schemas"]["models.CourseTag"][];
             targetAudience?: string[];
             thumbnailUrl?: string;
             /** @description Relations */
-            topics?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"][];
+            topics?: components["schemas"]["models.Topic"][];
             trailerDurationMinutes?: number;
             trailerUrl?: string;
             type?: string;
@@ -4144,19 +3927,19 @@ export interface components {
             whatYouLearn?: string[];
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.SubtitleFormat": "vtt" | "srt" | "json";
-        "thanawy-backend_internal_domain_common.Topic": {
+        "models.SubtitleFormat": "vtt" | "srt" | "json";
+        "models.Topic": {
             createdAt?: string;
             description?: string;
             id?: string;
             order?: number;
             /** @description Relations */
-            subTopics?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"][];
+            subTopics?: components["schemas"]["models.SubTopic"][];
             subjectId?: string;
             title?: string;
             updatedAt?: string;
         };
-        "thanawy-backend_internal_domain_common.User": {
+        "models.User": {
             /** @description Subscriptions */
             activeSubscriptionId?: string;
             additionalAiCredits?: number;
@@ -4235,23 +4018,23 @@ export interface components {
             wakeUpTime?: string;
         };
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.UserRole": "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
+        "models.UserRole": "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
         /** @enum {string} */
-        "thanawy-backend_internal_domain_common.UserStatus": "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
-        "thanawy-backend_internal_domain_common.VideoChapter": {
+        "models.UserStatus": "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
+        "models.VideoChapter": {
             createdAt?: string;
             id?: string;
             isActive?: boolean;
             sortOrder?: number;
             /** @description Relations */
-            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
+            subTopic?: components["schemas"]["models.SubTopic"];
             subTopicId?: string;
             timeSeconds?: number;
             title?: string;
             titleAr?: string;
             updatedAt?: string;
         };
-        "thanawy-backend_internal_shared_utils.PaginatedResponse": {
+        "pagination.PaginatedResponse": {
             data?: unknown;
             pagination?: {
                 count?: number;
@@ -4260,6 +4043,224 @@ export interface components {
                 prev_cursor?: string;
                 total_count?: number;
             };
+        };
+        "protected.ConversionEventRequest": {
+            goal: string;
+            journeySteps?: number;
+            sessionId: string;
+            timestamp: string;
+            userId: string;
+            value?: number;
+        };
+        "protected.CreateBackupRequest": {
+            includesDatabase?: boolean;
+            includesFiles?: boolean;
+            name: string;
+            retentionDays?: number;
+            tables?: string[];
+            /** @enum {string} */
+            type: "full" | "database" | "files" | "incremental";
+        };
+        "protected.CreateTicketRequest": {
+            /** @enum {string} */
+            category: "technical" | "billing" | "content" | "account" | "other";
+            description: string;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "urgent";
+            relatedEntityId?: string;
+            relatedEntityType?: string;
+            subject: string;
+            userId: string;
+        };
+        "protected.CustomReportRequest": {
+            dateRange?: {
+                from?: string;
+                to?: string;
+            };
+            description?: string;
+            filters?: components["schemas"]["protected.ReportFilter"][];
+            isPublic?: boolean;
+            name: string;
+            schedule?: {
+                emailTo: string[];
+                /** @enum {string} */
+                frequency: "daily" | "weekly" | "monthly";
+            };
+            widgets: components["schemas"]["protected.ReportWidget"][];
+        };
+        "protected.MegaMenuTrackRequest": {
+            /** @description "mega_menu" */
+            component?: string;
+            /** @description menu label */
+            label?: string;
+            /** @description e.g. { trigger: "toggle" } */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @description client epoch ms */
+            timestamp?: number;
+            /** @description "open" | "close" */
+            type: string;
+        };
+        "protected.NotificationRequest": {
+            actionUrl?: string;
+            channels: string[];
+            message: string;
+            /** @enum {string} */
+            priority?: "high" | "normal" | "low";
+            scheduledFor?: string;
+            title: string;
+            /** @enum {string} */
+            type?: "info" | "success" | "warning" | "error";
+            userIds: string[];
+        };
+        "protected.NotificationResponse": {
+            broadcastId?: string;
+            queued?: boolean;
+            summary?: components["schemas"]["protected.NotificationSummary"];
+        };
+        "protected.NotificationSummary": {
+            failure?: number;
+            queued?: number;
+            success?: number;
+            total?: number;
+        };
+        "protected.PromoEventRequest": {
+            component?: string;
+            eventType?: string;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            promoId?: string;
+            timestamp?: number;
+            type?: string;
+        };
+        "protected.ReportDimension": {
+            field: string;
+            /** @enum {string} */
+            format?: "date" | "text" | "number";
+            label: string;
+        };
+        "protected.ReportFilter": {
+            field: string;
+            /** @enum {string} */
+            operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
+            value: unknown;
+        };
+        "protected.ReportMetric": {
+            /** @enum {string} */
+            aggregation: "count" | "sum" | "avg" | "min" | "max" | "distinct_count";
+            field: string;
+            /** @enum {string} */
+            format?: "number" | "currency" | "percentage" | "date";
+            name: string;
+        };
+        "protected.ReportSort": {
+            /** @enum {string} */
+            direction: "asc" | "desc";
+            field: string;
+        };
+        "protected.ReportWidget": {
+            dataSource: string;
+            dimensions?: components["schemas"]["protected.ReportDimension"][];
+            filters?: components["schemas"]["protected.ReportFilter"][];
+            id?: string;
+            layout: {
+                [key: string]: unknown;
+            };
+            limit?: number;
+            metrics: components["schemas"]["protected.ReportMetric"][];
+            sort?: components["schemas"]["protected.ReportSort"];
+            title: string;
+            /** @enum {string} */
+            type: "table" | "bar" | "line" | "pie" | "area" | "metric";
+        };
+        "protected.RestoreBackupRequest": {
+            dryRun?: boolean;
+            skipExisting?: boolean;
+            targetTables?: string[];
+        };
+        "protected.ScheduleBackupRequest": {
+            dayOfMonth?: number;
+            dayOfWeek?: number;
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly";
+            retentionDays: number;
+            time: string;
+            /** @enum {string} */
+            type: "full" | "database" | "files" | "incremental";
+        };
+        "protected.ScheduledItemRequest": {
+            content: {
+                [key: string]: unknown;
+            };
+            description?: string;
+            /** @enum {string} */
+            frequency?: "once" | "daily" | "weekly" | "monthly";
+            maxRetries?: number;
+            scheduledFor: string;
+            timezone?: string;
+            title: string;
+            /** @enum {string} */
+            type: "announcement" | "exam" | "task" | "post" | "content";
+        };
+        "protected.SearchHistoryRequest": {
+            metadata?: {
+                [key: string]: unknown;
+            };
+            query: string;
+            results?: number;
+            timestamp?: number;
+            /** @description course, resource, teacher, video, all */
+            type?: string;
+        };
+        "protected.SearchResultItem": {
+            category?: string;
+            description?: string;
+            id?: string;
+            relevance?: number;
+            title?: string;
+            type?: string;
+            url?: string;
+        };
+        "protected.SendMessageRequest": {
+            isInternal?: boolean;
+            message: string;
+        };
+        "protected.UnifiedSearchResponse": {
+            results?: components["schemas"]["protected.SearchResultItem"][];
+            total?: number;
+        };
+        "protected.UpdateTicketPriorityRequest": {
+            /** @enum {string} */
+            priority: "low" | "medium" | "high" | "urgent";
+        };
+        "protected.UpdateTicketStatusRequest": {
+            /** @enum {string} */
+            status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
+        };
+        "protected.UserJourneyRequest": {
+            completed?: boolean;
+            conversionGoal?: string;
+            endedAt?: string;
+            sessionId: string;
+            startedAt: string;
+            steps?: components["schemas"]["protected.UserJourneyStep"][];
+            totalDuration?: number;
+            userId: string;
+        };
+        "protected.UserJourneyStep": {
+            action?: string;
+            duration?: number;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            page?: string;
+            sessionId?: string;
+            timestamp?: string;
+            userId?: string;
         };
     };
     responses: never;

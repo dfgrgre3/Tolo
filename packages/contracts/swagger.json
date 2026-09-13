@@ -7,7 +7,7 @@
         "version": "1.0"
     },
     "paths": {
-        "/api/admin/analytics/conversion": {
+        "/api/v1/admin/analytics/conversion": {
             "post": {
                 "description": "Track when a user completes a conversion goal",
                 "tags": [
@@ -19,7 +19,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ConversionEventRequest"
+                                "$ref": "#/components/schemas/protected.ConversionEventRequest"
                             }
                         }
                     },
@@ -43,7 +43,7 @@
                 }
             }
         },
-        "/api/admin/analytics/journey": {
+        "/api/v1/admin/analytics/journey": {
             "post": {
                 "description": "Save a complete user journey session for analytics",
                 "tags": [
@@ -55,7 +55,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.UserJourneyRequest"
+                                "$ref": "#/components/schemas/protected.UserJourneyRequest"
                             }
                         }
                     },
@@ -79,7 +79,7 @@
                 }
             }
         },
-        "/api/admin/analytics/journeys": {
+        "/api/v1/admin/analytics/journeys": {
             "get": {
                 "description": "Get user journey data with filtering options",
                 "tags": [
@@ -144,7 +144,7 @@
                 }
             }
         },
-        "/api/admin/analytics/journeys/export": {
+        "/api/v1/admin/analytics/journeys/export": {
             "post": {
                 "description": "Export user journey data to CSV or JSON",
                 "tags": [
@@ -188,7 +188,7 @@
                 }
             }
         },
-        "/api/admin/analytics/metrics": {
+        "/api/v1/admin/analytics/metrics": {
             "get": {
                 "description": "Get aggregated user activity metrics",
                 "tags": [
@@ -229,7 +229,7 @@
                 }
             }
         },
-        "/api/admin/backups": {
+        "/api/v1/admin/backups": {
             "get": {
                 "description": "Get all backups with optional filtering",
                 "tags": [
@@ -262,7 +262,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.CreateBackupRequest"
+                                "$ref": "#/components/schemas/protected.CreateBackupRequest"
                             }
                         }
                     },
@@ -284,7 +284,7 @@
                 }
             }
         },
-        "/api/admin/backups/schedule": {
+        "/api/v1/admin/backups/schedule": {
             "post": {
                 "description": "Configure automatic scheduled backups",
                 "tags": [
@@ -296,7 +296,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ScheduleBackupRequest"
+                                "$ref": "#/components/schemas/protected.ScheduleBackupRequest"
                             }
                         }
                     },
@@ -320,7 +320,7 @@
                 }
             }
         },
-        "/api/admin/backups/stats": {
+        "/api/v1/admin/backups/stats": {
             "get": {
                 "description": "Get statistics about backups",
                 "tags": [
@@ -343,7 +343,7 @@
                 }
             }
         },
-        "/api/admin/backups/tables": {
+        "/api/v1/admin/backups/tables": {
             "get": {
                 "description": "Get a list of all database tables available for backup",
                 "tags": [
@@ -366,7 +366,7 @@
                 }
             }
         },
-        "/api/admin/backups/{id}": {
+        "/api/v1/admin/backups/{id}": {
             "delete": {
                 "description": "Delete a backup permanently",
                 "tags": [
@@ -402,7 +402,7 @@
                 }
             }
         },
-        "/api/admin/backups/{id}/download": {
+        "/api/v1/admin/backups/{id}/download": {
             "get": {
                 "description": "Download a backup file",
                 "tags": [
@@ -436,7 +436,7 @@
                 }
             }
         },
-        "/api/admin/backups/{id}/progress": {
+        "/api/v1/admin/backups/{id}/progress": {
             "get": {
                 "description": "Get the progress of a running backup operation",
                 "tags": [
@@ -470,7 +470,7 @@
                 }
             }
         },
-        "/api/admin/backups/{id}/restore": {
+        "/api/v1/admin/backups/{id}/restore": {
             "post": {
                 "description": "Restore the system from a backup",
                 "tags": [
@@ -493,7 +493,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.RestoreBackupRequest"
+                                "$ref": "#/components/schemas/protected.RestoreBackupRequest"
                             }
                         }
                     },
@@ -517,7 +517,7 @@
                 }
             }
         },
-        "/api/admin/backups/{id}/verify": {
+        "/api/v1/admin/backups/{id}/verify": {
             "post": {
                 "description": "Verify the integrity of a backup",
                 "tags": [
@@ -551,7 +551,7 @@
                 }
             }
         },
-        "/api/admin/broadcasts": {
+        "/api/v1/admin/broadcasts": {
             "get": {
                 "description": "Get all notification broadcasts with optional filtering",
                 "tags": [
@@ -600,7 +600,7 @@
                 }
             }
         },
-        "/api/admin/notifications/broadcast": {
+        "/api/v1/admin/notifications/broadcast": {
             "post": {
                 "description": "Send notifications to multiple users via in-app, email, SMS, or push",
                 "tags": [
@@ -612,7 +612,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationRequest"
+                                "$ref": "#/components/schemas/protected.NotificationRequest"
                             }
                         }
                     },
@@ -625,7 +625,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationResponse"
+                                    "$ref": "#/components/schemas/protected.NotificationResponse"
                                 }
                             }
                         }
@@ -633,7 +633,7 @@
                 }
             }
         },
-        "/api/admin/notifications/broadcast/{broadcastId}/cancel": {
+        "/api/v1/admin/notifications/broadcast/{broadcastId}/cancel": {
             "post": {
                 "description": "Cancel a notification that was scheduled for future delivery",
                 "tags": [
@@ -669,7 +669,7 @@
                 }
             }
         },
-        "/api/admin/notifications/broadcast/{broadcastId}/retry": {
+        "/api/v1/admin/notifications/broadcast/{broadcastId}/retry": {
             "post": {
                 "description": "Retry sending notifications that previously failed",
                 "tags": [
@@ -694,7 +694,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationResponse"
+                                    "$ref": "#/components/schemas/protected.NotificationResponse"
                                 }
                             }
                         }
@@ -702,7 +702,7 @@
                 }
             }
         },
-        "/api/admin/notifications/push": {
+        "/api/v1/admin/notifications/push": {
             "post": {
                 "description": "Send push notifications to specific users via FCM/APNs",
                 "tags": [
@@ -739,7 +739,7 @@
                 }
             }
         },
-        "/api/admin/notifications/schedule": {
+        "/api/v1/admin/notifications/schedule": {
             "post": {
                 "description": "Schedule notifications to be sent at a specific time",
                 "tags": [
@@ -751,7 +751,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationRequest"
+                                "$ref": "#/components/schemas/protected.NotificationRequest"
                             }
                         }
                     },
@@ -764,7 +764,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationResponse"
+                                    "$ref": "#/components/schemas/protected.NotificationResponse"
                                 }
                             }
                         }
@@ -772,7 +772,7 @@
                 }
             }
         },
-        "/api/admin/notifications/stats": {
+        "/api/v1/admin/notifications/stats": {
             "get": {
                 "description": "Get aggregated statistics about notification delivery",
                 "tags": [
@@ -795,7 +795,7 @@
                 }
             }
         },
-        "/api/admin/reports": {
+        "/api/v1/admin/reports": {
             "get": {
                 "description": "Get all custom reports with optional filtering",
                 "tags": [
@@ -828,7 +828,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.CustomReportRequest"
+                                "$ref": "#/components/schemas/protected.CustomReportRequest"
                             }
                         }
                     },
@@ -850,7 +850,7 @@
                 }
             }
         },
-        "/api/admin/reports/{id}": {
+        "/api/v1/admin/reports/{id}": {
             "get": {
                 "description": "Get a specific custom report by ID",
                 "tags": [
@@ -939,7 +939,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.CustomReportRequest"
+                                "$ref": "#/components/schemas/protected.CustomReportRequest"
                             }
                         }
                     },
@@ -961,7 +961,7 @@
                 }
             }
         },
-        "/api/admin/reports/{id}/execute": {
+        "/api/v1/admin/reports/{id}/execute": {
             "post": {
                 "description": "Execute a custom report and get the results",
                 "tags": [
@@ -995,7 +995,7 @@
                 }
             }
         },
-        "/api/admin/reports/{id}/export": {
+        "/api/v1/admin/reports/{id}/export": {
             "get": {
                 "description": "Export a custom report to PDF, Excel, or CSV",
                 "tags": [
@@ -1038,7 +1038,7 @@
                 }
             }
         },
-        "/api/admin/reports/{id}/schedule": {
+        "/api/v1/admin/reports/{id}/schedule": {
             "post": {
                 "description": "Schedule automatic report generation and email delivery",
                 "tags": [
@@ -1086,7 +1086,7 @@
                 }
             }
         },
-        "/api/admin/scheduler": {
+        "/api/v1/admin/scheduler": {
             "get": {
                 "description": "Get all scheduled items with optional filtering",
                 "tags": [
@@ -1153,7 +1153,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ScheduledItemRequest"
+                                "$ref": "#/components/schemas/protected.ScheduledItemRequest"
                             }
                         }
                     },
@@ -1175,7 +1175,7 @@
                 }
             }
         },
-        "/api/admin/scheduler/stats": {
+        "/api/v1/admin/scheduler/stats": {
             "get": {
                 "description": "Get statistics about scheduled items",
                 "tags": [
@@ -1198,7 +1198,7 @@
                 }
             }
         },
-        "/api/admin/scheduler/{id}": {
+        "/api/v1/admin/scheduler/{id}": {
             "delete": {
                 "description": "Delete a scheduled item permanently",
                 "tags": [
@@ -1234,7 +1234,7 @@
                 }
             }
         },
-        "/api/admin/scheduler/{id}/cancel": {
+        "/api/v1/admin/scheduler/{id}/cancel": {
             "post": {
                 "description": "Cancel a pending scheduled item",
                 "tags": [
@@ -1270,7 +1270,7 @@
                 }
             }
         },
-        "/api/admin/scheduler/{id}/execute": {
+        "/api/v1/admin/scheduler/{id}/execute": {
             "post": {
                 "description": "Execute a scheduled item immediately regardless of scheduled time",
                 "tags": [
@@ -1306,7 +1306,7 @@
                 }
             }
         },
-        "/api/admin/scheduler/{id}/retry": {
+        "/api/v1/admin/scheduler/{id}/retry": {
             "post": {
                 "description": "Retry execution of a failed scheduled item",
                 "tags": [
@@ -1340,7 +1340,7 @@
                 }
             }
         },
-        "/api/admin/search/content": {
+        "/api/v1/admin/search/content": {
             "get": {
                 "description": "Search subjects, courses, and exams with filtering and pagination",
                 "tags": [
@@ -1420,7 +1420,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_shared_utils.PaginatedResponse"
+                                    "$ref": "#/components/schemas/pagination.PaginatedResponse"
                                 }
                             }
                         }
@@ -1428,7 +1428,7 @@
                 }
             }
         },
-        "/api/admin/search/users": {
+        "/api/v1/admin/search/users": {
             "get": {
                 "description": "Search users by name, email, or other fields with cursor pagination",
                 "tags": [
@@ -1508,7 +1508,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_shared_utils.PaginatedResponse"
+                                    "$ref": "#/components/schemas/pagination.PaginatedResponse"
                                 }
                             }
                         }
@@ -1516,7 +1516,7 @@
                 }
             }
         },
-        "/api/admin/security/ip-whitelist": {
+        "/api/v1/admin/security/ip-whitelist": {
             "get": {
                 "description": "Get all IP whitelist entries",
                 "tags": [
@@ -1572,7 +1572,7 @@
                 }
             }
         },
-        "/api/admin/security/ip-whitelist/settings": {
+        "/api/v1/admin/security/ip-whitelist/settings": {
             "get": {
                 "description": "Get IP whitelist configuration settings",
                 "tags": [
@@ -1630,7 +1630,7 @@
                 }
             }
         },
-        "/api/admin/security/ip-whitelist/{id}": {
+        "/api/v1/admin/security/ip-whitelist/{id}": {
             "delete": {
                 "description": "Remove an IP address from the whitelist",
                 "tags": [
@@ -1666,7 +1666,7 @@
                 }
             }
         },
-        "/api/admin/security/sessions": {
+        "/api/v1/admin/security/sessions": {
             "get": {
                 "description": "Get all active sessions for the current user or all users (admin)",
                 "tags": [
@@ -1689,7 +1689,7 @@
                 }
             }
         },
-        "/api/admin/security/sessions/revoke-others": {
+        "/api/v1/admin/security/sessions/revoke-others": {
             "post": {
                 "description": "Revoke all other sessions except the current one",
                 "tags": [
@@ -1712,7 +1712,7 @@
                 }
             }
         },
-        "/api/admin/security/sessions/stats": {
+        "/api/v1/admin/security/sessions/stats": {
             "get": {
                 "description": "Get statistics about user sessions",
                 "tags": [
@@ -1735,7 +1735,7 @@
                 }
             }
         },
-        "/api/admin/security/sessions/user/{userId}/revoke-all": {
+        "/api/v1/admin/security/sessions/user/{userId}/revoke-all": {
             "post": {
                 "description": "Revoke all sessions for a specific user (admin only)",
                 "tags": [
@@ -1769,7 +1769,7 @@
                 }
             }
         },
-        "/api/admin/security/sessions/{id}/revoke": {
+        "/api/v1/admin/security/sessions/{id}/revoke": {
             "post": {
                 "description": "Revoke/end a specific session",
                 "tags": [
@@ -1805,7 +1805,7 @@
                 }
             }
         },
-        "/api/admin/tickets": {
+        "/api/v1/admin/tickets": {
             "get": {
                 "description": "Get all support tickets with optional filtering",
                 "tags": [
@@ -1880,7 +1880,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.CreateTicketRequest"
+                                "$ref": "#/components/schemas/protected.CreateTicketRequest"
                             }
                         }
                     },
@@ -1902,7 +1902,7 @@
                 }
             }
         },
-        "/api/admin/tickets/stats": {
+        "/api/v1/admin/tickets/stats": {
             "get": {
                 "description": "Get statistics about support tickets",
                 "tags": [
@@ -1925,7 +1925,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}": {
+        "/api/v1/admin/tickets/{id}": {
             "get": {
                 "description": "Get a specific support ticket with all messages",
                 "tags": [
@@ -1959,7 +1959,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}/assign": {
+        "/api/v1/admin/tickets/{id}/assign": {
             "post": {
                 "description": "Assign a support ticket to an admin",
                 "tags": [
@@ -2009,7 +2009,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}/close": {
+        "/api/v1/admin/tickets/{id}/close": {
             "post": {
                 "description": "Close a support ticket permanently",
                 "tags": [
@@ -2045,7 +2045,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}/messages": {
+        "/api/v1/admin/tickets/{id}/messages": {
             "post": {
                 "description": "Send a message on a support ticket",
                 "tags": [
@@ -2068,7 +2068,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.SendMessageRequest"
+                                "$ref": "#/components/schemas/protected.SendMessageRequest"
                             }
                         }
                     },
@@ -2090,7 +2090,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}/priority": {
+        "/api/v1/admin/tickets/{id}/priority": {
             "patch": {
                 "description": "Update the priority of a support ticket",
                 "tags": [
@@ -2113,7 +2113,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest"
+                                "$ref": "#/components/schemas/protected.UpdateTicketPriorityRequest"
                             }
                         }
                     },
@@ -2137,7 +2137,7 @@
                 }
             }
         },
-        "/api/admin/tickets/{id}/status": {
+        "/api/v1/admin/tickets/{id}/status": {
             "patch": {
                 "description": "Update the status of a support ticket",
                 "tags": [
@@ -2160,7 +2160,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest"
+                                "$ref": "#/components/schemas/protected.UpdateTicketStatusRequest"
                             }
                         }
                     },
@@ -2184,7 +2184,7 @@
                 }
             }
         },
-        "/api/ai/search/history": {
+        "/api/v1/ai/search/history": {
             "get": {
                 "description": "Get the authenticated user's recent search queries",
                 "tags": [
@@ -2217,7 +2217,7 @@
                 }
             }
         },
-        "/api/ai/search/track": {
+        "/api/v1/ai/search/track": {
             "post": {
                 "description": "Track user search queries for analytics and personalization",
                 "tags": [
@@ -2229,7 +2229,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.SearchHistoryRequest"
+                                "$ref": "#/components/schemas/protected.SearchHistoryRequest"
                             }
                         }
                     },
@@ -2253,7 +2253,7 @@
                 }
             }
         },
-        "/api/analytics/mega-menu": {
+        "/api/v1/analytics/mega-menu": {
             "post": {
                 "description": "Track open/close interactions on the mega menu component",
                 "tags": [
@@ -2265,7 +2265,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest"
+                                "$ref": "#/components/schemas/protected.MegaMenuTrackRequest"
                             }
                         }
                     },
@@ -2289,7 +2289,7 @@
                 }
             }
         },
-        "/api/analytics/promo": {
+        "/api/v1/analytics/promo": {
             "post": {
                 "description": "Track user interactions with promotional content",
                 "tags": [
@@ -2301,7 +2301,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.PromoEventRequest"
+                                "$ref": "#/components/schemas/protected.PromoEventRequest"
                             }
                         }
                     },
@@ -2325,138 +2325,6 @@
                 }
             }
         },
-        "/api/search": {
-            "get": {
-                "description": "Search courses, resources, teachers, and videos with server-side filtering and relevance sorting",
-                "tags": [
-                    "search"
-                ],
-                "summary": "Unified public search",
-                "parameters": [
-                    {
-                        "description": "Search query",
-                        "name": "q",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Max results (default 10, max 50)",
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Filter by type (course,resource,teacher,video,all)",
-                        "name": "type",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.UnifiedSearchResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/profile": {
-            "get": {
-                "description": "Get the detailed profile of the currently authenticated user.",
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get user profile",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserProfileEnvelope"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "description": "Update one or more fields in the currently authenticated user's profile.",
-                "tags": [
-                    "users"
-                ],
-                "summary": "Update user profile",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserProfileUpdateRequest"
-                            }
-                        }
-                    },
-                    "description": "Profile fields to update",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/auth/login": {
             "post": {
                 "description": "Authenticate a user and establish a session.",
@@ -2468,7 +2336,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.LoginRequest"
+                                "$ref": "#/components/schemas/authdto.LoginRequest"
                             }
                         }
                     },
@@ -2481,7 +2349,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.LoginResponse"
+                                    "$ref": "#/components/schemas/authdto.LoginResponse"
                                 }
                             }
                         }
@@ -2511,7 +2379,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.VerifyMFARequest"
+                                "$ref": "#/components/schemas/authdto.VerifyMFARequest"
                             }
                         }
                     },
@@ -2598,7 +2466,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.CourseListResponse"
+                                    "$ref": "#/components/schemas/authdto.CourseListResponse"
                                 }
                             }
                         }
@@ -2703,7 +2571,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.CourseDetailResponse"
+                                    "$ref": "#/components/schemas/authdto.CourseDetailResponse"
                                 }
                             }
                         }
@@ -2947,6 +2815,54 @@
                 }
             }
         },
+        "/api/v1/search": {
+            "get": {
+                "description": "Search courses, resources, teachers, and videos with server-side filtering and relevance sorting",
+                "tags": [
+                    "search"
+                ],
+                "summary": "Unified public search",
+                "parameters": [
+                    {
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Max results (default 10, max 50)",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Filter by type (course,resource,teacher,video,all)",
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/protected.UnifiedSearchResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/teaching/courses": {
             "get": {
                 "tags": [
@@ -2959,7 +2875,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCoursesListResponse"
+                                    "$ref": "#/components/schemas/authdto.TeachingCoursesListResponse"
                                 }
                             }
                         }
@@ -2980,7 +2896,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"
+                                    "$ref": "#/components/schemas/authdto.TeachingCourseMutationResponse"
                                 }
                             }
                         }
@@ -3011,7 +2927,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseResponse"
+                                    "$ref": "#/components/schemas/authdto.TeachingCourseResponse"
                                 }
                             }
                         }
@@ -3040,7 +2956,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse"
+                                    "$ref": "#/components/schemas/authdto.TeachingCourseDeleteResponse"
                                 }
                             }
                         }
@@ -3072,7 +2988,91 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"
+                                    "$ref": "#/components/schemas/authdto.TeachingCourseMutationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/profile": {
+            "get": {
+                "description": "Get the detailed profile of the currently authenticated user.",
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.UserProfileEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update one or more fields in the currently authenticated user's profile.",
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user profile",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/authdto.UserProfileUpdateRequest"
+                            }
+                        }
+                    },
+                    "description": "Profile fields to update",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.UserProfileUpdateEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
                                 }
                             }
                         }
@@ -3109,851 +3109,63 @@
             }
         },
         "schemas": {
-            "internal_infrastructure_api_handlers_protected.ConversionEventRequest": {
-                "type": "object",
-                "required": [
-                    "goal",
-                    "sessionId",
-                    "timestamp",
-                    "userId"
-                ],
-                "properties": {
-                    "goal": {
-                        "type": "string"
-                    },
-                    "journeySteps": {
-                        "type": "integer"
-                    },
-                    "sessionId": {
-                        "type": "string"
-                    },
-                    "timestamp": {
-                        "type": "string"
-                    },
-                    "userId": {
-                        "type": "string"
-                    },
-                    "value": {
-                        "type": "number"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.CreateBackupRequest": {
-                "type": "object",
-                "required": [
-                    "name",
-                    "type"
-                ],
-                "properties": {
-                    "includesDatabase": {
-                        "type": "boolean"
-                    },
-                    "includesFiles": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string",
-                        "maxLength": 100
-                    },
-                    "retentionDays": {
-                        "type": "integer",
-                        "maximum": 365,
-                        "minimum": 1
-                    },
-                    "tables": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "full",
-                            "database",
-                            "files",
-                            "incremental"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.CreateTicketRequest": {
-                "type": "object",
-                "required": [
-                    "category",
-                    "description",
-                    "subject",
-                    "userId"
-                ],
-                "properties": {
-                    "category": {
-                        "type": "string",
-                        "enum": [
-                            "technical",
-                            "billing",
-                            "content",
-                            "account",
-                            "other"
-                        ]
-                    },
-                    "description": {
-                        "type": "string",
-                        "maxLength": 5000
-                    },
-                    "priority": {
-                        "type": "string",
-                        "enum": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                        ]
-                    },
-                    "relatedEntityId": {
-                        "type": "string"
-                    },
-                    "relatedEntityType": {
-                        "type": "string"
-                    },
-                    "subject": {
-                        "type": "string",
-                        "maxLength": 200
-                    },
-                    "userId": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.CustomReportRequest": {
-                "type": "object",
-                "required": [
-                    "name",
-                    "widgets"
-                ],
-                "properties": {
-                    "dateRange": {
-                        "type": "object",
-                        "properties": {
-                            "from": {
-                                "type": "string"
-                            },
-                            "to": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "description": {
-                        "type": "string",
-                        "maxLength": 500
-                    },
-                    "filters": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportFilter"
-                        }
-                    },
-                    "isPublic": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string",
-                        "maxLength": 100
-                    },
-                    "schedule": {
-                        "type": "object",
-                        "required": [
-                            "emailTo",
-                            "frequency"
-                        ],
-                        "properties": {
-                            "emailTo": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "frequency": {
-                                "type": "string",
-                                "enum": [
-                                    "daily",
-                                    "weekly",
-                                    "monthly"
-                                ]
-                            }
-                        }
-                    },
-                    "widgets": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportWidget"
-                        }
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest": {
-                "type": "object",
-                "required": [
-                    "type"
-                ],
-                "properties": {
-                    "component": {
-                        "description": "\"mega_menu\"",
-                        "type": "string"
-                    },
-                    "label": {
-                        "description": "menu label",
-                        "type": "string"
-                    },
-                    "metadata": {
-                        "description": "e.g. { trigger: \"toggle\" }",
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "timestamp": {
-                        "description": "client epoch ms",
-                        "type": "integer"
-                    },
-                    "type": {
-                        "description": "\"open\" | \"close\"",
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.NotificationRequest": {
-                "type": "object",
-                "required": [
-                    "channels",
-                    "message",
-                    "title",
-                    "userIds"
-                ],
-                "properties": {
-                    "actionUrl": {
-                        "type": "string"
-                    },
-                    "channels": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "message": {
-                        "type": "string",
-                        "maxLength": 2000
-                    },
-                    "priority": {
-                        "type": "string",
-                        "enum": [
-                            "high",
-                            "normal",
-                            "low"
-                        ]
-                    },
-                    "scheduledFor": {
-                        "type": "string"
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 200
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "info",
-                            "success",
-                            "warning",
-                            "error"
-                        ]
-                    },
-                    "userIds": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.NotificationResponse": {
-                "type": "object",
-                "properties": {
-                    "broadcastId": {
-                        "type": "string"
-                    },
-                    "queued": {
-                        "type": "boolean"
-                    },
-                    "summary": {
-                        "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.NotificationSummary"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.NotificationSummary": {
-                "type": "object",
-                "properties": {
-                    "failure": {
-                        "type": "integer"
-                    },
-                    "queued": {
-                        "type": "integer"
-                    },
-                    "success": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.PromoEventRequest": {
-                "type": "object",
-                "properties": {
-                    "component": {
-                        "type": "string"
-                    },
-                    "eventType": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "metadata": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "promoId": {
-                        "type": "string"
-                    },
-                    "timestamp": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ReportDimension": {
-                "type": "object",
-                "required": [
-                    "field",
-                    "label"
-                ],
-                "properties": {
-                    "field": {
-                        "type": "string"
-                    },
-                    "format": {
-                        "type": "string",
-                        "enum": [
-                            "date",
-                            "text",
-                            "number"
-                        ]
-                    },
-                    "label": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ReportFilter": {
-                "type": "object",
-                "required": [
-                    "field",
-                    "operator",
-                    "value"
-                ],
-                "properties": {
-                    "field": {
-                        "type": "string"
-                    },
-                    "operator": {
-                        "type": "string",
-                        "enum": [
-                            "equals",
-                            "not_equals",
-                            "contains",
-                            "greater_than",
-                            "less_than",
-                            "between",
-                            "in"
-                        ]
-                    },
-                    "value": {}
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ReportMetric": {
-                "type": "object",
-                "required": [
-                    "aggregation",
-                    "field",
-                    "name"
-                ],
-                "properties": {
-                    "aggregation": {
-                        "type": "string",
-                        "enum": [
-                            "count",
-                            "sum",
-                            "avg",
-                            "min",
-                            "max",
-                            "distinct_count"
-                        ]
-                    },
-                    "field": {
-                        "type": "string"
-                    },
-                    "format": {
-                        "type": "string",
-                        "enum": [
-                            "number",
-                            "currency",
-                            "percentage",
-                            "date"
-                        ]
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ReportSort": {
-                "type": "object",
-                "required": [
-                    "direction",
-                    "field"
-                ],
-                "properties": {
-                    "direction": {
-                        "type": "string",
-                        "enum": [
-                            "asc",
-                            "desc"
-                        ]
-                    },
-                    "field": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ReportWidget": {
-                "type": "object",
-                "required": [
-                    "dataSource",
-                    "layout",
-                    "metrics",
-                    "title",
-                    "type"
-                ],
-                "properties": {
-                    "dataSource": {
-                        "type": "string"
-                    },
-                    "dimensions": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportDimension"
-                        }
-                    },
-                    "filters": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportFilter"
-                        }
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "layout": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "metrics": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportMetric"
-                        }
-                    },
-                    "sort": {
-                        "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.ReportSort"
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "table",
-                            "bar",
-                            "line",
-                            "pie",
-                            "area",
-                            "metric"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.RestoreBackupRequest": {
-                "type": "object",
-                "properties": {
-                    "dryRun": {
-                        "type": "boolean"
-                    },
-                    "skipExisting": {
-                        "type": "boolean"
-                    },
-                    "targetTables": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ScheduleBackupRequest": {
-                "type": "object",
-                "required": [
-                    "frequency",
-                    "retentionDays",
-                    "time",
-                    "type"
-                ],
-                "properties": {
-                    "dayOfMonth": {
-                        "type": "integer",
-                        "maximum": 31,
-                        "minimum": 1
-                    },
-                    "dayOfWeek": {
-                        "type": "integer",
-                        "maximum": 6,
-                        "minimum": 0
-                    },
-                    "frequency": {
-                        "type": "string",
-                        "enum": [
-                            "daily",
-                            "weekly",
-                            "monthly"
-                        ]
-                    },
-                    "retentionDays": {
-                        "type": "integer",
-                        "maximum": 365,
-                        "minimum": 1
-                    },
-                    "time": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "full",
-                            "database",
-                            "files",
-                            "incremental"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.ScheduledItemRequest": {
-                "type": "object",
-                "required": [
-                    "content",
-                    "scheduledFor",
-                    "title",
-                    "type"
-                ],
-                "properties": {
-                    "content": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "description": {
-                        "type": "string",
-                        "maxLength": 1000
-                    },
-                    "frequency": {
-                        "type": "string",
-                        "enum": [
-                            "once",
-                            "daily",
-                            "weekly",
-                            "monthly"
-                        ]
-                    },
-                    "maxRetries": {
-                        "type": "integer",
-                        "maximum": 5,
-                        "minimum": 0
-                    },
-                    "scheduledFor": {
-                        "type": "string"
-                    },
-                    "timezone": {
-                        "type": "string"
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 200
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "announcement",
-                            "exam",
-                            "task",
-                            "post",
-                            "content"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.SearchHistoryRequest": {
-                "type": "object",
-                "required": [
-                    "query"
-                ],
-                "properties": {
-                    "metadata": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "query": {
-                        "type": "string"
-                    },
-                    "results": {
-                        "type": "integer"
-                    },
-                    "timestamp": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "description": "course, resource, teacher, video, all",
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.SearchResultItem": {
-                "type": "object",
-                "properties": {
-                    "category": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "relevance": {
-                        "type": "integer"
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.SendMessageRequest": {
-                "type": "object",
-                "required": [
-                    "message"
-                ],
-                "properties": {
-                    "isInternal": {
-                        "type": "boolean"
-                    },
-                    "message": {
-                        "type": "string",
-                        "maxLength": 5000
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.UnifiedSearchResponse": {
-                "type": "object",
-                "properties": {
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.SearchResultItem"
-                        }
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest": {
-                "type": "object",
-                "required": [
-                    "priority"
-                ],
-                "properties": {
-                    "priority": {
-                        "type": "string",
-                        "enum": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest": {
-                "type": "object",
-                "required": [
-                    "status"
-                ],
-                "properties": {
-                    "status": {
-                        "type": "string",
-                        "enum": [
-                            "open",
-                            "in_progress",
-                            "resolved",
-                            "closed",
-                            "escalated"
-                        ]
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.UserJourneyRequest": {
-                "type": "object",
-                "required": [
-                    "sessionId",
-                    "startedAt",
-                    "userId"
-                ],
-                "properties": {
-                    "completed": {
-                        "type": "boolean"
-                    },
-                    "conversionGoal": {
-                        "type": "string"
-                    },
-                    "endedAt": {
-                        "type": "string"
-                    },
-                    "sessionId": {
-                        "type": "string"
-                    },
-                    "startedAt": {
-                        "type": "string"
-                    },
-                    "steps": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/internal_infrastructure_api_handlers_protected.UserJourneyStep"
-                        }
-                    },
-                    "totalDuration": {
-                        "type": "integer"
-                    },
-                    "userId": {
-                        "type": "string"
-                    }
-                }
-            },
-            "internal_infrastructure_api_handlers_protected.UserJourneyStep": {
-                "type": "object",
-                "properties": {
-                    "action": {
-                        "type": "string"
-                    },
-                    "duration": {
-                        "type": "integer"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "metadata": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "page": {
-                        "type": "string"
-                    },
-                    "sessionId": {
-                        "type": "string"
-                    },
-                    "timestamp": {
-                        "type": "string"
-                    },
-                    "userId": {
-                        "type": "string"
-                    }
-                }
-            },
-            "thanawy-backend_internal_application_dto.CourseDetailData": {
+            "authdto.CourseDetailData": {
                 "type": "object",
                 "properties": {
                     "course": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                        "$ref": "#/components/schemas/models.Subject"
                     },
                     "subject": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                        "$ref": "#/components/schemas/models.Subject"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.CourseDetailResponse": {
+            "authdto.CourseDetailResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.CourseDetailData"
+                        "$ref": "#/components/schemas/authdto.CourseDetailData"
                     },
                     "enrollment": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Enrollment"
+                        "$ref": "#/components/schemas/models.Enrollment"
                     },
                     "subject": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                        "$ref": "#/components/schemas/models.Subject"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.CourseListData": {
+            "authdto.CourseListData": {
                 "type": "object",
                 "properties": {
                     "items": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                            "$ref": "#/components/schemas/models.Subject"
                         }
                     },
                     "offset": {
                         "type": "integer"
                     },
                     "pagination": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.Pagination"
+                        "$ref": "#/components/schemas/authdto.Pagination"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.CourseListResponse": {
+            "authdto.CourseListResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.CourseListData"
+                        "$ref": "#/components/schemas/authdto.CourseListData"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.LoginRequest": {
+            "authdto.LoginRequest": {
                 "type": "object",
                 "required": [
                     "email",
@@ -3978,7 +3190,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.LoginResponse": {
+            "authdto.LoginResponse": {
                 "type": "object",
                 "properties": {
                     "accessToken": {
@@ -3988,11 +3200,11 @@
                         "type": "string"
                     },
                     "user": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserDTO"
+                        "$ref": "#/components/schemas/authdto.UserDTO"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.Pagination": {
+            "authdto.Pagination": {
                 "type": "object",
                 "properties": {
                     "limit": {
@@ -4009,7 +3221,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingChapterContract": {
+            "authdto.TeachingChapterContract": {
                 "type": "object",
                 "properties": {
                     "id": {
@@ -4018,7 +3230,7 @@
                     "lessons": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingLessonContract"
+                            "$ref": "#/components/schemas/authdto.TeachingLessonContract"
                         }
                     },
                     "title": {
@@ -4026,7 +3238,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseContract": {
+            "authdto.TeachingCourseContract": {
                 "type": "object",
                 "properties": {
                     "category": {
@@ -4038,7 +3250,7 @@
                     "chapters": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingChapterContract"
+                            "$ref": "#/components/schemas/authdto.TeachingChapterContract"
                         }
                     },
                     "createdDate": {
@@ -4085,15 +3297,15 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseData": {
+            "authdto.TeachingCourseData": {
                 "type": "object",
                 "properties": {
                     "course": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseContract"
+                        "$ref": "#/components/schemas/authdto.TeachingCourseContract"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseDeleteData": {
+            "authdto.TeachingCourseDeleteData": {
                 "type": "object",
                 "properties": {
                     "deleted": {
@@ -4101,22 +3313,22 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse": {
+            "authdto.TeachingCourseDeleteResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseDeleteData"
+                        "$ref": "#/components/schemas/authdto.TeachingCourseDeleteData"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseMutationData": {
+            "authdto.TeachingCourseMutationData": {
                 "type": "object",
                 "properties": {
                     "course": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseContract"
+                        "$ref": "#/components/schemas/authdto.TeachingCourseContract"
                     },
                     "message": {
                         "type": "string"
@@ -4129,54 +3341,54 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseMutationResponse": {
+            "authdto.TeachingCourseMutationResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseMutationData"
+                        "$ref": "#/components/schemas/authdto.TeachingCourseMutationData"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCourseResponse": {
+            "authdto.TeachingCourseResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseData"
+                        "$ref": "#/components/schemas/authdto.TeachingCourseData"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCoursesListData": {
+            "authdto.TeachingCoursesListData": {
                 "type": "object",
                 "properties": {
                     "courses": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCourseContract"
+                            "$ref": "#/components/schemas/authdto.TeachingCourseContract"
                         }
                     },
                     "pagination": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingPaginationContract"
+                        "$ref": "#/components/schemas/authdto.TeachingPaginationContract"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingCoursesListResponse": {
+            "authdto.TeachingCoursesListResponse": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.TeachingCoursesListData"
+                        "$ref": "#/components/schemas/authdto.TeachingCoursesListData"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingLessonContract": {
+            "authdto.TeachingLessonContract": {
                 "type": "object",
                 "properties": {
                     "duration": {
@@ -4199,7 +3411,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.TeachingPaginationContract": {
+            "authdto.TeachingPaginationContract": {
                 "type": "object",
                 "properties": {
                     "limit": {
@@ -4216,7 +3428,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserDTO": {
+            "authdto.UserDTO": {
                 "type": "object",
                 "properties": {
                     "avatar": {
@@ -4254,18 +3466,18 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserProfileEnvelope": {
+            "authdto.UserProfileEnvelope": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserProfileResponse"
+                        "$ref": "#/components/schemas/authdto.UserProfileResponse"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserProfileResponse": {
+            "authdto.UserProfileResponse": {
                 "type": "object",
                 "properties": {
                     "alternativePhone": {
@@ -4339,18 +3551,18 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope": {
+            "authdto.UserProfileUpdateEnvelope": {
                 "type": "object",
                 "properties": {
                     "data": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_application_dto.UserProfileUpdateResponse"
+                        "$ref": "#/components/schemas/authdto.UserProfileUpdateResponse"
                     },
                     "success": {
                         "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserProfileUpdateRequest": {
+            "authdto.UserProfileUpdateRequest": {
                 "type": "object",
                 "properties": {
                     "alternativePhone": {
@@ -4409,7 +3621,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.UserProfileUpdateResponse": {
+            "authdto.UserProfileUpdateResponse": {
                 "type": "object",
                 "properties": {
                     "message": {
@@ -4417,7 +3629,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_application_dto.VerifyMFARequest": {
+            "authdto.VerifyMFARequest": {
                 "type": "object",
                 "required": [
                     "challengeId",
@@ -4429,10 +3641,13 @@
                     },
                     "code": {
                         "type": "string"
+                    },
+                    "rememberMe": {
+                        "type": "boolean"
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.CourseStatus": {
+            "models.CourseStatus": {
                 "type": "string",
                 "enum": [
                     "DRAFT",
@@ -4449,7 +3664,7 @@
                     "CourseStatusRejected"
                 ]
             },
-            "thanawy-backend_internal_domain_common.CourseTag": {
+            "models.CourseTag": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -4466,7 +3681,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.Enrollment": {
+            "models.Enrollment": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -4485,7 +3700,7 @@
                         "description": "Relations",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                                "$ref": "#/components/schemas/models.Subject"
                             }
                         ]
                     },
@@ -4496,14 +3711,14 @@
                         "type": "string"
                     },
                     "user": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.User"
+                        "$ref": "#/components/schemas/models.User"
                     },
                     "userId": {
                         "type": "string"
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.EnrollmentType": {
+            "models.EnrollmentType": {
                 "type": "string",
                 "enum": [
                     "OPEN",
@@ -4516,7 +3731,7 @@
                     "EnrollmentTypeApproval"
                 ]
             },
-            "thanawy-backend_internal_domain_common.Exam": {
+            "models.Exam": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -4547,14 +3762,14 @@
                     "questions": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Question"
+                            "$ref": "#/components/schemas/models.Question"
                         }
                     },
                     "subject": {
                         "description": "Relations",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Subject"
+                                "$ref": "#/components/schemas/models.Subject"
                             }
                         ]
                     },
@@ -4565,14 +3780,14 @@
                         "type": "string"
                     },
                     "type": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.ExamType"
+                        "$ref": "#/components/schemas/models.ExamType"
                     },
                     "updatedAt": {
                         "type": "string"
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.ExamType": {
+            "models.ExamType": {
                 "type": "string",
                 "enum": [
                     "QUIZ",
@@ -4585,7 +3800,7 @@
                     "ExamTypeFinal"
                 ]
             },
-            "thanawy-backend_internal_domain_common.LessonAttachment": {
+            "models.LessonAttachment": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -4612,7 +3827,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.LessonSubtitle": {
+            "models.LessonSubtitle": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -4637,7 +3852,7 @@
                         "description": "Relations",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.SubTopic"
+                                "$ref": "#/components/schemas/models.SubTopic"
                             }
                         ]
                     },
@@ -4645,7 +3860,7 @@
                         "type": "string"
                     },
                     "subtitleFormat": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.SubtitleFormat"
+                        "$ref": "#/components/schemas/models.SubtitleFormat"
                     },
                     "subtitleUrl": {
                         "type": "string"
@@ -4655,7 +3870,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.Level": {
+            "models.Level": {
                 "type": "string",
                 "enum": [
                     "BEGINNER",
@@ -4668,7 +3883,7 @@
                     "LevelAdvanced"
                 ]
             },
-            "thanawy-backend_internal_domain_common.Question": {
+            "models.Question": {
                 "type": "object",
                 "properties": {
                     "examId": {
@@ -4688,14 +3903,14 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.SubTopic": {
+            "models.SubTopic": {
                 "type": "object",
                 "properties": {
                     "attachments": {
                         "description": "Relations",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.LessonAttachment"
+                            "$ref": "#/components/schemas/models.LessonAttachment"
                         }
                     },
                     "audioDurationSeconds": {
@@ -4711,7 +3926,7 @@
                     "chapters": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.VideoChapter"
+                            "$ref": "#/components/schemas/models.VideoChapter"
                         }
                     },
                     "completionCount": {
@@ -4733,7 +3948,7 @@
                         "type": "integer"
                     },
                     "exam": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Exam"
+                        "$ref": "#/components/schemas/models.Exam"
                     },
                     "examId": {
                         "type": "string"
@@ -4763,7 +3978,7 @@
                         "description": "Non-DB mapped fields",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.LessonSubtitle"
+                            "$ref": "#/components/schemas/models.LessonSubtitle"
                         }
                     },
                     "title": {
@@ -4773,7 +3988,7 @@
                         "description": "Relations",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Topic"
+                                "$ref": "#/components/schemas/models.Topic"
                             }
                         ]
                     },
@@ -4781,7 +3996,7 @@
                         "type": "string"
                     },
                     "type": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.SubTopicType"
+                        "$ref": "#/components/schemas/models.SubTopicType"
                     },
                     "updatedAt": {
                         "type": "string"
@@ -4795,7 +4010,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.SubTopicType": {
+            "models.SubTopicType": {
                 "type": "string",
                 "enum": [
                     "VIDEO",
@@ -4818,7 +4033,7 @@
                     "SubTopicDocument"
                 ]
             },
-            "thanawy-backend_internal_domain_common.Subject": {
+            "models.Subject": {
                 "type": "object",
                 "required": [
                     "name",
@@ -4886,7 +4101,7 @@
                         "description": "Operational & enrollment (Phase 1)",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.EnrollmentType"
+                                "$ref": "#/components/schemas/models.EnrollmentType"
                             }
                         ]
                     },
@@ -4930,7 +4145,7 @@
                         "type": "string"
                     },
                     "level": {
-                        "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Level"
+                        "$ref": "#/components/schemas/models.Level"
                     },
                     "longDescription": {
                         "type": "string"
@@ -4996,7 +4211,7 @@
                         "description": "Lifecycle and enhanced fields (migration 0064 + 0109)",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.CourseStatus"
+                                "$ref": "#/components/schemas/models.CourseStatus"
                             }
                         ]
                     },
@@ -5007,7 +4222,7 @@
                     "tags": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.CourseTag"
+                            "$ref": "#/components/schemas/models.CourseTag"
                         }
                     },
                     "targetAudience": {
@@ -5023,7 +4238,7 @@
                         "description": "Relations",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.Topic"
+                            "$ref": "#/components/schemas/models.Topic"
                         }
                     },
                     "trailerDurationMinutes": {
@@ -5052,7 +4267,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.SubtitleFormat": {
+            "models.SubtitleFormat": {
                 "type": "string",
                 "enum": [
                     "vtt",
@@ -5065,7 +4280,7 @@
                     "SubtitleJSON"
                 ]
             },
-            "thanawy-backend_internal_domain_common.Topic": {
+            "models.Topic": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -5084,7 +4299,7 @@
                         "description": "Relations",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.SubTopic"
+                            "$ref": "#/components/schemas/models.SubTopic"
                         }
                     },
                     "subjectId": {
@@ -5098,7 +4313,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.User": {
+            "models.User": {
                 "type": "object",
                 "required": [
                     "email",
@@ -5273,7 +4488,7 @@
                         ],
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.UserRole"
+                                "$ref": "#/components/schemas/models.UserRole"
                             }
                         ]
                     },
@@ -5301,7 +4516,7 @@
                         ],
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.UserStatus"
+                                "$ref": "#/components/schemas/models.UserStatus"
                             }
                         ]
                     },
@@ -5358,7 +4573,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_domain_common.UserRole": {
+            "models.UserRole": {
                 "type": "string",
                 "enum": [
                     "STUDENT",
@@ -5379,7 +4594,7 @@
                     "RoleSupport"
                 ]
             },
-            "thanawy-backend_internal_domain_common.UserStatus": {
+            "models.UserStatus": {
                 "type": "string",
                 "enum": [
                     "ACTIVE",
@@ -5394,7 +4609,7 @@
                     "StatusBanned"
                 ]
             },
-            "thanawy-backend_internal_domain_common.VideoChapter": {
+            "models.VideoChapter": {
                 "type": "object",
                 "properties": {
                     "createdAt": {
@@ -5413,7 +4628,7 @@
                         "description": "Relations",
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/thanawy-backend_internal_domain_common.SubTopic"
+                                "$ref": "#/components/schemas/models.SubTopic"
                             }
                         ]
                     },
@@ -5434,7 +4649,7 @@
                     }
                 }
             },
-            "thanawy-backend_internal_shared_utils.PaginatedResponse": {
+            "pagination.PaginatedResponse": {
                 "type": "object",
                 "properties": {
                     "data": {},
@@ -5457,6 +4672,794 @@
                                 "type": "integer"
                             }
                         }
+                    }
+                }
+            },
+            "protected.ConversionEventRequest": {
+                "type": "object",
+                "required": [
+                    "goal",
+                    "sessionId",
+                    "timestamp",
+                    "userId"
+                ],
+                "properties": {
+                    "goal": {
+                        "type": "string"
+                    },
+                    "journeySteps": {
+                        "type": "integer"
+                    },
+                    "sessionId": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    },
+                    "userId": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "number"
+                    }
+                }
+            },
+            "protected.CreateBackupRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "properties": {
+                    "includesDatabase": {
+                        "type": "boolean"
+                    },
+                    "includesFiles": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "retentionDays": {
+                        "type": "integer",
+                        "maximum": 365,
+                        "minimum": 1
+                    },
+                    "tables": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "full",
+                            "database",
+                            "files",
+                            "incremental"
+                        ]
+                    }
+                }
+            },
+            "protected.CreateTicketRequest": {
+                "type": "object",
+                "required": [
+                    "category",
+                    "description",
+                    "subject",
+                    "userId"
+                ],
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "technical",
+                            "billing",
+                            "content",
+                            "account",
+                            "other"
+                        ]
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 5000
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            "urgent"
+                        ]
+                    },
+                    "relatedEntityId": {
+                        "type": "string"
+                    },
+                    "relatedEntityType": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "userId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.CustomReportRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "widgets"
+                ],
+                "properties": {
+                    "dateRange": {
+                        "type": "object",
+                        "properties": {
+                            "from": {
+                                "type": "string"
+                            },
+                            "to": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "filters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.ReportFilter"
+                        }
+                    },
+                    "isPublic": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "schedule": {
+                        "type": "object",
+                        "required": [
+                            "emailTo",
+                            "frequency"
+                        ],
+                        "properties": {
+                            "emailTo": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "frequency": {
+                                "type": "string",
+                                "enum": [
+                                    "daily",
+                                    "weekly",
+                                    "monthly"
+                                ]
+                            }
+                        }
+                    },
+                    "widgets": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "$ref": "#/components/schemas/protected.ReportWidget"
+                        }
+                    }
+                }
+            },
+            "protected.MegaMenuTrackRequest": {
+                "type": "object",
+                "required": [
+                    "type"
+                ],
+                "properties": {
+                    "component": {
+                        "description": "\"mega_menu\"",
+                        "type": "string"
+                    },
+                    "label": {
+                        "description": "menu label",
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "description": "e.g. { trigger: \"toggle\" }",
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "timestamp": {
+                        "description": "client epoch ms",
+                        "type": "integer"
+                    },
+                    "type": {
+                        "description": "\"open\" | \"close\"",
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.NotificationRequest": {
+                "type": "object",
+                "required": [
+                    "channels",
+                    "message",
+                    "title",
+                    "userIds"
+                ],
+                "properties": {
+                    "actionUrl": {
+                        "type": "string"
+                    },
+                    "channels": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "message": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": [
+                            "high",
+                            "normal",
+                            "low"
+                        ]
+                    },
+                    "scheduledFor": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "info",
+                            "success",
+                            "warning",
+                            "error"
+                        ]
+                    },
+                    "userIds": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "protected.NotificationResponse": {
+                "type": "object",
+                "properties": {
+                    "broadcastId": {
+                        "type": "string"
+                    },
+                    "queued": {
+                        "type": "boolean"
+                    },
+                    "summary": {
+                        "$ref": "#/components/schemas/protected.NotificationSummary"
+                    }
+                }
+            },
+            "protected.NotificationSummary": {
+                "type": "object",
+                "properties": {
+                    "failure": {
+                        "type": "integer"
+                    },
+                    "queued": {
+                        "type": "integer"
+                    },
+                    "success": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "protected.PromoEventRequest": {
+                "type": "object",
+                "properties": {
+                    "component": {
+                        "type": "string"
+                    },
+                    "eventType": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "promoId": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.ReportDimension": {
+                "type": "object",
+                "required": [
+                    "field",
+                    "label"
+                ],
+                "properties": {
+                    "field": {
+                        "type": "string"
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "date",
+                            "text",
+                            "number"
+                        ]
+                    },
+                    "label": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.ReportFilter": {
+                "type": "object",
+                "required": [
+                    "field",
+                    "operator",
+                    "value"
+                ],
+                "properties": {
+                    "field": {
+                        "type": "string"
+                    },
+                    "operator": {
+                        "type": "string",
+                        "enum": [
+                            "equals",
+                            "not_equals",
+                            "contains",
+                            "greater_than",
+                            "less_than",
+                            "between",
+                            "in"
+                        ]
+                    },
+                    "value": {}
+                }
+            },
+            "protected.ReportMetric": {
+                "type": "object",
+                "required": [
+                    "aggregation",
+                    "field",
+                    "name"
+                ],
+                "properties": {
+                    "aggregation": {
+                        "type": "string",
+                        "enum": [
+                            "count",
+                            "sum",
+                            "avg",
+                            "min",
+                            "max",
+                            "distinct_count"
+                        ]
+                    },
+                    "field": {
+                        "type": "string"
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "number",
+                            "currency",
+                            "percentage",
+                            "date"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.ReportSort": {
+                "type": "object",
+                "required": [
+                    "direction",
+                    "field"
+                ],
+                "properties": {
+                    "direction": {
+                        "type": "string",
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ]
+                    },
+                    "field": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.ReportWidget": {
+                "type": "object",
+                "required": [
+                    "dataSource",
+                    "layout",
+                    "metrics",
+                    "title",
+                    "type"
+                ],
+                "properties": {
+                    "dataSource": {
+                        "type": "string"
+                    },
+                    "dimensions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.ReportDimension"
+                        }
+                    },
+                    "filters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.ReportFilter"
+                        }
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "layout": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.ReportMetric"
+                        }
+                    },
+                    "sort": {
+                        "$ref": "#/components/schemas/protected.ReportSort"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "table",
+                            "bar",
+                            "line",
+                            "pie",
+                            "area",
+                            "metric"
+                        ]
+                    }
+                }
+            },
+            "protected.RestoreBackupRequest": {
+                "type": "object",
+                "properties": {
+                    "dryRun": {
+                        "type": "boolean"
+                    },
+                    "skipExisting": {
+                        "type": "boolean"
+                    },
+                    "targetTables": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "protected.ScheduleBackupRequest": {
+                "type": "object",
+                "required": [
+                    "frequency",
+                    "retentionDays",
+                    "time",
+                    "type"
+                ],
+                "properties": {
+                    "dayOfMonth": {
+                        "type": "integer",
+                        "maximum": 31,
+                        "minimum": 1
+                    },
+                    "dayOfWeek": {
+                        "type": "integer",
+                        "maximum": 6,
+                        "minimum": 0
+                    },
+                    "frequency": {
+                        "type": "string",
+                        "enum": [
+                            "daily",
+                            "weekly",
+                            "monthly"
+                        ]
+                    },
+                    "retentionDays": {
+                        "type": "integer",
+                        "maximum": 365,
+                        "minimum": 1
+                    },
+                    "time": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "full",
+                            "database",
+                            "files",
+                            "incremental"
+                        ]
+                    }
+                }
+            },
+            "protected.ScheduledItemRequest": {
+                "type": "object",
+                "required": [
+                    "content",
+                    "scheduledFor",
+                    "title",
+                    "type"
+                ],
+                "properties": {
+                    "content": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 1000
+                    },
+                    "frequency": {
+                        "type": "string",
+                        "enum": [
+                            "once",
+                            "daily",
+                            "weekly",
+                            "monthly"
+                        ]
+                    },
+                    "maxRetries": {
+                        "type": "integer",
+                        "maximum": 5,
+                        "minimum": 0
+                    },
+                    "scheduledFor": {
+                        "type": "string"
+                    },
+                    "timezone": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "announcement",
+                            "exam",
+                            "task",
+                            "post",
+                            "content"
+                        ]
+                    }
+                }
+            },
+            "protected.SearchHistoryRequest": {
+                "type": "object",
+                "required": [
+                    "query"
+                ],
+                "properties": {
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "type": "integer"
+                    },
+                    "timestamp": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "description": "course, resource, teacher, video, all",
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.SearchResultItem": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "relevance": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.SendMessageRequest": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "isInternal": {
+                        "type": "boolean"
+                    },
+                    "message": {
+                        "type": "string",
+                        "maxLength": 5000
+                    }
+                }
+            },
+            "protected.UnifiedSearchResponse": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.SearchResultItem"
+                        }
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "protected.UpdateTicketPriorityRequest": {
+                "type": "object",
+                "required": [
+                    "priority"
+                ],
+                "properties": {
+                    "priority": {
+                        "type": "string",
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            "urgent"
+                        ]
+                    }
+                }
+            },
+            "protected.UpdateTicketStatusRequest": {
+                "type": "object",
+                "required": [
+                    "status"
+                ],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "open",
+                            "in_progress",
+                            "resolved",
+                            "closed",
+                            "escalated"
+                        ]
+                    }
+                }
+            },
+            "protected.UserJourneyRequest": {
+                "type": "object",
+                "required": [
+                    "sessionId",
+                    "startedAt",
+                    "userId"
+                ],
+                "properties": {
+                    "completed": {
+                        "type": "boolean"
+                    },
+                    "conversionGoal": {
+                        "type": "string"
+                    },
+                    "endedAt": {
+                        "type": "string"
+                    },
+                    "sessionId": {
+                        "type": "string"
+                    },
+                    "startedAt": {
+                        "type": "string"
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/protected.UserJourneyStep"
+                        }
+                    },
+                    "totalDuration": {
+                        "type": "integer"
+                    },
+                    "userId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "protected.UserJourneyStep": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "duration": {
+                        "type": "integer"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "page": {
+                        "type": "string"
+                    },
+                    "sessionId": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    },
+                    "userId": {
+                        "type": "string"
                     }
                 }
             }
