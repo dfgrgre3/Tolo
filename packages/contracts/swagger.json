@@ -2412,6 +2412,173 @@
                 }
             }
         },
+        "/api/v1/companies": {
+            "get": {
+                "tags": [
+                    "companies"
+                ],
+                "summary": "List companies",
+                "parameters": [
+                    {
+                        "description": "Search by name",
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Industry",
+                        "name": "industry",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Only verified companies",
+                        "name": "verified",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.CompanyListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/companies/{id}": {
+            "get": {
+                "tags": [
+                    "companies"
+                ],
+                "summary": "Get a company profile",
+                "parameters": [
+                    {
+                        "description": "Company id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.CompanyDetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/companies/{id}/jobs": {
+            "get": {
+                "tags": [
+                    "companies"
+                ],
+                "summary": "List a company's published jobs",
+                "parameters": [
+                    {
+                        "description": "Company id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.CompanyJobsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/courses": {
             "get": {
                 "tags": [
@@ -2794,6 +2961,774 @@
                 }
             }
         },
+        "/api/v1/jobs": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Search job postings",
+                "parameters": [
+                    {
+                        "description": "Free-text search over title, description and skills",
+                        "name": "keyword",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Matches country or city",
+                        "name": "location",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Country",
+                        "name": "country",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "City",
+                        "name": "city",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Shorthand for workplace=REMOTE",
+                        "name": "remote",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "description": "Employment type",
+                        "name": "jobType",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Workplace type",
+                        "name": "workplace",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Experience level",
+                        "name": "experience",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Category",
+                        "name": "category",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Company id",
+                        "name": "company",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Skills (matches any)",
+                        "name": "skills",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Minimum salary",
+                        "name": "salaryMin",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "description": "Maximum salary",
+                        "name": "salaryMax",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "description": "Posted within N days (1, 3, 7 or 30)",
+                        "name": "datePosted",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "relevance | newest | salary_desc | salary_asc",
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/jobs/categories": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List job categories with counts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobCategoryListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/jobs/{id}": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get a job posting",
+                "parameters": [
+                    {
+                        "description": "Job id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobDetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/jobs/{id}/similar": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List jobs similar to a posting",
+                "parameters": [
+                    {
+                        "description": "Job id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Maximum results",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobSimilarResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/applications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List the caller's job applications",
+                "parameters": [
+                    {
+                        "description": "Application status",
+                        "name": "status",
+                        "in": "query",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobApplicationListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/applications/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get one of the caller's applications",
+                "parameters": [
+                    {
+                        "description": "Application id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobApplicationDetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/applications/{id}/withdraw": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Withdraw an application",
+                "parameters": [
+                    {
+                        "description": "Application id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/apply/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Apply to a job",
+                "parameters": [
+                    {
+                        "description": "Job id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobApplicationDetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/overview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Jobs landing page summary for the caller",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.JobsOverviewResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/saved": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List the caller's saved jobs",
+                "parameters": [
+                    {
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.SavedJobListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me/jobs/saved/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Save (bookmark) a job",
+                "parameters": [
+                    {
+                        "description": "Job id or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.SavedJobToggleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Remove a saved job",
+                "parameters": [
+                    {
+                        "description": "Job id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/authdto.SavedJobToggleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/my-courses": {
             "get": {
                 "tags": [
@@ -3109,6 +4044,90 @@
             }
         },
         "schemas": {
+            "authdto.CompanyDetailData": {
+                "type": "object",
+                "properties": {
+                    "company": {
+                        "$ref": "#/components/schemas/models.Company"
+                    }
+                }
+            },
+            "authdto.CompanyDetailResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.CompanyDetailData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.CompanyJobsData": {
+                "type": "object",
+                "properties": {
+                    "company": {
+                        "$ref": "#/components/schemas/models.Company"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "jobs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/authdto.Pagination"
+                    }
+                }
+            },
+            "authdto.CompanyJobsResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.CompanyJobsData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.CompanyListData": {
+                "type": "object",
+                "properties": {
+                    "companies": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Company"
+                        }
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Company"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/authdto.Pagination"
+                    }
+                }
+            },
+            "authdto.CompanyListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.CompanyListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "authdto.CourseDetailData": {
                 "type": "object",
                 "properties": {
@@ -3159,6 +4178,208 @@
                 "properties": {
                     "data": {
                         "$ref": "#/components/schemas/authdto.CourseListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobApplicationDetailData": {
+                "type": "object",
+                "properties": {
+                    "application": {
+                        "$ref": "#/components/schemas/models.JobApplication"
+                    }
+                }
+            },
+            "authdto.JobApplicationDetailResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobApplicationDetailData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobApplicationListData": {
+                "type": "object",
+                "properties": {
+                    "applications": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.JobApplication"
+                        }
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.JobApplication"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/authdto.Pagination"
+                    },
+                    "statusCounts": {
+                        "description": "StatusCounts drives the application tab badges, keyed by status.",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            },
+            "authdto.JobApplicationListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobApplicationListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobCategoryCount": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "authdto.JobCategoryListData": {
+                "type": "object",
+                "properties": {
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/authdto.JobCategoryCount"
+                        }
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/authdto.JobCategoryCount"
+                        }
+                    }
+                }
+            },
+            "authdto.JobCategoryListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobCategoryListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobDetailData": {
+                "type": "object",
+                "properties": {
+                    "job": {
+                        "$ref": "#/components/schemas/models.Job"
+                    }
+                }
+            },
+            "authdto.JobDetailResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobDetailData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobListData": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "jobs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/authdto.Pagination"
+                    }
+                }
+            },
+            "authdto.JobListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobSimilarData": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "jobs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    }
+                }
+            },
+            "authdto.JobSimilarResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobSimilarData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.JobsOverviewData": {
+                "type": "object",
+                "properties": {
+                    "applied": {
+                        "type": "integer"
+                    },
+                    "interviews": {
+                        "type": "integer"
+                    },
+                    "offers": {
+                        "type": "integer"
+                    },
+                    "saved": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "authdto.JobsOverviewResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.JobsOverviewData"
                     },
                     "success": {
                         "type": "boolean"
@@ -3218,6 +4439,70 @@
                     },
                     "totalPages": {
                         "type": "integer"
+                    }
+                }
+            },
+            "authdto.SavedJobEntry": {
+                "type": "object",
+                "properties": {
+                    "job": {
+                        "$ref": "#/components/schemas/models.Job"
+                    },
+                    "savedAt": {
+                        "type": "string"
+                    }
+                }
+            },
+            "authdto.SavedJobListData": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/authdto.SavedJobEntry"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/authdto.Pagination"
+                    },
+                    "savedJobs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/authdto.SavedJobEntry"
+                        }
+                    }
+                }
+            },
+            "authdto.SavedJobListResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.SavedJobListData"
+                    },
+                    "success": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "authdto.SavedJobToggleData": {
+                "type": "object",
+                "properties": {
+                    "isSaved": {
+                        "type": "boolean"
+                    },
+                    "jobId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "authdto.SavedJobToggleResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/authdto.SavedJobToggleData"
+                    },
+                    "success": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -3647,6 +4932,74 @@
                     }
                 }
             },
+            "models.Company": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "coverUrl": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 10000
+                    },
+                    "foundedYear": {
+                        "type": "integer"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "industry": {
+                        "type": "string"
+                    },
+                    "isVerified": {
+                        "description": "IsVerified is admin-controlled only. It drives the verification badge,\nso it must never be settable from an employer-supplied payload.",
+                        "type": "boolean"
+                    },
+                    "jobs": {
+                        "description": "Relations",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/models.Job"
+                        }
+                    },
+                    "location": {
+                        "type": "string"
+                    },
+                    "logoUrl": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "minLength": 2
+                    },
+                    "openPositions": {
+                        "description": "Non-DB mapped: populated by the company detail handler.",
+                        "type": "integer"
+                    },
+                    "ownerId": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "updatedAt": {
+                        "type": "string"
+                    },
+                    "website": {
+                        "type": "string"
+                    }
+                }
+            },
             "models.CourseStatus": {
                 "type": "string",
                 "enum": [
@@ -3680,6 +5033,25 @@
                         "type": "string"
                     }
                 }
+            },
+            "models.EmploymentType": {
+                "type": "string",
+                "enum": [
+                    "FULL_TIME",
+                    "PART_TIME",
+                    "CONTRACT",
+                    "TEMPORARY",
+                    "INTERNSHIP",
+                    "FREELANCE"
+                ],
+                "x-enum-varnames": [
+                    "EmploymentFullTime",
+                    "EmploymentPartTime",
+                    "EmploymentContract",
+                    "EmploymentTemporary",
+                    "EmploymentInternship",
+                    "EmploymentFreelance"
+                ]
             },
             "models.Enrollment": {
                 "type": "object",
@@ -3800,6 +5172,265 @@
                     "ExamTypeFinal"
                 ]
             },
+            "models.ExperienceLevel": {
+                "type": "string",
+                "enum": [
+                    "ENTRY",
+                    "JUNIOR",
+                    "MID",
+                    "SENIOR",
+                    "LEAD",
+                    "MANAGER",
+                    "DIRECTOR"
+                ],
+                "x-enum-varnames": [
+                    "ExperienceEntry",
+                    "ExperienceJunior",
+                    "ExperienceMid",
+                    "ExperienceSenior",
+                    "ExperienceLead",
+                    "ExperienceManager",
+                    "ExperienceDirector"
+                ]
+            },
+            "models.JSONMap": {
+                "type": "object",
+                "additionalProperties": true
+            },
+            "models.Job": {
+                "type": "object",
+                "required": [
+                    "title"
+                ],
+                "properties": {
+                    "applicationCount": {
+                        "type": "integer"
+                    },
+                    "benefits": {
+                        "type": "string"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "closedAt": {
+                        "type": "string"
+                    },
+                    "company": {
+                        "description": "Relations",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/models.Company"
+                            }
+                        ]
+                    },
+                    "companyId": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "employmentType": {
+                        "$ref": "#/components/schemas/models.EmploymentType"
+                    },
+                    "experienceLevel": {
+                        "$ref": "#/components/schemas/models.ExperienceLevel"
+                    },
+                    "expiresAt": {
+                        "type": "string"
+                    },
+                    "hasApplied": {
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "isApplyOpen": {
+                        "type": "boolean"
+                    },
+                    "isFeatured": {
+                        "type": "boolean"
+                    },
+                    "isSalaryVisible": {
+                        "type": "boolean"
+                    },
+                    "isSaved": {
+                        "description": "Non-DB mapped, per-viewer flags resolved by the handler for the\nauthenticated caller. They are intentionally not persisted.",
+                        "type": "boolean"
+                    },
+                    "matchScore": {
+                        "type": "integer"
+                    },
+                    "postedBy": {
+                        "type": "string"
+                    },
+                    "preferredQualifications": {
+                        "type": "string"
+                    },
+                    "publishedAt": {
+                        "type": "string"
+                    },
+                    "requirements": {
+                        "type": "string"
+                    },
+                    "responsibilities": {
+                        "type": "string"
+                    },
+                    "salaryCurrency": {
+                        "type": "string"
+                    },
+                    "salaryMax": {
+                        "type": "number"
+                    },
+                    "salaryMin": {
+                        "type": "number"
+                    },
+                    "salaryPeriod": {
+                        "$ref": "#/components/schemas/models.SalaryPeriod"
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/models.JobPostingStatus"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "minLength": 3
+                    },
+                    "updatedAt": {
+                        "type": "string"
+                    },
+                    "viewCount": {
+                        "description": "Denormalized counters, maintained by the handlers that cause them.",
+                        "type": "integer"
+                    },
+                    "workplaceType": {
+                        "$ref": "#/components/schemas/models.WorkplaceType"
+                    }
+                }
+            },
+            "models.JobApplication": {
+                "type": "object",
+                "properties": {
+                    "answers": {
+                        "description": "Answers holds the employer's screening-question responses keyed by\nquestion id. Free-form by design: the question set is per-job.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/models.JSONMap"
+                            }
+                        ]
+                    },
+                    "applicant": {
+                        "$ref": "#/components/schemas/models.User"
+                    },
+                    "applicantId": {
+                        "type": "string"
+                    },
+                    "coverLetter": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "job": {
+                        "description": "Relations",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/models.Job"
+                            }
+                        ]
+                    },
+                    "jobId": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "resumeUrl": {
+                        "type": "string"
+                    },
+                    "reviewedAt": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/models.JobApplicationStatus"
+                    },
+                    "updatedAt": {
+                        "type": "string"
+                    },
+                    "withdrawnAt": {
+                        "type": "string"
+                    }
+                }
+            },
+            "models.JobApplicationStatus": {
+                "type": "string",
+                "enum": [
+                    "APPLIED",
+                    "UNDER_REVIEW",
+                    "SHORTLISTED",
+                    "INTERVIEW",
+                    "ASSESSMENT",
+                    "OFFER",
+                    "HIRED",
+                    "REJECTED",
+                    "WITHDRAWN"
+                ],
+                "x-enum-varnames": [
+                    "ApplicationApplied",
+                    "ApplicationUnderReview",
+                    "ApplicationShortlisted",
+                    "ApplicationInterview",
+                    "ApplicationAssessment",
+                    "ApplicationOffer",
+                    "ApplicationHired",
+                    "ApplicationRejected",
+                    "ApplicationWithdrawn"
+                ]
+            },
+            "models.JobPostingStatus": {
+                "type": "string",
+                "enum": [
+                    "DRAFT",
+                    "PENDING_REVIEW",
+                    "PUBLISHED",
+                    "PAUSED",
+                    "CLOSED",
+                    "REJECTED",
+                    "ARCHIVED"
+                ],
+                "x-enum-varnames": [
+                    "JobDraft",
+                    "JobPendingReview",
+                    "JobPublished",
+                    "JobPaused",
+                    "JobClosed",
+                    "JobRejected",
+                    "JobArchived"
+                ]
+            },
             "models.LessonAttachment": {
                 "type": "object",
                 "properties": {
@@ -3902,6 +5533,19 @@
                         "type": "string"
                     }
                 }
+            },
+            "models.SalaryPeriod": {
+                "type": "string",
+                "enum": [
+                    "HOURLY",
+                    "MONTHLY",
+                    "YEARLY"
+                ],
+                "x-enum-varnames": [
+                    "SalaryHourly",
+                    "SalaryMonthly",
+                    "SalaryYearly"
+                ]
             },
             "models.SubTopic": {
                 "type": "object",
@@ -4649,6 +6293,19 @@
                     }
                 }
             },
+            "models.WorkplaceType": {
+                "type": "string",
+                "enum": [
+                    "REMOTE",
+                    "HYBRID",
+                    "ON_SITE"
+                ],
+                "x-enum-varnames": [
+                    "WorkplaceRemote",
+                    "WorkplaceHybrid",
+                    "WorkplaceOnSite"
+                ]
+            },
             "pagination.PaginatedResponse": {
                 "type": "object",
                 "properties": {
@@ -5270,13 +6927,13 @@
                         "maxLength": 200
                     },
                     "type": {
+                        "description": "P012: \"content\" is intentionally excluded — SchedulerService.processContent\nhas no backing content-publishing model/service (unlike the other four\ntypes, which map onto real tables), so accepting it here would let an\nadmin schedule an item guaranteed to fail at execution time. Re-add it\nonce a real implementation exists.",
                         "type": "string",
                         "enum": [
                             "announcement",
                             "exam",
                             "task",
-                            "post",
-                            "content"
+                            "post"
                         ]
                     }
                 }

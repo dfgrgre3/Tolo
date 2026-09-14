@@ -2809,6 +2809,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List companies */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Search by name */
+                    search?: string;
+                    /** @description Industry */
+                    industry?: string[];
+                    /** @description Only verified companies */
+                    verified?: boolean;
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a company profile */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Company id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a company's published jobs */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Company id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyJobsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses": {
         parameters: {
             query?: never;
@@ -3239,6 +3391,682 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search job postings */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Free-text search over title, description and skills */
+                    keyword?: string;
+                    /** @description Matches country or city */
+                    location?: string;
+                    /** @description Country */
+                    country?: string;
+                    /** @description City */
+                    city?: string;
+                    /** @description Shorthand for workplace=REMOTE */
+                    remote?: boolean;
+                    /** @description Employment type */
+                    jobType?: string[];
+                    /** @description Workplace type */
+                    workplace?: string[];
+                    /** @description Experience level */
+                    experience?: string[];
+                    /** @description Category */
+                    category?: string[];
+                    /** @description Company id */
+                    company?: string[];
+                    /** @description Skills (matches any) */
+                    skills?: string[];
+                    /** @description Minimum salary */
+                    salaryMin?: number;
+                    /** @description Maximum salary */
+                    salaryMax?: number;
+                    /** @description Posted within N days (1, 3, 7 or 30) */
+                    datePosted?: number;
+                    /** @description relevance | newest | salary_desc | salary_asc */
+                    sort?: string;
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List job categories with counts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobCategoryListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a job posting */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{id}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List jobs similar to a posting */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Maximum results */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobSimilarResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's job applications */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Application status */
+                    status?: string[];
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationListResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one of the caller's applications */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Application id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/applications/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw an application */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Application id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/apply/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply to a job */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Jobs landing page summary for the caller */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobsOverviewResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's saved jobs */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.SavedJobListResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/jobs/saved/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save (bookmark) a job */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.SavedJobToggleResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        /** Remove a saved job */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.SavedJobToggleResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/my-courses": {
         parameters: {
             query?: never;
@@ -3568,6 +4396,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "authdto.CompanyDetailData": {
+            company?: components["schemas"]["models.Company"];
+        };
+        "authdto.CompanyDetailResponse": {
+            data?: components["schemas"]["authdto.CompanyDetailData"];
+            success?: boolean;
+        };
+        "authdto.CompanyJobsData": {
+            company?: components["schemas"]["models.Company"];
+            items?: components["schemas"]["models.Job"][];
+            jobs?: components["schemas"]["models.Job"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+        };
+        "authdto.CompanyJobsResponse": {
+            data?: components["schemas"]["authdto.CompanyJobsData"];
+            success?: boolean;
+        };
+        "authdto.CompanyListData": {
+            companies?: components["schemas"]["models.Company"][];
+            items?: components["schemas"]["models.Company"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+        };
+        "authdto.CompanyListResponse": {
+            data?: components["schemas"]["authdto.CompanyListData"];
+            success?: boolean;
+        };
         "authdto.CourseDetailData": {
             course?: components["schemas"]["models.Subject"];
             subject?: components["schemas"]["models.Subject"];
@@ -3587,6 +4441,72 @@ export interface components {
             data?: components["schemas"]["authdto.CourseListData"];
             success?: boolean;
         };
+        "authdto.JobApplicationDetailData": {
+            application?: components["schemas"]["models.JobApplication"];
+        };
+        "authdto.JobApplicationDetailResponse": {
+            data?: components["schemas"]["authdto.JobApplicationDetailData"];
+            success?: boolean;
+        };
+        "authdto.JobApplicationListData": {
+            applications?: components["schemas"]["models.JobApplication"][];
+            items?: components["schemas"]["models.JobApplication"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+            /** @description StatusCounts drives the application tab badges, keyed by status. */
+            statusCounts?: {
+                [key: string]: number;
+            };
+        };
+        "authdto.JobApplicationListResponse": {
+            data?: components["schemas"]["authdto.JobApplicationListData"];
+            success?: boolean;
+        };
+        "authdto.JobCategoryCount": {
+            category?: string;
+            count?: number;
+        };
+        "authdto.JobCategoryListData": {
+            categories?: components["schemas"]["authdto.JobCategoryCount"][];
+            items?: components["schemas"]["authdto.JobCategoryCount"][];
+        };
+        "authdto.JobCategoryListResponse": {
+            data?: components["schemas"]["authdto.JobCategoryListData"];
+            success?: boolean;
+        };
+        "authdto.JobDetailData": {
+            job?: components["schemas"]["models.Job"];
+        };
+        "authdto.JobDetailResponse": {
+            data?: components["schemas"]["authdto.JobDetailData"];
+            success?: boolean;
+        };
+        "authdto.JobListData": {
+            items?: components["schemas"]["models.Job"][];
+            jobs?: components["schemas"]["models.Job"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+        };
+        "authdto.JobListResponse": {
+            data?: components["schemas"]["authdto.JobListData"];
+            success?: boolean;
+        };
+        "authdto.JobSimilarData": {
+            items?: components["schemas"]["models.Job"][];
+            jobs?: components["schemas"]["models.Job"][];
+        };
+        "authdto.JobSimilarResponse": {
+            data?: components["schemas"]["authdto.JobSimilarData"];
+            success?: boolean;
+        };
+        "authdto.JobsOverviewData": {
+            applied?: number;
+            interviews?: number;
+            offers?: number;
+            saved?: number;
+        };
+        "authdto.JobsOverviewResponse": {
+            data?: components["schemas"]["authdto.JobsOverviewData"];
+            success?: boolean;
+        };
         "authdto.LoginRequest": {
             deviceName?: string;
             email: string;
@@ -3604,6 +4524,27 @@ export interface components {
             page?: number;
             total?: number;
             totalPages?: number;
+        };
+        "authdto.SavedJobEntry": {
+            job?: components["schemas"]["models.Job"];
+            savedAt?: string;
+        };
+        "authdto.SavedJobListData": {
+            items?: components["schemas"]["authdto.SavedJobEntry"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+            savedJobs?: components["schemas"]["authdto.SavedJobEntry"][];
+        };
+        "authdto.SavedJobListResponse": {
+            data?: components["schemas"]["authdto.SavedJobListData"];
+            success?: boolean;
+        };
+        "authdto.SavedJobToggleData": {
+            isSaved?: boolean;
+            jobId?: string;
+        };
+        "authdto.SavedJobToggleResponse": {
+            data?: components["schemas"]["authdto.SavedJobToggleData"];
+            success?: boolean;
         };
         "authdto.TeachingChapterContract": {
             id?: string;
@@ -3745,6 +4686,31 @@ export interface components {
             code: string;
             rememberMe?: boolean;
         };
+        "models.Company": {
+            coverUrl?: string;
+            createdAt?: string;
+            description?: string;
+            foundedYear?: number;
+            id?: string;
+            industry?: string;
+            /**
+             * @description IsVerified is admin-controlled only. It drives the verification badge,
+             *     so it must never be settable from an employer-supplied payload.
+             */
+            isVerified?: boolean;
+            /** @description Relations */
+            jobs?: components["schemas"]["models.Job"][];
+            location?: string;
+            logoUrl?: string;
+            name: string;
+            /** @description Non-DB mapped: populated by the company detail handler. */
+            openPositions?: number;
+            ownerId?: string;
+            size?: string;
+            slug?: string;
+            updatedAt?: string;
+            website?: string;
+        };
         /** @enum {string} */
         "models.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
         "models.CourseTag": {
@@ -3753,6 +4719,8 @@ export interface components {
             name?: string;
             slug?: string;
         };
+        /** @enum {string} */
+        "models.EmploymentType": "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
         "models.Enrollment": {
             createdAt?: string;
             enrolledAt?: string;
@@ -3787,6 +4755,81 @@ export interface components {
         };
         /** @enum {string} */
         "models.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
+        /** @enum {string} */
+        "models.ExperienceLevel": "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
+        "models.JSONMap": {
+            [key: string]: unknown;
+        };
+        "models.Job": {
+            applicationCount?: number;
+            benefits?: string;
+            category?: string;
+            city?: string;
+            closedAt?: string;
+            /** @description Relations */
+            company?: components["schemas"]["models.Company"];
+            companyId?: string;
+            country?: string;
+            createdAt?: string;
+            description?: string;
+            employmentType?: components["schemas"]["models.EmploymentType"];
+            experienceLevel?: components["schemas"]["models.ExperienceLevel"];
+            expiresAt?: string;
+            hasApplied?: boolean;
+            id?: string;
+            isApplyOpen?: boolean;
+            isFeatured?: boolean;
+            isSalaryVisible?: boolean;
+            /**
+             * @description Non-DB mapped, per-viewer flags resolved by the handler for the
+             *     authenticated caller. They are intentionally not persisted.
+             */
+            isSaved?: boolean;
+            matchScore?: number;
+            postedBy?: string;
+            preferredQualifications?: string;
+            publishedAt?: string;
+            requirements?: string;
+            responsibilities?: string;
+            salaryCurrency?: string;
+            salaryMax?: number;
+            salaryMin?: number;
+            salaryPeriod?: components["schemas"]["models.SalaryPeriod"];
+            skills?: string[];
+            slug?: string;
+            status?: components["schemas"]["models.JobPostingStatus"];
+            title: string;
+            updatedAt?: string;
+            /** @description Denormalized counters, maintained by the handlers that cause them. */
+            viewCount?: number;
+            workplaceType?: components["schemas"]["models.WorkplaceType"];
+        };
+        "models.JobApplication": {
+            /**
+             * @description Answers holds the employer's screening-question responses keyed by
+             *     question id. Free-form by design: the question set is per-job.
+             */
+            answers?: components["schemas"]["models.JSONMap"];
+            applicant?: components["schemas"]["models.User"];
+            applicantId?: string;
+            coverLetter?: string;
+            createdAt?: string;
+            email?: string;
+            id?: string;
+            /** @description Relations */
+            job?: components["schemas"]["models.Job"];
+            jobId?: string;
+            phone?: string;
+            resumeUrl?: string;
+            reviewedAt?: string;
+            status?: components["schemas"]["models.JobApplicationStatus"];
+            updatedAt?: string;
+            withdrawnAt?: string;
+        };
+        /** @enum {string} */
+        "models.JobApplicationStatus": "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "ASSESSMENT" | "OFFER" | "HIRED" | "REJECTED" | "WITHDRAWN";
+        /** @enum {string} */
+        "models.JobPostingStatus": "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "PAUSED" | "CLOSED" | "REJECTED" | "ARCHIVED";
         "models.LessonAttachment": {
             createdAt?: string;
             fileSize?: number;
@@ -3820,6 +4863,8 @@ export interface components {
             text?: string;
             type?: string;
         };
+        /** @enum {string} */
+        "models.SalaryPeriod": "HOURLY" | "MONTHLY" | "YEARLY";
         "models.SubTopic": {
             /** @description Relations */
             attachments?: components["schemas"]["models.LessonAttachment"][];
@@ -4034,6 +5079,8 @@ export interface components {
             titleAr?: string;
             updatedAt?: string;
         };
+        /** @enum {string} */
+        "models.WorkplaceType": "REMOTE" | "HYBRID" | "ON_SITE";
         "pagination.PaginatedResponse": {
             data?: unknown;
             pagination?: {
@@ -4202,8 +5249,15 @@ export interface components {
             scheduledFor: string;
             timezone?: string;
             title: string;
-            /** @enum {string} */
-            type: "announcement" | "exam" | "task" | "post" | "content";
+            /**
+             * @description P012: "content" is intentionally excluded — SchedulerService.processContent
+             *     has no backing content-publishing model/service (unlike the other four
+             *     types, which map onto real tables), so accepting it here would let an
+             *     admin schedule an item guaranteed to fail at execution time. Re-add it
+             *     once a real implementation exists.
+             * @enum {string}
+             */
+            type: "announcement" | "exam" | "task" | "post";
         };
         "protected.SearchHistoryRequest": {
             metadata?: {
