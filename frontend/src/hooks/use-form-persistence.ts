@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 
-export function useFormPersistence<T extends Record<string, any>>(
+export function useFormPersistence<T extends object>(
 formId: string,
 initialFormValues: T,
 _options: {

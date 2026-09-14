@@ -37,7 +37,12 @@ const loginRequestSchema = z.object({
 
 const mfaVerifyPayloadSchema = z.object({
   challengeId: z.string().trim().min(1),
-  code: z.string().trim().min(1),
+  // TOTP codes are six digits; recovery codes may contain letters and dashes.
+  // Kept in sync with login-service.ts's mfaVerifyPayloadSchema.
+  code: z.string().trim().refine(
+    (value) => /^\d{6}$/.test(value) || /^[A-Za-z0-9-]{8,32}$/.test(value),
+    "Invalid MFA code",
+  ),
 });
 
 const loginChallengeSchema = z.object({
@@ -70,6 +75,7 @@ export async function loginClient(
   const parsed = loginRequestSchema.safeParse(payload);
   if (!parsed.success) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId: null,
@@ -81,6 +87,7 @@ export async function loginClient(
 
   if (error || !response.ok) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId: null,
@@ -94,6 +101,7 @@ export async function loginClient(
     const challenge = loginChallengeSchema.safeParse(body);
     if (!challenge.success) {
       return {
+        status: "failure",
         success: false,
         requiresMfa: false,
         challengeId: null,
@@ -101,13 +109,14 @@ export async function loginClient(
       };
     }
     return {
+      status: "mfa_required",
       success: false,
       requiresMfa: true,
       challengeId: challenge.data.challengeId,
     };
   }
 
-  return { success: true, requiresMfa: false, challengeId: null };
+  return { status: "success", success: true, requiresMfa: false, challengeId: null };
 }
 
 /**
@@ -121,6 +130,7 @@ export async function verifyMfaClient(
   const parsed = mfaVerifyPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId,
@@ -132,6 +142,7 @@ export async function verifyMfaClient(
 
   if (error || !response.ok) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId,
@@ -139,7 +150,7 @@ export async function verifyMfaClient(
     };
   }
 
-  return { success: true, requiresMfa: false, challengeId: null };
+  return { status: "success", success: true, requiresMfa: false, challengeId: null };
 }
 
 function extractError(

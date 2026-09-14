@@ -10,7 +10,7 @@ interface LibraryFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   sortBy: string;
-  onSortChange: (value: any) => void;
+  onSortChange: (value: "newest" | "popular" | "rated") => void;
 }
 
 export function LibraryFilters({
@@ -80,11 +80,11 @@ export function LibraryFilters({
             <SlidersHorizontal className="w-4 h-4" />
           </div>
           <div className="flex gap-2">
-            {[
+            {([
               { id: "newest", label: "الأحدث" },
               { id: "popular", label: "الأكثر تداولاً" },
               { id: "rated", label: "الأعلى رتبة" },
-            ].map((s) => (
+            ] as const).map((s) => (
               <button
                 key={s.id}
                 onClick={() => onSortChange(s.id)}

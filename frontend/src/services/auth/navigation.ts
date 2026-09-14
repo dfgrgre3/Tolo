@@ -19,6 +19,26 @@ export const SAFE_REDIRECT_PUBLIC_ROUTES = [
   "/verify-email",
 ];
 
+const BACKSLASH_CHAR = String.fromCharCode(92);
+
+/**
+ * True when `path` contains an ASCII control character (0x00-0x1F or 0x7F)
+ * or a backslash. Tabs/newlines can be stripped by a browser while resolving
+ * a URL, turning "/\t/evil.com" into "//evil.com"; a backslash can be
+ * normalized to "/" before parsing, turning "/\evil.com" into the
+ * protocol-relative "//evil.com". Both are open-redirect vectors that a
+ * plain `startsWith("//")` check does not catch.
+ */
+function hasUnsafeRedirectChars(path: string): boolean {
+  for (let i = 0; i < path.length; i++) {
+    const code = path.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f || path.charAt(i) === BACKSLASH_CHAR) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Sanitizes a redirect path to ensure it is a safe relative path and never an
  * external / protocol-relative URL (open-redirect protection).
@@ -29,8 +49,12 @@ export function sanitizeRedirectPath(
 ): string {
   if (!path) return fallback;
 
-  // Only allow relative paths starting with a single "/" (not "//" which could
-  // be an external URL such as //evil.com).
+  if (hasUnsafeRedirectChars(path)) {
+    return fallback;
+  }
+
+  // Only allow relative paths starting with a single "/" (not "//" which
+  // could be an external URL such as //evil.com).
   if (path.startsWith("/") && !path.startsWith("//")) {
     return path;
   }

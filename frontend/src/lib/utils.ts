@@ -251,7 +251,7 @@ export function trimTrailingSlashes(str: string): string {
 export function toggleThemeWithTransition(
   theme: "light" | "dark",
   setTheme: (theme: "light" | "dark" | "system") => void,
-  _event?: React.MouseEvent | MouseEvent | any
+  _event?: React.MouseEvent | MouseEvent
 ) {
   if (typeof window !== 'undefined') {
     localStorage.setItem('theme', theme);

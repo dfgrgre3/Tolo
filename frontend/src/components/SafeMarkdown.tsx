@@ -1,11 +1,11 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import DOMPurify from 'isomorphic-dompurify';
 
 interface SafeMarkdownProps {
   children: string;
   className?: string;
-  components?: any;
+  components?: Components;
 }
 
 export function SafeMarkdown({ children, className, components }: SafeMarkdownProps) {

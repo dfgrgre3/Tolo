@@ -225,7 +225,7 @@ export default function BlogClient({
             key="posts"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
 
-                {filteredPosts.map((post, idx) =>
+                {filteredPosts.map((post) =>
             <div
               key={post.id}
               className={cn(STYLES.glass, "group flex flex-col hover:border-primary/30 transition-all duration-500 cursor-default")}>

@@ -237,7 +237,7 @@ export default function EventsPage() {
             key="events"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             
-                {filteredEvents.map((event, idx) =>
+                {filteredEvents.map((event) =>
             <div
               key={event.id}
               className={cn(STYLES.glass, "group flex flex-col hover:border-primary/30 transition-all duration-500")}>

@@ -2,11 +2,11 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Course } from "../types";
+import type { Course, Lesson } from "../types";
 
 interface LessonNavigationFooterProps {
-  previousLesson: any;
-  nextLesson: any;
+  previousLesson: Lesson | null | undefined;
+  nextLesson: Lesson | null | undefined;
   navigateRelative: (direction: "next" | "prev") => void;
   course: Course;
   lessonIndex: number;

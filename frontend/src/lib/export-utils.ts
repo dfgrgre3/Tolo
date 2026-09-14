@@ -3,7 +3,7 @@ export interface ExportColumn<T> {
     accessor: keyof T | ((item: T) => string | number | null | undefined);
 }
 
-export function exportToCSV<T extends Record<string, any>>(
+export function exportToCSV<T extends Record<string, unknown>>(
     data: T[],
     columns: ExportColumn<T>[],
     filename: string

@@ -1,5 +1,4 @@
 import type {
-  QuizSubmissionAnswer,
   QuizQuestion,
 } from '@/types/course-quiz';
 

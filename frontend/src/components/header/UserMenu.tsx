@@ -89,7 +89,14 @@ interface UserSubscription {
   status?: string;
 }
 
-interface AuthUser {
+/**
+ * View-model this component normalizes the auth user into — deliberately
+ * distinct from `AuthUser` in `@/contexts/auth-context` (SYM-002). `useAuth()`
+ * is treated as `unknown` here on purpose (see UserMenu()) so this shape
+ * exists to give `normalizeUser()` a safe, all-optional projection to build,
+ * not a second source of truth for "what a user is".
+ */
+interface UserMenuUser {
   id: string;
   name?: string;
   username?: string;
@@ -216,7 +223,7 @@ function normalizeSubscription(value: unknown): UserSubscription | null {
   };
 }
 
-function normalizeUser(value: unknown): AuthUser | null {
+function normalizeUser(value: unknown): UserMenuUser | null {
   if (!isRecord(value)) return null;
 
   const id = asId(value.id);
@@ -233,7 +240,7 @@ function normalizeUser(value: unknown): AuthUser | null {
   };
 }
 
-function getInitials(user: AuthUser): string {
+function getInitials(user: UserMenuUser): string {
   const source = user.name || user.username || user.email || "";
 
   const parts = source
@@ -336,7 +343,7 @@ function getSubscriptionLabel(
   return `${subscription.plan} - ينتهي ${endDateLabel}`;
 }
 
-function isPremiumUser(user: AuthUser): boolean {
+function isPremiumUser(user: UserMenuUser): boolean {
   // PREMIUM was never a real backend role (see internal/domain/common/user.go's
   // UserRole constants) — premium status comes from the subscription alone.
   const subscription = user.subscription;
@@ -464,7 +471,7 @@ export function UserMenu() {
       if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
         window.cancelIdleCallback(idleId);
       } else {
-        clearTimeout(idleId as any);
+        clearTimeout(idleId as NodeJS.Timeout);
       }
       if (activityIntervalRef.current) clearInterval(activityIntervalRef.current);
       if (socket) socket.removeEventListener("message", handleWsMessage);

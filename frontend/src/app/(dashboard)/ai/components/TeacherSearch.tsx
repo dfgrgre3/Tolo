@@ -27,15 +27,16 @@ interface TeacherSearchProps {
   className?: string;
 }
 
-function validateAndFormatTeachers(data: any) {
+function validateAndFormatTeachers(data: unknown) {
   if (!data || typeof data !== 'object') {
     throw new Error('بيانات غير صالحة من الخادم');
   }
+  const record = data as Record<string, unknown>;
 
   return {
-    localTeachers: Array.isArray(data.localTeachers) ? data.localTeachers : [],
-    aiTeachers: Array.isArray(data.aiTeachers) ? data.aiTeachers : [],
-    youtubeResults: Array.isArray(data.youtubeResults) ? data.youtubeResults : [],
+    localTeachers: Array.isArray(record.localTeachers) ? record.localTeachers : [],
+    aiTeachers: Array.isArray(record.aiTeachers) ? record.aiTeachers : [],
+    youtubeResults: Array.isArray(record.youtubeResults) ? record.youtubeResults : [],
   };
 }
 

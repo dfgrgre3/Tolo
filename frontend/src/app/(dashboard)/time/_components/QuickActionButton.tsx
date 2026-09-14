@@ -18,7 +18,7 @@ interface QuickActionButtonProps {
 const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const actions = [
+  const actions: { id: 'task' | 'reminder' | 'timer'; icon: React.ReactNode; label: string; color: string; hover: string }[] = [
     { id: 'task', icon: <CheckSquare className="h-5 w-5" />, label: 'مهمة جديدة', color: 'bg-blue-500', hover: 'hover:bg-blue-600' },
     { id: 'reminder', icon: <Bell className="h-5 w-5" />, label: 'تذكير جديد', color: 'bg-rose-500', hover: 'hover:bg-rose-600' },
     { id: 'timer', icon: <Timer className="h-5 w-5" />, label: 'بدء مؤقت', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600' },
@@ -44,7 +44,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
                         onClick={() => {
-                          onAction(action.id as any);
+                          onAction(action.id);
                           setIsOpen(false);
                         }}
                         className={`w-12 h-12 rounded-full ${action.color} ${action.hover} text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95`}

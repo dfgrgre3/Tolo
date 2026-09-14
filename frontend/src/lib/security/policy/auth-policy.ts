@@ -37,12 +37,34 @@ export const LEGACY_TOKEN_COOKIE_NAMES = ['auth_token', 'bearer_token'] as const
  *
  * Set this in your environment (.env.production) to match your deployment.
  */
+/**
+ * Parses TRUSTED_PROXY_COUNT into a non-negative integer, failing closed
+ * (0 — "trust nothing") on anything malformed rather than propagating `NaN`
+ * or a negative count into `resolveTrustedClientIp`'s arithmetic (SYM-007 in
+ * the symbol architecture audit: this value is a security input, not just a
+ * deployment convenience, so a typo'd env var must not silently disable IP
+ * trust boundary checks instead of visibly failing closed).
+ */
+function parseTrustedProxyCount(raw: string | undefined): number {
+  if (raw === undefined) return process.env.VERCEL === '1' ? 1 : 0;
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    console.error(
+      `[auth-policy] TRUSTED_PROXY_COUNT="${raw}" is not a valid non-negative integer. ` +
+      'Falling back to 0 (trust no proxy hop) — IP-based security features will fail ' +
+      'closed instead of trusting a spoofable header. Fix TRUSTED_PROXY_COUNT in your environment.'
+    );
+    return 0;
+  }
+
+  return parsed;
+}
+
 // Vercel terminates one trusted proxy hop before the application. Keep the
 // explicit environment override for other topologies, while avoiding an
 // unsafe client-IP default on direct/self-hosted deployments.
-export const TRUSTED_PROXY_COUNT = Number(
-  process.env.TRUSTED_PROXY_COUNT ?? (process.env.VERCEL === '1' ? 1 : 0),
-);
+export const TRUSTED_PROXY_COUNT = parseTrustedProxyCount(process.env.TRUSTED_PROXY_COUNT);
 
 /**
  * Validate TRUSTED_PROXY_COUNT configuration.

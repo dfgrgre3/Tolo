@@ -20,12 +20,12 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTimeTrackerStore, type PomodoroState } from '@/hooks/use-time-tracker-store';
-import type { TimeTrackerTask } from '../types';
+import type { StudySession, TimeTrackerTask } from '../types';
 
 interface TimeTrackerProps {
   tasks: TimeTrackerTask[];
   subjects: string[];
-  onStudySessionCreate?: (session: any) => void;
+  onStudySessionCreate?: (session: Omit<StudySession, 'updatedAt'>) => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -34,7 +34,7 @@ const formatTime = (seconds: number) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const stateThemes: Record<PomodoroState, {
+interface PomodoroTheme {
   label: string;
   labelShort: string;
   icon: React.ReactNode;
@@ -45,7 +45,9 @@ const stateThemes: Record<PomodoroState, {
   playBg: string;
   stopBg: string;
   border: string;
-}> = {
+}
+
+const stateThemes: Record<PomodoroState, PomodoroTheme> = {
   work: {
     label: 'وقت الدراسة والتركيز',
     labelShort: 'دراسة',
@@ -88,7 +90,7 @@ interface TimerCircleProps {
   currentPomodoroState: PomodoroState;
   totalDuration: number;
   handleToggle: () => void;
-  theme: any;
+  theme: PomodoroTheme;
 }
 
 const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleToggle, theme }: TimerCircleProps) => {
@@ -208,10 +210,9 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
             onStudySessionCreate({
               id: newSession.id,
               durationMin: newSession.durationMin,
-              focusScore: 100,
               startTime: newSession.startTime,
               endTime: newSession.endTime,
-              subjectId: newSession.courseId,
+              subjectId: newSession.courseId ?? '',
               createdAt: newSession.endTime,
               taskId: newSession.taskId,
             });

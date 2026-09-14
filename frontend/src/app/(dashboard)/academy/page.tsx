@@ -33,19 +33,31 @@ import { Progress } from "../../../components/ui/progress";
 import { Badge } from "../../../components/ui/badge";import { useGamification } from "@/hooks/use-gamification";
 import { logger } from '@/lib/logger';
 
+interface DashboardCourse {
+  id: string;
+  title?: string;
+  name?: string;
+  thumbnailUrl?: string;
+  subject?: string;
+  enrolled?: boolean;
+  progress?: number;
+  rating?: number;
+  description?: string;
+}
+
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
-  const { user } = useAuth();
+  useAuth();
   const { userProgress } = useGamification();
   const [loading, setLoading] = useState(true);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<DashboardCourse[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "completed" | "explore">("active");
 
   useEffect(() => {
     const fetchMyCourses = async () => {
       try {
         setLoading(true);
-        const data = await apiClient.get<{ items?: any[] }>(apiRoutes.courses.list);
+        const data = await apiClient.get<{ items?: DashboardCourse[] }>(apiRoutes.courses.list);
         const fetchedCourses = Array.isArray(data?.items) ? data.items : [];
         setCourses(fetchedCourses);
       } catch (err) {
@@ -223,7 +235,7 @@ export default function GamifiedCoursesDashboard() {
                           {/* Image */}
                           <div className="relative h-20 w-32 rounded-xl overflow-hidden shrink-0 hidden sm:block">
                             {course.thumbnailUrl ?
-                      <Image src={course.thumbnailUrl} alt={course.title} fill sizes="128px" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" unoptimized /> :
+                      <Image src={course.thumbnailUrl} alt={course.title ?? course.name ?? ""} fill sizes="128px" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" unoptimized /> :
 
                       <div className="w-full h-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center">
                                 <BookMarked className="h-6 w-6 text-primary/50" />
@@ -317,7 +329,7 @@ export default function GamifiedCoursesDashboard() {
                   <div key={course.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-2xl border border-white/5 bg-background/50 hover:bg-muted/40 transition-colors">
                             <div className="relative h-24 w-full sm:w-40 rounded-xl overflow-hidden shrink-0">
                              {course.thumbnailUrl ?
-                      <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(max-width: 640px) 100vw, 160px" className="w-full h-full object-cover" unoptimized /> :
+                      <Image src={course.thumbnailUrl} alt={course.title ?? course.name ?? ""} fill sizes="(max-width: 640px) 100vw, 160px" className="w-full h-full object-cover" unoptimized /> :
 
                       <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
                                 <BookOpen className="h-6 w-6 text-indigo-400" />

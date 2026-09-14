@@ -19,6 +19,7 @@ import {
   Pie,
   Legend
 } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface SubjectDistributionCanvasProps {
   subjects: Array<{ name: string; minutes: number; hours: number }>;
@@ -37,13 +38,13 @@ export default function SubjectDistributionCanvas({
     fill: colors[index % colors.length]
   }));
 
-  const formatBarTooltip = (value: any) => {
+  const formatBarTooltip = (value: ValueType | undefined) => {
     const hours = Number(value);
     const minutes = hours * 60;
     return [`${hours.toFixed(1)} ساعة (${Math.round(minutes)} دقيقة)`, 'ساعات'];
   };
 
-  const formatPieTooltip = (value: any, name: any) => {
+  const formatPieTooltip = (value: ValueType | undefined, name: NameType | undefined) => {
     const minutes = Number(value);
     const hours = minutes / 60;
     const totalMinutes = subjects.reduce((sum, s) => sum + s.minutes, 0);

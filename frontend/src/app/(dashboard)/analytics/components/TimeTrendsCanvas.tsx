@@ -17,6 +17,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface TimeTrendsCanvasProps {
   days: Array<{ shortLabel: string; minutes: number }>;
@@ -32,7 +33,7 @@ export default function TimeTrendsCanvas({ days, firstAvg }: TimeTrendsCanvasPro
     }));
   }, [days, firstAvg]);
 
-  const formatTooltip = (value: any, name: any) => {
+  const formatTooltip = (value: ValueType | undefined, name: NameType | undefined) => {
     const minutes = Number(value);
     if (name === 'minutes') {
       const hours = (minutes / 60).toFixed(1);

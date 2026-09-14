@@ -19,12 +19,19 @@ import { logger } from '@/lib/logger';
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 
+interface ReferralReward {
+  id: string;
+  referred?: { name?: string };
+  amount: number;
+  createdAt: string;
+}
+
 interface ReferralStats {
   referralCode: string;
   referralCount: number;
   totalEarned: number;
   pendingRewards: number;
-  history: any[];
+  history: ReferralReward[];
 }
 
 export default function ReferralsPage() {

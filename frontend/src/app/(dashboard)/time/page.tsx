@@ -168,7 +168,8 @@ export default function TimeManagementPage() {
   }, [tasks, setTasks, updateStatsOnTaskDelete]);
 
   // Handle new study session
-  const handleStudySessionCreate = useCallback((newSession: StudySession) => {
+  const handleStudySessionCreate = useCallback((partialSession: Omit<StudySession, 'updatedAt'>) => {
+    const newSession: StudySession = { ...partialSession, updatedAt: new Date().toISOString() };
     setStudySessions(prev => [newSession, ...prev]);
     updateStatsOnSessionCreate(newSession);
     toast.success(`تم تسجيل ${newSession.durationMin} دقيقة من المذاكرة`);

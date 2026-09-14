@@ -182,7 +182,7 @@ export default function TaskManagement({
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
-      const updateData: Partial<Task> = { status: status as any };
+      const updateData: Partial<Task> = { status: status as Task['status'] };
       if (status === 'COMPLETED') {
         updateData.completedAt = new Date().toISOString();
         updateData.actualTime = timerSeconds > 0 ? Math.round(timerSeconds / 60) : undefined;

@@ -22,7 +22,12 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
   if (isGuest && (accessToken || refreshToken)) {
     let payload = await verifySession(accessToken);
     let refreshCookies: string[] = [];
-    let valid = hasValidPayload(payload);
+    // Same 10s clock-skew margin used for protected pages/APIs below: a
+    // token that verifies but expires within the next 10s should still be
+    // refreshed rather than treated as a valid session, otherwise the user
+    // gets redirected off the guest page onto a session that dies almost
+    // immediately.
+    let valid = hasValidPayload(payload, 10_000);
 
     if (!valid && refreshToken) {
       const result = await refreshSession(request, refreshToken);
@@ -72,16 +77,25 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
     return createRefreshedResponse(requestHeaders, session, nonce);
   }
 
-  // A refresh was attempted but did not produce a valid session. Clear the
-  // stale cookies now so every following request does not retry the same
-  // invalid refresh token (which otherwise creates a 401 -> refresh storm
-  // and eventually trips the backend rate limiter).
+  // A refresh was attempted but did not produce a valid session for this
+  // request. The current request still fails (its token could not be
+  // verified in time), but if the backend rotated the refresh token
+  // (Set-Cookie present) that rotation already happened server-side —
+  // relay the new cookies so the client's *next* request succeeds instead
+  // of retrying a session the backend just replaced. Only clear cookies
+  // outright when the backend produced no rotation at all, otherwise every
+  // following request would retry the same dead refresh token (401 ->
+  // refresh storm, eventually tripping the backend rate limiter).
   if (session.refreshAttempted && isApiRequest(pathname)) {
     const response = NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 },
     );
-    clearAuthCookies(response);
+    if (session.refreshCookies.length > 0) {
+      appendRefreshCookies(response, session.refreshCookies);
+    } else {
+      clearAuthCookies(response);
+    }
     return finalizeProxyResponse(response, nonce);
   }
 
@@ -119,7 +133,12 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
       };
-      if (session.refreshCookies.length === 0 || !session.payload) {
+      if (session.refreshCookies.length === 0) {
+        // The backend never rotated anything for this refresh attempt (network
+        // failure, expired/revoked refresh token, timeout) — there is no new
+        // session to fall back on, so force a fresh login and clear the stale
+        // cookies to stop every subsequent request from retrying the same
+        // dead refresh token.
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         loginUrl.searchParams.set('error', 'session_expired');
@@ -127,6 +146,16 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
         clearAuthCookies(response);
         return response;
       }
+
+      // If session.payload is still null here, the backend rotated the
+      // session (Set-Cookie present) but the new access token could not be
+      // verified locally (e.g. transient decode failure). The rotation
+      // already happened server-side, so this request falls through to the
+      // normal render path below, which forwards the new access token on
+      // the outgoing request and relays the new Set-Cookie to the browser —
+      // without an extra redirect hop, which would risk looping if the new
+      // token is deterministically unverifiable (no Edge-level loop guard
+      // exists here, unlike the client-side one in redirect-loop-guard.ts).
     }
 
     if (session.accessToken || session.refreshToken) {

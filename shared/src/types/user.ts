@@ -83,8 +83,6 @@ export interface User {
     createdAt: string;
     updatedAt: string;
     lastLogin?: string | null;
-
-    [key: string]: unknown;
 }
 
 /** Minimal user object for nested relations */

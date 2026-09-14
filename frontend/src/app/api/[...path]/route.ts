@@ -372,9 +372,8 @@ async function handleProxy(
   }
 
   const { search } = new URL(request.url);
-  let backendUrl: string;
   try {
-    backendUrl = getProxyBackendUrl();
+    getProxyBackendUrl();
   } catch (err) {
     // getBackendUrl() throws in production when neither INTERNAL_API_URL
     // nor NEXT_PUBLIC_API_URL is configured. Surface that as a structured

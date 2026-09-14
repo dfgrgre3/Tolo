@@ -37,6 +37,8 @@ export function HeaderCartIcon({ user, mounted }: HeaderCartIconProps) {
 
 	useEffect(() => {
 		if (!mounted || !user) return;
+		// Async fetch; setState happens in fetchCount's callback, not synchronously here.
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		fetchCount();
 	}, [mounted, user, fetchCount, pathname]);
 

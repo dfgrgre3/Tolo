@@ -130,11 +130,11 @@ export default function SubscriptionPlans() {
   useEffect(() => {
     async function fetchPlans() {
       try {
-        const data = await apiClient.get<any>("/subscriptions/plans");
+        const data = await apiClient.get<Plan[] | { plans?: Plan[] }>("/subscriptions/plans");
         const plansList = Array.isArray(data) ? data : (data?.plans || []);
         setPlans(plansList);
-      } catch (error: any) {
-        toast.error(error.message || "تعذر تحميل الباقات");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "تعذر تحميل الباقات");
       } finally {
         setLoading(false);
       }
@@ -165,14 +165,14 @@ export default function SubscriptionPlans() {
     if (!couponCode || !selectedPlanData) return;
     setValidatingCoupon(true);
     try {
-      const data = await apiClient.post<any>("/coupons/validate", {
+      const data = await apiClient.post<{ discountAmount: number; finalAmount: number; description?: string }>("/coupons/validate", {
         code: couponCode.trim().toUpperCase(),
         amount: basePrice
       });
       setCouponData(data);
       toast.success("تم تطبيق كود الخصم");
-    } catch (error: any) {
-      toast.error(error.message || "تعذر تطبيق كود الخصم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر تطبيق كود الخصم");
     } finally {
       setValidatingCoupon(false);
     }
@@ -182,7 +182,11 @@ export default function SubscriptionPlans() {
     if (!selectedPlanData) return;
     setProcessing(true);
     try {
-      const data = await apiClient.post<any>("/subscriptions/checkout", {
+      const data = await apiClient.post<{
+        success?: boolean;
+        iframeId?: string;
+        paymentKey?: string;
+      }>("/subscriptions/checkout", {
         planId: selectedPlanData.id,
         billingCycle,
         paymentMethod,
@@ -204,8 +208,8 @@ export default function SubscriptionPlans() {
         window.location.href = `https://egypt.paymob.com/api/acceptance/wallets/v1/checkout?payment_token=${data.paymentKey}`;
         return;
       }
-    } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء تجهيز الدفع");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء تجهيز الدفع");
     } finally {
       setProcessing(false);
     }

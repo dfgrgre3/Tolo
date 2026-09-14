@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import LessonBuilder from "./LessonBuilder";
 import { QuizBuilder } from "./QuizBuilder";
 import { Course, Chapter } from "../hooks/use-teaching-data";
-import type { QuizQuestion } from "@/types/course-quiz";
 import { useUpload } from "@/hooks/use-upload";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
@@ -53,7 +52,6 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const updateActiveQuiz = (patch: Partial<NonNullable<Course["quiz"]>>) => {
     setQuizDrafts((drafts) => drafts.map((quiz) => quiz.lessonId === quizLessonId ? { ...quiz, ...patch } : quiz));
   };
-  const setQuizQuestions = (questions: QuizQuestion[]) => updateActiveQuiz({ questions });
   const setQuizSettings = (updater: (settings: typeof quizSettings) => typeof quizSettings) => {
     updateActiveQuiz(updater(quizSettings));
   };

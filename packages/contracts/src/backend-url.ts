@@ -17,9 +17,9 @@ export {
   getBackendUrl,
   getBackendApiUrl,
   __resetBackendUrlCache,
-} from "../../../shared/src/backend-url";
+} from "@thanawy/shared/backend-url";
 
-import { getBackendUrl, getBackendApiUrl } from "../../../shared/src/backend-url";
+import { getBackendUrl, getBackendApiUrl } from "@thanawy/shared/backend-url";
 
 /**
  * @deprecated Use getBackendUrl() from @thanawy/shared/backend-url instead.

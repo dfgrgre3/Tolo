@@ -2,7 +2,7 @@ import { getRequestContext } from './correlation';
 import { sanitizeLogContext, containsSensitiveData } from './sanitizer';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-type LogContext = Record<string, any>;
+type LogContext = Record<string, unknown>;
 type LoggableContext = LogContext | unknown;
 
 interface LoggerConfig {
@@ -33,10 +33,10 @@ class UnifiedLogger {
     return messageLevelIndex >= currentLevelIndex;
   }
 
-  private formatMessage(level: LogLevel, message: string, context?: LogContext, error?: any): string {
+  private formatMessage(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): string {
     const timestamp = new Date().toISOString();
     const contextStore = getRequestContext();
-    const requestId = context?.requestId || contextStore?.requestId;
+    const requestId = (context?.requestId as string | undefined) || contextStore?.requestId;
     const ridStr = requestId ? ` [RID:${requestId.substring(0, 8)}]` : '';
     
     // Sanitize context if sensitive

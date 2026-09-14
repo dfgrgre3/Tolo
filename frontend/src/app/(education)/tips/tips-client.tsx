@@ -17,6 +17,7 @@ import {
 
   Activity } from
 'lucide-react';
+import type { LucideProps } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
 const STYLES = {
@@ -59,10 +60,10 @@ export default function TipsPage() {
   { name: "اللغات", desc: "عضلاتك اللغوية تنمو بالمفردات اليومية والتدريب الكتابي المستمر.", icon: scroll }];
 
 
-  function activity(props: any) {return <Activity {...props} />;}
-  function zap(props: any) {return <Zap {...props} />;}
-  function spark(props: any) {return <Sparkles {...props} />;}
-  function scroll(props: any) {return <Scroll {...props} />;}
+  function activity(props: LucideProps) {return <Activity {...props} />;}
+  function zap(props: LucideProps) {return <Zap {...props} />;}
+  function spark(props: LucideProps) {return <Sparkles {...props} />;}
+  function scroll(props: LucideProps) {return <Scroll {...props} />;}
 
   return (
     // `m.*` here is animated by the global LazyMotion provider in

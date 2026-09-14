@@ -23,6 +23,7 @@ import {
   Star,
   Loader2 } from
 "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -66,7 +67,7 @@ const statusMap: Record<string, {label: string;color: string;}> = {
   "CANCELLED": { label: "ملغي", color: "text-gray-500 bg-gray-500/10 border-gray-500/20" }
 };
 
-const typeMap: Record<string, {label: string;icon: any;color: string;bg: string;}> = {
+const typeMap: Record<string, {label: string;icon: LucideIcon;color: string;bg: string;}> = {
   "DEPOSIT": { label: "إيداع", icon: ArrowUpRight, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   "PAYMENT": { label: "مدفوعات", icon: ArrowDownLeft, color: "text-rose-500", bg: "bg-rose-500/10" },
   "REFUND": { label: "استرداد", icon: History, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -238,7 +239,12 @@ export default function WalletDashboard() {
 
   const fetchData = async () => {
     try {
-      const walletData = await apiClient.get<any>("/billing/wallet");
+      const walletData = await apiClient.get<{
+        balance?: number;
+        history?: Transaction[];
+        transactions?: Transaction[];
+        invoices?: Invoice[];
+      }>("/billing/wallet");
 
       setBalance(walletData?.balance || 0);
       setTransactions(walletData?.history || walletData?.transactions || []);
@@ -258,13 +264,13 @@ export default function WalletDashboard() {
 
   const handleDeposit = async (amount: number) => {
     try {
-      const data = await apiClient.post<any>("/billing/wallet", { amount });
+      const data = await apiClient.post<{ balance: number; message?: string }>("/billing/wallet", { amount });
 
       setBalance(data.balance);
       toast.success(data.message || "تم الشحن بنجاح");
       fetchData(); // Refresh history
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "حدث خطأ أثناء الشحن");
     }
   };
 

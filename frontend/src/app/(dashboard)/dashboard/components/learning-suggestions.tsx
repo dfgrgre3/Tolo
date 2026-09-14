@@ -26,6 +26,21 @@ interface SuggestedCourse {
   price: number;
 }
 
+interface RawCourse {
+  id?: string;
+  name?: string;
+  nameAr?: string;
+  description?: string;
+  instructorName?: string;
+  tags?: string[];
+  thumbnailUrl?: string;
+  level?: string;
+  subject?: string;
+  price?: number;
+  enrolledCount?: number;
+  _count?: { enrollments?: number };
+}
+
 const levelLabels: Record<string, string> = {
   BEGINNER: "مبتدئ",
   INTERMEDIATE: "متوسط",
@@ -51,13 +66,13 @@ export function LearningSuggestions() {
         setRecentSearches(searches);
 
         // Fetch courses and pick suggestions based on recent searches
-        const res = await apiClient.get<any>("/courses?limit=20");
+        const res = await apiClient.get<{ data?: { items?: RawCourse[] }; items?: RawCourse[] }>("/courses?limit=20");
         const payload = res.data ?? res;
-        const courses: any[] = payload.items ?? [];
+        const courses: RawCourse[] = payload.items ?? [];
 
         if (searches.length > 0 && courses.length > 0) {
           // Score courses by relevance to recent searches
-          const scored = courses.map((course: any) => {
+          const scored = courses.map((course) => {
             const textToSearch = [
               course.name || course.nameAr || "",
               course.description || "",
@@ -106,12 +121,12 @@ export function LearningSuggestions() {
         // Fallback: show popular courses if no recent searches or no matches
         const popular = courses
           .sort(
-            (a: any, b: any) =>
+            (a, b) =>
               (b.enrolledCount || b._count?.enrollments || 0) -
               (a.enrolledCount || a._count?.enrollments || 0)
           )
           .slice(0, 4)
-          .map((c: any) => ({
+          .map((c) => ({
             id: c.id || "",
             title: c.name || c.nameAr || "",
             thumbnailUrl: c.thumbnailUrl,

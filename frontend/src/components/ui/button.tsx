@@ -7,14 +7,16 @@ import { cn } from "@/lib/utils";
 const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>(
   ({ children, ...props }, ref) => {
     if (React.isValidElement(children)) {
-      const child = children as React.ReactElement<any>;
-      const childRef = (child as any).ref;
+      const child = children as React.ReactElement<
+        React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }
+      >;
+      const childRef = child.props.ref;
       return React.cloneElement(child, {
         ...props,
         ...child.props,
-        ref: (node: any) => {
+        ref: (node: HTMLElement | null) => {
           if (typeof ref === 'function') ref(node)
-          else if (ref && "current" in ref) (ref as React.MutableRefObject<any>).current = node
+          else if (ref && "current" in ref) (ref as React.MutableRefObject<HTMLElement | null>).current = node
 
           if (typeof childRef === 'function') childRef(node)
         },
@@ -23,7 +25,7 @@ const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & {
           ...child.props.style,
         },
         className: cn(props.className, child.props.className),
-      } as any);
+      });
     }
     return <span {...props} ref={ref}>{children}</span>;
   }

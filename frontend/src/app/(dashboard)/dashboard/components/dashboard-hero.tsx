@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "./clock";
 import { StatsGrid } from "./stats-grid";
+import type { UserProgress } from "@/types/gamification";
 
 interface DashboardHeroProps {
   displayName: string;
@@ -17,7 +18,7 @@ interface DashboardHeroProps {
   nextLevelXP: number;
   xpPercentage: number;
   lastCourse: { id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null;
-  userProgress: any;
+  userProgress: UserProgress | null;
   styles: {
     glass: string;
     neonText: string;

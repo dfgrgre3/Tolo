@@ -55,7 +55,7 @@ export function AgendaView({
     return items;
   }, [timeBlocks, weekDays]);
 
-  const renderItem = (item: any) => {
+  const renderItem = (item: { type: 'header'; dayIndex: number; day: Date } | { type: 'block'; block: TimeBlock; dayIndex: number }) => {
     if (item.type === 'header') {
       const { day, dayIndex } = item;
       const dayKey = format(day, 'yyyy-MM-dd');

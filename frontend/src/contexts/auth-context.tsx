@@ -31,15 +31,17 @@ import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services/auth/login-service";
 
 /**
- * Result of an explicit credential-based login (admin or normal).
+ * Result of an explicit credential-based login (admin or normal), modeled as
+ * a discriminated union on `status` (SYM-005 in the symbol architecture
+ * audit) so e.g. `{ success: true, requiresMfa: true }` is unrepresentable.
+ * `success/requiresMfa/challengeId/error` stay on every branch so existing
+ * call sites narrowing on `result.requiresMfa` then `result.success` —
+ * unchanged, and exactly how a discriminated union narrows — keep working.
  */
-export interface AuthLoginResult {
-  success: boolean;
-  requiresMfa?: boolean;
-  /** Opaque MFA challenge handle to pass to `verifyMfa`. */
-  challengeId?: string | null;
-  error?: string | null;
-}
+export type AuthLoginResult =
+  | { status: "success"; success: true; requiresMfa?: false; challengeId?: null; error?: undefined }
+  | { status: "mfa_required"; success: false; requiresMfa: true; challengeId: string | null; error?: undefined }
+  | { status: "failure"; success: false; requiresMfa?: false; challengeId?: null; error: string };
 
 // API Response Types
 export interface AuthMeResponse {
@@ -175,6 +177,21 @@ function getMeUrl(): string {
  *   - 5xx / network / etc. → unavailable (backend unreachable, keep session
  *                            until proven absent)
  */
+/**
+ * A 200 whose body carries no `user` is a broken backend contract, not proof
+ * that the visitor is signed out. Classifying it as "anonymous" would silently
+ * sign a live session out (and hide the backend defect); "unavailable" keeps
+ * the session claim unresolved while still refusing to treat the caller as
+ * authenticated.
+ */
+const CONTRACT_ERROR_STATE: AuthState = {
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  status: "unavailable",
+  error: "استجابة غير صالحة من الخادم",
+};
+
 function stateFromMeError(err: unknown): AuthState {
   const is401 = err instanceof ApiError && err.status === 401;
   if (is401) {
@@ -268,11 +285,13 @@ export function AuthProvider({
         if (!isCurrentRequest()) return;
 
         // A 200 with no user object means the backend contract broke; treating
-        // it as authenticated would leave `user` null behind an auth guard.
+        // it as authenticated would leave `user` null behind an auth guard, and
+        // treating it as anonymous would sign a live session out over a server
+        // defect. See CONTRACT_ERROR_STATE.
         if (!data?.user) {
           requestCache.setIdentity(null);
           setAuthSessionVersion((version) => version + 1);
-          setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
+          setState({ ...CONTRACT_ERROR_STATE });
           return;
         }
 
@@ -363,7 +382,7 @@ export function AuthProvider({
       if (!data?.user) {
         requestCache.setIdentity(null);
         setAuthSessionVersion((version) => version + 1);
-        setState({ ...ANONYMOUS_STATE, error: "استجابة غير صالحة من الخادم" });
+        setState({ ...CONTRACT_ERROR_STATE });
         return false;
       }
 
@@ -412,11 +431,11 @@ export function AuthProvider({
       });
 
       if (result.requiresMfa) {
-        return { success: false, requiresMfa: true, challengeId: result.challengeId };
+        return { status: "mfa_required", success: false, requiresMfa: true, challengeId: result.challengeId };
       }
 
       if (!result.success) {
-        return { success: false, error: result.error ?? "فشل تسجيل الدخول" };
+        return { status: "failure", success: false, error: result.error ?? "فشل تسجيل الدخول" };
       }
 
       // Identity is about to change. Drop everything that could let a
@@ -429,8 +448,8 @@ export function AuthProvider({
       // The session cookie is set; load the user so guards see the new role.
       const refreshed = await refreshUser();
       return refreshed
-        ? { success: true }
-        : { success: false, error: "تعذر تحميل بيانات المستخدم بعد تسجيل الدخول" };
+        ? { status: "success", success: true }
+        : { status: "failure", success: false, error: "تعذر تحميل بيانات المستخدم بعد تسجيل الدخول" };
     },
     [queryClient, refreshUser]
   );
@@ -444,7 +463,7 @@ export function AuthProvider({
       const result = await verifyMfaRequest(challengeId, code);
 
       if (!result.success) {
-        return { success: false, error: result.error ?? "فشل التحقق من الرمز" };
+        return { status: "failure", success: false, error: result.error ?? "فشل التحقق من الرمز" };
       }
 
       // Same identity-transition cleanup as `adminLogin`: an MFA success
@@ -455,8 +474,8 @@ export function AuthProvider({
 
       const refreshed = await refreshUser();
       return refreshed
-        ? { success: true }
-        : { success: false, error: "تعذر تحميل بيانات المستخدم بعد التحقق" };
+        ? { status: "success", success: true }
+        : { status: "failure", success: false, error: "تعذر تحميل بيانات المستخدم بعد التحقق" };
     },
     [queryClient, refreshUser]
   );

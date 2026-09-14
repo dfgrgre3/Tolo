@@ -9,7 +9,7 @@ import { SITE } from "@thanawy/shared/site-config";
 import { levelConfig } from "./_components/types";
 import { toCourseSummary, toLessonCards } from "@/types/domain/mappers";
 import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
-import type { CourseDetailResponse, CourseDetailHydrationResponse } from "@/types/domain/mappers";
+import type { CourseDetailResponse } from "@/types/domain/mappers";
 import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
 import { ApiError } from "@/lib/api/api-client";
 

@@ -121,11 +121,8 @@ export default function SchedulePage() {
         <WeeklySchedule
           schedule={schedule}
           subjects={subjects}
-          onScheduleUpdate={(updatedSchedule: any) =>
-            setSchedule((prev) => ({
-              ...prev,
-              ...updatedSchedule
-            }))
+          onScheduleUpdate={(updatedSchedule: Partial<Schedule>) =>
+            setSchedule((prev) => prev ? { ...prev, ...updatedSchedule } : prev)
           }
         />
       )}

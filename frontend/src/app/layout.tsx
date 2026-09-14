@@ -83,7 +83,11 @@ export default async function RootLayout({
 
       <head>
 
-        {/* Centralized performance detection script */}
+        {/* Centralized performance detection script. Must run before first paint so
+            it can set data-perf-mode on <html> without FOUC, hence
+            `beforeInteractive`. Next emits a <link rel="preload"> for it that the
+            service worker answers from cache, so the browser may log a harmless
+            "preloaded but not used" warning in dev. */}
         <Script src="/perf-detect.js" strategy="beforeInteractive" nonce={nonce} />
 
         <link rel="dns-prefetch" href="https://i.ytimg.com" />

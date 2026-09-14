@@ -70,6 +70,16 @@ const ReadingProgressBar = dynamic(
 
 // ─── Memoized Sub-components ─────────────────────────────────────
 
+/**
+ * In development Next.js compiles routes on demand, so a speculative `<Link>`
+ * prefetch can race the dev server while it is busy building another route.
+ * The RSC request is then dropped and the router logs
+ * "Failed to fetch RSC payload ... Falling back to browser navigation".
+ * Harmless, but noisy — so we only prefetch in production builds, where all
+ * routes are already compiled.
+ */
+const UTILITY_NAV_PREFETCH = process.env.NODE_ENV === "production" ? undefined : false;
+
 const MemoizedHeaderLogo = memo(HeaderLogo);
 const MemoizedHeaderSearch = memo(HeaderSearch);
 const MemoizedHeaderNavigation = memo(HeaderNavigation);
@@ -247,6 +257,7 @@ export default function Header() {
 									<Link
 										key={item.href}
 										href={item.href}
+										prefetch={UTILITY_NAV_PREFETCH}
 										className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 									>
 										{item.label}
@@ -294,6 +305,7 @@ export default function Header() {
 									<Link
 										key={item.href}
 										href={item.href}
+										prefetch={UTILITY_NAV_PREFETCH}
 										className="hidden lg:flex items-center h-10 px-3 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
 									>
 										{item.label}

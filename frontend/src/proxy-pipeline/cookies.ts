@@ -15,14 +15,25 @@ export function updateCookieHeader(
   for (const cookie of (headers.get('cookie') || '').split(';')) {
     const separator = cookie.indexOf('=');
     if (separator <= 0) continue;
-    parsed.set(cookie.slice(0, separator).trim(), cookie.slice(separator + 1).trim());
+    const key = cookie.slice(0, separator).trim();
+    const rawValue = cookie.slice(separator + 1).trim();
+    // Cookie values may be percent-encoded by the browser/backend; decode so
+    // the in-memory map holds the plain value consistently with what we set
+    // below. Fall back to the raw value if it isn't valid percent-encoding.
+    try {
+      parsed.set(key, decodeURIComponent(rawValue));
+    } catch {
+      parsed.set(key, rawValue);
+    }
   }
 
   if (accessToken) parsed.set('access_token', accessToken);
   if (refreshToken) parsed.set('refresh_token', refreshToken);
   headers.set(
     'cookie',
-    Array.from(parsed.entries()).map(([key, value]) => `${key}=${value}`).join('; '),
+    Array.from(parsed.entries())
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('; '),
   );
 }
 

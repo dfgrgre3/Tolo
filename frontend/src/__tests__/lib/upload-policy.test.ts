@@ -3,7 +3,6 @@ import {
   SERVER_MAX_FILE_SIZE,
   MAX_SIMPLE_UPLOAD_SIZE,
   MAX_CHUNKED_UPLOAD_SIZE,
-  SERVER_ALLOWED_TYPES,
   isFileTypeAllowed,
   sanitizeFolder,
 } from "@/lib/storage/upload-policy";

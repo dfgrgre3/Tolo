@@ -12,6 +12,7 @@ vi.mock("@/lib/api/backend-url", () => ({
 
 vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }));
 
 // jwtVerify is mocked directly so this suite doesn't depend on real

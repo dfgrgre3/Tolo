@@ -11,6 +11,24 @@ const SW_SCOPE = "/";
 const SW_CACHE_PREFIX = "tolo-search";
 const ENABLED_IN_DEVELOPMENT = process.env.NEXT_PUBLIC_ENABLE_SERVICE_WORKER === "true";
 
+/**
+ * Service Workers require a trustworthy, stable origin. Dev tunnels
+ * (VS Code `*.devtunnels.ms`, ngrok, Cloudflare quick tunnels) proxy
+ * `/sw.js` through a gateway that frequently times out (504), which
+ * surfaces as a noisy registration failure with nothing to fix in the
+ * app. Skip registration on those hosts entirely.
+ */
+function isProxiedTunnelHost(): boolean {
+	const host = window.location.hostname;
+	return (
+		host.endsWith(".devtunnels.ms") ||
+		host.endsWith(".ngrok.io") ||
+		host.endsWith(".ngrok-free.app") ||
+		host.endsWith(".trycloudflare.com") ||
+		host.endsWith(".loca.lt")
+	);
+}
+
 async function cleanupServiceWorkerArtifacts(): Promise<void> {
 	try {
 		const registrations = await navigator.serviceWorker.getRegistrations();
@@ -38,6 +56,12 @@ async function cleanupServiceWorkerArtifacts(): Promise<void> {
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		logger.debug("Service Worker not supported");
+		return null;
+	}
+
+	if (isProxiedTunnelHost()) {
+		await cleanupServiceWorkerArtifacts();
+		logger.debug("Service Worker disabled on proxied tunnel host");
 		return null;
 	}
 
@@ -71,7 +95,10 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
 		return registration;
 	} catch (error) {
-		logger.error("Service Worker registration failed:", error);
+		// Registration failures are non-fatal: the app works without a SW.
+		// Common causes are environmental (proxy fetch of /sw.js failing,
+		// blocked storage) rather than application bugs.
+		logger.warn("Service Worker registration failed:", error);
 		return null;
 	}
 }

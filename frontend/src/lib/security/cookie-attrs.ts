@@ -250,7 +250,7 @@ export function forwardSetCookies(params: {
     let violations: string[] = [];
     if (isAuthCookie(name)) {
       // Auth cookies must be HttpOnly to prevent JavaScript access
-      violations = validateAuthCookieAttributes(adjusted);
+      violations = validateCookie(adjusted);
     } else if (isCsrfCookie(name)) {
       // CSRF cookies must NOT be HttpOnly - they need to be readable by JavaScript
       // for the double-submit pattern to work

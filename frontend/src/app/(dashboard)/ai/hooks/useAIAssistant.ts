@@ -70,8 +70,12 @@ export function useAIAssistant({
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      const SpeechRecognitionConstructor =
-        (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const win = window as Window & {
+        webkitSpeechRecognition?: new () => SpeechRecognition;
+        SpeechRecognition?: new () => SpeechRecognition;
+      };
+      const SpeechRecognitionConstructor = win.webkitSpeechRecognition || win.SpeechRecognition;
+      if (!SpeechRecognitionConstructor) return;
       const recognition = new SpeechRecognitionConstructor();
       recognition.lang = "ar-SA";
       recognition.continuous = false;

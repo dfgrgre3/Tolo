@@ -451,7 +451,7 @@ export function SettingsPanel({
                   </div>
                   <div className="max-h-[60vh] overflow-y-auto pr-1">
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {shortcuts.map(([shortcut, description], index) => (
+                      {shortcuts.map(([shortcut, description]) => (
                         <div
                           key={shortcut}
                           className="group flex items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-r from-white/5 to-transparent px-4 py-3.5 transition-all hover:border-white/20 hover:bg-white/10 hover:scale-[1.02]"

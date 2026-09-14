@@ -32,7 +32,7 @@ describe("login", () => {
 
     const result = await login({ email: "student@thanawy.com", password: "secret" });
 
-    expect(result).toEqual({ success: true, requiresMfa: false, challengeId: null });
+    expect(result).toEqual({ status: "success", success: true, requiresMfa: false, challengeId: null });
     expect(mockedPost).toHaveBeenCalledTimes(1);
   });
 
@@ -96,6 +96,7 @@ describe("login", () => {
     const result = await login({ email: "a@b.com", password: "x" });
 
     expect(result).toEqual({
+      status: "mfa_required",
       success: false,
       requiresMfa: true,
       challengeId: "challenge-abc",

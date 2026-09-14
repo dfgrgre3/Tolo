@@ -7,21 +7,24 @@
  *    are always forwarded and stale 401s are never served.
  *  - Skips work on weak devices (efficiency-mode / lite-mode)
  *
- * Cache version is bumped (`tolo-v3`) so existing clients drop the old
- * caches, including any stale 401 responses that may have been written by
- * the previous build. Bump again on any future breaking change.
+ * The cache version is bumped on every breaking change so existing clients
+ * drop their old caches (including any stale responses written by a previous
+ * build). Bump it again whenever caching behaviour changes.
  */
 
-const CACHE_VERSION = 'tolo-v8';
+const CACHE_VERSION = 'tolo-v10';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
 const PRECACHE_URLS = [
   '/',
   '/favicon.svg',
-  '/perf-detect.js',
   '/manifest.json'
 ];
+
+// Requests the service worker must leave entirely to the browser. See the
+// fetch handler for why `perf-detect.js` is here.
+const NO_INTERCEPT_PATHS = new Set(['/perf-detect.js']);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -70,11 +73,25 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Identify Next.js internal RSC / Prefetch requests
+  // Identify Next.js internal RSC / Prefetch requests.
+  //
+  // Keep this list in sync with Next's `app-router-headers` constants. The
+  // segment cache (Next 15+) issues per-segment prefetches that carry ONLY
+  // `next-router-segment-prefetch`; missing it here let those requests fall
+  // through to networkFirst, which surfaced rejections to the router as
+  // "TypeError: Failed to fetch" from segment-cache/fetch.ts.
   const isNextRsc = url.searchParams.has('_rsc') ||
                     request.headers.has('rsc') ||
                     request.headers.has('next-router-state-tree') ||
-                    request.headers.has('next-router-prefetch');
+                    request.headers.has('next-router-prefetch') ||
+                    request.headers.has('next-router-segment-prefetch') ||
+                    request.headers.has('next-hmr-refresh') ||
+                    // Flight payload URLs, in case the headers were stripped by a
+                    // proxy: Next serves these as /path.rsc and /path.prefetch.rsc.
+                    url.pathname.endsWith('.rsc') ||
+                    // Dev-only HMR + build manifests must always hit the network.
+                    url.pathname.startsWith('/_next/webpack-hmr') ||
+                    url.pathname.startsWith('/_next/static/development/');
 
   // Next.js RSC / prefetch requests: never intercept.
   //
@@ -119,6 +136,16 @@ self.addEventListener('fetch', (event) => {
     }
     return;
   }
+
+  // Scripts preloaded by the document: never intercept.
+  //
+  // `perf-detect.js` is injected by next/script with `beforeInteractive`, which
+  // also emits a <link rel="preload" as="script">. Answering the request from
+  // CacheStorage means the preloaded response is never consumed, so the browser
+  // discards it and logs a "cross-world service worker resource mismatch" /
+  // "preloaded but not used" warning. Letting the browser handle it natively
+  // keeps the preload matched; the file is small and HTTP-cacheable anyway.
+  if (NO_INTERCEPT_PATHS.has(url.pathname)) return;
 
   // Static assets: cache-first
   if (isStaticAsset(url.pathname)) {

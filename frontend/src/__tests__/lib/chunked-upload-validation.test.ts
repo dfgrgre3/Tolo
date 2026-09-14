@@ -18,7 +18,7 @@ const mockRedis = {
   expire: vi.fn().mockResolvedValue(1),
   hgetall: vi.fn(async () => mockSessionMeta),
   hget: vi.fn(async (_key: string, field: string) => mockSessionMeta ? mockSessionMeta[field] : null),
-  hset: vi.fn(async (_key: string, fieldOrObj: any, val?: any) => {
+  hset: vi.fn(async (_key: string, fieldOrObj: string | Record<string, unknown>, val?: string | number) => {
     if (typeof fieldOrObj === "string" && mockSessionMeta) {
       mockSessionMeta[fieldOrObj] = String(val);
     } else if (typeof fieldOrObj === "object" && mockSessionMeta) {

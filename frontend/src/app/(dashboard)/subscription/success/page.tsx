@@ -19,18 +19,29 @@ export default function PaymentSuccessPage() {
   );
 }
 
+interface PaymentData {
+  id: string;
+  orderId?: string;
+  amount: number;
+  discountAmount?: number;
+  createdAt?: string;
+  paymentMethod?: string;
+  user?: { name?: string; email?: string };
+  subscription?: { plan?: { nameAr?: string } };
+}
+
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
   const [downloading, setDownloading] = useState(false);
-  const [paymentData, setPaymentData] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
 
   const startDownload = async () => {
     if (!orderId) return;
     setDownloading(true);
     try {
       if (!paymentData) {
-        const data = await apiClient.get<{ id: string }>(apiRoutes.payments.byOrder(orderId));
+        const data = await apiClient.get<PaymentData>(apiRoutes.payments.byOrder(orderId));
         setPaymentData(data);
         // Small delay to ensure it's rendered off-screen
         setTimeout(() => {
@@ -115,7 +126,7 @@ function PaymentSuccessContent() {
               amount: paymentData.amount + (paymentData.discountAmount || 0),
               discountAmount: paymentData.discountAmount,
               finalAmount: paymentData.amount,
-              date: paymentData.createdAt,
+              date: paymentData.createdAt || new Date().toISOString(),
               paymentMethod: paymentData.paymentMethod || 'Card'
             }} />
           

@@ -70,7 +70,7 @@ export function TimeGrid({
         ))}
         
         {/* Time slots */}
-        {TIME_SLOTS.map((time, timeIndex) => (
+        {TIME_SLOTS.map((time) => (
           <React.Fragment key={time}>
             {/* Time label */}
             {showTimeLabels && (

@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useUltraLiteMode } from "@/hooks/use-efficiency-mode";
 
+/** Minimal shape of the non-standard Network Information API. */
+interface NetworkInformation {
+  saveData?: boolean;
+  effectiveType?: "slow-2g" | "2g" | "3g" | "4g";
+}
+
 /**
  * ConditionalAnalytics - Only loads Vercel Analytics when the device
  * is NOT in efficiency/lite/ultra-lite mode.
@@ -38,10 +44,12 @@ export function ConditionalAnalytics() {
     // Also disable on slow connections / save-data
     let inSaver = inEfficiency;
     try {
-      const conn =
-        (navigator as any).connection ||
-        (navigator as any).mozConnection ||
-        (navigator as any).webkitConnection;
+      const nav = navigator as Navigator & {
+        connection?: NetworkInformation;
+        mozConnection?: NetworkInformation;
+        webkitConnection?: NetworkInformation;
+      };
+      const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
       if (conn?.saveData) inSaver = true;
       if (
         conn?.effectiveType &&
@@ -92,10 +100,12 @@ export function ConditionalSpeedInsights() {
 
     let inSaver = inEfficiency;
     try {
-      const conn =
-        (navigator as any).connection ||
-        (navigator as any).mozConnection ||
-        (navigator as any).webkitConnection;
+      const nav = navigator as Navigator & {
+        connection?: NetworkInformation;
+        mozConnection?: NetworkInformation;
+        webkitConnection?: NetworkInformation;
+      };
+      const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
       if (conn?.saveData) inSaver = true;
     } catch {
       // ignore

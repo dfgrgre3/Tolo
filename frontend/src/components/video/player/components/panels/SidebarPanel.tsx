@@ -2,12 +2,15 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { Bookmark, Check, ChevronRight, Clock3, ListVideo, MessageSquare, Search, FileText } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { formatDuration } from "../../utils";
-import type { TranscriptCue } from "../../types";
+import type { BookmarkItem, LessonInfo, SidebarTab, TimelineNote, TranscriptCue } from "../../types";
 import { SidebarTabButton } from "../SidebarTabButton";
 import { cn } from "@/lib/utils";
 
-function EmptySidebarState({ icon: Icon, label }: any) {
+type SidebarPanelTab = "bookmarks" | "notes" | "lessons" | "transcript";
+
+function EmptySidebarState({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
     <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.05] p-6 text-center">
       <Icon className="mx-auto h-12 w-12 text-white/35" />
@@ -16,13 +19,13 @@ function EmptySidebarState({ icon: Icon, label }: any) {
   );
 }
 
-function BookmarksTab({ bookmarks, onJumpToTime }: any) {
+function BookmarksTab({ bookmarks, onJumpToTime }: { bookmarks: BookmarkItem[]; onJumpToTime: (time: number) => void }) {
   if (bookmarks.length === 0) {
     return <EmptySidebarState icon={Bookmark} label="لا توجد معالم زمنية لهذا الدرس بعد." />;
   }
   return (
     <div className="space-y-3">
-      {bookmarks.map((bookmark: any) => (
+      {bookmarks.map((bookmark) => (
         <button 
           key={`${bookmark.time}-${bookmark.label}`} 
           type="button" 
@@ -40,7 +43,27 @@ function BookmarksTab({ bookmarks, onJumpToTime }: any) {
   );
 }
 
-function NotesTab({ noteDraft, onNoteDraftChange, isNotesSyncing, onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote, onJumpToTime }: any) {
+function NotesTab({
+  noteDraft,
+  onNoteDraftChange,
+  isNotesSyncing,
+  onAddNoteAtCurrentTime,
+  onInsertTimestamp,
+  currentTime,
+  notes,
+  onRemoveNote,
+  onJumpToTime,
+}: {
+  noteDraft: string;
+  onNoteDraftChange: (value: string) => void;
+  isNotesSyncing: boolean;
+  onAddNoteAtCurrentTime: () => void;
+  onInsertTimestamp: () => void;
+  currentTime: number;
+  notes: TimelineNote[];
+  onRemoveNote: (id: string) => void;
+  onJumpToTime: (time: number) => void;
+}) {
   return (
     <div className="space-y-4">
       <div className="rounded-[28px] border border-white/15 bg-white/[0.05] p-4">
@@ -74,7 +97,7 @@ function NotesTab({ noteDraft, onNoteDraftChange, isNotesSyncing, onAddNoteAtCur
       </div>
       {notes.length > 0 ? (
         <div className="space-y-3">
-          {notes.map((note: any) => (
+          {notes.map((note) => (
             <div key={note.id} className="rounded-[24px] border border-white/15 bg-white/8 p-4">
               <div className="flex items-center justify-between gap-2.5">
                 <button 
@@ -166,13 +189,21 @@ function TranscriptTab({
   );
 }
 
-function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
+function LessonsTab({
+  lessons,
+  lessonId,
+  onLessonChange,
+}: {
+  lessons: LessonInfo[];
+  lessonId?: string;
+  onLessonChange?: (lessonId: string) => void;
+}) {
   if (lessons.length === 0) {
     return <EmptySidebarState icon={ListVideo} label="لا توجد قائمة دروس مرتبطة بهذا المشغل." />;
   }
   return (
     <div className="space-y-3">
-      {lessons.map((lesson: any, index: number) => {
+      {lessons.map((lesson, index) => {
         const isActive = lesson.id === lessonId;
         return (
           <button 
@@ -198,7 +229,7 @@ function LessonsTab({ lessons, lessonId, onLessonChange }: any) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-black text-white">{lesson.title}</p>
-              <p className="mt-1.5 text-sm text-white/55">{formatDuration(lesson.duration)}</p>
+              <p className="mt-1.5 text-sm text-white/55">{formatDuration(lesson.duration ?? 0)}</p>
             </div>
             {isActive ? <span className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-slate-950">الحالي</span> : null}
           </button>
@@ -214,7 +245,31 @@ export function SidebarPanel({
   onAddNoteAtCurrentTime, onInsertTimestamp, currentTime, notes, onRemoveNote,
   hasTranscript, transcriptCues, transcriptQuery, onTranscriptQueryChange,
   lessons, lessonId, onLessonChange, onCloseSidebar,
-}: any) {
+}: {
+  isSidebarOpen: boolean;
+  // isEfficiencyMode is accepted by callers but unused by this panel.
+  isEfficiencyMode?: boolean;
+  sidebarTab: SidebarTab;
+  onToggleSidebarTab: (tab: SidebarPanelTab) => void;
+  bookmarks: BookmarkItem[];
+  onJumpToTime: (time: number) => void;
+  noteDraft: string;
+  onNoteDraftChange: (value: string) => void;
+  isNotesSyncing: boolean;
+  onAddNoteAtCurrentTime: () => void;
+  onInsertTimestamp: () => void;
+  currentTime: number;
+  notes: TimelineNote[];
+  onRemoveNote: (id: string) => void;
+  hasTranscript: boolean;
+  transcriptCues: TranscriptCue[];
+  transcriptQuery: string;
+  onTranscriptQueryChange: (value: string) => void;
+  lessons: LessonInfo[];
+  lessonId?: string;
+  onLessonChange?: (lessonId: string) => void;
+  onCloseSidebar: () => void;
+}) {
   // Mobile: slide up from bottom, full width
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
   

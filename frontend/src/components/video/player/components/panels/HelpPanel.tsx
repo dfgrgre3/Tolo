@@ -4,7 +4,17 @@ import { AnimatePresence, m } from "framer-motion";
 import { ChevronRight, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function HelpPanel({ isHelpOpen, isEfficiencyMode, shortcuts, onCloseHelp }: any) {
+export function HelpPanel({
+  isHelpOpen,
+  isEfficiencyMode,
+  shortcuts,
+  onCloseHelp,
+}: {
+  isHelpOpen: boolean;
+  isEfficiencyMode?: boolean;
+  shortcuts: [string, string][];
+  onCloseHelp: () => void;
+}) {
   return (
     <AnimatePresence>
       {isHelpOpen ? (
@@ -31,7 +41,7 @@ export function HelpPanel({ isHelpOpen, isEfficiencyMode, shortcuts, onCloseHelp
               </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {shortcuts.map(([shortcut, description]: any) => (
+              {shortcuts.map(([shortcut, description]) => (
                 <div key={shortcut} className="flex items-center justify-between rounded-[22px] border border-white/10 bg-white/5 px-4 py-3">
                   <span className="text-sm font-bold text-white/75">{description}</span>
                   <kbd className="rounded-xl border border-white/10 bg-black/40 px-2 py-1 text-xs font-black text-blue-200">{shortcut}</kbd>

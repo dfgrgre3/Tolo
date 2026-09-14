@@ -46,6 +46,7 @@ describe("loginClient (openapi-fetch POC)", () => {
     });
 
     expect(result).toEqual({
+      status: "success",
       success: true,
       requiresMfa: false,
       challengeId: null,
@@ -64,6 +65,7 @@ describe("loginClient (openapi-fetch POC)", () => {
     });
 
     expect(result).toEqual({
+      status: "mfa_required",
       success: false,
       requiresMfa: true,
       challengeId: "ch_123",
@@ -104,6 +106,7 @@ describe("verifyMfaClient", () => {
     const result = await verifyMfaClient("ch_123", "123456");
 
     expect(result).toEqual({
+      status: "success",
       success: true,
       requiresMfa: false,
       challengeId: null,

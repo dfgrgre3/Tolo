@@ -51,7 +51,7 @@ export const TaskList: FC<TaskListProps> = ({
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
       <>
-        {tasks.map((task, index) => {
+        {tasks.map((task) => {
           const overdue = isOverdue(task.dueAt) && task.status !== 'COMPLETED';
           const completed = task.status === 'COMPLETED';
 

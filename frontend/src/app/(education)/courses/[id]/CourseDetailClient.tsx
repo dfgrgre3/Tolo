@@ -31,7 +31,7 @@ import {
 } from "@/types/domain/mappers";
 import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
 import type { Review, ReviewStats } from "./_components/types";
-import { container, fadeUp, getListItems } from "./_components/types";
+import { getListItems } from "./_components/types";
 import { LessonVideoArea } from "./_components/lesson-video-area";
 import { QuizLessonArea, QuizLessonBadge } from "./_components/quiz-lesson-area";
 import { CourseActionCard } from "./_components/course-action-card";

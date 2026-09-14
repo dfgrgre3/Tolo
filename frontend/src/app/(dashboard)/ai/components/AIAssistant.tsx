@@ -5,7 +5,9 @@ import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, Messag
 import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
-import { SafeMarkdown } from '@/components/SafeMarkdown';import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
+import type { Components } from 'react-markdown';
+import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
 
 interface Message {
@@ -122,8 +124,8 @@ export default function AIAssistant({
 
   const loadConversation = async (convId: string) => {
     try {
-      const payload = await apiClient.get<{ messages?: any[] }>(apiRoutes.ai.conversation(convId));
-      const loadedMessages: Message[] = payload.messages?.map((msg: any) => ({
+      const payload = await apiClient.get<{ messages?: { role: 'user' | 'assistant'; content: string; createdAt: string; id?: string }[] }>(apiRoutes.ai.conversation(convId));
+      const loadedMessages: Message[] = payload.messages?.map((msg) => ({
         role: msg.role,
         content: msg.content,
         timestamp: new Date(msg.createdAt),
@@ -392,7 +394,7 @@ export default function AIAssistant({
                     <div className="prose prose-invert prose-sm max-w-none">
                       <SafeMarkdown
                         components={{
-                          code: ({ className, children, ...props }: any) => {
+                          code: ({ className, children, ...props }) => {
                             const isInline = !className && typeof children === 'string' && !children?.toString().includes('\n');
                             if (isInline) {
                               return (
@@ -407,12 +409,12 @@ export default function AIAssistant({
                               </code>
                             );
                           },
-                          p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
-                          ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                          ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                          li: ({ children }: any) => <li className="text-sm">{children}</li>,
-                          strong: ({ children }: any) => <strong className="font-bold text-white">{children}</strong>,
-                        }}
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="text-sm">{children}</li>,
+                          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                        } satisfies Components}
                       >
                         {message.content}
                       </SafeMarkdown>

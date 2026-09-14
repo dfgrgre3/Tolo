@@ -19,6 +19,7 @@ import {
   Cell,
   CartesianGrid
 } from 'recharts';
+import type { ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 type WeeklyData = {
   bySubject: Record<string, number>;
@@ -55,7 +56,7 @@ export default function WeeklyChartCanvas({ weekly }: WeeklyChartCanvasProps) {
     }));
   }, [weekly]);
 
-  const formatTooltip = (value: any) => {
+  const formatTooltip = (value: ValueType | undefined) => {
     const minutes = Number(value);
     const hours = (minutes / 60).toFixed(1);
     return [`${minutes} دقيقة (${hours} ساعة)`, 'وقت المذاكرة'];

@@ -232,7 +232,7 @@ export default function AnnouncementsPage() {
                key="announcements"
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
-                {filteredAnnouncements.map((item, idx) => (
+                {filteredAnnouncements.map((item) => (
                   <div
                     key={item.id}
                     className={STYLES.glass + " group cursor-default hover:border-primary/40 transition-all flex flex-col"}
@@ -286,7 +286,7 @@ export default function AnnouncementsPage() {
                key="contests"
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
-                {filteredContests.map((item, idx) => (
+                {filteredContests.map((item) => (
                   <div
                     key={item.id}
                     className={STYLES.glass + " border-amber-500/10 group cursor-default hover:border-amber-500/40 transition-all flex flex-col"}

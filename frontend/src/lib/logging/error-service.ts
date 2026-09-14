@@ -23,7 +23,7 @@ export interface ErrorLogEntry {
   sessionId: string;
   userAgent: string;
   url: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
   resolved: boolean;
 }
 
@@ -34,7 +34,7 @@ export interface ErrorConfig {
   logToStorage: boolean;
   logToRemote: boolean;
   severity: ErrorSeverity;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface ErrorDisplayOptions {
@@ -178,7 +178,7 @@ class ErrorService {
   /**
    * Core logging method
    */
-  public logError(error: Error | string | unknown, context: Record<string, any> = {}): string {
+  public logError(error: Error | string | unknown, context: Record<string, unknown> = {}): string {
     const errorObj = error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Unknown error');
     
     const logEntry: ErrorLogEntry = {
@@ -186,7 +186,7 @@ class ErrorService {
       timestamp: new Date().toISOString(),
       message: errorObj.message || 'Unknown error',
       stack: errorObj.stack,
-      source: context.source || 'Unknown',
+      source: (context.source as string) || 'Unknown',
       severity: (context.severity || 'medium') as ErrorSeverity,
       sessionId: this.sessionId,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
@@ -284,8 +284,8 @@ class ErrorService {
 
   // Convenience methods
   public handleNetworkError(
-    error: any, 
-    endpoint: string, 
+    error: Error | string | unknown,
+    endpoint: string,
     config: Partial<ErrorConfig> = {},
     displayOptions: ErrorDisplayOptions = {}
   ): string {
@@ -300,7 +300,7 @@ class ErrorService {
     });
   }
 
-  public handleAuthError(error: any, config: Partial<ErrorConfig> = {}): string {
+  public handleAuthError(error: Error | string | unknown, config: Partial<ErrorConfig> = {}): string {
     return this.handleError(error, { 
       severity: 'high', 
       context: { type: 'auth', ...config.context },

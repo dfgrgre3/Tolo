@@ -55,8 +55,8 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const [catData, bookData] = await Promise.all([
-          apiClient.get<any>("/categories"),
-          apiClient.get<any>("/library/books")
+          apiClient.get<Category[] | { categories?: Category[] }>("/categories"),
+          apiClient.get<Book[] | { books?: Book[] }>("/library/books")
         ]);
         setCategories(Array.isArray(catData) ? catData : (catData?.categories || []));
         setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
@@ -104,7 +104,7 @@ export default function LibraryPage() {
     
     setUploading(true);
     try {
-      await apiClient.post<any>("/library/books", {
+      await apiClient.post<Book>("/library/books", {
         title: formData.title,
         author: formData.author,
         description: formData.description,
@@ -117,7 +117,7 @@ export default function LibraryPage() {
       toast.success("تم إرسال المخطوطة للأرشيف الملكي!");
       setShowUploadModal(false);
       
-      const bookData = await apiClient.get<any>("/library/books");
+      const bookData = await apiClient.get<Book[] | { books?: Book[] }>("/library/books");
       setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
       
       setFormData({

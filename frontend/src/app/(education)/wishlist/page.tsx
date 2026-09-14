@@ -40,6 +40,9 @@ export default function WishlistPage() {
   };
 
   useEffect(() => {
+    // Initial data fetch on mount; setState happens inside an async callback,
+    // not synchronously in the effect body, so this does not cascade renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchWishlist();
   }, []);
 

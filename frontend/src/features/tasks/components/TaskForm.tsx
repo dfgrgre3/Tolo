@@ -13,7 +13,7 @@ const STYLES = {
   errorText: "text-red-400 text-xs font-bold mt-1",
 };
 
-interface TaskFormProps<T extends FieldValues = any> {
+interface TaskFormProps<T extends FieldValues = FieldValues> {
   control: Control<T>;
   register: UseFormRegister<T>;
   errors: FieldErrors<T>;

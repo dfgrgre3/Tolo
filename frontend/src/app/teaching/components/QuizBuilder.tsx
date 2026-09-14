@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { toast } from "sonner";
-import { X, Plus, Trash2, ChevronDown, ChevronUp, GripVertical, Save, HelpCircle } from "lucide-react";
+import { X, Plus, Trash2, ChevronDown, ChevronUp, GripVertical, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

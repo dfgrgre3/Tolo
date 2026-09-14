@@ -527,7 +527,7 @@ export function safeGetItem<T = string>(
  * تعيين قيمة في التخزين المحلي بأمان
  * Set value in localStorage safely
  */
-export function safeSetItem(key: string, value: any, options?: { storageType?: StorageType }): boolean {
+export function safeSetItem(key: string, value: unknown, options?: { storageType?: StorageType }): boolean {
   if (typeof window === 'undefined') return false;
 
   const storageType = options?.storageType || 'local';

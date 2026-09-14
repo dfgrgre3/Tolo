@@ -39,7 +39,7 @@ export default function ContactPage() {
   const [formData, setFormData] = useState<ContactFormData>(() => restoreFormData());
 
   // تحديث حقل معين
-  const updateField = (field: keyof ContactFormData, value: any) => {
+  const updateField = <K extends keyof ContactFormData>(field: K, value: ContactFormData[K]) => {
     const newData = { ...formData, [field]: value };
     setFormData(newData);
     saveField(field, value); // حفظ الحقل فوراً

@@ -5,9 +5,9 @@
 import { performanceMonitor } from '../metrics/performance';
 import { getBackendApiUrl } from './backend-url';
 import { requestCache } from './request-cache';
-import { applyCsrfHeader, ensureCsrfToken, isCsrfValidationFailure } from './csrf';
+import { ensureCsrfToken, isCsrfValidationFailure } from './csrf';
 import { handleUnauthorized } from './redirect-loop-guard';
-import { requiresIdempotencyKey } from './idempotency-policy';
+import { buildRequestHeaders } from './request-headers';
 import {
     RETRYABLE_STATUSES,
     RETRY_DELAY,
@@ -161,46 +161,19 @@ export async function buildApiError(response: Response): Promise<ApiError> {
     return new ApiError(errorMessage, response.status, errorCode, errorData);
 }
 
+/**
+ * `ApiClient` is the request-transport coordinator: it owns the fetch/retry/
+ * timeout control flow and delegates every cross-cutting policy to its own
+ * module (SYM-001 in the symbol architecture audit) —
+ *   - header assembly (Content-Type, CSRF, Idempotency-Key) → request-headers.ts
+ *   - CSRF bootstrap/validation                              → csrf.ts
+ *   - retry/backoff and the error taxonomy                   → retry-policy.ts
+ *   - which write endpoints get an Idempotency-Key            → idempotency-policy.ts
+ *   - GET de-duplication                                      → request-cache.ts
+ *   - the 401 safety-net redirect                             → redirect-loop-guard.ts
+ * Changing one of those policies means editing its module, not this class.
+ */
 class ApiClient {
-    private async buildHeaders(endpoint: string, customOptions: RequestInit): Promise<Headers> {
-        const headers = new Headers();
-
-        if (!(customOptions.body instanceof FormData)) {
-            headers.set('Content-Type', 'application/json');
-        }
-
-        if (customOptions.headers) {
-            if (customOptions.headers instanceof Headers) {
-                customOptions.headers.forEach((value, key) => {
-                    headers.set(key, value);
-                });
-            } else if (Array.isArray(customOptions.headers)) {
-                customOptions.headers.forEach(([key, value]) => {
-                    headers.set(key, value);
-                });
-            } else {
-                Object.entries(customOptions.headers).forEach(([key, value]) => {
-                    headers.set(key, value);
-                });
-            }
-        }
-
-        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(customOptions.method || 'GET');
-
-        // For state-changing requests in the browser: guarantee the CSRF cookie exists first,
-        // then inject it as the X-CSRF-Token header (Double Submit Cookie pattern).
-        await applyCsrfHeader(headers, isWriteMethod);
-
-        // Only explicitly replay-safe endpoint families receive an idempotency
-        // key. Login, logout, telemetry, search-like POSTs, and uploads have
-        // different semantics and must not inherit payment retry behavior.
-        if (isWriteMethod && requiresIdempotencyKey(customOptions.method || 'GET', endpoint) && !headers.has('Idempotency-Key')) {
-            headers.set('Idempotency-Key', crypto.randomUUID());
-        }
-
-        return headers;
-    }
-
     private logNetworkError(error: unknown, endpoint: string): void {
         // Caller cancellation and our own internal timeouts are expected
         // control flow, not failures — logging them as HIGH network errors
@@ -218,6 +191,10 @@ class ApiClient {
     public async fetch(endpoint: string, options: FetchOptions = {}): Promise<Response> {
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
         let retryCount = 0;
+        // CSRF recovery is a *contract* repair (stale token), not a network
+        // retry. It gets its own budget so a single 403-CSRF bootstrap can no
+        // longer consume the caller's 502/504 retry allowance.
+        let csrfRetryCount = 0;
         let savedIdempotencyKey: string | null = null;
 
         while (true) {
@@ -249,14 +226,22 @@ class ApiClient {
                 }
             }
 
-            const headers = await this.buildHeaders(endpoint, customOptions);
-            if (savedIdempotencyKey) {
-                headers.set('Idempotency-Key', savedIdempotencyKey);
-            } else {
-                savedIdempotencyKey = headers.get('Idempotency-Key');
-            }
+            // `headers` is declared outside the try so the catch block can
+            // still consult it (Idempotency-Key) after a failure.
+            let headers: Headers | undefined;
 
             try {
+                // buildRequestHeaders performs network I/O (CSRF bootstrap) and
+                // can reject. It must run *inside* the try/finally, otherwise a
+                // CSRF failure escapes before the timeout timer is cleared and
+                // before the external-abort listener is detached, leaking both.
+                headers = await buildRequestHeaders(endpoint, customOptions);
+                if (savedIdempotencyKey) {
+                    headers.set('Idempotency-Key', savedIdempotencyKey);
+                } else {
+                    savedIdempotencyKey = headers.get('Idempotency-Key');
+                }
+
                 const url = normalizeEndpoint(endpoint);
                 const timer = performanceMonitor.startTimer('API Request', { endpoint, method: customOptions.method || 'GET' });
 
@@ -273,13 +258,12 @@ class ApiClient {
                     : await fetcher();
 
                 timer.stop();
-                clearTimeout(id);
 
                 // Handle CSRF validation failure - force refresh token and retry once
-                if (await isCsrfValidationFailure(response) && retryCount < 1) {
+                if (await isCsrfValidationFailure(response) && csrfRetryCount < 1) {
                     await ensureCsrfToken(true);
                     await sleep(100); // Small delay to ensure cookie is set
-                    retryCount++;
+                    csrfRetryCount++;
                     continue;
                 }
 
@@ -302,8 +286,6 @@ class ApiClient {
 
                 return response;
             } catch (error: unknown) {
-                clearTimeout(id);
-
                 // Recover the reason we stamped on the controller. `fetch`
                 // unwraps the DOMException reason into a generic
                 // `DOMException { name: 'AbortError' }`, but we can recover
@@ -329,7 +311,7 @@ class ApiClient {
                     retryCount,
                     retries,
                     customOptions.method || 'GET',
-                    headers.has('Idempotency-Key'),
+                    headers?.has('Idempotency-Key') ?? false,
                 )) {
                     retryCount++;
                     await sleep(RETRY_DELAY * Math.pow(2, retryCount - 1));
@@ -339,6 +321,7 @@ class ApiClient {
                 this.logNetworkError(classified, endpoint);
                 throw classified;
             } finally {
+                clearTimeout(id);
                 if (externalSignal) {
                     externalSignal.removeEventListener('abort', forwardAbort);
                 }

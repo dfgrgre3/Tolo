@@ -188,6 +188,6 @@ export interface UtilityNavItem {
  */
 export const utilityNavItems: UtilityNavItem[] = [
   { href: "/teach", label: "التدريس على Tolo", position: "left" },
-  { href: "/careers", label: "وظائف Tolo", position: "left" },
+  { href: "/jobs", label: "وظائف Tolo", position: "left" },
   { href: "/plans", label: "الخطط", position: "right" },
 ];

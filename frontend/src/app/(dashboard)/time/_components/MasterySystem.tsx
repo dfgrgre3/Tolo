@@ -11,7 +11,6 @@ interface MasterySystemProps {
 
 const MasterySystem = ({ stats }: MasterySystemProps) => {
   const { level, xp, nextLevelXp, rank, streakDays, focusScore, disciplineScore } = stats;
-  const progress = (xp / nextLevelXp) * 100;
 
   const getRankColor = (lvl: number) => {
     if (lvl >= 50) return "text-amber-400";

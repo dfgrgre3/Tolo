@@ -106,6 +106,7 @@ function resolveClientIp(request: NextRequest): string {
 }
 
 let loggedMissingKey = false;
+let loggedMissingClaims = false;
 
 /**
  * Headers.getSetCookie() is not available in every Edge/Fetch runtime.
@@ -202,23 +203,29 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
   if (!key) {
     // FAIL CLOSED: without a verification key we cannot prove the
     // token's origin, so it must be treated as untrusted rather than
-    // decoded unverified.
+    // decoded unverified. This is an operational landmine (it silently
+    // logs every signed-in user out), so alert loudly, not just to the
+    // console.
     if (!loggedMissingKey) {
       loggedMissingKey = true;
-      console.error(
+      const message =
         "[jwt-edge] No JWT verification key configured — rejecting every access token (fail-closed). " +
-        "Set JWT_PUBLIC_KEY (asymmetric) for edge verification."
-      );
+        "Set JWT_PUBLIC_KEY (asymmetric) for edge verification.";
+      console.error(message);
+      Sentry.captureMessage(message, { level: "error", tags: { source: "jwt-edge:config" } });
     }
     return null;
   }
 
   if (IS_PRODUCTION && (!EXPECTED_ISSUER || !EXPECTED_AUDIENCE)) {
-    if (!loggedMissingKey) {
-      loggedMissingKey = true;
-      console.error(
-        "[jwt-edge] JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE are required in production."
-      );
+    // Same landmine as above: fail-closed is correct, but in production this
+    // forces every user out at once, so it must not be console-only.
+    if (!loggedMissingClaims) {
+      loggedMissingClaims = true;
+      const message =
+        "[jwt-edge] JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE are required in production.";
+      console.error(message);
+      Sentry.captureMessage(message, { level: "error", tags: { source: "jwt-edge:config" } });
     }
     return null;
   }
@@ -241,10 +248,18 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
     if (p.exp === undefined) return null;
     if (!p.userId && !p.sub) return null;
     return p;
-  } catch {
+  } catch (err) {
     // Bad signature, malformed token, expired, or wrong iss/aud — all
     // handled the same way by the caller (attempt refresh, else redirect
-    // to login).
+    // to login). Expiry is routine and not worth reporting; anything else
+    // (bad signature, malformed token, wrong iss/aud) is a forgery/tampering
+    // signal and is reported without the token value itself.
+    if (!(err instanceof Error) || err.name !== "JWTExpired") {
+      const reason = err instanceof Error ? err.name || err.message : "unknown";
+      Sentry.captureException(err, {
+        tags: { source: "jwt-edge:verify", reason },
+      });
+    }
     return null;
   }
 }

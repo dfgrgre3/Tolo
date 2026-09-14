@@ -1,100 +1,11 @@
-import { UserRole, UserStatus } from './enums';
-
 /**
- * User type — fully synced with backend `internal/models/user.go`
- * Last sync: 2026-06-29
+ * Frontend User type — re-exports the canonical shared model.
+ *
+ * This used to be a hand-maintained duplicate of `@thanawy/shared/types/user`
+ * (SYM-002 in the symbol architecture audit). Two copies of the same
+ * backend-synced shape drift silently: a field added on one side and missed
+ * on the other becomes a runtime mismatch nobody notices until a component
+ * reads `undefined`. Re-exporting keeps a single source of truth while
+ * preserving the `@/types/user` import path existing call sites use.
  */
-export interface User {
-  // Core identity
-  id: string;
-  email: string;
-  name?: string | null;
-  username?: string | null;
-  avatar?: string | null;
-  role: UserRole;
-  status: UserStatus;
-
-  // Contact & verification
-  phone?: string | null;
-  phoneVerified: boolean;
-  emailVerified: boolean;
-  alternativePhone?: string | null;
-
-  // Profile
-  country?: string | null;
-  gradeLevel?: string | null;
-  educationType?: string | null;
-  section?: string | null;
-  bio?: string | null;
-  dateOfBirth?: string | null;
-
-  // Study preferences
-  wakeUpTime?: string | null;
-  sleepTime?: string | null;
-  focusStrategy: string;   // 'POMODORO' | 'FLOWTIME' | 'TIMEBOXING'
-  studyGoal?: string | null;
-  interestedSubjects: string[];
-  subjectsTaught?: string[];
-  classesTaught?: string[];
-  experienceYears?: string | null;
-
-  // Notifications
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-
-  // Billing & Subscriptions
-  balance: number;
-  aiCredits: number;
-  examCredits: number;
-  additionalAiCredits?: number;
-  additionalExamCredits?: number;
-  activeSubscriptionId?: string | null;
-  subscriptionExpiresAt?: string | null;
-
-  // Access Control
-  permissions: string[];
-
-  // Gamification (core)
-  totalXP: number;
-  level: number;
-
-  // Gamification (stats)
-  currentStreak: number;
-  longestStreak: number;
-  totalStudyTime: number;
-  tasksCompleted: number;
-  examsPassed: number;
-
-  // Multi-layer XP system
-  studyXP: number;
-  taskXP: number;
-  examXP: number;
-  challengeXP: number;
-  questXP: number;
-  seasonXP: number;
-
-  // Security
-  twoFactorEnabled: boolean;
-  biometricEnabled?: boolean;
-  googleId?: string | null;
-  githubId?: string | null;
-  referralCode?: string | null;
-
-  // Timestamps
-  createdAt: string;
-  updatedAt: string;
-  lastLogin?: string | null;
-
-  [key: string]: unknown;
-}
-
-/** Minimal user object returned in nested relations (e.g. CourseReview.user) */
-export interface UserSummary {
-  id: string;
-  name?: string | null;
-  username?: string | null;
-  avatar?: string | null;
-  role: UserRole;
-}
-
-export type { UpdateProfilePayload } from '@thanawy/shared/types/user';
+export type { User, UserSummary, UpdateProfilePayload } from '@thanawy/shared/types/user';

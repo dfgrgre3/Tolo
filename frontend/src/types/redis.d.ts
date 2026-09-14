@@ -23,8 +23,9 @@ declare module 'ioredis' {
     constructor(options?: RedisOptions);
     static Cluster: new (nodes: { host: string; port: number }[], options?: Record<string, unknown>) => Redis;
 
-    on(event: 'connect' | 'ready' | 'error' | 'close' | 'reconnecting' | 'end', listener: (...args: any[]) => void): this;
-    on(event: string, listener: (...args: any[]) => void): this;
+    on(event: 'error', listener: (err: Error) => void): this;
+    on(event: 'connect' | 'ready' | 'close' | 'reconnecting' | 'end', listener: (...args: unknown[]) => void): this;
+    on(event: string, listener: (...args: unknown[]) => void): this;
 
     quit(): Promise<'OK'>;
     disconnect(): void;
@@ -38,7 +39,7 @@ declare module 'ioredis' {
 
     // String operations
     get(key: string): Promise<string | null>;
-    set(key: string, value: string | Buffer | number, ...args: any[]): Promise<'OK'>;
+    set(key: string, value: string | Buffer | number, ...args: (string | number)[]): Promise<'OK'>;
     setex(key: string, seconds: number, value: string | Buffer | number): Promise<'OK'>;
     del(...keys: string[]): Promise<number>;
     expire(key: string, seconds: number): Promise<number>;
@@ -95,7 +96,7 @@ declare module 'ioredis' {
     hset(key: string, object: Record<string, string | number | Buffer>): Pipeline;
     hget(key: string, field: string): Pipeline;
     sadd(key: string, ...members: (string | Buffer | number)[]): Pipeline;
-    exec(): Promise<[Error | null, any][]>;
+    exec(): Promise<[Error | null, unknown][]>;
   }
 
   export default Redis;

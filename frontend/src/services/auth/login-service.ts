@@ -53,18 +53,25 @@ function parseChallenge(data: unknown): LoginChallengeResponse | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** Normalized outcome of a sign-in attempt. */
-export interface LoginOutcome {
-  success: boolean;
-  /** True when the account has MFA enabled and a code is still required. */
-  requiresMfa: boolean;
-  /**
-   * Opaque MFA challenge handle to pass back to `verifyMfa`.
-   * Callers should treat it as opaque — it maps to the backend's `challengeId`.
-   */
-  challengeId: string | null;
-  error?: string;
-}
+/**
+ * Normalized outcome of a sign-in attempt, modeled as a discriminated union
+ * on `status` (SYM-005 in the symbol architecture audit).
+ *
+ * The previous shape (`{ success: boolean; requiresMfa: boolean; challengeId:
+ * string | null; error?: string }`) let TypeScript accept combinations that
+ * are never actually valid, e.g. `{ success: true, requiresMfa: true }` or
+ * `{ success: false, requiresMfa: false, challengeId: "x" }`. Narrowing on
+ * `status` instead makes those combinations unrepresentable.
+ *
+ * `success` and `requiresMfa` are kept as derived boolean fields on every
+ * branch (rather than removed) so existing call sites that check
+ * `result.requiresMfa` then `result.success` — which is exactly how a
+ * discriminated union narrows — keep working unchanged.
+ */
+export type LoginOutcome =
+  | { status: "success"; success: true; requiresMfa: false; challengeId: null; error?: undefined }
+  | { status: "mfa_required"; success: false; requiresMfa: true; challengeId: string; error?: undefined }
+  | { status: "failure"; success: false; requiresMfa: false; challengeId: string | null; error: string };
 
 export interface LoginCredentials {
   /**
@@ -106,6 +113,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
   const parsed = loginRequestSchema.safeParse(payload);
   if (!parsed.success) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId: null,
@@ -122,6 +130,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
       const challenge = parseChallenge(data);
       if (!challenge) {
         return {
+          status: "failure",
           success: false,
           requiresMfa: false,
           challengeId: null,
@@ -129,15 +138,17 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
         };
       }
       return {
+        status: "mfa_required",
         success: false,
         requiresMfa: true,
         challengeId: challenge.challengeId,
       };
     }
 
-    return { success: true, requiresMfa: false, challengeId: null };
+    return { status: "success", success: true, requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId: null,
@@ -162,6 +173,7 @@ export async function verifyMfa(
   const parsed = mfaVerifyPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId,
@@ -171,9 +183,10 @@ export async function verifyMfa(
 
   try {
     await apiClient.post(apiRoutes.auth.mfa.verify, parsed.data);
-    return { success: true, requiresMfa: false, challengeId: null };
+    return { status: "success", success: true, requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
+      status: "failure",
       success: false,
       requiresMfa: false,
       challengeId,
@@ -183,9 +196,23 @@ export async function verifyMfa(
 }
 
 /**
+ * Allowed hosts for each provider's OAuth authorization endpoint. A backend
+ * response pointing anywhere else is rejected — scheme-only validation
+ * (`https://`) is not enough, since a compromised or misconfigured backend
+ * could still hand back an attacker-controlled `https://` URL and the
+ * browser would navigate the user's authenticated session straight to it
+ * (open redirect).
+ */
+const SOCIAL_LOGIN_ALLOWED_HOSTS: Record<"google" | "apple", readonly string[]> = {
+  google: ["accounts.google.com"],
+  apple: ["appleid.apple.com"],
+};
+
+/**
  * Starts a social sign-in flow and returns the provider's authorization URL.
- * Throws if the backend returns a URL that is not absolute HTTPS — an
- * attacker-controlled value here would be an open redirect.
+ * Throws if the backend returns a URL that is not absolute HTTPS on the
+ * expected provider host — an attacker-controlled value here would be an
+ * open redirect.
  */
 export async function getSocialLoginUrl(
   provider: "google" | "apple"
@@ -194,7 +221,15 @@ export async function getSocialLoginUrl(
     apiRoutes.auth.social.login(provider)
   );
 
-  if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+  const allowedHosts = SOCIAL_LOGIN_ALLOWED_HOSTS[provider];
+  let parsed: URL | null = null;
+  try {
+    parsed = redirectUrl ? new URL(redirectUrl) : null;
+  } catch {
+    parsed = null;
+  }
+
+  if (!parsed || parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
     throw new Error("رابط تسجيل الدخول الاجتماعي غير صالح");
   }
 

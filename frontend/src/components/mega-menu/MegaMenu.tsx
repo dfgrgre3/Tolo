@@ -111,6 +111,9 @@ export function MegaMenu({
         clearTimeout(closeAnimationRef.current);
         closeAnimationRef.current = null;
       }
+      // Gated by isOpen transition (not every render), needed to mount content
+      // before the open animation frame runs; does not cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsRendered(true);
       // إطار إضافي لضمان تطبيق حالة "مغلق" أولاً قبل الانتقال إلى "مفتوح"
       const frame = requestAnimationFrame(() => setIsVisible(true));

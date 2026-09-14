@@ -303,7 +303,7 @@ export const BADGES = {
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
-export function validateCardDimensions(_actual: any, _expected: typeof CARD_DIMENSIONS.course) {
+export function validateCardDimensions(_actual: unknown, _expected: typeof CARD_DIMENSIONS.course) {
   // Use this to validate card implementations match the design system
   return true;
 }

@@ -83,6 +83,12 @@ export function setSessionPresence(presence: SessionPresence): void {
         return;
     }
     if (presence === 'present' && pendingUnauthorizedEndpoints.size > 0) {
+        // Replaying only the first queued endpoint is intentional: a single
+        // 401 arriving after loading resolves to 'present' is enough to
+        // trigger the redirect (handleUnauthorized navigates the whole page
+        // via `window.location.href` on success), so replaying the rest
+        // would just be redundant re-navigations of an already-navigating
+        // page. The remaining queued endpoints are discarded here by design.
         const pending = Array.from(pendingUnauthorizedEndpoints);
         pendingUnauthorizedEndpoints.clear();
         handleUnauthorized(pending[0]!);

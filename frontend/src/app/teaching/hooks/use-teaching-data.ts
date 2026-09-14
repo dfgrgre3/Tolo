@@ -10,7 +10,6 @@ import {
   contractUpdateTeachingCourse,
 } from "@/services/api/contracts-teaching-courses-service";
 import { usePermission } from "@/hooks/use-permission";
-import type { QuizQuestion } from "@/types/course-quiz";
 import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
 import { normalizeCourseLifecycle, type CourseLifecycle } from "@thanawy/shared/types/course-state";
 import { unwrapOpenApiPayload } from "@/lib/api/generated-client";

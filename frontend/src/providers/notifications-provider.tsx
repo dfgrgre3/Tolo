@@ -243,7 +243,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
         window.cancelIdleCallback(idleId);
       } else {
-        clearTimeout(idleId as any);
+        clearTimeout(idleId as NodeJS.Timeout);
       }
       clearInterval(pollInterval);
     };
