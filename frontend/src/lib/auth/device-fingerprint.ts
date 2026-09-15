@@ -1,5 +1,5 @@
 /**
- * Device fingerprint — a coarse, stable-per-browser identifier the backend can
+ * Device risk signal — a coarse, stable-per-browser identifier the backend can
  * use to flag sign-ins from an unrecognized device.
  *
  * SCOPE: this is a *risk signal*, not authentication. It is trivially spoofable
@@ -12,7 +12,7 @@
  * before the first submit rather than one render late.
  */
 
-const FINGERPRINT_STORAGE_KEY = "tolo_device_fp";
+const DEVICE_RISK_SIGNAL_STORAGE_KEY = "tolo_device_risk_signal";
 
 /** FNV-1a — small, fast, no crypto dependency. Not a security hash. */
 function hashString(input: string): string {
@@ -61,11 +61,11 @@ function collectSignals(): string {
  * Safe to call during render: returns `""` on the server and never throws
  * (private-mode browsers reject localStorage access).
  */
-export function getDeviceFingerprint(): string {
+export function getDeviceRiskSignal(): string {
   if (typeof window === "undefined") return "";
 
   try {
-    const cached = window.localStorage.getItem(FINGERPRINT_STORAGE_KEY);
+    const cached = window.localStorage.getItem(DEVICE_RISK_SIGNAL_STORAGE_KEY);
     if (cached) return cached;
   } catch {
     // localStorage unavailable (private mode, blocked site data) — recompute.
@@ -74,10 +74,13 @@ export function getDeviceFingerprint(): string {
   const fingerprint = hashString(collectSignals());
 
   try {
-    window.localStorage.setItem(FINGERPRINT_STORAGE_KEY, fingerprint);
+    window.localStorage.setItem(DEVICE_RISK_SIGNAL_STORAGE_KEY, fingerprint);
   } catch {
     // Non-fatal: we still return a usable value for this page load.
   }
 
   return fingerprint;
 }
+
+/** @deprecated Use getDeviceRiskSignal; retained for existing login callers. */
+export const getDeviceFingerprint = getDeviceRiskSignal;

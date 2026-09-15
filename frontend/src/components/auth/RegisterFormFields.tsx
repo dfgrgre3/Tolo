@@ -28,6 +28,9 @@ interface RegisterFormFieldsProps {
   error: string | null;
   isLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
+  step: 1 | 2;
+  onNext: () => void;
+  onBack: () => void;
 }
 
 /**
@@ -41,6 +44,9 @@ export default function RegisterFormFields({
   error,
   isLoading,
   onSubmit,
+  step,
+  onNext,
+  onBack,
 }: RegisterFormFieldsProps) {
   return (
     <form onSubmit={onSubmit}>
@@ -53,7 +59,7 @@ export default function RegisterFormFields({
           </Alert>
         )}
 
-        <RegisterIdentityFields
+        {step === 1 ? <RegisterIdentityFields
           firstName={values.firstName}
           onFirstNameChange={(v) => onChange("firstName", v)}
           lastName={values.lastName}
@@ -65,9 +71,7 @@ export default function RegisterFormFields({
           confirmPassword={values.confirmPassword}
           onConfirmPasswordChange={(v) => onChange("confirmPassword", v)}
           isLoading={isLoading}
-        />
-
-        <RegisterAccountFields
+        /> : <RegisterAccountFields
           username={values.username}
           onUsernameChange={(v) => onChange("username", v)}
           phone={values.phone}
@@ -79,11 +83,11 @@ export default function RegisterFormFields({
           agreedToTerms={values.agreedToTerms}
           onAgreedToTermsChange={(v) => onChange("agreedToTerms", v)}
           isLoading={isLoading}
-        />
+        />}
       </CardContent>
 
       <CardFooter className="flex flex-col gap-4 pt-4">
-        <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !values.agreedToTerms}>
+        {step === 2 && <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !values.agreedToTerms}>
           {isLoading ? (
             <>
               <Loader2 className="ms-2 h-4 w-4 animate-spin" />
@@ -92,7 +96,8 @@ export default function RegisterFormFields({
           ) : (
             "إنشاء الحساب"
           )}
-        </Button>
+        </Button>}
+        {step === 1 ? <Button type="button" className="w-full" onClick={onNext}>التالي</Button> : <Button type="button" variant="outline" className="w-full" onClick={onBack}>رجوع</Button>}
         <div className="text-sm text-center text-slate-500 dark:text-slate-400 font-medium">
           لديك حساب بالفعل؟{" "}
           <Link href="/login" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">

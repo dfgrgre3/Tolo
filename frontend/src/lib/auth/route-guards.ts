@@ -43,7 +43,7 @@ export const STUDENT_ENDPOINT_ROLES = ["STUDENT", "ADMIN", "SUPER_ADMIN"] as con
 
 // ─── Path classification ─────────────────────────────────────────────────────
 
-const PROTECTED_ROUTES = ["/dashboard", "/learning", "/profile"];
+const PROTECTED_ROUTES = ["/dashboard", "/learning", "/profile", "/mfa"];
 
 /** Edge-only guest routes used by the proxy's session gate. */
 export const EDGE_GUEST_ROUTES = [
@@ -52,8 +52,6 @@ export const EDGE_GUEST_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
-  "/admin-login",
-  "/mfa",
 ];
 
 /**

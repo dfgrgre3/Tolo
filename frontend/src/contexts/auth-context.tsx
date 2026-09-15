@@ -27,7 +27,7 @@ import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
 import type { SessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
 import { clearClientCaches } from "@/lib/cache/clear-client-caches";
-import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
+import { getDeviceRiskSignal } from "@/lib/auth/device-fingerprint";
 import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services/auth/login-service";
 
 /**
@@ -92,6 +92,8 @@ export interface AuthUser {
  *   - "authenticated"— /auth/me returned 200 with a valid user payload
  *   - "anonymous"    — /auth/me returned 401 (or 200 with no user). The user
  *                      has NO session; treat as a signed-out guest.
+ *   - "blocked"      — the backend rejected an existing session because the
+ *                      account status is not allowed to authenticate.
  *   - "unavailable"  — /auth/me failed for a reason that does NOT prove the
  *                      user is signed out (5xx, network error, timeout).
  *                      We must NOT downgrade the UI to a guest in this case,
@@ -99,7 +101,7 @@ export interface AuthUser {
  *                      user's session from the client's view and could even
  *                      trigger redirect loops.
  */
-export type AuthStatus = "loading" | "authenticated" | "anonymous" | "unavailable";
+export type AuthStatus = "loading" | "authenticated" | "anonymous" | "blocked" | "unavailable";
 
 interface AuthState {
   user: AuthUser | null;
@@ -124,7 +126,7 @@ interface AuthContextValue extends AuthState {
   /** Refresh current user data from server */
   refreshUser: () => Promise<boolean>;
   /** Sign in with email/password. Returns whether MFA is required. */
-  adminLogin: (
+  signIn: (
     identifier: string,
     password: string,
     remember?: boolean
@@ -198,6 +200,16 @@ function stateFromMeError(err: unknown): AuthState {
     // A 401 is the expected answer for a guest, not an error worth surfacing.
     return { ...ANONYMOUS_STATE };
   }
+  if (err instanceof ApiError && err.status === 403) {
+    requestCache.setIdentity(null);
+    return {
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+      status: "blocked",
+      error: "This account is not allowed to sign in.",
+    };
+  }
   return {
     user: null,
     isLoading: false,
@@ -218,6 +230,7 @@ function stateFromMeError(err: unknown): AuthState {
  *   "loading"      → "loading"     (auth state has not converged)
  *   "authenticated"→ "present"     (we have positive proof of a session)
  *   "anonymous"    → "absent"      (401 confirmed: the user is signed out)
+ *   "blocked"      → "absent"      (the backend rejected this account)
  *   "unavailable"  → "unavailable" (backend unreachable; keep prior signal)
  */
 function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
@@ -225,6 +238,8 @@ function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
     case "authenticated":
       return "present";
     case "anonymous":
+      return "absent";
+    case "blocked":
       return "absent";
     case "loading":
       return "loading";
@@ -417,7 +432,7 @@ export function AuthProvider({
    * send an identical payload. When the account has MFA enabled the result
    * carries `requiresMfa` plus the challenge handle for `verifyMfa`.
    */
-  const adminLogin = useCallback(
+  const signIn = useCallback(
     async (
       identifier: string,
       password: string,
@@ -427,7 +442,7 @@ export function AuthProvider({
         email: identifier,
         password,
         rememberMe: remember,
-        fingerprint: getDeviceFingerprint(),
+        fingerprint: getDeviceRiskSignal(),
       });
 
       if (result.requiresMfa) {
@@ -455,7 +470,7 @@ export function AuthProvider({
   );
 
   /**
-   * Completes an MFA challenge started by `adminLogin`. `challengeId` is the
+   * Completes an MFA challenge started by `signIn`. `challengeId` is the
    * opaque handle returned in that call's result.
    */
   const verifyMfa = useCallback(
@@ -466,7 +481,7 @@ export function AuthProvider({
         return { status: "failure", success: false, error: result.error ?? "فشل التحقق من الرمز" };
       }
 
-      // Same identity-transition cleanup as `adminLogin`: an MFA success
+      // Same identity-transition cleanup as `signIn`: an MFA success
       // moves the user from a pre-auth (or partial-auth) state to a
       // fully-authenticated state, so any cached data from before must
       // be wiped to prevent it from being replayed under the new session.
@@ -491,7 +506,7 @@ export function AuthProvider({
       redirectToLogin,
       redirectToRegister,
       logout,
-      adminLogin,
+      signIn,
       verifyMfa,
       refreshUser,
       // Deprecated aliases for backward compatibility
@@ -505,7 +520,7 @@ export function AuthProvider({
       redirectToLogin,
       redirectToRegister,
       logout,
-      adminLogin,
+      signIn,
       verifyMfa,
       refreshUser,
     ]

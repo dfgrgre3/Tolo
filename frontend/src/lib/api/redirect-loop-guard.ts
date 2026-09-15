@@ -35,7 +35,6 @@ const AUTH_ENDPOINT_MARKERS = [
 const AUTH_PAGES = [
     '/login',
     '/register',
-    '/admin-login',
     '/verify-email',
     '/forgot-password',
     '/reset-password',

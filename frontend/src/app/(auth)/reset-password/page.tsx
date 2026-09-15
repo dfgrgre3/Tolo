@@ -1,35 +1,29 @@
 "use client";
 
 import React, { Suspense, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, KeyRound } from "lucide-react";
 import { resetPassword } from "@/services/auth";
 import ResetPasswordFields from "@/components/auth/ResetPasswordFields";
+import { getPasswordPolicyError } from "@/lib/auth/password-policy";
 
 function ResetPasswordContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(!token ? "رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية." : null);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      setError("رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية.");
-      return;
-    }
     if (!newPassword || !confirmPassword) {
       setError("يرجى ملء جميع الحقول");
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (getPasswordPolicyError(newPassword)) {
       setError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
       return;
     }
@@ -43,7 +37,7 @@ function ResetPasswordContent() {
     setError(null);
     setSuccess(null);
 
-    const result = await resetPassword(token, newPassword);
+    const result = await resetPassword(newPassword);
 
     if (!result.success) {
       setError(result.error || "فشل إعادة تعيين كلمة المرور");
@@ -79,7 +73,7 @@ function ResetPasswordContent() {
             error={error}
             success={success}
             isLoading={isLoading}
-            hasToken={!!token}
+            hasToken={true}
             onSubmit={handleSubmit}
           />
         </Card>

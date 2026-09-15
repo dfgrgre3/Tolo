@@ -42,6 +42,7 @@ export default function MfaSettingsCard() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [code, setCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
+  const [disablePassword, setDisablePassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,7 +97,7 @@ export default function MfaSettingsCard() {
       // The backend validates a live TOTP or unused backup code here —
       // not a password (its `DisableMFARequest` DTO exists but is dead code;
       // the handler binds `{code}` directly).
-      await apiClient.post(apiRoutes.auth.mfa.disable, { code: disableCode });
+      await apiClient.post(apiRoutes.auth.mfa.disable, { code: disableCode, password: disablePassword });
       setEnabledOverride(false);
       setDisableCode("");
       setStep("idle");
@@ -160,6 +161,14 @@ export default function MfaSettingsCard() {
           <Skeleton className="h-10 w-40" />
         ) : step === "disable" ? (
           <form onSubmit={handleDisable} className="space-y-3">
+            <Label htmlFor="disable-password">كلمة المرور الحالية</Label>
+            <Input
+              id="disable-password"
+              type="password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              required
+            />
             <Label htmlFor="disable-code">أدخل رمز التطبيق (أو رمز احتياطي) لتأكيد الإيقاف</Label>
             <Input
               id="disable-code"

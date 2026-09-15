@@ -39,7 +39,6 @@ describe("isAuthPublicRoute", () => {
     expect(isAuthPublicRoute("/login")).toBe(true);
     expect(isAuthPublicRoute("/register")).toBe(true);
     expect(isAuthPublicRoute("/forgot-password")).toBe(true);
-    expect(isAuthPublicRoute("/admin-login")).toBe(true);
     expect(isAuthPublicRoute("/")).toBe(true);
   });
 

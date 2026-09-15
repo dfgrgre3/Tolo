@@ -12,6 +12,6 @@ export function contractLogin(payload: ContractLoginRequest) {
   return client.POST('/api/v1/auth/login', { body: payload });
 }
 
-export function contractVerifyMfa(payload: { challengeId: string; code: string }) {
+export function contractVerifyMfa(payload: { challengeId: string; code: string; rememberMe?: boolean }) {
   return client.POST('/api/v1/auth/mfa/verify', { body: payload });
 }

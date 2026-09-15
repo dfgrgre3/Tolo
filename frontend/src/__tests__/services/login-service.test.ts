@@ -1,19 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// نحاكي عميل الـ API — هذه اختبارات وحدة لمنطق الخدمة وليست للشبكة.
-vi.mock("@/lib/api/api-client", () => ({
-  apiClient: {
-    post: vi.fn(),
-    get: vi.fn(),
-  },
-  ApiError: class ApiError extends Error {
+const { mockedApiClient, ApiErrorMock } = vi.hoisted(() => {
+  class ApiErrorMock extends Error {
     status: number;
     constructor(message: string, status: number) {
       super(message);
       this.name = "ApiError";
       this.status = status;
     }
-  },
+  }
+  return { mockedApiClient: { post: vi.fn(), get: vi.fn() }, ApiErrorMock };
+});
+
+// نحاكي عميل الـ API — هذه اختبارات وحدة لمنطق الخدمة وليست للشبكة.
+vi.mock("@/lib/api/api-client", () => ({
+  apiClient: mockedApiClient,
+  ApiError: ApiErrorMock,
+}));
+
+// The canonical service now delegates login/MFA to the typed OpenAPI
+// boundary. Keep these unit tests transport-free while preserving their
+// existing payload assertions through the shared mock transport.
+vi.mock("@/services/api/contracts-auth-service", () => ({
+  contractLogin: (payload: unknown) => mockedApiClient.post("/api/v1/auth/login", payload)
+    .then((data: unknown) => ({ data, error: undefined, response: { ok: true } })),
+  contractVerifyMfa: (payload: unknown) => mockedApiClient.post("/api/v1/auth/mfa/verify", payload)
+    .then((data: unknown) => ({ data, error: undefined, response: { ok: true } })),
 }));
 
 import { apiClient, ApiError } from "@/lib/api/api-client";

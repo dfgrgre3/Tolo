@@ -45,7 +45,6 @@ describe("isProtectedRoute", () => {
     expect(isProtectedRoute("/profile-anything")).toBe(false);
     expect(isProtectedRoute("/dashboarding")).toBe(false);
     expect(isProtectedRoute("/learning-path")).toBe(false);
-    expect(isProtectedRoute("/admin-login")).toBe(false);
     expect(isProtectedRoute("/administrator")).toBe(false);
     expect(isProtectedRoute("/")).toBe(false);
     expect(isProtectedRoute("/about")).toBe(false);
@@ -59,7 +58,6 @@ describe("isAdminRoute", () => {
   });
 
   it("does not flag lookalike paths", () => {
-    expect(isAdminRoute("/admin-login")).toBe(false);
     expect(isAdminRoute("/administrator")).toBe(false);
     expect(isAdminRoute("/admin-extra")).toBe(false);
   });
@@ -70,8 +68,6 @@ describe("isGuestRoute", () => {
     expect(isGuestRoute("/login")).toBe(true);
     expect(isGuestRoute("/register")).toBe(true);
     expect(isGuestRoute("/forgot-password")).toBe(true);
-    expect(isGuestRoute("/mfa")).toBe(true);
-    expect(isGuestRoute("/mfa/verify")).toBe(true);
   });
 
   it("does not flag lookalike paths", () => {

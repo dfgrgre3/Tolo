@@ -84,8 +84,6 @@ export default function RegisterAccountFields({
             </SelectTrigger>
             <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <SelectItem value="STUDENT" className="text-start justify-end font-medium">طالب</SelectItem>
-              <SelectItem value="PARENT" className="text-start justify-end font-medium">ولي أمر</SelectItem>
-              <SelectItem value="TEACHER" className="text-start justify-end font-medium">معلم</SelectItem>
             </SelectContent>
           </Select>
           {role === "TEACHER" && (

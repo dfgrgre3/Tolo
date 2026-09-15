@@ -10,7 +10,8 @@ import {
 } from './auth';
 import { applyRefreshToRequest, createRefreshedResponse } from './refresh';
 import { isApiRequest, isGuestPage, isProtectedPage, isPublicApiPath } from './routing';
-import { findRoleRule, hasRole } from '@/lib/auth/route-guards';
+import { findRoleRule, hasRole, isAdminRoute } from '@/lib/auth/route-guards';
+import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
 
 export async function runProxyPipeline(request: NextRequest): Promise<NextResponse> {
   const { pathname, nonce, requestHeaders } = createProxyContext(request);
@@ -161,6 +162,15 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
     if (session.accessToken || session.refreshToken) {
       applyRefreshToRequest(requestHeaders, session);
     }
+
+    // Fast-path page gate only. The backend's /api/v1/admin authorization
+    // remains authoritative and re-checks role/permissions on every request.
+    if (isAdminRoute(pathname) && !isStaffAdminPanelRole(session.payload?.role)) {
+      const response = NextResponse.redirect(new URL('/dashboard', request.url));
+      if (session.refreshCookies.length > 0) appendRefreshCookies(response, session.refreshCookies);
+      return finalizeProxyResponse(response, nonce);
+    }
+
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     if (session.refreshCookies.length > 0) appendRefreshCookies(response, session.refreshCookies);
     return finalizeProxyResponse(response, nonce);

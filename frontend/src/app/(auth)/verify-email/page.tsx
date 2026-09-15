@@ -10,14 +10,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { verifyEmail, resendVerification } from "@/services/auth";
+import { useAuthContext } from "@/contexts/auth-context";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const { refreshUser } = useAuthContext();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +34,8 @@ export default function VerifyEmailPage() {
     setSuccess(null);
 
     const result = await verifyEmail(code);
+
+    if (result.success) await refreshUser();
 
     if (!result.success) {
       setError(result.error || "رمز التحقق غير صحيح أو منتهي الصلاحية");
@@ -46,6 +51,7 @@ export default function VerifyEmailPage() {
   };
 
   const handleResend = async () => {
+    if (resendCooldown > 0) return;
     setIsResending(true);
     setError(null);
     setSuccess(null);
@@ -56,6 +62,18 @@ export default function VerifyEmailPage() {
       setError(result.error || "فشل إعادة إرسال الرمز");
     } else {
       setSuccess("تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.");
+    }
+    if (result.success) {
+      setResendCooldown(60);
+      const timer = window.setInterval(() => {
+        setResendCooldown((current) => {
+          if (current <= 1) {
+            window.clearInterval(timer);
+            return 0;
+          }
+          return current - 1;
+        });
+      }, 1000);
     }
     setIsResending(false);
   };
@@ -120,7 +138,7 @@ export default function VerifyEmailPage() {
                 <button
                   type="button"
                   onClick={handleResend}
-                  disabled={isResending || !!success}
+                  disabled={isResending || !!success || resendCooldown > 0}
                   className="text-primary hover:text-primary/80 disabled:opacity-50"
                 >
                   {isResending ? "جاري الإرسال..." : "إعادة إرسال الرمز"}

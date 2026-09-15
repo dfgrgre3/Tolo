@@ -1,7 +1,7 @@
 import { matchesPath, PUBLIC_API_ENDPOINTS } from '@/lib/auth/route-guards';
 
 export const PROTECTED_PAGE_ROUTES = ['/dashboard', '/learning', '/profile', '/admin'] as const;
-export const GUEST_PAGE_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/admin-login', '/mfa'] as const;
+export const GUEST_PAGE_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/mfa'] as const;
 /** Re-exported for compatibility; canonical list lives in route-guards.ts. */
 export const PUBLIC_API_ROUTES = PUBLIC_API_ENDPOINTS;
 

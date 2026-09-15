@@ -12,7 +12,6 @@ export const DEFAULT_UNAUTHENTICATED_ROUTE = "/login";
 export const SAFE_REDIRECT_PUBLIC_ROUTES = [
   "/",
   "/login",
-  "/admin-login",
   "/register",
   "/forgot-password",
   "/reset-password",

@@ -1,5 +1,5 @@
 export const PUBLIC_STORAGE_BUCKETS = new Set(['public-assets', 'avatars']);
-export const FORWARDED_COOKIE_NAMES = new Set(['access_token', 'refresh_token', '__session', '_csrf']);
+export const FORWARDED_COOKIE_NAMES = new Set(['access_token', 'refresh_token', '__session', '_csrf', 'reset_session']);
 
 export function isPublicStorageBucket(bucket: string | undefined): bucket is string {
   return !!bucket && PUBLIC_STORAGE_BUCKETS.has(bucket);

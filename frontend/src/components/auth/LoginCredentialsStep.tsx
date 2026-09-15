@@ -109,7 +109,7 @@ export default function LoginCredentialsStep({
           </div>
           <div className="text-center">
             <Link
-              href="/admin-login"
+              href="/login"
               className="text-xs text-slate-400 dark:text-slate-500 hover:text-primary font-semibold transition-colors"
             >
               دخول الموظفين والمسؤولين

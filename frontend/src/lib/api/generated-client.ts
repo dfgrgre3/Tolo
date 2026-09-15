@@ -9,7 +9,7 @@
  *
  * Usage:
  *   import { client } from "@/lib/api/generated-client";
- *   const { data, error } = await client.GET("/api/auth/login", { ... });
+ *   const { data, error } = await client.POST("/api/v1/auth/login", { ... });
  *
  * See `packages/contracts/README.md` for the full migration plan.
  */

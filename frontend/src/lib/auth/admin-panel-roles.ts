@@ -7,7 +7,7 @@
  * Admin panel role helpers.
  *
  * The Go backend is authoritative for permissions (GET /api/auth/me), but we need
- * a small client-side guard to decide whether a role may access the /admin-login
+ * a small client-side guard to decide whether a role may access the admin panel
  * flow and the admin shell.
  */
 

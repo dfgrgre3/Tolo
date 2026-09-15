@@ -35,13 +35,13 @@ export async function forgotPassword(
 export async function verifyForgotPasswordCode(
   email: string,
   code: string
-): Promise<AuthActionResult & { resetToken?: string }> {
+): Promise<AuthActionResult> {
   try {
-    const data = await apiClient.post<{ resetToken?: string; message?: string }>(
+    const data = await apiClient.post<{ message?: string }>(
       `${apiRoutes.auth.forgotPassword}/verify-code`,
       { email, code }
     );
-    return { success: true, message: data?.message, resetToken: data?.resetToken };
+    return { success: true, message: data?.message };
   } catch (err: unknown) {
     return {
       success: false,
@@ -50,12 +50,9 @@ export async function verifyForgotPasswordCode(
   }
 }
 
-export async function resetPassword(
-  token: string,
-  newPassword: string
-): Promise<AuthActionResult> {
+export async function resetPassword(newPassword: string): Promise<AuthActionResult> {
   try {
-    await apiClient.post(apiRoutes.auth.resetPassword, { token, newPassword });
+    await apiClient.post(apiRoutes.auth.resetPassword, { newPassword });
     return { success: true };
   } catch (err: unknown) {
     return {
@@ -67,7 +64,7 @@ export async function resetPassword(
 
 export async function verifyEmail(token: string): Promise<AuthActionResult> {
   try {
-    await apiClient.post(apiRoutes.auth.verifyEmail, { token });
+    await apiClient.post(apiRoutes.auth.verifyEmail, { code: token });
     return { success: true };
   } catch (err: unknown) {
     return {

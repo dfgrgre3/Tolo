@@ -2,8 +2,8 @@
  * Login Service — the single source of truth for the sign-in and MFA contract.
  *
  * The backend exposes ONE canonical contract (`internal/application/dto/auth_dto.go`):
- *   - POST /api/auth/login      → { email, password, rememberMe?, deviceName?, fingerprint? }
- *   - POST /api/auth/mfa/verify → { challengeId, code }
+ *   - POST /api/v1/auth/login      → { email, password, rememberMe?, deviceName?, fingerprint? }
+ *   - POST /api/v1/auth/mfa/verify → { challengeId, code }
  *   - a pending-MFA login returns { mfaRequired: true, challengeId }.
  *
  * This module used to hedge against a drifted contract by sending *both*
@@ -14,7 +14,8 @@
  * here instead of silently breaking login.
  */
 import * as z from "zod";
-import { apiClient, ApiError } from "@/lib/api/api-client";
+import { contractLogin, contractVerifyMfa } from "@/services/api/contracts-auth-service";
+import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import type {
   LoginRequestPayload,
@@ -92,7 +93,7 @@ export function getDeviceName(): string {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  return err instanceof ApiError || err instanceof Error ? err.message : fallback;
+  return err instanceof Error ? err.message : fallback;
 }
 
 /**
@@ -122,7 +123,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
   }
 
   try {
-    const data = await apiClient.post<unknown>(apiRoutes.auth.login, parsed.data);
+    const { data, error, response } = await contractLogin(parsed.data);
+    if (error || !response.ok) {
+      return { status: "failure", success: false, requiresMfa: false, challengeId: null,
+        error: toErrorMessage(error, "فشل تسجيل الدخول") };
+    }
 
     // Only the MFA branch requires reading the body; a successful sign-in maps
     // directly to success (the session is established via HttpOnly cookies).
@@ -182,7 +187,11 @@ export async function verifyMfa(
   }
 
   try {
-    await apiClient.post(apiRoutes.auth.mfa.verify, parsed.data);
+    const { error, response } = await contractVerifyMfa({ ...parsed.data, rememberMe });
+    if (error || !response.ok) {
+      return { status: "failure", success: false, requiresMfa: false, challengeId,
+        error: toErrorMessage(error, "فشل التحقق من الرمز") };
+    }
     return { status: "success", success: true, requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {

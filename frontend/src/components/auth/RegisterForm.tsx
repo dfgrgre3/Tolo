@@ -7,6 +7,7 @@ import { UserPlus } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import RegisterFormFields, { RegisterFormValues } from "./RegisterFormFields";
+import { getPasswordPolicyError } from "@/lib/auth/password-policy";
 
 function toErrorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiError || err instanceof Error ? err.message : fallback;
@@ -35,6 +36,7 @@ export default function RegisterForm() {
   const [values, setValues] = useState<RegisterFormValues>(INITIAL_VALUES);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
 
   const handleChange = <K extends keyof RegisterFormValues>(
     field: K,
@@ -63,7 +65,7 @@ export default function RegisterForm() {
       return;
     }
 
-    if (password.length < 8) {
+    if (getPasswordPolicyError(password)) {
       setError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
       return;
     }
@@ -91,8 +93,17 @@ export default function RegisterForm() {
         password,
         username,
         phone,
-        role,
+        // Public registration can only create the least-privileged account.
+        // Parent/teacher onboarding must be approved separately by the backend.
+        role: "STUDENT",
         referralCode: referralCode || undefined,
+        consents: {
+          termsAccepted: true,
+          termsVersion: "2026-01",
+          privacyAccepted: true,
+          privacyVersion: "2026-01",
+          acceptedAt: new Date().toISOString(),
+        },
       });
 
       router.push("/login?registered=true");
@@ -101,6 +112,15 @@ export default function RegisterForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleNext = () => {
+    if (!values.firstName || !values.lastName || !values.email || !values.password || !values.confirmPassword) {
+      setError("يرجى إكمال بيانات الهوية أولًا"); return;
+    }
+    if (getPasswordPolicyError(values.password)) { setError("كلمة المرور لا تحقق سياسة الأمان"); return; }
+    if (values.password !== values.confirmPassword) { setError("كلمتا المرور غير متطابقتين"); return; }
+    setError(null); setStep(2);
   };
 
   return (
@@ -120,6 +140,9 @@ export default function RegisterForm() {
         error={error}
         isLoading={isLoading}
         onSubmit={handleSubmit}
+        step={step}
+        onNext={handleNext}
+        onBack={() => { setError(null); setStep(1); }}
       />
     </Card>
   );

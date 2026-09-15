@@ -19,20 +19,36 @@ export const apiRoutes = {
   // Authentication  (public_routes.go)
   // ──────────────────────────────────────────
   auth: {
-    login: '/api/auth/login',
-    adminLogin: '/api/auth/admin-login',
     register: '/api/auth/register',
     logout: '/api/auth/logout',
     me: '/api/auth/me',
+    reauthenticate: '/api/auth/reauthenticate',
     refresh: '/api/auth/refresh',
     refreshSession: '/api/auth/refresh-session',
     deleteAccount: '/api/auth/account',
+    cancelAccountDeletion: '/api/auth/account-deletion/cancel',
     validateToken: '/api/auth/validate-token',
     forgotPassword: '/api/auth/forgot-password',
     resetPassword: '/api/auth/reset-password',
     changePassword: '/api/auth/change-password',
     verifyEmail: '/api/auth/verify-email',
     resendVerification: '/api/auth/resend-verification',
+    phone: {
+      sendCode: '/api/auth/phone/send-code',
+      verify: '/api/auth/phone/verify',
+    },
+    emailChange: {
+      request: '/api/auth/email/change',
+      verify: '/api/auth/email/change/verify',
+    },
+    passkeys: {
+      list: '/api/auth/passkeys',
+      registerStart: '/api/auth/passkeys/register/start',
+      registerFinish: '/api/auth/passkeys/register/finish',
+      loginStart: '/api/auth/passkeys/login/start',
+      loginFinish: '/api/auth/passkeys/login/finish',
+      remove: (id: string) => `/api/auth/passkeys/${id}`,
+    },
     recovery: {
       initiate: '/api/auth/recovery/initiate',
       finalize: '/api/auth/recovery/finalize',
@@ -41,6 +57,11 @@ export const apiRoutes = {
       setup: '/api/auth/mfa/setup',
       enable: '/api/auth/mfa/enable',
       disable: '/api/auth/mfa/disable',
+      recoveryCodes: {
+        status: '/api/auth/mfa/recovery-codes',
+        regenerate: '/api/auth/mfa/recovery-codes/regenerate',
+        revoke: '/api/auth/mfa/recovery-codes/revoke',
+      },
       // The single MFA challenge endpoint. A second alias ('/api/auth/2fa/verify')
       // used to live here and was never called; having two spellings for one
       // operation is how the login/MFA contract drifted apart in the first place.
@@ -194,6 +215,8 @@ export const apiRoutes = {
     preferences: '/api/settings/preferences',
     system: '/api/settings',
     privacyActions: '/api/settings/privacy/actions',
+    exportJobStatus: (id: string) => `/api/users/export/${id}/status`,
+    exportDownload: (id: string, token: string) => `/api/users/export/${id}/download/${token}`,
   },
   // ──────────────────────────────────────────
   // Users & Profile  (protected_routes.go)
@@ -203,6 +226,10 @@ export const apiRoutes = {
     billingSummary: '/api/users/billing-summary',
     profile: '/api/users/profile',
     referrals: '/api/users/referrals',
+  },
+  teacherApplications: {
+    submit: '/api/teacher-applications',
+    me: '/api/teacher-applications/me',
   },
 
   // ──────────────────────────────────────────

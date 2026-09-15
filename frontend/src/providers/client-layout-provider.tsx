@@ -8,7 +8,7 @@ const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
 
 // Auth pages that should NOT be saved as "last visited" (to prevent redirect loops)
-const AUTH_PATHS = ['/login', '/register', '/admin-login', '/verify-email', '/forgot-password', '/reset-password'];
+const AUTH_PATHS = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
 // A small flag stored in sessionStorage to prevent restore-loops during auth transitions
 const RESTORE_GUARD_KEY = 'thanawy:restoredOnce';
 

@@ -11,20 +11,19 @@ import { cn } from "@/lib/utils";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { getPasswordStrength } from "./profile.constants";
-import { useAuthContext } from "@/contexts/auth-context";
+import { getPasswordPolicyError, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 
-const MIN_PASSWORD_LEN = 8;
+const MIN_PASSWORD_LEN = PASSWORD_MIN_LENGTH;
 
 /**
  * Security 6.4 — change password. Never logs or persists the values.
- * The backend clears session cookies on success to force re-login
+ * The backend revokes the old session family and issues a fresh session.
  * (`ChangePassword` handler in backend/internal/infrastructure/api/handlers/
  * protected/auth_handler_password.go), so this redirects to /login instead
  * of just toasting — staying on a page whose session was just invalidated
  * would surface confusing 401s on the very next request.
  */
 export default function ChangePasswordCard() {
-  const { logout } = useAuthContext();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,7 +44,7 @@ export default function ChangePasswordCard() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword.length < MIN_PASSWORD_LEN) {
+    if (getPasswordPolicyError(newPassword)) {
       setError(`كلمة المرور الجديدة يجب ألا تقل عن ${MIN_PASSWORD_LEN} أحرف.`);
       return;
     }
@@ -66,10 +65,11 @@ export default function ChangePasswordCard() {
       await apiClient.post(apiRoutes.auth.changePassword, {
         oldPassword: currentPassword,
         newPassword,
+        rememberMe: true,
       });
       reset();
+      setIsSaving(false);
       toast.success("تم تغيير كلمة المرور. يرجى تسجيل الدخول مرة أخرى.");
-      await logout();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "تعذر تغيير كلمة المرور، حاول مرة أخرى.";
       setError(message);
