@@ -43,8 +43,7 @@ export default function HumanCheck({ onSolved, compact = false }: HumanCheckProp
     setError(null);
   };
 
-  const handleVerify = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerify = () => {
     if (solved || checking) return;
     setChecking(true);
     const ok = verifyChallenge(challenge, { challengeId: challenge.id, input });
@@ -74,7 +73,7 @@ export default function HumanCheck({ onSolved, compact = false }: HumanCheckProp
     <div
       className={`rounded-2xl border border-amber-500/30 bg-amber-500/5 ${compact ? "p-3" : "p-4"}`}
     >
-      <form onSubmit={handleVerify} className="grid gap-3">
+      <div className="grid gap-3">
         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
           <ShieldCheck className="h-4 w-4 shrink-0" />
           <p className="text-xs font-bold">تحقق سريع: أثبت أنك لست برنامجاً آلياً للمتابعة</p>
@@ -91,6 +90,12 @@ export default function HumanCheck({ onSolved, compact = false }: HumanCheckProp
               placeholder="الإجابة بالأرقام"
               value={input}
               onChange={(e) => setInput(e.target.value.replace(/[^\d]/g, "").slice(0, 3))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleVerify();
+                }
+              }}
               disabled={checking}
               dir="ltr"
               className="bg-white dark:bg-slate-950 text-center font-bold tracking-widest border-slate-200 dark:border-slate-800"
@@ -116,7 +121,8 @@ export default function HumanCheck({ onSolved, compact = false }: HumanCheckProp
           </p>
         )}
         <Button
-          type="submit"
+          type="button"
+          onClick={handleVerify}
           variant="outline"
           disabled={checking || input.trim().length === 0}
           className="w-full font-bold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
@@ -130,7 +136,7 @@ export default function HumanCheck({ onSolved, compact = false }: HumanCheckProp
             "تحقق"
           )}
         </Button>
-      </form>
+      </div>
     </div>
   );
 }
