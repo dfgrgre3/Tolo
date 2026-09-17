@@ -19,6 +19,7 @@ import { TimerBootstrap } from '@/components/providers/TimerBootstrap';
 import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
 import { useAuth } from '@/hooks/use-auth';
+import AccountStatusGate from '@/components/auth/AccountStatusGate';
 import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
 
 function makeQueryClient() {
@@ -93,7 +94,10 @@ const SessionRuntime = ({
 const DataRuntime = ({ children }: { children: React.ReactNode }) => (
   <ReactQueryPersistence>
     <EfficiencyProvider>
-      <GlobalSettingsApplier>{children}</GlobalSettingsApplier>
+      <GlobalSettingsApplier>
+        <AccountStatusGate />
+        {children}
+      </GlobalSettingsApplier>
     </EfficiencyProvider>
   </ReactQueryPersistence>
 );

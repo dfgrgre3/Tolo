@@ -1,12 +1,29 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import {
+  UserRole,
+  normalizeRole,
+  ADMIN_PRIVILEGE_ROLES,
+} from "@/lib/auth/roles";
 
-// Mirrors the backend's real UserRole constants (internal/domain/common/user.go).
-// No PREMIUM — that was never a backend role; premium status is a subscription
-// property (see UserMenu.tsx's isPremiumUser).
-export type UserRole = "ADMIN" | "SUPER_ADMIN" | "TEACHER" | "MODERATOR" | "STUDENT" | "PARENT" | "SUPPORT";
+// Re-exported so existing `import type { UserRole } from
+// "@/hooks/use-permission"` call sites keep working; the canonical
+// definition lives in `@/lib/auth/roles` (shared enum, backend-synced).
+export type { UserRole } from "@/lib/auth/roles";
 
+/**
+ * Backend permission-grant vocabulary (server-issued strings in
+ * `user.permissions`). Documented here because the matching semantics are
+ * narrower than they look:
+ *   - `"admin:bypass"` — backend-issued wildcard grant. Matched literally;
+ *     the frontend never mints it, only honors what the backend sent.
+ *   - `"*:manage"` — covers ONLY required permissions ending in `:manage`.
+ *     It does NOT cover `:read` / `:write` / `:delete`. Request explicit
+ *     grants for those; do not assume manage-implies-read.
+ *   - `"*"` — full wildcard (backend-issued only).
+ *   - `"prefix:*"` — covers `prefix:anything`.
+ */
 function permissionGrantMatches(grant: string, required: string): boolean {
   if (grant === required || grant === "admin:bypass") return true;
   if (grant === "*:manage") return required.endsWith(":manage");
@@ -23,7 +40,11 @@ function hasPermission(
   perm: string
 ): boolean {
   if (!user) return false;
-  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return true;
+  // Fail closed on unrecognized roles: grants are only honored for a known
+  // role, so a garbage role string can never ride on stale permissions.
+  const role = normalizeRole(user.role);
+  if (role === null) return false;
+  if (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) return true;
   return user.permissions.some((grant) => permissionGrantMatches(grant, perm));
 }
 
@@ -35,6 +56,11 @@ function hasPermission(
  * Every privileged API operation must still be authorized by the backend
  * using the authenticated JWT/session, server-side permissions, and resource
  * ownership where applicable.
+ *
+ * `isAdmin()` reports full admin privilege (ADMIN / SUPER_ADMIN /
+ * MODERATOR). It is intentionally NARROWER than panel entry
+ * (`isStaffAdminPanelRole`, which additionally admits SUPPORT): opening the
+ * `/admin` shell is not the same as holding admin privilege.
  *
  * Usage:
  *   const { can, is, hasAnyRole } = usePermission();
@@ -51,12 +77,13 @@ export function usePermission() {
 
   const is = (role: UserRole): boolean => {
     if (!isAuthenticated || !user) return false;
-    return user.role === role;
+    return normalizeRole(user.role) === role;
   };
 
   const hasAnyRole = (...roles: UserRole[]): boolean => {
     if (!isAuthenticated || !user) return false;
-    return roles.includes(user.role as UserRole);
+    const normalized = normalizeRole(user.role);
+    return normalized !== null && roles.includes(normalized);
   };
 
   const hasAllPermissions = (...permissions: string[]): boolean => {
@@ -65,11 +92,13 @@ export function usePermission() {
   };
 
   const isAdmin = (): boolean => {
-    return hasAnyRole("ADMIN", "SUPER_ADMIN", "MODERATOR");
+    if (!isAuthenticated || !user) return false;
+    const normalized = normalizeRole(user.role);
+    return normalized !== null && ADMIN_PRIVILEGE_ROLES.includes(normalized);
   };
 
   const isContentCreator = (): boolean => {
-    return hasAnyRole("TEACHER", "ADMIN", "SUPER_ADMIN");
+    return hasAnyRole(UserRole.TEACHER, UserRole.ADMIN, UserRole.SUPER_ADMIN);
   };
 
   return {

@@ -267,6 +267,14 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
 /**
  * Attempts to refresh the access token using the refresh token.
  * Returns the verified payload if successful, null otherwise.
+ *
+ * The `transient` flag tells Edge callers whether a failed refresh may
+ * succeed on retry (backend 5xx / 429 / network / timeout / contract
+ * violation with HTTP 200 but no Set-Cookie) or is definitive (backend
+ * 400/401/403/404 = unknown, expired, or revoked refresh token).
+ * Callers MUST NOT clear auth cookies on transient failures — wiping a
+ * still-valid session because the backend had a bad 500ms is a forced
+ * logout. An absent `transient` (older mocks) means definitive.
  */
 export async function attemptTokenRefresh(
   refreshToken: string,
@@ -276,6 +284,8 @@ export async function attemptTokenRefresh(
   cookies: string[];
   accessToken?: string;
   refreshToken?: string;
+  transient?: boolean;
+  status?: number;
 }> {
   // getBackendApiUrl() applies the canonical /api/v1 composition and throws
   // in production when no backend URL is configured.
@@ -286,7 +296,9 @@ export async function attemptTokenRefresh(
       tags: { source: "jwt-edge:refresh" },
       extra: { reason: "backend URL not configured" },
     });
-    return { payload: null, cookies: [] };
+    // No backend to ask — the session may still be valid. Transient so
+    // callers preserve cookies instead of forcing a logout.
+    return { payload: null, cookies: [], transient: true };
   }
 
   const clientIp = resolveClientIp(request);
@@ -304,7 +316,10 @@ export async function attemptTokenRefresh(
 
   try {
     const headers: Record<string, string> = {
-      "Cookie": `refresh_token=${refreshToken}`,
+      // Refresh tokens are opaque strings that may contain characters
+      // significant in a Cookie header — always percent-encode, mirroring
+      // updateCookieHeader() in proxy-pipeline/cookies.ts.
+      "Cookie": `refresh_token=${encodeURIComponent(refreshToken)}`,
       "Content-Type": "application/json",
     };
     if (clientIp) {
@@ -339,8 +354,13 @@ export async function attemptTokenRefresh(
       // construct cookies or override cookie attributes — that was the root cause
       // of inconsistencies between what the backend sets and what the frontend
       // imposed.
+      //
+      // The failure is marked transient: HTTP 200 without rotation is a
+      // backend contract violation, not proof the session is dead — clearing
+      // cookies here would force-logout a user the backend still considers
+      // valid.
       if (!setCookies || setCookies.length === 0) {
-        return { payload: null, cookies: [] };
+        return { payload: null, cookies: [], transient: true, status: refreshRes.status };
       }
 
       return {
@@ -348,12 +368,19 @@ export async function attemptTokenRefresh(
         cookies: setCookies,
         accessToken: tokenStr,
         refreshToken: newRefreshTokenStr || refreshToken,
+        transient: false,
+        status: refreshRes.status,
       };
     }
 
-    return { payload: null, cookies: [] };
+    // Non-OK refresh: 5xx/429 are transient (retryable); 400/401/403/404 are
+    // definitive (unknown, expired, or revoked refresh token — safe to clear).
+    const transient = refreshRes.status >= 500 || refreshRes.status === 429;
+    return { payload: null, cookies: [], transient, status: refreshRes.status };
   } catch (_err) {
     Sentry.captureException(_err, { tags: { source: "jwt-edge:refresh" } });
-    return { payload: null, cookies: [] };
+    // Network error / timeout — the backend never answered, so nothing is
+    // known about the session. Transient: preserve cookies for retry.
+    return { payload: null, cookies: [], transient: true };
   }
 }

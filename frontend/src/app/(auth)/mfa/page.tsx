@@ -65,6 +65,8 @@ export default function MfaPage() {
       );
       setBackupCodes(responseData.backupCodes || []);
       setSuccess("تم تفعيل المصادقة الثنائية بنجاح!");
+      setSecret("");
+      setQrCodeUrl("");
       setStep("backup");
     } catch (err: unknown) {
       setError(toErrorMessage(err, "فشل التحقق"));
@@ -100,7 +102,7 @@ export default function MfaPage() {
               error={error}
               isLoading={isLoading}
               onSubmit={handleVerify}
-              onCancel={() => setStep("init")}
+              onCancel={() => { setSecret(""); setQrCodeUrl(""); setCode(""); setStep("init"); }}
             />
           )}
 

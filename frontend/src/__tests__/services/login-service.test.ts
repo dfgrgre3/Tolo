@@ -151,6 +151,14 @@ describe("login", () => {
 
     expect(result.error).toBe("فشل تسجيل الدخول");
   });
+
+  it("marks non-throttled failures explicitly so no 429 verdict is silently dropped", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("بيانات الدخول غير صحيحة", 401));
+
+    const result = await login({ email: "a@b.com", password: "wrong" });
+
+    expect(result).toMatchObject({ success: false, rateLimited: false, retryAfterMs: null });
+  });
 });
 describe("verifyMfa", () => {
   beforeEach(() => {

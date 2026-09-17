@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import RegisterForm from "@/components/auth/RegisterForm";
-import { GraduationCap } from "lucide-react";
+import { BookOpenCheck, GraduationCap, ShieldCheck, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "إنشاء حساب | Tolo",
@@ -10,57 +10,31 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="w-full min-h-[75vh] grid lg:grid-cols-12 gap-8 items-center justify-center">
-      {/* Visual / Info Left Panel (Desktop only) */}
-      <div className="relative hidden lg:flex lg:col-span-6 xl:col-span-7 h-full min-h-[600px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-10 text-white shadow-2xl border border-slate-800">
-        {/* Soft grid background */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-        <div className="absolute top-0 end-0 w-[300px] h-[300px] bg-primary/20 rounded-full blur-[80px]" />
-        
-        {/* Branding header */}
-        <div className="relative z-20 flex items-center gap-2">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center shadow-lg shadow-primary/20">
-            <GraduationCap className="h-6 w-6 text-white" />
+    <div className="grid w-full items-center gap-8 lg:grid-cols-12">
+      <section className="hidden min-h-[560px] flex-col justify-between rounded-3xl border border-[#0f766e]/20 bg-[#0f766e] p-10 text-white shadow-xl lg:col-span-6 lg:flex xl:col-span-7" aria-labelledby="register-benefits-title">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+            <GraduationCap className="h-6 w-6" />
           </div>
-          <Link href="/" className="text-2xl font-black tracking-wider bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:opacity-90">
-            Tolo
-          </Link>
+          <Link href="/" className="text-2xl font-black tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f766e]">Tolo</Link>
         </div>
 
-        {/* Dynamic center info */}
-        <div className="relative z-20 my-auto max-w-lg space-y-6">
-          <h2 className="text-3xl font-black leading-tight text-white/95">
-            ابدأ رحلتك التعليمية معنا اليوم واكتشف طرقاً جديدة للتعلم
-          </h2>
-          <p className="text-slate-400 text-base leading-relaxed">
-            أنشئ حسابك الآن وانضم إلى آلاف الطلاب المتفوقين. اختر دورتك التدريبية المفضلة، تفاعل مع المعلمين، واحصل على شهادات معتمدة تسهم في بناء مستقبلك.
-          </p>
+        <div className="max-w-lg space-y-6">
+          <p className="text-sm font-bold text-teal-100">منصة تعلم موثوقة للطلاب</p>
+          <h2 id="register-benefits-title" className="text-3xl font-black leading-tight">ابدأ رحلتك التعليمية بخطوة واضحة</h2>
+          <p className="text-base leading-8 text-teal-50">أنشئ حسابك للوصول إلى الدورات والاختبارات ومتابعة تقدمك في مساحة تعليمية منظمة.</p>
+          <ul className="grid gap-4 text-sm font-semibold text-teal-50">
+            <li className="flex items-center gap-3"><BookOpenCheck className="h-5 w-5 shrink-0" />محتوى ودورات مرتبة حسب احتياجك</li>
+            <li className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 shrink-0" />حماية للحساب وتحقق متعدد المراحل</li>
+            <li className="flex items-center gap-3"><Users className="h-5 w-5 shrink-0" />متابعة تقدمك في مكان واحد</li>
+          </ul>
         </div>
 
-        {/* Info footer */}
-        <div className="relative z-20 mt-auto bg-slate-900/60 p-6 rounded-xl border border-white/5 shadow-xl">
-          <div className="flex gap-6 justify-around text-center">
-            <div>
-              <p className="text-2xl font-black text-primary">+15K</p>
-              <p className="text-xs text-slate-400">طالب نشط</p>
-            </div>
-            <div className="border-r border-slate-800" />
-            <div>
-              <p className="text-2xl font-black text-primary">+200</p>
-              <p className="text-xs text-slate-400">معلم خبير</p>
-            </div>
-            <div className="border-r border-slate-800" />
-            <div>
-              <p className="text-2xl font-black text-primary">+500</p>
-              <p className="text-xs text-slate-400">دورة تعليمية</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <p className="border-t border-white/20 pt-5 text-sm text-teal-100">تعلمك اليوم يبني فرصك غداً.</p>
+      </section>
 
-      {/* Form Right Panel */}
-      <div className="lg:col-span-6 xl:col-span-5 w-full flex items-center justify-center py-4">
-        <div className="w-full max-w-[500px] mx-auto">
+      <div className="flex w-full items-center justify-center py-4 lg:col-span-6 xl:col-span-5">
+        <div className="mx-auto w-full max-w-[500px]">
           <RegisterForm />
         </div>
       </div>

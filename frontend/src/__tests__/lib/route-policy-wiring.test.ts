@@ -70,9 +70,21 @@ describe("public API policy wiring (route-guards -> route-policy -> proxy-pipeli
     }
   });
 
-  it("nested sub-paths of public routes are NOT public (exact-match only, by current policy)", () => {
-    expect(guardsIsPublicApiEndpoint("/api/courses/123")).toBe(false);
-    expect(isPublicApiPath("/api/courses/123")).toBe(false);
-    expect(routingIsPublicApiPath("/api/courses/123")).toBe(false);
+  it("nested sub-paths follow the declared per-endpoint match mode", () => {
+    // subtree rules: detail URLs stay public (no forced login on browsing)
+    expect(guardsIsPublicApiEndpoint("/api/courses/123")).toBe(true);
+    expect(isPublicApiPath("/api/courses/123")).toBe(true);
+    expect(routingIsPublicApiPath("/api/courses/123")).toBe(true);
+    expect(guardsIsPublicApiEndpoint("/api/blog/some-slug")).toBe(true);
+    // exact rules: sub-paths stay protected
+    expect(guardsIsPublicApiEndpoint("/api/settings/private")).toBe(false);
+    expect(isPublicApiPath("/api/settings/private")).toBe(false);
+    expect(routingIsPublicApiPath("/api/settings/private")).toBe(false);
+    // role-gated wins over public even under a public subtree
+    expect(guardsIsPublicApiEndpoint("/api/courses/create")).toBe(false);
+    expect(isPublicApiPath("/api/courses/create")).toBe(false);
+    // sensitive leaves never open
+    expect(guardsIsPublicApiEndpoint("/api/blog/admin")).toBe(false);
+    expect(isPublicApiPath("/api/blog/admin")).toBe(false);
   });
 });

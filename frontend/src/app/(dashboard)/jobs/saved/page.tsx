@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useSavedJobs } from '@/hooks/use-jobs';
 import { JobCard } from '@/features/jobs/components/JobCard';
+import { JobsPagination } from '@/features/jobs/components/JobsPagination';
 import {
   JobListSkeleton,
   JobsEmptyState,
@@ -15,7 +16,11 @@ import { jobsStrings } from '@/features/jobs/labels';
 
 export default function SavedJobsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data, isLoading, isError, refetch } = useSavedJobs();
+  const [page, setPage] = React.useState(1);
+  const { data, isLoading, isError, isFetching, refetch } = useSavedJobs({
+    page,
+    enabled: isAuthenticated,
+  });
 
   if (authLoading || isLoading) return <JobListSkeleton />;
 
@@ -63,6 +68,14 @@ export default function SavedJobsPage() {
           {items.map((entry) => (
             <JobCard key={entry.job.id} job={entry.job} savedAt={entry.savedAt} />
           ))}
+          <JobsPagination
+            pagination={data?.pagination}
+            disabled={isFetching}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         </div>
       )}
     </div>

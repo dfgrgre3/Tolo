@@ -7,21 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
-import { getPasswordStrength } from "./profile.constants";
+import { useAuthContext } from "@/contexts/auth-context";
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 import { getPasswordPolicyError, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 
 const MIN_PASSWORD_LEN = PASSWORD_MIN_LENGTH;
 
 /**
- * Security 6.4 — change password. Never logs or persists the values.
- * The backend revokes the old session family and issues a fresh session.
- * (`ChangePassword` handler in backend/internal/infrastructure/api/handlers/
- * protected/auth_handler_password.go), so this redirects to /login instead
- * of just toasting — staying on a page whose session was just invalidated
- * would surface confusing 401s on the very next request.
+ * Security 6.4 — change password. Never logs or persists the submitted values.
+ *
+ * Backend contract: `ChangePassword` validates the current password, rejects
+ * reuse, then invalidates the old session family and issues a FRESH session
+ * (new access/refresh cookies via `ChangePasswordAndCreateSession` +
+ * `setAuthTokenCookies` in `auth_handler_password.go`). The correct client
+ * follow-through is therefore a cache rebind, NOT a forced re-login: after the
+ * change we call `refreshUser()` to re-read identity under the new session and
+ * clear the identity-scoped caches, so nothing from the (now dead) pre-change
+ * session is replayed. The user stays signed in on the new session.
  */
 export default function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -31,8 +35,7 @@ export default function ChangePasswordCard() {
   const [isSaving, setIsSaving] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
-
-  const strength = getPasswordStrength(newPassword);
+  const { refreshUser } = useAuthContext();
 
   function reset() {
     setCurrentPassword("");
@@ -44,8 +47,9 @@ export default function ChangePasswordCard() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (getPasswordPolicyError(newPassword)) {
-      setError(`كلمة المرور الجديدة يجب ألا تقل عن ${MIN_PASSWORD_LEN} أحرف.`);
+    const policyError = getPasswordPolicyError(newPassword);
+    if (policyError) {
+      setError(policyError);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -67,9 +71,13 @@ export default function ChangePasswordCard() {
         newPassword,
         rememberMe: true,
       });
+      // Clear the submitted secrets from the DOM first, then rebind the client
+      // to the fresh session. `refreshUser` never throws (it returns a boolean
+      // and swallows errors internally), so this order is safe.
       reset();
+      await refreshUser();
       setIsSaving(false);
-      toast.success("تم تغيير كلمة المرور. يرجى تسجيل الدخول مرة أخرى.");
+      toast.success("تم تغيير كلمة المرور بنجاح، وتم إنهاء جلساتك الأخرى.");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "تعذر تغيير كلمة المرور، حاول مرة أخرى.";
       setError(message);
@@ -136,26 +144,7 @@ export default function ChangePasswordCard() {
               </button>
             </div>
 
-            {newPassword && (
-              <div
-                className="flex items-center gap-2 pt-1"
-                role="status"
-                aria-label={`قوة كلمة المرور: ${strength.label}`}
-              >
-                <div className="flex flex-1 gap-1">
-                  {[1, 2, 3].map((i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "h-1.5 flex-1 rounded-full transition-colors",
-                        strength.score >= i ? strength.className : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">{strength.label}</span>
-              </div>
-            )}
+            {newPassword && <PasswordStrengthMeter password={newPassword} className="pt-1" />}
           </div>
 
           <div className="space-y-2">

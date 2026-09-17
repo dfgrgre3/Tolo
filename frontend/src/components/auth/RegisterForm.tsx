@@ -21,7 +21,6 @@ const INITIAL_VALUES: RegisterFormValues = {
   confirmPassword: "",
   username: "",
   phone: "",
-  role: "STUDENT",
   referralCode: "",
   agreedToTerms: false,
 };
@@ -55,7 +54,6 @@ export default function RegisterForm() {
       confirmPassword,
       username,
       phone,
-      role,
       referralCode,
       agreedToTerms,
     } = values;
@@ -65,8 +63,9 @@ export default function RegisterForm() {
       return;
     }
 
-    if (getPasswordPolicyError(password)) {
-      setError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
+    const policyError = getPasswordPolicyError(password);
+    if (policyError) {
+      setError(policyError);
       return;
     }
 
@@ -118,16 +117,20 @@ export default function RegisterForm() {
     if (!values.firstName || !values.lastName || !values.email || !values.password || !values.confirmPassword) {
       setError("يرجى إكمال بيانات الهوية أولًا"); return;
     }
-    if (getPasswordPolicyError(values.password)) { setError("كلمة المرور لا تحقق سياسة الأمان"); return; }
+    const policyError = getPasswordPolicyError(values.password);
+    if (policyError) {
+      setError(policyError);
+      return;
+    }
     if (values.password !== values.confirmPassword) { setError("كلمتا المرور غير متطابقتين"); return; }
     setError(null); setStep(2);
   };
 
   return (
-    <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
+    <Card className="w-full rounded-3xl border border-[#0F766E]/15 bg-white shadow-xl shadow-slate-900/10 dark:border-[#2DD4BF]/20 dark:bg-slate-900">
       <CardHeader className="space-y-2 text-center pb-6">
         <div className="flex justify-center mb-3">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <div className="h-12 w-12 rounded-full bg-[#0F766E]/10 flex items-center justify-center text-[#0F766E] dark:text-[#5EEAD4]">
             <UserPlus className="h-6 w-6" />
           </div>
         </div>

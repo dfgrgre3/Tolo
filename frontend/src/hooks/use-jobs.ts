@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api/api-client';
 import { unwrapOpenApiPayload } from '@/lib/api/generated-client';
 import {
   contractApplyToJob,
@@ -44,16 +45,20 @@ export const jobsKeys = {
   all: ['jobs'] as const,
   search: (params: JobSearchParams) => ['jobs', 'search', params] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
-  similar: (id: string) => ['jobs', 'similar', id] as const,
+  // `limit` participates in the key: two callers sharing a page but requesting
+  // different page sizes used to collide on one cache entry while the queryFn
+  // closure captured whichever limit mounted first.
+  similar: (id: string, limit?: number) => ['jobs', 'similar', id, limit] as const,
   categories: () => ['jobs', 'categories'] as const,
-  saved: (page?: number) => ['jobs', 'saved', page ?? 1] as const,
+  saved: (page?: number, limit?: number) => ['jobs', 'saved', page ?? 1, limit] as const,
   overview: () => ['jobs', 'overview'] as const,
-  applications: (status?: string[], page?: number) =>
-    ['jobs', 'applications', status ?? [], page ?? 1] as const,
+  applications: (status?: string[], page?: number, limit?: number) =>
+    ['jobs', 'applications', status ?? [], page ?? 1, limit] as const,
   application: (id: string) => ['jobs', 'application', id] as const,
   companies: (params?: unknown) => ['jobs', 'companies', params ?? {}] as const,
   company: (id: string) => ['jobs', 'company', id] as const,
-  companyJobs: (id: string, page?: number) => ['jobs', 'company', id, 'jobs', page ?? 1] as const,
+  companyJobs: (id: string, page?: number, limit?: number) =>
+    ['jobs', 'company', id, 'jobs', page ?? 1, limit] as const,
 };
 
 interface ListEnvelope<T> {
@@ -61,9 +66,38 @@ interface ListEnvelope<T> {
   pagination?: JobsPagination;
 }
 
+/**
+ * Re-wraps an openapi-fetch error into the app's ApiError taxonomy.
+ *
+ * The backend's error envelope carries no HTTP status in the body — it is
+ * `{success:false, error:"…"}` (response.Error) or `{success:false, code,
+ * message, fieldErrors}` (response.ErrorCode). openapi-fetch hands that parsed
+ * body back as `error`, which left consumers unable to tell a 404 from a 500,
+ * and made the job-detail not-found branch dead code. The full FetchResponse
+ * also resolves `response: Response`, so we recover the status from it and let
+ * every jobs error reach a page as an ApiError (isNotFound / isValidation /
+ * isRateLimited …) like the rest of the app.
+ */
+function toJobsError(body: unknown, response?: Response): ApiError {
+  const envelope = (body && typeof body === 'object' ? body : {}) as {
+    error?: string;
+    message?: string;
+    code?: string;
+  };
+  const message =
+    envelope.error ??
+    envelope.message ??
+    (response ? `Server error: ${response.status}` : 'تعذّر تحميل البيانات');
+  return new ApiError(message, response?.status ?? 0, envelope.code);
+}
+
 /** Throws on transport/API error so react-query surfaces the error state. */
-function unwrap<T>(result: { data?: unknown; error?: unknown }): T {
-  if (result.error) throw result.error;
+function unwrap<T>(result: {
+  data?: unknown;
+  error?: unknown;
+  response?: Response;
+}): T {
+  if (result.error) throw toJobsError(result.error, result.response);
   return unwrapOpenApiPayload<T>(result.data) as T;
 }
 
@@ -99,7 +133,7 @@ export function useJob(id: string) {
 
 export function useSimilarJobs(id: string, limit?: number) {
   return useQuery({
-    queryKey: jobsKeys.similar(id),
+    queryKey: jobsKeys.similar(id, limit),
     queryFn: async (): Promise<Job[]> => {
       const payload = unwrap<ListEnvelope<Job>>(await contractGetSimilarJobs(id, limit));
       return payload?.items ?? [];
@@ -150,7 +184,7 @@ export function useCompany(id: string) {
 
 export function useCompanyJobs(id: string, params?: { page?: number; limit?: number }) {
   return useQuery({
-    queryKey: jobsKeys.companyJobs(id, params?.page),
+    queryKey: jobsKeys.companyJobs(id, params?.page, params?.limit),
     queryFn: async (): Promise<{
       items: Job[];
       company?: Company;
@@ -178,13 +212,19 @@ export function useJobsOverview(enabled = true) {
   });
 }
 
-export function useSavedJobs(params?: { page?: number; limit?: number }) {
+export function useSavedJobs(params?: { page?: number; limit?: number; enabled?: boolean }) {
+  const { enabled = true, ...query } = params ?? {};
+
   return useQuery({
-    queryKey: jobsKeys.saved(params?.page),
+    queryKey: jobsKeys.saved(query.page, query.limit),
     queryFn: async (): Promise<{ items: SavedJobEntry[]; pagination?: JobsPagination }> => {
-      const payload = unwrap<ListEnvelope<SavedJobEntry>>(await contractListSavedJobs(params));
+      const payload = unwrap<ListEnvelope<SavedJobEntry>>(await contractListSavedJobs(query));
       return { items: payload?.items ?? [], pagination: payload?.pagination };
     },
+    // Do not make an authenticated-only request while the session is still
+    // being resolved (or for a signed-out visitor). Besides avoiding a noisy
+    // 401, this lets the page show its deliberate sign-in state immediately.
+    enabled,
   });
 }
 
@@ -206,8 +246,7 @@ export function useToggleSaveJob() {
     mutationFn: async ({ jobId, isSaved }: { jobId: string; isSaved: boolean }) => {
       // `isSaved` is the CURRENT state; we send the opposite action.
       const result = isSaved ? await contractUnsaveJob(jobId) : await contractSaveJob(jobId);
-      if (result.error) throw result.error;
-      return unwrapOpenApiPayload<{ jobId: string; isSaved: boolean }>(result.data);
+      return unwrap<{ jobId: string; isSaved: boolean }>(result);
     },
 
     onMutate: async ({ jobId, isSaved }) => {
@@ -222,6 +261,12 @@ export function useToggleSaveJob() {
 
       for (const [key, data] of snapshots) {
         if (!data || typeof data !== 'object') continue;
+
+        // Similar-jobs queries hold a bare Job[] with no envelope around it.
+        if (Array.isArray(data)) {
+          queryClient.setQueryData(key, (data as Job[]).map(patchJob));
+          continue;
+        }
 
         // Detail queries hold a single Job.
         if ('id' in (data as Job) && (data as Job).id === jobId) {
@@ -262,22 +307,32 @@ export function useToggleSaveJob() {
     onSettled: () => {
       // The saved list's membership and the overview counter both changed;
       // refetch them rather than trying to splice rows in or out by hand.
+      // The similar rail is patched optimistically above, but it still
+      // reconciles here so a server-side change cannot leave it drifted.
       queryClient.invalidateQueries({ queryKey: ['jobs', 'saved'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'similar'] });
       queryClient.invalidateQueries({ queryKey: jobsKeys.overview() });
     },
   });
 }
 
-export function useMyApplications(params?: { status?: JobApplicationStatus[]; page?: number }) {
+export function useMyApplications(params?: {
+  status?: JobApplicationStatus[];
+  page?: number;
+  limit?: number;
+  enabled?: boolean;
+}) {
+  const { enabled = true, ...query } = params ?? {};
+
   return useQuery({
-    queryKey: jobsKeys.applications(params?.status, params?.page),
+    queryKey: jobsKeys.applications(query.status, query.page, query.limit),
     queryFn: async (): Promise<{
       items: JobApplication[];
       statusCounts: Record<string, number>;
       pagination?: JobsPagination;
     }> => {
       const payload = unwrap<ListEnvelope<JobApplication> & { statusCounts?: Record<string, number> }>(
-        await contractListMyApplications(params)
+        await contractListMyApplications(query)
       );
       return {
         items: payload?.items ?? [],
@@ -286,6 +341,7 @@ export function useMyApplications(params?: { status?: JobApplicationStatus[]; pa
       };
     },
     placeholderData: (previous) => previous,
+    enabled,
   });
 }
 
@@ -314,13 +370,17 @@ export function useApplyToJob() {
   return useMutation({
     mutationFn: async ({ jobId, input }: { jobId: string; input: JobApplicationInput }) => {
       const result = await contractApplyToJob(jobId, input);
-      if (result.error) throw result.error;
-      return unwrapOpenApiPayload<{ application: JobApplication }>(result.data);
+      return unwrap<{ application: JobApplication }>(result);
     },
     onSuccess: (_data, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: jobsKeys.detail(jobId) });
       queryClient.invalidateQueries({ queryKey: ['jobs', 'applications'] });
+      // Every surface that embeds the same Job row carries the hasApplied flag
+      // and would otherwise keep offering an already-applied job as available.
       queryClient.invalidateQueries({ queryKey: ['jobs', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'similar'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'company'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'saved'] });
       queryClient.invalidateQueries({ queryKey: jobsKeys.overview() });
     },
   });
@@ -332,12 +392,25 @@ export function useWithdrawApplication() {
   return useMutation({
     mutationFn: async (applicationId: string) => {
       const result = await contractWithdrawApplication(applicationId);
-      if (result.error) throw result.error;
-      return unwrapOpenApiPayload<{ status: JobApplicationStatus }>(result.data);
+      return unwrap<{ status: JobApplicationStatus }>(result);
     },
     onSuccess: (_data, applicationId) => {
+      // Withdrawing re-opens the job, so every cached copy carrying hasApplied
+      // must be discarded — the detail page's "already applied" button would
+      // otherwise stay disabled and block re-applying forever. The job id is
+      // not in the withdraw response, so take it from the cached application.
+      const cached = queryClient.getQueryData<JobApplication>(
+        jobsKeys.application(applicationId)
+      );
+      const jobId = cached?.job?.slug || cached?.job?.id;
+      if (jobId) queryClient.invalidateQueries({ queryKey: jobsKeys.detail(jobId) });
+
       queryClient.invalidateQueries({ queryKey: jobsKeys.application(applicationId) });
       queryClient.invalidateQueries({ queryKey: ['jobs', 'applications'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'similar'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'company'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'saved'] });
       queryClient.invalidateQueries({ queryKey: jobsKeys.overview() });
     },
   });

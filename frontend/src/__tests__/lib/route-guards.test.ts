@@ -40,6 +40,39 @@ describe("isProtectedRoute", () => {
     expect(isProtectedRoute("/admin/users")).toBe(true);
   });
 
+  it("protects the expanded user-scoped sections (dashboard group + user leaves)", () => {
+    expect(isProtectedRoute("/settings")).toBe(true);
+    expect(isProtectedRoute("/billing")).toBe(true);
+    expect(isProtectedRoute("/subscription")).toBe(true);
+    expect(isProtectedRoute("/tasks")).toBe(true);
+    expect(isProtectedRoute("/schedule")).toBe(true);
+    expect(isProtectedRoute("/jobs/search")).toBe(true);
+    expect(isProtectedRoute("/academy")).toBe(true);
+    expect(isProtectedRoute("/ai")).toBe(true);
+    expect(isProtectedRoute("/cart")).toBe(true);
+    expect(isProtectedRoute("/wishlist")).toBe(true);
+    expect(isProtectedRoute("/chat")).toBe(true);
+    expect(isProtectedRoute("/mfa")).toBe(true);
+  });
+
+  it("protects write leaves inside otherwise-public sections", () => {
+    expect(isProtectedRoute("/blog/new-post")).toBe(true);
+    expect(isProtectedRoute("/forum/new-post")).toBe(true);
+    expect(isProtectedRoute("/announcements/new")).toBe(true);
+    expect(isProtectedRoute("/events/new")).toBe(true);
+    expect(isProtectedRoute("/contests/new")).toBe(true);
+  });
+
+  it("keeps the public catalog open (read surfaces stay unprotected)", () => {
+    expect(isProtectedRoute("/courses")).toBe(false);
+    expect(isProtectedRoute("/courses/123")).toBe(false);
+    expect(isProtectedRoute("/blog")).toBe(false);
+    expect(isProtectedRoute("/blog/my-slug")).toBe(false);
+    expect(isProtectedRoute("/forum")).toBe(false);
+    expect(isProtectedRoute("/teachers")).toBe(false);
+    expect(isProtectedRoute("/about")).toBe(false);
+  });
+
   it("does NOT protect text-prefix lookalikes", () => {
     expect(isProtectedRoute("/profiled")).toBe(false);
     expect(isProtectedRoute("/profile-anything")).toBe(false);
@@ -78,13 +111,40 @@ describe("isGuestRoute", () => {
 });
 
 describe("isPublicApiEndpoint", () => {
-  it("flags only exact declared public endpoints", () => {
+  it("flags declared public endpoints", () => {
     expect(isPublicApiEndpoint("/api/categories")).toBe(true);
     expect(isPublicApiEndpoint("/api/teachers")).toBe(true);
     expect(isPublicApiEndpoint("/api/homepage")).toBe(true);
     expect(isPublicApiEndpoint("/api/settings")).toBe(true);
+    expect(isPublicApiEndpoint("/api/blog")).toBe(true);
+    expect(isPublicApiEndpoint("/api/courses")).toBe(true);
+    expect(isPublicApiEndpoint("/api/navigation/menu")).toBe(true);
+  });
+
+  it("treats detail/sub-paths of subtree rules as public (no forced login on public browsing)", () => {
+    expect(isPublicApiEndpoint("/api/courses/123")).toBe(true);
+    expect(isPublicApiEndpoint("/api/courses?page=2")).toBe(true);
+    expect(isPublicApiEndpoint("/api/blog/my-slug")).toBe(true);
+    expect(isPublicApiEndpoint("/api/categories/5")).toBe(true);
+    expect(isPublicApiEndpoint("/api/teachers/42")).toBe(true);
+  });
+
+  it("keeps exact-only rules closed below their root", () => {
     expect(isPublicApiEndpoint("/api/settings/private")).toBe(false);
+    expect(isPublicApiEndpoint("/api/homepage/extra")).toBe(false);
+    expect(isPublicApiEndpoint("/api/navigation/menu/item")).toBe(false);
+  });
+
+  it("never opens sensitive leaves, even under a public subtree", () => {
     expect(isPublicApiEndpoint("/api/blog/admin")).toBe(false);
+    expect(isPublicApiEndpoint("/api/blog/admin/stats")).toBe(false);
+  });
+
+  it("role-gated endpoints always win over public (no privilege leak via prefix)", () => {
+    expect(isPublicApiEndpoint("/api/courses/create")).toBe(false);
+    expect(isPublicApiEndpoint("/api/teaching/dashboard")).toBe(false);
+    expect(isPublicApiEndpoint("/api/student/grades")).toBe(false);
+    expect(isPublicApiEndpoint("/api/exams/submit")).toBe(false);
   });
 
   it("does NOT treat text-prefix lookalikes as public", () => {
@@ -175,5 +235,17 @@ describe("hasRole", () => {
   it("rejects roles not in the allow-list", () => {
     expect(hasRole("STUDENT", TEACHER_ENDPOINT_ROLES)).toBe(false);
     expect(hasRole("TEACHER", STUDENT_ENDPOINT_ROLES)).toBe(false);
+  });
+
+  it("normalizes casing (a lowercase claim gates like its canonical form)", () => {
+    expect(hasRole("teacher", TEACHER_ENDPOINT_ROLES)).toBe(true);
+    expect(hasRole("  admin ", STUDENT_ENDPOINT_ROLES)).toBe(true);
+    expect(hasRole("student", TEACHER_ENDPOINT_ROLES)).toBe(false);
+  });
+
+  it("fails closed on unknown roles", () => {
+    expect(hasRole("BOGUS", TEACHER_ENDPOINT_ROLES)).toBe(false);
+    expect(hasRole("PREMIUM", STUDENT_ENDPOINT_ROLES)).toBe(false);
+    expect(hasRole("", TEACHER_ENDPOINT_ROLES)).toBe(false);
   });
 });

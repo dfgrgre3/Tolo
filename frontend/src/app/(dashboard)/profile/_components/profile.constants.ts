@@ -8,6 +8,23 @@ export const MAX_BIO_LEN = 300;
 export const MAX_STUDY_GOAL_LEN = 200;
 export const MAX_CITY_LEN = 60;
 export const MAX_SCHOOL_LEN = 120;
+export const MIN_ACCOUNT_AGE = 13;
+export const MAX_ACCOUNT_AGE = 120;
+export const RESERVED_USERNAMES = new Set([
+  "admin", "administrator", "root", "system", "support", "moderator", "teacher",
+]);
+
+/** Date-only validation; deliberately avoids timezone-dependent Date parsing. */
+export function isValidBirthDate(value: string, today = new Date()): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year = 0, month = 0, day = 0] = value.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth) return false;
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  let age = today.getFullYear() - year;
+  if (value.slice(5) > todayKey.slice(5)) age--;
+  return value <= todayKey && age >= MIN_ACCOUNT_AGE && age <= MAX_ACCOUNT_AGE;
+}
 
 /**
  * `users.gender` is a free-form `varchar(20)`; these lowercase values match what
@@ -93,35 +110,11 @@ export function formatArabicDate(iso?: string | null): string | null {
   return `${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-export interface PasswordStrength {
-  score: 0 | 1 | 2 | 3;
-  label: "ضعيفة جداً" | "ضعيفة" | "متوسطة" | "قوية";
-  className: string;
-}
-
-/**
- * Client-side strength heuristic (length + character variety). Purely a UI
- * hint — the backend remains the source of truth for password policy.
- */
-export function getPasswordStrength(password: string): PasswordStrength {
-  if (!password) {
-    return { score: 0, label: "ضعيفة جداً", className: "bg-destructive" };
-  }
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
-  if (/\d/.test(password) && /[^A-Za-z0-9]/.test(password)) score++;
-
-  const clamped = Math.min(score, 3) as PasswordStrength["score"];
-  const byScore: Record<PasswordStrength["score"], Omit<PasswordStrength, "score">> = {
-    0: { label: "ضعيفة جداً", className: "bg-destructive" },
-    1: { label: "ضعيفة", className: "bg-orange-500" },
-    2: { label: "متوسطة", className: "bg-amber-500" },
-    3: { label: "قوية", className: "bg-emerald-500" },
-  };
-  return { score: clamped, ...byScore[clamped] };
-}
+// Password strength lives in the shared `password-policy` module so the profile
+// meter and the auth flows (register / reset-password / change-password) render
+// identical feedback from a single implementation. Re-exported here to keep the
+// existing `./profile.constants` import path working.
+export { getPasswordStrength, type PasswordStrength } from "@/lib/auth/password-policy";
 
 /**
  * Fields counted toward profile completeness with human-readable hints.

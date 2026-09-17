@@ -28,6 +28,11 @@ import type { SessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
 import { clearClientCaches } from "@/lib/cache/clear-client-caches";
 import { getDeviceRiskSignal } from "@/lib/auth/device-fingerprint";
+import {
+  deriveAccountStatus,
+  type AccountStatus,
+} from "@/lib/auth/account-status";
+import type { UserRole } from "@/lib/auth/roles";
 import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services/auth/login-service";
 
 /**
@@ -41,7 +46,7 @@ import { login as loginRequest, verifyMfa as verifyMfaRequest } from "@/services
 export type AuthLoginResult =
   | { status: "success"; success: true; requiresMfa?: false; challengeId?: null; error?: undefined }
   | { status: "mfa_required"; success: false; requiresMfa: true; challengeId: string | null; error?: undefined }
-  | { status: "failure"; success: false; requiresMfa?: false; challengeId?: null; error: string };
+  | { status: "failure"; success: false; requiresMfa?: false; challengeId?: null; error: string; rateLimited: boolean; retryAfterMs: number | null };
 
 // API Response Types
 export interface AuthMeResponse {
@@ -56,7 +61,13 @@ export interface AuthUser {
   username: string | null;
   email: string;
   avatar: string | null;
-  role: string;
+  /**
+   * Canonical backend role. Typed as `UserRole` (shared enum) instead of
+   * `string` so a mistyped role fails compilation; wire values are still
+   * normalized at every trust boundary (`normalizeRole`) because the cast
+   * over fetch JSON cannot prove the backend's casing.
+   */
+  role: UserRole;
   permissions: string[];
   phone: string | null;
   school: string | null;
@@ -113,6 +124,13 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
+  /**
+   * The account lifecycle, derived from the `user` payload. Deliberately
+   * separate from `status` (which is about the session): an authenticated
+   * user on a suspended account is `status: "authenticated"` with
+   * `accountStatus: "SUSPENDED"`. See lib/auth/account-status.ts.
+   */
+  accountStatus: AccountStatus;
   /** Server-rendered hint that auth cookies were present on the request. */
   hasSessionHint: boolean;
   /** Increments whenever the session is established, refreshed, or cleared. */
@@ -134,7 +152,8 @@ interface AuthContextValue extends AuthState {
   /** Complete an MFA challenge during sign-in. */
   verifyMfa: (
     challengeId: string,
-    code: string
+    code: string,
+    remember?: boolean
   ) => Promise<AuthLoginResult>;
   /** @deprecated Use redirectToLogin instead */
   login: () => Promise<void>;
@@ -230,7 +249,9 @@ function stateFromMeError(err: unknown): AuthState {
  *   "loading"      → "loading"     (auth state has not converged)
  *   "authenticated"→ "present"     (we have positive proof of a session)
  *   "anonymous"    → "absent"      (401 confirmed: the user is signed out)
- *   "blocked"      → "absent"      (the backend rejected this account)
+ *   "blocked"      → "blocked"     (session exists, account rejected — NOT
+ *                                   "absent"; AccountStatusGate owns the
+ *                                   redirect to the account-status screen)
  *   "unavailable"  → "unavailable" (backend unreachable; keep prior signal)
  */
 function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
@@ -240,7 +261,12 @@ function mapAuthStatusToSessionPresence(status: AuthStatus): SessionPresence {
     case "anonymous":
       return "absent";
     case "blocked":
-      return "absent";
+      // NOT "absent": a suspended/locked account has proof of identity, so
+      // the /login redirect path must not claim it. `handleUnauthorized`
+      // treats "blocked" as a hard stop and `AccountStatusGate` navigates to
+      // /account-blocked instead. Mapping it to "absent" here would make the
+      // account-status UX indistinguishable from a guest at the API layer.
+      return "blocked";
     case "loading":
       return "loading";
     case "unavailable":
@@ -445,12 +471,12 @@ export function AuthProvider({
         fingerprint: getDeviceRiskSignal(),
       });
 
-      if (result.requiresMfa) {
+      if (result.status === "mfa_required") {
         return { status: "mfa_required", success: false, requiresMfa: true, challengeId: result.challengeId };
       }
 
-      if (!result.success) {
-        return { status: "failure", success: false, error: result.error ?? "فشل تسجيل الدخول" };
+      if (result.status === "failure") {
+        return { status: "failure", success: false, error: result.error ?? "فشل تسجيل الدخول", rateLimited: result.rateLimited ?? false, retryAfterMs: result.retryAfterMs ?? null };
       }
 
       // Identity is about to change. Drop everything that could let a
@@ -458,13 +484,17 @@ export function AuthProvider({
       // new session: in-flight dedup promises, the identity binding,
       // and the CSRF token. `refreshUser()` will re-establish them
       // under the new user.
-      await clearClientCaches({ queryClient });
+      // The session cookie is already established. Cache cleanup and the
+      // follow-up /auth/me probe are hydration work and must not turn a
+      // successful credential exchange into the generic login error.
+      try {
+        await clearClientCaches({ queryClient });
+        await refreshUser();
+      } catch {
+        // Navigation below rehydrates the provider from the new cookies.
+      }
 
-      // The session cookie is set; load the user so guards see the new role.
-      const refreshed = await refreshUser();
-      return refreshed
-        ? { status: "success", success: true }
-        : { status: "failure", success: false, error: "تعذر تحميل بيانات المستخدم بعد تسجيل الدخول" };
+      return { status: "success", success: true };
     },
     [queryClient, refreshUser]
   );
@@ -474,23 +504,27 @@ export function AuthProvider({
    * opaque handle returned in that call's result.
    */
   const verifyMfa = useCallback(
-    async (challengeId: string, code: string): Promise<AuthLoginResult> => {
-      const result = await verifyMfaRequest(challengeId, code);
+    async (challengeId: string, code: string, remember: boolean = false): Promise<AuthLoginResult> => {
+      const result = await verifyMfaRequest(challengeId, code, remember);
 
-      if (!result.success) {
-        return { status: "failure", success: false, error: result.error ?? "فشل التحقق من الرمز" };
+      if (result.status === "failure") {
+        return { status: "failure", success: false, error: result.error ?? "فشل التحقق من الرمز", rateLimited: result.rateLimited ?? false, retryAfterMs: result.retryAfterMs ?? null };
       }
 
       // Same identity-transition cleanup as `signIn`: an MFA success
       // moves the user from a pre-auth (or partial-auth) state to a
       // fully-authenticated state, so any cached data from before must
       // be wiped to prevent it from being replayed under the new session.
-      await clearClientCaches({ queryClient });
+      // MFA has established the session. Keep cleanup and the follow-up probe
+      // best-effort so an accepted code cannot become a generic failure.
+      try {
+        await clearClientCaches({ queryClient });
+        await refreshUser();
+      } catch {
+        // Navigation below rehydrates the provider from the new cookies.
+      }
 
-      const refreshed = await refreshUser();
-      return refreshed
-        ? { status: "success", success: true }
-        : { status: "failure", success: false, error: "تعذر تحميل بيانات المستخدم بعد التحقق" };
+      return { status: "success", success: true };
     },
     [queryClient, refreshUser]
   );
@@ -501,6 +535,12 @@ export function AuthProvider({
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
+      // Derived, not stored: `AuthState` tracks the session; the account
+      // lifecycle is a pure function of the user payload, so it is computed
+      // here once rather than duplicated across every setState call site.
+      // deriveAccountStatus accepts null (→ GUEST) for
+      // the anonymous/unauthenticated case.
+      accountStatus: deriveAccountStatus(state.user),
       hasSessionHint,
       authSessionVersion,
       redirectToLogin,

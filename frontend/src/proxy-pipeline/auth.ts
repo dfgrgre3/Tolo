@@ -18,6 +18,15 @@ export interface SessionState {
   refreshCookies: string[];
   accessToken?: string;
   refreshToken?: string;
+  /**
+   * True when the refresh was attempted but the backend never gave a
+   * definitive answer (5xx / 429 / network / timeout). Callers must
+   * PRESERVE auth cookies in this state — only a definitive rejection
+   * (401/403/...) justifies wiping the session.
+   */
+  refreshTransient?: boolean;
+  /** Backend HTTP status of the refresh attempt, when known. */
+  refreshStatus?: number;
 }
 
 export function hasValidPayload(
@@ -39,7 +48,11 @@ export async function refreshSession(
   const failedUntil = failedRefreshes.get(refreshToken);
   if (failedUntil !== undefined) {
     if (failedUntil > now) {
-      return { payload: null, cookies: [] };
+      // A recent attempt already failed — skip the upstream call, but stay
+      // conservative: without a fresh answer the failure is treated as
+      // transient so callers preserve cookies instead of logging the user
+      // out on a cooldown hit.
+      return { payload: null, cookies: [], transient: true };
     }
     failedRefreshes.delete(refreshToken);
   }

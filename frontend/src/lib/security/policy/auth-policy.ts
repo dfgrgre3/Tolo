@@ -67,11 +67,71 @@ function parseTrustedProxyCount(raw: string | undefined): number {
 export const TRUSTED_PROXY_COUNT = parseTrustedProxyCount(process.env.TRUSTED_PROXY_COUNT);
 
 /**
- * Validate TRUSTED_PROXY_COUNT configuration.
- * Logs a warning in production if using the default value, as this may
- * indicate misconfiguration for CDN/deployed environments.
+ * Deployment-topology status for `TRUSTED_PROXY_COUNT`.
+ *
+ * `resolveTrustedClientIp()` returns `''` whenever the count is 0 — which
+ * silently disables every IP-based security feature downstream
+ * (rate limiting, audit logging, abuse protection). Callers and deploy
+ * checks need to distinguish "operator explicitly chose direct-to-backend
+ * (0)" from "nobody configured anything", because only the second case is
+ * a misconfiguration worth failing loudly on.
  */
-export function validateTrustedProxyCount(): void {
+export interface TrustedProxyConfig {
+  /** Effective hop count after parsing (0 = trust nothing). */
+  count: number;
+  /** True only when `TRUSTED_PROXY_COUNT` was explicitly set in the env. */
+  isExplicit: boolean;
+  /** Where the effective value came from (for logs / deploy checks). */
+  source: "env" | "vercel-default" | "fail-closed-default";
+}
+
+export function getTrustedProxyConfig(): TrustedProxyConfig {
+  const raw = process.env.TRUSTED_PROXY_COUNT;
+  if (raw !== undefined) {
+    return { count: TRUSTED_PROXY_COUNT, isExplicit: true, source: "env" };
+  }
+  if (process.env.VERCEL === "1") {
+    return { count: TRUSTED_PROXY_COUNT, isExplicit: false, source: "vercel-default" };
+  }
+  return { count: TRUSTED_PROXY_COUNT, isExplicit: false, source: "fail-closed-default" };
+}
+
+/**
+ * True when a real client IP can be resolved for this deployment
+ * (at least one trusted hop configured). When false, IP-based security
+ * features MUST treat the client as unidentified rather than bucketing
+ * everybody under a shared "unknown" key.
+ */
+export function isClientIpResolvable(): boolean {
+  return TRUSTED_PROXY_COUNT > 0;
+}
+
+/**
+ * Validate TRUSTED_PROXY_COUNT configuration.
+ *
+ * Returns `true` when the configuration is sound, `false` when the
+ * deployment is running production without an explicit setting outside
+ * Vercel — the exact misconfiguration that makes `resolveTrustedClientIp`
+ * return `''` for every request. The `false` case logs an ERROR (not a
+ * warning) because IP-based rate limiting / audit / abuse protection are
+ * silently dead in that state.
+ */
+export function validateTrustedProxyCount(): boolean {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.TRUSTED_PROXY_COUNT === undefined &&
+    process.env.VERCEL !== '1'
+  ) {
+    console.error(
+      '[auth-policy] TRUSTED_PROXY_COUNT is NOT SET in production and this is not Vercel. ' +
+      'resolveTrustedClientIp() will return \'\' for every request, so IP-based rate limiting, ' +
+      'audit logging, and abuse protection are DISABLED. ' +
+      'Set TRUSTED_PROXY_COUNT to match your deployment topology ' +
+      '(0 = direct to backend, 1 = single CDN/proxy, 2 = CDN + reverse proxy). ' +
+      'Failing the deploy check until this is set explicitly.'
+    );
+    return false;
+  }
   if (
     process.env.NODE_ENV === 'production' &&
     !process.env.TRUSTED_PROXY_COUNT &&
@@ -84,6 +144,7 @@ export function validateTrustedProxyCount(): void {
       'Set TRUSTED_PROXY_COUNT to match your deployment topology.'
     );
   }
+  return true;
 }
 
 /**

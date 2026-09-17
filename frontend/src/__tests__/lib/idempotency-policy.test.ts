@@ -12,7 +12,7 @@ describe("requiresIdempotencyKey", () => {
   });
 
   it("does not classify every write as idempotent", () => {
-    expect(requiresIdempotencyKey("POST", "/api/auth/login")).toBe(false);
+    expect(requiresIdempotencyKey("POST", "/api/v1/auth/login")).toBe(false);
     expect(requiresIdempotencyKey("POST", "/api/analytics/events")).toBe(false);
     expect(requiresIdempotencyKey("POST", "/api/upload/chunked")).toBe(false);
     expect(requiresIdempotencyKey("GET", "/api/payments/history")).toBe(false);

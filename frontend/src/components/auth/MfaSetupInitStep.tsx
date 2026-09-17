@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { LoaderCircle, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface MfaSetupInitStepProps {
   error: string | null;
@@ -35,7 +35,7 @@ export default function MfaSetupInitStep({ error, isLoading, onStart }: MfaSetup
           </Alert>
         )}
         <Button onClick={onStart} disabled={isLoading} className="w-full">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : "ابدأ الإعداد"}
+          {isLoading ? <LoaderCircle className="h-4 w-4 me-2" /> : "ابدأ الإعداد"}
         </Button>
       </CardContent>
     </>

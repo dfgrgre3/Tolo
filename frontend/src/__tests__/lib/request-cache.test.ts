@@ -62,7 +62,7 @@ describe("RequestCacheManager deduplication (in-flight only)", () => {
     });
 
     // First request (no dedup key — non-cacheable policy → passes through)
-    await requestCache.getResponse("/api/auth/me", undefined, fetcher);
+    await requestCache.getResponse("/api/v1/auth/me", undefined, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(1);
 
     // force=true bypasses dedup (caller wants fresh data)
@@ -224,7 +224,7 @@ describe("RequestCacheManager fail-closed policy matching", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("should never deduplicate endpoints marked with scope: none or ttl: 0 (/api/auth/me)", async () => {
+  it("should never deduplicate endpoints marked with scope: none or ttl: 0 (/api/v1/auth/me)", async () => {
     const fetcher = vi
       .fn()
       .mockImplementation(
@@ -232,13 +232,13 @@ describe("RequestCacheManager fail-closed policy matching", () => {
           new Response(JSON.stringify({ user: { id: "u1" } })),
       );
 
-    await requestCache.getResponse("/api/auth/me", undefined, fetcher);
+    await requestCache.getResponse("/api/v1/auth/me", undefined, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(1);
 
-    await requestCache.getResponse("/api/auth/me", undefined, fetcher);
+    await requestCache.getResponse("/api/v1/auth/me", undefined, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(2);
 
-    const policy = requestCache.getPolicy("/api/auth/me");
+    const policy = requestCache.getPolicy("/api/v1/auth/me");
     expect(policy.scope).toBe("none");
     expect(policy.ttl).toBe(0);
   });

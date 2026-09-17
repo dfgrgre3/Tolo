@@ -43,6 +43,18 @@ const EXAM_DAYS_OPTIONS = [
   { value: "7", label: "أسبوع" },
 ];
 
+function validateQuietHours(settings: NotificationSettingsPreference): string | null {
+  if (!settings.quietHoursEnabled) return null;
+  const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!timePattern.test(settings.quietHoursStart) || !timePattern.test(settings.quietHoursEnd)) {
+    return "أوقات الهدوء يجب أن تكون بصيغة ساعة:دقيقة صحيحة.";
+  }
+  if (settings.quietHoursStart === settings.quietHoursEnd) {
+    return "يجب أن يختلف وقت بداية الهدوء عن وقت نهايته.";
+  }
+  return null;
+}
+
 export default function NotificationPreferences() {
   const { user } = useAuthContext();
   const [initial, setInitial] = useState<NotificationSettingsPreference | null>(null);
@@ -79,6 +91,12 @@ export default function NotificationPreferences() {
 
   async function handleSave() {
     if (!form) return;
+    const quietHoursError = validateQuietHours(form);
+    if (quietHoursError) {
+      setError(quietHoursError);
+      toast.error(quietHoursError);
+      return;
+    }
     setIsSaving(true);
     setError(null);
     try {

@@ -19,7 +19,16 @@
  * `ROLE_RULES` below. The proxy middleware reads this table instead of
  * hand-rolling `matchesPath(...) || matchesPath(...)` blocks. To add a
  * new role-gated endpoint, append one entry here — no proxy change needed.
+ *
+ * Role vocabulary: every role set below is typed as `UserRole` (the shared
+ * enum, via `@/lib/auth/roles`) — never bare `string`. String literals ARE
+ * assignable to the enum type, so the lists read the same as before, but a
+ * typo'd role (`"ADMN"`) now fails compilation instead of silently gating
+ * wrong at the Edge. Incoming claims are normalized with `normalizeRole()`
+ * (case-tolerant); unknown roles fail closed.
  */
+
+import { UserRole, normalizeRole } from "@/lib/auth/roles";
 
 // ─── Role sets ────────────────────────────────────────────────────────────────
 
@@ -28,22 +37,87 @@
  * (Previously named `ALLOWED_STUDENT_ROLES`, which misdescribed it: every
  * signed-in role is listed here, not just STUDENT.)
  */
-export const ALLOWED_AUTHENTICATED_ROLES = [
-  "STUDENT",
-  "TEACHER",
-  "PARENT",
-  "SUPPORT",
-  "ADMIN",
-  "SUPER_ADMIN",
-  "MODERATOR",
-] as const;
+export const ALLOWED_AUTHENTICATED_ROLES: readonly UserRole[] = [
+  UserRole.STUDENT,
+  UserRole.TEACHER,
+  UserRole.PARENT,
+  UserRole.SUPPORT,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+  UserRole.MODERATOR,
+];
 
-export const TEACHER_ENDPOINT_ROLES = ["TEACHER", "ADMIN", "SUPER_ADMIN"] as const;
-export const STUDENT_ENDPOINT_ROLES = ["STUDENT", "ADMIN", "SUPER_ADMIN"] as const;
+export const TEACHER_ENDPOINT_ROLES: readonly UserRole[] = [
+  UserRole.TEACHER,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
+export const STUDENT_ENDPOINT_ROLES: readonly UserRole[] = [
+  UserRole.STUDENT,
+  UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
+];
 
 // ─── Path classification ─────────────────────────────────────────────────────
 
-const PROTECTED_ROUTES = ["/dashboard", "/learning", "/profile", "/mfa"];
+/**
+ * Fully-private page sections (subtree match): every URL under these roots
+ * requires a verified session at the Edge. Derived from the App Router
+ * groups `(dashboard)` + sensitive `(education)/(community)` leaves:
+ *   (dashboard): /dashboard /profile /settings /billing /subscription
+ *     /tasks /schedule /goals /time /connections /academy /ai /analytics
+ *     /leaderboard /jobs /all-features
+ *   (education) user-scoped: /learning /exams /teacher-exams /cart
+ *     /wishlist /library
+ *   (misc): /mfa
+ *
+ * Public catalog stays OUT: /courses, /teachers, /tips, /resources,
+ * /blog (read), /forum (read), /announcements (read), /events (read),
+ * /contests (read) render without a session. Their write leaves are
+ * pinned individually in PROTECTED_WRITE_PATHS below so a subtree grant
+ * here can never accidentally open a public read surface, and a missing
+ * entry here can never force a login on public browsing.
+ */
+export const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/profile",
+  "/settings",
+  "/billing",
+  "/subscription",
+  "/tasks",
+  "/schedule",
+  "/goals",
+  "/time",
+  "/connections",
+  "/academy",
+  "/ai",
+  "/analytics",
+  "/leaderboard",
+  "/jobs",
+  "/learning",
+  "/exams",
+  "/teacher-exams",
+  "/cart",
+  "/wishlist",
+  "/library",
+  "/chat",
+  "/mfa",
+  "/all-features",
+] as const;
+
+/**
+ * Write leaves inside otherwise-public sections. Each entry is matched
+ * with `matchesPath()` so `/forum/new-post` also covers a future
+ * `/forum/new-post/...` without opening `/forum` itself.
+ */
+export const PROTECTED_WRITE_PATHS = [
+  "/blog/new-post",
+  "/forum/new-post",
+  "/announcements/new",
+  "/events/new",
+  "/contests/new",
+  "/chat/new",
+] as const;
 
 /** Edge-only guest routes used by the proxy's session gate. */
 export const EDGE_GUEST_ROUTES = [
@@ -55,19 +129,58 @@ export const EDGE_GUEST_ROUTES = [
 ];
 
 /**
- * Endpoints that don't require authentication even under the general API
- * gate. This is the single source of truth — `route-policy.ts` re-exports
- * it rather than keeping a parallel list, so the two can no longer drift.
+ * Public API surface. Each entry declares its match mode explicitly so
+ * adding a collection endpoint cannot silently open (or close) its
+ * detail URLs:
+ *   - `subtree`: the collection AND its detail/sub-paths are public
+ *     (e.g. `/api/courses` + `/api/courses/123` + `/api/courses?page=2`).
+ *   - `exact`: only the literal path is public; any sub-path stays
+ *     protected (e.g. `/api/settings` is public but
+ *     `/api/settings/private` is not).
+ *
+ * Safety invariants (enforced by `isPublicApiEndpoint` + tests):
+ *   1. A `ROLE_RULES` hit always wins over public — e.g. `/api/courses`
+ *      is a public subtree but `/api/courses/create` stays teacher-only.
+ *   2. Known sensitive leaves are denied even under a public subtree —
+ *      e.g. `/api/blog/admin` is never public even though `/api/blog/*`
+ *      (post slugs) is.
+ *   3. Matching is exact-or-subpath (`matchesPath`), never substring:
+ *      `/api/settings-secret` is NOT `/api/settings`.
  */
-export const PUBLIC_API_ENDPOINTS = [
-  "/api/categories",
-  "/api/teachers",
-  "/api/homepage",
-  "/api/blog",
-  "/api/courses",
-  "/api/navigation/menu",
-  "/api/settings",
+export interface PublicApiRule {
+  path: string;
+  match: "exact" | "subtree";
+}
+
+export const PUBLIC_API_RULES: readonly PublicApiRule[] = [
+  { path: "/api/categories", match: "subtree" },
+  { path: "/api/teachers", match: "subtree" },
+  { path: "/api/homepage", match: "exact" },
+  { path: "/api/blog", match: "subtree" },
+  { path: "/api/courses", match: "subtree" },
+  { path: "/api/navigation/menu", match: "exact" },
+  { path: "/api/settings", match: "exact" },
 ];
+
+/**
+ * Flat list of declared public roots. Kept for backward compatibility
+ * (route-policy.ts re-exports it); prefer `PUBLIC_API_RULES` +
+ * `isPublicApiEndpoint()` for classification.
+ */
+export const PUBLIC_API_ENDPOINTS: readonly string[] = PUBLIC_API_RULES.map(
+  (rule) => rule.path,
+);
+
+/**
+ * Sensitive leaves that are NEVER public, even when they sit under a
+ * public `subtree` rule. Checked before the public rules so a future
+ * `{ path: "/api/blog", match: "subtree" }`-style grant cannot
+ * accidentally open an admin surface.
+ */
+const NEVER_PUBLIC_API_PATHS = [
+  "/api/blog/admin",
+  "/api/settings/private",
+] as const;
 
 // ─── Coarse role gating table ────────────────────────────────────────────────
 
@@ -93,7 +206,7 @@ export const PUBLIC_API_ENDPOINTS = [
  */
 export interface RoleRule {
   path: string;
-  allowedRoles: readonly string[];
+  allowedRoles: readonly UserRole[];
   errorMessage: string;
   match: "exact" | "subtree";
 }
@@ -141,19 +254,54 @@ export function isAdminRoute(pathname: string): boolean {
 }
 
 export function isProtectedRoute(pathname: string): boolean {
-  return [...PROTECTED_ROUTES, "/admin"].some((route) => matchesPath(pathname, route));
+  const clean = stripQueryFragment(pathname);
+  return (
+    [...PROTECTED_ROUTES, ...PROTECTED_WRITE_PATHS, "/admin"].some((route) =>
+      matchesPath(clean, route),
+    )
+  );
 }
 
 export function isGuestRoute(pathname: string): boolean {
   return EDGE_GUEST_ROUTES.some((route) => matchesPath(pathname, route));
 }
 
-export function isPublicApiEndpoint(pathname: string): boolean {
-  return PUBLIC_API_ENDPOINTS.includes(pathname);
+/**
+ * Strips `?query` / `#fragment` so classification never depends on whether
+ * the caller passed `request.nextUrl.pathname` (clean) or a raw URL string.
+ */
+export function stripQueryFragment(pathname: string): string {
+  const cut = pathname.search(/[?#]/);
+  return cut === -1 ? pathname : pathname.slice(0, cut);
 }
 
-export function hasRole(role: string | null | undefined, allowed: readonly string[]): boolean {
-  return !!role && allowed.includes(role);
+export function isPublicApiEndpoint(pathname: string): boolean {
+  const clean = stripQueryFragment(pathname);
+  // 1. Role-gated endpoints are never public, even under a public subtree
+  //    (e.g. `/api/courses/create` under public `/api/courses`).
+  if (findRoleRule(clean) !== null) return false;
+  // 2. Sensitive leaves are never public (e.g. `/api/blog/admin` under
+  //    public `/api/blog`).
+  if (NEVER_PUBLIC_API_PATHS.some((denied) => matchesPath(clean, denied))) {
+    return false;
+  }
+  // 3. Otherwise apply the declared per-endpoint match mode.
+  return PUBLIC_API_RULES.some((rule) =>
+    rule.match === "exact" ? clean === rule.path : matchesPath(clean, rule.path),
+  );
+}
+
+/**
+ * Membership test for an Edge role gate. The incoming claim is normalized
+ * (case-tolerant) before comparison, so a legitimately-issued lowercase
+ * `"admin"` gates identically to `"ADMIN"`; unknown roles fail closed.
+ */
+export function hasRole(
+  role: string | null | undefined,
+  allowed: readonly UserRole[],
+): boolean {
+  const normalized = normalizeRole(role);
+  return normalized !== null && allowed.includes(normalized);
 }
 
 // ─── Role-rule lookup ────────────────────────────────────────────────────────

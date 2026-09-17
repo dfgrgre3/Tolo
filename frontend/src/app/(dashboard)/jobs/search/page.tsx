@@ -18,6 +18,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useJobSearch } from '@/hooks/use-jobs';
 import { JobCard } from '@/features/jobs/components/JobCard';
 import { JobFilters } from '@/features/jobs/components/JobFilters';
+import { JobsPagination } from '@/features/jobs/components/JobsPagination';
 import {
   JobsDrawer,
   JobsDrawerContent,
@@ -255,33 +256,11 @@ function JobSearchContent() {
                 ))}
               </div>
 
-              {pagination && pagination.totalPages > 1 ? (
-                <nav
-                  aria-label="التنقل بين الصفحات"
-                  className="flex items-center justify-center gap-3 pt-2"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pagination.page <= 1}
-                    onClick={() => handleFilterChangePage(pagination.page - 1)}
-                  >
-                    السابق
-                  </Button>
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    {pagination.page.toLocaleString('ar-EG')} /{' '}
-                    {pagination.totalPages.toLocaleString('ar-EG')}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pagination.page >= pagination.totalPages}
-                    onClick={() => handleFilterChangePage(pagination.page + 1)}
-                  >
-                    التالي
-                  </Button>
-                </nav>
-              ) : null}
+              <JobsPagination
+                pagination={pagination}
+                disabled={isFetching}
+                onPageChange={handleFilterChangePage}
+              />
             </>
           )}
         </div>

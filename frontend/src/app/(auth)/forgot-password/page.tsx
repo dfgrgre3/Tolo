@@ -53,15 +53,13 @@ export default function ForgotPasswordPage() {
     }
 
     const result = await verifyForgotPasswordCode(email.trim(), code);
-    if (!result.success) {
+    if (!result.success || !result.resetToken) {
       setError(result.error || "رمز التحقق غير صالح أو منتهي الصلاحية");
       setIsLoading(false);
       return;
     }
 
-    // Verification creates an HttpOnly reset_session cookie. Keep the reset
-    // credential out of browser history, logs, analytics, and referrers.
-    router.push("/reset-password");
+    router.push(`/reset-password?token=${encodeURIComponent(result.resetToken)}`);
   };
 
   return (

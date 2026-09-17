@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,18 @@ export default function MfaSettingsCard() {
   // Local override set by server-confirmed enable/disable actions so the UI
   // reacts instantly; the shared profile store catches up via `refetchProfile`.
   const [enabledOverride, setEnabledOverride] = useState<boolean | null>(null);
+  const [recoveryRemaining, setRecoveryRemaining] = useState<number | null>(null);
+  const [showRecoveryForm, setShowRecoveryForm] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const isEnabled = enabledOverride ?? Boolean(profile?.mfaEnabled);
+
+  useEffect(() => {
+    if (!isEnabled) return;
+    apiClient.get<{ remaining: number }>(apiRoutes.auth.mfa.recoveryCodes.status)
+      .then((data) => setRecoveryRemaining(data.remaining))
+      .catch(() => setRecoveryRemaining(null));
+  }, [isEnabled]);
 
   async function startSetup() {
     setIsLoading(true);
@@ -91,16 +102,20 @@ export default function MfaSettingsCard() {
 
   async function handleDisable(e: React.FormEvent) {
     e.preventDefault();
+    if (!disablePassword || !disableCode) {
+      setError("يرجى إدخال كلمة المرور ورمز التحقق");
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      // The backend validates a live TOTP or unused backup code here —
-      // not a password (its `DisableMFARequest` DTO exists but is dead code;
-      // the handler binds `{code}` directly).
-      await apiClient.post(apiRoutes.auth.mfa.disable, { code: disableCode, password: disablePassword });
+      // Backend requires password re-auth + live TOTP/backup code.
+      await apiClient.post(apiRoutes.auth.mfa.disable, { password: disablePassword, code: disableCode });
       setEnabledOverride(false);
       setDisableCode("");
+      setDisablePassword("");
       setStep("idle");
+      setSecret("");
       toast.success("تم إيقاف المصادقة الثنائية");
       // Propagate the new 2FA state to the rest of the app.
       await Promise.all([refreshUser(), refetchProfile()]);
@@ -123,6 +138,21 @@ export default function MfaSettingsCard() {
     document.body.removeChild(link);
   }
 
+  async function regenerateRecoveryCodes() {
+    setIsLoading(true);
+    try {
+      const data = await apiClient.post<{ backupCodes?: string[] }>(apiRoutes.auth.mfa.recoveryCodes.regenerate, {
+        password: recoveryPassword, code: recoveryCode,
+      });
+      setBackupCodes(data.backupCodes || []);
+      setRecoveryRemaining(data.backupCodes?.length ?? null);
+      setRecoveryPassword(""); setRecoveryCode(""); setShowRecoveryForm(false); setStep("backup");
+      toast.success("تم تجديد أكواد الاسترداد — احفظها الآن");
+    } catch (err) {
+      setError(toErrorMessage(err, "تعذر تجديد أكواد الاسترداد"));
+    } finally { setIsLoading(false); }
+  }
+
   if (step === "verify") {
     return (
       <Card>
@@ -134,7 +164,7 @@ export default function MfaSettingsCard() {
           error={error}
           isLoading={isLoading}
           onSubmit={handleVerify}
-          onCancel={() => setStep("idle")}
+          onCancel={() => { setSecret(""); setQrCodeUrl(""); setCode(""); setStep("idle"); }}
         />
       </Card>
     );
@@ -165,6 +195,7 @@ export default function MfaSettingsCard() {
             <Input
               id="disable-password"
               type="password"
+              autoComplete="current-password"
               value={disablePassword}
               onChange={(e) => setDisablePassword(e.target.value)}
               required
@@ -191,6 +222,18 @@ export default function MfaSettingsCard() {
         ) : (
           <>
             {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+            {isEnabled && (
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-sm text-muted-foreground">أكواد الاسترداد المتبقية: {recoveryRemaining ?? "—"}</p>
+                {!showRecoveryForm ? <Button variant="outline" onClick={() => setShowRecoveryForm(true)}>تجديد أكواد الاسترداد</Button> : (
+                  <>
+                    <Input type="password" placeholder="كلمة المرور الحالية" value={recoveryPassword} onChange={(e) => setRecoveryPassword(e.target.value)} />
+                    <Input dir="ltr" inputMode="numeric" maxLength={6} placeholder="رمز تطبيق المصادقة" value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ""))} />
+                    <Button onClick={regenerateRecoveryCodes} disabled={isLoading || !recoveryPassword || recoveryCode.length !== 6}>تأكيد التجديد</Button>
+                  </>
+                )}
+              </div>
+            )}
             {isEnabled ? (
               <Button variant="destructive" onClick={() => setStep("disable")}>إيقاف المصادقة الثنائية</Button>
             ) : (

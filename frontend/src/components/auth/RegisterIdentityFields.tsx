@@ -4,6 +4,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, Lock } from "lucide-react";
+import PasswordStrengthMeter from "./PasswordStrengthMeter";
 
 interface RegisterIdentityFieldsProps {
   firstName: string;
@@ -110,6 +111,7 @@ export default function RegisterIdentityFields({
             className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
           />
         </div>
+        {password && <PasswordStrengthMeter password={password} />}
       </div>
 
       <div className="grid gap-2">

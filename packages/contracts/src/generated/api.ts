@@ -27,7 +27,7 @@ export interface paths {
             /** @description Conversion event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.ConversionEventRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ConversionEventRequest"];
                 };
             };
             responses: {
@@ -73,7 +73,7 @@ export interface paths {
             /** @description User journey data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.UserJourneyRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyRequest"];
                 };
             };
             responses: {
@@ -293,7 +293,7 @@ export interface paths {
             /** @description Backup configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.CreateBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateBackupRequest"];
                 };
             };
             responses: {
@@ -339,7 +339,7 @@ export interface paths {
             /** @description Schedule configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.ScheduleBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduleBackupRequest"];
                 };
             };
             responses: {
@@ -600,7 +600,7 @@ export interface paths {
             /** @description Restore options */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.RestoreBackupRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.RestoreBackupRequest"];
                 };
             };
             responses: {
@@ -738,7 +738,7 @@ export interface paths {
             /** @description Notification details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -748,7 +748,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -834,7 +834,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -916,7 +916,7 @@ export interface paths {
             /** @description Notification details with scheduledFor */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
                 };
             };
             responses: {
@@ -926,7 +926,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
                     };
                 };
             };
@@ -1026,7 +1026,7 @@ export interface paths {
             /** @description Report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.CustomReportRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1135,7 +1135,7 @@ export interface paths {
             /** @description Updated report configuration */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.CustomReportRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CustomReportRequest"];
                 };
             };
             responses: {
@@ -1353,7 +1353,7 @@ export interface paths {
             /** @description Schedule details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.ScheduledItemRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ScheduledItemRequest"];
                 };
             };
             responses: {
@@ -1636,7 +1636,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
                     };
                 };
             };
@@ -1692,7 +1692,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["pagination.PaginatedResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_shared_utils.PaginatedResponse"];
                     };
                 };
             };
@@ -2165,7 +2165,7 @@ export interface paths {
             /** @description Ticket details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.CreateTicketRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateTicketRequest"];
                 };
             };
             responses: {
@@ -2394,7 +2394,7 @@ export interface paths {
             /** @description Message details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.SendMessageRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SendMessageRequest"];
                 };
             };
             responses: {
@@ -2447,7 +2447,7 @@ export interface paths {
             /** @description Priority update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.UpdateTicketPriorityRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest"];
                 };
             };
             responses: {
@@ -2496,7 +2496,7 @@ export interface paths {
             /** @description Status update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.UpdateTicketStatusRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest"];
                 };
             };
             responses: {
@@ -2582,7 +2582,7 @@ export interface paths {
             /** @description Search history data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.SearchHistoryRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SearchHistoryRequest"];
                 };
             };
             responses: {
@@ -2628,7 +2628,7 @@ export interface paths {
             /** @description Mega menu event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.MegaMenuTrackRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest"];
                 };
             };
             responses: {
@@ -2674,7 +2674,7 @@ export interface paths {
             /** @description Promo event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["protected.PromoEventRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.PromoEventRequest"];
                 };
             };
             responses: {
@@ -3385,6 +3385,755 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{applicationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one applicant's submission */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Application id */
+                    applicationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{applicationId}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move an application to a new pipeline stage */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Application id */
+                    applicationId: string;
+                };
+                cookie?: never;
+            };
+            /** @description Target stage */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ApplicationStagePayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's companies */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyListResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a company */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/companies/{companyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a company */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Company id or slug */
+                    companyId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/employer/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List employer job postings */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Restrict to one company */
+                    companyId?: string;
+                    /** @description Comma-separated statuses */
+                    status?: string;
+                    /** @description Title search */
+                    q?: string;
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobListResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a job posting */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an employer job posting */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Archive a job posting */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update a job posting */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/employer/jobs/{jobId}/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List applicants for one of the caller's job postings */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Comma-separated application statuses */
+                    status?: string;
+                    /** @description Applicant name search */
+                    q?: string;
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Job id or slug */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.JobApplicationListResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/jobs/{jobId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Duplicate a job posting as a draft */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/jobs/{jobId}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change a job posting's status */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Job id */
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            /** @description Target status */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.JobTransitionPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4138,7 +4887,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["protected.UnifiedSearchResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UnifiedSearchResponse"];
                     };
                 };
             };
@@ -4396,17 +5145,304 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "internal_infrastructure_api_handlers_protected.ApplicationStagePayload": {
+            /**
+             * @description Note is an optional employer-visible reason, e.g. why a candidate was
+             *     rejected. Surfaced to the candidate, so keep it professional.
+             */
+            note?: string;
+            /**
+             * @description Status is the target stage. Validated against the application state
+             *     machine in the domain, not against a list duplicated here.
+             */
+            status: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ConversionEventRequest": {
+            goal: string;
+            journeySteps?: number;
+            sessionId: string;
+            timestamp: string;
+            userId: string;
+            value?: number;
+        };
+        "internal_infrastructure_api_handlers_protected.CreateBackupRequest": {
+            includesDatabase?: boolean;
+            includesFiles?: boolean;
+            name: string;
+            retentionDays?: number;
+            tables?: string[];
+            /** @enum {string} */
+            type: "full" | "database" | "files" | "incremental";
+        };
+        "internal_infrastructure_api_handlers_protected.CreateTicketRequest": {
+            /** @enum {string} */
+            category: "technical" | "billing" | "content" | "account" | "other";
+            description: string;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "urgent";
+            relatedEntityId?: string;
+            relatedEntityType?: string;
+            subject: string;
+            userId: string;
+        };
+        "internal_infrastructure_api_handlers_protected.CustomReportRequest": {
+            dateRange?: {
+                from?: string;
+                to?: string;
+            };
+            description?: string;
+            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
+            isPublic?: boolean;
+            name: string;
+            schedule?: {
+                emailTo: string[];
+                /** @enum {string} */
+                frequency: "daily" | "weekly" | "monthly";
+            };
+            widgets: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportWidget"][];
+        };
+        "internal_infrastructure_api_handlers_protected.EmployerCompanyPayload": {
+            coverUrl?: string;
+            description?: string;
+            foundedYear?: number;
+            industry?: string;
+            location?: string;
+            logoUrl?: string;
+            name: string;
+            /** @enum {string} */
+            size?: "1-10" | "11-50" | "51-200" | "201-500" | "501-1000" | "1000+";
+            website?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.EmployerJobPayload": {
+            benefits?: string;
+            category?: string;
+            city?: string;
+            companyId: string;
+            country?: string;
+            description?: string;
+            /** @enum {string} */
+            employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
+            /** @enum {string} */
+            experienceLevel?: "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
+            expiresAt?: string;
+            isSalaryVisible?: boolean;
+            preferredQualifications?: string;
+            requirements?: string;
+            responsibilities?: string;
+            salaryCurrency?: string;
+            salaryMax?: number;
+            salaryMin?: number;
+            /** @enum {string} */
+            salaryPeriod?: "HOURLY" | "MONTHLY" | "YEARLY";
+            skills?: string[];
+            title: string;
+            /** @enum {string} */
+            workplaceType?: "REMOTE" | "HYBRID" | "ON_SITE";
+        };
+        "internal_infrastructure_api_handlers_protected.JobTransitionPayload": {
+            /**
+             * @description Reason is required when an admin rejects a posting, so the employer is
+             *     told what to fix. Ignored for every other transition.
+             */
+            reason?: string;
+            /**
+             * @description Status is the target state. Validated against the domain state machine,
+             *     not against a list duplicated here.
+             */
+            status: string;
+        };
+        "internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest": {
+            /** @description "mega_menu" */
+            component?: string;
+            /** @description menu label */
+            label?: string;
+            /** @description e.g. { trigger: "toggle" } */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @description client epoch ms */
+            timestamp?: number;
+            /** @description "open" | "close" */
+            type: string;
+        };
+        "internal_infrastructure_api_handlers_protected.NotificationRequest": {
+            actionUrl?: string;
+            channels: string[];
+            message: string;
+            /** @enum {string} */
+            priority?: "high" | "normal" | "low";
+            scheduledFor?: string;
+            title: string;
+            /** @enum {string} */
+            type?: "info" | "success" | "warning" | "error";
+            userIds: string[];
+        };
+        "internal_infrastructure_api_handlers_protected.NotificationResponse": {
+            broadcastId?: string;
+            queued?: boolean;
+            summary?: components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationSummary"];
+        };
+        "internal_infrastructure_api_handlers_protected.NotificationSummary": {
+            failure?: number;
+            queued?: number;
+            success?: number;
+            total?: number;
+        };
+        "internal_infrastructure_api_handlers_protected.PromoEventRequest": {
+            component?: string;
+            eventType?: string;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            promoId?: string;
+            timestamp?: number;
+            type?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportDimension": {
+            field: string;
+            /** @enum {string} */
+            format?: "date" | "text" | "number";
+            label: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportFilter": {
+            field: string;
+            /** @enum {string} */
+            operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
+            value: unknown;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportMetric": {
+            /** @enum {string} */
+            aggregation: "count" | "sum" | "avg" | "min" | "max" | "distinct_count";
+            field: string;
+            /** @enum {string} */
+            format?: "number" | "currency" | "percentage" | "date";
+            name: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportSort": {
+            /** @enum {string} */
+            direction: "asc" | "desc";
+            field: string;
+        };
+        "internal_infrastructure_api_handlers_protected.ReportWidget": {
+            dataSource: string;
+            dimensions?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportDimension"][];
+            filters?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportFilter"][];
+            id?: string;
+            layout: {
+                [key: string]: unknown;
+            };
+            limit?: number;
+            metrics: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportMetric"][];
+            sort?: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportSort"];
+            title: string;
+            /** @enum {string} */
+            type: "table" | "bar" | "line" | "pie" | "area" | "metric";
+        };
+        "internal_infrastructure_api_handlers_protected.RestoreBackupRequest": {
+            dryRun?: boolean;
+            skipExisting?: boolean;
+            targetTables?: string[];
+        };
+        "internal_infrastructure_api_handlers_protected.ScheduleBackupRequest": {
+            dayOfMonth?: number;
+            dayOfWeek?: number;
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly";
+            retentionDays: number;
+            time: string;
+            /** @enum {string} */
+            type: "full" | "database" | "files" | "incremental";
+        };
+        "internal_infrastructure_api_handlers_protected.ScheduledItemRequest": {
+            content: {
+                [key: string]: unknown;
+            };
+            description?: string;
+            /** @enum {string} */
+            frequency?: "once" | "daily" | "weekly" | "monthly";
+            maxRetries?: number;
+            scheduledFor: string;
+            timezone?: string;
+            title: string;
+            /**
+             * @description P012: "content" is intentionally excluded — SchedulerService.processContent
+             *     has no backing content-publishing model/service (unlike the other four
+             *     types, which map onto real tables), so accepting it here would let an
+             *     admin schedule an item guaranteed to fail at execution time. Re-add it
+             *     once a real implementation exists.
+             * @enum {string}
+             */
+            type: "announcement" | "exam" | "task" | "post";
+        };
+        "internal_infrastructure_api_handlers_protected.SearchHistoryRequest": {
+            metadata?: {
+                [key: string]: unknown;
+            };
+            query: string;
+            results?: number;
+            timestamp?: number;
+            /** @description course, resource, teacher, video, all */
+            type?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.SearchResultItem": {
+            category?: string;
+            description?: string;
+            id?: string;
+            relevance?: number;
+            title?: string;
+            type?: string;
+            url?: string;
+        };
+        "internal_infrastructure_api_handlers_protected.SendMessageRequest": {
+            isInternal?: boolean;
+            message: string;
+        };
+        "internal_infrastructure_api_handlers_protected.UnifiedSearchResponse": {
+            results?: components["schemas"]["internal_infrastructure_api_handlers_protected.SearchResultItem"][];
+            total?: number;
+        };
+        "internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest": {
+            /** @enum {string} */
+            priority: "low" | "medium" | "high" | "urgent";
+        };
+        "internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest": {
+            /** @enum {string} */
+            status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
+        };
+        "internal_infrastructure_api_handlers_protected.UserJourneyRequest": {
+            completed?: boolean;
+            conversionGoal?: string;
+            endedAt?: string;
+            sessionId: string;
+            startedAt: string;
+            steps?: components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyStep"][];
+            totalDuration?: number;
+            userId: string;
+        };
+        "internal_infrastructure_api_handlers_protected.UserJourneyStep": {
+            action?: string;
+            duration?: number;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            page?: string;
+            sessionId?: string;
+            timestamp?: string;
+            userId?: string;
+        };
         "authdto.CompanyDetailData": {
-            company?: components["schemas"]["models.Company"];
+            company?: components["schemas"]["thanawy-backend_internal_domain_common.Company"];
         };
         "authdto.CompanyDetailResponse": {
             data?: components["schemas"]["authdto.CompanyDetailData"];
             success?: boolean;
         };
         "authdto.CompanyJobsData": {
-            company?: components["schemas"]["models.Company"];
-            items?: components["schemas"]["models.Job"][];
-            jobs?: components["schemas"]["models.Job"][];
+            company?: components["schemas"]["thanawy-backend_internal_domain_common.Company"];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
+            jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             pagination?: components["schemas"]["authdto.Pagination"];
         };
         "authdto.CompanyJobsResponse": {
@@ -4414,8 +5450,8 @@ export interface components {
             success?: boolean;
         };
         "authdto.CompanyListData": {
-            companies?: components["schemas"]["models.Company"][];
-            items?: components["schemas"]["models.Company"][];
+            companies?: components["schemas"]["thanawy-backend_internal_domain_common.Company"][];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Company"][];
             pagination?: components["schemas"]["authdto.Pagination"];
         };
         "authdto.CompanyListResponse": {
@@ -4423,17 +5459,17 @@ export interface components {
             success?: boolean;
         };
         "authdto.CourseDetailData": {
-            course?: components["schemas"]["models.Subject"];
-            subject?: components["schemas"]["models.Subject"];
+            course?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
         };
         "authdto.CourseDetailResponse": {
             data?: components["schemas"]["authdto.CourseDetailData"];
-            enrollment?: components["schemas"]["models.Enrollment"];
-            subject?: components["schemas"]["models.Subject"];
+            enrollment?: components["schemas"]["thanawy-backend_internal_domain_common.Enrollment"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
             success?: boolean;
         };
         "authdto.CourseListData": {
-            items?: components["schemas"]["models.Subject"][];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"][];
             offset?: number;
             pagination?: components["schemas"]["authdto.Pagination"];
         };
@@ -4441,16 +5477,36 @@ export interface components {
             data?: components["schemas"]["authdto.CourseListData"];
             success?: boolean;
         };
+        "authdto.EmployerJobDetailData": {
+            allowedTransitions?: components["schemas"]["thanawy-backend_internal_domain_common.JobPostingStatus"][];
+            job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
+        };
+        "authdto.EmployerJobDetailResponse": {
+            data?: components["schemas"]["authdto.EmployerJobDetailData"];
+            success?: boolean;
+        };
+        "authdto.EmployerJobListData": {
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
+            jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
+            pagination?: components["schemas"]["authdto.Pagination"];
+            statusCounts?: {
+                [key: string]: number;
+            };
+        };
+        "authdto.EmployerJobListResponse": {
+            data?: components["schemas"]["authdto.EmployerJobListData"];
+            success?: boolean;
+        };
         "authdto.JobApplicationDetailData": {
-            application?: components["schemas"]["models.JobApplication"];
+            application?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"];
         };
         "authdto.JobApplicationDetailResponse": {
             data?: components["schemas"]["authdto.JobApplicationDetailData"];
             success?: boolean;
         };
         "authdto.JobApplicationListData": {
-            applications?: components["schemas"]["models.JobApplication"][];
-            items?: components["schemas"]["models.JobApplication"][];
+            applications?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"][];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"][];
             pagination?: components["schemas"]["authdto.Pagination"];
             /** @description StatusCounts drives the application tab badges, keyed by status. */
             statusCounts?: {
@@ -4474,15 +5530,15 @@ export interface components {
             success?: boolean;
         };
         "authdto.JobDetailData": {
-            job?: components["schemas"]["models.Job"];
+            job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
         };
         "authdto.JobDetailResponse": {
             data?: components["schemas"]["authdto.JobDetailData"];
             success?: boolean;
         };
         "authdto.JobListData": {
-            items?: components["schemas"]["models.Job"][];
-            jobs?: components["schemas"]["models.Job"][];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
+            jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             pagination?: components["schemas"]["authdto.Pagination"];
         };
         "authdto.JobListResponse": {
@@ -4490,8 +5546,8 @@ export interface components {
             success?: boolean;
         };
         "authdto.JobSimilarData": {
-            items?: components["schemas"]["models.Job"][];
-            jobs?: components["schemas"]["models.Job"][];
+            items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
+            jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
         };
         "authdto.JobSimilarResponse": {
             data?: components["schemas"]["authdto.JobSimilarData"];
@@ -4526,7 +5582,7 @@ export interface components {
             totalPages?: number;
         };
         "authdto.SavedJobEntry": {
-            job?: components["schemas"]["models.Job"];
+            job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
             savedAt?: string;
         };
         "authdto.SavedJobListData": {
@@ -4686,7 +5742,7 @@ export interface components {
             code: string;
             rememberMe?: boolean;
         };
-        "models.Company": {
+        "thanawy-backend_internal_domain_common.Company": {
             coverUrl?: string;
             createdAt?: string;
             description?: string;
@@ -4699,7 +5755,7 @@ export interface components {
              */
             isVerified?: boolean;
             /** @description Relations */
-            jobs?: components["schemas"]["models.Job"][];
+            jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             location?: string;
             logoUrl?: string;
             name: string;
@@ -4712,30 +5768,30 @@ export interface components {
             website?: string;
         };
         /** @enum {string} */
-        "models.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
-        "models.CourseTag": {
+        "thanawy-backend_internal_domain_common.CourseStatus": "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "REJECTED";
+        "thanawy-backend_internal_domain_common.CourseTag": {
             createdAt?: string;
             id?: string;
             name?: string;
             slug?: string;
         };
         /** @enum {string} */
-        "models.EmploymentType": "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
-        "models.Enrollment": {
+        "thanawy-backend_internal_domain_common.EmploymentType": "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
+        "thanawy-backend_internal_domain_common.Enrollment": {
             createdAt?: string;
             enrolledAt?: string;
             id?: string;
             progress?: number;
             /** @description Relations */
-            subject?: components["schemas"]["models.Subject"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
             subjectId?: string;
             updatedAt?: string;
-            user?: components["schemas"]["models.User"];
+            user?: components["schemas"]["thanawy-backend_internal_domain_common.User"];
             userId?: string;
         };
         /** @enum {string} */
-        "models.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
-        "models.Exam": {
+        "thanawy-backend_internal_domain_common.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
+        "thanawy-backend_internal_domain_common.Exam": {
             createdAt?: string;
             description?: string;
             difficulty?: string;
@@ -4745,35 +5801,35 @@ export interface components {
             maxScore?: number;
             /** @description Virtual fields */
             questionCount?: number;
-            questions?: components["schemas"]["models.Question"][];
+            questions?: components["schemas"]["thanawy-backend_internal_domain_common.Question"][];
             /** @description Relations */
-            subject?: components["schemas"]["models.Subject"];
+            subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
             subjectId?: string;
             title?: string;
-            type?: components["schemas"]["models.ExamType"];
+            type?: components["schemas"]["thanawy-backend_internal_domain_common.ExamType"];
             updatedAt?: string;
         };
         /** @enum {string} */
-        "models.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
+        "thanawy-backend_internal_domain_common.ExamType": "QUIZ" | "MIDTERM" | "FINAL";
         /** @enum {string} */
-        "models.ExperienceLevel": "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
-        "models.JSONMap": {
+        "thanawy-backend_internal_domain_common.ExperienceLevel": "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
+        "thanawy-backend_internal_domain_common.JSONMap": {
             [key: string]: unknown;
         };
-        "models.Job": {
+        "thanawy-backend_internal_domain_common.Job": {
             applicationCount?: number;
             benefits?: string;
             category?: string;
             city?: string;
             closedAt?: string;
             /** @description Relations */
-            company?: components["schemas"]["models.Company"];
+            company?: components["schemas"]["thanawy-backend_internal_domain_common.Company"];
             companyId?: string;
             country?: string;
             createdAt?: string;
             description?: string;
-            employmentType?: components["schemas"]["models.EmploymentType"];
-            experienceLevel?: components["schemas"]["models.ExperienceLevel"];
+            employmentType?: components["schemas"]["thanawy-backend_internal_domain_common.EmploymentType"];
+            experienceLevel?: components["schemas"]["thanawy-backend_internal_domain_common.ExperienceLevel"];
             expiresAt?: string;
             hasApplied?: boolean;
             id?: string;
@@ -4794,43 +5850,43 @@ export interface components {
             salaryCurrency?: string;
             salaryMax?: number;
             salaryMin?: number;
-            salaryPeriod?: components["schemas"]["models.SalaryPeriod"];
+            salaryPeriod?: components["schemas"]["thanawy-backend_internal_domain_common.SalaryPeriod"];
             skills?: string[];
             slug?: string;
-            status?: components["schemas"]["models.JobPostingStatus"];
+            status?: components["schemas"]["thanawy-backend_internal_domain_common.JobPostingStatus"];
             title: string;
             updatedAt?: string;
             /** @description Denormalized counters, maintained by the handlers that cause them. */
             viewCount?: number;
-            workplaceType?: components["schemas"]["models.WorkplaceType"];
+            workplaceType?: components["schemas"]["thanawy-backend_internal_domain_common.WorkplaceType"];
         };
-        "models.JobApplication": {
+        "thanawy-backend_internal_domain_common.JobApplication": {
             /**
              * @description Answers holds the employer's screening-question responses keyed by
              *     question id. Free-form by design: the question set is per-job.
              */
-            answers?: components["schemas"]["models.JSONMap"];
-            applicant?: components["schemas"]["models.User"];
+            answers?: components["schemas"]["thanawy-backend_internal_domain_common.JSONMap"];
+            applicant?: components["schemas"]["thanawy-backend_internal_domain_common.User"];
             applicantId?: string;
             coverLetter?: string;
             createdAt?: string;
             email?: string;
             id?: string;
             /** @description Relations */
-            job?: components["schemas"]["models.Job"];
+            job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
             jobId?: string;
             phone?: string;
             resumeUrl?: string;
             reviewedAt?: string;
-            status?: components["schemas"]["models.JobApplicationStatus"];
+            status?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplicationStatus"];
             updatedAt?: string;
             withdrawnAt?: string;
         };
         /** @enum {string} */
-        "models.JobApplicationStatus": "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "ASSESSMENT" | "OFFER" | "HIRED" | "REJECTED" | "WITHDRAWN";
+        "thanawy-backend_internal_domain_common.JobApplicationStatus": "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "ASSESSMENT" | "OFFER" | "HIRED" | "REJECTED" | "WITHDRAWN";
         /** @enum {string} */
-        "models.JobPostingStatus": "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "PAUSED" | "CLOSED" | "REJECTED" | "ARCHIVED";
-        "models.LessonAttachment": {
+        "thanawy-backend_internal_domain_common.JobPostingStatus": "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "PAUSED" | "CLOSED" | "REJECTED" | "ARCHIVED";
+        "thanawy-backend_internal_domain_common.LessonAttachment": {
             createdAt?: string;
             fileSize?: number;
             /** @description PDF, ZIP, etc. */
@@ -4840,7 +5896,7 @@ export interface components {
             subTopicId?: string;
             title?: string;
         };
-        "models.LessonSubtitle": {
+        "thanawy-backend_internal_domain_common.LessonSubtitle": {
             createdAt?: string;
             id?: string;
             isDefault?: boolean;
@@ -4848,15 +5904,15 @@ export interface components {
             language?: string;
             languageName?: string;
             /** @description Relations */
-            subTopic?: components["schemas"]["models.SubTopic"];
+            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
             subTopicId?: string;
-            subtitleFormat?: components["schemas"]["models.SubtitleFormat"];
+            subtitleFormat?: components["schemas"]["thanawy-backend_internal_domain_common.SubtitleFormat"];
             subtitleUrl?: string;
             updatedAt?: string;
         };
         /** @enum {string} */
-        "models.Level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-        "models.Question": {
+        "thanawy-backend_internal_domain_common.Level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+        "thanawy-backend_internal_domain_common.Question": {
             examId?: string;
             id?: string;
             options?: string;
@@ -4864,22 +5920,22 @@ export interface components {
             type?: string;
         };
         /** @enum {string} */
-        "models.SalaryPeriod": "HOURLY" | "MONTHLY" | "YEARLY";
-        "models.SubTopic": {
+        "thanawy-backend_internal_domain_common.SalaryPeriod": "HOURLY" | "MONTHLY" | "YEARLY";
+        "thanawy-backend_internal_domain_common.SubTopic": {
             /** @description Relations */
-            attachments?: components["schemas"]["models.LessonAttachment"][];
+            attachments?: components["schemas"]["thanawy-backend_internal_domain_common.LessonAttachment"][];
             audioDurationSeconds?: number;
             /** @description Phase 1: Advanced lesson fields (migration 0109) */
             audioUrl?: string;
             avgWatchTimeSeconds?: number;
-            chapters?: components["schemas"]["models.VideoChapter"][];
+            chapters?: components["schemas"]["thanawy-backend_internal_domain_common.VideoChapter"][];
             completionCount?: number;
             content?: string;
             createdAt?: string;
             description?: string;
             dripReleaseDate?: string;
             durationMinutes?: number;
-            exam?: components["schemas"]["models.Exam"];
+            exam?: components["schemas"]["thanawy-backend_internal_domain_common.Exam"];
             examId?: string;
             externalLinkTitle?: string;
             externalLinkUrl?: string;
@@ -4889,20 +5945,20 @@ export interface components {
             isFree?: boolean;
             order?: number;
             /** @description Non-DB mapped fields */
-            subtitles?: components["schemas"]["models.LessonSubtitle"][];
+            subtitles?: components["schemas"]["thanawy-backend_internal_domain_common.LessonSubtitle"][];
             title?: string;
             /** @description Relations */
-            topic?: components["schemas"]["models.Topic"];
+            topic?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"];
             topicId?: string;
-            type?: components["schemas"]["models.SubTopicType"];
+            type?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopicType"];
             updatedAt?: string;
             videoUrl?: string;
             /** @description Denormalized stats */
             viewCount?: number;
         };
         /** @enum {string} */
-        "models.SubTopicType": "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT" | "AUDIO" | "LINK" | "LIVE" | "DOCUMENT";
-        "models.Subject": {
+        "thanawy-backend_internal_domain_common.SubTopicType": "VIDEO" | "QUIZ" | "ARTICLE" | "ASSIGNMENT" | "AUDIO" | "LINK" | "LIVE" | "DOCUMENT";
+        "thanawy-backend_internal_domain_common.Subject": {
             archivedAt?: string;
             archivedBy?: string;
             availableFrom?: string;
@@ -4922,7 +5978,7 @@ export interface components {
             durationHours?: number;
             enrolledCount?: number;
             /** @description Operational & enrollment (Phase 1) */
-            enrollmentType?: components["schemas"]["models.EnrollmentType"];
+            enrollmentType?: components["schemas"]["thanawy-backend_internal_domain_common.EnrollmentType"];
             hasCertificate?: boolean;
             icon?: string;
             id?: string;
@@ -4936,7 +5992,7 @@ export interface components {
             language?: string;
             lastContentUpdate?: string;
             learningObjectives?: string;
-            level?: components["schemas"]["models.Level"];
+            level?: components["schemas"]["thanawy-backend_internal_domain_common.Level"];
             longDescription?: string;
             maxStudents?: number;
             name: string;
@@ -4955,14 +6011,14 @@ export interface components {
             shortDescription?: string;
             slug?: string;
             /** @description Lifecycle and enhanced fields (migration 0064 + 0109) */
-            status?: components["schemas"]["models.CourseStatus"];
+            status?: components["schemas"]["thanawy-backend_internal_domain_common.CourseStatus"];
             /** @description Workflow metadata (Phase 1: 0109) */
             submittedForReviewAt?: string;
-            tags?: components["schemas"]["models.CourseTag"][];
+            tags?: components["schemas"]["thanawy-backend_internal_domain_common.CourseTag"][];
             targetAudience?: string[];
             thumbnailUrl?: string;
             /** @description Relations */
-            topics?: components["schemas"]["models.Topic"][];
+            topics?: components["schemas"]["thanawy-backend_internal_domain_common.Topic"][];
             trailerDurationMinutes?: number;
             trailerUrl?: string;
             type?: string;
@@ -4972,19 +6028,19 @@ export interface components {
             whatYouLearn?: string[];
         };
         /** @enum {string} */
-        "models.SubtitleFormat": "vtt" | "srt" | "json";
-        "models.Topic": {
+        "thanawy-backend_internal_domain_common.SubtitleFormat": "vtt" | "srt" | "json";
+        "thanawy-backend_internal_domain_common.Topic": {
             createdAt?: string;
             description?: string;
             id?: string;
             order?: number;
             /** @description Relations */
-            subTopics?: components["schemas"]["models.SubTopic"][];
+            subTopics?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"][];
             subjectId?: string;
             title?: string;
             updatedAt?: string;
         };
-        "models.User": {
+        "thanawy-backend_internal_domain_common.User": {
             /** @description Subscriptions */
             activeSubscriptionId?: string;
             additionalAiCredits?: number;
@@ -5063,16 +6119,16 @@ export interface components {
             wakeUpTime?: string;
         };
         /** @enum {string} */
-        "models.UserRole": "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
+        "thanawy-backend_internal_domain_common.UserRole": "STUDENT" | "TEACHER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN" | "PARENT" | "SUPPORT";
         /** @enum {string} */
-        "models.UserStatus": "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
-        "models.VideoChapter": {
+        "thanawy-backend_internal_domain_common.UserStatus": "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BANNED";
+        "thanawy-backend_internal_domain_common.VideoChapter": {
             createdAt?: string;
             id?: string;
             isActive?: boolean;
             sortOrder?: number;
             /** @description Relations */
-            subTopic?: components["schemas"]["models.SubTopic"];
+            subTopic?: components["schemas"]["thanawy-backend_internal_domain_common.SubTopic"];
             subTopicId?: string;
             timeSeconds?: number;
             title?: string;
@@ -5080,8 +6136,8 @@ export interface components {
             updatedAt?: string;
         };
         /** @enum {string} */
-        "models.WorkplaceType": "REMOTE" | "HYBRID" | "ON_SITE";
-        "pagination.PaginatedResponse": {
+        "thanawy-backend_internal_domain_common.WorkplaceType": "REMOTE" | "HYBRID" | "ON_SITE";
+        "thanawy-backend_internal_shared_utils.PaginatedResponse": {
             data?: unknown;
             pagination?: {
                 count?: number;
@@ -5091,235 +6147,22 @@ export interface components {
                 total_count?: number;
             };
         };
-        "protected.ConversionEventRequest": {
-            goal: string;
-            journeySteps?: number;
-            sessionId: string;
-            timestamp: string;
-            userId: string;
-            value?: number;
-        };
-        "protected.CreateBackupRequest": {
-            includesDatabase?: boolean;
-            includesFiles?: boolean;
-            name: string;
-            retentionDays?: number;
-            tables?: string[];
-            /** @enum {string} */
-            type: "full" | "database" | "files" | "incremental";
-        };
-        "protected.CreateTicketRequest": {
-            /** @enum {string} */
-            category: "technical" | "billing" | "content" | "account" | "other";
-            description: string;
-            /** @enum {string} */
-            priority?: "low" | "medium" | "high" | "urgent";
-            relatedEntityId?: string;
-            relatedEntityType?: string;
-            subject: string;
-            userId: string;
-        };
-        "protected.CustomReportRequest": {
-            dateRange?: {
-                from?: string;
-                to?: string;
-            };
-            description?: string;
-            filters?: components["schemas"]["protected.ReportFilter"][];
-            isPublic?: boolean;
-            name: string;
-            schedule?: {
-                emailTo: string[];
-                /** @enum {string} */
-                frequency: "daily" | "weekly" | "monthly";
-            };
-            widgets: components["schemas"]["protected.ReportWidget"][];
-        };
-        "protected.MegaMenuTrackRequest": {
-            /** @description "mega_menu" */
-            component?: string;
-            /** @description menu label */
-            label?: string;
-            /** @description e.g. { trigger: "toggle" } */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** @description client epoch ms */
-            timestamp?: number;
-            /** @description "open" | "close" */
-            type: string;
-        };
-        "protected.NotificationRequest": {
-            actionUrl?: string;
-            channels: string[];
-            message: string;
-            /** @enum {string} */
-            priority?: "high" | "normal" | "low";
-            scheduledFor?: string;
-            title: string;
-            /** @enum {string} */
-            type?: "info" | "success" | "warning" | "error";
-            userIds: string[];
-        };
-        "protected.NotificationResponse": {
-            broadcastId?: string;
-            queued?: boolean;
-            summary?: components["schemas"]["protected.NotificationSummary"];
-        };
-        "protected.NotificationSummary": {
-            failure?: number;
-            queued?: number;
-            success?: number;
-            total?: number;
-        };
-        "protected.PromoEventRequest": {
-            component?: string;
-            eventType?: string;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            promoId?: string;
-            timestamp?: number;
-            type?: string;
-        };
-        "protected.ReportDimension": {
-            field: string;
-            /** @enum {string} */
-            format?: "date" | "text" | "number";
-            label: string;
-        };
-        "protected.ReportFilter": {
-            field: string;
-            /** @enum {string} */
-            operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
-            value: unknown;
-        };
-        "protected.ReportMetric": {
-            /** @enum {string} */
-            aggregation: "count" | "sum" | "avg" | "min" | "max" | "distinct_count";
-            field: string;
-            /** @enum {string} */
-            format?: "number" | "currency" | "percentage" | "date";
-            name: string;
-        };
-        "protected.ReportSort": {
-            /** @enum {string} */
-            direction: "asc" | "desc";
-            field: string;
-        };
-        "protected.ReportWidget": {
-            dataSource: string;
-            dimensions?: components["schemas"]["protected.ReportDimension"][];
-            filters?: components["schemas"]["protected.ReportFilter"][];
-            id?: string;
-            layout: {
-                [key: string]: unknown;
-            };
-            limit?: number;
-            metrics: components["schemas"]["protected.ReportMetric"][];
-            sort?: components["schemas"]["protected.ReportSort"];
-            title: string;
-            /** @enum {string} */
-            type: "table" | "bar" | "line" | "pie" | "area" | "metric";
-        };
-        "protected.RestoreBackupRequest": {
-            dryRun?: boolean;
-            skipExisting?: boolean;
-            targetTables?: string[];
-        };
-        "protected.ScheduleBackupRequest": {
-            dayOfMonth?: number;
-            dayOfWeek?: number;
-            /** @enum {string} */
-            frequency: "daily" | "weekly" | "monthly";
-            retentionDays: number;
-            time: string;
-            /** @enum {string} */
-            type: "full" | "database" | "files" | "incremental";
-        };
-        "protected.ScheduledItemRequest": {
-            content: {
-                [key: string]: unknown;
-            };
-            description?: string;
-            /** @enum {string} */
-            frequency?: "once" | "daily" | "weekly" | "monthly";
-            maxRetries?: number;
-            scheduledFor: string;
-            timezone?: string;
-            title: string;
-            /**
-             * @description P012: "content" is intentionally excluded — SchedulerService.processContent
-             *     has no backing content-publishing model/service (unlike the other four
-             *     types, which map onto real tables), so accepting it here would let an
-             *     admin schedule an item guaranteed to fail at execution time. Re-add it
-             *     once a real implementation exists.
-             * @enum {string}
-             */
-            type: "announcement" | "exam" | "task" | "post";
-        };
-        "protected.SearchHistoryRequest": {
-            metadata?: {
-                [key: string]: unknown;
-            };
-            query: string;
-            results?: number;
-            timestamp?: number;
-            /** @description course, resource, teacher, video, all */
-            type?: string;
-        };
-        "protected.SearchResultItem": {
-            category?: string;
-            description?: string;
-            id?: string;
-            relevance?: number;
-            title?: string;
-            type?: string;
-            url?: string;
-        };
-        "protected.SendMessageRequest": {
-            isInternal?: boolean;
-            message: string;
-        };
-        "protected.UnifiedSearchResponse": {
-            results?: components["schemas"]["protected.SearchResultItem"][];
-            total?: number;
-        };
-        "protected.UpdateTicketPriorityRequest": {
-            /** @enum {string} */
-            priority: "low" | "medium" | "high" | "urgent";
-        };
-        "protected.UpdateTicketStatusRequest": {
-            /** @enum {string} */
-            status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
-        };
-        "protected.UserJourneyRequest": {
-            completed?: boolean;
-            conversionGoal?: string;
-            endedAt?: string;
-            sessionId: string;
-            startedAt: string;
-            steps?: components["schemas"]["protected.UserJourneyStep"][];
-            totalDuration?: number;
-            userId: string;
-        };
-        "protected.UserJourneyStep": {
-            action?: string;
-            duration?: number;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            page?: string;
-            sessionId?: string;
-            timestamp?: string;
-            userId?: string;
-        };
     };
     responses: never;
     parameters: never;
     requestBodies: {
+        /** @description Job */
+        "internal_infrastructure_api_handlers_protected.EmployerJobPayload": {
+            content: {
+                "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+            };
+        };
+        /** @description Company */
+        "internal_infrastructure_api_handlers_protected.EmployerCompanyPayload": {
+            content: {
+                "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+            };
+        };
         /** @description Course payload */
         Request: {
             content: {

@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useApplyToJob, useJob } from '@/hooks/use-jobs';
 import { JobsErrorState } from '@/features/jobs/components/JobStates';
 import { jobsStrings } from '@/features/jobs/labels';
+import { ApiError } from '@/lib/api/api-client';
 
 type Step = 'details' | 'review';
 
@@ -28,6 +29,9 @@ interface FieldErrors {
   email?: string;
   resumeUrl?: string;
 }
+
+/** Server-side cap on the cover letter. Mirrors the backend validation. */
+const COVER_LETTER_MAX = 20000;
 
 /**
  * Client-side validation. It mirrors the server's own checks (which remain the
@@ -83,6 +87,17 @@ export default function JobApplyPage() {
   }, [authLoading, isAuthenticated, jobId, router]);
 
   if (isLoading || authLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  // Anonymous visitors get redirected to /login by the effect above, but
+  // without an early return the form would render for a frame first.
+  if (!isAuthenticated) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
@@ -156,8 +171,16 @@ export default function JobApplyPage() {
     );
   };
 
+  // The mutation error is normally an ApiError whose .message carries the
+  // backend's Arabic message (e.g. "You have already applied to this job").
+  // Narrow with instanceof before reading it: transport failures reject with
+  // plain Error subclasses (TimeoutError / NetworkError / CallerAbortError)
+  // whose .message is English technical text — those must fall through to the
+  // Arabic fallback instead of being shown to an Arabic user verbatim.
   const serverError = apply.isError
-    ? ((apply.error as { error?: string })?.error ?? 'تعذّر إرسال الطلب. حاول مرة أخرى.')
+    ? apply.error instanceof ApiError
+      ? apply.error.message
+      : 'تعذّر إرسال الطلب. حاول مرة أخرى.'
     : null;
 
   return (
@@ -253,12 +276,13 @@ export default function JobApplyPage() {
                 <Textarea
                   id="apply-cover"
                   rows={6}
-                  maxLength={20000}
+                  maxLength={COVER_LETTER_MAX}
                   value={form.coverLetter}
                   onChange={(event) => setForm({ ...form, coverLetter: event.target.value })}
                 />
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {form.coverLetter.length.toLocaleString('ar-EG')} / ٢٠٬٠٠٠
+                  {form.coverLetter.length.toLocaleString('ar-EG')} /{' '}
+                  {COVER_LETTER_MAX.toLocaleString('ar-EG')}
                 </p>
               </div>
 

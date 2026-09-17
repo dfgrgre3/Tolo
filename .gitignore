@@ -129,3 +129,5 @@ node_modules/
 
 testsprite_tests/tmp/
 testsprite_tests/tmp/config.json
+frontend/playwright-report/index.html
+

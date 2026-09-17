@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { LoaderCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import RegisterIdentityFields from "./RegisterIdentityFields";
 import RegisterAccountFields from "./RegisterAccountFields";
@@ -17,7 +17,6 @@ export interface RegisterFormValues {
   confirmPassword: string;
   username: string;
   phone: string;
-  role: string;
   referralCode: string;
   agreedToTerms: boolean;
 }
@@ -36,7 +35,7 @@ interface RegisterFormFieldsProps {
 /**
  * Presentational fields for `RegisterForm` — owns no state, just renders +
  * reports changes. Field groups live in `RegisterIdentityFields` (name/email/
- * password) and `RegisterAccountFields` (username/phone/role/referral/terms).
+ * password) and `RegisterAccountFields` (username/phone/referral/terms).
  */
 export default function RegisterFormFields({
   values,
@@ -76,8 +75,6 @@ export default function RegisterFormFields({
           onUsernameChange={(v) => onChange("username", v)}
           phone={values.phone}
           onPhoneChange={(v) => onChange("phone", v)}
-          role={values.role}
-          onRoleChange={(v) => onChange("role", v)}
           referralCode={values.referralCode}
           onReferralCodeChange={(v) => onChange("referralCode", v)}
           agreedToTerms={values.agreedToTerms}
@@ -90,7 +87,7 @@ export default function RegisterFormFields({
         {step === 2 && <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !values.agreedToTerms}>
           {isLoading ? (
             <>
-              <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+              <LoaderCircle className="ms-2 h-4 w-4" />
               جاري التسجيل...
             </>
           ) : (

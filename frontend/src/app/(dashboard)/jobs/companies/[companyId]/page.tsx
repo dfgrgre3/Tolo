@@ -7,7 +7,9 @@ import { Building2, CheckCircle2, ChevronLeft, Globe, MapPin, Users } from 'luci
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCompany, useCompanyJobs } from '@/hooks/use-jobs';
+import { ApiError } from '@/lib/api/api-client';
 import { JobCard } from '@/features/jobs/components/JobCard';
+import { JobsPagination } from '@/features/jobs/components/JobsPagination';
 import {
   JobListSkeleton,
   JobsEmptyState,
@@ -18,9 +20,10 @@ import { jobsStrings } from '@/features/jobs/labels';
 export default function CompanyDetailPage() {
   const params = useParams<{ companyId: string }>();
   const companyId = params?.companyId ?? '';
+  const [page, setPage] = React.useState(1);
 
-  const { data: company, isLoading, isError, refetch } = useCompany(companyId);
-  const jobs = useCompanyJobs(companyId);
+  const { data: company, isLoading, isError, error, refetch } = useCompany(companyId);
+  const jobs = useCompanyJobs(companyId, { page });
 
   if (isLoading) {
     return (
@@ -33,6 +36,16 @@ export default function CompanyDetailPage() {
   }
 
   if (isError || !company) {
+    // A missing company (bad link, deleted record) is an expected outcome, so
+    // it gets its own message rather than a generic retry-able failure.
+    if (error instanceof ApiError && error.isNotFound) {
+      return (
+        <JobsErrorState
+          title={jobsStrings.companyNotFoundTitle}
+          body={jobsStrings.companyNotFoundBody}
+        />
+      );
+    }
     return <JobsErrorState onRetry={() => refetch()} />;
   }
 
@@ -44,11 +57,11 @@ export default function CompanyDetailPage() {
         <Link href="/jobs" className="hover:text-foreground">
           {jobsStrings.jobs}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <Link href="/jobs/companies" className="hover:text-foreground">
           {jobsStrings.companies}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="truncate text-foreground">{company.name}</span>
       </nav>
 
@@ -139,6 +152,14 @@ export default function CompanyDetailPage() {
             {jobItems.map((job) => (
               <JobCard key={job.id} job={job} />
             ))}
+            <JobsPagination
+              pagination={jobs.data?.pagination}
+              disabled={jobs.isFetching}
+              onPageChange={(nextPage) => {
+                setPage(nextPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
           </div>
         )}
       </section>

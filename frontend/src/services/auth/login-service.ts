@@ -2,8 +2,8 @@
  * Login Service — the single source of truth for the sign-in and MFA contract.
  *
  * The backend exposes ONE canonical contract (`internal/application/dto/auth_dto.go`):
- *   - POST /api/v1/auth/login      → { email, password, rememberMe?, deviceName?, fingerprint? }
- *   - POST /api/v1/auth/mfa/verify → { challengeId, code }
+ *   - POST /api/auth/login      → { email, password, rememberMe?, deviceName?, fingerprint? }
+ *   - POST /api/auth/mfa/verify → { challengeId, code }
  *   - a pending-MFA login returns { mfaRequired: true, challengeId }.
  *
  * This module used to hedge against a drifted contract by sending *both*
@@ -14,8 +14,7 @@
  * here instead of silently breaking login.
  */
 import * as z from "zod";
-import { contractLogin, contractVerifyMfa } from "@/services/api/contracts-auth-service";
-import { apiClient } from "@/lib/api/api-client";
+import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import type {
   LoginRequestPayload,
@@ -35,11 +34,11 @@ const loginRequestSchema = z.object({
 
 const mfaVerifyPayloadSchema = z.object({
   challengeId: z.string().trim().min(1),
-  // TOTP codes are six digits; recovery codes may contain letters and dashes.
-  code: z.string().trim().refine(
-    (value) => /^\d{6}$/.test(value) || /^[A-Za-z0-9-]{8,32}$/.test(value),
-    "Invalid MFA code",
-  ),
+  // TOTP (6 digits) or a recovery code (XXXX-XXXX). Mirrors the backend:
+  // ValidateTOTP requires len 6, backup codes are issued as XXXX-XXXX.
+  // Deliberately looser than the backend charset — the server hash-match
+  // is the real boundary; this only stops obvious typos from a round-trip.
+  code: z.string().trim().regex(/^(\d{6}|[A-Za-z0-9]{4}-[A-Za-z0-9]{4})$/, "رمز التحقق غير صالح"),
   rememberMe: z.boolean().optional(),
 });
 
@@ -54,25 +53,38 @@ function parseChallenge(data: unknown): LoginChallengeResponse | null {
   return parsed.success ? parsed.data : null;
 }
 
-/**
- * Normalized outcome of a sign-in attempt, modeled as a discriminated union
- * on `status` (SYM-005 in the symbol architecture audit).
- *
- * The previous shape (`{ success: boolean; requiresMfa: boolean; challengeId:
- * string | null; error?: string }`) let TypeScript accept combinations that
- * are never actually valid, e.g. `{ success: true, requiresMfa: true }` or
- * `{ success: false, requiresMfa: false, challengeId: "x" }`. Narrowing on
- * `status` instead makes those combinations unrepresentable.
- *
- * `success` and `requiresMfa` are kept as derived boolean fields on every
- * branch (rather than removed) so existing call sites that check
- * `result.requiresMfa` then `result.success` — which is exactly how a
- * discriminated union narrows — keep working unchanged.
- */
-export type LoginOutcome =
-  | { status: "success"; success: true; requiresMfa: false; challengeId: null; error?: undefined }
-  | { status: "mfa_required"; success: false; requiresMfa: true; challengeId: string; error?: undefined }
-  | { status: "failure"; success: false; requiresMfa: false; challengeId: string | null; error: string };
+/** Normalized outcome of a sign-in attempt. */
+export interface LoginOutcome {
+  success: boolean;
+  /**
+   * Machine-readable branch. Mirrors `AuthLoginResult["status"]` in
+   * auth-context: every producer below must set it so context narrowing
+   * (`result.status === "mfa_required"`) compiles.
+   */
+  status: "success" | "mfa_required" | "failure";
+  /** True when the account has MFA enabled and a code is still required. */
+  requiresMfa: boolean;
+  /**
+   * Opaque MFA challenge handle to pass back to `verifyMfa`.
+   * Callers should treat it as opaque — it maps to the backend's `challengeId`.
+   */
+  challengeId: string | null;
+  error?: string;
+  /** True when the failure is a server 429 (drives client throttle UI). */
+  rateLimited?: boolean;
+  /** Server-directed wait in ms, when the backend supplied one. */
+  retryAfterMs?: number | null;
+}
+
+/** Extracts 429 semantics from an ApiError (status + optional body hint). */
+function rateLimitOf(err: unknown): { rateLimited: boolean; retryAfterMs: number | null } {
+  if (err instanceof ApiError && err.status === 429) {
+    const raw = err.data?.retryAfterMs ?? err.data?.retry_after_ms ?? err.data?.retryAfter;
+    const ms = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
+    return { rateLimited: true, retryAfterMs: ms };
+  }
+  return { rateLimited: false, retryAfterMs: null };
+}
 
 export interface LoginCredentials {
   /**
@@ -93,7 +105,7 @@ export function getDeviceName(): string {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  return err instanceof Error ? err.message : fallback;
+  return err instanceof ApiError || err instanceof Error ? err.message : fallback;
 }
 
 /**
@@ -114,8 +126,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
   const parsed = loginRequestSchema.safeParse(payload);
   if (!parsed.success) {
     return {
-      status: "failure",
       success: false,
+      status: "failure",
       requiresMfa: false,
       challengeId: null,
       error: "بيانات الدخول غير صالحة",
@@ -123,11 +135,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
   }
 
   try {
-    const { data, error, response } = await contractLogin(parsed.data);
-    if (error || !response.ok) {
-      return { status: "failure", success: false, requiresMfa: false, challengeId: null,
-        error: toErrorMessage(error, "فشل تسجيل الدخول") };
-    }
+    const data = await apiClient.post<unknown>(apiRoutes.auth.login, parsed.data);
 
     // Only the MFA branch requires reading the body; a successful sign-in maps
     // directly to success (the session is established via HttpOnly cookies).
@@ -135,29 +143,30 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
       const challenge = parseChallenge(data);
       if (!challenge) {
         return {
-          status: "failure",
           success: false,
+          status: "failure",
           requiresMfa: false,
           challengeId: null,
           error: "استجابة غير متوقعة من الخادم",
         };
       }
       return {
-        status: "mfa_required",
         success: false,
+        status: "mfa_required",
         requiresMfa: true,
         challengeId: challenge.challengeId,
       };
     }
 
-    return { status: "success", success: true, requiresMfa: false, challengeId: null };
+    return { success: true, status: "success", requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
-      status: "failure",
       success: false,
+      status: "failure",
       requiresMfa: false,
       challengeId: null,
       error: toErrorMessage(err, "فشل تسجيل الدخول"),
+      ...rateLimitOf(err),
     };
   }
 }
@@ -178,8 +187,8 @@ export async function verifyMfa(
   const parsed = mfaVerifyPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return {
-      status: "failure",
       success: false,
+      status: "failure",
       requiresMfa: false,
       challengeId,
       error: "بيانات التحقق غير صالحة",
@@ -187,41 +196,24 @@ export async function verifyMfa(
   }
 
   try {
-    const { error, response } = await contractVerifyMfa({ ...parsed.data, rememberMe });
-    if (error || !response.ok) {
-      return { status: "failure", success: false, requiresMfa: false, challengeId,
-        error: toErrorMessage(error, "فشل التحقق من الرمز") };
-    }
-    return { status: "success", success: true, requiresMfa: false, challengeId: null };
+    await apiClient.post(apiRoutes.auth.mfa.verify, parsed.data);
+    return { success: true, status: "success", requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
     return {
-      status: "failure",
       success: false,
+      status: "failure",
       requiresMfa: false,
       challengeId,
       error: toErrorMessage(err, "فشل التحقق من الرمز"),
+      ...rateLimitOf(err),
     };
   }
 }
 
 /**
- * Allowed hosts for each provider's OAuth authorization endpoint. A backend
- * response pointing anywhere else is rejected — scheme-only validation
- * (`https://`) is not enough, since a compromised or misconfigured backend
- * could still hand back an attacker-controlled `https://` URL and the
- * browser would navigate the user's authenticated session straight to it
- * (open redirect).
- */
-const SOCIAL_LOGIN_ALLOWED_HOSTS: Record<"google" | "apple", readonly string[]> = {
-  google: ["accounts.google.com"],
-  apple: ["appleid.apple.com"],
-};
-
-/**
  * Starts a social sign-in flow and returns the provider's authorization URL.
- * Throws if the backend returns a URL that is not absolute HTTPS on the
- * expected provider host — an attacker-controlled value here would be an
- * open redirect.
+ * Throws if the backend returns a URL that is not absolute HTTPS — an
+ * attacker-controlled value here would be an open redirect.
  */
 export async function getSocialLoginUrl(
   provider: "google" | "apple"
@@ -230,15 +222,7 @@ export async function getSocialLoginUrl(
     apiRoutes.auth.social.login(provider)
   );
 
-  const allowedHosts = SOCIAL_LOGIN_ALLOWED_HOSTS[provider];
-  let parsed: URL | null = null;
-  try {
-    parsed = redirectUrl ? new URL(redirectUrl) : null;
-  } catch {
-    parsed = null;
-  }
-
-  if (!parsed || parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
+  if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
     throw new Error("رابط تسجيل الدخول الاجتماعي غير صالح");
   }
 

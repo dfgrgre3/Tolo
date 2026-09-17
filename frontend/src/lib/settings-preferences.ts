@@ -94,7 +94,8 @@ function mapBackendToFrontend(rawSettings: unknown): SettingsPreferences {
     language: {
       ...DEFAULT_LANGUAGE_SETTINGS,
       language: readString('language', DEFAULT_LANGUAGE_SETTINGS.language),
-      numberFormat: readEnum('numberFormat', ['arabic', 'western'], DEFAULT_LANGUAGE_SETTINGS.numberFormat),
+      numberFormat: readEnum('numberFormat', ['arabic', 'english'], DEFAULT_LANGUAGE_SETTINGS.numberFormat),
+      timezone: readString('timezone', DEFAULT_LANGUAGE_SETTINGS.timezone),
     },
     notifications: {
       ...DEFAULT_NOTIFICATION_SETTINGS,

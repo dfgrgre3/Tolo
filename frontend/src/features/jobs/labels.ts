@@ -12,6 +12,7 @@ import type {
   EmploymentType,
   ExperienceLevel,
   JobApplicationStatus,
+  JobPostingStatus,
   SalaryPeriod,
   WorkplaceType,
 } from '@/types/job';
@@ -57,6 +58,31 @@ export const applicationStatusLabels: Record<JobApplicationStatus, string> = {
   HIRED: 'تم التعيين',
   REJECTED: 'مرفوض',
   WITHDRAWN: 'تم السحب',
+};
+
+/**
+ * Posting lifecycle labels, seen only by the employer and admins. The seeker
+ * surface never renders these — a PENDING_REVIEW row is invisible to it, and
+ * showing an employer-facing state to an applicant would be confusing.
+ */
+export const jobPostingStatusLabels: Record<JobPostingStatus, string> = {
+  DRAFT: 'مسودة',
+  PENDING_REVIEW: 'قيد المراجعة',
+  PUBLISHED: 'منشورة',
+  PAUSED: 'متوقفة مؤقتًا',
+  CLOSED: 'مغلقة',
+  REJECTED: 'مرفوضة',
+  ARCHIVED: 'مؤرشفة',
+};
+
+export const jobPostingStatusStyles: Record<JobPostingStatus, string> = {
+  DRAFT: 'bg-muted text-muted-foreground',
+  PENDING_REVIEW: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  PUBLISHED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  PAUSED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  CLOSED: 'bg-muted text-muted-foreground',
+  REJECTED: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  ARCHIVED: 'bg-muted text-muted-foreground',
 };
 
 /**
@@ -116,26 +142,29 @@ export const jobsStrings = {
   filters: 'الفلاتر',
   clearFilters: 'مسح الفلاتر',
   applyFilters: 'تطبيق',
+  paginationLabel: 'التنقل بين الصفحات',
+  previousPage: 'السابق',
+  nextPage: 'التالي',
   sortBy: 'ترتيب حسب',
   resultsCount: (n: number) => `${n.toLocaleString('ar-EG')} وظيفة`,
-  remoteOnly: 'عن بُعد فقط',
   jobType: 'نوع الوظيفة',
   workplace: 'مكان العمل',
   experience: 'مستوى الخبرة',
   datePosted: 'تاريخ النشر',
-  category: 'المجال',
   salaryRange: 'نطاق الراتب',
+  // Accessible names for the min/max salary inputs. The visible placeholders
+  // stay as من/إلى, but screen readers need distinct names so the two inputs
+  // are not announced identically.
+  salaryMin: 'الحد الأدنى للراتب',
+  salaryMax: 'الحد الأقصى للراتب',
 
   // Job card / detail
   save: 'حفظ',
   unsave: 'إلغاء الحفظ',
   share: 'مشاركة',
-  apply: 'تقديم',
   applyNow: 'قدّم الآن',
   alreadyApplied: 'تم التقديم',
   applyClosed: 'التقديم مغلق',
-  expired: 'منتهية',
-  closed: 'مغلقة',
   featured: 'مميزة',
   verified: 'موثقة',
   salaryHidden: 'الراتب غير معلن',
@@ -179,6 +208,7 @@ export const jobsStrings = {
     'سيتم إبلاغ جهة التوظيف بسحب طلبك، ولن تتمكن من التقديم على هذه الوظيفة مرة أخرى.',
   cancel: 'إلغاء',
   confirmWithdraw: 'تأكيد السحب',
+  withdrawFailed: 'تعذّر سحب الطلب. حاول مرة أخرى لاحقًا.',
   timeline: 'مسار الطلب',
 
   // States
@@ -196,8 +226,90 @@ export const jobsStrings = {
   retry: 'إعادة المحاولة',
   notFoundTitle: 'الوظيفة غير موجودة',
   notFoundBody: 'ربما تم حذف هذه الوظيفة أو انتهت صلاحيتها.',
-  backToJobs: 'العودة إلى الوظائف',
+  // Each detail surface gets its own copy: a 404 means a different thing on
+  // the application page than on the job page, and telling a user their job
+  // was deleted when the application link was simply bad is misleading.
+  applicationNotFoundTitle: 'الطلب غير موجود',
+  applicationNotFoundBody: 'ربما تم سحب هذا الطلب أو حذفه، أو أن الرابط غير صحيح.',
+  companyNotFoundTitle: 'الشركة غير موجودة',
+  companyNotFoundBody: 'ربما تم حذف هذه الشركة، أو أن الرابط غير صحيح.',
   loginToContinue: 'سجّل الدخول للمتابعة',
   loginToApply: 'سجّل الدخول للتقديم',
-  loginToSave: 'سجّل الدخول لحفظ الوظيفة',
+
+  // ── Employer console ──────────────────────────────────────────
+  employer: 'صاحب العمل',
+  employerConsole: 'لوحة صاحب العمل',
+  employerSubtitle: 'أدر شركاتك ووظائفك ومتقدميك من مكان واحد.',
+  myCompanies: 'شركاتي',
+  addCompany: 'إضافة شركة',
+  companyName: 'اسم الشركة',
+  companyIndustry: 'القطاع',
+  companySize: 'حجم الشركة',
+  companyLocation: 'الموقع',
+  companyWebsite: 'الموقع الإلكتروني',
+  foundedYear: 'سنة التأسيس',
+  companyDescription: 'عن الشركة',
+  saveCompany: 'حفظ الشركة',
+
+  myJobs: 'وظائفي',
+  addJob: 'إضافة وظيفة',
+  jobTitle: 'المسمى الوظيفي',
+  jobStatus: 'الحالة',
+  applicants: 'المتقدمون',
+  postedJobs: 'الوظائف المنشورة',
+  activeJobs: 'الوظائف النشطة',
+  draftJobs: 'المسودات',
+  pendingReview: 'قيد المراجعة',
+  newApplication: 'متقدم جديد',
+
+  // Posting form
+  jobFormTitle: 'تفاصيل الوظيفة',
+  jobDescription: 'الوصف الوظيفي',
+  jobSkills: 'المهارات المطلوبة',
+  jobCategory: 'الفئة',
+  jobCountry: 'الدولة',
+  jobCity: 'المدينة',
+  salaryCurrency: 'العملة',
+  salaryPeriod: 'فترة الراتب',
+  showSalary: 'إظهار الراتب',
+  expiresAt: 'آخر موعد للتقديم',
+  selectCompany: 'اختر الشركة',
+  saveJob: 'حفظ الوظيفة',
+  saving: 'جارٍ الحفظ...',
+  jobSaved: 'تم حفظ الوظيفة',
+
+  // Lifecycle
+  submitForReview: 'إرسال للمراجعة',
+  publishJob: 'نشر الوظيفة',
+  pauseJob: 'إيقاف مؤقت',
+  resumeJob: 'استئناف',
+  closeJob: 'إغلاق الوظيفة',
+  editJob: 'تعديل',
+  duplicateJob: 'نسخ كمسودة',
+  archiveJob: 'أرشفة',
+  transitionFailed: 'تعذّر تغيير حالة الوظيفة.',
+  underReviewNote: 'هذه الوظيفة قيد مراجعة الإدارة قبل النشر.',
+
+  // Applicants
+  applicantsTitle: 'المتقدمون للوظيفة',
+  applicantName: 'الاسم',
+  applicantEmail: 'البريد الإلكتروني',
+  applicantPhone: 'الهاتف',
+  appliedDate: 'تاريخ التقديم',
+  currentStage: 'المرحلة الحالية',
+  moveToStage: 'نقل إلى مرحلة',
+  rejectApplicant: 'رفع الطلب',
+  hireApplicant: 'توظيف',
+  stageNote: 'ملاحظة',
+  stageUpdated: 'تم تحديث مرحلة المتقدم',
+  stageUpdateFailed: 'تعذّر تحديث مرحلة المتقدم.',
+  emptyApplicantsTitle: 'لا يوجد متقدمون بعد',
+  emptyApplicantsBody: 'عندما يقدّم أحد على هذه الوظيفة سيظهر هنا.',
+  noApplicationsYet: 'لا توجد طلبات في هذه المرحلة',
+
+  // Empty employer states
+  emptyEmployerJobsTitle: 'لم تنشئ أي وظيفة بعد',
+  emptyEmployerJobsBody: 'أضف وظيفتك الأولى لتبدأ في استقبال المتقدمين.',
+  emptyCompaniesMineTitle: 'لم تنشئ أي شركة بعد',
+  emptyCompaniesMineBody: 'أضف شركتك لتتمكن من نشر الوظائف باسمها.',
 } as const;

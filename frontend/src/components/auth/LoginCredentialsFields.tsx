@@ -33,7 +33,16 @@ export default function LoginCredentialsFields({
 }: LoginCredentialsFieldsProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const emailErrorId = useId();
+
+  const checkCapsLock = (e: React.KeyboardEvent) => {
+    try {
+      setCapsLockOn(e.getModifierState?.("CapsLock") ?? false);
+    } catch {
+      setCapsLockOn(false);
+    }
+  };
 
   const isEmailInvalid =
     (emailTouched && email.length > 0 && !EMAIL_PATTERN.test(email)) || !!emailError;
@@ -92,6 +101,8 @@ export default function LoginCredentialsFields({
             placeholder="••••••••"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
+            onKeyUp={checkCapsLock}
+            onKeyDown={checkCapsLock}
             required
             disabled={isLoading}
             dir="ltr"
@@ -109,6 +120,11 @@ export default function LoginCredentialsFields({
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
+        {capsLockOn && (
+          <p className="text-xs text-amber-600 dark:text-amber-400" role="status">
+            زر Caps Lock مفعّل — تأكد من كلمة المرور
+          </p>
+        )}
       </div>
 
       <div className="flex items-center space-x-2 space-x-reverse justify-start">

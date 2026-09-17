@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { LoaderCircle, AlertCircle } from "lucide-react";
 
 interface MfaSetupVerifyStepProps {
   secret: string;
@@ -69,7 +69,7 @@ export default function MfaSetupVerifyStep({
       </CardContent>
       <CardFooter className="grid gap-2">
         <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : "تفعيل المصادقة الثنائية"}
+          {isLoading ? <LoaderCircle className="h-4 w-4 me-2" /> : "تفعيل المصادقة الثنائية"}
         </Button>
         <Button variant="ghost" onClick={onCancel} className="w-full">
           إلغاء الإعداد

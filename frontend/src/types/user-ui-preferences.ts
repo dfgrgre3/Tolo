@@ -9,9 +9,9 @@ interface AppearanceSettingsPreference {
 
 interface LanguageSettingsPreference {
   language: string;
-  numberFormat: 'arabic' | 'western';
+  numberFormat: 'arabic' | 'english';
   direction?: 'rtl' | 'ltr';
-  timezone?: string;
+  timezone: string;
 }
 
 export interface NotificationSettingsPreference {
@@ -72,7 +72,8 @@ export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettingsPreference = {
 
 export const DEFAULT_LANGUAGE_SETTINGS: LanguageSettingsPreference = {
   language: 'ar',
-  numberFormat: 'western',
+  numberFormat: 'english',
+  timezone: 'Africa/Cairo',
 };
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsPreference = {

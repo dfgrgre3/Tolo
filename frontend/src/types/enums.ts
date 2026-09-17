@@ -29,15 +29,13 @@ export enum TaskStatus {
     CANCELLED = 'CANCELLED',
 }
 
-export enum UserRole {
-    STUDENT = 'STUDENT',
-    TEACHER = 'TEACHER',
-  MODERATOR = 'MODERATOR',
-  ADMIN = 'ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  PARENT = 'PARENT',
-  SUPPORT = 'SUPPORT',
-}
+/**
+ * Frontend enums — the authorization vocabulary (`UserRole`, `UserStatus`)
+ * is re-exported from `@thanawy/shared/types/enums` (single source of
+ * truth, synced with the backend). The remaining enums below are
+ * frontend-local and untouched by that contract.
+ */
+export { UserRole } from '@thanawy/shared/types/enums';
 
 /** Access entitlements are subscription-derived, not authorization roles. */
 export enum Entitlement {

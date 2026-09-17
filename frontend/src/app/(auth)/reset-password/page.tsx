@@ -1,15 +1,21 @@
 "use client";
 
 import React, { Suspense, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, KeyRound } from "lucide-react";
+import { LoaderCircle, KeyRound } from "lucide-react";
 import { resetPassword } from "@/services/auth";
 import ResetPasswordFields from "@/components/auth/ResetPasswordFields";
 import { getPasswordPolicyError } from "@/lib/auth/password-policy";
 
 function ResetPasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // The reset token travels as ?token= (email link) or, when the user came
+  // through the in-app verify-code step, as the HttpOnly `reset_session`
+  // cookie — in which case the service omits it and the backend reads the
+  // cookie. Either way the service call matches ResetPasswordRequest.
+  const resetToken = searchParams.get("token") ?? undefined;
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +29,9 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (getPasswordPolicyError(newPassword)) {
-      setError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
+    const policyError = getPasswordPolicyError(newPassword);
+    if (policyError) {
+      setError(policyError);
       return;
     }
 
@@ -37,7 +44,7 @@ function ResetPasswordContent() {
     setError(null);
     setSuccess(null);
 
-    const result = await resetPassword(newPassword);
+    const result = await resetPassword(resetToken, newPassword);
 
     if (!result.success) {
       setError(result.error || "فشل إعادة تعيين كلمة المرور");
@@ -87,7 +94,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="w-full flex items-center justify-center py-6">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <LoaderCircle className="h-6 w-6 text-primary" />
         </div>
       }
     >

@@ -1,18 +1,36 @@
-import { matchesPath, PUBLIC_API_ENDPOINTS } from '@/lib/auth/route-guards';
+import {
+  PUBLIC_API_ENDPOINTS,
+  PROTECTED_ROUTES,
+  PROTECTED_WRITE_PATHS,
+  isPublicApiEndpoint,
+  isProtectedRoute,
+  isGuestRoute,
+  stripQueryFragment,
+} from '@/lib/auth/route-guards';
 
-export const PROTECTED_PAGE_ROUTES = ['/dashboard', '/learning', '/profile', '/admin'] as const;
-export const GUEST_PAGE_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/mfa'] as const;
+/**
+ * Canonical protected-page list — re-exported from `route-guards.ts`
+ * (single source of truth). `/admin` is appended by `isProtectedRoute`
+ * in the canonical module; it is listed here explicitly so type-level
+ * consumers iterating this array see the complete set.
+ */
+export const PROTECTED_PAGE_ROUTES: readonly string[] = [
+  ...PROTECTED_ROUTES,
+  ...PROTECTED_WRITE_PATHS,
+  '/admin',
+] as const;
+export const GUEST_PAGE_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'] as const;
 /** Re-exported for compatibility; canonical list lives in route-guards.ts. */
 export const PUBLIC_API_ROUTES = PUBLIC_API_ENDPOINTS;
 
 export function isProtectedPage(pathname: string): boolean {
-  return PROTECTED_PAGE_ROUTES.some((route) => matchesPath(pathname, route));
+  return isProtectedRoute(pathname);
 }
 
 export function isGuestPage(pathname: string): boolean {
-  return GUEST_PAGE_ROUTES.some((route) => matchesPath(pathname, route));
+  return isGuestRoute(pathname);
 }
 
 export function isPublicApiPath(pathname: string): boolean {
-  return PUBLIC_API_ROUTES.includes(pathname);
+  return isPublicApiEndpoint(stripQueryFragment(pathname));
 }

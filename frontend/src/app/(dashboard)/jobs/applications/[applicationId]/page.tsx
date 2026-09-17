@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMyApplication, useWithdrawApplication } from '@/hooks/use-jobs';
+import { ApiError } from '@/lib/api/api-client';
 import { JobsErrorState } from '@/features/jobs/components/JobStates';
 import { formatDate } from '@/features/jobs/format';
 import {
@@ -113,8 +114,15 @@ export default function ApplicationDetailPage() {
   const params = useParams<{ applicationId: string }>();
   const applicationId = params?.applicationId ?? '';
 
-  const { data: application, isLoading, isError, refetch } = useMyApplication(applicationId);
+  const { data: application, isLoading, isError, error, refetch } = useMyApplication(applicationId);
   const withdraw = useWithdrawApplication();
+  const [withdrawOpen, setWithdrawOpen] = React.useState(false);
+  // AlertDialogAction is also a Radix Dialog.Close, so it asks to close the
+  // dialog on the very click that submits — synchronously, before React has
+  // re-rendered with `isPending`. Only a mutable flag can gate that request,
+  // keeping the dialog open (and the pending / failure state visible) until
+  // the server actually answers.
+  const withdrawInFlightRef = React.useRef(false);
 
   if (isLoading) {
     return (
@@ -126,6 +134,17 @@ export default function ApplicationDetailPage() {
   }
 
   if (isError || !application) {
+    // A 404 is an expected outcome (the application was withdrawn, deleted, or
+    // the id was never valid), so it gets its own message rather than the
+    // generic failure state that implies retrying will help.
+    if (error instanceof ApiError && error.isNotFound) {
+      return (
+        <JobsErrorState
+          title={jobsStrings.applicationNotFoundTitle}
+          body={jobsStrings.applicationNotFoundBody}
+        />
+      );
+    }
     return <JobsErrorState onRetry={() => refetch()} />;
   }
 
@@ -138,11 +157,11 @@ export default function ApplicationDetailPage() {
         <Link href="/jobs" className="hover:text-foreground">
           {jobsStrings.jobs}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <Link href="/jobs/applications" className="hover:text-foreground">
           {jobsStrings.myApplications}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="truncate text-foreground">{job?.title ?? '—'}</span>
       </nav>
 
@@ -211,7 +230,18 @@ export default function ApplicationDetailPage() {
           </Card>
 
           {canWithdraw ? (
-            <AlertDialog>
+            <AlertDialog
+              open={withdrawOpen}
+              onOpenChange={(open) => {
+                // Block the close Radix requests on the submit click itself —
+                // the dialog has to survive until the mutation settles.
+                if (!open && withdrawInFlightRef.current) return;
+                // Reopening should never surface a stale failure from a
+                // previous attempt.
+                if (open) withdraw.reset();
+                setWithdrawOpen(open);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="w-full text-destructive hover:text-destructive">
                   {jobsStrings.withdraw}
@@ -224,18 +254,31 @@ export default function ApplicationDetailPage() {
                     {jobsStrings.withdrawConfirmBody}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {withdraw.isError ? (
+                  <p
+                    role="alert"
+                    className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                  >
+                    {(withdraw.error as ApiError)?.message ?? jobsStrings.withdrawFailed}
+                  </p>
+                ) : null}
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={withdraw.isPending}>
                     {jobsStrings.cancel}
                   </AlertDialogCancel>
                   <AlertDialogAction
                     disabled={withdraw.isPending}
-                    onClick={(event) => {
-                      // Keep the dialog open while the request is in flight so
-                      // the user sees the pending state rather than a silent
-                      // close followed by a late failure.
-                      event.preventDefault();
-                      withdraw.mutate(application.id);
+                    onClick={() => {
+                      withdrawInFlightRef.current = true;
+                      withdraw.mutate(application.id, {
+                        onSuccess: () => {
+                          withdrawInFlightRef.current = false;
+                          setWithdrawOpen(false);
+                        },
+                        onError: () => {
+                          withdrawInFlightRef.current = false;
+                        },
+                      });
                     }}
                   >
                     {withdraw.isPending ? (

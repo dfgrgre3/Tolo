@@ -31,6 +31,8 @@ import {
   MAX_STUDY_GOAL_LEN,
   MAX_CITY_LEN,
   MAX_SCHOOL_LEN,
+  RESERVED_USERNAMES,
+  isValidBirthDate,
   GRADE_LEVELS,
   EDUCATION_TYPES,
   SECTIONS,
@@ -94,6 +96,7 @@ export default function AccountSettingsForm() {
   const [form, setForm] = useState<FormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasConflict, setHasConflict] = useState(false);
 
   const isDirty = !!form && !!initial && JSON.stringify(form) !== JSON.stringify(initial);
 
@@ -107,6 +110,14 @@ export default function AccountSettingsForm() {
     setSeededInitial(initial);
     setForm(initial);
   }
+
+  // A refetch while editing means the server snapshot changed underneath the
+  // draft. Keep the draft, but make the overwrite decision explicit to the user.
+  useEffect(() => {
+    if (isDirty && initial && seededInitial && JSON.stringify(initial) !== JSON.stringify(seededInitial)) {
+      setHasConflict(true);
+    }
+  }, [initial, seededInitial, isDirty]);
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -129,16 +140,18 @@ export default function AccountSettingsForm() {
     if (state.studyGoal.length > MAX_STUDY_GOAL_LEN) return "الهدف الدراسي يتجاوز الحد الأقصى للطول.";
     if (state.city && state.city.length > MAX_CITY_LEN) return "المدينة تتجاوز الحد الأقصى للطول.";
     if (state.school && state.school.length > MAX_SCHOOL_LEN) return "اسم المدرسة يتجاوز الحد الأقصى للطول.";
-    if (state.username && !/^[a-zA-Z0-9_.]{3,}$/.test(state.username)) {
+    const normalizedUsername = state.username.trim().toLowerCase();
+    if (normalizedUsername && !/^[a-zA-Z0-9_.]{3,30}$/.test(normalizedUsername)) {
       return "اسم المستخدم يجب أن يتكوّن من 3 أحرف إنجليزية على الأقل (حروف وأرقام وشرطة سفلية فقط).";
     }
+    if (normalizedUsername && RESERVED_USERNAMES.has(normalizedUsername)) return "اسم المستخدم محجوز للنظام.";
     if (state.phone && !/^\+?[0-9\s-]{7,20}$/.test(state.phone)) {
       return "رقم الهاتف غير صالح.";
     }
     if (state.alternativePhone && !/^\+?[0-9\s-]{7,20}$/.test(state.alternativePhone)) {
       return "رقم الهاتف البديل غير صالح.";
     }
-    if (state.birthDate && new Date(state.birthDate) > new Date()) {
+    if (state.birthDate && !isValidBirthDate(state.birthDate)) {
       return "تاريخ الميلاد لا يمكن أن يكون في المستقبل.";
     }
     return null;
@@ -180,6 +193,7 @@ export default function AccountSettingsForm() {
   function handleDiscard() {
     setForm(initial);
     setError(null);
+    setHasConflict(false);
   }
 
   if (!user) return null;
@@ -416,6 +430,11 @@ export default function AccountSettingsForm() {
         </div>
 
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+        {hasConflict && (
+          <p className="text-sm text-amber-700" role="status">
+            تم تحديث البيانات من جهاز آخر. يمكنك الاحتفاظ بتعديلاتك وحفظها، أو تجاهلها لاستخدام البيانات الجديدة.
+          </p>
+        )}
       </CardContent>
       <CardFooter className="justify-end gap-2">
         {isDirty && (

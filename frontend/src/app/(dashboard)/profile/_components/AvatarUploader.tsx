@@ -46,6 +46,11 @@ export default function AvatarUploader() {
       await Promise.all([refreshUser(), refetchProfile()]);
       toast.success("تم تحديث صورتك الشخصية");
     } catch (err) {
+      try {
+        await apiClient.delete(apiRoutes.upload.delete, { body: JSON.stringify({ fileKey: result.path }) });
+      } catch {
+        // Best-effort cleanup of the staged object.
+      }
       const message = err instanceof ApiError ? err.message : "تم رفع الصورة لكن تعذر حفظها في ملفك.";
       toast.error(message);
     }

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMyApplications } from '@/hooks/use-jobs';
+import { JobsPagination } from '@/features/jobs/components/JobsPagination';
 import {
   JobListSkeleton,
   JobsEmptyState,
@@ -32,10 +33,13 @@ const TABS: Array<{ value: JobApplicationStatus | undefined; label: string }> = 
 export default function MyApplicationsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [active, setActive] = React.useState<JobApplicationStatus | undefined>(undefined);
+  const [page, setPage] = React.useState(1);
 
-  const { data, isLoading, isError, refetch } = useMyApplications(
-    active ? { status: [active] } : undefined
-  );
+  const { data, isLoading, isError, isFetching, refetch } = useMyApplications({
+    status: active ? [active] : undefined,
+    page,
+    enabled: isAuthenticated,
+  });
 
   if (authLoading || isLoading) return <JobListSkeleton />;
 
@@ -74,7 +78,10 @@ export default function MyApplicationsPage() {
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => setActive(tab.value)}
+                onClick={() => {
+                  setActive(tab.value);
+                  setPage(1);
+                }}
                 className={cn(
                   'shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors',
                   'outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -104,11 +111,12 @@ export default function MyApplicationsPage() {
           }
         />
       ) : (
-        <ul className="space-y-3">
-          {items.map((application) => {
-            const applied = formatRelativeDate(application.createdAt);
-            return (
-              <li key={application.id}>
+        <>
+          <ul className="space-y-3">
+            {items.map((application) => {
+              const applied = formatRelativeDate(application.createdAt);
+              return (
+                <li key={application.id}>
                 <Link
                   href={`/jobs/applications/${application.id}`}
                   className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -155,10 +163,19 @@ export default function MyApplicationsPage() {
                     </CardContent>
                   </Card>
                 </Link>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+          <JobsPagination
+            pagination={data?.pagination}
+            disabled={isFetching}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </>
       )}
     </div>
   );

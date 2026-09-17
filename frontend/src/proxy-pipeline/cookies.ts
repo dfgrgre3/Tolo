@@ -58,6 +58,29 @@ export function appendRefreshCookies(response: NextResponse, cookies: string[]):
 }
 
 export function clearAuthCookies(response: NextResponse): void {
-  response.cookies.delete('access_token');
-  response.cookies.delete('refresh_token');
+  // The backend issues auth cookies with explicit attributes (typically
+  // `Path=/`, possibly `Domain=...`). `cookies.delete(name)` without a path
+  // only clears the cookie for the *current* path — the browser keeps the
+  // backend's `Path=/` copy and the dead session "ghosts" back on the next
+  // request. So: delete with the explicit root path AND append an expired
+  // Set-Cookie fallback covering the same path. The fallback is what
+  // actually guarantees removal even if the Next.js cookie-store form and
+  // the backend's Domain attribute disagree.
+  for (const name of ["access_token", "refresh_token"] as const) {
+    try {
+      // Options overload: clears the cookie scoped to the root path, which
+      // is where the backend issues it.
+      response.cookies.delete({ name, path: "/" });
+    } catch {
+      try {
+        response.cookies.delete(name);
+      } catch {
+        // Cookie-store unavailable — the expired Set-Cookie below still clears.
+      }
+    }
+    response.headers.append(
+      "Set-Cookie",
+      `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`,
+    );
+  }
 }

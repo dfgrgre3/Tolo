@@ -13,7 +13,7 @@ test.describe('Authentication security regressions', () => {
   });
 
   test('does not put a reset credential in the URL', async ({ page }) => {
-    await page.route('**/api/auth/forgot-password', async (route) => {
+    await page.route('**/api/v1/auth/forgot-password', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -23,7 +23,7 @@ test.describe('Authentication security regressions', () => {
         }),
       });
     });
-    await page.route('**/api/auth/forgot-password/verify-code', async (route) => {
+    await page.route('**/api/v1/auth/forgot-password/verify-code', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

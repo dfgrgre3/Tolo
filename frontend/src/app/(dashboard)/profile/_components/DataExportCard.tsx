@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,30 +15,31 @@ import { apiRoutes } from "@/lib/api/routes";
  * There is no PDF generator on the backend, so only the JSON export is
  * offered — a PDF button here would have nothing to call.
  */
-interface ExportDataResponse {
-  exportData: unknown;
-}
+interface ExportJobResponse { jobId: string; status: string; expiresAt: string; downloadUrl: string; }
+interface ExportStatusResponse { jobId: string; status: "PROCESSING" | "COMPLETED" | "FAILED" | "EXPIRED" | "CONSUMED"; expiresAt: string; }
 
 export default function DataExportCard() {
   const [isExporting, setIsExporting] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function handleExport() {
     setIsExporting(true);
     try {
-      const res = await apiClient.post<ExportDataResponse>(apiRoutes.settings.privacyActions, {
+      const job = await apiClient.post<ExportJobResponse>(apiRoutes.settings.privacyActions, {
         action: "export-data",
       });
-      const blob = new Blob([JSON.stringify(res.exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `thanawy-data-export-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const poll = async (): Promise<void> => {
+        const status = await apiClient.get<ExportStatusResponse>(apiRoutes.settings.exportJobStatus(job.jobId));
+        if (status.status === "COMPLETED") {
+          // The one-time download URL is authenticated and expires server-side.
+          window.location.assign(job.downloadUrl);
+          return;
+        }
+        if (status.status !== "PROCESSING") throw new Error("Export job failed or expired");
+        await new Promise<void>((resolve) => { timerRef.current = setTimeout(resolve, 1000); });
+        return poll();
+      };
+      await poll();
       toast.success("تم تجهيز ملف بياناتك");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "تعذر تصدير البيانات، حاول مرة أخرى.";

@@ -32,6 +32,12 @@ interface CheckboxGroupProps {
 }
 
 function CheckboxGroup({ legend, options, selected, onChange }: CheckboxGroupProps) {
+  // This panel is mounted in both the desktop sidebar and the mobile drawer,
+  // so a static id would exist twice in the DOM and a label click in the
+  // drawer would resolve to the hidden sidebar instance. useId is unique per
+  // mount position, giving each surface its own namespace.
+  const uid = React.useId();
+
   const toggle = (value: string) => {
     onChange(
       selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]
@@ -42,7 +48,12 @@ function CheckboxGroup({ legend, options, selected, onChange }: CheckboxGroupPro
     <fieldset className="space-y-2">
       <legend className="mb-2 text-sm font-medium">{legend}</legend>
       {Object.entries(options).map(([value, label]) => {
-        const id = `${legend}-${value}`;
+        // The legend is an Arabic label that can contain spaces (e.g.
+        // "مكان العمل"), and spaces are invalid inside an HTML id — which
+        // would break the Label htmlFor and stop label clicks from toggling
+        // the checkbox. Slugifying keeps the id readable; the uid prefix
+        // keeps it unique.
+        const id = `${uid}-${legend.replace(/\s+/g, '-')}-${value}`;
         return (
           <div key={value} className="flex items-center gap-2">
             <Checkbox
@@ -69,6 +80,9 @@ export function JobFilters({
   onChange: (patch: Partial<JobSearchParams>) => void;
   onClear: () => void;
 }) {
+  // Same rationale as CheckboxGroup: the panel is rendered per surface.
+  const uid = React.useId();
+
   return (
     <div className="space-y-6">
       <CheckboxGroup
@@ -120,11 +134,11 @@ export function JobFilters({
         <legend className="mb-2 text-sm font-medium">{jobsStrings.salaryRange}</legend>
         <div className="flex items-center gap-2">
           <div className="flex-1">
-            <Label htmlFor="salary-min" className="sr-only">
-              {jobsStrings.salaryRange}
+            <Label htmlFor={`${uid}-salary-min`} className="sr-only">
+              {jobsStrings.salaryMin}
             </Label>
             <Input
-              id="salary-min"
+              id={`${uid}-salary-min`}
               type="number"
               inputMode="numeric"
               min={0}
@@ -141,11 +155,11 @@ export function JobFilters({
             –
           </span>
           <div className="flex-1">
-            <Label htmlFor="salary-max" className="sr-only">
-              {jobsStrings.salaryRange}
+            <Label htmlFor={`${uid}-salary-max`} className="sr-only">
+              {jobsStrings.salaryMax}
             </Label>
             <Input
-              id="salary-max"
+              id={`${uid}-salary-max`}
               type="number"
               inputMode="numeric"
               min={0}

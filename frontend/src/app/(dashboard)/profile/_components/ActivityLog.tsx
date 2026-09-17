@@ -37,6 +37,11 @@ interface RawActivity {
   url?: string;
 }
 
+interface ActivityPage {
+  activities: RawActivity[];
+  nextCursor?: string;
+}
+
 const PAGE_SIZE = 20;
 
 const ACTIVITY_CONFIG: Record<ActivityType, { icon: typeof Bell; color: string; label: string }> = {
@@ -54,7 +59,7 @@ const DEFAULT_CONFIG = {
 };
 
 /**
- * Reads from `GET /api/activities/recent?limit=N&offset=N` — that endpoint
+ * Reads from `GET /api/activities/recent?limit=N&cursor=...` — the endpoint
  * serves *notifications* rather than a separate audit log, so the displayed
  * activity types are the ones the notifications table produces. The `url`
  * field is honored when present (the activity widget already does this);
@@ -64,7 +69,7 @@ export default function ActivityLog() {
   const [items, setItems] = useState<RawActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [mutatingId, setMutatingId] = useState<string | null>(null);
@@ -75,14 +80,15 @@ export default function ActivityLog() {
   useEffect(() => {
     const controller = new AbortController();
     apiClient
-      .get<{ activities: RawActivity[] } | RawActivity[]>(
-        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}&offset=0`,
+      .get<ActivityPage | RawActivity[]>(
+        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}`,
         { signal: controller.signal }
       )
       .then((data) => {
         const list = Array.isArray(data) ? data : data.activities ?? [];
         setItems(list);
-        setHasMore(list.length === PAGE_SIZE);
+        setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+        setHasMore(!Array.isArray(data) && Boolean(data.nextCursor));
         setError(null);
       })
       .catch((err) => {
@@ -120,16 +126,16 @@ export default function ActivityLog() {
   }
 
   async function loadMore() {
-    const next = offset + PAGE_SIZE;
+    if (!nextCursor) return;
     setIsLoadingMore(true);
     try {
-      const data = await apiClient.get<{ activities: RawActivity[] } | RawActivity[]>(
-        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}&offset=${next}`
+      const data = await apiClient.get<ActivityPage | RawActivity[]>(
+        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(nextCursor)}`
       );
       const list = Array.isArray(data) ? data : data.activities ?? [];
-      setOffset(next);
       setItems((prev) => [...prev, ...list]);
-      setHasMore(list.length === PAGE_SIZE);
+      setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+      setHasMore(!Array.isArray(data) && Boolean(data.nextCursor));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       toast.error("تعذر تحميل المزيد من العناصر.");
@@ -141,7 +147,7 @@ export default function ActivityLog() {
   function retry() {
     setError(null);
     setIsLoading(true);
-    setOffset(0);
+    setNextCursor(null);
     setToken((t) => t + 1);
   }
 

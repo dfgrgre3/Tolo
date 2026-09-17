@@ -122,9 +122,17 @@ if (IS_PRODUCTION) {
 }
 
 // Trusted proxy count validation
+// Distinguish "explicitly set to 0" (operator chose direct-to-backend) from
+// "unset" (misconfiguration — resolveTrustedClientIp returns '' for every
+// request and IP-based security is silently dead). The unset-in-production
+// case FAILS the deploy check instead of warning.
+const proxyRaw = process.env.TRUSTED_PROXY_COUNT;
 const proxyCount = parseInt(TRUSTED_PROXY_COUNT, 10);
 if (isNaN(proxyCount) || proxyCount < 0) {
   fail(`TRUSTED_PROXY_COUNT is invalid: ${TRUSTED_PROXY_COUNT}. Must be a non-negative integer.`);
+} else if (IS_PRODUCTION && proxyRaw === undefined && !VERCEL) {
+  fail('TRUSTED_PROXY_COUNT is NOT SET in production (non-Vercel). resolveTrustedClientIp() returns \'\' for every request.');
+  fail('Fix: Set TRUSTED_PROXY_COUNT explicitly (0 = direct to backend, 1 = single CDN/proxy, 2 = CDN + reverse proxy).');
 } else if (IS_PRODUCTION && proxyCount === 0) {
   warn('TRUSTED_PROXY_COUNT is 0 in production. If using a CDN/reverse proxy, this will break IP-based security.');
   warn('Fix: Set TRUSTED_PROXY_COUNT to match your deployment topology (1 for CDN, 2 for CDN+proxy, etc.).');

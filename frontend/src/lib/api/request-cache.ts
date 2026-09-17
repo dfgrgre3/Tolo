@@ -104,12 +104,12 @@ class RequestCacheManager {
    */
   private readonly endpointPolicies: Record<string, EndpointCachePolicy> = {
     // Auth endpoints: strictly NON-CACHEABLE by policy
-    "/api/auth/me": { scope: "none", ttl: 0 },
-    "/api/auth/refresh": { scope: "none", ttl: 0 },
-    "/api/auth/login": { scope: "none", ttl: 0 },
-    "/api/auth/logout": { scope: "none", ttl: 0 },
-    "/api/auth/sessions": { scope: "user", ttl: 0 },
-    "/api/auth/social/accounts": { scope: "user", ttl: 0 },
+    "/api/v1/auth/me": { scope: "none", ttl: 0 },
+    "/api/v1/auth/refresh": { scope: "none", ttl: 0 },
+    "/api/v1/auth/login": { scope: "none", ttl: 0 },
+    "/api/v1/auth/logout": { scope: "none", ttl: 0 },
+    "/api/v1/auth/sessions": { scope: "user", ttl: 0 },
+    "/api/v1/auth/social/accounts": { scope: "user", ttl: 0 },
 
     // User-scoped resources: partitioned by authenticated user identity
     "/api/my-courses": { scope: "user", ttl: 300000 },

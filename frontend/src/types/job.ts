@@ -159,6 +159,10 @@ export interface JobApplication {
   updatedAt: string;
 
   job?: Job | null;
+  // The employer surface preloads the applicant's public profile (name/email)
+  // alongside the application. Absent on the seeker's own-application views,
+  // which is why it is optional rather than required.
+  applicant?: { id: string; name: string; email?: string | null } | null;
 }
 
 export interface SavedJobEntry {

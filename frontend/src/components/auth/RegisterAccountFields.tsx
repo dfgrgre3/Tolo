@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { User, Gift, Phone } from "lucide-react";
 
@@ -13,8 +12,6 @@ interface RegisterAccountFieldsProps {
   onUsernameChange: (value: string) => void;
   phone: string;
   onPhoneChange: (value: string) => void;
-  role: string;
-  onRoleChange: (value: string) => void;
   referralCode: string;
   onReferralCodeChange: (value: string) => void;
   agreedToTerms: boolean;
@@ -22,14 +19,17 @@ interface RegisterAccountFieldsProps {
   isLoading: boolean;
 }
 
-/** Username / phone / role / referral / terms fields for `RegisterFormFields`. */
+/**
+ * Username / phone / referral / terms fields for `RegisterFormFields`.
+ * Public registration always creates a STUDENT account (enforced
+ * server-side); there is no role picker here — teacher onboarding is a
+ * separate, approval-gated flow.
+ */
 export default function RegisterAccountFields({
   username,
   onUsernameChange,
   phone,
   onPhoneChange,
-  role,
-  onRoleChange,
   referralCode,
   onReferralCodeChange,
   agreedToTerms,
@@ -75,38 +75,20 @@ export default function RegisterAccountFields({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="role" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">نوع الحساب</Label>
-          <Select value={role} onValueChange={onRoleChange} disabled={isLoading}>
-            <SelectTrigger id="role" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-start flex-row-reverse">
-              <SelectValue placeholder="اختر نوع الحساب" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <SelectItem value="STUDENT" className="text-start justify-end font-medium">طالب</SelectItem>
-            </SelectContent>
-          </Select>
-          {role === "TEACHER" && (
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              قد تتم مراجعة حساب المعلم قبل تفعيل بعض الصلاحيات.
-            </p>
-          )}
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="referralCode" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كود الإحالة (اختياري)</Label>
-          <div className="relative">
-            <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
-              <Gift className="h-4 w-4" />
-            </span>
-            <Input
-              id="referralCode"
-              placeholder="REF-1234"
-              value={referralCode}
-              onChange={(e) => onReferralCodeChange(e.target.value)}
-              disabled={isLoading}
-              className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-center"
-            />
-          </div>
+      <div className="grid gap-2">
+        <Label htmlFor="referralCode" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">كود الإحالة (اختياري)</Label>
+        <div className="relative">
+          <span className="absolute inset-y-0 start-3 flex items-center text-slate-400">
+            <Gift className="h-4 w-4" />
+          </span>
+          <Input
+            id="referralCode"
+            placeholder="REF-1234"
+            value={referralCode}
+            onChange={(e) => onReferralCodeChange(e.target.value)}
+            disabled={isLoading}
+            className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary text-center"
+          />
         </div>
       </div>
 

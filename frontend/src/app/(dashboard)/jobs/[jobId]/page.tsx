@@ -14,6 +14,7 @@ import {
   Share2,
   Wallet,
 } from 'lucide-react';
+import { ApiError } from '@/lib/api/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -207,8 +208,7 @@ export default function JobDetailPage() {
   if (isError || !job) {
     // A 404 is an expected outcome here (deleted or never-published posting),
     // so it gets its own recovery path rather than a generic failure.
-    const status = (error as { response?: { status?: number } })?.response?.status;
-    if (status === 404) {
+    if (error instanceof ApiError && error.isNotFound) {
       return (
         <JobsErrorState
           title={jobsStrings.notFoundTitle}
@@ -228,11 +228,11 @@ export default function JobDetailPage() {
         <Link href="/jobs" className="hover:text-foreground">
           {jobsStrings.jobs}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <Link href="/jobs/search" className="hover:text-foreground">
           {jobsStrings.findJobs}
         </Link>
-        <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="truncate text-foreground">{job.title}</span>
       </nav>
 

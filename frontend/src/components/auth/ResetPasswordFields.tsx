@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle, CheckCircle, Lock } from "lucide-react";
+import { LoaderCircle, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import Link from "next/link";
+import PasswordStrengthMeter from "./PasswordStrengthMeter";
 
 interface ResetPasswordFieldsProps {
   newPassword: string;
@@ -69,6 +70,7 @@ export default function ResetPasswordFields({
               className="bg-white dark:bg-slate-950 ps-10 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
+          {newPassword && <PasswordStrengthMeter password={newPassword} />}
         </div>
 
         <div className="grid gap-2">
@@ -95,7 +97,7 @@ export default function ResetPasswordFields({
         <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-bold shadow-lg shadow-primary/20" disabled={isLoading || !hasToken || !!success}>
           {isLoading ? (
             <>
-              <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+              <LoaderCircle className="ms-2 h-4 w-4" />
               جاري التحديث...
             </>
           ) : (

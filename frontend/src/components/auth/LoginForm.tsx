@@ -3,6 +3,8 @@
 import React from "react";
 import LoginCredentialsStep from "./LoginCredentialsStep";
 import MfaVerifyStep from "./MfaVerifyStep";
+import HumanCheck from "./HumanCheck";
+import ThrottleNotice from "./ThrottleNotice";
 import { useLoginForm } from "./useLoginForm";
 
 /**
@@ -26,6 +28,10 @@ export default function LoginForm() {
     mfaChallenge,
     error,
     isLoading,
+    loginThrottle,
+    mfaThrottle,
+    humanKey,
+    markHumanSolved,
     handleSubmit,
     handleMfaSubmit,
     cancelMfa,
@@ -41,10 +47,13 @@ export default function LoginForm() {
         isLoading={isLoading}
         onSubmit={handleMfaSubmit}
         onCancel={cancelMfa}
+        submitDisabled={mfaThrottle.locked}
+        noticeSlot={<ThrottleNotice snapshot={mfaThrottle} />}
       />
     );
   }
 
+  const captchaRequired = loginThrottle.captchaRequired;
   return (
     <LoginCredentialsStep
       email={email}
@@ -59,6 +68,13 @@ export default function LoginForm() {
       sessionExpired={sessionExpired}
       onSubmit={handleSubmit}
       onSocialLogin={handleSocialLogin}
+      submitDisabled={loginThrottle.locked}
+      noticeSlot={<ThrottleNotice snapshot={loginThrottle} />}
+      captchaSlot={
+        captchaRequired ? (
+          <HumanCheck key={humanKey} onSolved={markHumanSolved} />
+        ) : undefined
+      }
     />
   );
 }

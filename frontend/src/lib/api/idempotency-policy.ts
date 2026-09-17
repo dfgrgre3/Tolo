@@ -10,10 +10,10 @@ const COURSE_ENROLL_PATH = /^\/api\/courses\/[^/]+\/enroll$/;
 const CART_CHECKOUT_PATH = /^\/api\/cart\/checkout$/;
 
 const NON_IDEMPOTENT_ENDPOINTS = [
-  "/api/auth/login",
-  "/api/auth/logout",
-  "/api/auth/register",
-  "/api/auth/verify-mfa",
+  "/api/v1/auth/login",
+  "/api/v1/auth/logout",
+  "/api/v1/auth/register",
+  "/api/v1/auth/mfa/verify",
   "/api/analytics/",
   "/api/telemetry/",
   "/api/ws",

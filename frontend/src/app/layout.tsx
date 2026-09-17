@@ -21,7 +21,12 @@ const cairo = Cairo({
   subsets: ['arabic', 'latin'],
   variable: '--font-cairo',
   display: 'swap',
-  preload: true,
+  // The root layout includes both Arabic and Latin subsets, but several
+  // routes do not paint text with both subsets immediately. Let the browser
+  // fetch the font when the generated @font-face rule is actually needed;
+  // preloading both subsets causes misleading "preloaded but not used"
+  // warnings in development and wastes an early request.
+  preload: false,
   // Keep only weights used by the UI to reduce the critical font payload.
   weight: ['400', '600', '700', '900'],
   adjustFontFallback: true,

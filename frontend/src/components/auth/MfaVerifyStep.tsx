@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { LoaderCircle, ShieldCheck, AlertCircle } from "lucide-react";
 
 /** Length of a TOTP code; backup recovery codes are longer. */
 const MFA_CODE_MAX_LENGTH = 32;
@@ -18,15 +18,19 @@ interface MfaVerifyStepProps {
   isLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  /** Disables submit while a throttle lockout is active. */
+  submitDisabled?: boolean;
+  /** Renders lockout / remaining-attempts state above the field. */
+  noticeSlot?: React.ReactNode;
 }
 
 /** Second step of `LoginForm` — the 2FA challenge, shown after credentials succeed with `requiresMfa`. */
-export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, onSubmit, onCancel }: MfaVerifyStepProps) {
+export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, onSubmit, onCancel, submitDisabled = false, noticeSlot }: MfaVerifyStepProps) {
   return (
-    <Card className="w-full border border-slate-200/50 dark:border-slate-800/80 shadow-2xl bg-white dark:bg-slate-900">
+    <Card className="w-full rounded-3xl border border-[#0F766E]/15 bg-white shadow-xl shadow-slate-900/10 dark:border-[#2DD4BF]/20 dark:bg-slate-900">
       <CardHeader className="space-y-2 text-center pb-6">
         <div className="flex justify-center mb-3">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <div className="h-12 w-12 rounded-full bg-[#0F766E]/10 flex items-center justify-center text-[#0F766E] dark:text-[#5EEAD4]">
             <ShieldCheck className="h-6 w-6" />
           </div>
         </div>
@@ -42,6 +46,7 @@ export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, on
               <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
             </Alert>
           )}
+          {noticeSlot}
           <div className="grid gap-2">
             <Label htmlFor="mfaCode" className="text-slate-700 dark:text-slate-300 font-medium">رمز التحقق</Label>
             <Input
@@ -66,10 +71,10 @@ export default function MfaVerifyStep({ code, onCodeChange, error, isLoading, on
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pt-6">
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-[#0F766E] text-white font-semibold shadow-lg shadow-[#0F766E]/20 hover:bg-[#115E59]" disabled={isLoading || submitDisabled}>
             {isLoading ? (
               <>
-                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+                <LoaderCircle className="ms-2 h-4 w-4" />
                 جاري التحقق...
               </>
             ) : (

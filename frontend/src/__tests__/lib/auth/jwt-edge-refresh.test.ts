@@ -85,7 +85,7 @@ describe("attemptTokenRefresh (P011 test matrix)", () => {
     expect(result.accessToken).toBe("valid.jwt.token");
   });
 
-  it("200 + accessToken - Set-Cookie → treated as failure (documented contract)", async () => {
+  it("200 + accessToken - Set-Cookie → treated as failure, marked transient (documented contract)", async () => {
     jwtVerifyMock.mockResolvedValue({
       payload: { userId: "u1", sub: "u1", exp: Math.floor(Date.now() / 1000) + 3600 },
     });
@@ -102,6 +102,9 @@ describe("attemptTokenRefresh (P011 test matrix)", () => {
 
     expect(result.payload).toBeNull();
     expect(result.cookies).toEqual([]);
+    // HTTP 200 without rotation is a backend contract violation, not proof
+    // the session is dead — callers must preserve cookies for retry.
+    expect(result.transient).toBe(true);
   });
 
   it("200 - accessToken + Set-Cookie → fails closed (no token to verify)", async () => {
@@ -144,41 +147,50 @@ describe("attemptTokenRefresh (P011 test matrix)", () => {
     expect(result.cookies).toHaveLength(1);
   });
 
-  it("401 → fails closed", async () => {
+  it("401 → fails closed and definitive (safe to clear cookies)", async () => {
     fetchSpy.mockResolvedValue(mockFetchResponse({ status: 401, body: { error: "invalid_refresh_token" } }));
 
     const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
     const result = await attemptTokenRefresh("expired-refresh", fakeRequest());
 
-    expect(result).toEqual({ payload: null, cookies: [] });
+    expect(result).toEqual({ payload: null, cookies: [], transient: false, status: 401 });
   });
 
-  it("403 → fails closed", async () => {
+  it("403 → fails closed and definitive (safe to clear cookies)", async () => {
     fetchSpy.mockResolvedValue(mockFetchResponse({ status: 403, body: { error: "forbidden" } }));
 
     const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
     const result = await attemptTokenRefresh("revoked-refresh", fakeRequest());
 
-    expect(result).toEqual({ payload: null, cookies: [] });
+    expect(result).toEqual({ payload: null, cookies: [], transient: false, status: 403 });
   });
 
-  it("500 → fails closed", async () => {
+  it("500 → fails closed but transient (callers must preserve cookies)", async () => {
     fetchSpy.mockResolvedValue(mockFetchResponse({ status: 500, body: { error: "internal_error" } }));
 
     const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
     const result = await attemptTokenRefresh("some-refresh", fakeRequest());
 
-    expect(result).toEqual({ payload: null, cookies: [] });
+    expect(result).toEqual({ payload: null, cookies: [], transient: true, status: 500 });
   });
 
-  it("timeout / network error → fails closed and reports to Sentry", async () => {
+  it("429 → fails closed but transient (callers must preserve cookies)", async () => {
+    fetchSpy.mockResolvedValue(mockFetchResponse({ status: 429, body: { error: "rate_limited" } }));
+
+    const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
+    const result = await attemptTokenRefresh("some-refresh", fakeRequest());
+
+    expect(result).toEqual({ payload: null, cookies: [], transient: true, status: 429 });
+  });
+
+  it("timeout / network error → fails closed but transient, and reports to Sentry", async () => {
     fetchSpy.mockRejectedValue(new DOMException("The operation was aborted", "TimeoutError"));
 
     const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
     const Sentry = await import("@sentry/nextjs");
     const result = await attemptTokenRefresh("some-refresh", fakeRequest());
 
-    expect(result).toEqual({ payload: null, cookies: [] });
+    expect(result).toEqual({ payload: null, cookies: [], transient: true });
     expect(Sentry.captureException).toHaveBeenCalled();
   });
 

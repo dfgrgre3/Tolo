@@ -161,3 +161,154 @@ export function contractWithdrawApplication(id: string) {
     params: { path: { id } },
   });
 }
+
+// ── Employer surface ──────────────────────────────────────────
+//
+// These back the employer console. Authorization is ownership: every route
+// below is scoped server-side to the companies the caller owns, so the client
+// never filters by company itself — it just sends the id and the server
+// decides whether the caller may act on it.
+
+export type ContractEmployerJobListResponse =
+  Schemas['authdto.EmployerJobListResponse'];
+export type ContractEmployerJobDetailResponse =
+  Schemas['authdto.EmployerJobDetailResponse'];
+
+export function contractListMyCompanies() {
+  return client.GET('/api/v1/employer/companies', {});
+}
+
+export function contractCreateCompany(body: EmployerCompanyInput) {
+  return client.POST('/api/v1/employer/companies', { body: body as never });
+}
+
+export function contractUpdateCompany(id: string, body: EmployerCompanyInput) {
+  return client.PATCH('/api/v1/employer/companies/{companyId}', {
+    params: { path: { companyId: id } },
+    body: body as never,
+  });
+}
+
+export interface EmployerCompanyInput {
+  name: string;
+  description?: string;
+  logoUrl?: string;
+  coverUrl?: string;
+  website?: string;
+  industry?: string;
+  size?: string;
+  foundedYear?: number;
+  location?: string;
+}
+
+export interface EmployerJobInput {
+  companyId: string;
+  title: string;
+  description?: string;
+  responsibilities?: string;
+  requirements?: string;
+  preferredQualifications?: string;
+  benefits?: string;
+  skills?: string[];
+  category?: string;
+  employmentType?: string;
+  workplaceType?: string;
+  experienceLevel?: string;
+  country?: string;
+  city?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
+  salaryPeriod?: string;
+  isSalaryVisible?: boolean;
+  expiresAt?: string;
+}
+
+export function contractListEmployerJobs(params?: {
+  companyId?: string;
+  status?: string[];
+  q?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const query: Record<string, string | number> = {};
+  if (params?.companyId) query.companyId = params.companyId;
+  if (params?.status?.length) query.status = params.status.join(',');
+  if (params?.q) query.q = params.q;
+  if (params?.page) query.page = params.page;
+  if (params?.limit) query.limit = params.limit;
+
+  return client.GET('/api/v1/employer/jobs', { params: { query } });
+}
+
+export function contractGetEmployerJob(id: string) {
+  return client.GET('/api/v1/employer/jobs/{jobId}', {
+    params: { path: { jobId: id } },
+  });
+}
+
+export function contractCreateJob(body: EmployerJobInput) {
+  return client.POST('/api/v1/employer/jobs', { body: body as never });
+}
+
+export function contractUpdateJob(id: string, body: EmployerJobInput) {
+  return client.PATCH('/api/v1/employer/jobs/{jobId}', {
+    params: { path: { jobId: id } },
+    body: body as never,
+  });
+}
+
+export function contractTransitionJob(
+  id: string,
+  body: { status: string; reason?: string },
+) {
+  return client.POST('/api/v1/employer/jobs/{jobId}/transition', {
+    params: { path: { jobId: id } },
+    body: body as never,
+  });
+}
+
+export function contractDuplicateJob(id: string) {
+  return client.POST('/api/v1/employer/jobs/{jobId}/duplicate', {
+    params: { path: { jobId: id } },
+  });
+}
+
+export function contractDeleteJob(id: string) {
+  return client.DELETE('/api/v1/employer/jobs/{jobId}', {
+    params: { path: { jobId: id } },
+  });
+}
+
+// ── Employer applicant pipeline ───────────────────────────────
+
+export function contractListJobApplicants(
+  jobId: string,
+  params?: { status?: string[]; q?: string; page?: number; limit?: number },
+) {
+  const query: Record<string, string | number> = {};
+  if (params?.status?.length) query.status = params.status.join(',');
+  if (params?.q) query.q = params.q;
+  if (params?.page) query.page = params.page;
+  if (params?.limit) query.limit = params.limit;
+
+  return client.GET('/api/v1/employer/jobs/{jobId}/applications', {
+    params: { path: { jobId }, query },
+  });
+}
+
+export function contractGetApplicant(id: string) {
+  return client.GET('/api/v1/employer/applications/{applicationId}', {
+    params: { path: { applicationId: id } },
+  });
+}
+
+export function contractTransitionApplication(
+  id: string,
+  body: { status: string; note?: string },
+) {
+  return client.POST('/api/v1/employer/applications/{applicationId}/stage', {
+    params: { path: { applicationId: id } },
+    body: body as never,
+  });
+}

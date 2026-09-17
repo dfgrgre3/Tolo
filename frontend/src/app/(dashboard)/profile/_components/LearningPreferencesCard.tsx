@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Languages } from "lucide-react";
+import { Clock3, Languages, Loader2 } from "lucide-react";
 import { fetchSettingsPreferences, saveSettingsPreferences } from "@/lib/settings-preferences";
 
 // The app only ships ar/en message catalogs (`src/messages/{ar,en}`), and the
@@ -18,15 +18,23 @@ const LANGUAGES = [
   { value: "en", label: "English" },
 ];
 
-// No timezone here: `UserSettings` (backend/internal/domain/common/user_settings.go)
-// has no timezone column and `applySettingsPatch` has no case for it, so a
-// timezone selector would silently no-op on save — removed rather than ship
-// a control that does nothing.
+const TIMEZONES = [
+  { value: "Africa/Cairo", label: "القاهرة (UTC+02:00)" },
+  { value: "Asia/Riyadh", label: "الرياض (UTC+03:00)" },
+  { value: "Asia/Dubai", label: "دبي (UTC+04:00)" },
+  { value: "Europe/London", label: "لندن" },
+  { value: "Europe/Paris", label: "باريس" },
+  { value: "America/New_York", label: "نيويورك" },
+  { value: "America/Los_Angeles", label: "لوس أنجلوس" },
+  { value: "Asia/Tokyo", label: "طوكيو" },
+];
 
-/** 10.14 — language only; timezone isn't in the backend schema (see above). */
+/** 10.14 — language and timezone used by reminders and quiet hours. */
 export default function LearningPreferencesCard() {
   const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
   const [language, setLanguage] = useState<string | null>(null);
+  const [initialTimezone, setInitialTimezone] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +46,17 @@ export default function LearningPreferencesCard() {
         if (cancelled) return;
         setInitialLanguage(prefs.language.language);
         setLanguage(prefs.language.language);
+        const detectedTimezone = prefs.language.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        setInitialTimezone(detectedTimezone);
+        setTimezone(detectedTimezone);
       })
       .catch(() => {
         if (cancelled) return;
         setError("تعذر تحميل التفضيلات، القيم الافتراضية معروضة.");
         setInitialLanguage("ar");
         setLanguage("ar");
+        setInitialTimezone("Africa/Cairo");
+        setTimezone("Africa/Cairo");
       })
       .finally(() => !cancelled && setIsLoading(false));
     return () => {
@@ -51,10 +64,13 @@ export default function LearningPreferencesCard() {
     };
   }, []);
 
-  const isDirty = language !== null && language !== initialLanguage;
+  const isDirty =
+    (language !== null && language !== initialLanguage) ||
+    (timezone !== null && timezone !== initialTimezone);
 
   function handleDiscard() {
     setLanguage(initialLanguage);
+    setTimezone(initialTimezone);
     setError(null);
   }
 
@@ -63,8 +79,9 @@ export default function LearningPreferencesCard() {
     setIsSaving(true);
     setError(null);
     try {
-      await saveSettingsPreferences({ language: { language } });
+      await saveSettingsPreferences({ language: { language, timezone: timezone ?? "Africa/Cairo" } });
       setInitialLanguage(language);
+      setInitialTimezone(timezone ?? "Africa/Cairo");
       toast.success("تم حفظ التفضيلات");
     } catch {
       const message = "تعذر حفظ الإعدادات، حاول مرة أخرى.";
@@ -79,7 +96,7 @@ export default function LearningPreferencesCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Languages className="w-5 h-5" /> لغة الواجهة
+          <Languages className="w-5 h-5" /> لغة الواجهة والمنطقة الزمنية
         </CardTitle>
         <CardDescription>تتحكم في اللغة المعروضة في المنصة.</CardDescription>
       </CardHeader>
@@ -87,18 +104,31 @@ export default function LearningPreferencesCard() {
         {isLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
-          <div className="space-y-2">
-            <Label>اللغة</Label>
-            <Select value={language ?? undefined} onValueChange={setLanguage}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((l) => (
-                  <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>اللغة</Label>
+              <Select value={language ?? undefined} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((l) => (
+                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><Clock3 className="h-4 w-4" /> المنطقة الزمنية</Label>
+              <Select value={timezone ?? undefined} onValueChange={setTimezone}>
+                <SelectTrigger><SelectValue placeholder="اختر المنطقة الزمنية" /></SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}

@@ -9,15 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanies } from '@/hooks/use-jobs';
+import { JobsPagination } from '@/features/jobs/components/JobsPagination';
 import { JobsEmptyState, JobsErrorState } from '@/features/jobs/components/JobStates';
 import { jobsStrings } from '@/features/jobs/labels';
 
 export default function CompaniesPage() {
   const [search, setSearch] = React.useState('');
+  const [page, setPage] = React.useState(1);
   const debouncedSearch = useDebounce(search, 400);
+
+  React.useEffect(() => setPage(1), [debouncedSearch]);
 
   const { data, isLoading, isError, refetch } = useCompanies({
     search: debouncedSearch || undefined,
+    page,
   });
 
   const companies = data?.items ?? [];
@@ -103,6 +108,14 @@ export default function CompaniesPage() {
           ))}
         </div>
       )}
+
+      <JobsPagination
+        pagination={data?.pagination}
+        onPageChange={(nextPage) => {
+          setPage(nextPage);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }

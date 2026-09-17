@@ -59,6 +59,10 @@ const MAX_REDIRECTS_IN_WINDOW = 2;   // at most 2 redirects per window
  *                     to /login on a 401 is acceptable.
  *   - "absent"      → 401 came from a guest; guest surfaces render empty
  *                     data, no redirect.
+ *   - "blocked"     → the session exists but the backend rejected the
+ *                     account (suspended/locked). This is NOT a guest and
+ *                     must NOT funnel into /login: `AccountStatusGate`
+ *                     owns the redirect to the account-status screen.
  *   - "unknown" / "loading" / "unavailable"
  *                   → auth state has not converged or the backend is down;
  *                     do NOT redirect (avoids redirect loops during a
@@ -70,6 +74,7 @@ export type SessionPresence =
     | 'loading'
     | 'present'
     | 'absent'
+    | 'blocked'
     | 'unavailable';
 
 let sessionPresence: SessionPresence = 'unknown';
@@ -77,7 +82,11 @@ const pendingUnauthorizedEndpoints = new Set<string>();
 
 export function setSessionPresence(presence: SessionPresence): void {
     sessionPresence = presence;
-    if (presence === 'absent') {
+    if (presence === 'absent' || presence === 'blocked') {
+        // Neither a guest nor a blocked account can ever converge to
+        // "present", so any queued 401 replay is dead weight. The blocked
+        // case still clears the queue even though its redirect target is
+        // different — the account-status gate drives that navigation.
         pendingUnauthorizedEndpoints.clear();
         return;
     }
@@ -177,6 +186,12 @@ export function handleUnauthorized(endpoint: string): void {
     // A guest 401 is not a redirect signal. During loading or an outage,
     // retain the signal until AuthProvider converges instead of losing it.
     if (sessionPresence === 'absent') return;
+    // A blocked account is not a signed-out visitor: the session exists but
+    // the backend rejected it. The login redirect must not fire here —
+    // AccountStatusGate routes to the account-status screen instead. Queuing
+    // the endpoint would be a permanent leak, since "blocked" never
+    // converges to "present" (the only value that drains the queue).
+    if (sessionPresence === 'blocked') return;
     if (!hasConfirmedSession()) {
         pendingUnauthorizedEndpoints.add(endpoint);
         return;

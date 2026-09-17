@@ -16,7 +16,7 @@ import InlineErrorState from "./InlineErrorState";
  * `GET /api/auth/sessions` returns `UserSession` rows (matches
  * `internal/domain/common/session.go`) enriched with `isCurrent` by
  * `SessionHandler.ListSessions` (backend/internal/infrastructure/api/handlers
- * /protected/session_handler.go) — never the raw refresh token itself.
+ * /protected/session_handler.go) — never the raw refresh token or IP address.
  */
 interface DeviceSession {
   id: string;
@@ -24,10 +24,14 @@ interface DeviceSession {
   deviceType: string;
   browser: string;
   os: string;
-  ip: string;
   country: string;
   location: string | null;
   lastActive: string;
+  createdAt: string;
+  expiresAt: string;
+  absoluteExpiresAt: string;
+  status: string;
+  isActive: boolean;
   isCurrent: boolean;
 }
 
@@ -127,6 +131,7 @@ export default function ConnectedDevicesCard() {
             {sessions.map((s) => {
               const Icon = deviceIcon(s.deviceType);
               const lastActive = formatArabicDate(s.lastActive);
+              const createdAt = formatArabicDate(s.createdAt);
               return (
                 <li
                   key={s.id}
@@ -148,7 +153,7 @@ export default function ConnectedDevicesCard() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
-                        {[s.location || s.country, lastActive && `آخر نشاط ${lastActive}`]
+                        {[s.location || s.country, createdAt && `بدأت ${createdAt}`, lastActive && `آخر نشاط ${lastActive}`]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>

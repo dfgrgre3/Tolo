@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle, CheckCircle, KeyRound } from "lucide-react";
+import { LoaderCircle, AlertCircle, CheckCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import SocialLoginButtons from "./SocialLoginButtons";
 import LoginCredentialsFields from "./LoginCredentialsFields";
@@ -22,6 +22,12 @@ interface LoginCredentialsStepProps {
   sessionExpired: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onSocialLogin: (provider: "google" | "apple") => void;
+  /** Disables submit while a throttle lockout is active. */
+  submitDisabled?: boolean;
+  /** Renders lockout / remaining-attempts state above the fields. */
+  noticeSlot?: React.ReactNode;
+  /** Renders the human-verification step below the fields when required. */
+  captchaSlot?: React.ReactNode;
 }
 
 /**
@@ -41,12 +47,15 @@ export default function LoginCredentialsStep({
   sessionExpired,
   onSubmit,
   onSocialLogin,
+  submitDisabled = false,
+  noticeSlot,
+  captchaSlot,
 }: LoginCredentialsStepProps) {
   return (
-    <Card className="w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-white/95 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/95">
+    <Card className="w-full overflow-hidden rounded-3xl border border-[#0F766E]/15 bg-white shadow-xl shadow-slate-900/10 dark:border-[#2DD4BF]/20 dark:bg-slate-900">
       <CardHeader className="space-y-2 text-center pb-6">
         <div className="flex justify-center mb-3">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <div className="h-12 w-12 rounded-full bg-[#0F766E]/10 flex items-center justify-center text-[#0F766E] dark:text-[#5EEAD4]">
             <KeyRound className="h-6 w-6" />
           </div>
         </div>
@@ -87,14 +96,17 @@ export default function LoginCredentialsStep({
             isLoading={isLoading}
           />
 
+          {noticeSlot}
+          {captchaSlot}
+
           <SocialLoginButtons isLoading={isLoading} onSelect={onSocialLogin} />
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button type="submit" className="h-11 w-full bg-gradient-to-r from-primary to-orange-500 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:from-primary/90 hover:to-orange-500/90 disabled:translate-y-0" disabled={isLoading}>
+          <Button type="submit" className="h-11 w-full bg-[#0F766E] text-white font-bold shadow-lg shadow-[#0F766E]/20 hover:bg-[#115E59]" disabled={isLoading || submitDisabled}>
             {isLoading ? (
               <>
-                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+                <LoaderCircle className="ms-2 h-4 w-4" />
                 جاري التحقق...
               </>
             ) : (
@@ -105,14 +117,6 @@ export default function LoginCredentialsStep({
             ليس لديك حساب؟{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">
               إنشاء حساب جديد
-            </Link>
-          </div>
-          <div className="text-center">
-            <Link
-              href="/login"
-              className="text-xs text-slate-400 dark:text-slate-500 hover:text-primary font-semibold transition-colors"
-            >
-              دخول الموظفين والمسؤولين
             </Link>
           </div>
         </CardFooter>
