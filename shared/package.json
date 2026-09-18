@@ -42,6 +42,10 @@
       "types": "./src/types/auth.ts",
       "default": "./src/types/auth.ts"
     },
+    "./types/support": {
+      "types": "./src/types/support.ts",
+      "default": "./src/types/support.ts"
+    },
     "./auth": {
       "types": "./src/auth/index.ts",
       "default": "./src/auth/index.ts"

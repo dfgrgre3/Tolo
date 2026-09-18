@@ -23,7 +23,8 @@ export type ThrottleScope =
   | "mfa"
   | "forgot-send"
   | "forgot-code"
-  | "verify-email";
+  | "verify-email"
+  | "change-password";
 
 export interface ThrottleConfig {
   /** Consecutive failures that trigger a lockout. */
@@ -56,6 +57,8 @@ export const THROTTLE_CONFIGS: Record<ThrottleScope, ThrottleConfig> = {
   "forgot-code": { maxAttempts: 5, baseLockoutMs: MINUTE, maxLockoutMs: 15 * MINUTE, captchaAfter: Number.POSITIVE_INFINITY },
   // Email OTP verification: code-entry shape, lockout only.
   "verify-email": { maxAttempts: 5, baseLockoutMs: MINUTE, maxLockoutMs: 15 * MINUTE, captchaAfter: Number.POSITIVE_INFINITY },
+  // Authenticated password change: credential-stuffing target on oldPassword.
+  "change-password": { maxAttempts: 5, baseLockoutMs: MINUTE, maxLockoutMs: 15 * MINUTE, captchaAfter: Number.POSITIVE_INFINITY },
 };
 
 export interface ThrottleSnapshot {

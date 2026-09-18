@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { m, AnimatePresence } from "framer-motion";
 import {
@@ -264,22 +265,31 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
                           <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-black text-white group-hover:bg-primary group-hover:scale-110 transition-all">
                              {t.name.charAt(0).toUpperCase()}
                           </div>
-                          <div className="space-y-1">
-                             <h4 className="text-lg font-black text-white group-hover:text-primary transition-colors">{t.name}</h4>
-                             <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t.subject}</p>
-                          </div>
+                           <div className="space-y-1">
+                              <h4 className="text-lg font-black text-white group-hover:text-primary transition-colors">
+                                 <Link href={`/teachers/${encodeURIComponent(t.id)}`} className="transition-colors hover:text-primary">
+                                    {t.name}
+                                 </Link>
+                              </h4>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t.subject}</p>
+                           </div>
                        </div>
-                       {t.onlineUrl &&
-              <a
-                href={t.onlineUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 h-10 w-full flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all">
-                
-                             <ExternalLink className="w-3.5 h-3.5" />
-                             <span>عرض الملف</span>
-                          </a>
-              }
+                        <Link
+                  href={`/teachers/${encodeURIComponent(t.id)}`}
+                  className="mt-6 h-10 w-full flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all">
+                  
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>عرض الملف</span>
+                           </Link>
+                           {t.onlineUrl &&
+                  <a
+                    href={t.onlineUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 h-9 w-full flex items-center justify-center gap-2 rounded-xl text-[10px] font-bold text-gray-500 hover:text-gray-300 transition-colors">
+                                 <span>رابط خارجي</span>
+                              </a>
+                  }
                     </m.div>
             )}
               </div>

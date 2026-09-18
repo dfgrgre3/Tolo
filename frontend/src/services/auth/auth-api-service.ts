@@ -105,6 +105,45 @@ export async function resendVerification(
   }
 }
 
+/**
+ * Maps known backend change-password errors (English) to Arabic UX strings.
+ * Unknown messages pass through verbatim — never blank the server verdict.
+ */
+function toChangePasswordError(raw: string): string {
+  const msg = raw.toLowerCase();
+  if (msg.includes("current password is incorrect")) {
+    return "كلمة المرور الحالية غير صحيحة.";
+  }
+  if (msg.includes("user not found")) {
+    return "لا توجد كلمة مرور لهذا الحساب (مسجل عبر Google/Apple؟). استخدم رابط الاستعادة.";
+  }
+  if (msg.includes("too common")) {
+    return "كلمة المرور الجديدة شائعة جدًا، اختر كلمة أقوى.";
+  }
+  if (msg.includes("uppercase")) {
+    return "كلمة المرور الجديدة يجب أن تحتوي على حرف كبير (A-Z).";
+  }
+  if (msg.includes("lowercase")) {
+    return "كلمة المرور الجديدة يجب أن تحتوي على حرف صغير (a-z).";
+  }
+  if (msg.includes("at least one digit")) {
+    return "كلمة المرور الجديدة يجب أن تحتوي على رقم.";
+  }
+  if (msg.includes("special character")) {
+    return "كلمة المرور الجديدة يجب أن تحتوي على رمز خاص.";
+  }
+  if (msg.includes("at least 8")) {
+    return "كلمة المرور الجديدة قصيرة جدًا (8 أحرف على الأقل).";
+  }
+  if (msg.includes("exceed 128")) {
+    return "كلمة المرور الجديدة طويلة جدًا (128 حرفًا كحد أقصى).";
+  }
+  if (msg.includes("invalid input")) {
+    return "بيانات غير صالحة. تأكد من إدخال الحالية والجديدة (8 أحرف على الأقل).";
+  }
+  return raw;
+}
+
 export async function requestMagicLink(
   email: string
 ): Promise<AuthActionResult> {
@@ -113,5 +152,39 @@ export async function requestMagicLink(
     return { success: true };
   } catch (err: unknown) {
     return actionFailure("Network error")(err);
+  }
+}
+
+/**
+ * Authenticated password change (profile → security tab).
+ *
+ * Contract: POST /api/v1/auth/change-password
+ *   body: { oldPassword, newPassword }
+ * Backend validates the current password, rejects reuse, revokes the old
+ * session family and issues a FRESH session (new HttpOnly cookies).
+ * Caller must rebind client caches (`refreshUser`) — NOT force re-login.
+ */
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string
+): Promise<AuthActionResult> {
+  if (!oldPassword || !newPassword) {
+    return { success: false, error: "يرجى إدخال كلمة المرور الحالية والجديدة." };
+  }
+  if (oldPassword === newPassword) {
+    return { success: false, error: "كلمة المرور الجديدة يجب أن تختلف عن الحالية." };
+  }
+  try {
+    const data = await apiClient.post<{ message?: string }>(
+      apiRoutes.auth.changePassword,
+      { oldPassword, newPassword }
+    );
+    return { success: true, message: data?.message };
+  } catch (err: unknown) {
+    const mapped = actionFailure("تعذر تغيير كلمة المرور، حاول مرة أخرى.")(err);
+    if (mapped.error) {
+      return { ...mapped, error: toChangePasswordError(mapped.error) };
+    }
+    return mapped;
   }
 }

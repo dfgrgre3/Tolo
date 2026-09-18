@@ -25,14 +25,13 @@ import { useAuthContext } from "@/contexts/auth-context";
 const DELETE_CONFIRMATION_WORD = "DELETE";
 
 /**
- * 10.16 — only "delete account" is implemented: it's the one destructive
- * operation with a real backend route (`auth.deleteAccount`). "Log out of
- * all devices" is intentionally NOT here — there is no sessions/devices API
- * in this codebase to revoke (see 06 — Sessions and Devices: not built yet).
+ * Delete-account confirmation. Backend route `auth.deleteAccount`
+ * (`DELETE /api/v1/auth/account`) with a grace period + cancel endpoint.
  *
  * The backend's `DeleteAccountRequest` requires `confirmation: "DELETE"` in
  * addition to the password — a typo-proof guard against firing the request
- * on an accidental click, not decoration.
+ * on an accidental click, not decoration. Session revocation lives in
+ * `ConnectedDevicesCard`, not here.
  */
 export default function DangerZoneSection() {
   const { logout } = useAuthContext();

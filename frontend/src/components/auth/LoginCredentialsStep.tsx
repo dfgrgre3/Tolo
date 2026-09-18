@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoaderCircle, AlertCircle, CheckCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import SocialLoginButtons from "./SocialLoginButtons";
+import PasskeyLoginButton from "./PasskeyLoginButton";
 import LoginCredentialsFields from "./LoginCredentialsFields";
 
 interface LoginCredentialsStepProps {
@@ -26,8 +27,6 @@ interface LoginCredentialsStepProps {
   submitDisabled?: boolean;
   /** Renders lockout / remaining-attempts state above the fields. */
   noticeSlot?: React.ReactNode;
-  /** Renders the human-verification step below the fields when required. */
-  captchaSlot?: React.ReactNode;
 }
 
 /**
@@ -49,7 +48,6 @@ export default function LoginCredentialsStep({
   onSocialLogin,
   submitDisabled = false,
   noticeSlot,
-  captchaSlot,
 }: LoginCredentialsStepProps) {
   return (
     <Card className="w-full overflow-hidden rounded-3xl border border-[#0F766E]/15 bg-white shadow-xl shadow-slate-900/10 dark:border-[#2DD4BF]/20 dark:bg-slate-900">
@@ -97,9 +95,9 @@ export default function LoginCredentialsStep({
           />
 
           {noticeSlot}
-          {captchaSlot}
 
           <SocialLoginButtons isLoading={isLoading} onSelect={onSocialLogin} />
+          <PasskeyLoginButton />
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-4">

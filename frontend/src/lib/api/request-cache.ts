@@ -140,6 +140,9 @@ class RequestCacheManager {
     "/api/study-sessions": { scope: "user", ttl: 60000 },
     "/api/courses/lessons/": { scope: "user", ttl: 60000 },
     "/api/courses/*/enrollment-status": { scope: "user", ttl: 60000 },
+    // Teacher courses carry the caller's server-side enrollment state
+    // (isEnrolled/progress) — identity-partitioned, never shared.
+    "/api/teachers/*/courses": { scope: "user", ttl: 60000 },
     "/api/search": { scope: "user", ttl: 30000 },
 
     // Public / Shared resources

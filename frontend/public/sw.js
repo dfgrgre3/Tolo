@@ -12,7 +12,7 @@
  * build). Bump it again whenever caching behaviour changes.
  */
 
-const CACHE_VERSION = 'tolo-v10';
+const CACHE_VERSION = 'tolo-v11';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -88,10 +88,16 @@ self.addEventListener('fetch', (event) => {
                     request.headers.has('next-hmr-refresh') ||
                     // Flight payload URLs, in case the headers were stripped by a
                     // proxy: Next serves these as /path.rsc and /path.prefetch.rsc.
-                    url.pathname.endsWith('.rsc') ||
-                    // Dev-only HMR + build manifests must always hit the network.
-                    url.pathname.startsWith('/_next/webpack-hmr') ||
-                    url.pathname.startsWith('/_next/static/development/');
+                     url.pathname.endsWith('.rsc') ||
+                     // Dev-only HMR + build manifests must always hit the network.
+                     url.pathname.startsWith('/_next/webpack-hmr') ||
+                     url.pathname.startsWith('/_next/static/development/') ||
+                     // Next.js JS/CSS chunks must never be served from the SW
+                     // cache: in dev (Turbopack/webpack) chunk filenames are
+                     // STABLE across rebuilds, so cache-first would execute
+                     // stale code forever. In prod the filenames are
+                     // content-hashed, so the browser HTTP cache is sufficient.
+                     url.pathname.startsWith('/_next/');
 
   // Next.js RSC / prefetch requests: never intercept.
   //

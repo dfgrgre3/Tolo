@@ -56,17 +56,9 @@ export function useLoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   // UX-layer brute-force friction (see attempt-throttle.ts — the backend
-  // 429 is the real boundary). Snapshots refresh on every submit outcome;
-  // `humanKey` remounts HumanCheck after each solve.
+  // 429 is the real boundary). Snapshots refresh on every submit outcome.
   const [loginThrottle, setLoginThrottle] = useState<ThrottleSnapshot>(() => getThrottle("login"));
   const [mfaThrottle, setMfaThrottle] = useState<ThrottleSnapshot>(() => getThrottle("mfa"));
-  const [humanKey, setHumanKey] = useState(0);
-
-  /** Human verification solved: clear login fails and remount the widget. */
-  const markHumanSolved = () => {
-    setLoginThrottle(recordSuccess("login"));
-    setHumanKey((k) => k + 1);
-  };
 
   const completeLogin = async () => {
     const targetPath = sanitizeRedirectPath(searchParams.get("redirect"));
@@ -107,10 +99,6 @@ export function useLoginForm() {
     setLoginThrottle(gate);
     if (gate.locked) {
       setError(`تم إيقاف المحاولات مؤقتاً. حاول مجدداً ${formatCooldownAr(gate.remainingMs)}`);
-      return;
-    }
-    if (gate.captchaRequired) {
-      setError("يرجى إتمام التحقق البشري أولاً");
       return;
     }
 
@@ -240,8 +228,6 @@ export function useLoginForm() {
     isLoading,
     loginThrottle,
     mfaThrottle,
-    humanKey,
-    markHumanSolved,
     handleSubmit,
     handleMfaSubmit,
     cancelMfa,

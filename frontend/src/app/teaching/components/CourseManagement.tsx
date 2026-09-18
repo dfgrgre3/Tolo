@@ -152,6 +152,11 @@ export default function CourseManagement({
             <AlertDialogTitle className="text-right text-base">تأكيد حذف الكورس</AlertDialogTitle>
             <AlertDialogDescription className="text-right text-xs leading-relaxed">
               هل أنت متأكد من حذف كورس &quot;{courseToDelete?.title}&quot;؟ سيتم فقدان جميع بيانات الدروس والتسجيلات المرتبطة به ولا يمكن التراجع عن هذه الخطوة.
+              {courseToDelete?.status === "PUBLISHED" ? (
+                <span className="mt-2 block rounded-xl bg-amber-500/10 p-3 font-bold text-amber-700 dark:text-amber-300">
+                  تنبيه: هذه الدورة منشورة ولديها طلاب مسجلون — الأفضل أرشفتها بدل حذفها للحفاظ على تقدم الطلاب وسجل المدفوعات.
+                </span>
+              ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">

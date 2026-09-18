@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Chrome, Apple, Link2, Link2Off, Loader2 } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
-import { getSocialLoginUrl } from "@/services/auth/login-service";
+import { getSocialLinkUrl } from "@/services/auth/login-service";
 
 // Only google/apple: the backend's OAuth redirect-URL generator
 // (`GetOAuthRedirectURL`) only implements those two providers — github is a
@@ -29,11 +29,10 @@ const PROVIDERS: { id: Provider; label: string; icon: typeof Chrome }[] = [
 ];
 
 /**
- * 10.11 companion — links/unlinks OAuth providers via the backend's
- * `auth.social.*` routes. "Connect" reuses `getSocialLoginUrl` (the same
- * helper the login page uses) since `GET auth.social.login` returns JSON
- * `{redirectUrl}`, not an HTTP redirect — navigating straight to that
- * endpoint would just show raw JSON.
+ * Links/unlinks OAuth providers. "Connect" uses the link-mode redirect
+ * (`GET social/:provider/link`): the backend binds the OAuth state to this
+ * user, so the callback attaches the provider account to the CURRENT session
+ * instead of logging in as a different account — including cross-email links.
  */
 export default function SocialAccountsCard() {
   const [accounts, setAccounts] = useState<LinkedAccount[] | null>(null);
@@ -69,7 +68,7 @@ export default function SocialAccountsCard() {
   async function handleConnect(provider: Provider) {
     setPendingProvider(provider);
     try {
-      const url = await getSocialLoginUrl(provider);
+      const url = await getSocialLinkUrl(provider);
       window.location.assign(url);
     } catch (err) {
       const message = err instanceof Error ? err.message : "تعذر بدء عملية الربط، حاول مرة أخرى.";

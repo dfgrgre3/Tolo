@@ -5,8 +5,11 @@ import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowLeft,
   BadgePercent,
+  Banknote,
+  CalendarDays,
   Check,
   CreditCard,
+  Crown,
   Lock,
   ShieldCheck,
   Smartphone,
@@ -23,6 +26,14 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
+import {
+  getFawryCode,
+  resolvePaymentAction,
+  validateCoupon,
+  type PaymentMethod,
+} from "@/lib/payments";
+import { BillingPageHeader } from "@/components/billing/billing-ui";
 
 interface Plan {
   id: string;
@@ -51,7 +62,6 @@ interface PlanTier {
 }
 
 type BillingCycle = "monthly" | "yearly";
-type PaymentMethod = "card" | "wallet" | "internal_wallet";
 
 // مُصدَّرة للاختبار — منطق خالص لتجميع متغيرات الخطة (شهري/سنوي) تحت مستوى واحد.
 export function groupPlansByTier(plans: Plan[]): PlanTier[] {
@@ -79,6 +89,73 @@ export function planForCycle(tier: PlanTier, cycle: BillingCycle): Plan {
   return tier.monthly || tier.yearly || tier.fallback;
 }
 
+interface ActivePlan {
+  id: string;
+  planId?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  plan?: { id?: string; name?: string; nameAr?: string };
+}
+
+function normalizeActivePlans(value: unknown): ActivePlan[] {
+  const unwrap = (v: unknown): unknown => {
+    if (v && typeof v === "object" && !Array.isArray(v) && "data" in (v as Record<string, unknown>)) {
+      const inner = (v as { data?: unknown }).data;
+      if (inner !== undefined) return unwrap(inner);
+    }
+    return v;
+  };
+  const root = unwrap(value);
+  const rawList: unknown[] = Array.isArray(root)
+    ? root
+    : root && typeof root === "object" && Array.isArray((root as { subscriptions?: unknown }).subscriptions)
+      ? ((root as { subscriptions: unknown[] }).subscriptions)
+      : root && typeof root === "object" && (root as { activeSubscription?: unknown }).activeSubscription
+        ? [(root as { activeSubscription: unknown }).activeSubscription]
+        : root && typeof root === "object" && "id" in (root as Record<string, unknown>)
+          ? [root]
+          : [];
+  return rawList
+    .filter((s): s is Record<string, unknown> => typeof s === "object" && s !== null)
+    .map((s) => {
+      const plan = (s.plan ?? {}) as Record<string, unknown>;
+      const id = typeof s.id === "string" ? s.id : typeof plan.id === "string" ? plan.id : "";
+      if (!id) return null;
+      return {
+        id,
+        planId: typeof s.planId === "string" ? s.planId : typeof plan.id === "string" ? plan.id : undefined,
+        status: typeof s.status === "string" ? s.status : undefined,
+        startDate: typeof s.startDate === "string" ? s.startDate : undefined,
+        endDate: typeof s.endDate === "string" ? s.endDate : undefined,
+        plan: {
+          id: typeof plan.id === "string" ? plan.id : undefined,
+          name: typeof plan.name === "string" ? plan.name : undefined,
+          nameAr: typeof plan.nameAr === "string" ? plan.nameAr : undefined,
+        },
+      } as ActivePlan;
+    })
+    .filter((s): s is ActivePlan => s !== null);
+}
+
+function formatArDate(value?: string): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  try {
+    return new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium" }).format(d);
+  } catch {
+    return d.toLocaleDateString("ar-EG");
+  }
+}
+
+function daysLeft(endDate?: string): number | null {
+  if (!endDate) return null;
+  const d = new Date(endDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86_400_000));
+}
+
 const paymentOptions: Array<{
   id: PaymentMethod;
   title: string;
@@ -101,6 +178,13 @@ const paymentOptions: Array<{
   icon: Smartphone
 },
 {
+  id: "fawry",
+  title: "فوري",
+  subtitle: "كود دفع نقدي عبر منافذ فوري",
+  accent: "from-amber-500/40 to-yellow-600/10 border-amber-400/30",
+  icon: Banknote
+},
+{
   id: "internal_wallet",
   title: "رصيد المحفظة",
   subtitle: "استخدم رصيدك الحالي داخل المنصة",
@@ -113,6 +197,7 @@ export default function SubscriptionPlans() {
   const _router = useRouter();
   const _searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
@@ -130,9 +215,32 @@ export default function SubscriptionPlans() {
   useEffect(() => {
     async function fetchPlans() {
       try {
-        const data = await apiClient.get<Plan[] | { plans?: Plan[] }>("/subscriptions/plans");
-        const plansList = Array.isArray(data) ? data : (data?.plans || []);
-        setPlans(plansList);
+        const [plansRes, currentRes, summaryRes] = await Promise.allSettled([
+          apiClient.get<Plan[] | { plans?: Plan[] }>(apiRoutes.subscriptions.plans),          apiClient.get<unknown>(apiRoutes.subscriptions.current),
+          apiClient.get<unknown>(apiRoutes.users.billingSummary),
+        ]);
+        if (plansRes.status === "fulfilled") {
+          const data = plansRes.value;
+          const plansList = Array.isArray(data) ? data : (data?.plans || []);
+          setPlans(plansList);
+        } else {
+          toast.error("تعذر تحميل الباقات");
+        }
+
+        // الخطط النشطة: ندمج اشتراكات المستخدم الحالية مع ملخص الفوترة
+        const merged: ActivePlan[] = [];
+        const seen = new Set<string>();
+        const pushAll = (list: ActivePlan[]) => {
+          for (const s of list) {
+            if (!seen.has(s.id)) {
+              seen.add(s.id);
+              merged.push(s);
+            }
+          }
+        };
+        if (currentRes.status === "fulfilled") pushAll(normalizeActivePlans(currentRes.value));
+        if (summaryRes.status === "fulfilled") pushAll(normalizeActivePlans(summaryRes.value));
+        setActivePlans(merged);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "تعذر تحميل الباقات");
       } finally {
@@ -165,11 +273,16 @@ export default function SubscriptionPlans() {
     if (!couponCode || !selectedPlanData) return;
     setValidatingCoupon(true);
     try {
-      const data = await apiClient.post<{ discountAmount: number; finalAmount: number; description?: string }>("/coupons/validate", {
-        code: couponCode.trim().toUpperCase(),
-        amount: basePrice
+      const result = await validateCoupon(couponCode, basePrice);
+      if (!result.valid) {
+        toast.error(result.message || "كود الخصم غير صالح");
+        return;
+      }
+      setCouponData({
+        discountAmount: result.discountAmount ?? 0,
+        finalAmount: result.finalAmount ?? basePrice,
+        description: result.description,
       });
-      setCouponData(data);
       toast.success("تم تطبيق كود الخصم");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر تطبيق كود الخصم");
@@ -186,27 +299,43 @@ export default function SubscriptionPlans() {
         success?: boolean;
         iframeId?: string;
         paymentKey?: string;
-      }>("/subscriptions/checkout", {
+        redirectUrl?: string;
+        fawryCode?: string;
+        billReference?: string;
+      }>(apiRoutes.subscriptions.checkout, {
         planId: selectedPlanData.id,
         billingCycle,
         paymentMethod,
         couponCode: couponData ? couponCode.trim().toUpperCase() : undefined
       });
 
-      if (paymentMethod === "internal_wallet" && data.success) {
-        toast.success("تم تفعيل الاشتراك من رصيد الحساب");
-        window.location.reload();
-        return;
-      }
-
-      if (paymentMethod === "card") {
-        window.location.href = `https://egypt.paymob.com/api/acceptance/iframes/${data.iframeId}?payment_token=${data.paymentKey}`;
-        return;
-      }
-
-      if (paymentMethod === "wallet" && data.paymentKey) {
-        window.location.href = `https://egypt.paymob.com/api/acceptance/wallets/v1/checkout?payment_token=${data.paymentKey}`;
-        return;
+      const action = resolvePaymentAction(paymentMethod, data);
+      switch (action.kind) {
+        case "success":
+          toast.success(
+            paymentMethod === "internal_wallet"
+              ? "تم تفعيل الاشتراك من رصيد الحساب"
+              : "تم تفعيل الاشتراك بنجاح",
+          );
+          window.location.reload();
+          return;
+        case "redirect":
+        case "iframe":
+        case "wallet":
+          window.location.href = action.url;
+          return;
+        case "fawry-code":
+          toast.success(`كود فوري الخاص بك: ${action.code}`);
+          return;
+        case "pending": {
+          const code = getFawryCode(data);
+          toast.info(
+            code
+              ? `كود فوري الخاص بك: ${code}`
+              : "تم إنشاء طلب الدفع — تابع حالته من صفحة الفواتير",
+          );
+          return;
+        }
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء تجهيز الدفع");
@@ -227,38 +356,94 @@ export default function SubscriptionPlans() {
   }
 
   return (
-    <div className="space-y-12 pb-20">
-      {/* Header & Toggle */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-right bg-white dark:bg-white/5 p-8 rounded-[2.5rem] border border-gray-100 dark:border-white/10 shadow-2xl backdrop-blur-xl">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 justify-center md:justify-start">
-             <div className="p-2 bg-primary/20 rounded-xl">
-               <Star className="w-6 h-6 text-primary" />
-             </div>
-             <h2 className="text-3xl font-black text-white">ترقية عضويتك</h2>
-          </div>
-          <p className="text-gray-400 font-medium text-lg leading-relaxed">استثمر في مستقبلك باختيار الباقة التي تناسب تطلعاتك الأكاديمية.</p>
-        </div>
-
-        {tiers.some((t) => t.yearly) &&
-        <div className="flex bg-gray-100 dark:bg-[#151729] p-2 rounded-2xl border border-gray-200 dark:border-white/10 relative">
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "monthly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
-
-            شهرياً
-            {billingCycle === "monthly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
-          </button>
-          <button
-            onClick={() => setBillingCycle("yearly")}
-            className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "yearly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
-
-            سنوياً
-            {billingCycle === "yearly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
-          </button>
-        </div>
+    <div className="space-y-12 pb-20" dir="rtl">
+      {/* Header موحد مع باقي نظام الفواتير */}
+      <BillingPageHeader
+        badge="ترقية العضوية"
+        BadgeIcon={Star}
+        title="اختر باقتك المناسبة"
+        description="استثمر في مستقبلك باختيار الباقة التي تناسب تطلعاتك الأكاديمية — تفعيل فوري وآمن."
+        action={
+          tiers.some((t) => t.yearly) ? (
+            <div className="flex bg-gray-50 dark:bg-white/5 p-2 rounded-2xl border border-gray-200 dark:border-white/10 relative">
+              <button
+                onClick={() => setBillingCycle("monthly")}
+                className={`relative z-10 px-8 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "monthly" ? "text-gray-900" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}>
+                شهرياً
+                {billingCycle === "monthly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
+              </button>
+              <button
+                onClick={() => setBillingCycle("yearly")}
+                className={`relative z-10 px-8 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "yearly" ? "text-gray-900" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}>
+                سنوياً
+                {billingCycle === "yearly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
+              </button>
+            </div>
+          ) : undefined
         }
-      </div>
+      />
+
+      {/* ─── الخطط النشطة ─── */}
+      {paymentStep === "plans" && (
+        <section aria-label="الخطط النشطة" className="rounded-[2.5rem] border border-emerald-500/20 bg-emerald-500/5 p-6 md:p-8">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-500">
+              <Crown className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-xl font-black text-gray-900 dark:text-white">الخطط النشطة</h2>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                اشتراكاتك الحالية وتاريخ انتهاء كل خطة
+              </p>
+            </div>
+            {activePlans.length > 0 && (
+              <span className="ms-auto rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-500">
+                {activePlans.length} نشط
+              </span>
+            )}
+          </div>
+
+          {activePlans.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-gray-300 dark:border-white/10 px-4 py-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
+              لا توجد خطط نشطة حالياً — اختر باقتك من الأسفل للبدء.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {activePlans.map((sub) => {
+                const left = daysLeft(sub.endDate);
+                return (
+                  <div
+                    key={sub.id}
+                    className="rounded-[1.8rem] border border-emerald-500/20 bg-white dark:bg-white/5 p-5 shadow-sm"
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                      <span className="font-black text-gray-900 dark:text-white">
+                        {sub.plan?.nameAr || sub.plan?.name || "اشتراك نشط"}
+                      </span>
+                      <span className="ms-auto rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-black text-emerald-500">
+                        {sub.status || "نشط"}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        <span>ينتهي في {formatArDate(sub.endDate)}</span>
+                      </div>
+                      {left !== null && (
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>متبقٍ {left} يوم</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       <AnimatePresence mode="wait">
         {paymentStep === "plans" ?
@@ -275,11 +460,17 @@ export default function SubscriptionPlans() {
             const yearlySaved = billingCycle === "yearly" && tier.monthly && tierHasYearly ?
             Math.max(0, tier.monthly.price * 12 - plan.price) :
             0;
+            const tierPlanIds = [tier.monthly?.id, tier.yearly?.id, tier.fallback?.id].filter(Boolean) as string[];
+            const isCurrentPlan = activePlans.some((s) =>
+              tierPlanIds.includes(s.id) ||
+              (s.planId ? tierPlanIds.includes(s.planId) : false) ||
+              (s.plan?.id ? tierPlanIds.includes(s.plan.id) : false)
+            );
             return (
               <m.div
                 key={tier.groupKey}
                 whileHover={{ y: -12, scale: 1.02 }}
-                className={`relative group rounded-[3rem] p-10 border-2 transition-all duration-500 flex flex-col ${plan.popular ? "border-primary bg-gradient-to-b from-primary/10 via-primary/5 to-transparent shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.2)]" : "border-white/5 bg-white/5 hover:border-white/20"}`}>
+                className={`relative group rounded-[3rem] p-10 border-2 transition-all duration-500 flex flex-col ${plan.popular ? "border-primary bg-gradient-to-b from-primary/10 via-primary/5 to-transparent shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.2)]" : "border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 hover:border-white/20"}`}>
 
                   {plan.popular &&
               <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black py-2 px-6 rounded-full flex items-center gap-2 shadow-xl shadow-primary/40 animate-bounce">
@@ -287,23 +478,29 @@ export default function SubscriptionPlans() {
                       الخيار الأفضل
                     </div>
               }
+                  {isCurrentPlan &&
+              <div className="absolute -top-5 right-6 bg-emerald-500 text-white text-xs font-black py-2 px-5 rounded-full flex items-center gap-2 shadow-xl shadow-emerald-500/40">
+                      <Crown className="w-4 h-4" />
+                      خطتك الحالية
+                    </div>
+              }
 
                   <div className="mb-8">
-                    <h3 className="text-3xl font-black text-white mb-3 group-hover:text-primary transition-colors">{plan.nameAr || plan.name}</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed font-medium min-h-[40px]">{plan.descriptionAr || plan.description}</p>
+                    <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-3 group-hover:text-primary transition-colors">{plan.nameAr || plan.name}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed font-medium min-h-[40px]">{plan.descriptionAr || plan.description}</p>
                   </div>
 
-                  <div className="mb-10 p-6 rounded-3xl bg-white/5 border border-white/10 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
+                  <div className="mb-10 p-6 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
                     <div className="flex items-baseline gap-2">
                       <m.span
                     key={`${plan.id}-${billingCycle}`}
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="text-5xl font-black text-white">
+                    className="text-5xl font-black text-gray-900 dark:text-white">
 
                         {plan.price.toLocaleString()}
                       </m.span>
-                      <span className="text-gray-400 font-black text-lg">ج.م <span className="text-sm font-bold opacity-50">/ {plan.interval === "YEARLY" ? "سنة" : plan.interval === "FOREVER" ? "مدى الحياة" : "شهر"}</span></span>
+                      <span className="text-gray-500 dark:text-gray-400 font-black text-lg">ج.م <span className="text-sm font-bold opacity-50">/ {plan.interval === "YEARLY" ? "سنة" : plan.interval === "FOREVER" ? "مدى الحياة" : "شهر"}</span></span>
                     </div>
                     {yearlySaved > 0 &&
                 <div className="mt-4 flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
@@ -315,7 +512,7 @@ export default function SubscriptionPlans() {
 
                   <div className="space-y-4 mb-12 flex-grow">
                     {(plan.featuresAr || plan.features || []).map((feature, i) =>
-                <div key={i} className="flex items-start gap-4 text-sm text-gray-300 group/item">
+                <div key={i} className="flex items-start gap-4 text-sm text-gray-600 dark:text-gray-300 group/item">
                         <div className="mt-1 bg-emerald-500/20 p-1 rounded-full group-hover/item:bg-emerald-500 group-hover/item:text-white transition-all">
                           <Check className="w-3 h-3 text-emerald-500 group-hover/item:text-inherit" />
                         </div>
@@ -326,10 +523,11 @@ export default function SubscriptionPlans() {
 
                   <button
                 onClick={() => {setSelectedTierKey(tier.groupKey);setPaymentStep("checkout");}}
-                className={`w-full py-5 rounded-[2rem] font-black text-lg transition-all transform active:scale-95 group/btn flex items-center justify-center gap-3 ${plan.popular ? "bg-primary text-white hover:bg-primary/90 shadow-2xl shadow-primary/30" : "bg-white/10 text-white hover:bg-white/20"}`}>
+                disabled={isCurrentPlan}
+                className={`w-full py-5 rounded-[2rem] font-black text-lg transition-all transform active:scale-95 group/btn flex items-center justify-center gap-3 ${isCurrentPlan ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 cursor-default" : plan.popular ? "bg-primary text-white hover:bg-primary/90 shadow-2xl shadow-primary/30" : "bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20"}`}>
 
-                    <span>اختيار هذه الخطة</span>
-                    <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />
+                    <span>{isCurrentPlan ? "خطتك الحالية" : "اختيار هذه الخطة"}</span>
+                    {!isCurrentPlan && <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />}
                   </button>
                 </m.div>);
 
@@ -350,13 +548,13 @@ export default function SubscriptionPlans() {
                 <div className="flex items-center gap-6 mb-10">
                   <button
                   onClick={() => setPaymentStep("plans")}
-                  className="p-4 rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-primary hover:text-white text-gray-400 transition-all transform hover:rotate-6 shadow-sm">
+                  className="p-4 rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-primary hover:text-white text-gray-500 dark:text-gray-400 transition-all transform hover:rotate-6 shadow-sm">
                   
                     <ArrowLeft className="w-6 h-6 rotate-180" />
                   </button>
                   <div>
-                    <h3 className="text-2xl font-black text-white">طريقة الدفع</h3>
-                    <p className="text-gray-400 text-sm font-medium">اختر الوسيلة المفضلة لدفع مبلغ الاشتراك.</p>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white">طريقة الدفع</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">اختر الوسيلة المفضلة لدفع مبلغ الاشتراك.</p>
                   </div>
                 </div>
 
@@ -364,17 +562,17 @@ export default function SubscriptionPlans() {
                   {paymentOptions.map((opt) =>
                 <label
                   key={opt.id}
-                  className={`group flex items-center gap-5 p-6 rounded-[2.2rem] border-2 cursor-pointer transition-all ${paymentMethod === opt.id ? 'border-primary bg-primary/5 shadow-inner' : 'border-white/5 bg-white/5 hover:border-primary/30 hover:bg-primary/5'}`}>
+                  className={`group flex items-center gap-5 p-6 rounded-[2.2rem] border-2 cursor-pointer transition-all ${paymentMethod === opt.id ? 'border-primary bg-primary/5 shadow-inner' : 'border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 hover:border-primary/30 hover:bg-primary/5'}`}>
                   
                       <div className="relative">
                         <input type="radio" name="pay" checked={paymentMethod === opt.id} onChange={() => setPaymentMethod(opt.id)} className="w-6 h-6 accent-primary" />
                       </div>
-                      <div className={`w-16 h-16 rounded-[1.3rem] flex items-center justify-center transition-all ${paymentMethod === opt.id ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110' : 'bg-white/10 text-gray-500 group-hover:text-primary group-hover:scale-105'}`}>
+                      <div className={`w-16 h-16 rounded-[1.3rem] flex items-center justify-center transition-all ${paymentMethod === opt.id ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110' : 'bg-gray-200 dark:bg-white/10 text-gray-500 group-hover:text-primary group-hover:scale-105'}`}>
                         <opt.icon className="w-8 h-8" />
                       </div>
                       <div className="flex-grow">
-                        <span className="block font-black text-white text-lg group-hover:text-primary transition-colors">{opt.title}</span>
-                        <span className="text-sm text-gray-400 font-medium">{opt.subtitle}</span>
+                        <span className="block font-black text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors">{opt.title}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{opt.subtitle}</span>
                       </div>
                       {paymentMethod === opt.id &&
                   <m.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-primary/20 text-primary p-1.5 rounded-full">
@@ -385,7 +583,7 @@ export default function SubscriptionPlans() {
                 )}
                 </div>
 
-                <div className="mt-10 pt-10 border-t border-white/10">
+                <div className="mt-10 pt-10 border-t border-gray-200 dark:border-white/10">
                   <div className="relative">
                     <Tag className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                     <input
@@ -393,7 +591,7 @@ export default function SubscriptionPlans() {
                     placeholder="هل لديك كود خصم؟"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-[1.8rem] py-5 px-14 text-white outline-none focus:border-primary/50 transition-all font-black tracking-widest text-lg shadow-inner" />
+                    className="w-full bg-gray-100 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-[1.8rem] py-5 px-14 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-primary/50 transition-all font-black tracking-widest text-lg shadow-inner" />
                   
                     <button
                     onClick={applyCoupon}
@@ -488,7 +686,7 @@ export default function SubscriptionPlans() {
                  </div>
 
                  <p className="mt-8 text-center text-[10px] text-gray-500 leading-relaxed font-medium uppercase tracking-widest px-6">
-                   بإتمام عملية الدفڡ أنت تؤكد موافقتك على <span className="underline cursor-pointer hover:text-white">شروط الخدمة</span> و <span className="underline cursor-pointer hover:text-white">سياسة الاسترجاع</span> الخاصة بنا.
+                   بإتمام عملية الدفع أنت تؤكد موافقتك على <span className="underline cursor-pointer hover:text-white">شروط الخدمة</span> و <span className="underline cursor-pointer hover:text-white">سياسة الاسترجاع</span> الخاصة بنا.
                  </p>
               </div>
             </div>

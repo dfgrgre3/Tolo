@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from "recharts";
 import { Sparkles, TrendingUp } from "lucide-react";
 import DashboardCards from "./DashboardCards";
 import QuickActions from "./QuickActions";
@@ -136,11 +136,19 @@ export default function DashboardOverview({
                     <Area
                       type="monotone"
                       dataKey="earnings"
-                      name="الأرباح ($)"
+                      name="الأرباح (ج.م)"
                       stroke="var(--color-primary, #f97316)"
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#colorEarnings)"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="enrollments"
+                      name="التسجيلات"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>

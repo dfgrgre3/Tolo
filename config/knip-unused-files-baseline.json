@@ -51,7 +51,6 @@
   "src/components/video/player/components/TimelinePreview.tsx",
   "src/components/video/player/components/VirtualizedList.tsx",
   "src/components/video/player/stores/index.ts",
-  "src/lib/admin-audit.ts",
   "src/lib/admin-panel-route-access.ts",
   "src/lib/export-utils.ts",
   "src/lib/logging/correlation.server.ts",

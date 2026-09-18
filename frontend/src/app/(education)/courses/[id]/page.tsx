@@ -72,6 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { id } = await params;
   let schema = null;
+  let instructorId: string | null = null;
   let initialCourseData: CourseSummaryView | null = null;
   let initialLessons: LessonCardView[] = [];
 
@@ -80,6 +81,7 @@ export default async function Page({ params }: Props) {
     const courseData: CourseDetailResponse = hydration;
       const subject = courseData.subject;
       if (subject && subject.id) {
+        instructorId = subject.instructorId ?? null;
         schema = {
           "@context": "https://schema.org",
           "@type": "Course",
@@ -196,7 +198,24 @@ export default async function Page({ params }: Props) {
                 {initialCourseData.description}
               </p>
 
-              {/* Instructor Quick Info */}
+              {/* Instructor Quick Info — links to the teacher public profile */}
+              {instructorId ? (
+                <Link href={`/teachers/${encodeURIComponent(instructorId)}`} className="flex items-center gap-4 bg-white/40 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/5 p-3 rounded-2xl max-w-xs hover:border-primary/50 transition-colors">
+                  <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-primary to-violet-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-primary/20">
+                    {initialCourseData.instructor.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">المعلم المشرف</p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-black text-gray-900 dark:text-white">{initialCourseData.instructor}</p>
+                      <span className="h-3.5 w-3.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full flex items-center justify-center" title="مدرس موثق">
+                        <Check className="h-2.5 w-2.5 stroke-[3]" />
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-primary">عرض الملف الشخصي</p>
+                  </div>
+                </Link>
+              ) : (
               <div className="flex items-center gap-4 bg-white/40 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/5 p-3 rounded-2xl max-w-xs">
                 <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-primary to-violet-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-primary/20">
                   {initialCourseData.instructor.charAt(0)}
@@ -211,6 +230,7 @@ export default async function Page({ params }: Props) {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Stats row */}
               <div className="flex flex-wrap gap-4">

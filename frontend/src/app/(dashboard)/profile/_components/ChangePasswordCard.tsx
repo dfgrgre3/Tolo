@@ -7,11 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
 import { useAuthContext } from "@/contexts/auth-context";
 import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 import { getPasswordPolicyError, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
+import { changePassword, forgotPassword } from "@/services/auth/auth-api-service";
+import {
+  getThrottle,
+  recordFailure,
+  recordSuccess,
+} from "@/lib/auth/attempt-throttle";
 
 const MIN_PASSWORD_LEN = PASSWORD_MIN_LENGTH;
 
@@ -35,7 +39,11 @@ export default function ChangePasswordCard() {
   const [isSaving, setIsSaving] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
-  const { refreshUser } = useAuthContext();
+  const [cooldownMs, setCooldownMs] = useState(0);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupSent, setSetupSent] = useState(false);
+  const [isSendingSetup, setIsSendingSetup] = useState(false);
+  const { refreshUser, user } = useAuthContext();
 
   function reset() {
     setCurrentPassword("");
@@ -47,6 +55,17 @@ export default function ChangePasswordCard() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Client brute-force friction: block submits while locally locked.
+    const snap = getThrottle("change-password");
+    if (snap.locked) {
+      const secs = Math.ceil(snap.remainingMs / 1000);
+      setError(`محاولات كثيرة. حاول مرة أخرى بعد ${secs} ثانية.`);
+      return;
+    }
+    if (!currentPassword) {
+      setError("يرجى إدخال كلمة المرور الحالية.");
+      return;
+    }
     const policyError = getPasswordPolicyError(newPassword);
     if (policyError) {
       setError(policyError);
@@ -62,28 +81,62 @@ export default function ChangePasswordCard() {
     }
 
     setError(null);
+    setNeedsSetup(false);
     setIsSaving(true);
     try {
-      // Field name is `oldPassword`, not `currentPassword` — matches the
-      // backend's `ChangePasswordRequest{OldPassword, NewPassword}` exactly.
-      await apiClient.post(apiRoutes.auth.changePassword, {
-        oldPassword: currentPassword,
-        newPassword,
-        rememberMe: true,
-      });
+      const result = await changePassword(currentPassword, newPassword);
+      if (!result.success) {
+        const after = recordFailure("change-password", result.retryAfterMs ?? null);
+        if (result.rateLimited) {
+          const waitMs = result.retryAfterMs ?? after.remainingMs;
+          setCooldownMs(waitMs);
+          if (waitMs > 0) {
+            window.setTimeout(() => setCooldownMs(0), waitMs);
+          }
+        }
+        setError(result.error ?? "تعذر تغيير كلمة المرور، حاول مرة أخرى.");
+        toast.error(result.error ?? "تعذر تغيير كلمة المرور");
+        // OAuth/social accounts have no password yet: offer the email-code
+        // setup flow (forgot → verify → reset now upserts the credential).
+        if ((result.error ?? "").includes("لا توجد كلمة مرور")) {
+          setNeedsSetup(true);
+        }
+        setIsSaving(false);
+        return;
+      }
       // Clear the submitted secrets from the DOM first, then rebind the client
       // to the fresh session. `refreshUser` never throws (it returns a boolean
       // and swallows errors internally), so this order is safe.
+      recordSuccess("change-password");
       reset();
       await refreshUser();
       setIsSaving(false);
       toast.success("تم تغيير كلمة المرور بنجاح، وتم إنهاء جلساتك الأخرى.");
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "تعذر تغيير كلمة المرور، حاول مرة أخرى.";
+      const message = err instanceof Error ? err.message : "تعذر تغيير كلمة المرور، حاول مرة أخرى.";
+      recordFailure("change-password");
       setError(message);
       toast.error(message);
       setIsSaving(false);
     }
+  }
+
+  /** OAuth accounts: email a setup code, then complete it on /forgot-password. */
+  async function handleSendSetupCode() {
+    const email = user?.email?.trim();
+    if (!email) {
+      toast.error("تعذر تحديد بريدك. سجل الخروج والدخول مرة أخرى.");
+      return;
+    }
+    setIsSendingSetup(true);
+    const result = await forgotPassword(email);
+    setIsSendingSetup(false);
+    if (!result.success) {
+      toast.error(result.error ?? "تعذر إرسال الكود");
+      return;
+    }
+    setSetupSent(true);
+    toast.success("تم إرسال كود التعيين إلى بريدك.");
   }
 
   return (
@@ -164,9 +217,30 @@ export default function ChangePasswordCard() {
           </div>
 
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+          {needsSetup && !setupSent && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                حسابك مسجل عبر Google/Apple ولا توجد كلمة مرور بعد. أرسل كود تعيين إلى بريدك ثم أكمله في صفحة الاستعادة.
+              </p>
+              <Button type="button" variant="secondary" disabled={isSendingSetup} onClick={handleSendSetupCode}>
+                {isSendingSetup && <Loader2 className="w-4 h-4 animate-spin" />}
+                إرسال كود تعيين كلمة المرور
+              </Button>
+            </div>
+          )}
+          {setupSent && (
+            <p className="text-sm text-emerald-600" role="status">
+              تم إرسال الكود إلى بريدك. أكمل التعيين من <a href="/forgot-password" className="underline font-bold">صفحة الاستعادة</a>.
+            </p>
+          )}
+          {cooldownMs > 0 && (
+            <p className="text-xs text-muted-foreground" role="status">
+              تهدئة من الخادم: حاول مرة أخرى بعد {Math.ceil(cooldownMs / 1000)} ثانية.
+            </p>
+          )}
         </CardContent>
         <CardFooter className="justify-end">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving || cooldownMs > 0}>
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             تحديث كلمة المرور
           </Button>

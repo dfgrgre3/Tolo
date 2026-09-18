@@ -2,6 +2,7 @@
 
 import ChangePasswordCard from "./ChangePasswordCard";
 import MfaSettingsCard from "./MfaSettingsCard";
+import PasskeysCard from "./PasskeysCard";
 import SocialAccountsCard from "./SocialAccountsCard";
 import ConnectedDevicesCard from "./ConnectedDevicesCard";
 import DangerZoneSection from "./DangerZoneSection";
@@ -17,6 +18,7 @@ export default function SecuritySettings() {
       <PhoneVerificationCard />
       <EmailChangeCard />
       <MfaSettingsCard />
+      <PasskeysCard />
       <SocialAccountsCard />
       <ConnectedDevicesCard />
       <SecurityAuditLogCard />

@@ -22,8 +22,6 @@ import {
   ChevronRight,
   Crown,
   Loader2,
-  Activity,
-  Clock,
   UserCircle,
 } from "lucide-react";
 
@@ -38,9 +36,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,37 +46,10 @@ import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { saveSettingsPreferences } from "@/lib/settings-preferences";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api/api-client";
-import { useWebSocket } from "@/contexts/websocket-context";
-import { formatDistanceToNow } from "date-fns";
 import { Entitlement } from "@/types/enums";
 import { isStaffAdminPanelRole } from "@/lib/auth/admin-panel-roles";
 
 type ThemeMode = "light" | "dark";
-
-// ─── Activity Types ───────────────────────────────────────────────
-
-type ActivityType = "notification" | "message" | "like" | "achievement" | "progress";
-
-interface RawActivity {
-  id: string;
-  type: ActivityType;
-  title: string;
-  description?: string;
-  timestamp: string;
-  read?: boolean;
-  url?: string;
-}
-
-interface ActivityItem {
-  id: string;
-  type: ActivityType;
-  title: string;
-  description?: string;
-  timestamp: Date;
-  read: boolean;
-  url?: string;
-}
 
 interface UserSubscription {
   plan?: string;
@@ -375,7 +343,6 @@ export function UserMenu() {
    * If your useAuth is fully typed, you can remove these casts later.
    */
   const { user, isLoading: authIsLoading, logout } = useAuth();
-  const { socket, isConnected } = useWebSocket() as { socket: WebSocket | null; isConnected: boolean };
 
   const themeContext = useTheme() as {
     theme?: unknown;
@@ -390,46 +357,6 @@ export function UserMenu() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mounted = useMounted();
 
-  // ─── Activity State ────────────────────────────────────────────
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [actUnreadCount, setActUnreadCount] = useState(0);
-
-  const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const fetchActivities = useCallback(async () => {
-    try {
-      const data = await apiClient.get<RawActivity[] | { activities: RawActivity[] }>(
-        "/activities/recent?limit=8"
-      );
-      const rawList = Array.isArray(data) ? data : (data?.activities ?? []);
-      const items: ActivityItem[] = rawList.map((item) => ({
-        id: item.id,
-        type: item.type,
-        title: item.title,
-        description: item.description,
-        timestamp: new Date(item.timestamp),
-        read: item.read ?? false,
-        url: item.url,
-      }));
-      setActivities(items);
-      setActUnreadCount(items.filter((a) => !a.read).length);
-    } catch (error) {
-      logger.debug("[UserMenu] Failed to fetch activities:", error);
-    }
-  }, []);
-
-  const markActivityAsRead = useCallback(async (id: string) => {
-    try {
-      await apiClient.post(`/activities/${id}/read`, {});
-      setActivities((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, read: true } : item))
-      );
-      setActUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      logger.debug("[UserMenu] Failed to mark activity as read:", error);
-    }
-  }, []);
-
   const isMountedRef = useRef(true);
   const logoutLockRef = useRef(false);
   const themeRequestIdRef = useRef(0);
@@ -441,42 +368,6 @@ export function UserMenu() {
       isMountedRef.current = false;
     };
   }, []);
-
-  // ─── Fetch Activities on open / WS ────────────────────────────
-  useEffect(() => {
-    if (!mounted || !user?.id) return;
-
-    const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
-      ? window.requestIdleCallback(() => fetchActivities(), { timeout: 3000 })
-      : setTimeout(() => fetchActivities(), 1000);
-
-    if (!isConnected) {
-      activityIntervalRef.current = setInterval(fetchActivities, 300_000);
-    }
-
-    const handleWsMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        if (["notification", "refresh_notifications", "activity_refresh"].includes(data.type)) {
-          fetchActivities();
-        }
-      } catch {
-        // ignore
-      }
-    };
-
-    if (socket) socket.addEventListener("message", handleWsMessage);
-
-    return () => {
-      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
-        window.cancelIdleCallback(idleId);
-      } else {
-        clearTimeout(idleId as NodeJS.Timeout);
-      }
-      if (activityIntervalRef.current) clearInterval(activityIntervalRef.current);
-      if (socket) socket.removeEventListener("message", handleWsMessage);
-    };
-  }, [mounted, user?.id, isConnected, socket, fetchActivities]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -728,89 +619,6 @@ export function UserMenu() {
               </Link>
             </DropdownMenuItem>
           )}
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuGroup>
-          {/* ─── النشاط الأخير ─────────────────────────────────── */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
-              <Activity className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>النشاط الأخير</span>
-              {actUnreadCount > 0 && (
-                <span className="ms-auto inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                  {actUnreadCount > 9 ? "9+" : actUnreadCount}
-                </span>
-              )}
-            </DropdownMenuSubTrigger>
-
-            <DropdownMenuSubContent
-              sideOffset={8}
-              collisionPadding={8}
-              className="w-72 p-0"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/40">
-                <span className="text-xs font-semibold text-foreground">النشاط الأخير</span>
-                {actUnreadCount > 0 && (
-                  <span className="text-[10px] text-muted-foreground">({actUnreadCount} جديد)</span>
-                )}
-              </div>
-
-              {/* List */}
-              <div className="max-h-60 overflow-y-auto">
-                {activities.length === 0 ? (
-                  <div className="py-6 text-center">
-                    <Activity className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" aria-hidden="true" />
-                    <p className="text-xs text-muted-foreground">لا يوجد نشاط حتى الآن</p>
-                  </div>
-                ) : (
-                  <div className="p-1.5 space-y-0.5">
-                    {activities.slice(0, 5).map((activity) => (
-                      <DropdownMenuItem
-                        key={activity.id}
-                        onClick={() => markActivityAsRead(activity.id)}
-                        className={cn(
-                          "flex items-start gap-2.5 p-2.5 rounded-lg cursor-pointer",
-                          !activity.read && "bg-primary/5 border-r-2 border-primary rtl:border-r-0 rtl:border-l-2"
-                        )}
-                      >
-                        <div className="flex items-center justify-center h-7 w-7 rounded-md bg-muted shrink-0">
-                          <Activity className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate">{activity.title}</p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Clock className="h-2.5 w-2.5 text-muted-foreground shrink-0" aria-hidden="true" />
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                            </span>
-                          </div>
-                        </div>
-                        {!activity.read && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0 mt-1" aria-label="غير مقروء" />
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              {activities.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    asChild
-                    className="cursor-pointer justify-center text-xs py-2 touch-manipulation"
-                  >
-                    <Link href="/activities" prefetch={false}>عرض جميع النشاط</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

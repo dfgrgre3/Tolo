@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { m } from "framer-motion";
-import { Loader2, ShoppingCart, Trash2, Tag, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, ShoppingCart, Trash2, Tag, ArrowLeft, CheckCircle2, XCircle, Wallet, CreditCard, Smartphone, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import {
+  getFawryCode,
+  resolvePaymentAction,
+  validateCoupon,
+  type PaymentMethod,
+} from "@/lib/payments";
 
 type CartItem = {
   id: string;
@@ -31,11 +37,11 @@ type CouponState = {
   message: string;
 } | null;
 
-const PAYMENT_METHODS = [
-  { method: "internal_wallet", label: "الدفع من المحفظة" },
-  { method: "card", label: "الدفع بالبطاقة" },
-  { method: "wallet", label: "محفظة موبايل (فودافون كاش وغيرها)" },
-  { method: "fawry", label: "فوري" },
+const PAYMENT_METHODS: { method: PaymentMethod; label: string; sub: string; icon: typeof Wallet }[] = [
+  { method: "internal_wallet", label: "الدفع من المحفظة", sub: "استخدم رصيدك داخل المنصة", icon: Wallet },
+  { method: "card", label: "الدفع بالبطاقة", sub: "Visa / Mastercard / Meeza", icon: CreditCard },
+  { method: "wallet", label: "محفظة موبايل (فودافون كاش وغيرها)", sub: "Vodafone Cash والمحافظ المدعومة", icon: Smartphone },
+  { method: "fawry", label: "فوري", sub: "كود دفع نقدي عبر منافذ فوري", icon: Banknote },
 ];
 
 function CartItemSkeleton() {
@@ -61,21 +67,30 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [checkingOutMethod, setCheckingOutMethod] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
-  const fetchCart = async () => {
-    setLoading(true);
+  const fetchCart = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await apiClient.get<{ items?: CartItem[] }>(apiRoutes.cart.get);
       setItems(data.items || []);
     } catch {
-      // silently handled
+      if (!silent) toast.error("تعذر تحميل السلة — تحقق من الاتصال");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCart();
+    // رصيد المحفظة للتحقق المسبق قبل الدفع الداخلي (أفضل جهد — يبقى صامتاً عند الفشل)
+    apiClient
+      .get<{ balance?: unknown }>(apiRoutes.billing.wallet)
+      .then((w) => {
+        const b = typeof w?.balance === "number" ? w.balance : Number(w?.balance);
+        if (Number.isFinite(b) && (b as number) >= 0) setWalletBalance(b as number);
+      })
+      .catch(() => {});
   }, []);
 
   const handleRemove = async (subjectId: string) => {
@@ -104,21 +119,18 @@ export default function CartPage() {
     setValidatingCoupon(true);
     setCouponError(null);
     try {
-      const payload = await apiClient.postJson<{ valid: boolean; discountType: string; discount: number; message: string }>(
-        apiRoutes.coupons.validate,
-        { code: couponInput.trim() }
-      );
-      if (payload.valid) {
+      const result = await validateCoupon(couponInput);
+      if (result.valid) {
         setCoupon({
           code: couponInput.trim(),
-          discountType: payload.discountType,
-          discount: Number(payload.discount) || 0,
-          message: payload.message,
+          discountType: result.discountType || "FIXED",
+          discount: Number(result.discount ?? result.discountAmount ?? 0) || 0,
+          message: result.message || "تم تطبيق الخصم",
         });
-        toast.success(payload.message || "تم تطبيق الخصم");
+        toast.success(result.message || "تم تطبيق الخصم");
       } else {
         setCoupon(null);
-        setCouponError(payload.message || "كود الخصم غير صالح");
+        setCouponError(result.message || "كود الخصم غير صالح");
       }
     } catch {
       setCouponError("تعذّر التحقق من الكود، حاول مرة أخرى");
@@ -133,23 +145,49 @@ export default function CartPage() {
     setCouponError(null);
   };
 
-  const handleCheckout = async (paymentMethod: string) => {
+  const handleCheckout = async (paymentMethod: PaymentMethod) => {
+    if (paymentMethod === "internal_wallet" && walletBalance !== null && walletBalance < finalTotal) {
+      toast.error("رصيد محفظتك غير كافٍ — اشحن رصيدك أو اختر وسيلة دفع أخرى");
+      return;
+    }
     setCheckingOutMethod(paymentMethod);
     try {
-      const payload = await apiClient.postJson<{ redirectUrl?: string; paymentKey?: string; iframeId?: string }>(
+      const payload = await apiClient.postJson<{
+        success?: boolean;
+        redirectUrl?: string;
+        paymentKey?: string;
+        iframeId?: string;
+        fawryCode?: string;
+        billReference?: string;
+      }>(
         apiRoutes.cart.checkout,
         { paymentMethod, couponCode: coupon?.code || undefined }
       );
-      if (payload.redirectUrl) {
-        window.location.href = payload.redirectUrl;
-        return;
+      const action = resolvePaymentAction(paymentMethod, payload);
+      switch (action.kind) {
+        case "redirect":
+        case "iframe":
+        case "wallet":
+          window.location.href = action.url;
+          return;
+        case "fawry-code":
+          toast.success(`كود فوري الخاص بك: ${action.code}`);
+          return;
+        case "success":
+          toast.success("تم الشراء بنجاح!");
+          router.push("/courses");
+          return;
+        case "pending": {
+          const code = getFawryCode(payload);
+          if (code) {
+            toast.success(`كود فوري الخاص بك: ${code}`);
+            return;
+          }
+          toast.success("تم الشراء بنجاح!");
+          router.push("/courses");
+          return;
+        }
       }
-      if (payload.paymentKey && payload.iframeId) {
-        window.location.href = `https://accept.paymob.com/api/acceptance/iframes/${payload.iframeId}?payment_token=${payload.paymentKey}`;
-        return;
-      }
-      toast.success("تم الشراء بنجاح!");
-      router.push("/courses");
     } catch (error) {
       if (error instanceof ApiError && error.isUnauthorized) {
         toast.error("سجّل الدخول أولاً لإتمام الشراء");
@@ -302,16 +340,29 @@ export default function CartPage() {
             </div>
 
             <div className="space-y-2">
-              {PAYMENT_METHODS.map(({ method, label }) => (
+              <p className="text-xs font-black text-gray-500">اختر طريقة الدفع المناسبة:</p>
+              {walletBalance !== null && walletBalance < finalTotal && (
+                <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                  رصيد محفظتك ({walletBalance.toLocaleString("ar-EG")} ج.م) غير كافٍ للدفع الداخلي — اشحن رصيدك أو اختر وسيلة أخرى
+                </p>
+              )}
+              {PAYMENT_METHODS.map(({ method, label, sub, icon: Icon }) => (
                 <Button
                   key={method}
                   onClick={() => handleCheckout(method)}
                   disabled={checkingOutMethod !== null}
                   variant={method === "internal_wallet" ? "default" : "outline"}
-                  className="h-12 w-full gap-2 rounded-xl font-bold"
+                  className="h-auto w-full gap-3 rounded-xl px-4 py-3 font-bold"
                 >
-                  {checkingOutMethod === method && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {label}
+                  {checkingOutMethod === method ? (
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  ) : (
+                    <Icon className="h-5 w-5 shrink-0" />
+                  )}
+                  <span className="flex flex-1 flex-col items-start gap-0.5">
+                    <span className="text-sm">{label}</span>
+                    <span className="text-[11px] font-medium opacity-60">{sub}</span>
+                  </span>
                 </Button>
               ))}
             </div>

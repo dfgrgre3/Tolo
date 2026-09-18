@@ -1,65 +1,108 @@
 ﻿"use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { m } from "framer-motion";
-import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw, LayoutDashboard, Headset } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function PaymentFailPage() {
+function reasonLabel(raw: string | null): string {
+  if (!raw) {
+    return "نعتذر، لم نتمكن من إتمام عملية الدفع الخاصة بك. ربما هناك خطأ في بيانات البطاقة أو رصيد غير كافٍ.";
+  }
+  const key = raw.trim().toLowerCase();
+  const known: Record<string, string> = {
+    declined: "تم رفض البطاقة من البنك — تحقق من الرصيد أو بيانات البطاقة وحاول مجدداً.",
+    insufficient: "الرصيد غير كافٍ لإتمام العملية — اشحن محفظتك أو استخدم بطاقة أخرى.",
+    expired: "انتهت مهلة الدفع قبل إتمامه — ابدأ عملية دفع جديدة.",
+    cancelled: "تم إلغاء عملية الدفع — يمكنك المحاولة مجدداً في أي وقت.",
+    duplicate: "تم رصد عملية مكررة — تحقق من سجل الفواتير قبل إعادة المحاولة.",
+  };
+  if (known[key]) return known[key];
+  return raw.length > 200 ? `${raw.slice(0, 200)}…` : raw;
+}
+
+function PaymentFailContent() {
+  const searchParams = useSearchParams();
+  const orderId =
+    searchParams.get("order_id") ??
+    searchParams.get("orderId") ??
+    searchParams.get("merchant_order_id");
+  const reason = reasonLabel(
+    searchParams.get("reason") ??
+      searchParams.get("error") ??
+      searchParams.get("message"),
+  );
+
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-white flex items-center justify-center p-4 font-inter" dir="rtl">
-      <div className="max-w-md w-full bg-[#111114] border border-white/5 p-12 rounded-[2.5rem] text-center shadow-2xl relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
-        
+    <div className="min-h-screen bg-transparent text-white flex items-center justify-center p-4 py-12" dir="rtl">
+      <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 p-10 md:p-12 rounded-[2.5rem] text-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-600 to-orange-500" />
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full pointer-events-none" />
+
         <m.div
-           initial={{ scale: 0, rotate: -45 }}
-           animate={{ scale: 1, rotate: 0 }}
-           transition={{ type: "spring", damping: 10, stiffness: 150 }}
-           className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-8 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]"
+          initial={{ scale: 0, rotate: -45 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", damping: 10, stiffness: 150 }}
+          className="w-24 h-24 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-8 text-rose-400 shadow-[0_0_30px_rgba(239,68,68,0.2)]"
         >
           <AlertCircle size={48} />
         </m.div>
 
-        <m.h1
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.2 }}
-           className="text-3xl font-bold mb-4"
-        >
-          فشلت عملية الدفع!
-        </m.h1>
+        <h1 className="text-3xl font-black mb-4">فشلت عملية الدفع!</h1>
+        <p className="text-gray-400 font-medium mb-6 leading-relaxed">{reason}</p>
 
-        <m.p
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           transition={{ delay: 0.3 }}
-           className="text-gray-400 mb-10 leading-relaxed"
-        >
-          نعتذر، لم نتمكن من إتمام عملية الدفع الخاصة بك. ربما هناك خطأ في بيانات البطاقة أو رصيد غير كافٍ.
-        </m.p>
+        {orderId && (
+          <div className="mb-8 p-3 rounded-2xl bg-black/40 border border-white/10 text-sm font-mono text-gray-400" dir="ltr">
+            #{orderId}
+          </div>
+        )}
 
-        <m.div
-           initial={{ opacity: 0, scale: 0.9 }}
-           animate={{ opacity: 1, scale: 1 }}
-           transition={{ delay: 0.4 }}
-           className="flex flex-col gap-3"
-        >
+        <div className="flex flex-col gap-3">
           <Link
-            href="/billing"
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
+            href="/billing?tab=upgrade"
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black transition-all shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)] active:scale-95"
           >
             <RefreshCw size={18} />
             محاولة مرة أخرى
           </Link>
           <Link
+            href="/subscription"
+            className="flex items-center justify-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl font-black text-sm transition-all active:scale-95"
+          >
+            <LayoutDashboard size={16} />
+            مراجعة الاشتراك والفواتير
+          </Link>
+          <Link
+            href="/support"
+            className="flex items-center justify-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl font-black text-sm transition-all active:scale-95"
+          >
+            <Headset size={16} />
+            التواصل مع الدعم
+          </Link>
+          <Link
             href="/dashboard"
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-bold transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-8 py-3 text-gray-500 hover:text-white rounded-2xl font-bold text-sm transition-all"
           >
             العودة للوحة التحكم
-            <ArrowLeft size={18} className="mr-auto ms-0" />
+            <ArrowLeft size={16} />
           </Link>
-        </m.div>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentFailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
+          <div className="h-12 w-12 border-t-2 border-rose-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <PaymentFailContent />
+    </Suspense>
   );
 }

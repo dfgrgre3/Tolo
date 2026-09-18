@@ -14,6 +14,9 @@ interface EarningsPanelProps {
   isLoading?: boolean;
 }
 
+export const formatEGP = (value: number) =>
+  `${value.toLocaleString("ar-EG")} ج.م`;
+
 export default function EarningsPanel({ transactions, isLoading = false }: EarningsPanelProps) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -38,7 +41,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
       return;
     }
     if (amount > availableBalance) {
-      setWithdrawError(`المبلغ المطلوب يتجاوز الرصيد المتاح ($${availableBalance.toLocaleString()}).`);
+      setWithdrawError(`المبلغ المطلوب يتجاوز الرصيد المتاح (${formatEGP(availableBalance)}).`);
       return;
     }
     setWithdrawError("");
@@ -66,16 +69,16 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
 
   const handleExportCSV = () => {
     if (!transactions.length) return;
-    const headers = ["ID", "Type", "Course/Description", "Date", "Status", "Amount"];
+    const headers = ["المعرف", "النوع", "الكورس/الوصف", "التاريخ", "الحالة", "المبلغ (ج.م)"];
     const rows = transactions.map((t) => [
       t.id,
-      t.type,
-      `"${t.courseTitle || (t.type === "payout" ? "Withdrawal" : "Sale")}"`,
+      t.type === "sale" ? "بيع كورس" : "سحب رصيد",
+      `"${(t.courseTitle || (t.type === "payout" ? "سحب أرباح" : "بيع")).replace(/"/g, '""')}"`,
       t.date,
-      t.status,
-      t.amount,
+      t.status === "completed" ? "مكتملة" : t.status === "pending" ? "قيد المعالجة" : "فاشلة",
+      String(t.amount),
     ]);
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -140,7 +143,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 dark:text-slate-450 block">إجمالي أرباح المنصة</span>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">${totalEarnings.toLocaleString()}</h3>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{formatEGP(totalEarnings)}</h3>
             </div>
             <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500">
               <DollarSign className="w-6 h-6" />
@@ -152,7 +155,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 dark:text-slate-450 block">الرصيد المتاح للسحب</span>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">${availableBalance.toLocaleString()}</h3>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{formatEGP(availableBalance)}</h3>
             </div>
             <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 text-blue-500">
               <Landmark className="w-6 h-6" />
@@ -163,11 +166,11 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
 
       {/* Payout dialog modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+        <div role="dialog" aria-modal="true" aria-label="طلب سحب رصيد" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setShowWithdrawModal(false)}>
+          <div className="bg-card w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
               <h4 className="text-xs font-bold text-slate-850 dark:text-slate-100">طلب سحب رصيد</h4>
-              <button onClick={() => setShowWithdrawModal(false)} className="text-slate-400 hover:text-slate-650">X</button>
+              <button onClick={() => setShowWithdrawModal(false)} aria-label="إغلاق" className="text-slate-400 hover:text-slate-650">X</button>
             </div>
             
             {withdrawSuccess ? (
@@ -184,7 +187,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
                   </div>
                 )}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">المبلغ المطلوب سحبه (بالدولار $)</label>
+                  <label className="text-slate-500">المبلغ المطلوب سحبه (بالجنيه المصري)</label>
                   <input
                     type="number"
                     max={availableBalance}
@@ -194,7 +197,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
                     placeholder="مثال: 500"
                     className="w-full text-right px-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-700 dark:text-slate-200"
                   />
-                  <span className="text-[10px] text-slate-400">الحد الأقصى المتاح: ${availableBalance}</span>
+                  <span className="text-[10px] text-slate-400">الحد الأقصى المتاح: {formatEGP(availableBalance)}</span>
                 </div>
 
                 <div className="space-y-1.5">
@@ -266,7 +269,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
                     {getStatusBadge(tr.status)}
                   </TableCell>
                   <TableCell className="py-3 text-left font-bold text-slate-800 dark:text-slate-200">
-                    {tr.type === "sale" ? `+${tr.amount}$` : `-${tr.amount}$`}
+                    {tr.type === "sale" ? `+${tr.amount.toLocaleString("ar-EG")} ج.م` : `-${tr.amount.toLocaleString("ar-EG")} ج.م`}
                   </TableCell>
                 </TableRow>
               ))

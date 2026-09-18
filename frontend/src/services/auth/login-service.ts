@@ -228,3 +228,22 @@ export async function getSocialLoginUrl(
 
   return redirectUrl;
 }
+
+/**
+ * Starts a link-mode ceremony for the SIGNED-IN user. Unlike login, the
+ * backend binds the OAuth state to the current userID, so the shared
+ * callback attaches the provider account instead of switching sessions.
+ */
+export async function getSocialLinkUrl(
+  provider: "google" | "apple"
+): Promise<string> {
+  const { redirectUrl } = await apiClient.get<{ redirectUrl: string }>(
+    apiRoutes.auth.social.linkRedirect(provider)
+  );
+
+  if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+    throw new Error("رابط ربط الحساب الاجتماعي غير صالح");
+  }
+
+  return redirectUrl;
+}

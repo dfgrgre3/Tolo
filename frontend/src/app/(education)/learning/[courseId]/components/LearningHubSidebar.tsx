@@ -6,6 +6,7 @@ import {
   FileText,
   HelpCircle,
   Layers3,
+  Lock,
   Play,
   Search,
   Star,
@@ -131,10 +132,15 @@ export function LearningHubSidebar({
                     key={lesson.id}
                     type="button"
                     onClick={() => navigateToLesson(lesson.id)}
+                    disabled={Boolean(lesson.locked)}
+                    aria-disabled={Boolean(lesson.locked)}
+                    title={lesson.locked ? "هذا الدرس مغلق — أكمل الدروس السابقة لفتحه" : lesson.name}
                     className={cn(
                       "w-full rounded-[24px] border px-4 py-3 text-right transition-all",
                       activeLessonId === lesson.id
                         ? "border-orange-500/20 bg-orange-500/[0.08] shadow-sm dark:bg-orange-500/10"
+                        : lesson.locked
+                        ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-70 dark:border-white/5 dark:bg-white/[0.02]"
                         : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-white/10 dark:bg-white/[0.03]"
                     )}
                   >
@@ -177,7 +183,10 @@ export function LearningHubSidebar({
                             {formatLessonType(lesson.type)}
                           </span>
                           {lesson.locked ? (
-                            <span className="text-rose-500">مغلق</span>
+                            <span className="flex items-center gap-1 text-rose-500">
+                              <Lock className="h-3.5 w-3.5" />
+                              مغلق
+                            </span>
                           ) : null}
                         </div>
                       </div>

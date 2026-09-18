@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
+import { CallerAbortError } from "@/lib/api/retry-policy";
 import { apiRoutes } from "@/lib/api/routes";
 
 /**
@@ -42,7 +43,11 @@ export function useProgressSummary() {
         setError(null);
       })
       .catch((err) => {
+        // Unmount/StrictMode-remount cancellations surface as CallerAbortError
+        // (or DOM AbortError) — never show them as a load failure, or a
+        // cancelled first attempt sticks the error on screen.
         if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof CallerAbortError) return;
         setError(err instanceof ApiError ? err.message : "تعذر تحميل ملخص التقدم.");
       })
       .finally(() => setIsLoading(false));

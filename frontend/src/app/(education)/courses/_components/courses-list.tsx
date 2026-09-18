@@ -1,9 +1,13 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CourseCard } from "./course-card";
 import type { CourseSummary } from "./types";
 import { ComponentErrorBoundary } from "@/components/ui/error-boundary";
+
+const PAGE_SIZE = 12;
 
 export function CoursesList({
   loading,
@@ -67,12 +71,45 @@ export function CoursesList({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-      {filteredCourses.map((course, index) => (
-        <ComponentErrorBoundary key={course.id}>
-          <CourseCard course={course} index={index} />
-        </ComponentErrorBoundary>
-      ))}
+    <PaginatedGrid filteredCourses={filteredCourses} />
+  );
+}
+
+function PaginatedGrid({ filteredCourses }: { filteredCourses: CourseSummary[] }) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filteredCourses.length]);
+
+  const visible = filteredCourses.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredCourses.length;
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {visible.map((course, index) => (
+          <ComponentErrorBoundary key={course.id}>
+            <CourseCard course={course} index={index} />
+          </ComponentErrorBoundary>
+        ))}
+      </div>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+          عرض {visible.length.toLocaleString("ar-EG")} من {filteredCourses.length.toLocaleString("ar-EG")} دورة
+        </p>
+        {hasMore ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="h-12 rounded-2xl px-8 font-black"
+          >
+            عرض المزيد
+            <ChevronDown className="ms-2 h-4 w-4" />
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

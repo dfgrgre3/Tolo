@@ -24,11 +24,15 @@ import {
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import {
+  resolvePaymentAction,
+  type PaymentInitResponse,
+  type PaymentMethod,
+} from "@/lib/payments";
 import type { CourseDetailResponse } from "@/types/domain/mappers";
 
 interface WalletResponse { balance?: unknown; }
-type PaymentMethod = "card" | "fawry" | "wallet" | "internal_wallet";
-interface CheckoutResponse { success?: boolean; paymentKey?: string; iframeId?: string | number; error?: string; }
+interface CheckoutResponse extends PaymentInitResponse {}
 
 interface CourseCheckoutInfo {
   id: string;
@@ -48,6 +52,7 @@ export default function CourseCheckoutPage() {
 
   const [course, setCourse] = useState<CourseCheckoutInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [couponCode, setCouponCode] = useState("");
@@ -58,6 +63,7 @@ export default function CourseCheckoutPage() {
     if (!courseId) return;
 
     const fetchData = async () => {
+      setLoadError(null);
       try {
         const [courseData, walletData] = await Promise.all([
           apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseId)),
@@ -82,7 +88,7 @@ export default function CourseCheckoutPage() {
             : 0;
         setWalletBalance(Number.isFinite(parsedBalance) && parsedBalance >= 0 ? parsedBalance : 0);
       } catch (error) {
-        console.error(error);
+        setLoadError(error instanceof Error ? error.message : "تعذر تحميل بيانات الدورة");
       } finally {
         setLoading(false);
       }
@@ -110,19 +116,26 @@ export default function CourseCheckoutPage() {
         return;
       }
 
-      if (data.success) {
-        toast.success("تم تسجيلك في الدورة بنجاح!");
-        router.push(`/courses/${courseId}?payment_success=true`);
-        return;
-      }
-
-      if (data.paymentKey && data.iframeId) {
-        setIframeUrl(`https://egypt.paymob.com/api/acceptance/iframes/${data.iframeId}?payment_token=${data.paymentKey}`);
-      } else {
-        toast.error("تكوين الدفع غير مكتمل من السيرفر");
+      const action = resolvePaymentAction(paymentMethod, data);
+      switch (action.kind) {
+        case "success":
+          toast.success("تم تسجيلك في الدورة بنجاح!");
+          router.push(`/courses/${courseId}?payment_success=true`);
+          return;
+        case "redirect":
+        case "iframe":
+        case "wallet":
+          // نحافظ على تجربة الـ iframe المدمج داخل الصفحة
+          setIframeUrl(action.url);
+          return;
+        case "fawry-code":
+          toast.success(`كود فوري الخاص بك: ${action.code} — ادفع من أقرب منفذ فوري`);
+          return;
+        case "pending":
+          toast.error("تكوين الدفع غير مكتمل من السيرفر");
+          return;
       }
     } catch (error) {
-      console.error(error);
       toast.error("حدث خطأ أثناء الاتصال بنظام الدفع");
     } finally {
       setProcessing(false);
@@ -145,9 +158,24 @@ export default function CourseCheckoutPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#09111f]">
         <div className="text-center p-8 bg-white/5 border border-white/10 rounded-[2rem] max-w-md">
           <AlertCircle className="mx-auto w-20 h-20 text-rose-500 mb-6" />
-          <h2 className="text-3xl font-black text-white mb-2">الدورة غير موجودة</h2>
-          <p className="text-gray-400 mb-8">لم يتم العثور على الدورة المطلوبة، ربما تم نقلها أو حذفها.</p>
-          <button onClick={() => router.push('/courses')} className="w-full py-4 bg-white text-gray-900 font-bold rounded-2xl">العودة للدورات</button>
+          <h2 className="text-3xl font-black text-white mb-2">
+            {loadError ? "تعذر تحميل الدورة" : "الدورة غير موجودة"}
+          </h2>
+          <p className="text-gray-400 mb-8">
+            {loadError
+              ?? "لم يتم العثور على الدورة المطلوبة، ربما تم نقلها أو حذفها."}
+          </p>
+          <div className="space-y-3">
+            {loadError && (
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all"
+              >
+                إعادة المحاولة
+              </button>
+            )}
+            <button onClick={() => router.push('/courses')} className="w-full py-4 bg-white text-gray-900 font-bold rounded-2xl">العودة للدورات</button>
+          </div>
         </div>
       </div>);
 

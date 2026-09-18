@@ -70,6 +70,7 @@ export const apiRoutes = {
     },
     social: {
       login: (provider: string) => `/api/v1/auth/social/${provider}`,
+      linkRedirect: (provider: string) => `/api/v1/auth/social/${provider}/link`,
       callback: (provider: string) => `/api/v1/auth/callback/${provider}`,
       link: '/api/v1/auth/social/link',
       unlink: '/api/v1/auth/social/unlink',
@@ -123,11 +124,21 @@ export const apiRoutes = {
     submitQuiz: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}/submit`,
     startQuiz: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}/start`,
     quizResults: (id: string, quizId: string) => `/api/courses/${id}/quizzes/${quizId}/results`,
+    certificate: (id: string) => `/api/courses/${id}/certificate`,
   },
 
   // Categories & Teachers
   categories: '/api/categories',
-  teachers: '/api/teachers',
+  teachers: {
+    list: '/api/teachers',
+    profile: (id: string) => `/api/teachers/${encodeURIComponent(id)}/profile`,
+    courses: (id: string) => `/api/teachers/${encodeURIComponent(id)}/courses`,
+    reviews: (id: string) => `/api/teachers/${encodeURIComponent(id)}/reviews`,
+    related: (id: string) => `/api/teachers/${encodeURIComponent(id)}/related`,
+  },
+
+  // Certificate verification (public, no auth)
+  verifyCertificate: (no: string) => `/api/certificates/verify/${encodeURIComponent(no)}`,
 
   // ──────────────────────────────────────────
   // User Subjects (protected_routes.go)
@@ -241,6 +252,13 @@ export const apiRoutes = {
     wallet: '/api/billing/wallet',
     transactions: '/api/billing/wallet/transactions',
     deposit: '/api/billing/wallet',
+    // Wallet top-up goes through the generic payment-init endpoint.
+    // There is no backend route at /billing/wallet/topup (that path 404s
+    // through the /api/[...path] proxy) — top-ups are created via
+    // POST /api/payments/create with { amount, method } (`method` is what
+    // the backend `CreatePaymentRequest.Method` validator requires;
+    // `paymentMethod` is also sent as an alias).
+    topup: '/api/payments/create',
   },
   subscriptions: {
     plans: '/api/subscriptions/plans',
@@ -277,6 +295,14 @@ export const apiRoutes = {
   },
 
   // ──────────────────────────────────────────
+  // Refunds  (protected_routes.go + admin)
+  // ──────────────────────────────────────────
+  refunds: {
+    list: '/api/refunds',
+    create: '/api/refunds',
+  },
+
+  // ──────────────────────────────────────────
   // Gamification  (public_routes.go + protected_routes.go)
   // ──────────────────────────────────────────
   gamification: {
@@ -309,6 +335,24 @@ export const apiRoutes = {
     gradeEssayStatus: (jobId: string) => `/api/ai/grade-essay/status/${jobId}`,
     recommendations: '/api/ai/recommendations',
     trackRecommendation: '/api/ai/recommendations/track',
+  },
+
+  // ──────────────────────────────────────────
+  // Support & Help Center
+  // ──────────────────────────────────────────
+  support: {
+    faqs: '/api/v1/support/faqs',
+    articles: '/api/v1/support/articles',
+    article: (slug: string) => `/api/v1/support/articles/${encodeURIComponent(slug)}`,
+    articleVote: (slug: string) => `/api/v1/support/articles/${encodeURIComponent(slug)}/vote`,
+    status: '/api/v1/support/status',
+    incidents: '/api/v1/support/incidents',
+    myTickets: '/api/v1/support/tickets',
+    myTicket: (id: string) => `/api/v1/support/tickets/${encodeURIComponent(id)}`,
+    myTicketMessages: (id: string) => `/api/v1/support/tickets/${encodeURIComponent(id)}/messages`,
+    myTicketClose: (id: string) => `/api/v1/support/tickets/${encodeURIComponent(id)}/close`,
+    myTicketReopen: (id: string) => `/api/v1/support/tickets/${encodeURIComponent(id)}/reopen`,
+    myTicketRating: (id: string) => `/api/v1/support/tickets/${encodeURIComponent(id)}/rating`,
   },
 
   // ──────────────────────────────────────────
@@ -378,6 +422,13 @@ export const apiRoutes = {
       byId: (id: string) => `/api/teaching/courses/${id}`,
       students: (id: string) => `/api/teaching/courses/${id}/students`,
       reviews: (id: string) => `/api/teaching/courses/${id}/reviews`,
+      pricing: (id: string) => `/api/teaching/courses/${id}/pricing`,
+      revokeCertificate: (id: string, certId: string) =>
+        `/api/teaching/courses/${id}/certificates/${certId}/revoke`,
+    },
+    bundles: {
+      list: '/api/teaching/bundles',
+      create: '/api/teaching/bundles',
     },
     students: {
       all: '/api/teaching/students',
@@ -396,6 +447,8 @@ export const apiRoutes = {
     messages: (conversationId: string) => `/api/teaching/conversations/${conversationId}/messages`,
     calendar: '/api/teaching/calendar',
     transactions: '/api/teaching/transactions',
+    analytics: '/api/teaching/analytics',
+    earningsSummary: '/api/teaching/earnings/summary',
     apply: '/api/teaching/apply',
   },
 

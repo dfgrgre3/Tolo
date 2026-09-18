@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { format } from "date-fns";
 
-import QRCode from "qrcode";
 import Image from "next/image";
+import { qrcodegen } from "@/lib/qr/qrcodegen";
 
 interface InvoiceData {
   paymentId: string;
@@ -22,16 +22,47 @@ interface InvoiceData {
   paymentMethod: string;
 }
 
-export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+/* رمز QR للتحقق — يُرسم محلياً بمربعات عادية (بدون أي مكتبة خارجية)
+   حتى يعمل مع Turbopack ويُلتقط بشكل مثالي عند تصدير PDF. */
+function InvoiceQr({ value }: { value: string }) {
+  const modules = useMemo(() => {
+    try {
+      const qr = qrcodegen.QrCode.encodeText(value, qrcodegen.QrCode.Ecc.MEDIUM);
+      const rows: boolean[][] = [];
+      for (let y = 0; y < qr.size; y++) {
+        const row: boolean[] = [];
+        for (let x = 0; x < qr.size; x++) row.push(qr.getModule(x, y));
+        rows.push(row);
+      }
+      return rows;
+    } catch {
+      return null;
+    }
+  }, [value]);
 
-  useEffect(() => {
-    // Verification URL (mock)
-    const verificationUrl = `https://thanawy.online/verify/${data.paymentId}`;
-    QRCode.toDataURL(verificationUrl, { margin: 1, width: 100 }, (err, url) => {
-      if (!err) setQrCodeUrl(url);
-    });
-  }, [data.paymentId]);
+  if (!modules) return null;
+  const n = modules.length;
+  return (
+    <div className="border p-1 rounded-lg bg-white" role="img" aria-label="QR Verification">
+      <div
+        className="grid w-20 h-20"
+        style={{
+          gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${n}, minmax(0, 1fr))`,
+        }}
+      >
+        {modules.flatMap((row, y) =>
+          row.map((dark, x) => (
+            <div key={`${x}-${y}`} className={dark ? "bg-gray-900" : "bg-white"} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
+  const verificationUrl = `https://thanawy.online/verify/${data.paymentId}`;
 
   return (
     <div id={`invoice-${data.paymentId}`} className="bg-white text-black p-12 max-w-[800px] mx-auto font-sans border shadow-sm relative" dir="rtl">
@@ -41,17 +72,13 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8 mb-10">
         <div className="flex gap-6">
-            {qrCodeUrl &&
-          <div className="border p-1 rounded-lg">
-                    <Image src={qrCodeUrl} alt="QR Verification" width={80} height={80} className="w-20 h-20" unoptimized />
-                </div>
-          }
+            <InvoiceQr value={verificationUrl} />
             <div>
                 <h1 className="text-3xl font-extrabold text-blue-600 mb-1">منصة ثانوية أونلاين</h1>
                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Thanawy Online Educational Platform</p>
-                <div className="mt-3 flex gap-4 text-[10px] text-gray-500 font-bold">
-                    <span>الرقم الضريبي: ٣١٢-٤٥٦-٧٨٩</span>
-                    <span>سجل تجاري: ١٢٣٤٥٦٧٨٩٠</span>
+                <div className="mt-3 flex flex-wrap gap-4 text-[10px] text-gray-500 font-bold">
+                    <span>الرقم الضريبي: 312-456-789</span>
+                    <span>سجل تجاري: 1234567890</span>
                 </div>
             </div>
         </div>
@@ -114,7 +141,7 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
             <tr className="text-blue-500 italic">
                     <td className="p-4">خصم الترقية التناسبي (Proration Discount)</td>
                     <td className="p-4 text-center">---</td>
-                    <td className="p-4 text-left font-mono font-bold">-{data.prorationDiscount} ج.m</td>
+                    <td className="p-4 text-left font-mono font-bold">-{data.prorationDiscount} ج.م</td>
                 </tr>
             }
             {data.balanceUsed && data.balanceUsed > 0 &&

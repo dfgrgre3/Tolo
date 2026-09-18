@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/api-client";
+import { CallerAbortError } from "@/lib/api/retry-policy";
 import { apiRoutes } from "@/lib/api/routes";
 
 /**
@@ -69,6 +70,7 @@ export function useGamificationProgress() {
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof CallerAbortError) return;
         setError("تعذر تحميل بيانات التقدم.");
       })
       .finally(() => setIsLoading(false));
@@ -98,6 +100,7 @@ export function useUnlockedAchievements() {
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof CallerAbortError) return;
         setError("تعذر تحميل الإنجازات.");
       })
       .finally(() => setIsLoading(false));

@@ -58,7 +58,7 @@ export default function TeacherExamsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const ts = await apiClient.get<unknown>(apiRoutes.teachers);
+        const ts = await apiClient.get<unknown>(apiRoutes.teachers.list);
         // Defensive: API may return an error object (e.g. { error, status }) when the
         // backend route is missing or the proxy is misconfigured. Only set state when
         // we actually got an array back, otherwise `teachers.map` would throw.

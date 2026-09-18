@@ -25,17 +25,6 @@ export default function ThrottleNotice({ snapshot }: { snapshot: ThrottleSnapsho
     );
   }
 
-  if (snapshot.captchaRequired) {
-    return (
-      <Alert className="border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/5">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription dir="rtl" className="me-2 text-sm">
-          رُصدت محاولات متكررة — أتمم التحقق البشري بالأسفل للمتابعة
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   if (snapshot.remainingAttempts <= 2) {
     const hint =
       snapshot.remainingAttempts === 1

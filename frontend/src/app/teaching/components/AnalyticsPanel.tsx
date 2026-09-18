@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
+import { apiRoutes } from "@/lib/api/routes";
 import {
   AreaChart,
   Area,
@@ -34,11 +35,13 @@ export default function AnalyticsPanel() {
     queueMicrotask(() => setIsMounted(true));
   }, []);
 
-  const { data, isLoading } = useQuery<AnalyticsResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<AnalyticsResponse>({
     queryKey: ["teaching", "analytics"],
-    queryFn: () => apiClient.get<AnalyticsResponse>("/api/teaching/analytics"),
+    queryFn: () => apiClient.get<AnalyticsResponse>(apiRoutes.teaching.analytics),
     retry: 1,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const revenueData = data?.revenueData ?? [];
@@ -49,8 +52,15 @@ export default function AnalyticsPanel() {
     <div className="space-y-6 text-right" dir="rtl">
       <div>
         <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">تحليلات الأداء والتقارير</h3>
-        <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">تفحص مصادر الزيارات، ونسب التسجيل ونمو الأرباح التفصيلي</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">تفحص مصادر الزيارات، ونسب التسجيل ونمو الأرباح التفصيلي (بالجنيه المصري)</p>
       </div>
+
+      {isError && (
+        <div className="p-4 rounded-2xl border border-red-200/60 bg-red-50/60 dark:bg-red-950/15 text-red-600 text-xs flex items-center justify-between gap-3" role="alert">
+          <span>تعذر تحميل بيانات التحليلات. تحقق من الاتصال وحاول مجدداً.</span>
+          <button onClick={() => refetch()} className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700">إعادة المحاولة</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Area Chart */}
@@ -76,7 +86,7 @@ export default function AnalyticsPanel() {
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ direction: "rtl", textAlign: "right", borderRadius: "12px", border: "1px solid rgba(200,200,200,0.2)" }} />
-                  <Area type="monotone" dataKey="revenue" name="الإيرادات ($)" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#revenueGrad)" />
+                  <Area type="monotone" dataKey="revenue" name="الإيرادات (ج.م)" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#revenueGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             )}

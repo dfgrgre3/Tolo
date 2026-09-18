@@ -21,6 +21,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api/api-client";
+import { CallerAbortError } from "@/lib/api/retry-policy";
 import { apiRoutes } from "@/lib/api/routes";
 import InlineErrorState from "./InlineErrorState";
 import { toast } from "sonner";
@@ -93,6 +94,7 @@ export default function ActivityLog() {
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof CallerAbortError) return;
         setError(err instanceof ApiError ? err.message : "تعذر تحميل سجل النشاط.");
       })
       .finally(() => setIsLoading(false));

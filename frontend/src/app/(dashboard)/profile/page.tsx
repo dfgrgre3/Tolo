@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   UserCircle2,
@@ -64,6 +65,25 @@ function ProfilePageContent() {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/login?redirect=/profile";
     }
+  }, [isLoading, isAuthenticated]);
+
+  // Landing from the backend OAuth link callback
+  // (provider -> backend -> 302 here with ?link=success|error). One-shot:
+  // toast the outcome and clean the URL. Runs after auth resolves so a
+  // stale error toast never fires for guests bouncing to login.
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    const link = searchParams.get("link");
+    if (!link) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("link");
+    window.history.replaceState(null, "", url.toString());
+    if (link === "success") {
+      toast.success("تم ربط الحساب الاجتماعي بنجاح");
+    } else {
+      toast.error("فشل ربط الحساب الاجتماعي — حاول مرة أخرى");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
