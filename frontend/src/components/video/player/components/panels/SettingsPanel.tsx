@@ -5,6 +5,7 @@ import {
   Sparkles,
   SunMedium,
   Settings2,
+  Volume2,
   Zap,
   Monitor,
   Type,
@@ -15,8 +16,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, type ComponentType } from "react";
-import type { QualityOption, SubtitleTrack } from "../../types";
-import { useSettingsStore } from "../../stores/settings-store";
+import { AUTO_QUALITY_KEY } from "../../constants";
+import type { AudioTrack, QualityOption, SubtitleTrack } from "../../types";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { usePlayerSettings, usePlayerStores } from "../../stores/player-scope";
 import { Check } from "lucide-react";
 
 // Shared row shell used by every settings entry — keeps the gradient/hover/
@@ -69,17 +72,17 @@ function SettingsRow({
 function QualitySettings({
   qualities,
   allowAutoQuality,
-  selectedQuality,
+  selectedQualityKey,
   onChangeQuality,
 }: {
   qualities: QualityOption[];
   allowAutoQuality: boolean;
-  selectedQuality: number;
-  onChangeQuality: (id: number) => void;
+  selectedQualityKey: string;
+  onChangeQuality: (key: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   if (qualities.length === 0) return null;
-  const currentLabel = selectedQuality === -1 ? "تلقائي" : qualities.find((q) => q.id === selectedQuality)?.label || "يدوي";
+  const currentLabel = selectedQualityKey === AUTO_QUALITY_KEY ? "تلقائي" : qualities.find((q) => q.key === selectedQualityKey)?.label || "يدوي";
 
   return (
     <div className="space-y-2">
@@ -101,28 +104,28 @@ function QualitySettings({
               {allowAutoQuality && (
                 <button
                   type="button"
-                  onClick={() => { onChangeQuality(-1); setIsOpen(false); }}
+                  onClick={() => { onChangeQuality(AUTO_QUALITY_KEY); setIsOpen(false); }}
                   className={cn(
                     "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
-                    selectedQuality === -1 ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
+                    selectedQualityKey === AUTO_QUALITY_KEY ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
                   )}
                 >
                   <span>تلقائي</span>
-                  {selectedQuality === -1 && <Check className="h-4 w-4" />}
+                  {selectedQualityKey === AUTO_QUALITY_KEY && <Check className="h-4 w-4" />}
                 </button>
               )}
               {qualities.map((quality) => (
                 <button
-                  key={quality.id}
+                  key={quality.key}
                   type="button"
-                  onClick={() => { onChangeQuality(quality.id); setIsOpen(false); }}
+                  onClick={() => { onChangeQuality(quality.key); setIsOpen(false); }}
                   className={cn(
                     "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
-                    selectedQuality === quality.id ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
+                    selectedQualityKey === quality.key ? "bg-blue-500/20 text-blue-100" : "text-white/70 hover:bg-white/5 hover:text-white"
                   )}
                 >
                   <span>{quality.label}</span>
-                  {selectedQuality === quality.id && <Check className="h-4 w-4" />}
+                  {selectedQualityKey === quality.key && <Check className="h-4 w-4" />}
                 </button>
               ))}
             </div>
@@ -190,19 +193,58 @@ function SubtitleSettings({
   );
 }
 
+// P1-12: real audio-track selector. Hidden unless >1 switchable track
+// exists (backend-provided or HLS-discovered); cycles through tracks.
+function AudioSettings({
+  audioTracks,
+  selectedAudioTrack,
+  onChangeAudioTrack,
+}: {
+  audioTracks: AudioTrack[];
+  selectedAudioTrack: string;
+  onChangeAudioTrack: (id: string) => void;
+}) {
+  if (audioTracks.length <= 1) return null;
+  const currentLabel = selectedAudioTrack === "auto"
+    ? "تلقائي"
+    : audioTracks.find((t) => t.id === selectedAudioTrack)?.label || "تلقائي";
+  return (
+    <SettingsRow
+      icon={Volume2}
+      label="المسار الصوتي"
+      value={currentLabel}
+      onClick={() => {
+        if (selectedAudioTrack === "auto" && audioTracks[0]) {
+          onChangeAudioTrack(audioTracks[0].id);
+        } else {
+          const currentIndex = audioTracks.findIndex((t) => t.id === selectedAudioTrack);
+          const next = audioTracks[(currentIndex + 1) % audioTracks.length];
+          onChangeAudioTrack(next ? next.id : "auto");
+        }
+      }}
+      iconGradient="from-teal-500/20 to-cyan-500/20"
+      iconRing="ring-teal-500/20 group-hover:ring-teal-500/40"
+      iconColor="text-teal-300"
+    />
+  );
+}
+
 interface SettingsPanelProps {
   isSettingsOpen: boolean;
   isEfficiencyMode?: boolean;
   qualities: QualityOption[];
   allowAutoQuality: boolean;
-  selectedQuality: number;
-  onChangeQuality: (id: number) => void;
+  selectedQualityKey: string;
+  onChangeQuality: (key: string) => void;
   playbackRates: number[];
   playbackRate: number;
   onChangePlaybackRate: (rate: number) => void;
   subtitleTracks: SubtitleTrack[];
   selectedSubtitle: string;
   onChangeSubtitle: (id: string) => void;
+  audioTracks: AudioTrack[];
+  selectedAudioTrack: string;
+  onChangeAudioTrack: (id: string) => void;
   brightness: number;
   onChangeBrightness: (value: number) => void;
   isAmbientMode: boolean;
@@ -215,15 +257,17 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({
-  isSettingsOpen, qualities, allowAutoQuality, selectedQuality, onChangeQuality,
+  isSettingsOpen, qualities, allowAutoQuality, selectedQualityKey, onChangeQuality,
   playbackRates, playbackRate, onChangePlaybackRate, subtitleTracks, selectedSubtitle, onChangeSubtitle,
+  audioTracks, selectedAudioTrack, onChangeAudioTrack,
   brightness, onChangeBrightness, isAmbientMode, onToggleAmbient, onOpenStats,
   onCloseSettings, shortcuts, isShortcutsOpen, onToggleShortcuts,
 }: SettingsPanelProps) {
-  const { zoomFactor, subtitleSize, subtitleBgOpacity, setSettingsState } = useSettingsStore();
+  const { zoomFactor, subtitleSize, subtitleBgOpacity, setSettingsState } = usePlayerSettings();
+  const stores = usePlayerStores();
 
-  // Mobile: full-screen slide-up panel
-  const isMobilePanel = typeof window !== "undefined" && window.innerWidth < 640;
+  // P1-15: hydration-safe viewport flag (SSR + first client render agree).
+  const isMobilePanel = useIsMobile();
 
   return (
     <>
@@ -271,9 +315,10 @@ export function SettingsPanel({
               {/* Video Settings Group */}
               <div className="space-y-4">
                 <p className="px-2 text-[11px] font-bold text-white/40 uppercase tracking-wider">إعدادات الفيديو</p>
-                <QualitySettings qualities={qualities} allowAutoQuality={allowAutoQuality} selectedQuality={selectedQuality} onChangeQuality={onChangeQuality} />
+                <QualitySettings qualities={qualities} allowAutoQuality={allowAutoQuality} selectedQualityKey={selectedQualityKey} onChangeQuality={onChangeQuality} />
                 <SpeedSettings playbackRates={playbackRates} playbackRate={playbackRate} onChangePlaybackRate={onChangePlaybackRate} />
                 <SubtitleSettings subtitleTracks={subtitleTracks} selectedSubtitle={selectedSubtitle} onChangeSubtitle={onChangeSubtitle} />
+                <AudioSettings audioTracks={audioTracks} selectedAudioTrack={selectedAudioTrack} onChangeAudioTrack={onChangeAudioTrack} />
               </div>
               
               {/* Playback Settings Group */}
@@ -371,7 +416,7 @@ export function SettingsPanel({
                       const factor = Number(event.target.value);
                       setSettingsState({ 
                         zoomFactor: factor, 
-                        panOffset: factor === 1.0 ? { x: 0, y: 0 } : useSettingsStore.getState().panOffset 
+                        panOffset: factor === 1.0 ? { x: 0, y: 0 } : stores.settings.getState().panOffset 
                       });
                     }}
                     aria-label="تكبير الفيديو" 

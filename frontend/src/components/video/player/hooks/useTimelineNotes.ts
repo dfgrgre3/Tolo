@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Clock3 } from "lucide-react";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useUIStore } from "../stores/ui-store";
+import { usePlayerPlayback, usePlayerUI } from "../stores/player-scope";
 import {
   createTimelineNote,
   parseCloudTimelineNotes,
@@ -20,8 +19,8 @@ export function useTimelineNotes({
   lessonId,
   flashFeedback,
 }: TimelineNotesOptions) {
-  const currentTime = usePlaybackStore((s) => s.currentTime);
-  const setUIState = useUIStore((s) => s.setUIState);
+  const currentTime = usePlayerPlayback((s) => s.currentTime);
+  const setUIState = usePlayerUI((s) => s.setUIState);
   const [notes, setNotes] = useState<TimelineNote[]>([]);
   const [noteDraft, setNoteDraft] = useState("");
   const [notesFreeformContent, setNotesFreeformContent] = useState("");

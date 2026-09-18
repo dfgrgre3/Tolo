@@ -20,11 +20,16 @@ interface CastSession {
   loadMedia: (request: unknown) => Promise<void>;
   endSession: (stopCasting: boolean) => void;
 }
+interface MediaLoadRequest {
+  currentTime?: number;
+  metadata?: unknown;
+}
 interface CastContext {
   setOptions: (options: Record<string, unknown>) => void;
   requestSession: () => Promise<void>;
   getCurrentSession: () => CastSession | null;
   addEventListener: (type: string, handler: () => void) => void;
+  removeEventListener: (type: string, handler: () => void) => void;
 }
 interface CastWindow extends Window {
   chrome?: { cast?: { AutoJoinPolicy?: { ORIGIN_SCOPED?: string }; media?: { DEFAULT_MEDIA_RECEIVER_APP_ID?: string; MediaInfo?: new (url: string, contentType: string) => unknown; LoadRequest?: new (mediaInfo: unknown) => { metadata?: unknown }; GenericMediaMetadata?: new () => { title?: string } } } };
@@ -79,13 +84,20 @@ export function useCastSession({
   videoUrl,
   title,
   getCurrentTime,
+  onStarted,
 }: {
   videoUrl: string;
   title: string;
   getCurrentTime: () => number;
+  /** Fired after the receiver accepts the media (parent pauses local playback). */
+  onStarted?: () => void;
 }) {
   const [isCasting, setIsCasting] = useState(false);
   const contextRef = useRef<CastContext | null>(null);
+  const onStartedRef = useRef(onStarted);
+  useEffect(() => {
+    onStartedRef.current = onStarted;
+  }, [onStarted]);
 
   const canCast =
     typeof window !== "undefined" && isPubliclyReachableHlsUrl(videoUrl);
@@ -93,6 +105,12 @@ export function useCastSession({
   useEffect(() => {
     if (!canCast) return;
     let cancelled = false;
+    let context: CastContext | null = null;
+    let eventType = "";
+    // Stored by reference so the cleanup removes THIS listener (P1-13: the
+    // old code registered an anonymous handler with no removal, leaking one
+    // listener per mount / source change on the shared CastContext).
+    let sessionHandler: (() => void) | null = null;
 
     loadCastSdk()
       .then(() => {
@@ -102,17 +120,20 @@ export function useCastSession({
         const castNamespace = win.chrome?.cast;
         if (!framework || !castNamespace) return;
 
-        const context = framework.CastContext.getInstance();
+        context = framework.CastContext.getInstance();
         context.setOptions({
           receiverApplicationId: castNamespace.media?.DEFAULT_MEDIA_RECEIVER_APP_ID,
           autoJoinPolicy: castNamespace.AutoJoinPolicy?.ORIGIN_SCOPED,
         });
         contextRef.current = context;
 
-        context.addEventListener(framework.CastContextEventType.SESSION_STATE_CHANGED, () => {
-          const session = context.getCurrentSession();
-          setIsCasting(Boolean(session));
-        });
+        eventType = framework.CastContextEventType.SESSION_STATE_CHANGED;
+        sessionHandler = () => {
+          setIsCasting(Boolean(context?.getCurrentSession()));
+        };
+        context.addEventListener(eventType, sessionHandler);
+        // Sync initial state (e.g. rejoin after remount).
+        sessionHandler();
       })
       .catch(() => {
         // Silently unavailable (offline, blocked, unsupported browser) — the
@@ -121,6 +142,14 @@ export function useCastSession({
 
     return () => {
       cancelled = true;
+      try {
+        if (context && eventType && sessionHandler) {
+          context.removeEventListener(eventType, sessionHandler);
+        }
+      } catch {
+        // SDK teardown races (pagehide) must never throw from cleanup.
+      }
+      sessionHandler = null;
     };
   }, [canCast]);
 
@@ -135,14 +164,23 @@ export function useCastSession({
     if (!session) return;
 
     const mediaInfo = new castNamespace.media.MediaInfo(videoUrl, "application/x-mpegurl");
-    const request = new castNamespace.media.LoadRequest(mediaInfo);
+    const request = new castNamespace.media.LoadRequest(mediaInfo) as MediaLoadRequest;
     if (castNamespace.media.GenericMediaMetadata) {
       const metadata = new castNamespace.media.GenericMediaMetadata();
       metadata.title = title;
       request.metadata = metadata;
     }
+    // P1-13: resume from the current LOCAL position instead of restarting.
+    // NOTE on signed URLs: the receiver fetches the URL itself, so an
+    // expiring signed URL can die mid-cast. Sources with short-lived tokens
+    // should be refreshed (or re-loaded) by the backend session layer; the
+    // player surfaces SESSION_ENDED via isCasting so the UI can offer resume.
+    const position = getCurrentTime();
+    if (Number.isFinite(position) && position > 0) {
+      request.currentTime = position;
+    }
     await session.loadMedia(request);
-    void getCurrentTime; // reserved for resuming playback position on the receiver
+    onStartedRef.current?.();
   }, [videoUrl, title, getCurrentTime]);
 
   const stopCasting = useCallback(() => {

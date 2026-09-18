@@ -3,7 +3,7 @@
  * @module video/player/stores/ui-store
  */
 
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { SidebarTab, PlayerFeedback } from "../types";
 
@@ -23,6 +23,13 @@ interface UIState {
   isFullscreen: boolean;
   isPip: boolean;
   isMiniPlayer: boolean;
+  /**
+   * P1-14: user explicitly closed the floating player. While set, the
+   * IntersectionObserver must NOT re-trigger it — otherwise dismissing is
+   * useless while scrolled away and playing. Cleared when the player scrolls
+   * back into view (or on lesson change via fresh scoped stores).
+   */
+  miniPlayerDismissed: boolean;
   isTheaterMode: boolean;
   
   // Error/feedback
@@ -61,6 +68,7 @@ const createDefaultUIState = (): UIState => ({
   isFullscreen: false,
   isPip: false,
   isMiniPlayer: false,
+  miniPlayerDismissed: false,
   isTheaterMode: false,
   errorMessage: null,
   feedback: null,
@@ -116,3 +124,64 @@ export const useUIStore = create<UIStore>()(
     setFeedback: (feedback) => set({ feedback }),
   }))
 );
+
+/**
+ * Player-scoped factory (P0 fix): isolated UI store per player instance
+ * (sidebar / fullscreen / panels / feedback). See playback-store.ts.
+ */
+export function createUIStoreInstance(
+  initial?: Partial<UIState>
+): StoreApi<UIStore> {
+  return create<UIStore>()(
+    subscribeWithSelector((set) => ({
+      ...createDefaultUIState(),
+      ...initial,
+
+      setUIState: (partial) =>
+        set((state) => ({
+          ...(typeof partial === "function" ? partial(state) : partial),
+        })),
+
+      resetUIState: (partial) =>
+        set(() => ({
+          ...createDefaultUIState(),
+          ...initial,
+          ...partial,
+        })),
+
+      toggleSettings: (isOpen) =>
+        set((state) => ({
+          isSettingsOpen: isOpen !== undefined ? isOpen : !state.isSettingsOpen,
+        })),
+
+      toggleHelp: (isOpen) =>
+        set((state) => ({
+          isHelpOpen: isOpen !== undefined ? isOpen : !state.isHelpOpen,
+        })),
+
+      toggleStats: (isOpen) =>
+        set((state) => ({
+          isStatsOpen: isOpen !== undefined ? isOpen : !state.isStatsOpen,
+        })),
+
+      toggleShortcuts: (isOpen) =>
+        set((state) => ({
+          isShortcutsOpen: isOpen !== undefined ? isOpen : !state.isShortcutsOpen,
+        })),
+
+      toggleSidebar: (isOpen) =>
+        set((state) => ({
+          isSidebarOpen: isOpen !== undefined ? isOpen : !state.isSidebarOpen,
+        })),
+
+      setSidebarTab: (sidebarTab) => set({ sidebarTab }),
+      setShowControls: (showControls) => set({ showControls }),
+      setFullscreen: (isFullscreen) => set({ isFullscreen }),
+      setPip: (isPip) => set({ isPip }),
+      setMiniPlayer: (isMiniPlayer) => set({ isMiniPlayer }),
+      setTheaterMode: (isTheaterMode) => set({ isTheaterMode }),
+      setErrorMessage: (errorMessage) => set({ errorMessage }),
+      setFeedback: (feedback) => set({ feedback }),
+    }))
+  );
+}

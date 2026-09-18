@@ -8,8 +8,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useUIStore } from "../stores/ui-store";
+import { usePlayerPlayback, usePlayerUI } from "../stores/player-scope";
 import { formatDuration } from "../utils";
 
 export function PlayerOverlays({
@@ -30,7 +29,7 @@ export function PlayerOverlays({
     resumeTime,
     isEnded,
     autoplayCountdown,
-  } = usePlaybackStore(
+  } = usePlayerPlayback(
     useShallow((state) => ({
       isLoading: state.isLoading,
       resumeTime: state.resumeTime,
@@ -42,14 +41,14 @@ export function PlayerOverlays({
   const {
     feedback,
     errorMessage,
-  } = useUIStore(
+  } = usePlayerUI(
     useShallow((state) => ({
       feedback: state.feedback,
       errorMessage: state.errorMessage,
     }))
   );
 
-  const setUIState = useUIStore((s) => s.setUIState);
+  const setUIState = usePlayerUI((s) => s.setUIState);
   const autoplayProgress = ((5 - autoplayCountdown) / 5) * 100;
 
   return (

@@ -2,6 +2,10 @@ import type { PlayerPreferences, VideoProvider } from "./types";
 
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
 export const SEEK_STEP_SECONDS = 10;
+/** Long-press (touch hold) temporary speed. Applied via player command. */
+export const TEMPORARY_SPEED_RATE = 2;
+/** Quality key meaning "let the ABR algorithm decide" (hls.currentLevel = -1). */
+export const AUTO_QUALITY_KEY = "auto";
 export const AUTO_COMPLETE_PERCENT = 90;
 export const PROGRESS_SAVE_INTERVAL_MS = 4000;
 export const CONTROLS_HIDE_TIMEOUT_MS = 3000;
@@ -24,6 +28,7 @@ export const DEFAULT_PLAYER_PREFERENCES: PlayerPreferences = {
   playbackRate: 1,
   isAmbientMode: true,
   selectedSubtitle: "off",
+  selectedAudioTrack: "auto",
   brightness: 1,
   isSidebarOpen: false,
   sidebarTab: "bookmarks",

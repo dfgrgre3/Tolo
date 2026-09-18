@@ -14,10 +14,11 @@ interface StatsPanelProps {
   isEfficiencyMode?: boolean;
   statsItems: StatItem[];
   audioTracks: AudioTrack[];
+  selectedAudioTrack?: string;
   onCloseStats: () => void;
 }
 
-export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, onCloseStats }: StatsPanelProps) {
+export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, selectedAudioTrack, onCloseStats }: StatsPanelProps) {
   return (
     <>
       {isStatsOpen ? (
@@ -48,11 +49,21 @@ export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTra
               <div className="mt-4 rounded-[24px] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">مسارات صوتية متاحة</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {audioTracks.map((track) => (
-                    <span key={track.id} className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/75">
-                      {track.label} {track.language.toUpperCase()}
-                    </span>
-                  ))}
+                  {audioTracks.map((track) => {
+                    const isActive = selectedAudioTrack !== undefined &&
+                      (selectedAudioTrack === "auto" ? track.id === audioTracks[0]?.id : selectedAudioTrack === track.id);
+                    return (
+                      <span
+                        key={track.id}
+                        className={cn(
+                          "rounded-full px-3 py-1 text-xs font-bold",
+                          isActive ? "bg-emerald-500/25 text-emerald-200" : "bg-white/10 text-white/75"
+                        )}
+                      >
+                        {track.label} {track.language.toUpperCase()}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}

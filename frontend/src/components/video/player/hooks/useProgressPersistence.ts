@@ -1,13 +1,19 @@
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import {
   AUTO_COMPLETE_PERCENT,
   PROGRESS_SAVE_INTERVAL_MS,
   MIN_RESUME_TIME_SECONDS,
 } from "../constants";
-import { usePlaybackStore } from "../stores/playback-store";
+import { usePlayerPlayback, usePlayerStores } from "../stores/player-scope";
 import { clamp } from "../utils";
 import type { StoredVideoProgress } from "../types";
-import { readLessonProgress, updateLessonProgress } from "@/lib/course-progress";
+import {
+  PLAYER_PROTOCOL_VERSION,
+  readLessonProgress,
+  reportLessonCompletion,
+  sendProgressHeartbeat,
+  type ProgressHeartbeat,
+} from "@/lib/course-progress";
 
 type ProgressPersistenceOptions = {
   lessonId: string;
@@ -27,13 +33,7 @@ function readStoredProgress(storageKey: string) {
   }
 }
 
-type PendingProgress = {
-  lastWatchedPosition: number;
-  timeSpentDeltaSeconds: number;
-  status: "IN_PROGRESS" | "NOT_STARTED";
-};
-
-function readPendingProgress(storageKey: string): PendingProgress[] {
+function readPendingHeartbeats(storageKey: string): ProgressHeartbeat[] {
   try {
     const raw = localStorage.getItem(storageKey);
     const parsed = raw ? JSON.parse(raw) : [];
@@ -51,16 +51,21 @@ export function useProgressPersistence({
   triggerAutoComplete,
   alreadyCompleted,
 }: ProgressPersistenceOptions) {
-  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
-  const lastSaveTimeRef = useRef(0);
-  const autoCompleteTriggeredRef = useRef(alreadyCompleted);
-  const sessionStartTimeRef = useRef(0);
-  const accumulatedTimeRef = useRef(0);
-  const drainRef = useRef<Promise<void> | null>(null);
-  const queueRef = useRef<PendingProgress[] | null>(null);
-  const pendingKey = `${storageKey}:pending`;
+  const setPlaybackState = usePlayerPlayback((s) => s.setPlaybackState);
+  const stores = usePlayerStores();
 
-  const persistPending = useCallback((queue: PendingProgress[]) => {
+  // One playback session per hook mount (player remounts per lesson via key).
+  // Distinct sessions → distinct idempotency keys → no cross-tab double count.
+  const [sessionId] = useState(() => crypto.randomUUID());
+  const sequenceRef = useRef(0);
+  const lastSaveTimeRef = useRef(0);
+  const lastHeartbeatAtRef = useRef(0);
+  const completionSentRef = useRef(alreadyCompleted);
+  const drainRef = useRef<Promise<void> | null>(null);
+  const queueRef = useRef<ProgressHeartbeat[] | null>(null);
+  const pendingKey = `${storageKey}:pending-v2`;
+
+  const persistPending = useCallback((queue: ProgressHeartbeat[]) => {
     try {
       if (queue.length === 0) localStorage.removeItem(pendingKey);
       else localStorage.setItem(pendingKey, JSON.stringify(queue.slice(-20)));
@@ -69,18 +74,18 @@ export function useProgressPersistence({
     }
   }, [pendingKey]);
 
-  const sendProgress = useCallback(async (payload: PendingProgress) => {
-    await updateLessonProgress(lessonId, payload, { keepalive: true });
-  }, [lessonId]);
-
   const flushPending = useCallback(async () => {
     if (drainRef.current) return drainRef.current;
     const drain = (async () => {
-      const queue = queueRef.current ?? readPendingProgress(pendingKey);
+      const queue = queueRef.current ?? readPendingHeartbeats(pendingKey);
       queueRef.current = queue;
       while (queue.length > 0) {
         try {
-          await sendProgress(queue[0]!);
+          // Each heartbeat carries its own Idempotency-Key
+          // (sessionId:sequenceNumber): a retried send replays server-side
+          // without re-adding deltas — retry / reconnect / pagehide can never
+          // double-count, even across tabs.
+          await sendProgressHeartbeat(lessonId, queue[0]!);
           queue.shift();
           persistPending(queue);
         } catch {
@@ -94,12 +99,12 @@ export function useProgressPersistence({
     } finally {
       drainRef.current = null;
     }
-  }, [pendingKey, persistPending, sendProgress]);
+  }, [lessonId, pendingKey, persistPending]);
 
-  const enqueueProgress = useCallback((payload: PendingProgress) => {
-    const queue = queueRef.current ?? readPendingProgress(pendingKey);
+  const enqueueHeartbeat = useCallback((heartbeat: ProgressHeartbeat) => {
+    const queue = queueRef.current ?? readPendingHeartbeats(pendingKey);
     queueRef.current = queue;
-    queue.push(payload);
+    queue.push(heartbeat);
     if (queue.length > 20) queue.splice(0, queue.length - 20);
     persistPending(queue);
     void flushPending();
@@ -117,60 +122,13 @@ export function useProgressPersistence({
   }, [flushPending]);
 
   useEffect(() => {
-    autoCompleteTriggeredRef.current = alreadyCompleted;
+    completionSentRef.current = alreadyCompleted;
   }, [alreadyCompleted]);
 
-  // Track active time when player is playing
-  useEffect(() => {
-    // Initialize session start after mount (Date.now() must not run during render)
-    if (sessionStartTimeRef.current === 0) {
-      sessionStartTimeRef.current = Date.now();
-    }
-
-    const unsubscribe = usePlaybackStore.subscribe(
-      (state, prevState) => {
-        const isPlaying = state.isPlaying;
-        const prevIsPlaying = prevState?.isPlaying;
-        if (isPlaying === prevIsPlaying) return;
-        
-        const now = Date.now();
-        if (isPlaying) {
-          sessionStartTimeRef.current = now;
-        } else {
-          accumulatedTimeRef.current += (now - sessionStartTimeRef.current) / 1000;
-        }
-      }
-    );
-    return () => unsubscribe();
-  }, []);
-
-  const syncProgressToServer = useCallback(
-    (positionSeconds: number, percent: number) => {
-      if (!Number.isFinite(positionSeconds)) return;
-
-      const isPlaying = usePlaybackStore.getState().isPlaying;
-      let currentSessionTime = 0;
-      if (isPlaying) {
-        currentSessionTime = (Date.now() - sessionStartTimeRef.current) / 1000;
-      }
-      
-      // The backend contract treats this value as a delta and adds it to the
-      // stored total. It is never a cumulative session total.
-      const timeSpentDeltaSeconds = Math.floor(accumulatedTimeRef.current + currentSessionTime);
-      const status = percent > 0 ? 'IN_PROGRESS' : 'NOT_STARTED';
-
-      const payload: PendingProgress = { lastWatchedPosition: positionSeconds, timeSpentDeltaSeconds, status };
-      enqueueProgress(payload);
-      
-      // Reset accumulator after sync if we want to send incremental or total?
-      // Assuming backend adds it incrementally if we send delta, or we send delta?
-      // Let's assume the backend takes a delta, wait, if backend takes delta:
-      accumulatedTimeRef.current = 0;
-      sessionStartTimeRef.current = Date.now();
-    },
-    [enqueueProgress]
-  );
-
+  // Heartbeat + completion are INDEPENDENT paths (P0-7):
+  // - the heartbeat is ALWAYS enqueued (even past the auto-complete
+  //   threshold — previously the progress write was SKIPPED at ≥90%);
+  // - completion is a separate idempotent command, sent at most once.
   const saveProgress = useCallback(
     (force = false) => {
       const duration = getDuration();
@@ -199,18 +157,52 @@ export function useProgressPersistence({
         return;
       }
 
+      // Time deltas partition the wall clock since the previous heartbeat:
+      // no overlap, no gaps, no separate accumulator to drift.
+      const lastAt = lastHeartbeatAtRef.current || now;
+      const elapsedSeconds = Math.max(0, (now - lastAt) / 1000);
+      const isPlaying = stores.playback.getState().isPlaying;
+      const heartbeat: ProgressHeartbeat = {
+        sessionId,
+        sequenceNumber: (sequenceRef.current += 1),
+        positionSeconds: Math.round(currentTime),
+        durationSeconds: Math.round(duration),
+        watchedPercent: percent,
+        watchedSecondsDelta: elapsedSeconds,
+        activeSecondsDelta: isPlaying ? elapsedSeconds : 0,
+        completed: percent >= AUTO_COMPLETE_PERCENT,
+        clientTimestampMs: now,
+        playerVersion: PLAYER_PROTOCOL_VERSION,
+      };
       lastSaveTimeRef.current = now;
-      if (percent >= AUTO_COMPLETE_PERCENT && !autoCompleteTriggeredRef.current) {
-        autoCompleteTriggeredRef.current = true;
-        // The parent owns the authoritative completion command. Avoid sending
-        // a second progress mutation here, which previously caused duplicate
-        // lesson-completion writes and competing course-progress responses.
+      lastHeartbeatAtRef.current = now;
+      enqueueHeartbeat(heartbeat);
+
+      if (percent >= AUTO_COMPLETE_PERCENT && !completionSentRef.current) {
+        completionSentRef.current = true;
+        // Explicit completion command (own idempotency key
+        // `${sessionId}:complete:auto`), independent of the heartbeat above.
+        // The parent callback stays as the UI-sync notification; the backend
+        // stays authoritative and converges because completion is a state set.
+        void reportLessonCompletion(lessonId, {
+          sessionId,
+          source: "auto",
+          positionSeconds: Math.round(currentTime),
+          durationSeconds: Math.round(duration),
+          watchedPercent: percent,
+          clientTimestampMs: now,
+        }).catch(() => {
+          // Completion still notifies the parent below; a failed command is
+          // retried on the next threshold crossing is impossible (guard), so
+          // the manual "mark complete" path and the next heartbeat's
+          // completed-hint remain as backstops. Reset the guard ONLY for
+          // transport failure so a later save can retry exactly once more.
+          completionSentRef.current = false;
+        });
         triggerAutoComplete();
-      } else {
-        syncProgressToServer(Math.round(currentTime), percent);
       }
     },
-    [getDuration, getCurrentTime, storageKey, syncProgressToServer, triggerAutoComplete]
+    [enqueueHeartbeat, getCurrentTime, getDuration, lessonId, sessionId, storageKey, stores.playback, triggerAutoComplete]
   );
 
   const loadResumeData = useCallback(async () => {
@@ -218,7 +210,7 @@ export function useProgressPersistence({
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     let resumeCandidate = readStoredProgress(storageKey)?.currentTime ?? null;
-    let latestTimestamp = readStoredProgress(storageKey)?.updatedAt ?? 0;
+    const latestTimestamp = readStoredProgress(storageKey)?.updatedAt ?? 0;
 
     try {
       const payload = await readLessonProgress(lessonId);
@@ -238,7 +230,6 @@ export function useProgressPersistence({
         serverUpdatedAt >= latestTimestamp
       ) {
         resumeCandidate = serverPosition;
-        latestTimestamp = serverUpdatedAt;
       }
     } catch {
       // Fallback to local storage if server fetch fails
@@ -254,12 +245,51 @@ export function useProgressPersistence({
   }, [getDuration, lessonId, setPlaybackState, storageKey]);
 
   useEffect(() => {
-    const onPageHide = () => saveProgress(true);
+    // Final heartbeat on tab close. keepalive lets it survive pagehide;
+    // its idempotency key makes a duplicate (e.g. online-flush racing the
+    // keepalive send) a server-side replay, not a double count.
+    const onPageHide = () => {
+      const duration = getDuration();
+      if (!Number.isFinite(duration) || duration <= 0) return;
+      const now = Date.now();
+      const currentTime = clamp(getCurrentTime(), 0, duration);
+      const percent = (currentTime / duration) * 100;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({
+          currentTime,
+          duration,
+          percent,
+          updatedAt: now,
+          completed: percent >= AUTO_COMPLETE_PERCENT,
+        } satisfies StoredVideoProgress));
+      } catch {
+        // Snapshot is best-effort; the keepalive heartbeat below is authoritative.
+      }
+      const lastAt = lastHeartbeatAtRef.current || now;
+      const elapsedSeconds = Math.max(0, (now - lastAt) / 1000);
+      const isPlaying = stores.playback.getState().isPlaying;
+      void sendProgressHeartbeat(
+        lessonId,
+        {
+          sessionId,
+          sequenceNumber: (sequenceRef.current += 1),
+          positionSeconds: Math.round(currentTime),
+          durationSeconds: Math.round(duration),
+          watchedPercent: (currentTime / duration) * 100,
+          watchedSecondsDelta: elapsedSeconds,
+          activeSecondsDelta: isPlaying ? elapsedSeconds : 0,
+          completed: (currentTime / duration) * 100 >= AUTO_COMPLETE_PERCENT,
+          clientTimestampMs: now,
+          playerVersion: PLAYER_PROTOCOL_VERSION,
+        },
+        { keepalive: true },
+      ).catch(() => undefined);
+    };
     window.addEventListener("pagehide", onPageHide);
     return () => {
       window.removeEventListener("pagehide", onPageHide);
     };
-  }, [saveProgress]);
+  }, [getCurrentTime, getDuration, lessonId, sessionId, storageKey, stores.playback]);
 
   return {
     saveProgress,

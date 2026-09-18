@@ -2,9 +2,7 @@ import { Check, Sparkles, SunMedium, Youtube, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { providerLabelMap } from "../constants";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useSettingsStore } from "../stores/settings-store";
-import { useUIStore } from "../stores/ui-store";
+import { usePlayerPlayback, usePlayerSettings, usePlayerUI } from "../stores/player-scope";
 import type { BookmarkItem, VideoProvider } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +19,7 @@ export function PlayerHeader({
   markers: BookmarkItem[];
   onMarkComplete: () => void;
 }) {
-  const { currentTime, duration, playbackRate } = usePlaybackStore(
+  const { currentTime, duration, playbackRate } = usePlayerPlayback(
     useShallow((state) => ({
       currentTime: state.currentTime,
       duration: state.duration,
@@ -29,13 +27,13 @@ export function PlayerHeader({
     }))
   );
 
-  const { brightness } = useSettingsStore(
+  const { brightness } = usePlayerSettings(
     useShallow((state) => ({
       brightness: state.brightness,
     }))
   );
 
-  const { showControls } = useUIStore(
+  const { showControls } = usePlayerUI(
     useShallow((state) => ({
       showControls: state.showControls,
     }))

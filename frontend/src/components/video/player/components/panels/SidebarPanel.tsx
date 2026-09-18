@@ -6,9 +6,8 @@ import type { LucideIcon } from "lucide-react";
 import { formatDuration } from "../../utils";
 import type { BookmarkItem, LessonInfo, SidebarTab, TimelineNote, TranscriptCue } from "../../types";
 import { SidebarTabButton } from "../SidebarTabButton";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { cn } from "@/lib/utils";
-
-type SidebarPanelTab = "bookmarks" | "notes" | "lessons" | "transcript";
 
 function EmptySidebarState({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
@@ -250,7 +249,7 @@ export function SidebarPanel({
   // isEfficiencyMode is accepted by callers but unused by this panel.
   isEfficiencyMode?: boolean;
   sidebarTab: SidebarTab;
-  onToggleSidebarTab: (tab: SidebarPanelTab) => void;
+  onToggleSidebarTab: (tab: SidebarTab) => void;
   bookmarks: BookmarkItem[];
   onJumpToTime: (time: number) => void;
   noteDraft: string;
@@ -270,8 +269,8 @@ export function SidebarPanel({
   onLessonChange?: (lessonId: string) => void;
   onCloseSidebar: () => void;
 }) {
-  // Mobile: slide up from bottom, full width
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  // P1-15: hydration-safe viewport flag (SSR + first client render agree).
+  const isMobile = useIsMobile();
   
   return (
     <AnimatePresence>

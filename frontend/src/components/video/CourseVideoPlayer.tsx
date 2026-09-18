@@ -24,11 +24,11 @@ import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // Extracted sub-components
-import { RecordingDetectionOverlay } from "@/app/(education)/courses/components/_components/RecordingDetectionOverlay";
 import { AnimatedWatermark } from "@/app/(education)/courses/components/_components/AnimatedWatermark";
 import { SidebarHint } from "@/app/(education)/courses/components/_components/SidebarHint";
 
 import {
+  AUTO_QUALITY_KEY,
   AUTOPLAY_NEXT_SECONDS,
   CONTROLS_HIDE_TIMEOUT_MS,
   PLAYER_PREFERENCES_KEY,
@@ -66,8 +66,16 @@ import { usePlayerViewport } from "./player/hooks/usePlayerViewport";
 
 // Store & Types
 import { usePlaybackStore } from "./player/stores/playback-store";
-import { useUIStore } from "./player/stores/ui-store";
-import { useSettingsStore } from "./player/stores/settings-store";
+import {
+  PlayerScopeProvider,
+  createPlayerScope,
+  usePlayerPlayback,
+  usePlayerUI,
+  usePlayerSettings,
+  usePlayerStores,
+} from "./player/stores/player-scope";
+import { newQuestionAttemptId } from "@/lib/lesson-questions";
+import { useInteractiveQuestions } from "./player/hooks/useInteractiveQuestions";
 import type {
   CourseVideoPlayerProps,
   PlayerFeedback,
@@ -81,17 +89,41 @@ import {
   clamp,
   formatSecondsToTimestamp,
   getProvider,
+  mapYouTubeErrorCode,
   mergeChapterMarkers,
   parseYouTubeId,
+  playerErrorMessage,
   readPlayerPreferences,
   shouldUseHls,
 } from "./player/utils";
 
-export function CourseVideoPlayer({
+export function CourseVideoPlayer(props: CourseVideoPlayerProps) {
+  // P0 FIX (player-scoped state): every player instance gets isolated
+  // playback / UI / settings stores so two players on one page never share
+  // currentTime, volume, isPlaying, sidebar, settings or watch time.
+  // The scope is keyed by course+lesson and created once per mount.
+  const scope = useMemo(
+    () => createPlayerScope(props.courseId, props.lessonId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- new lesson = new identity via key/remount contract
+    [props.courseId, props.lessonId]
+  );
+  return (
+    <PlayerScopeProvider
+      courseId={props.courseId}
+      lessonId={props.lessonId}
+      scope={scope}
+    >
+      <CourseVideoPlayerInner {...props} />
+    </PlayerScopeProvider>
+  );
+}
+
+function CourseVideoPlayerInner({
   courseId,
   lessonId,
   lessonTitle,
   videoUrl,
+  provider: explicitProvider,
   alreadyCompleted = false,
   onLessonAutoComplete,
   onNextVideo,
@@ -109,6 +141,7 @@ export function CourseVideoPlayer({
   thumbnailVttUrl,
   qualitySources = [],
   interactiveQuestions = [],
+  disableServerQuestions = false,
   onProgress,
 }: CourseVideoPlayerProps) {
   // --- Refs & Internal State ---
@@ -117,7 +150,9 @@ export function CourseVideoPlayer({
   // automatically invalidates it — no reset effect and no ref access during render.
   const [qualityOverride, setQualityOverride] = useState<{ forVideoUrl: string; src: string } | null>(null);
   const activeVideoUrl = qualityOverride?.forVideoUrl === videoUrl ? qualityOverride.src : videoUrl;
-  const provider = useMemo(() => getProvider(activeVideoUrl), [activeVideoUrl]);
+  // P1-10: explicit backend metadata wins; hostname-based detection is the fallback.
+  const detectedProvider = useMemo(() => getProvider(activeVideoUrl), [activeVideoUrl]);
+  const provider = explicitProvider ?? detectedProvider;
   const youtubeId = useMemo(() => parseYouTubeId(activeVideoUrl), [activeVideoUrl]);
   
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -130,15 +165,26 @@ export function CourseVideoPlayer({
   const runPlaybackLoopRef = useRef<() => void>(() => undefined);
   const pendingSourceSwitchRef = useRef<{ time: number; shouldResume: boolean } | null>(null);
   const lastCheckedSecondRef = useRef<number>(-1);
+  // Fresh server-validation attempt identity per presented question.
+  const [questionAttemptId, setQuestionAttemptId] = useState<string>("");
+
+  // Server-first questions: the stripped server list (no answer key) wins
+  // whenever it loads; embedded props are sanitized and stay as fallback.
+  const { questions: effectiveQuestions } = useInteractiveQuestions({
+    lessonId,
+    initialQuestions: interactiveQuestions,
+    disabled: disableServerQuestions,
+  });
 
   const [youtubePlaybackRates, setYoutubePlaybackRates] = useState<number[]>([]);
 
-  // Stores State selection
-  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
-  const setUIState = useUIStore((s) => s.setUIState);
-  const setSettingsState = useSettingsStore((s) => s.setSettingsState);
-  
-  const playbackStore = usePlaybackStore(useShallow((s) => ({
+  // Stores State selection (scoped to this player instance)
+  const stores = usePlayerStores();
+  const setPlaybackState = usePlayerPlayback((s) => s.setPlaybackState);
+  const setUIState = usePlayerUI((s) => s.setUIState);
+  const setSettingsState = usePlayerSettings((s) => s.setSettingsState);
+
+  const playbackStore = usePlayerPlayback(useShallow((s) => ({
     volume: s.volume,
     isMuted: s.isMuted,
     playbackRate: s.playbackRate,
@@ -150,7 +196,7 @@ export function CourseVideoPlayer({
     answeredQuestionIds: s.answeredQuestionIds,
   })));
 
-  const uiStore = useUIStore(useShallow((s) => ({
+  const uiStore = usePlayerUI(useShallow((s) => ({
     isFullscreen: s.isFullscreen,
     isMiniPlayer: s.isMiniPlayer,
     sidebarTab: s.sidebarTab,
@@ -163,11 +209,13 @@ export function CourseVideoPlayer({
     isShortcutsOpen: s.isShortcutsOpen,
   })));
 
-  const settingsStore = useSettingsStore(useShallow((s) => ({
+  const settingsStore = usePlayerSettings(useShallow((s) => ({
     isAmbientMode: s.isAmbientMode,
     brightness: s.brightness,
     watermarkIndex: s.watermarkIndex,
     selectedSubtitle: s.selectedSubtitle,
+    selectedAudioTrack: s.selectedAudioTrack,
+    hlsAudioTracks: s.hlsAudioTracks,
     subtitleSize: s.subtitleSize,
     subtitleBgOpacity: s.subtitleBgOpacity,
     zoomFactor: s.zoomFactor,
@@ -200,8 +248,8 @@ export function CourseVideoPlayer({
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
 
     controlsTimeoutRef.current = window.setTimeout(() => {
-      const isPlaying = usePlaybackStore.getState().isPlaying;
-      const { isSettingsOpen, isSidebarOpen, isHelpOpen, isStatsOpen } = useUIStore.getState();
+      const isPlaying = stores.playback.getState().isPlaying;
+      const { isSettingsOpen, isSidebarOpen, isHelpOpen, isStatsOpen } = stores.ui.getState();
       if (isPlaying && !isSettingsOpen && !isSidebarOpen && !isHelpOpen && !isStatsOpen) {
         setUIState({ showControls: false });
         if (playerContainerRef.current) playerContainerRef.current.style.cursor = "none";
@@ -235,14 +283,70 @@ export function CourseVideoPlayer({
     alreadyCompleted,
   });
 
-  // --- Security & Content Protection ---
-  const [isRecordingDetected, setIsRecordingDetected] = useState(false);
+  // --- Content Deterrence (NOT real security) ---
+  // P0 FIX: the previous implementation treated blur / PrintScreen /
+  // window-resize heuristics as a security boundary and showed a blocking
+  // overlay + wiped the user's clipboard. None of that stops real capture
+  // (screen recorders, browser capture, external hardware) while punishing
+  // legitimate users (Alt-Tab fires blur; multi-monitor/tablet setups trip
+  // the outerWidth heuristic; clipboard wiping needs permission and fails).
+  //
+  // Real content security must live server-side: signed short-lived URLs,
+  // authenticated manifests / segment authorization, per-user watermarking,
+  // and DRM where the content value justifies it. What remains here is
+  // passive deterrence only: no clipboard access, no blocking overlay from
+  // heuristics — just a watermark pulse + optional parent callback.
+  const [deterrencePulse, setDeterrencePulse] = useState(false);
+
+  useEffect(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+
+    // PrintScreen deterrence: pulse the watermark instead of touching the
+    // clipboard. Listener stays global — PrintScreen targets the OS, not the
+    // player element — but the reaction is cosmetic only.
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "PrintScreen") {
+        setDeterrencePulse(true);
+        setSettingsState((s) => ({
+          watermarkIndex: (s.watermarkIndex + 1) % WATERMARK_POSITIONS.length,
+        }));
+        window.setTimeout(() => setDeterrencePulse(false), 3000);
+      }
+    };
+
+    // NOTE: intentionally no window blur / focus / resize (DevTools-size
+    // heuristic) handlers. They cannot distinguish capture tools from normal
+    // use and previously locked genuine students out of playback.
+    //
+    // Scoped contextmenu suppression stays: it only blocks the native video
+    // element menu (which exposes "Save video"), never the player's own UI.
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const isVideoElement = target.tagName === 'VIDEO';
+      const isYouTubeEmbed = !!target.closest('[data-youtube-container]');
+      if (isVideoElement || isYouTubeEmbed) {
+        e.preventDefault();
+      }
+    };
+    const handleDragStart = (e: DragEvent) => e.preventDefault();
+
+    window.addEventListener('keyup', handleKeyUp);
+    container.addEventListener('contextmenu', handleContextMenu);
+    container.addEventListener('dragstart', handleDragStart);
+
+    return () => {
+      window.removeEventListener('keyup', handleKeyUp);
+      container.removeEventListener('contextmenu', handleContextMenu);
+      container.removeEventListener('dragstart', handleDragStart);
+    };
+  }, [setSettingsState]);
 
   // --- Zoom, Pan & Mini-player ---
   const { handlePointerDown, handlePointerMove, handlePointerUp } = usePlayerViewport();
 
   const handleDoubleClick = useCallback(() => {
-    const storeState = useSettingsStore.getState();
+    const storeState = stores.settings.getState();
     if (storeState.zoomFactor > 1) {
       setSettingsState({ zoomFactor: 1, panOffset: { x: 0, y: 0 } });
       flashFeedback({ icon: Sparkles, label: "إعادة ضبط الحجم" });
@@ -255,11 +359,11 @@ export function CourseVideoPlayer({
   useEffect(() => {
     const container = playerContainerRef.current;
     if (!container) return;
-    
+
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey) {
         e.preventDefault();
-        const storeState = useSettingsStore.getState();
+        const storeState = stores.settings.getState();
         const zoomDelta = e.deltaY > 0 ? -0.15 : 0.15;
         const nextZoom = clamp(storeState.zoomFactor + zoomDelta, 1, 3);
         const nextPan = nextZoom === 1 ? { x: 0, y: 0 } : storeState.panOffset;
@@ -267,7 +371,7 @@ export function CourseVideoPlayer({
         flashFeedback({ icon: Sparkles, label: `تكبير ${nextZoom.toFixed(1)}x` });
       }
     };
-    
+
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       container.removeEventListener("wheel", handleWheel);
@@ -278,84 +382,6 @@ export function CourseVideoPlayer({
   const thumbnailCues = useThumbnailCues(thumbnailVttUrl);
   useMiniPlayer(playerContainerRef);
 
-  useEffect(() => {
-    const container = playerContainerRef.current;
-
-    // Content Protection: Detect blur which often happens when starting a capture tool.
-    // These MUST stay on `window` — they need global scope to detect tab switches / capture tools.
-    const handleBlur = () => {
-      const currentIsPlaying = usePlaybackStore.getState().isPlaying;
-      if (currentIsPlaying) setIsRecordingDetected(true);
-    };
-    const handleFocus = () => setIsRecordingDetected(false);
-
-    // PrintScreen / Screenshot Detection — global by necessity
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'PrintScreen') {
-        navigator.clipboard?.writeText('').catch(() => undefined);
-        setIsRecordingDetected(true);
-        setTimeout(() => setIsRecordingDetected(false), 3000);
-      }
-    };
-
-    // DevTools Detection (Heuristic) — global by necessity.
-    // Debounced by 500ms to prevent false positives for users with multiple
-    // monitors, tablet pen input, or those who resize the browser window
-    // normally. The overlay only appears if the window stays in a suspicious
-    // state for half a second, which genuine users never trigger.
-    let resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const handleResize = () => {
-      if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
-      resizeDebounceTimer = setTimeout(() => {
-        resizeDebounceTimer = null;
-        const threshold = 160;
-        const widthDiff = window.outerWidth - window.innerWidth;
-        const heightDiff = window.outerHeight - window.innerHeight;
-        if (widthDiff > threshold || heightDiff > threshold) {
-          setIsRecordingDetected(true);
-        }
-      }, 500);
-    };
-
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('resize', handleResize);
-
-    // FIX: Scope contextmenu to the video/iframe element ONLY — not the entire container.
-    // Blocking right-click on the whole container prevented users from right-clicking
-    // on control buttons, captions, and UI overlays, and could conflict with DnD libraries.
-    // Now we only suppress the browser's native video context menu (which exposes "Save video"),
-    // while allowing right-click on all other player UI elements.
-    const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const isVideoElement = target.tagName === 'VIDEO';
-      const isYouTubeEmbed = !!target.closest('[data-youtube-container]');
-      if (isVideoElement || isYouTubeEmbed) {
-        e.preventDefault();
-      }
-    };
-    const handleDragStart = (e: DragEvent) => e.preventDefault();
-
-    if (container) {
-      container.addEventListener('contextmenu', handleContextMenu);
-      container.addEventListener('dragstart', handleDragStart);
-    }
-
-    return () => {
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('resize', handleResize);
-      // Cancel any pending debounce timer on unmount
-      if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
-      if (container) {
-        container.removeEventListener('contextmenu', handleContextMenu);
-        container.removeEventListener('dragstart', handleDragStart);
-      }
-    };
-  }, []);
-
   // --- Hook: HLS Engine ---
   const hlsRef = useHlsEngine({ activeVideoUrl, provider, videoRef, flashFeedback });
 
@@ -363,15 +389,27 @@ export function CourseVideoPlayer({
   const captureFrame = useFrameCapture({ videoRef, provider, flashFeedback, lessonTitle });
 
   // --- Playback Loop Management ---
-  const syncPlaybackSnapshot = useCallback(() => {
+  // P0 PERF FIX: the rAF loop reads the media element every frame (cheap,
+  // realtime engine state stays in the DOM node / local vars), but React /
+  // Zustand UI state is pushed at most ~4Hz (or when duration/buffered
+  // actually change). Previously setPlaybackState ran ~60x/sec and every
+  // currentTime subscriber (controls, header, rail, popups, panels)
+  // re-rendered on each frame. Server progress stays on its own 4s+
+  // cadence inside saveProgress() — never per frame.
+  const lastPushedTimeRef = useRef<number>(-1);
+  const lastPushedDurationRef = useRef<number>(-1);
+  const lastPushedBufferedRef = useRef<number>(-1);
+  const lastProgressCbAtRef = useRef<number>(0);
+  const syncPlaybackSnapshot = useCallback((force = false) => {
     const adapter = getAdapter();
     if (!adapter) return;
 
+    // Realtime engine state — local only, no React traffic.
     const nextTime = adapter.getCurrentTime();
     const duration = adapter.getDuration();
     const buffered = adapter.getBuffered();
 
-    const { loopStart, loopEnd, activeQuestionId, answeredQuestionIds } = usePlaybackStore.getState();
+    const { activeQuestionId, answeredQuestionIds } = stores.playback.getState();
     
     // Interactive Questions Detection
     // FIX: `lastCheckedSecondRef` used to be advanced only when a question was
@@ -380,13 +418,14 @@ export function CourseVideoPlayer({
     // until a match appeared. Advancing it unconditionally caps this lookup
     // to once per second regardless of outcome.
     const currentSecond = Math.floor(nextTime);
-    if (interactiveQuestions.length > 0 && !activeQuestionId && currentSecond !== lastCheckedSecondRef.current) {
+    if (effectiveQuestions.length > 0 && !activeQuestionId && currentSecond !== lastCheckedSecondRef.current) {
       lastCheckedSecondRef.current = currentSecond;
-      const question = interactiveQuestions.find(q =>
+      const question = effectiveQuestions.find(q =>
         Math.abs((q.timePosition ?? q.time ?? 0) - nextTime) < 0.8 && !answeredQuestionIds.includes(q.id)
       );
       if (question) {
         adapter.pause();
+        setQuestionAttemptId(newQuestionAttemptId());
         setPlaybackState({ activeQuestionId: question.id });
         setPlaybackState({ isPlaying: false });
         setUIState({ showControls: true });
@@ -395,22 +434,40 @@ export function CourseVideoPlayer({
       }
     }
 
-    if (loopStart !== null && loopEnd !== null && nextTime >= loopEnd) {
-      adapter.seekTo(loopStart);
-      setPlaybackState({ currentTime: loopStart });
+    // P1-17: loop enforcement reads the ENGINE-owned range (adapter), never
+    // the store mirror. Per-frame check = boundary precision for all providers.
+    // A pending range (end <= start, "A set, waiting for B") never enforces.
+    const loop = adapter.getLoopRange();
+    if (loop !== null && loop.end > loop.start && nextTime >= loop.end) {
+      adapter.seekTo(loop.start);
+      lastPushedTimeRef.current = loop.start;
+      setPlaybackState({ currentTime: loop.start });
     } else {
-      setPlaybackState({
-        currentTime: nextTime,
-        duration,
-        buffered,
-      });
+      // Throttled UI push: time moves 4Hz, duration/buffered only on change.
+      const timeDelta = Math.abs(nextTime - lastPushedTimeRef.current);
+      const durationChanged = duration !== lastPushedDurationRef.current;
+      const bufferedChanged = Math.abs(buffered - lastPushedBufferedRef.current) > 0.5;
+      if (force || timeDelta >= 0.25 || durationChanged || bufferedChanged) {
+        lastPushedTimeRef.current = nextTime;
+        lastPushedDurationRef.current = duration;
+        lastPushedBufferedRef.current = buffered;
+        setPlaybackState({
+          currentTime: nextTime,
+          duration,
+          buffered,
+        });
+      }
     }
 
-    // Call onProgress callback to update parent component
+    // Parent onProgress callback throttled to 4Hz (was: every frame).
     if (onProgress) {
-      onProgress(nextTime, duration);
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (force || now - lastProgressCbAtRef.current >= 250) {
+        lastProgressCbAtRef.current = now;
+        onProgress(nextTime, duration);
+      }
     }
-  }, [getAdapter, interactiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState]);
+  }, [getAdapter, effectiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState]);
 
   const stopPlaybackLoop = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -422,7 +479,7 @@ export function CourseVideoPlayer({
   const runPlaybackLoop = useCallback(() => {
     syncPlaybackSnapshot();
     saveProgress();
-    if (usePlaybackStore.getState().isPlaying) {
+    if (stores.playback.getState().isPlaying) {
       animationFrameRef.current = window.requestAnimationFrame(() => runPlaybackLoopRef.current());
     } else {
       animationFrameRef.current = null;
@@ -448,7 +505,8 @@ export function CourseVideoPlayer({
     const nextTime = clamp(value, 0, duration);
     adapter.seekTo(nextTime);
     setPlaybackState({ currentTime: nextTime, resumeTime: null, isEnded: false });
-    syncPlaybackSnapshot();
+    lastPushedTimeRef.current = nextTime;
+    syncPlaybackSnapshot(true);
     resetControlsTimeout();
   }, [getAdapter, resetControlsTimeout, setPlaybackState, syncPlaybackSnapshot]);
 
@@ -467,7 +525,7 @@ export function CourseVideoPlayer({
     const adapter = getAdapter();
     if (!adapter) return;
     try {
-      if (usePlaybackStore.getState().isPlaying) {
+      if (stores.playback.getState().isPlaying) {
         adapter.pause();
         flashFeedback({ icon: Pause, label: "إيقاف مؤقت" });
       } else {
@@ -516,6 +574,30 @@ export function CourseVideoPlayer({
     flashFeedback({ icon: Settings2, label: `${nextRate}x` });
     resetControlsTimeout();
   }, [flashFeedback, getAdapter, provider, resetControlsTimeout, setPlaybackState, youtubePlaybackRates]);
+
+  // --- Temporary speed gesture as a PLAYER COMMAND (P1-8) ---
+  // Long-press 2x must drive the adapter AND the store together. A bare
+  // store mutation fakes the badge while the media element keeps its old
+  // rate — the exact UI/real-state divergence this guards against.
+  const tempRateRef = useRef<number | null>(null);
+  const beginTemporaryRate = useCallback((rate: number) => {
+    if (tempRateRef.current !== null) return true;
+    const adapter = getAdapter();
+    if (!adapter) return false;
+    if (provider === "youtube" && !youtubePlaybackRates.includes(rate)) return false;
+    tempRateRef.current = stores.playback.getState().playbackRate;
+    adapter.setPlaybackRate(rate);
+    setPlaybackState({ playbackRate: rate });
+    return true;
+  }, [getAdapter, provider, setPlaybackState, stores.playback, youtubePlaybackRates]);
+
+  const endTemporaryRate = useCallback(() => {
+    const previous = tempRateRef.current;
+    if (previous === null) return;
+    tempRateRef.current = null;
+    getAdapter()?.setPlaybackRate(previous);
+    setPlaybackState({ playbackRate: previous });
+  }, [getAdapter, setPlaybackState]);
 
   // Expose the declared imperative API to the parent. Previously this prop
   // was renamed to `_playerApiRef` and silently ignored, leaving external
@@ -576,23 +658,33 @@ export function CourseVideoPlayer({
     resetControlsTimeout();
   }, [resetControlsTimeout, setUIState]);
 
+  // P1-17: loop commands go through the ENGINE (adapter owns the range);
+  // the store keeps a display mirror for the button + timeline region.
   const toggleLoop = useCallback(() => {
-    const { loopStart, loopEnd, currentTime } = usePlaybackStore.getState();
-    if (loopStart === null) {
-      setPlaybackState({ loopStart: currentTime });
+    const adapter = getAdapter();
+    if (!adapter) return;
+    const loop = adapter.getLoopRange();
+    const currentTime = adapter.getCurrentTime();
+    if (loop === null) {
+      adapter.setLoopRange(currentTime, currentTime);
+      // A zero-length range marks "A set, waiting for B" — enforcement is a
+      // no-op until B lands past A (end > start guard in setLoopRange).
+      setPlaybackState({ loopStart: currentTime, loopEnd: null });
       flashFeedback({ icon: Repeat, label: "تم تحديد نقطة البداية (A)" });
-    } else if (loopEnd === null) {
-      if (currentTime <= loopStart) {
+    } else if (stores.playback.getState().loopEnd === null) {
+      if (currentTime <= loop.start) {
         flashFeedback({ icon: Repeat, label: "يجب أن تكون النهاية بعد البداية" });
         return;
       }
+      adapter.setLoopRange(loop.start, currentTime);
       setPlaybackState({ loopEnd: currentTime });
       flashFeedback({ icon: Repeat, label: "تم تفعيل التكرار (A-B)" });
     } else {
+      adapter.clearLoop();
       setPlaybackState({ loopStart: null, loopEnd: null });
       flashFeedback({ icon: Repeat, label: "إيقاف التكرار" });
     }
-  }, [flashFeedback, setPlaybackState]);
+  }, [flashFeedback, getAdapter, setPlaybackState, stores.playback]);
 
   const applySubtitleSelection = useCallback((subtitleId: string) => {
     if (provider === "youtube" || !videoRef.current) return;
@@ -610,28 +702,69 @@ export function CourseVideoPlayer({
     });
   }, [applySubtitleSelection, flashFeedback, setSettingsState, subtitleTracks]);
 
-  const changeQuality = useCallback((qualityId: number) => {
+  // P1-12: real audio-track selection. HLS switches via the engine (the
+  // useHlsEngine live effect applies the stored id); native/HTML5 switches
+  // via the media element's AudioTrackList when exposed (Safari). The store
+  // stays the single source of truth either way.
+  const changeAudioTrack = useCallback((trackId: string) => {
     const hls = hlsRef.current;
     if (hls) {
-      hls.currentLevel = qualityId;
-      setSettingsState({ selectedQuality: qualityId });
+      setSettingsState({ selectedAudioTrack: trackId });
+      flashFeedback({ icon: Settings2, label: trackId === "auto" ? "صوت تلقائي" : "تم تغيير المسار الصوتي" });
+      return;
+    }
+    const video = videoRef.current as (HTMLVideoElement & {
+      audioTracks?: ArrayLike<{ enabled: boolean; id: string; label: string; language: string }>;
+    }) | null;
+    const list = video?.audioTracks;
+    if (video && list && list.length > 0) {
+      const idx = trackId === "auto" ? 0 : Array.from(list).findIndex(
+        (t) => t.language === trackId || t.label === trackId || t.id === trackId
+      );
+      if (idx >= 0 && idx < list.length) {
+        Array.from(list).forEach((t, i) => { t.enabled = i === idx; });
+        setSettingsState({ selectedAudioTrack: trackId });
+        flashFeedback({ icon: Settings2, label: trackId === "auto" ? "صوت تلقائي" : "تم تغيير المسار الصوتي" });
+        return;
+      }
+    }
+    // No switchable tracks on this element — keep the choice stored so an
+    // HLS manifest carrying it later can still apply it.
+    setSettingsState({ selectedAudioTrack: trackId });
+  }, [flashFeedback, hlsRef, setSettingsState]);
+
+  // P1-11: quality is selected by stable KEY. The HLS level index is
+  // resolved at apply time from the current manifest — never stored.
+  const changeQuality = useCallback((qualityKey: string) => {
+    const hls = hlsRef.current;
+    if (hls) {
+      if (qualityKey === AUTO_QUALITY_KEY) {
+        hls.currentLevel = -1;
+      } else {
+        const match = stores.settings.getState().qualities.find((q) => q.key === qualityKey);
+        if (!match) return;
+        hls.currentLevel = match.levelIndex;
+      }
+      setSettingsState({ selectedQualityKey: qualityKey });
       flashFeedback({
         icon: Settings2,
-        label: qualityId === -1 ? `تلقائي` : `جودة ${qualityId}p`
+        label: qualityKey === AUTO_QUALITY_KEY ? `تلقائي` : `جودة ${qualityKey}`
       });
       return;
     }
-    const source = qualitySources.find(q => q.id === qualityId);
+    // Progressive (non-HLS) sources carry backend-provided numeric ids;
+    // they are explicit source identities, matched here by string form.
+    const source = qualitySources.find(q => String(q.id) === qualityKey);
     if (!source) return;
     pendingSourceSwitchRef.current = {
       time: getAdapter()?.getCurrentTime() ?? 0,
       shouldResume: store.isPlaying
     };
-    setSettingsState({ selectedQuality: qualityId });
+    setSettingsState({ selectedQualityKey: qualityKey });
     setQualityOverride({ forVideoUrl: videoUrl, src: source.src });
     setPlaybackState({ isLoading: true });
     flashFeedback({ icon: Settings2, label: source.label });
-  }, [flashFeedback, getAdapter, hlsRef, qualitySources, setPlaybackState, setSettingsState, store.isPlaying, videoUrl]);
+  }, [flashFeedback, getAdapter, hlsRef, qualitySources, setPlaybackState, setSettingsState, store.isPlaying, stores.settings, videoUrl]);
 
   // --- Hook Integration: Keyboard & Touch ---
   const handleKeyboardShortcuts = useKeyboardShortcuts({
@@ -652,7 +785,8 @@ export function CourseVideoPlayer({
     gestureActiveMode,
     gestureValue,
   } = useTouchGestures({
-    togglePlayPause, seekBy, handleVolumeChange, resetControlsTimeout
+    togglePlayPause, seekBy, handleVolumeChange, resetControlsTimeout,
+    beginTemporaryRate, endTemporaryRate,
   });
 
   // --- Hook: MediaSession API (OS-level media controls) ---
@@ -671,6 +805,9 @@ export function CourseVideoPlayer({
     videoUrl: activeVideoUrl,
     title: lessonTitle,
     getCurrentTime: () => getAdapter()?.getCurrentTime() ?? 0,
+    // P1-13: once the receiver takes over, local playback stops so the two
+    // don't double-play. Reconnect/resume stays user-driven via the player.
+    onStarted: () => getAdapter()?.pause(),
   });
   const toggleCasting = useCallback(() => {
     if (isCasting) stopCasting();
@@ -691,9 +828,9 @@ export function CourseVideoPlayer({
     // incorrect player state. useEffect is guaranteed to run only in the browser after
     // hydration is complete, making this read 100% safe and isomorphic.
     const prefs = readPlayerPreferences();
-    const resetPlaybackState = usePlaybackStore.getState().resetPlaybackState;
-    const resetUIState = useUIStore.getState().resetUIState;
-    const resetSettingsState = useSettingsStore.getState().resetSettingsState;
+    const resetPlaybackState = stores.playback.getState().resetPlaybackState;
+    const resetUIState = stores.ui.getState().resetUIState;
+    const resetSettingsState = stores.settings.getState().resetSettingsState;
 
     resetPlaybackState({
       isLoading: true,
@@ -708,6 +845,7 @@ export function CourseVideoPlayer({
     resetSettingsState({
       isAmbientMode: prefs.isAmbientMode,
       selectedSubtitle: prefs.selectedSubtitle,
+      selectedAudioTrack: prefs.selectedAudioTrack ?? "auto",
       brightness: prefs.brightness,
     });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached YouTube rates when the lesson changes
@@ -722,11 +860,12 @@ export function CourseVideoPlayer({
       playbackRate: store.playbackRate,
       isAmbientMode: store.isAmbientMode,
       selectedSubtitle: store.selectedSubtitle,
+      selectedAudioTrack: store.selectedAudioTrack,
       brightness: store.brightness,
       isSidebarOpen: store.isSidebarOpen,
       sidebarTab: store.sidebarTab,
     }));
-  }, [store.brightness, store.isAmbientMode, store.isMuted, store.playbackRate, store.selectedSubtitle, store.volume, store.isSidebarOpen, store.sidebarTab]);
+  }, [store.brightness, store.isAmbientMode, store.isMuted, store.playbackRate, store.selectedSubtitle, store.selectedAudioTrack, store.volume, store.isSidebarOpen, store.sidebarTab]);
 
   useEffect(() => {
     const onFullscreen = () => setUIState({ isFullscreen: !!document.fullscreenElement });
@@ -815,6 +954,16 @@ export function CourseVideoPlayer({
         setPlaybackState({ isPlaying: false, isEnded: true, autoplayCountdown: AUTOPLAY_NEXT_SECONDS });
         saveProgress(true);
       }
+    },
+    // P1-9: YouTube failures now reach the unified error surface with a
+    // mapped code. `undefined` = SDK failed to load (offline/blocked) → NETWORK.
+    onError: (code) => {
+      const error = code === undefined
+        ? { code: "NETWORK" as const, provider: "youtube" as const, retryable: true }
+        : mapYouTubeErrorCode(code);
+      setUIState({ errorMessage: playerErrorMessage(error) });
+      setPlaybackState({ isLoading: false, isPlaying: false });
+      stopPlaybackLoop();
     }
   });
 
@@ -834,12 +983,21 @@ export function CourseVideoPlayer({
     let intervalId: number | null = null;
     if (playbackStore.isPlaying) {
       intervalId = window.setInterval(() => {
-        useSettingsStore.getState().incrementWatchSeconds(1);
+        stores.settings.getState().incrementWatchSeconds(1);
       }, 1000);
     }
     return () => {
       if (intervalId) window.clearInterval(intervalId);
     };
+  }, [playbackStore.isPlaying, stores.settings]);
+
+  // App-level bridge: use-unified-time-coordinator (mounted once at layout
+  // level, outside this provider) still reads the legacy global playback
+  // store. Mirror ONLY the isPlaying transition — never currentTime or other
+  // high-frequency state — so Pomodoro suspension keeps working with N
+  // scoped players (any-playing semantics) without reintroducing sharing.
+  useEffect(() => {
+    usePlaybackStore.getState().setPlaybackState({ isPlaying: playbackStore.isPlaying });
   }, [playbackStore.isPlaying]);
 
   // --- Computed Values ---
@@ -856,6 +1014,11 @@ export function CourseVideoPlayer({
   const playbackRates = provider === "youtube" && youtubePlaybackRates.length > 0
     ? [...new Set([...youtubePlaybackRates, ...PLAYBACK_RATES])].sort((a, b) => a - b)
     : PLAYBACK_RATES;
+  // P1-12: backend-provided tracks win; otherwise the HLS-discovered list.
+  const effectiveAudioTracks = useMemo(
+    () => (audioTracks.length > 0 ? audioTracks : store.hlsAudioTracks),
+    [audioTracks, store.hlsAudioTracks]
+  );
 
   // --- Render ---
   return (
@@ -882,20 +1045,38 @@ export function CourseVideoPlayer({
       `}} />
 
       {store.isMiniPlayer && (
-        <button
-          type="button"
-          onClick={() => {
-            getAdapter()?.pause();
-            setUIState({ isMiniPlayer: false });
-          }}
-          className="absolute top-3 right-3 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 hover:scale-105 transition active:scale-95"
-          aria-label="إغلاق الفيديو المصغر"
-        >
-          ✕
-        </button>
+        <>
+          {/* P1-14: drag handle for the floating player (see useMiniPlayer). */}
+          <div
+            data-minidrag
+            className="absolute top-0 right-0 left-12 z-50 h-10 cursor-move touch-none"
+            aria-hidden
+          />
+          <button
+            type="button"
+            onClick={() => {
+              getAdapter()?.pause();
+              // P1-14: explicit dismiss sticks until the player scrolls back
+              // into view — the observer must not re-trigger it.
+              setUIState({ isMiniPlayer: false, miniPlayerDismissed: true });
+            }}
+            className="absolute top-3 right-3 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 hover:scale-105 transition active:scale-95"
+            aria-label="إغلاق الفيديو المصغر"
+          >
+            ✕
+          </button>
+        </>
       )}
 
-      <RecordingDetectionOverlay isDetected={isRecordingDetected} />
+      {/* Passive capture deterrence: the per-user watermark pulses briefly
+          on PrintScreen instead of blocking playback or touching the
+          clipboard. Never a security boundary — see note above. */}
+      {deterrencePulse && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[60] border-2 border-red-500/40"
+        />
+      )}
 
       <AmbientBackground videoRef={videoRef} provider={provider} />
       <GestureOverlay mode={gestureActiveMode} value={gestureValue} visible={!!gestureActiveMode} />
@@ -934,11 +1115,13 @@ export function CourseVideoPlayer({
 
 <AnimatePresence>
         {!store.isMiniPlayer && store.activeQuestionId && (() => {
-          const question = interactiveQuestions.find(q => q.id === store.activeQuestionId);
+          const question = effectiveQuestions.find(q => q.id === store.activeQuestionId);
           if (!question) return null;
           return (
             <SuspendedInteractiveQuestionOverlay
               question={question}
+              lessonId={lessonId}
+              attemptId={questionAttemptId}
               onAnswer={(isCorrect) => {
                 if (isCorrect) {
                   const nextAnswered = [...store.answeredQuestionIds, store.activeQuestionId!];
@@ -1016,7 +1199,8 @@ export function CourseVideoPlayer({
         onToggleSettings={() => setUIState(s => ({ isSettingsOpen: !s.isSettingsOpen, isStatsOpen: false }))}
         onToggleLoop={toggleLoop}
         onCaptureFrame={captureFrame}
-        interactiveQuestions={interactiveQuestions}
+        canCaptureFrame={provider !== "youtube"}
+        interactiveQuestions={effectiveQuestions}
       />
 
       {!store.isMiniPlayer && (
@@ -1024,7 +1208,9 @@ export function CourseVideoPlayer({
           qualities={store.qualities}
           playbackRates={playbackRates}
           subtitleTracks={subtitleTracks}
-          audioTracks={audioTracks}
+          audioTracks={effectiveAudioTracks}
+          selectedAudioTrack={store.selectedAudioTrack}
+          onChangeAudioTrack={changeAudioTrack}
           lessons={lessons}
           lessonId={lessonId}
           bookmarks={mergedMarkers}
@@ -1050,7 +1236,7 @@ export function CourseVideoPlayer({
           onToggleSidebarTab={(t: import("./player/types").SidebarTab) => setUIState({ sidebarTab: t })}
           onNoteDraftChange={setNoteDraft}
           onAddNoteAtCurrentTime={addNoteAtCurrentTime}
-          onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(usePlaybackStore.getState().currentTime)} `)}
+          onInsertTimestamp={() => setNoteDraft(d => `${d}${d ? "\n" : ""}${formatSecondsToTimestamp(stores.playback.getState().currentTime)} `)}
           onRemoveNote={removeNote}
           onJumpToTime={(t) => { handleSeek(t); getAdapter()?.play(); }}
           onLessonChange={onLessonChange}

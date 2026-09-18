@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from "react";
+import { AUTO_QUALITY_KEY } from "../constants";
 import { useShallow } from "zustand/react/shallow";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useUIStore } from "../stores/ui-store";
-import { useSettingsStore } from "../stores/settings-store";
+import { usePlayerPlayback, usePlayerUI, usePlayerSettings } from "../stores/player-scope";
 import type {
   AudioTrack,
   BookmarkItem,
@@ -33,6 +32,8 @@ export function PlayerPanels({
   playbackRates,
   subtitleTracks,
   audioTracks,
+  selectedAudioTrack,
+  onChangeAudioTrack,
   lessons,
   lessonId,
   bookmarks,
@@ -68,6 +69,8 @@ export function PlayerPanels({
   playbackRates: number[];
   subtitleTracks: SubtitleTrack[];
   audioTracks: AudioTrack[];
+  selectedAudioTrack: string;
+  onChangeAudioTrack: (trackId: string) => void;
   lessons: LessonInfo[];
   lessonId: string;
   bookmarks: BookmarkItem[];
@@ -77,7 +80,7 @@ export function PlayerPanels({
   isNotesSyncing: boolean;
   allowAutoQuality: boolean;
   onCloseSettings: () => void;
-  onChangeQuality: (qualityId: number) => void;
+  onChangeQuality: (qualityKey: string) => void;
   onChangePlaybackRate: (rate: number) => void;
   onChangeSubtitle: (subtitleId: string) => void;
   onToggleAmbient: () => void;
@@ -106,7 +109,7 @@ export function PlayerPanels({
     isShortcutsOpen,
     isSidebarOpen,
     sidebarTab,
-  } = useUIStore(
+  } = usePlayerUI(
     useShallow((state) => ({
       isSettingsOpen: state.isSettingsOpen,
       isStatsOpen: state.isStatsOpen,
@@ -147,19 +150,21 @@ export function PlayerPanels({
   const { settings: settingsOpened, stats: statsOpened, help: helpOpened, sidebar: sidebarOpened } = nextOpenedPanels;
 
   const {
-    selectedQuality,
+    selectedQualityKey,
     selectedSubtitle,
     isAmbientMode,
     brightness,
     currentAutoQuality,
+    currentAutoBitrate,
     watchSeconds,
-  } = useSettingsStore(
+  } = usePlayerSettings(
     useShallow((state) => ({
-      selectedQuality: state.selectedQuality,
+      selectedQualityKey: state.selectedQualityKey,
       selectedSubtitle: state.selectedSubtitle,
       isAmbientMode: state.isAmbientMode,
       brightness: state.brightness,
       currentAutoQuality: state.currentAutoQuality,
+      currentAutoBitrate: state.currentAutoBitrate,
       watchSeconds: state.watchSeconds,
     }))
   );
@@ -168,7 +173,7 @@ export function PlayerPanels({
     playbackRate,
     currentTime,
     buffered,
-  } = usePlaybackStore(
+  } = usePlayerPlayback(
     useShallow((state) => ({
       playbackRate: state.playbackRate,
       currentTime: state.currentTime,
@@ -178,15 +183,19 @@ export function PlayerPanels({
 
   const isEfficiencyMode = useEfficiencyMode();
 
+  const formatBitrate = (bps: number | null | undefined) =>
+    typeof bps === "number" && bps > 0 ? ` · ${(bps / 1_000_000).toFixed(1)} Mbps` : "";
+
   const statsItems = [
     {
       label: "الجودة الحالية",
       value:
-        selectedQuality === -1
+        selectedQualityKey === AUTO_QUALITY_KEY
           ? currentAutoQuality
-            ? `${currentAutoQuality}p (تلقائي)`
+            ? `${currentAutoQuality}p (تلقائي${formatBitrate(currentAutoBitrate)})`
             : "تلقائي"
-          : qualities.find((item) => item.id === selectedQuality)?.label ?? "يدوي",
+          : (qualities.find((item) => item.key === selectedQualityKey)?.label ?? "يدوي") +
+            formatBitrate(qualities.find((item) => item.key === selectedQualityKey)?.bitrate),
     },
     { label: "زمن المشاهدة", value: formatWatchTime(watchSeconds) },
     { label: "الترجمة", value: selectedSubtitleLabel },
@@ -228,7 +237,7 @@ export function PlayerPanels({
           isEfficiencyMode={isEfficiencyMode}
           qualities={qualities}
           allowAutoQuality={allowAutoQuality}
-          selectedQuality={selectedQuality}
+          selectedQualityKey={selectedQualityKey}
           onChangeQuality={onChangeQuality}
           playbackRates={playbackRates}
           playbackRate={playbackRate}
@@ -236,6 +245,9 @@ export function PlayerPanels({
           subtitleTracks={subtitleTracks}
           selectedSubtitle={selectedSubtitle}
           onChangeSubtitle={onChangeSubtitle}
+          audioTracks={audioTracks}
+          selectedAudioTrack={selectedAudioTrack}
+          onChangeAudioTrack={onChangeAudioTrack}
           brightness={brightness}
           onChangeBrightness={onChangeBrightness}
           isAmbientMode={isAmbientMode}
@@ -254,6 +266,7 @@ export function PlayerPanels({
           isEfficiencyMode={isEfficiencyMode}
           statsItems={statsItems}
           audioTracks={audioTracks}
+          selectedAudioTrack={selectedAudioTrack}
           onCloseStats={onCloseStats}
         />
       )}

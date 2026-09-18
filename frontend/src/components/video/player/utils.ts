@@ -6,6 +6,8 @@ import {
 } from "./constants";
 import type {
   BookmarkItem,
+  PlayerError,
+  PlayerErrorCode,
   PlayerPreferences,
   ThumbnailCue,
   TimelineNote,
@@ -42,25 +44,123 @@ export function parseYouTubeId(url: string): string | null {
   return fallbackMatch?.[1] ?? null;
 }
 
-export function getProvider(videoUrl: string): VideoProvider {
+/**
+ * Explicit source metadata (P1-10). URL sniffing is a fallback only: when
+ * the backend knows the source, it should send the provider directly
+ * (custom CDNs, signed URLs, aliases and redirects all defeat guessing).
+ */
+export interface VideoSource {
+  url: string;
+  /** Explicit provider from the backend — always wins over detection. */
+  provider?: VideoProvider;
+  /** MIME / container hint, e.g. "application/x-mpegURL". */
+  contentType?: string;
+}
+
+/** Matches a hostname against an exact host or any of its subdomains. */
+function hostMatches(hostname: string, ...roots: string[]) {
+  return roots.some((root) => hostname === root || hostname.endsWith(`.${root}`));
+}
+
+function detectProviderFromUrl(videoUrl: string): VideoProvider {
   if (!videoUrl) return "unknown";
   if (parseYouTubeId(videoUrl)) return "youtube";
-  if (videoUrl.includes("bunnycdn.com") || videoUrl.includes("b-cdn.net")) {
+
+  let hostname = "";
+  let pathname = "";
+  try {
+    const parsed = new URL(videoUrl, "http://local.invalid");
+    hostname = parsed.hostname.toLowerCase();
+    pathname = parsed.pathname.toLowerCase();
+  } catch {
+    return "html5";
+  }
+
+  // Hostname-based (never substring on the raw URL — a query param like
+  // ?ref=bunnycdn.com must not flip detection).
+  if (hostMatches(hostname, "b-cdn.net", "bunnycdn.com", "bunny-stream.com")) {
     return "bunny";
   }
-  if (videoUrl.includes("cloudflarestream.com")) {
+  if (
+    hostMatches(hostname, "cloudflarestream.com", "videodelivery.net")
+  ) {
     return "cloudflare";
   }
+  if (pathname.endsWith(".m3u8")) return "html5"; // generic HLS, unknown CDN
   return "html5";
+}
+
+export function getProvider(videoUrl: string): VideoProvider {
+  return detectProviderFromUrl(videoUrl);
+}
+
+/** Explicit metadata wins; URL detection is the fallback. */
+export function resolveVideoSource(source: string | VideoSource): {
+  url: string;
+  provider: VideoProvider;
+} {
+  if (typeof source === "string") {
+    return { url: source, provider: detectProviderFromUrl(source) };
+  }
+  return {
+    url: source.url,
+    provider: source.provider ?? detectProviderFromUrl(source.url),
+  };
+}
+
+function hasHlsPath(videoUrl: string) {
+  try {
+    return new URL(videoUrl, "http://local.invalid").pathname.toLowerCase().endsWith(".m3u8");
+  } catch {
+    return false;
+  }
 }
 
 export function shouldUseHls(videoUrl: string, provider: VideoProvider) {
   if (!videoUrl) return false;
   return (
-    videoUrl.includes(".m3u8") ||
+    hasHlsPath(videoUrl) ||
     provider === "bunny" ||
     provider === "cloudflare"
   );
+}
+
+// ── Provider error mapping (P1-9) ──────────────────────────────────
+// YouTube IFrame Player API error numbers → unified PlayerErrorCode:
+//   2   invalid parameter (bad video id)        → SOURCE
+//   5   HTML5 player error                      → MEDIA
+//   100 not found / private / deleted          → SOURCE
+//   101 owner disallows embedding               → EMBED_BLOCKED
+//   150 same as 101 (kept for version compat)  → EMBED_BLOCKED
+export function mapYouTubeErrorCode(code: number | undefined): PlayerError {
+  let errorCode: PlayerErrorCode = "UNKNOWN";
+  if (code === 2 || code === 100) errorCode = "SOURCE";
+  else if (code === 5) errorCode = "MEDIA";
+  else if (code === 101 || code === 150) errorCode = "EMBED_BLOCKED";
+
+  return {
+    code: errorCode,
+    provider: "youtube",
+    nativeCode: code,
+    retryable: errorCode === "MEDIA",
+  };
+}
+
+const PLAYER_ERROR_MESSAGES: Record<PlayerErrorCode, string> = {
+  NETWORK: "انقطع الاتصال أثناء التشغيل. تحقق من الإنترنت ثم أعد المحاولة.",
+  MEDIA: "تعذر فك ترميز هذا المقطع على جهازك. أعد المحاولة.",
+  SOURCE: "هذا الفيديو غير متاح حاليًا (محذوف أو خاص).",
+  AUTH: "انتهت صلاحية الوصول لهذا الفيديو. أعد تحميل الصفحة.",
+  GEO_BLOCKED: "هذا الفيديو غير متاح في منطقتك.",
+  EMBED_BLOCKED: "مالك الفيديو منع تشغيله خارج YouTube. افتحه على YouTube مباشرة.",
+  DRM: "هذا المحتوى محمي ويتطلب متصفحًا يدعم التشغيل المحمي.",
+  AUTOPLAY: "منع المتصفح التشغيل التلقائي. اضغط تشغيل للمتابعة.",
+  UNSUPPORTED: "صيغة الفيديو غير مدعومة على هذا المتصفح.",
+  UNKNOWN: "تعذر تشغيل الفيديو الحالي.",
+};
+
+export function playerErrorMessage(error: PlayerError): string {
+  return PLAYER_ERROR_MESSAGES[error.code] ?? PLAYER_ERROR_MESSAGES.UNKNOWN;
 }
 
 export function formatDuration(totalSeconds: number) {
@@ -249,95 +349,200 @@ export function parseThumbnailVtt(
   content: string,
   vttUrl: string
 ): ThumbnailCue[] {
-  return content
-    .split(/\r?\n\r?\n/)
-    .map((block) => block.trim())
-    .filter((block) => block && !block.startsWith("WEBVTT"))
-    .map((block) => {
-      const lines = block.split(/\r?\n/).map((line) => line.trim());
-      const timeLine = lines.find((line) => line.includes("-->"));
-      const assetLine = lines[lines.length - 1];
-
-      if (!timeLine || !assetLine || assetLine.includes("-->")) {
-        return null;
-      }
-
-      const [rawStart, rawEnd] = timeLine.split("-->").map((part) => part.trim());
-      const start = parseVttTimestamp((rawStart ?? "").split(" ")[0] ?? rawStart ?? "");
-      const end = parseVttTimestamp((rawEnd ?? "").split(" ")[0] ?? rawEnd ?? "");
-
-      if (start === null || end === null) {
-        return null;
-      }
-
-      const [path, fragment] = assetLine.split("#xywh=");
-      const [x = 0, y = 0, width = 0, height = 0] = (fragment ?? "")
-        .split(",")
-        .map((value) => Number(value));
-
-      return {
-        start,
-        end,
-        imageUrl: new URL(path!, vttUrl).toString(),
-        x,
-        y,
-        width,
-        height,
-      } as ThumbnailCue;
-    })
-    .filter((cue) => cue !== null) as ThumbnailCue[];
+  // P1-22: per-cue fault isolation — one malformed cue (bad timestamp,
+  // unresolvable URL, broken sprite fragment) skips THAT cue instead of
+  // throwing the whole manifest away. The .map callback never throws.
+  const cues: ThumbnailCue[] = [];
+  for (const rawBlock of content.split(/\r?\n\r?\n/)) {
+    try {
+      const cue = parseThumbnailCue(rawBlock, vttUrl);
+      if (cue) cues.push(cue);
+    } catch {
+      continue;
+    }
+  }
+  return cues;
 }
 
-// Parses either SRT ("00:01:02,500") or VTT ("00:01:02.500") timestamps,
-// keeping sub-second precision (unlike parseVttTimestamp above, which is
-// only used for whole-second thumbnail cue alignment).
+function parseThumbnailCue(rawBlock: string, vttUrl: string): ThumbnailCue | null {
+  const block = rawBlock.trim();
+  if (!block || block.startsWith("WEBVTT")) return null;
+
+  const lines = block.split(/\r?\n/).map((line) => line.trim());
+  // Optional cue identifier: the timing line may be second.
+  const timeLine = lines.find((line) => line.includes("-->"));
+  const assetLine = lines[lines.length - 1];
+
+  if (!timeLine || !assetLine || assetLine.includes("-->")) {
+    return null;
+  }
+
+  const [rawStart, rawEnd] = timeLine.split("-->").map((part) => part.trim());
+  const start = parseVttTimestamp((rawStart ?? "").split(" ")[0] ?? rawStart ?? "");
+  const end = parseVttTimestamp((rawEnd ?? "").split(" ")[0] ?? rawEnd ?? "");
+
+  if (start === null || end === null || end <= start) {
+    return null;
+  }
+
+  const [path, fragment] = assetLine.split("#xywh=");
+  if (!path) return null;
+  let imageUrl: string;
+  try {
+    imageUrl = new URL(path, vttUrl).toString();
+  } catch {
+    return null;
+  }
+  const [x = 0, y = 0, width = 0, height = 0] = (fragment ?? "")
+    .split(",")
+    .map((value) => Number(value));
+
+  return {
+    start,
+    end,
+    imageUrl,
+    x: Number.isFinite(x) ? x : 0,
+    y: Number.isFinite(y) ? y : 0,
+    width: Number.isFinite(width) ? width : 0,
+    height: Number.isFinite(height) ? height : 0,
+  };
+}
+
+// Parses SRT ("00:01:02,500") or VTT ("00:01:02.500" / "01:02.500")
+// timestamps with sub-second precision.
+const TRANSCRIPT_STAMP_RE = /(\d{1,2}:)?(\d{1,2}):(\d{2})[.,](\d{1,3})/;
+
 function parseTranscriptTimestamp(value: string): number | null {
-  const match = /^(\d{2}):(\d{2}):(\d{2})[.,](\d{1,3})$/.exec(value.trim());
+  const match = TRANSCRIPT_STAMP_RE.exec(value.trim());
   if (!match) return null;
   const [, h, m, s, ms] = match;
   return (
-    Number(h) * 3600 +
+    (h ? Number(h) * 3600 : 0) +
     Number(m) * 60 +
     Number(s) +
     Number((ms ?? "0").padEnd(3, "0")) / 1000
   );
 }
 
+// Matches a WebVTT/SRT timing line. Cue SETTINGS after the end timestamp
+// (align:start position:0% …) are accepted and ignored — the regex anchors
+// on the two timestamps only.
+const TIMING_LINE_RE =
+  /(\d{1,2}:\d{1,2}:\d{2}[.,]\d{1,3}|\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*(\d{1,2}:\d{1,2}:\d{2}[.,]\d{1,3}|\d{1,2}:\d{2}[.,]\d{1,3})/;
+
+const HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+function decodeTranscriptEntities(text: string): string {
+  return text
+    .replace(/&#(\d{1,5});/g, (_, code: string) => {
+      const point = Number(code);
+      return Number.isSafeInteger(point) ? String.fromCodePoint(point) : "";
+    })
+    .replace(/&#x([0-9a-fA-F]{1,6});/g, (_, hex: string) =>
+      String.fromCodePoint(parseInt(hex, 16))
+    )
+    .replace(/&([a-zA-Z]+);/g, (full, name: string) => HTML_ENTITIES[name] ?? full);
+}
+
 /**
- * Parses an SRT or VTT transcript file into timed cues. Accepts both
- * formats since the admin upload endpoint stores whichever the instructor
- * provides — the two only differ in header, index-line, and ms separator.
+ * Parser-aware payload cleaning (P1-21): NOT a blind /<[^>]+>/ strip.
+ * - Voice tags `<v Speaker>…</v>` → inner speech (speaker name dropped).
+ * - Timestamp tags `<00:01.000>` → removed.
+ * - Styling tags `<b> <i> <u> <c.colorE> <ruby>…` → inner text kept.
+ * - A literal "<3" or "a < b" (no valid tag shape) is preserved as text.
+ */
+function cleanCuePayload(raw: string): string {
+  let text = raw.replace(/<v\s+[^>]*>([\s\S]*?)<\/v\s*>/gi, "$1");
+  text = text.replace(/<\d{1,2}:\d{2}(?::\d{2})?[.,]\d{1,3}>/g, "");
+  text = text.replace(/<\/?[a-zA-Z][^<>]*>/g, "");
+  text = decodeTranscriptEntities(text);
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Production-grade SRT/VTT cue parser (P1-21).
+ *
+ * Timing-line driven (not blank-line driven), so it recovers from:
+ * - WEBVTT header + metadata, STYLE / REGION / NOTE blocks
+ * - Cue identifiers (SRT numeric indexes, WebVTT string ids)
+ * - Missing blank lines between cues (a new timing line ends the payload)
+ * - Malformed cues (skipped individually — one bad cue never kills the file)
+ * - Overlapping cues (accepted as-is; renderers pick by currentTime)
+ * - garbage lines anywhere (skipped, scanning resumes at the next line)
  */
 export function parseTranscript(content: string): TranscriptCue[] {
-  const body = content.trim().startsWith("WEBVTT")
-    ? content.replace(/^WEBVTT.*?\r?\n/, "")
-    : content;
+  if (!content || !content.trim()) return [];
+  const lines = content.replace(/^\uFEFF/, "").split(/\r\n|\r|\n/);
+  const cues: TranscriptCue[] = [];
 
-  return body
-    .split(/\r?\n\r?\n+/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-    .map((block, index) => {
-      const lines = block.split(/\r?\n/);
-      const timeLineIndex = lines.findIndex((line) => line.includes("-->"));
-      if (timeLineIndex === -1) return null;
+  const collectFrom = (timingIndex: number): number => {
+    const timing = TIMING_LINE_RE.exec(lines[timingIndex]!.trim());
+    if (!timing) return timingIndex + 1;
+    const start = parseTranscriptTimestamp(timing[1] ?? "");
+    const end = parseTranscriptTimestamp(timing[2] ?? "");
+    // Malformed timing (end <= start, unparseable) → skip this cue only.
+    if (start === null || end === null || end <= start) {
+      return timingIndex + 1;
+    }
+    const payload: string[] = [];
+    let j = timingIndex + 1;
+    while (j < lines.length) {
+      const text = lines[j]!.trim();
+      // Blank line ends the cue; a fresh timing line (or identifier +
+      // timing) starts the next one even without a blank separator.
+      if (text === "") return pushCue(cues, start, end, payload) && j + 1;
+      if (TIMING_LINE_RE.test(text)) break;
+      const peek = j + 1 < lines.length ? lines[j + 1]!.trim() : "";
+      if (peek !== "" && TIMING_LINE_RE.test(peek)) break; // identifier line
+      payload.push(lines[j]!);
+      j += 1;
+    }
+    pushCue(cues, start, end, payload);
+    return j;
+  };
 
-      const timeLine = lines[timeLineIndex]!;
-      const [rawStart, rawEnd] = timeLine.split("-->").map((part) => part.trim());
-      const start = parseTranscriptTimestamp((rawStart ?? "").split(" ")[0] ?? "");
-      const end = parseTranscriptTimestamp((rawEnd ?? "").split(" ")[0] ?? "");
-      if (start === null || end === null) return null;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i]!.trim();
+    if (line === "" || /^WEBVTT(\s|$)/i.test(line) || line === "STYLE" || line === "REGION") {
+      i += 1;
+      continue;
+    }
+    if (/^NOTE(\s|$)/.test(line)) {
+      // NOTE blocks run to the next blank line (or a timing line, defensively).
+      i += 1;
+      while (i < lines.length && lines[i]!.trim() !== "" && !TIMING_LINE_RE.test(lines[i]!.trim())) i += 1;
+      continue;
+    }
+    if (TIMING_LINE_RE.test(line)) {
+      i = collectFrom(i);
+      continue;
+    }
+    // Possible cue identifier: only consume it when a timing line follows.
+    const next = i + 1 < lines.length ? lines[i + 1]!.trim() : "";
+    if (next !== "" && TIMING_LINE_RE.test(next)) {
+      i = collectFrom(i + 1);
+      continue;
+    }
+    i += 1; // garbage / orphan text — skip one line, keep scanning
+  }
+  return cues;
+}
 
-      const text = lines
-        .slice(timeLineIndex + 1)
-        .join(" ")
-        .replace(/<[^>]+>/g, "") // strip VTT inline styling tags
-        .trim();
-      if (!text) return null;
-
-      return { id: `cue-${index}-${start}`, start, end, text } as TranscriptCue;
-    })
-    .filter((cue): cue is TranscriptCue => cue !== null);
+/** Cleans + pushes one cue; returns true (lets callers chain in `return … && next`). */
+function pushCue(cues: TranscriptCue[], start: number, end: number, payload: string[]): true {
+  const text = cleanCuePayload(payload.join("\n"));
+  if (text) {
+    cues.push({ id: `cue-${cues.length}-${start}`, start, end, text });
+  }
+  return true;
 }
 
 export function getThumbnailCueAtTime(cues: ThumbnailCue[], time: number) {

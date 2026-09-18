@@ -1,5 +1,7 @@
-import { useCallback, type MutableRefObject } from "react";
+import { useCallback, useRef, type MutableRefObject } from "react";
 import type { YouTubeRuntimePlayer, VideoProvider } from "../types";
+
+export type LoopRange = { start: number; end: number };
 
 type PlayerAdapter = {
   canUsePip: boolean;
@@ -12,6 +14,15 @@ type PlayerAdapter = {
   setMuted: (muted: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setVolume: (volume: number) => void;
+  // ── A-B loop is engine-owned (P1-17) ──────────────────────────
+  // The adapter holds the range; the per-frame sync loop enforces it for
+  // EVERY provider (HTML5 seek and YouTube seekTo alike). Precision comes
+  // from the rAF loop, not from 4Hz timeupdate events. The zustand
+  // loopStart/loopEnd fields are a DISPLAY mirror only (timeline region,
+  // button state) — enforcement never reads them.
+  setLoopRange: (start: number, end: number) => void;
+  getLoopRange: () => LoopRange | null;
+  clearLoop: () => void;
 };
 
 type PlayerAdapterOptions = {
@@ -25,12 +36,32 @@ export function usePlayerAdapter({
   videoRef,
   youtubePlayerRuntimeRef,
 }: PlayerAdapterOptions) {
+  // Engine-owned loop state: lives here (not in the store) so it survives
+  // adapter object recreation and stays provider-agnostic.
+  const loopRef = useRef<LoopRange | null>(null);
+
+  const setLoopRange = useCallback((start: number, end: number) => {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0) return;
+    // end <= start is the "A set, waiting for B" pending state — stored but
+    // never enforced until B lands past A.
+    loopRef.current = { start, end };
+  }, []);
+
+  const getLoopRange = useCallback((): LoopRange | null => loopRef.current, []);
+
+  const clearLoop = useCallback(() => {
+    loopRef.current = null;
+  }, []);
+
+  const loopControls = { setLoopRange, getLoopRange, clearLoop };
+
   return useCallback((): PlayerAdapter | null => {
     if (provider === "youtube") {
       const player = youtubePlayerRuntimeRef.current;
       if (!player) return null;
 
       return {
+        ...loopControls,
         canUsePip: false,
         getBuffered: () => 0,
         getCurrentTime: () => player.getCurrentTime() || 0,
@@ -60,6 +91,7 @@ export function usePlayerAdapter({
     if (!video) return null;
 
     return {
+      ...loopControls,
       canUsePip:
         Boolean(document.pictureInPictureEnabled) &&
         typeof video.requestPictureInPicture === "function",
@@ -82,5 +114,6 @@ export function usePlayerAdapter({
         video.volume = nextVolume;
       },
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loopControls are stable useCallbacks
   }, [provider, videoRef, youtubePlayerRuntimeRef]);
 }

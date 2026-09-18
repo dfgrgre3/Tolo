@@ -1,10 +1,10 @@
   "use client";
 
-import { useSettingsStore } from "../stores/settings-store";
+import { usePlayerSettings } from "../stores/player-scope";
 import { WATERMARK_POSITIONS } from "../constants";
 
 export function PlayerWatermark({ text }: { text: string }) {
-  const watermarkIndex = useSettingsStore((state) => state.watermarkIndex);
+  const watermarkIndex = usePlayerSettings((state) => state.watermarkIndex);
   const position = WATERMARK_POSITIONS[watermarkIndex] || WATERMARK_POSITIONS[0];
 
   return (

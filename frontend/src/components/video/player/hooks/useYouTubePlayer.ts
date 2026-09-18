@@ -75,7 +75,8 @@ type UseYouTubePlayerOptions = {
   playerRef?: MutableRefObject<YouTubeRuntimePlayer | null>;
   onReady?: (player: YouTubeRuntimePlayer, api: YouTubeNamespace) => void;
   onStateChange?: (state: number, player: YouTubeRuntimePlayer, api: YouTubeNamespace) => void;
-  onError?: () => void;
+  /** Receives the IFrame API error number (2/5/100/101/150). */
+  onError?: (code?: number) => void;
 };
 
 export function useYouTubePlayer({
@@ -163,13 +164,15 @@ export function useYouTubePlayer({
               if (!player) return;
               callbacksRef.current.onStateChange?.(event.data, player, api);
             },
-            onError: () => {
-              callbacksRef.current.onError?.();
+            onError: (event: { data: number }) => {
+              callbacksRef.current.onError?.(event?.data);
             },
           },
         });
       })
       .catch(() => {
+        // SDK load failure (offline / blocked): surface as a NETWORK error
+        // via undefined code → UNKNOWN would mislead, so map explicitly.
         callbacksRef.current.onError?.();
       });
 

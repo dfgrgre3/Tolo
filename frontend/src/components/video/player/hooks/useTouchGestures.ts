@@ -1,8 +1,6 @@
 import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
-import { SEEK_STEP_SECONDS } from "../constants";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useSettingsStore } from "../stores/settings-store";
-import { useUIStore } from "../stores/ui-store";
+import { SEEK_STEP_SECONDS, TEMPORARY_SPEED_RATE } from "../constants";
+import { usePlayerPlayback, usePlayerSettings, usePlayerUI } from "../stores/player-scope";
 import { clamp } from "../utils";
 
 type TouchGestureState = {
@@ -18,6 +16,15 @@ type TouchGesturesOptions = {
   seekBy: (seconds: number) => void;
   handleVolumeChange: (volume: number) => void;
   resetControlsTimeout: () => void;
+  /**
+   * Player COMMAND (not a store mutation): drives the adapter AND the store
+   * together so UI state can never diverge from the real media element.
+   * Returns false when the rate can't be applied (e.g. unsupported on
+   * YouTube) — the gesture then shows nothing instead of a fake 2x badge.
+   */
+  beginTemporaryRate: (rate: number) => boolean;
+  /** Restores the pre-gesture rate via adapter + store. No-op when inactive. */
+  endTemporaryRate: () => void;
 };
 
 export function useTouchGestures({
@@ -25,20 +32,20 @@ export function useTouchGestures({
   seekBy,
   handleVolumeChange,
   resetControlsTimeout,
+  beginTemporaryRate,
+  endTemporaryRate,
 }: TouchGesturesOptions) {
-  const volume = usePlaybackStore((s) => s.volume);
-  const playbackRate = usePlaybackStore((s) => s.playbackRate);
-  const setPlaybackState = usePlaybackStore((s) => s.setPlaybackState);
-  const brightness = useSettingsStore((s) => s.brightness);
-  const setSettingsState = useSettingsStore((s) => s.setSettingsState);
-  const showControls = useUIStore((s) => s.showControls);
+  const volume = usePlayerPlayback((s) => s.volume);
+  const brightness = usePlayerSettings((s) => s.brightness);
+  const setSettingsState = usePlayerSettings((s) => s.setSettingsState);
+  const showControls = usePlayerUI((s) => s.showControls);
   const [gestureActiveMode, setGestureActiveMode] = useState<"volume" | "brightness" | "seek" | "speed" | null>(null);
   const [gestureValue, setGestureValue] = useState<number | string>(0);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
   const lastTapRef = useRef<{ timestamp: number; x: number } | null>(null);
   const feedbackHideTimeoutRef = useRef<number | null>(null);
   const longPressTimeoutRef = useRef<number | null>(null);
-  const originalRateRef = useRef<number>(1);
+  const tempSpeedActiveRef = useRef(false);
 
   const handleSurfaceTap = useCallback(
     async (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -104,16 +111,18 @@ export function useTouchGestures({
         moved: false,
       };
 
-      // Long press for 2x speed
+      // Long press for temporary speed: a PLAYER COMMAND (adapter + store),
+      // never a bare store mutation — the badge must reflect the real rate.
       if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
       longPressTimeoutRef.current = window.setTimeout(() => {
-        originalRateRef.current = playbackRate;
-        setPlaybackState({ playbackRate: 2 });
-        setGestureActiveMode("speed");
-        setGestureValue("2");
+        if (beginTemporaryRate(TEMPORARY_SPEED_RATE)) {
+          tempSpeedActiveRef.current = true;
+          setGestureActiveMode("speed");
+          setGestureValue(`${TEMPORARY_SPEED_RATE}x`);
+        }
       }, 500);
     },
-    [brightness, seekBy, setPlaybackState, volume, playbackRate]
+    [beginTemporaryRate, brightness, seekBy, volume]
   );
 
   const handleTouchMove = useCallback(
@@ -170,8 +179,9 @@ export function useTouchGestures({
       longPressTimeoutRef.current = null;
     }
 
-    if (playbackRate === 2 && originalRateRef.current !== 2) {
-      setPlaybackState({ playbackRate: originalRateRef.current });
+    if (tempSpeedActiveRef.current) {
+      tempSpeedActiveRef.current = false;
+      endTemporaryRate();
       setGestureActiveMode(null);
     }
 
@@ -187,7 +197,7 @@ export function useTouchGestures({
     }
 
     touchGestureRef.current = null;
-  }, [playbackRate, setPlaybackState]);
+  }, [endTemporaryRate]);
 
   return {
     handleSurfaceTap,

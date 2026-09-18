@@ -3,9 +3,19 @@
  * @module video/player/stores
  */
 
-export { usePlaybackStore } from "./playback-store";
-export { useUIStore } from "./ui-store";
-export { useSettingsStore } from "./settings-store";
+export { usePlaybackStore, createPlaybackStoreInstance } from "./playback-store";
+export { useUIStore, createUIStoreInstance } from "./ui-store";
+export { useSettingsStore, createSettingsStoreInstance } from "./settings-store";
+export {
+  PlayerScopeProvider,
+  createPlayerScope,
+  usePlayerScope,
+  usePlayerStores,
+  usePlayerPlayback,
+  usePlayerUI,
+  usePlayerSettings,
+} from "./player-scope";
+export type { PlayerScopeValue } from "./player-scope";
 
 // Re-export types for convenience
 export type { PlaybackStore } from "./playback-store";

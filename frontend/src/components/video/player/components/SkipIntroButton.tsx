@@ -4,7 +4,7 @@ import { memo } from "react";
 import { SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BookmarkItem } from "../types";
-import { usePlaybackStore } from "../stores/playback-store";
+import { usePlayerPlayback } from "../stores/player-scope";
 
 type SkipIntroButtonProps = {
   markers: BookmarkItem[];
@@ -12,7 +12,7 @@ type SkipIntroButtonProps = {
 };
 
 export const SkipIntroButton = memo(({ markers, onSkip }: SkipIntroButtonProps) => {
-  const currentTime = usePlaybackStore((state) => state.currentTime);
+  const currentTime = usePlayerPlayback((state) => state.currentTime);
 
   const activeMarker = markers.find(m => {
     const label = m.label.toLowerCase();

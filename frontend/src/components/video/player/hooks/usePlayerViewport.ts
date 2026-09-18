@@ -1,29 +1,30 @@
 import { useCallback, useRef, type PointerEvent } from "react";
 import { clamp } from "../utils";
-import { useSettingsStore } from "../stores/settings-store";
+import { usePlayerSettings, usePlayerStores } from "../stores/player-scope";
 
 /** Owns pointer-based panning while the player is zoomed. */
 export function usePlayerViewport() {
-  const setSettingsState = useSettingsStore((state) => state.setSettingsState);
+  const setSettingsState = usePlayerSettings((state) => state.setSettingsState);
+  const stores = usePlayerStores();
   const isPanningRef = useRef(false);
   const startPanRef = useRef({ x: 0, y: 0 });
 
   const handlePointerDown = useCallback((event: PointerEvent<HTMLButtonElement>) => {
-    const state = useSettingsStore.getState();
+    const state = stores.settings.getState();
     if (state.zoomFactor <= 1) return;
     isPanningRef.current = true;
     startPanRef.current = { x: event.clientX - state.panOffset.x, y: event.clientY - state.panOffset.y };
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, []);
+  }, [stores]);
 
   const handlePointerMove = useCallback((event: PointerEvent<HTMLButtonElement>) => {
     if (!isPanningRef.current) return;
-    const state = useSettingsStore.getState();
+    const state = stores.settings.getState();
     setSettingsState({ panOffset: {
       x: clamp(event.clientX - startPanRef.current.x, -(state.zoomFactor - 1) * 350, (state.zoomFactor - 1) * 350),
       y: clamp(event.clientY - startPanRef.current.y, -(state.zoomFactor - 1) * 200, (state.zoomFactor - 1) * 200),
     } });
-  }, [setSettingsState]);
+  }, [setSettingsState, stores]);
 
   const handlePointerUp = useCallback((event: PointerEvent<HTMLButtonElement>) => {
     if (!isPanningRef.current) return;

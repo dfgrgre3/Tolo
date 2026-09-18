@@ -132,6 +132,15 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
   const csrf = request.headers.get('x-csrf-token');
   if (csrf) headers['X-CSRF-Token'] = csrf;
 
+  // Forward the caller's idempotency key verbatim (progress heartbeats,
+  // completion commands, question attempts). The proxy must never mint or
+  // rotate it: the key is the dedupe identity, and any rewrite would turn
+  // a safe retry into a double-counted write on the Go backend. Validated
+  // as opaque ASCII (UUID / session:sequence); rejected values are dropped
+  // rather than forwarded.
+  const idem = request.headers.get('idempotency-key');
+  if (idem && /^[\x20-\x7E]{1,128}$/.test(idem)) headers['Idempotency-Key'] = idem;
+
   // Forward content type
   const ct = request.headers.get('content-type');
   if (ct) headers['Content-Type'] = ct;

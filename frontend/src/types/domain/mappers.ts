@@ -334,7 +334,17 @@ export function toLearningLesson(raw: SubTopic & Record<string, unknown>): Learn
     attachments,
     examId: raw.examId ?? null,
     interactiveQuestions: Array.isArray(raw.interactiveQuestions)
-      ? (raw.interactiveQuestions as InteractiveQuestion[])
+      // Server-trust sanitization: an embedded answer key is honored ONLY
+      // for explicitly formative questions. Anything else drops the key so
+      // the player resolves to server-validated mode (the stripped server
+      // list is authoritative; see lib/lesson-questions.ts).
+      ? (raw.interactiveQuestions as InteractiveQuestion[]).map((q) => {
+          if (!q || typeof q !== "object") return q;
+          if ((q as { validation?: string }).validation === "formative") return q;
+          if ((q as { correctOptionIndex?: unknown }).correctOptionIndex === undefined) return q;
+          const { correctOptionIndex: _dropped, ...rest } = q as InteractiveQuestion & { correctOptionIndex?: unknown };
+          return rest as InteractiveQuestion;
+        })
       : undefined,
   };
 }

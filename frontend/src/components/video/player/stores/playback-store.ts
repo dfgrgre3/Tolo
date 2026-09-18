@@ -3,7 +3,7 @@
  * @module video/player/stores/playback-store
  */
 
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
 interface PlaybackState {
@@ -98,3 +98,51 @@ export const usePlaybackStore = create<PlaybackStore>()(
     setPlaybackRate: (playbackRate) => set({ playbackRate }),
   }))
 );
+
+/**
+ * Player-scoped factory (P0 fix): creates an isolated playback store per
+ * player instance so two <CourseVideoPlayer/> on the same page never share
+ * currentTime / volume / isPlaying / activeQuestionId / loop state.
+ * Prefer this inside <PlayerScopeProvider/>; the singleton above remains
+ * only as a legacy fallback for unmigrated call sites.
+ */
+export function createPlaybackStoreInstance(
+  initial?: Partial<PlaybackState>
+): StoreApi<PlaybackStore> {
+  return create<PlaybackStore>()(
+    subscribeWithSelector((set) => ({
+      ...createDefaultPlaybackState(),
+      ...initial,
+
+      setPlaybackState: (partial) =>
+        set((state) => ({
+          ...(typeof partial === "function" ? partial(state) : partial),
+        })),
+
+      resetPlaybackState: (partial) =>
+        set(() => ({
+          ...createDefaultPlaybackState(),
+          ...initial,
+          ...partial,
+        })),
+
+      addAnsweredQuestion: (questionId) =>
+        set((state) => ({
+          answeredQuestionIds: [...state.answeredQuestionIds, questionId],
+        })),
+
+      setCurrentTime: (currentTime) => set({ currentTime }),
+      setDuration: (duration) => set({ duration }),
+      setBuffered: (buffered) => set({ buffered }),
+
+      togglePlayPause: (isPlaying) =>
+        set((state) => ({
+          isPlaying: isPlaying !== undefined ? isPlaying : !state.isPlaying,
+        })),
+
+      setVolume: (volume) => set({ volume }),
+      setMuted: (isMuted) => set({ isMuted }),
+      setPlaybackRate: (playbackRate) => set({ playbackRate }),
+    }))
+  );
+}

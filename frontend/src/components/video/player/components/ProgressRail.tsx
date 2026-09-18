@@ -14,7 +14,7 @@ import {
   clamp,
   formatDuration,
 } from "../utils";
-import { usePlaybackStore } from "../stores/playback-store";
+import { usePlayerPlayback } from "../stores/player-scope";
 import { cn } from "@/lib/utils";
 
 // Double-tap for speed control (mobile-focused)
@@ -36,7 +36,7 @@ export const ProgressRail = memo(function ProgressRail({
   interactiveQuestions?: InteractiveQuestion[];
   onSeek: (value: number) => void;
 }) {
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  const currentTime = usePlayerPlayback((s) => s.currentTime);
   const railRef = useRef<HTMLDivElement>(null);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
   const [previewPercent, setPreviewPercent] = useState(0);
@@ -46,8 +46,8 @@ export const ProgressRail = memo(function ProgressRail({
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
   const [showDoubleTapHint, setShowDoubleTapHint] = useState(false);
 
-  const loopStart = usePlaybackStore((s) => s.loopStart);
-  const loopEnd = usePlaybackStore((s) => s.loopEnd);
+  const loopStart = usePlayerPlayback((s) => s.loopStart);
+  const loopEnd = usePlayerPlayback((s) => s.loopEnd);
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPercent = duration > 0 ? (buffered / duration) * 100 : 0;

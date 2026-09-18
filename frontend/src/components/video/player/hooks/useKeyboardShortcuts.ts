@@ -1,7 +1,6 @@
 import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { SEEK_STEP_SECONDS, PLAYBACK_RATES } from "../constants";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useUIStore } from "../stores/ui-store";
+import { usePlayerPlayback, usePlayerUI } from "../stores/player-scope";
 
 type KeyboardShortcutsOptions = {
   togglePlayPause: () => | Promise<void>;
@@ -26,9 +25,9 @@ export function useKeyboardShortcuts({
   toggleMute, toggleFullscreen, togglePip, onToggleTheater, changeSubtitle,
   toggleLoop, setOpenPanel, getDuration, subtitleTracks, selectedSubtitle,
 }: KeyboardShortcutsOptions) {
-  const volume = usePlaybackStore((s) => s.volume);
-  const playbackRate = usePlaybackStore((s) => s.playbackRate);
-  const setUIState = useUIStore((s) => s.setUIState);
+  const volume = usePlayerPlayback((s) => s.volume);
+  const playbackRate = usePlayerPlayback((s) => s.playbackRate);
+  const setUIState = usePlayerUI((s) => s.setUIState);
 
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {

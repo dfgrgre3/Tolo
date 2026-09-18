@@ -117,6 +117,10 @@ export const apiRoutes = {
     lessonNotes: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     createNote: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     lessonQuestions: (lessonId: string) => `/api/courses/lessons/${lessonId}/questions`,
+    answerLessonQuestion: (lessonId: string, questionId: string) =>
+      `/api/courses/lessons/${lessonId}/questions/${questionId}/answer`,
+    lessonInteractiveQuestions: (lessonId: string) =>
+      `/api/courses/lessons/${lessonId}/interactive-questions`,
     lessonTranscript: (lessonId: string) => `/api/courses/lessons/${lessonId}/transcript`,
     quizzes: (id: string) => `/api/courses/${id}/quizzes`,
     lessonQuizzes: (courseId: string, lessonId: string) => `/api/courses/${courseId}/lessons/${lessonId}/quizzes`,

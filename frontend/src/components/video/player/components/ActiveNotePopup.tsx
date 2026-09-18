@@ -2,14 +2,14 @@
 
 import { StickyNote, Clock3 } from "lucide-react";
 import { formatDuration } from "../utils";
-import { usePlaybackStore } from "../stores/playback-store";
+import { usePlayerPlayback } from "../stores/player-scope";
 
 interface ActiveNotePopupProps {
   notes: Array<{ time: number; text: string }>;
 }
 
 export function ActiveNotePopup({ notes }: ActiveNotePopupProps) {
-  const currentTime = usePlaybackStore((state) => state.currentTime);
+  const currentTime = usePlayerPlayback((state) => state.currentTime);
   const activeNote = notes.find(n => Math.abs(n.time - currentTime) < 2);
   
   const visible = !!activeNote;

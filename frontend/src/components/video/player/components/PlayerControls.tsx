@@ -1,4 +1,5 @@
 import {
+  Camera,
   FileText,
   Keyboard,
   ListVideo,
@@ -8,6 +9,7 @@ import {
   Pause,
   PictureInPicture2,
   Play,
+  Repeat,
   Settings2,
   SkipBack,
   SkipForward,
@@ -18,8 +20,7 @@ import {
   Cast,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { usePlaybackStore } from "../stores/playback-store";
-import { useUIStore } from "../stores/ui-store";
+import { usePlayerPlayback, usePlayerUI } from "../stores/player-scope";
 import type { BookmarkItem, ThumbnailCue, TimelineNote, InteractiveQuestion } from "../types";
 import { formatDuration } from "../utils";
 import { IconButton } from "./IconButton";
@@ -110,7 +111,7 @@ export function PlayerControls({
   canCast = false, isCasting = false, onToggleCast,
   onSeek, onSeekBy, onTogglePlayPause, onToggleMute, onVolumeChange, onOpenHelp,
   onToggleTheater, onTogglePip, onToggleSidebar, onToggleFullscreen, onToggleSettings,
-  onToggleLoop: _onToggleLoop, onCaptureFrame: _onCaptureFrame, interactiveQuestions = [],
+  onToggleLoop, onCaptureFrame, canCaptureFrame = true, interactiveQuestions = [],
 }: {
   markers: BookmarkItem[];
   thumbnails: ThumbnailCue[];
@@ -136,11 +137,14 @@ export function PlayerControls({
   onToggleSettings: () => void;
   onToggleLoop: () => void;
   onCaptureFrame: () => void;
+  /** False for providers where frame capture can't work (YouTube). */
+  canCaptureFrame?: boolean;
   interactiveQuestions?: InteractiveQuestion[];
 }) {
   const {
     duration, buffered, isPlaying, isMuted, volume, playbackRate, currentTime,
-  } = usePlaybackStore(
+    loopStart, loopEnd,
+  } = usePlayerPlayback(
     useShallow((state) => ({
       duration: state.duration, buffered: state.buffered,
       isPlaying: state.isPlaying, isMuted: state.isMuted, volume: state.volume,
@@ -151,7 +155,7 @@ export function PlayerControls({
 
   const {
     isPip, isFullscreen, isSettingsOpen, isSidebarOpen, showControls,
-  } = useUIStore(
+  } = usePlayerUI(
     useShallow((state) => ({
       isPip: state.isPip, isFullscreen: state.isFullscreen,
       isSettingsOpen: state.isSettingsOpen, isSidebarOpen: state.isSidebarOpen,
@@ -160,12 +164,21 @@ export function PlayerControls({
   );
 
   const isEfficiencyMode = useEfficiencyMode();
+
+  // P1-19: discoverable A-B loop control. Three visible states:
+  // none → "A" (set start) → "B" (set end, loop active) → clear.
+  const loopLabel =
+    loopStart === null
+      ? "تكرار مقطع (A-B): تحديد البداية"
+      : loopEnd === null
+        ? "تكرار مقطع (A-B): تحديد النهاية"
+        : "إيقاف التكرار (A-B مفعّل)";
+  const loopActive = loopStart !== null;
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    const currentVol = usePlaybackStore.getState().volume;
-    onVolumeChange(Math.min(1, Math.max(0, currentVol + delta)));
-  }, [onVolumeChange]);
+    onVolumeChange(Math.min(1, Math.max(0, volume + delta)));
+  }, [onVolumeChange, volume]);
 
   return (
     <div
@@ -210,6 +223,10 @@ export function PlayerControls({
           <PlaybackInfo duration={duration} playbackRate={playbackRate} currentTime={currentTime} />
           <div className="flex items-center gap-2 sm:gap-1.5">
             <IconButton icon={Keyboard} label="اختصارات لوحة المفاتيح" onClick={onOpenHelp} className="h-12 w-12 sm:h-11 sm:w-11" />
+            <IconButton icon={Repeat} label={loopLabel} active={loopActive} onClick={onToggleLoop} className="h-12 w-12 sm:h-11 sm:w-11" />
+            {canCaptureFrame && (
+              <IconButton icon={Camera} label="التقاط لقطة من الفيديو" onClick={onCaptureFrame} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
+            )}
             <IconButton icon={Monitor} label="الوضع المسرحي" active={isTheaterMode} onClick={onToggleTheater} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
             <IconButton icon={PictureInPicture2} label="نافذة عائمة" active={isPip} disabled={!canUsePip} onClick={onTogglePip} className="hidden h-12 w-12 sm:inline-flex sm:h-11 sm:w-11" />
             {canUseAirPlay && (

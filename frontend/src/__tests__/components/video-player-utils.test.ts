@@ -3,6 +3,9 @@ import {
   clamp,
   parseYouTubeId,
   getProvider,
+  resolveVideoSource,
+  mapYouTubeErrorCode,
+  playerErrorMessage,
   shouldUseHls,
   formatDuration,
   formatWatchTime,
@@ -82,14 +85,48 @@ describe("getProvider", () => {
 
   it("detects cloudflare stream", () => {
     expect(getProvider("https://customer-x.cloudflarestream.com/abc/manifest/video.m3u8")).toBe("cloudflare");
+    expect(getProvider("https://customer-x.videodelivery.net/abc/manifest/video.m3u8")).toBe("cloudflare");
   });
 
   it("falls back to html5 for plain video files", () => {
     expect(getProvider("https://storage.example.com/lesson.mp4")).toBe("html5");
   });
 
+  it("ignores provider names inside query params (P1-10)", () => {
+    expect(getProvider("https://storage.example.com/lesson.mp4?ref=bunnycdn.com")).toBe("html5");
+    expect(getProvider("https://storage.example.com/video.m3u8?token=abc")).toBe("html5");
+  });
+
   it("returns unknown for empty input", () => {
     expect(getProvider("")).toBe("unknown");
+  });
+});
+
+describe("resolveVideoSource (P1-10)", () => {
+  it("explicit provider metadata wins over detection", () => {
+    expect(resolveVideoSource({ url: "https://cdn.custom.com/lesson.m3u8", provider: "bunny" }))
+      .toEqual({ url: "https://cdn.custom.com/lesson.m3u8", provider: "bunny" });
+  });
+
+  it("falls back to detection for plain urls", () => {
+    expect(resolveVideoSource("https://youtu.be/abc")).toEqual({ url: "https://youtu.be/abc", provider: "youtube" });
+  });
+});
+
+describe("mapYouTubeErrorCode (P1-9)", () => {
+  it("maps embed blocks, missing sources and media failures", () => {
+    expect(mapYouTubeErrorCode(101).code).toBe("EMBED_BLOCKED");
+    expect(mapYouTubeErrorCode(150).code).toBe("EMBED_BLOCKED");
+    expect(mapYouTubeErrorCode(100).code).toBe("SOURCE");
+    expect(mapYouTubeErrorCode(5).code).toBe("MEDIA");
+    expect(mapYouTubeErrorCode(999).code).toBe("UNKNOWN");
+    expect(mapYouTubeErrorCode(undefined).code).toBe("UNKNOWN");
+  });
+
+  it("produces a non-empty Arabic message for every code", () => {
+    for (const code of [2, 5, 100, 101, 150, 999, undefined] as const) {
+      expect(playerErrorMessage(mapYouTubeErrorCode(code)).length).toBeGreaterThan(0);
+    }
   });
 });
 
