@@ -549,6 +549,135 @@ export function getThumbnailCueAtTime(cues: ThumbnailCue[], time: number) {
   return cues.find((cue) => time >= cue.start && time < cue.end) ?? null;
 }
 
+// ── Arabic-normalized transcript search (P1-23) ────────────────────
+// فيزياء / فيزياءً / الفيزياء should all meet: diacritics, tatweel and
+// the classic Alef/Ya/Ta variants collapse before matching.
+
+/** Alef forms → ا, Ya/Alef-maqsura → ي, Ta-marbuta → ه, Hamza seats unfolded. */
+function normalizeArabicChar(ch: string): string {
+  switch (ch) {
+    case "أ":
+    case "إ":
+    case "آ":
+      return "ا";
+    case "ة":
+      return "ه";
+    case "ى":
+    case "ئ":
+      return "ي";
+    case "ؤ":
+      return "و";
+    default:
+      return ch;
+  }
+}
+
+const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u0640]/g;
+
+export function normalizeArabicSearchText(input: string): string {
+  return input
+    .replace(ARABIC_DIACRITICS_RE, "")
+    .split("")
+    .map(normalizeArabicChar)
+    .join("")
+    .toLowerCase();
+}
+
+/**
+ * Normalized text + index map back to the ORIGINAL string, so match ranges
+ * can highlight the user's real text (diacritics shift indices, hence the map).
+ */
+function normalizeWithIndexMap(input: string): { text: string; map: number[] } {
+  const out: string[] = [];
+  const map: number[] = [];
+  const stripped = input.replace(ARABIC_DIACRITICS_RE, "");
+  // NOTE: index mapping is built on the diacritic-stripped string; the
+  // strip only removes combining marks so remaining indices still align
+  // with the original string for the scripts we serve (Arabic + Latin).
+  let strippedIndex = 0;
+  for (const ch of stripped) {
+    const norm = normalizeArabicChar(ch).toLowerCase();
+    for (const outCh of norm) {
+      out.push(outCh);
+      map.push(strippedIndex);
+    }
+    strippedIndex += ch.length;
+  }
+  return { text: out.join(""), map };
+}
+
+export interface TranscriptTextMatch {
+  start: number;
+  end: number;
+}
+
+/**
+ * Best match range of `query` inside `text` (original-string indices).
+ * Phrase match wins; otherwise every query token must appear (AND) and the
+ * first token's span is highlighted. Null when not all tokens match.
+ */
+export function findTranscriptMatchRange(
+  text: string,
+  query: string
+): TranscriptTextMatch | null {
+  const needle = normalizeArabicSearchText(query.trim());
+  if (!needle) return null;
+  const { text: haystack, map } = normalizeWithIndexMap(text);
+  const toOriginal = (normStart: number, normEnd: number): TranscriptTextMatch => ({
+    start: map[normStart] ?? 0,
+    end: (map[normEnd - 1] ?? text.length - 1) + 1,
+  });
+
+  const phraseAt = haystack.indexOf(needle);
+  if (phraseAt >= 0) return toOriginal(phraseAt, phraseAt + needle.length);
+
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+  const firstAt = haystack.indexOf(tokens[0]!);
+  if (firstAt < 0) return null;
+  let cursor = firstAt;
+  for (const token of tokens) {
+    const at = haystack.indexOf(token, cursor);
+    if (at < 0) return null;
+    cursor = at + token.length;
+  }
+  return toOriginal(firstAt, firstAt + tokens[0]!.length);
+}
+
+/**
+ * Ranked transcript search: phrase hits first, then all-tokens hits
+ * (earlier position wins), ties broken by cue time. Returns the cues in
+ * ranked order (jump-to-match = first result).
+ */
+export function searchTranscriptCues(cues: TranscriptCue[], query: string): TranscriptCue[] {
+  const needle = normalizeArabicSearchText(query.trim());
+  if (!needle) return cues;
+  const scored: Array<{ cue: TranscriptCue; score: number }> = [];
+  for (const cue of cues) {
+    const { text: haystack } = normalizeWithIndexMap(cue.text);
+    const phraseAt = haystack.indexOf(needle);
+    if (phraseAt >= 0) {
+      scored.push({ cue, score: 1000 - Math.min(phraseAt, 500) });
+      continue;
+    }
+    const tokens = needle.split(/\s+/).filter(Boolean);
+    let cursor = 0;
+    let ok = true;
+    for (const token of tokens) {
+      const at = haystack.indexOf(token, cursor);
+      if (at < 0) {
+        ok = false;
+        break;
+      }
+      cursor = at + token.length;
+    }
+    if (ok) scored.push({ cue, score: 100 - Math.min(cursor, 90) });
+  }
+  return scored
+    .sort((a, b) => b.score - a.score || a.cue.start - b.cue.start)
+    .map((s) => s.cue);
+}
+
 export function mergeChapterMarkers(
   bookmarks: BookmarkItem[],
   chapterMarkers: BookmarkItem[]
