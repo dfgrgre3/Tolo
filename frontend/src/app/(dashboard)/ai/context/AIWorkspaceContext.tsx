@@ -9,6 +9,7 @@ interface AIWorkspaceValue {
   request: typeof aiClient.request;
   chat: typeof aiClient.chat;
   generateExam: typeof aiClient.generateExam;
+  saveExam: typeof aiClient.saveExam;
   generateStudyPlan: typeof aiClient.generateStudyPlan;
   summarize: typeof aiClient.summarize;
   gradeEssay: typeof aiClient.gradeEssay;
@@ -44,6 +45,7 @@ export function AIWorkspaceProvider({ children }: { children: ReactNode }) {
     request: aiClient.request,
     chat: (body, options) => aiClient.chat(withContext(body, 'chat'), options),
     generateExam: (body, options) => aiClient.generateExam(withContext(body, 'exam'), options),
+    saveExam: (body, options) => aiClient.saveExam(withContext(body, 'exam'), options),
     generateStudyPlan: (body, options) => aiClient.generateStudyPlan(withContext(body, 'study-planner'), options),
     summarize: (body, options) => aiClient.summarize(withContext(body, 'summarize'), options),
     gradeEssay: (body, options) => aiClient.gradeEssay(withContext(body, 'grade-essay'), options),

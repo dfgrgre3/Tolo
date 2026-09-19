@@ -55,7 +55,7 @@ export const MegaMenuCategory = memo(function MegaMenuCategory(
         <ul className={cn("flex flex-col", isCompact ? "gap-0.5" : "gap-1")}>
           {category.items.map((item, index) => (
             <MegaMenuItem
-              key={item.href || index}
+              key={`${item.href}::${index}`}
               item={item}
               isActive={activeRoute ? activeRoute(item.href) : false}
               onClick={() => handleItemClick(item)}

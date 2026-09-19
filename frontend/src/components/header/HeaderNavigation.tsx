@@ -3,8 +3,7 @@
 import React from "react";
 import { MegaMenu } from "@/components/mega-menu";
 import type { NavItemWithMegaMenu } from "@/components/mega-menu/navData";
-import { cn } from "@/lib/utils";
-import { HeaderNavLink } from "@/components/navigation";
+import { HeaderNavLink, mainNavTriggerStyles } from "@/components/navigation";
 
 interface HeaderNavigationProps {
   openMegaMenu: string | null;
@@ -44,11 +43,9 @@ export function HeaderNavigation({
                   label={item.label}
                   icon={item.icon}
                   badge={item.badge}
-                  className={cn(
-                    "relative h-10 px-4 flex items-center gap-2 rounded-xl font-bold text-xs tracking-normal",
-                    isActiveRoute(item.href) ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground border border-transparent hover:text-primary hover:bg-primary/5",
-                    openMegaMenu === item.href && "bg-primary/20 text-primary border-primary/40"
-                  )}
+                  className={mainNavTriggerStyles({
+                    state: openMegaMenu === item.href ? "open" : isActiveRoute(item.href) ? "active" : "rest",
+                  })}
                 />
               ) : (
                 <HeaderNavLink

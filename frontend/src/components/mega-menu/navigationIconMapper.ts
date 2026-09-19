@@ -3,6 +3,7 @@ import {
   Award,
   BarChart3,
   Bell,
+  BellRing,
   BookMarked,
   BookOpen,
   Brain,
@@ -21,16 +22,20 @@ import {
   Home,
   Library,
   Lightbulb,
+  Lock,
   Megaphone,
   MessageSquare,
+  MonitorSmartphone,
   Settings,
   Shield,
+  ShieldCheck,
   Sparkles,
   Star,
   Target,
   TrendingUp,
   Trophy,
   Upload,
+  UserCircle2,
   UserPlus,
   Users,
   type LucideIcon,
@@ -43,6 +48,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "bar-chart": BarChart3,
   "bar-chart-3": BarChart3,
   bell: Bell,
+  "bell-ring": BellRing,
   "book-marked": BookMarked,
   "book-open": BookOpen,
   brain: Brain,
@@ -61,22 +67,32 @@ const ICON_MAP: Record<string, LucideIcon> = {
   history: History,
   library: Library,
   lightbulb: Lightbulb,
+  lock: Lock,
   megaphone: Megaphone,
   "message-square": MessageSquare,
+  "monitor-smartphone": MonitorSmartphone,
   settings: Settings,
   shield: Shield,
+  "shield-check": ShieldCheck,
   sparkles: Sparkles,
   star: Star,
   target: Target,
   "trending-up": TrendingUp,
   trophy: Trophy,
   upload: Upload,
+  "user-circle": UserCircle2,
   "user-plus": UserPlus,
   users: Users,
 };
 
 const FALLBACK_ICON = HelpCircle;
 
+/**
+ * Resolves a backend icon name (kebab-case, e.g. "book-open") to its Lucide
+ * component. This is the ONLY icon registry for navigation — the static
+ * fallback menu in navData.ts resolves through it too, so an offline/cold-start
+ * render shows the same glyphs the API-served menu would.
+ */
 export function getNavigationIcon(name?: string): LucideIcon {
   if (!name?.trim()) {
     logger.warn("Navigation item is missing an icon name");

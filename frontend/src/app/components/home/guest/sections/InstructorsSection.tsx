@@ -1,7 +1,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Users } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 import type { Instructor } from '../types';
 
 interface InstructorsSectionProps {
@@ -24,7 +24,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
   const router = useRouter();
 
   return (
-    <section className="py-10 bg-white border-y border-[#E2E8F0]">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

@@ -231,7 +231,7 @@ export function CourseCard({
             asChild
             className="h-12 flex-1 rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-orange-500 dark:hover:bg-orange-600"
           >
-            <Link href={`/courses/${course.id}`} className="flex items-center justify-center gap-2">
+            <Link href={`/courses/${course.slug}`} className="flex items-center justify-center gap-2">
               {course.enrolled ? "متابعة التعلم" : "عرض تفاصيل الدورة"}
               <ArrowLeft className="h-4 w-4" />
             </Link>

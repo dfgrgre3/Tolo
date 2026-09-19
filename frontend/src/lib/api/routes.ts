@@ -326,6 +326,7 @@ export const apiRoutes = {
   // ──────────────────────────────────────────
   ai: {
     exam: '/api/ai/exam',
+    examSave: '/api/ai/exam/save',
     examStatusBase: '/api/ai/exam/status',
     examStatus: (jobId: string) => `/api/ai/exam/status/${jobId}`,
     suggest: '/api/ai/suggest',
@@ -338,8 +339,10 @@ export const apiRoutes = {
     explainMistake: '/api/ai/explain-mistake',
     studyPlanner: '/api/ai/study-planner',
     summarize: '/api/ai/summarize',
+    summarizeStatusBase: '/api/ai/summarize/status',
     summarizeStatus: (jobId: string) => `/api/ai/summarize/status/${jobId}`,
     gradeEssay: '/api/ai/grade-essay',
+    gradeEssayStatusBase: '/api/ai/grade-essay/status',
     gradeEssayStatus: (jobId: string) => `/api/ai/grade-essay/status/${jobId}`,
     recommendations: '/api/ai/recommendations',
     trackRecommendation: '/api/ai/recommendations/track',

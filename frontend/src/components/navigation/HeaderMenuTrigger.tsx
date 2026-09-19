@@ -27,6 +27,7 @@ export const HeaderMenuTrigger = forwardRef<HTMLButtonElement, HeaderMenuTrigger
         onClick={onClick}
         className={cn(triggerStyles({ variant: "header", open: isOpen, size: "header" }), className)}
         aria-expanded={isOpen}
+        aria-haspopup="true"
         aria-controls={ariaControls}
         aria-label={`${label} - ${isOpen ? "مفتوحة" : "مغلقة"}`}
       >

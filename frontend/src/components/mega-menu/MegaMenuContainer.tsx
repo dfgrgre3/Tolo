@@ -7,26 +7,20 @@ interface MegaMenuContainerProps {
   children: React.ReactNode;
   menuWidth?: string;
   className?: string;
-  /** معرف فريد للربط مع aria-labelledby */
-  labelledBy?: string;
-  /** وصف ديناميكي للقائمة (يُستخدم فقط إذا لم يتوفر labelledBy) */
-  ariaLabel?: string;
 }
 
 export const MegaMenuContainer = memo(function MegaMenuContainer({
   children,
   menuWidth = "max-w-7xl",
   className,
-  labelledBy,
-  ariaLabel,
 }: MegaMenuContainerProps) {
   return (
     <div
-      // لا يحدد موضعه بنفسه — الحاوية الأب (MegaMenu) هي التي تثبّته أسفل الـ Header مباشرة
+      // لا يحدد موضعه بنفسه — الحاوية الأب (MegaMenu) هي التي تثبّته أسفل الـ Header مباشرة.
+      // اسم القائمة يضعه MegaMenu على الغلاف الخارجي (role="navigation" + aria-label)؛
+      // وضع aria-label هنا أيضاً كان بلا role فلا ينطقه قارئ الشاشة أصلاً.
       className={cn("w-full bg-background border-b border-border overflow-hidden", className)}
       data-mega-menu-container
-      aria-labelledby={labelledBy}
-      aria-label={!labelledBy ? (ariaLabel || "القائمة الموسعة") : undefined}
     >
       <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-auto overscroll-contain", menuWidth)}>
         {children}

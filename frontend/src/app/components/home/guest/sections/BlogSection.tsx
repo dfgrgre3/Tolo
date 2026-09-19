@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronLeft } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, EMPTY_STATE } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, EMPTY_STATE } from '../design-system';
 import type { BlogPost } from '../types';
 
 interface BlogSectionProps {
@@ -40,7 +40,7 @@ export function BlogSection({ posts, loading }: BlogSectionProps) {
   const sidePosts = posts.slice(1, 4);
 
   return (
-    <section className="py-10">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

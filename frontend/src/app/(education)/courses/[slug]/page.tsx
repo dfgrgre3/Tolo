@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Star, Users, Clock, BookOpen, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +15,14 @@ import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
 import { ApiError } from "@/lib/api/api-client";
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { slug } = await params;
 
   try {
-    const courseData = await getCourseDetailHydration(id);
+    const courseData = await getCourseDetailHydration(slug);
     const subject = courseData.subject;
 
     if (!subject || !subject.id) {
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title,
       description,
+      alternates: { canonical: `/courses/${slug}` },
       openGraph: {
         title,
         description,
@@ -70,14 +72,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  const { id } = await params;
+  const { slug } = await params;
+  // Legacy /courses/<uuid> links are 301-redirected to the canonical slug by
+  // the edge middleware (course-canonical-redirect) before rendering, so this
+  // component only ever handles the slug form.
   let schema = null;
   let instructorId: string | null = null;
   let initialCourseData: CourseSummaryView | null = null;
   let initialLessons: LessonCardView[] = [];
 
   try {
-    const hydration = await getCourseDetailHydration(id);
+    const hydration = await getCourseDetailHydration(slug);
     const courseData: CourseDetailResponse = hydration;
       const subject = courseData.subject;
       if (subject && subject.id) {
@@ -123,18 +128,11 @@ export default async function Page({ params }: Props) {
 
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
+  // A missing/empty subject means the course does not exist (or is not public).
+  // notFound() raises a real 404 so the route renders not-found.tsx and search
+  // engines deindex the URL, instead of a 200 page that says "not found".
   if (!initialCourseData) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <ChevronLeft className="h-16 w-16 text-gray-300 mx-auto" />
-          <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">لم يتم العثور على الدورة</h2>
-          <Link href="/courses">
-            <span className="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-lg font-bold">العودة إلى الدورات</span>
-          </Link>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   const levelInfo = levelConfig[initialCourseData.level] || levelConfig.INTERMEDIATE;

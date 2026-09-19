@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation';
 import { GraduationCap, CheckCircle2, ArrowLeft, Users, Award } from 'lucide-react';
 import type { PlatformStats } from '../types';
+import { CONTAINER, SECTION } from '../design-system';
 
 const BENEFITS = [
   'دخل شهري مستدام',
@@ -17,8 +18,8 @@ export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
   const router = useRouter();
 
   return (
-    <section className="py-10 bg-gradient-to-l from-[#0F766E] to-[#1e3a5f] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className={`${SECTION.padding} bg-gradient-to-l from-[#0F766E] to-[#1e3a5f] text-white`}>
+      <div className={CONTAINER.className}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-5">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-bold">

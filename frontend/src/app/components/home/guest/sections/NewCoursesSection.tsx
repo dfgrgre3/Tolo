@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface NewCoursesSectionProps {
@@ -27,7 +27,7 @@ export function NewCoursesSection({ courses, loading }: NewCoursesSectionProps) 
   }
 
   return (
-    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

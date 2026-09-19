@@ -156,7 +156,11 @@ export const COLORS = {
 // SECTION HEADER PATTERN
 // ============================================================================
 export const SECTION_HEADER = {
-  container: 'flex flex-row items-center justify-between gap-4 mb-5',
+  // Row layout: heading on one end, "view all" on the other.
+  container: 'flex flex-row items-center justify-between gap-4 mb-6',
+  // Centered layout: constrained width keeps title + description visually
+  // tied together instead of drifting apart on wide screens.
+  center: 'text-center max-w-2xl mx-auto mb-6',
   content: 'flex-1 min-w-0',
   titleContainer: '',
   viewAllButton: 'flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] dark:text-orange-500 dark:hover:text-orange-400 transition-colors whitespace-nowrap shrink-0',
@@ -166,8 +170,10 @@ export const SECTION_HEADER = {
 // SECTION WRAPPER (spacing rhythm)
 // ============================================================================
 export const SECTION = {
-  // Standard vertical rhythm for every homepage section
-  padding: 'py-10',
+  // The only vertical rhythm on the homepage. 32px top/bottom on mobile
+  // (64px between neighbouring sections) and 40px from sm up (80px gap) —
+  // enough room to breathe without slicing the page into separate blocks.
+  padding: 'py-8 sm:py-10',
 } as const;
 
 // ============================================================================

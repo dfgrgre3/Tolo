@@ -61,6 +61,11 @@ export const aiClient = {
     method: 'POST',
     body: JSON.stringify(body),
   }),
+  saveExam: <T>(body: unknown, options: AIRequestOptions = {}) => aiRequest<T>(apiRoutes.ai.examSave, {
+    ...options,
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
   generateStudyPlan: <T>(body: unknown, options: AIRequestOptions = {}) => aiRequest<T>(apiRoutes.ai.studyPlanner, {
     ...options,
     method: 'POST',

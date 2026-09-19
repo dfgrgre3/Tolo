@@ -17,7 +17,7 @@ interface DashboardHeroProps {
   userXP: number;
   nextLevelXP: number;
   xpPercentage: number;
-  lastCourse: { id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null;
+  lastCourse: { id: string; slug?: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null;
   userProgress: UserProgress | null;
   styles: {
     glass: string;
@@ -180,7 +180,9 @@ export function DashboardHero({
                 </div>
 
                 <Button asChild className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black gap-2 shrink-0 border-b-4 border-black/20">
-                  <Link href={`/learning/${lastCourse.id}`}>
+                  {/* Prefer the canonical slug route; the id route is kept only as
+                      a fallback for payloads that predate the slug field. */}
+                  <Link href={lastCourse.slug ? `/courses/${lastCourse.slug}/learn` : `/learning/${lastCourse.id}`}>
                     <Play className="w-5 h-5 fill-white" />
                     متابعة الدرس
                   </Link>

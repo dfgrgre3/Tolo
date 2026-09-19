@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Zap } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 
 interface Partner {
   id: string;
@@ -105,10 +105,10 @@ function PartnerLogo({ partner }: { partner: Partner }) {
  */
 export function PartnersSection() {
   return (
-    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         {/* Section Header */}
-        <div className="text-center mb-6">
+        <div className={SECTION_HEADER.center}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Zap className="h-5 w-5 text-[#F59E0B] dark:text-orange-500" />
             <h2 className={TYPOGRAPHY.sectionHeading}>

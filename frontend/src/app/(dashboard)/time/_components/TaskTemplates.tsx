@@ -115,7 +115,10 @@ export default function TaskTemplates({ onTaskCreate }: Props) {
   };
 
   const addCustom = () => {
-    if (!name.trim()) return toast.error('اكتب اسم القالب');
+    if (!name.trim()) {
+      toast.error('اكتب اسم القالب');
+      return;
+    }
     setCustom(p => [...p, {
       id: `c${Date.now()}`, name: name.trim(), title: name.trim(),
       description: 'قالب مخصص', priority: 'MEDIUM', estimatedTime: 30,

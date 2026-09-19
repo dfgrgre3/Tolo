@@ -3,13 +3,17 @@
 
 import React, { useState } from 'react';
 import { m } from 'framer-motion';
-import { Calendar, Target, Clock, Sparkles, Download, Loader2, CheckCircle2 } from 'lucide-react';
+import { Calendar, Target, Clock, Sparkles, Loader2, CheckCircle2, AlertCircle, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+
+const MIN_DAILY_HOURS = 0;
+const MAX_DAILY_HOURS = 24;
 
 export default function StudyPlanner() {
   const { generateStudyPlan } = useAIWorkspace();
@@ -18,16 +22,47 @@ export default function StudyPlanner() {
   const [dailyHours, setDailyHours] = useState(4);
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleDailyHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const parsed = parseInt(e.target.value, 10);
+    // An empty or non-numeric input yields NaN — clamp instead of forwarding
+    // an invalid value to the backend.
+    if (Number.isNaN(parsed)) {
+      setDailyHours(MIN_DAILY_HOURS);
+      return;
+    }
+    setDailyHours(Math.min(MAX_DAILY_HOURS, Math.max(MIN_DAILY_HOURS, parsed)));
+  };
 
   const generatePlan = async () => {
     setIsLoading(true);
+    setError(null);
+    setPlan(null);
     try {
       const data = await generateStudyPlan<{ plan: string }>({ examDate, targetGrade, dailyHours });
-      if (data?.plan) setPlan(data.plan);
+      if (data?.plan) {
+        setPlan(data.plan);
+      } else {
+        setError('لم يتم إنشاء خطة. حاول مرة أخرى.');
+      }
     } catch (e) {
-      console.error(e);
+      logger.error('Failed to generate study plan:', e);
+      setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!plan) return;
+    try {
+      await navigator.clipboard.writeText(plan);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('تعذر نسخ الخطة. حاول مرة أخرى.');
     }
   };
 
@@ -79,37 +114,50 @@ export default function StudyPlanner() {
               <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">ساعات المذاكرة اليومية</label>
               <div className="relative">
                 <Clock className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
+                  min={MIN_DAILY_HOURS}
+                  max={MAX_DAILY_HOURS}
                   value={dailyHours}
-                  onChange={(e) => setDailyHours(parseInt(e.target.value))}
-                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white" 
+                  onChange={handleDailyHoursChange}
+                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white"
                 />
               </div>
             </div>
           </div>
 
-          <Button 
-            onClick={generatePlan}
-            disabled={isLoading || !examDate}
-            className="w-full md:w-auto px-12 h-14 bg-primary hover:bg-primary/90 text-black font-black rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 me-3 animate-spin" />
-                جاري التخطيط...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 me-3" />
-                إنشاء الخطة الدراسية
-              </>
+            <Button
+              onClick={generatePlan}
+              disabled={isLoading || !examDate}
+              className="w-full md:w-auto px-12 h-14 bg-primary hover:bg-primary/90 text-black font-black rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 me-3 animate-spin" />
+                  جاري التخطيط...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 me-3" />
+                  إنشاء الخطة الدراسية
+                </>
+              )}
+            </Button>
+
+            {error && (
+              <m.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
+              >
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm font-medium">{error}</p>
+              </m.div>
             )}
-          </Button>
-        </div>
-      </Card>
+          </div>
+        </Card>
 
       {plan && (
-        <m.div 
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6">
@@ -120,9 +168,18 @@ export default function StudyPlanner() {
               </div>
               <h3 className="text-xl font-black text-white">خطتك الدراسية المقترحة</h3>
             </div>
-            <Button variant="ghost" className="text-gray-400 hover:text-white">
-              <Download className="w-4 h-4 me-2" />
-              تحميل PDF
+            <Button
+              variant="ghost"
+              onClick={handleCopy}
+              className="text-gray-400 hover:text-white"
+              title="نسخ الخطة"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 me-2 text-emerald-400" />
+              ) : (
+                <Copy className="w-4 h-4 me-2" />
+              )}
+              {copied ? 'تم النسخ' : 'نسخ الخطة'}
             </Button>
           </div>
 

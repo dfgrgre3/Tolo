@@ -101,9 +101,41 @@ export function MegaMenu({
   const closeAnimationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const CLOSE_ANIMATION_MS = 120;
 
+  /**
+   * The portal container is inserted immediately AFTER the <header> element
+   * rather than appended to document.body. Visual order and DOM order then
+   * agree, so keyboard focus flows trigger → menu → page content; portaling to
+   * the end of <body> would strand keyboard users, forcing them to Tab through
+   * the whole page to reach the open menu.
+   */
+  const portalContainerRef = useRef<HTMLDivElement | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
   useEffect(() => {
     queueMicrotask(() => setIsMounted(true));
   }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    const header = document.querySelector<HTMLElement>("[data-header-root]");
+    if (!header || !header.parentElement) return;
+
+    let container = portalContainerRef.current;
+    if (!container) {
+      container = document.createElement("div");
+      container.dataset.megaMenuPortal = "true";
+      portalContainerRef.current = container;
+    }
+    if (container.parentElement !== header.parentElement) {
+      header.parentElement.insertBefore(container, header.nextSibling);
+    }
+    setPortalTarget(container);
+
+    return () => {
+      const node = portalContainerRef.current;
+      if (node?.parentElement) node.parentElement.removeChild(node);
+    };
+  }, [isMounted]);
 
   useEffect(() => {
     if (isOpen) {
@@ -280,7 +312,6 @@ export function MegaMenu({
         >
           <MegaMenuContent
             categories={categories}
-            isOpen={isOpen}
             onClose={onClose}
             activeRoute={activeRoute}
           />
@@ -303,7 +334,7 @@ export function MegaMenu({
         <HeaderMenuTrigger ref={triggerButtonRef} label={repairMojibake(label)} icon={icon} isOpen={isOpen} onClick={handleToggle} ariaControls={menuId} badge={badge} className={className} />
       </div>
 
-      {isMounted && createPortal(overlay, document.body)}
+      {isMounted && portalTarget && createPortal(overlay, portalTarget)}
     </div>
   );
 }

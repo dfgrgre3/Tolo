@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { GraduationCap, Play, BookmarkCheck, Bookmark, Share2, BookOpen, Clock, Download, Award, MessageSquare, Loader2, Shield, X } from "lucide-react";
+import Link from "next/link";
+import { GraduationCap, Play, BookmarkCheck, Bookmark, Share2, BookOpen, Clock, Download, Award, MessageSquare, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -14,33 +13,34 @@ export function CourseActionCard({
   courseProgress,
   completedCount,
   lessonsCount,
-  courseId,
+  learnHref,
+  learnLabel,
   enrolling,
   bookmarked,
   setBookmarked,
   onToggleBookmark,
   bookmarkBusy = false,
   onEnroll,
-  firstFreeLesson,
+  showPreviewHint,
   onPreviewCertificate,
 }: {
   course: CourseSummaryView;
   courseProgress: number;
   completedCount: number;
   lessonsCount: number;
-  courseId: string;
+  /** Path of the lesson the learner should open next (/courses/<slug>/learn/<id>). */
+  learnHref: string;
+  learnLabel: string;
   enrolling: boolean;
   bookmarked: boolean;
   setBookmarked: (v: boolean) => void;
   onToggleBookmark?: () => void;
   bookmarkBusy?: boolean;
   onEnroll: () => void;
-  firstFreeLesson?: { id: string; title: string; videoUrl?: string };
+  /** True when the next lesson is a free preview the visitor may open. */
+  showPreviewHint?: boolean;
   onPreviewCertificate?: () => void;
 }) {
-  const router = useRouter();
-  const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
-
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -61,61 +61,45 @@ export function CourseActionCard({
 
   return (
     <div className="sticky top-24 rounded-[28px] border border-gray-200 dark:border-white/[0.08] bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-6 space-y-6 shadow-xl shadow-black/[0.02] dark:shadow-black/[0.15]">
-      {/* Thumbnail or Video Trailer */}
+      {/* Thumbnail. The course page deliberately hosts no player: the preview
+          button opens the free lesson on the learn route, where the real player
+          (watermark, access control, progress tracking) applies, rather than
+          streaming a raw video URL inline on a catalog page. */}
       <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-950 border border-gray-100 dark:border-white/5">
-        {isPlayingTrailer && firstFreeLesson?.videoUrl ? (
-          <div className="relative w-full h-full">
-            <video
-              src={firstFreeLesson.videoUrl}
-              controls
-              autoPlay
-              className="w-full h-full object-cover"
-            />
-            <button
-              onClick={() => setIsPlayingTrailer(false)}
-              className="absolute top-2 left-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors z-10"
-              title="إغلاق الفيديو التعريفي"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        {course.thumbnailUrl ? (
+          <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(min-width: 1024px) 384px, 100vw" className="object-cover transition-transform duration-500 hover:scale-105" unoptimized />
         ) : (
-          <>
-            {course.thumbnailUrl ? (
-              <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(min-width: 1024px) 384px, 100vw" className="object-cover transition-transform duration-500 hover:scale-105" unoptimized />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-700" />
-              </div>
-            )}
-            
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex flex-col justify-between p-4">
-              <div className="self-end">
-                {firstFreeLesson && !course.enrolled && (
-                  <button
-                    onClick={() => setIsPlayingTrailer(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-white text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-md shadow-black/10"
-                  >
-                    <Play className="h-3 w-3 fill-current text-primary" />
-                    <span>مشاهدة مقدمة الدورة</span>
-                  </button>
-                )}
-              </div>
-
-              {course.enrolled && (
-                <div className="self-center">
-                  <button
-                    onClick={() => router.push(`/learning/${courseId}`)}
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 active:scale-95 transition-all shadow-lg"
-                  >
-                    <Play className="h-6 w-6 text-white fill-white animate-pulse" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
+          <div className="flex items-center justify-center h-full">
+            <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-700" />
+          </div>
         )}
+
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex flex-col justify-between p-4">
+          <div className="self-end">
+            {showPreviewHint && (
+              <Link
+                href={learnHref}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-gray-900/95 text-gray-900 dark:text-white text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-md shadow-black/10"
+              >
+                <Play className="h-3 w-3 fill-current text-primary" />
+                <span>مشاهدة مقدمة الدورة</span>
+              </Link>
+            )}
+          </div>
+
+          {course.enrolled && (
+            <div className="self-center">
+              <Link
+                href={learnHref}
+                aria-label={learnLabel}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 active:scale-95 transition-all shadow-lg"
+              >
+                <Play className="h-6 w-6 text-white fill-white animate-pulse" />
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Price & Actions */}
@@ -167,12 +151,11 @@ export function CourseActionCard({
               تم إكمال {completedCount} من أصل {lessonsCount} درساً
             </p>
           </div>
-          <Button
-            onClick={() => router.push(`/learning/${courseId}`)}
-            className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2"
-          >
-            <Play className="h-4 w-4 fill-current" />
-            {courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
+          <Button asChild className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2">
+            <Link href={learnHref}>
+              <Play className="h-4 w-4 fill-current" />
+              {learnLabel}
+            </Link>
           </Button>
         </div>
       ) : (

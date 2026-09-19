@@ -75,7 +75,10 @@ export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
   useEffect(() => { if (ready) localStorage.setItem(KEY, JSON.stringify(rules)); }, [rules, ready]);
 
   const addRule = () => {
-    if (!title.trim()) return toast.error('اكتب اسم المهمة المتكررة');
+    if (!title.trim()) {
+      toast.error('اكتب اسم المهمة المتكررة');
+      return;
+    }
     setRules(p => [...p, {
       id: `r${Date.now()}`, title: title.trim(),
       priority, pattern, time, estimatedTime: 30,
@@ -114,9 +117,11 @@ export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
     let n = 0;
     const next = [...rules];
     for (let i = 0; i < next.length; i++) {
-      if (shouldGenerateToday(next[i])) {
-        const ok = await generateForRule(next[i]);
-        if (ok) { n++; next[i] = { ...next[i], lastGenerated: todayKey() }; }
+      const rule = next[i];
+      if (!rule) continue;
+      if (shouldGenerateToday(rule)) {
+        const ok = await generateForRule(rule);
+        if (ok) { n++; next[i] = { ...rule, lastGenerated: todayKey() }; }
       }
     }
     setRules(next);

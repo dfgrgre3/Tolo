@@ -20,8 +20,8 @@ export function HeaderLogo() {
 					alt=""
 					width={64}
 					height={64}
-					className="h-11 w-11 sm:h-12 sm:w-12 object-contain"
-					sizes="48px"
+					className="h-[52px] w-[52px] sm:h-14 sm:w-14 translate-y-1 object-contain"
+					sizes="56px"
 					priority
 				/>
 			</div>

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Users, Star } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, CARD_DIMENSIONS, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, CARD_DIMENSIONS, RAIL } from '../design-system';
 import type { Instructor } from '../types';
 
 interface BestTeachersSectionProps {
@@ -42,7 +42,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
   }
 
   return (
-    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-900 dark:to-slate-950 dark:border-slate-800">
+    <section className={`${SECTION.padding} bg-gradient-to-b from-white to-[#F8FAFC] dark:from-slate-900 dark:to-slate-950`}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

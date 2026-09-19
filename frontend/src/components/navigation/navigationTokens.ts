@@ -89,3 +89,46 @@ export const triggerStyles = cva("relative flex items-center gap-3 no-underline 
   ],
   defaultVariants: { open: false, size: "header" },
 });
+
+/**
+ * First-row utility links ("درّس", "وظائف", "الباقات") and the schools
+ * mega-menu trigger sit side by side in the header and must read as one
+ * family. Declaring the class once here keeps them from drifting into the
+ * slightly-different hand-written copies they used to be, and means the
+ * header has a single border/spacing rule for that whole row instead of
+ * each element drawing its own frame.
+ */
+export const utilityLinkStyles = cva(
+  "h-10 px-3 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+  {
+    variants: {
+      active: { true: "text-primary border-primary/20 bg-primary/5", false: "" },
+    },
+    defaultVariants: { active: false },
+  }
+);
+
+/**
+ * Second-row main-nav triggers. The nav row is the primary navigation, so its
+ * triggers read heavier than the first-row utility links (bold, tighter type)
+ * but follow the same border discipline: 1px transparent border at rest so the
+ * active/open tint does not shift the trigger by a pixel when it appears.
+ *
+ * The three states are mutually exclusive (open wins over active), which is
+ * why they are one variant instead of two booleans — the previous hand-written
+ * version set border width only in the rest/active states and omitted it when
+ * open, so opening the menu visibly nudged the trigger.
+ */
+export const mainNavTriggerStyles = cva(
+  "relative h-10 px-4 inline-flex items-center gap-2 rounded-xl font-bold text-xs tracking-normal border outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+  {
+    variants: {
+      state: {
+        rest: "text-muted-foreground border-transparent hover:text-primary hover:bg-primary/5",
+        active: "bg-primary/10 text-primary border-primary/20",
+        open: "bg-primary/20 text-primary border-primary/40",
+      },
+    },
+    defaultVariants: { state: "rest" },
+  }
+);

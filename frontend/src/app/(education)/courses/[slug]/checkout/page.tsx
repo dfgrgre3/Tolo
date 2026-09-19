@@ -47,7 +47,7 @@ interface CourseCheckoutInfo {
 export default function CourseCheckoutPage() {
   const params = useParams();
   const router = useRouter();
-  const courseId = params.id as string;
+  const courseSlug = params.slug as string;
   const { user } = useAuth();
 
   const [course, setCourse] = useState<CourseCheckoutInfo | null>(null);
@@ -60,13 +60,13 @@ export default function CourseCheckoutPage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!courseId) return;
+    if (!courseSlug) return;
 
     const fetchData = async () => {
       setLoadError(null);
       try {
         const [courseData, walletData] = await Promise.all([
-          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseId)),
+          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseSlug)),
           apiClient.get<WalletResponse>(apiRoutes.billing.wallet),
         ]);
 
@@ -95,18 +95,18 @@ export default function CourseCheckoutPage() {
     };
 
     fetchData();
-  }, [courseId]);
+  }, [courseSlug]);
 
   const handleCheckout = async () => {
     if (!user) {
       toast.error("يرجى تسجيل الدخول قبل الدفع");
-      router.push(`/login?redirect=/courses/${courseId}/checkout`);
+      router.push(`/login?redirect=/courses/${courseSlug}/checkout`);
       return;
     }
     setProcessing(true);
     setIframeUrl(null);
     try {
-      const data = await apiClient.post<CheckoutResponse>(apiRoutes.courses.checkout(courseId), {
+      const data = await apiClient.post<CheckoutResponse>(apiRoutes.courses.checkout(courseSlug), {
         paymentMethod,
         couponCode: couponCode || undefined,
       });
@@ -120,7 +120,7 @@ export default function CourseCheckoutPage() {
       switch (action.kind) {
         case "success":
           toast.success("تم تسجيلك في الدورة بنجاح!");
-          router.push(`/courses/${courseId}?payment_success=true`);
+          router.push(`/courses/${courseSlug}?payment_success=true`);
           return;
         case "redirect":
         case "iframe":

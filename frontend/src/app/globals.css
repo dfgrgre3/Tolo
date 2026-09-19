@@ -218,7 +218,8 @@ html body[data-scroll-locked] {
     @apply text-2xl md:text-3xl font-bold;
   }
 
-  /* Better focus states for a11y - WCAG 2.1 compliance */
+  /* Global focus rings are intentionally disabled to avoid the orange frame that
+     appears when interacting with buttons and links by mouse/touch. */
   a:focus-visible,
   button:focus-visible,
   input:focus-visible,
@@ -226,9 +227,9 @@ html body[data-scroll-locked] {
   textarea:focus-visible,
   [role="button"]:focus-visible,
   [tabindex="0"]:focus-visible {
-    outline: 2px solid hsl(var(--primary)) !important;
-    outline-offset: 2px !important;
-    box-shadow: 0 0 0 4px hsl(var(--background)), 0 0 0 6px hsl(var(--primary)) !important;
+    outline: none !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Efficiency Mode - Disables heavy effects for weak devices */

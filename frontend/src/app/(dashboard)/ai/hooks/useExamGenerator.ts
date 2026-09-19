@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { logger } from "@/lib/logger";
-import { safeFetch } from "@/lib/safe-client-utils";
 import { apiRoutes } from "@/lib/api/routes";
 import { useAIWorkspace } from "../context/AIWorkspaceContext";
 
@@ -27,8 +26,31 @@ interface ExamStatusResponse {
   error?: string;
 }
 
+// SavedExamResponse is what POST /api/v1/ai/exam/save returns: the id of the
+// Exam that was persisted from the server-side job result.
+interface SavedExamResponse {
+  examId: string;
+  title: string;
+  subjectId: string;
+  questionCount: number;
+}
+
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 120000;
+// The backend registers the job asynchronously — the first status poll(s)
+// can legitimately 404 ("Job not found or expired") before the job is
+// visible. Tolerate not-found responses during this window and only treat
+// them as an expired job afterwards.
+const NOT_FOUND_GRACE_MS = 15000;
+
+function isJobNotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as { name?: string; statusCode?: number; status?: number; message?: string };
+  if (candidate.name === "NotFoundError") return true;
+  if (candidate.statusCode === 404 || candidate.status === 404) return true;
+  const message = typeof candidate.message === "string" ? candidate.message.toLowerCase() : "";
+  return message.includes("job not found") || message.includes("not_found") || message.includes("expired");
+}
 
 interface UseExamGeneratorProps {
   subjects: string[];
@@ -36,7 +58,7 @@ interface UseExamGeneratorProps {
 }
 
 export function useExamGenerator(_props: UseExamGeneratorProps) {
-  const { generateExam, setContext, poll } = useAIWorkspace();
+  const { generateExam, saveExam, setContext, poll } = useAIWorkspace();
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [lesson, setLesson] = useState("");
@@ -48,6 +70,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [savedExamId, setSavedExamId] = useState("");
+  const [jobId, setJobId] = useState("");
   const [, setRetryCount] = useState(0);
   const [pollSeconds, setPollSeconds] = useState(0);
 
@@ -112,6 +136,7 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
             case "failed":
               throw new Error(data.error || "فشل توليد الامتحان");
             case "not_found":
+              if (Date.now() - start < NOT_FOUND_GRACE_MS) break;
               throw new Error("انتهت صلاحية عملية التوليد. يرجى المحاولة مرة أخرى.");
             case "processing":
             default:
@@ -120,6 +145,17 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
         } catch (err) {
           window.clearTimeout(tick);
           if ((err as Error).name === "AbortError" || signal.aborted) return null;
+          // `poll()` throws on non-2xx, so a backend 404 never arrives as
+          // `{ status: "not_found" }` — it arrives here as a NotFoundError
+          // ("Job not found or expired"). Treat it as transient while the
+          // job may still be registering, matching the `not_found` case above.
+          if (isJobNotFoundError(err) && Date.now() - start < NOT_FOUND_GRACE_MS) {
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+            continue;
+          }
+          if (isJobNotFoundError(err)) {
+            throw new Error("انتهت صلاحية عملية التوليد. يرجى المحاولة مرة أخرى.");
+          }
           throw err;
         }
 
@@ -146,6 +182,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
 
     setIsGenerating(true);
     setExamData(null);
+    setSavedExamId("");
+    setJobId("");
 
     try {
       setContext({ subject: selectedSubject, year: selectedYear });
@@ -161,6 +199,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
         setError("لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.");
         return;
       }
+
+      setJobId(enq.jobId ?? "");
 
       const legacyQuestions = (enq as unknown as { questions?: Question[] }).questions;
       if (enq.jobId) {
@@ -182,7 +222,7 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
         return;
       }
       const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error("Error generating exam:", errorMessage);
+      logger.error("Error generating exam:", err instanceof Error ? err : new Error(errorMessage));
       setError(errorMessage);
     } finally {
       if (!controller.signal.aborted) {
@@ -203,8 +243,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
       return;
     }
 
-    if (!selectedSubject || !selectedYear || !lesson) {
-      setSaveError("الرجاء التأكد من ملء جميع الحقول المطلوبة");
+    if (!jobId) {
+      setSaveError("انتهت صلاحية الجلسة. يرجى إنشاء الامتحان مرة أخرى.");
       return;
     }
 
@@ -213,47 +253,24 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
     setSaveSuccess(false);
 
     try {
-      const examTitle = `امتحان ${selectedSubject} - ${lesson} (${selectedYear})`;
-
-      const { data: examResult, error: examError } = await safeFetch<{ success: boolean; exam: { id: string } }>(
-        "/api/exams",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subject: selectedSubject,
-            title: examTitle,
-            year: parseInt(selectedYear),
-            url: "",
-            type: "QUIZ",
-          }),
-        },
-        null
-      );
-
-      if (examError || !examResult?.success) {
-        throw new Error(examError?.message || "فشل إنشاء سجل الامتحان");
+      // The server owns the answer key: we hand back only the jobId it gave
+      // us, and it persists the Exam + Question rows from its own job result.
+      const data = await saveExam<SavedExamResponse>({ jobId });
+      if (!data?.examId) {
+        setSaveError("لم يتم حفظ الامتحان. حاول مرة أخرى.");
+        return;
       }
-
+      setSavedExamId(data.examId);
       setSaveSuccess(true);
       setSaveError("");
-
-      setTimeout(() => {
-        setExamData(null);
-        setSelectedSubject("");
-        setSelectedYear("");
-        setLesson("");
-        setDifficulty("none");
-        setQuestionCount(10);
-        setSaveSuccess(false);
-      }, 2000);
     } catch (err: unknown) {
+      if ((err as Error)?.name === "AbortError") return;
       logger.error("Error saving exam:", err instanceof Error ? err.message : String(err));
       setSaveError(err instanceof Error ? err.message : "حدث خطأ أثناء حفظ الامتحان");
     } finally {
       setIsSaving(false);
     }
-  }, [examData, selectedSubject, selectedYear, lesson]);
+  }, [examData, jobId, saveExam]);
 
   const resetGenerator = useCallback(() => {
     abortRef.current?.abort();
@@ -262,6 +279,8 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
     setError("");
     setSaveError("");
     setSaveSuccess(false);
+    setSavedExamId("");
+    setJobId("");
   }, []);
 
   return {
@@ -281,6 +300,7 @@ export function useExamGenerator(_props: UseExamGeneratorProps) {
     error,
     saveError,
     saveSuccess,
+    savedExamId,
     pollSeconds,
     handleSubmit,
     handleRetryEnqueue,

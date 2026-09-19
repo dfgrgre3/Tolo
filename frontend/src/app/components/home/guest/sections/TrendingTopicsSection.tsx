@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { TrendingUp, ChevronLeft, Flame } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 
 interface TrendingTopic {
   id: string;
@@ -135,7 +135,7 @@ function TrendingTopicCard({ topic }: { topic: TrendingTopic }) {
  */
 export function TrendingTopicsSection() {
   return (
-    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>

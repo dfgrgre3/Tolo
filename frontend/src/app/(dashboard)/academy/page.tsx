@@ -35,6 +35,8 @@ import { logger } from '@/lib/logger';
 
 interface DashboardCourse {
   id: string;
+  /** Unique URL segment; present on current payloads, absent on cached older ones. */
+  slug?: string;
   title?: string;
   name?: string;
   thumbnailUrl?: string;
@@ -257,7 +259,7 @@ export default function GamifiedCoursesDashboard() {
 
                           {/* Action */}
                           <Button
-                      onClick={() => router.push(`/learning/${course.id}`)}
+                      onClick={() => router.push(course.slug ? `/courses/${course.slug}/learn` : `/learning/${course.id}`)}
                       className="w-full sm:w-auto mt-2 sm:mt-0 gap-2 rounded-xl bg-primary text-primary-foreground font-bold hover:shadow-lg hover:shadow-primary/30">
                       
                             متابعة <Play className="h-3 w-3 fill-current" />

@@ -3,7 +3,7 @@
 // Re-build trigger: 2026-06-06 — Async job queue pattern
 
 import React, { useState } from 'react';
-import { FileText, Map, Sparkles, Copy, Loader2, ListChecks, Brain, AlertCircle } from 'lucide-react';
+import { FileText, Map, Sparkles, Copy, Check, Loader2, ListChecks, Brain, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -11,7 +11,33 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { pollAIJobResult } from '@/lib/pollJobResult';
+import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+
+interface SummaryPayload {
+  summary?: string;
+  result?: string;
+}
+
+/**
+ * Split an LLM summary into its prose and Mermaid diagram parts.
+ *
+ * The model often emits the diagram as a ```mermaid fenced block, either at
+ * the start or the end of the response. The previous implementation assumed
+ * the prose always came first (`summary.split('```')[0]`), which rendered an
+ * empty summary tab whenever the diagram led the response, and used a
+ * non-null assertion that would crash on a truncated stream.
+ */
+function splitSummary(markdown: string): { prose: string; mermaid: string | null } {
+  const match = markdown.match(/```mermaid\s*\n?([\s\S]*?)```/i);
+  // The capture group always participates when the pattern matches, but
+  // noUncheckedIndexedAccess types match[1] as string | undefined; a truncated
+  // stream must degrade to "no diagram" rather than throw.
+  const diagram = match?.[1];
+  const mermaid = diagram ? diagram.trim() : null;
+  const prose = markdown.replace(/```mermaid\s*\n?[\s\S]*?```/gi, '').trim();
+  return { prose, mermaid };
+}
 
 export default function LessonSummarizer() {
   const { summarize } = useAIWorkspace();
@@ -19,6 +45,7 @@ export default function LessonSummarizer() {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const generateSummary = async () => {
     setIsLoading(true);
@@ -34,18 +61,30 @@ export default function LessonSummarizer() {
       }
 
       // Step 2 — poll every 1.5 s until completed/failed
-      const result = await pollAIJobResult<{ summary: string; result: string }>(
+      const payload = await pollAIJobResult<SummaryPayload & { status: string }>(
         data.jobId,
-        '/api/ai/summarize/status',
-        1500,
+        apiRoutes.ai.summarizeStatusBase,
+        { intervalMs: 1500 },
       );
 
-      setSummary(result.summary ?? result.result ?? '');
+      setSummary(payload.summary ?? payload.result ?? '');
     } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return;
       const msg = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
       setError(msg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!summary) return;
+    try {
+      await navigator.clipboard.writeText(summary);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('تعذر نسخ النص. حاول مرة أخرى.');
     }
   };
 
@@ -125,10 +164,16 @@ export default function LessonSummarizer() {
 
             <TabsContent value="summary">
               <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none relative">
-                <Button variant="ghost" size="icon" className="absolute top-6 end-6 text-gray-500 hover:text-white">
-                  <Copy className="w-4 h-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopy}
+                  className="absolute top-6 end-6 text-gray-500 hover:text-white"
+                  title="نسخ الملخص"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 </Button>
-                <SafeMarkdown>{summary.split('```')[0] || ''}</SafeMarkdown>
+                <SafeMarkdown>{splitSummary(summary).prose || 'لا يوجد نص ملخص.'}</SafeMarkdown>
               </Card>
             </TabsContent>
 
@@ -141,7 +186,7 @@ export default function LessonSummarizer() {
                   <h4 className="text-xl font-bold text-white">رؤية المخطط الذهني</h4>
                   <p className="text-gray-400 text-sm max-w-md">يمكنك استخدام الكود المولد أدناه في Mermaid Live Editor لرؤية الرسم التوضيحي، أو سيتم عرضه هنا قريباً.</p>
                   <pre className="mt-6 p-4 bg-black/40 rounded-xl text-xs text-blue-300 text-left overflow-x-auto max-w-full">
-                    {summary.includes('```mermaid') ? summary.split('```mermaid')[1]!.split('```')[0] : 'لا يوجد مخطط حالياً'}
+                    {splitSummary(summary).mermaid || 'لا يوجد مخطط حالياً'}
                   </pre>
                 </div>
               </Card>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Zap, Award, Clock } from 'lucide-react';
-import { CONTAINER } from '../design-system';
+import { CONTAINER, SECTION } from '../design-system';
 
 /**
  * PromotionalCTASection
@@ -14,7 +14,7 @@ import { CONTAINER } from '../design-system';
  */
 export function PromotionalCTASection() {
   return (
-    <section className="py-10 bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden relative">
+    <section className={`${SECTION.padding} bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden relative`}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />

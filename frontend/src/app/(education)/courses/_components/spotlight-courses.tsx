@@ -56,7 +56,7 @@ export function SpotlightCourses({ courses }: { courses: CourseSummary[] }) {
                 asChild
                 className="h-11 rounded-2xl bg-orange-500 px-5 text-white hover:bg-orange-600"
               >
-                <Link href={`/courses/${course.id}`} className="flex items-center gap-2">
+                <Link href={`/courses/${course.slug}`} className="flex items-center gap-2">
                   افتح صفحة الدورة
                   <ArrowLeft className="h-4 w-4" />
                 </Link>

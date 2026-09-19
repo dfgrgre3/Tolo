@@ -202,6 +202,8 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				return;
 			}
 
+			updateRecentSearches(query);
+
 			const cacheKey = `${query}_${scope}`;
 			const cached = cacheRef.current.get(cacheKey);
 
@@ -231,7 +233,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				updateCache(cacheKey, results);
 				setSearchResults(results);
 				setShowSuggestions(results.length > 0);
-				updateRecentSearches(query);
 
 			} catch (error) {
 				handleSearchError(error, query, scope);
@@ -254,6 +255,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 	useEffect(() => {
 		if (!mounted) return;
+		if (!searchQuery.trim()) return;
 		debouncedSearch(searchQuery, searchScope);
 	}, [searchQuery, searchScope, mounted, debouncedSearch]);
 
@@ -331,15 +333,19 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 			const query = searchQuery.trim();
 			if (!query) return;
 
+			setShowSuggestions(true);
+			setSelectedIndex(-1);
+
 			const selected = selectedIndex >= 0 ? searchResults[selectedIndex] : searchResults[0];
 
 			if (selected) {
 				handleResultClick(selected);
-			} else {
-				toast.warning("لا توجد نتائج مطابقة لهذا البحث حالياً.");
+				return;
 			}
+
+			void performSearch(query, searchScope);
 		},
-		[handleResultClick, searchQuery, searchResults, selectedIndex]
+		[handleResultClick, performSearch, searchQuery, searchResults, searchScope, selectedIndex]
 	);
 
 	// ── Recent Search Click ───────────────────────────────────────
@@ -542,16 +548,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 						</div>
 						)}
 			</div>
-
-			<Button
-				type="submit"
-				size="icon"
-				variant="ghost"
-					className="hover:bg-primary/15 hover:text-primary shadow-md h-10 w-10 rounded-xl bg-primary/10"
-				aria-label="تنفيذ البحث"
-			>
-				<Search className="h-5 w-5" aria-hidden="true" />
-			</Button>
 
 			{searchQuery && (
 				<Button

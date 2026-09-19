@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, HelpCircle } from 'lucide-react';
-import { CONTAINER, TYPOGRAPHY } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION } from '../design-system';
 
 interface FAQItem {
   id: string;
@@ -128,10 +128,10 @@ export function FAQSection() {
   };
 
   return (
-    <section className="py-10 bg-white border-b border-[#E2E8F0] dark:bg-slate-900 dark:border-slate-800">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         {/* Section Header */}
-        <div className="text-center mb-6">
+        <div className={SECTION_HEADER.center}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <HelpCircle className="h-5 w-5 text-[#0F766E] dark:text-orange-500" />
             <h2 className={TYPOGRAPHY.sectionHeading}>
@@ -156,7 +156,7 @@ export function FAQSection() {
         </div>
 
         {/* Additional Help */}
-        <div className="mt-8 p-5 bg-gradient-to-br from-emerald-50 dark:from-orange-500/10 to-emerald-100/50 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px] text-center">
+        <div className="mt-6 p-5 bg-gradient-to-br from-emerald-50 dark:from-orange-500/10 to-emerald-100/50 dark:to-orange-600/10 border border-emerald-200 dark:border-orange-500/30 rounded-[12px] text-center">
           <p className="text-sm font-bold text-[#1E293B] dark:text-white mb-2">
             لم تجد ما تبحث عنه؟
           </p>

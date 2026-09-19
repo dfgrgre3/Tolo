@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, ChevronLeft } from 'lucide-react';
 import { getCategoryIcon } from '../helpers';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 import type { Category } from '../types';
 
 interface CategoriesSectionProps {
@@ -11,7 +11,7 @@ interface CategoriesSectionProps {
 
 export function CategoriesSection({ categories, loading }: CategoriesSectionProps) {
   return (
-    <section className="py-10">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

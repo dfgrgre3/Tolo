@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { BookOpen, Flame, Clock, Star } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { CONTAINER, TYPOGRAPHY, GRIDS, EMPTY_STATE } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, GRIDS, SECTION, EMPTY_STATE } from '../design-system';
 import type { CourseSort } from '../api';
 import type { CourseItem } from '../types';
 
@@ -26,9 +26,9 @@ export function CoursesSection({
   onTabChange,
 }: CoursesSectionProps) {
   return (
-    <section className="py-10 bg-white border-y border-[#E2E8F0]">
+    <section className={SECTION.padding}>
       <div className={CONTAINER.className}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className={TYPOGRAPHY.sectionHeading}>
               استكشف الكورسات المتاحة

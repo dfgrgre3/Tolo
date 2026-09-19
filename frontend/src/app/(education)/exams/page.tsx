@@ -81,6 +81,9 @@ export default function ExamsPage() {
 function ExamsPageContent() {
    const search = useSearchParams();
    const _focusId = search.get("focus");
+   // ?mine=1 switches to the caller's own AI-saved exams instead of the shared
+   // catalog. The link appears after a successful save in the AI workspace.
+   const mine = search.get("mine") === "1";
    const { isAuthenticated } = useAuth();
    const [exams, setExams] = useState<Exam[]>([]);
    const [results, setResults] = useState<ExamResult[]>([]);
@@ -95,12 +98,12 @@ function ExamsPageContent() {
       const fetchExams = async () => {
          setIsLoading(true);
          try {
-            const { data } = await safeFetch<ExamsResponse>("/api/exams", undefined, { exams: [] });
+            const { data } = await safeFetch<ExamsResponse>("/api/exams" + (mine ? "?mine=1" : ""), undefined, { exams: [] });
             setExams(Array.isArray(data?.exams) ? data.exams : []);
          } finally { setIsLoading(false); }
       };
       fetchExams();
-   }, []);
+   }, [mine]);
 
    useEffect(() => {
       if (!isAuthenticated) return;
@@ -235,15 +238,23 @@ function ExamsPageContent() {
                                        </div>
                                        <h3 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-relaxed line-clamp-2">{exam.title}</h3>
                                     </div>
-                                    <a
-                                       href={exam.url}
-                                       target="_blank"
-                                       rel="noreferrer"
-                                       className="h-12 w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl group-hover:bg-primary group-hover:border-primary transition-all text-sm font-black text-white">
+                                    {exam.url ? (
+                                       <a
+                                          href={exam.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="h-12 w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl group-hover:bg-primary group-hover:border-primary transition-all text-sm font-black text-white">
 
-                                       <span>بدء التحدي</span>
-                                       <ExternalLink className="w-4 h-4" />
-                                    </a>
+                                          <span>بدء التحدي</span>
+                                          <ExternalLink className="w-4 h-4" />
+                                       </a>
+                                    ) : (
+                                       // AI-saved exams have no external URL; linking
+                                       // to "undefined" would reload the same page.
+                                       <div className="h-12 w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl text-sm font-black text-gray-500">
+                                          <span>اختبار محفوظ</span>
+                                       </div>
+                                    )}
                                  </div>
                               </m.div>
                            )}

@@ -47,7 +47,7 @@ function handleSearchError(err: unknown): string {
   if (err instanceof Error) {
     errorMessage = err.message;
     if (errorMessage.includes('API key') || errorMessage.includes('مفتاح API')) {
-      return 'مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم لحل هذه المشكلة.';
+      return 'مفتاح API لخدمة الذكاء الاصطناعي غير مهيأ. يرجى التواصل مع فريق الدعم لحل هذه المشكلة.';
     }
     if (errorMessage.includes('fetch')) {
       return 'فشل الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
@@ -221,7 +221,6 @@ export default function TeacherSearch({
                     <SelectValue placeholder="اختر المادة" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    <SelectItem value="">اختر المادة</SelectItem>
                     {subjects.map((subject) => (
                       <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                     ))}
@@ -251,7 +250,6 @@ export default function TeacherSearch({
                     <SelectValue placeholder="الكل" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    <SelectItem value="">الكل</SelectItem>
                     {platforms.map((platform) => (
                       <SelectItem key={platform} value={platform}>{platform}</SelectItem>
                     ))}

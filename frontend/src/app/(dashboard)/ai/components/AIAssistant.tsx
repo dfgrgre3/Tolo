@@ -63,7 +63,7 @@ export default function AIAssistant({
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Streaming batch handler
@@ -88,12 +88,13 @@ export default function AIAssistant({
     scrollToBottom();
   }, [messages]);
 
+  // Cancel any in-flight streaming request on unmount. Without this, a
+  // reader keeps consuming the stream and calls setState after the
+  // component is gone.
   useEffect(() => {
-    const eventSource = eventSourceRef.current;
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      abortRef.current?.abort();
+      abortRef.current = null;
     };
   }, []);
 
@@ -179,25 +180,40 @@ export default function AIAssistant({
     }
   };
 
-  const processSSEStream = async (response: Response) => {
+  const processSSEStream = async (response: Response, signal: AbortSignal) => {
     const reader = response.body?.getReader();
     if (!reader) return;
 
     const decoder = new TextDecoder();
     setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date() }]);
 
+    // A single SSE `data:` line can be split across several network chunks.
+    // Without carrying the unfinished tail over to the next chunk, a split
+    // JSON payload fails to parse and its tokens are silently dropped.
+    let partial = '';
+
     try {
       while (true) {
+        if (signal.aborted) break;
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        partial += decoder.decode(value, { stream: true });
+        const lines = partial.split('\n');
+        // Keep the last (possibly incomplete) segment for the next iteration.
+        partial = lines.pop() ?? '';
+
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            handleStreamPayload(line.slice(6).trim());
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data:')) {
+            handleStreamPayload(trimmed.slice(5).trim());
           }
         }
+      }
+      // Flush whatever the final, unterminated line was carrying.
+      const tail = partial.trim();
+      if (tail.startsWith('data:')) {
+        handleStreamPayload(tail.slice(5).trim());
       }
       flush();
     } finally {
@@ -212,8 +228,13 @@ export default function AIAssistant({
     setInput('');
     setIsLoading(true);
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const response = await streamChat({
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMessage.content,
           conversationId,
@@ -230,18 +251,21 @@ export default function AIAssistant({
 
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('text/event-stream')) {
-        await processSSEStream(response);
+        await processSSEStream(response, controller.signal);
+        if (controller.signal.aborted) return;
       } else {
         const data = await response.json();
         const payload = data.data || data;
+        const reply = payload.message || payload.reply;
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: payload.message || payload.reply || 'عذراً، حدث خطأ',
+          content: reply || 'عذراً، لم أتمكن من توليد رد. حاول مرة أخرى.',
           timestamp: new Date()
         }]);
         setConversationId(payload.conversationId || conversationId);
       }
     } catch (error) {
+      if ((error as Error)?.name === 'AbortError' || controller.signal.aborted) return;
       logger.error('Chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -249,21 +273,27 @@ export default function AIAssistant({
         timestamp: new Date()
       }]);
     } finally {
-      setIsLoading(false);
-      setIsStreaming(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        setIsStreaming(false);
+      }
     }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading || isStreaming) return;
+    await handleStreamingResponse({ role: 'user', content: input.trim(), timestamp: new Date() });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || isStreaming) return;
-    await handleStreamingResponse({ role: 'user', content: input.trim(), timestamp: new Date() });
+    await sendMessage();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      sendMessage();
     }
   };
 
@@ -288,7 +318,7 @@ export default function AIAssistant({
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
 
   return (
-    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl flex h-full overflow-hidden ${className}`} style={{ height: '650px' }}>
+    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl flex h-full overflow-hidden ${className}`}>
       {showSidebar && (
         <div className="w-72 border-l border-white/10 flex flex-col bg-black/80 backdrop-blur-xl">
           <div className="p-4 border-b border-white/10">
@@ -370,12 +400,12 @@ export default function AIAssistant({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6" style={{ maxHeight: '480px' }}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {messages.map((message, index) => {
-            const msgId = `${message.messageId || index}`;
+            const msgId = message.messageId || `msg-${index}`;
             return (
               <div
-                key={index}
+                key={msgId}
                 className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {message.role === 'assistant' && (

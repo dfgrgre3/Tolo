@@ -2,27 +2,24 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
-import { sanitizeRichTextHtml } from "@/lib/security/sanitize-html";
 import {
   Clock,
-  ChevronLeft,
-  ChevronRight,
   CheckCircle2,
   Lock,
   FileText,
   Layers,
   Star,
   Award,
-  HelpCircle
+  HelpCircle,
+  PlayCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
-import { updateLessonProgress } from "@/lib/course-progress";
-import { normalizeLessonProgressResponse } from "@thanawy/shared/types/enums";
 import {
   toLessonCards,
   type CourseDetailHydrationResponse,
@@ -32,8 +29,6 @@ import {
 import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
 import type { Review, ReviewStats } from "./_components/types";
 import { getListItems } from "./_components/types";
-import { LessonVideoArea } from "./_components/lesson-video-area";
-import { QuizLessonArea, QuizLessonBadge } from "./_components/quiz-lesson-area";
 import { CourseActionCard } from "./_components/course-action-card";
 import { ReviewsTab } from "./_components/reviews-tab";
 import { QuestionsTab } from "./_components/questions-tab";
@@ -50,7 +45,7 @@ export default function CourseDetailClient({
 }) {
   const params = useParams();
   const router = useRouter();
-  const courseId = params.id as string;
+  const courseSlug = params.slug as string;
 
   const { user: authUser, isAuthenticated, isLoading: authLoading } = useAuth();
   // Session-derived id (watermark display + auth gates only) — never sent to
@@ -58,7 +53,6 @@ export default function CourseDetailClient({
   const userId = authUser?.id ?? null;
   const [course, setCourse] = useState<CourseSummaryView>(initialCourseData);
   const [lessons, setLessons] = useState<LessonCardView[]>(initialLessons);
-  const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
@@ -77,21 +71,21 @@ export default function CourseDetailClient({
       return;
     }
     apiClient.get<{ items?: Array<{ subjectId: string }> }>(apiRoutes.courses.wishlistList)
-      .then((data) => setBookmarked(Boolean(data.items?.some((item) => item.subjectId === courseId))))
+      .then((data) => setBookmarked(Boolean(data.items?.some((item) => item.subjectId === courseSlug))))
       .catch(() => undefined);
-  }, [courseId, userId]);
+  }, [courseSlug, userId]);
 
   const toggleBookmark = async () => {
     if (bookmarkBusy || !userId) {
-      if (!userId) router.push(`/login?redirect=/courses/${courseId}`);
+      if (!userId) router.push(`/login?redirect=/courses/${courseSlug}`);
       return;
     }
     setBookmarkBusy(true);
     try {
       if (bookmarked) {
-        await apiClient.delete(apiRoutes.courses.wishlist(courseId));
+        await apiClient.delete(apiRoutes.courses.wishlist(courseSlug));
       } else {
-        await apiClient.post(apiRoutes.courses.wishlist(courseId), {});
+        await apiClient.post(apiRoutes.courses.wishlist(courseSlug), {});
       }
       setBookmarked((current) => !current);
     } finally {
@@ -101,7 +95,7 @@ export default function CourseDetailClient({
 
   // Sync user-specific progress when user logs in
   useEffect(() => {
-    if (!courseId) return;
+    if (!courseSlug) return;
 
     const syncUserSpecificData = async () => {
       if (userId) {
@@ -110,7 +104,7 @@ export default function CourseDetailClient({
           // no ?userId= is appended (IDOR/BOLA hardening).
           // Refresh the same aggregate endpoint after authentication. This
           // keeps enrollment, access, lessons, and progress from one snapshot.
-          const payload = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId));
+          const payload = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseSlug));
           setCourse((prev) => ({
             ...prev,
             enrolled: payload.access.isEnrolled,
@@ -128,47 +122,39 @@ export default function CourseDetailClient({
             };
           }));
           setLessons(normalized);
-          if (normalized.length > 0) {
-            setActiveLesson(prev => prev ?? (normalized.find((lesson) => !lesson.locked)?.id || normalized[0]?.id || null));
-          }
         } catch (error) {
           logger.error("Error syncing user course details:", error);
-        }
-      } else {
-        // Fallback for guests: select first playable lesson
-        if (initialLessons.length > 0) {
-          setActiveLesson(prev => prev ?? (initialLessons.find((lesson) => !lesson.locked)?.id || initialLessons[0]?.id || null));
         }
       }
     };
 
     syncUserSpecificData();
-  }, [courseId, userId, initialLessons]);
+  }, [courseSlug, userId, initialLessons]);
 
   const handleEnroll = async () => {
     if (authLoading) return;
     
-    if (!isAuthenticated || !userId || !courseId) {
-      router.push("/login?redirect=/courses/" + courseId);
+    if (!isAuthenticated || !userId || !courseSlug) {
+      router.push("/login?redirect=/courses/" + courseSlug);
       return;
     }
     setEnrolling(true);
     try {
-      const eligibility = await apiClient.get<EnrollmentEligibilityResponse>(apiRoutes.courses.eligibility(courseId));
+      const eligibility = await apiClient.get<EnrollmentEligibilityResponse>(apiRoutes.courses.eligibility(courseSlug));
       if (eligibility.isEnrolled) {
         setCourse((prev) => ({ ...prev, enrolled: true }));
         return;
       }
 
       if (eligibility.requiresPayment) {
-        router.push(`/courses/${courseId}/checkout`);
+        router.push(`/courses/${courseSlug}/checkout`);
         return;
       }
 
-      await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseId), {});
+      await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseSlug), {});
       // Reconcile the complete server-owned snapshot so access, locks,
       // enrollment and completion cannot remain from the guest state.
-      const snapshot = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId));
+      const snapshot = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseSlug));
       setCourse((prev) => ({
         ...prev,
         enrolled: snapshot.access.isEnrolled,
@@ -187,7 +173,7 @@ export default function CourseDetailClient({
     } catch (err: unknown) {
       const apiErr = err as { status?: number; data?: { requiresPayment?: boolean } };
       if (apiErr?.status === 402 || apiErr?.data?.requiresPayment) {
-        router.push(`/courses/${courseId}/checkout`);
+        router.push(`/courses/${courseSlug}/checkout`);
         return;
       }
       logger.error("Error in handleEnroll", apiErr);
@@ -196,58 +182,25 @@ export default function CourseDetailClient({
     }
   };
 
-  const handleLessonComplete = async (lessonId: string) => {
-    const previousLessons = lessons;
-    const previousProgress = course.progress;
-    if (!userId || !course) return;
-    try {
-      const data = await updateLessonProgress(lessonId, { completed: true });
-      const snapshot = normalizeLessonProgressResponse(data, lessonId);
-      setLessons((prev) => prev.map((l) => l.id === lessonId ? {
-        ...l,
-        completed: snapshot.lesson.completed,
-        progress: snapshot.lesson.percentage,
-      } : l));
-      if (typeof data.courseProgress === "number") {
-        setCourse((prev) => {
-          const progress = snapshot.courseProgress;
-          return {
-          ...prev,
-          progress,
-          completion: {
-            ...snapshot.eligibility,
-            progress,
-          },
-        };
-        });
-      }
-    } catch (err) {
-      setLessons(previousLessons);
-      if (typeof previousProgress === "number") {
-        setCourse((prev) => ({ ...prev, progress: previousProgress }));
-      }
-      logger.error("Error marking lesson complete:", err);
-    }
-  };
-
-  const activeLessonData = useMemo(() => lessons.find((l) => l.id === activeLesson), [lessons, activeLesson]);
-
-  // Lesson HTML comes from the backend (teacher-authored) — sanitize before
-  // injecting via dangerouslySetInnerHTML (stored XSS protection).
-  const sanitizedLessonContent = useMemo(
-    () => sanitizeRichTextHtml(activeLessonData?.content),
-    [activeLessonData?.content]
-  );
   const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
   const courseProgress = course.progress ?? 0;
-  const canAccessActiveLesson = Boolean(
-    course.enrolled || (activeLessonData?.isFree && !activeLessonData.locked)
+
+  // The course page is the catalog/enrollment surface — the lesson itself lives
+  // at /courses/<slug>/learn/<lessonId>. The lesson we point at from here is the
+  // same one the hub would resolve on its own, so a click and a deep link into
+  // the hub land in the same place: the first unfinished lesson for an enrolled
+  // student, the first free preview lesson for a visitor.
+  const firstAccessibleLesson = useMemo(
+    () =>
+      lessons.find((lesson) => !lesson.locked && !lesson.completed) ??
+      lessons.find((lesson) => !lesson.locked) ??
+      lessons[0],
+    [lessons]
   );
-  const selectLesson = (lesson: LessonCardView) => {
-    if (lesson.locked && !course.enrolled) return;
-    setActiveLesson(lesson.id);
-  };
-  const firstFreeLesson = useMemo(() => lessons.find((l) => l.isFree && l.type === "VIDEO" && l.videoUrl), [lessons]);
+
+  const learnHref = firstAccessibleLesson
+    ? `/courses/${courseSlug}/learn/${firstAccessibleLesson.id}`
+    : `/courses/${courseSlug}`;
 
   return (
     <div
@@ -265,14 +218,15 @@ export default function CourseDetailClient({
             courseProgress={courseProgress}
             completedCount={completedCount}
             lessonsCount={lessons.length}
-            courseId={courseId}
+            learnHref={learnHref}
+            learnLabel={courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
+            showPreviewHint={!course.enrolled && Boolean(firstAccessibleLesson?.isFree)}
             enrolling={enrolling}
             bookmarked={bookmarked}
             setBookmarked={setBookmarked}
             onToggleBookmark={toggleBookmark}
             bookmarkBusy={bookmarkBusy}
             onEnroll={handleEnroll}
-            firstFreeLesson={firstFreeLesson}
             onPreviewCertificate={course.completion?.certificateEligible ? () => setIsCertModalOpen(true) : undefined}
           />
         </div>
@@ -320,188 +274,128 @@ export default function CourseDetailClient({
               </div>
 
               <div className="space-y-2 max-h-[600px] overflow-y-auto pe-1">
-                {lessons.map((lesson, idx) =>
-                  <button
-                    key={lesson.id}
-                    onClick={() => selectLesson(lesson)}
-                    disabled={lesson.locked && !course.enrolled}
-                    className={cn(
-                      "w-full p-4 rounded-2xl text-start flex gap-4 items-center transition-all group",
-                      activeLesson === lesson.id ?
-                        "bg-primary/5 dark:bg-primary/10 border border-primary/20 shadow-md shadow-primary/[0.02]" :
-                        "bg-white dark:bg-gray-900/40 border border-gray-200/60 dark:border-white/[0.05] hover:border-gray-300 dark:hover:border-white/10"
-                    )}>
-                    <div
-                      className={cn(
-                        "h-10 w-10 min-w-[40px] rounded-xl flex items-center justify-center text-xs font-black transition-all",
-                        lesson.completed ?
-                          "bg-emerald-500 text-white" :
-                          activeLesson === lesson.id ?
-                            "bg-primary text-white" :
-                            "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
-                      )}>
-                      {lesson.completed ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4
+                {lessons.map((lesson, idx) => {
+                  // A locked lesson is a hard link target: it must not be
+                  // reachable (or crawlable) by a visitor who has not enrolled.
+                  // The backend enforces access on the route itself; here we
+                  // simply do not emit a link for it.
+                  const accessible = !lesson.locked || course.enrolled;
+                  const rowClassName = cn(
+                    "w-full p-4 rounded-2xl text-start flex gap-4 items-center transition-all group",
+                    accessible
+                      ? "bg-white dark:bg-gray-900/40 border border-gray-200/60 dark:border-white/[0.05] hover:border-gray-300 dark:hover:border-white/10"
+                      : "bg-gray-50/60 dark:bg-white/[0.02] border border-dashed border-gray-200/60 dark:border-white/[0.05] cursor-not-allowed opacity-70"
+                  );
+                  const rowContent = (
+                    <>
+                      <div
                         className={cn(
-                          "font-bold text-sm truncate transition-colors",
-                          activeLesson === lesson.id ? "text-primary" : "text-gray-700 dark:text-gray-300 group-hover:text-gray-950 dark:group-hover:text-white"
+                          "h-10 w-10 min-w-[40px] rounded-xl flex items-center justify-center text-xs font-black transition-all",
+                          lesson.completed
+                            ? "bg-emerald-500 text-white"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
                         )}>
-                        {lesson.title}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-[11px] text-gray-400 font-medium">
-                          {Math.floor(lesson.duration / 60)} دقيقة
-                        </span>
-                        {lesson.isFree &&
-                          <span className="h-5 border-0 bg-emerald-500/10 px-2 text-[9px] font-bold text-emerald-500 rounded-full flex items-center">
-                            معاينة مجانية
-                          </span>
-                        }
-                        {lesson.locked &&
-                          <Lock className="w-3 h-3 text-gray-450" />
-                        }
+                        {lesson.completed ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
                       </div>
-                    </div>
-                  </button>
-                )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm truncate text-gray-700 dark:text-gray-300 group-hover:text-gray-950 dark:group-hover:text-white">
+                          {lesson.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-[11px] text-gray-400 font-medium">
+                            {Math.floor(lesson.duration / 60)} دقيقة
+                          </span>
+                          {lesson.isFree &&
+                            <span className="h-5 border-0 bg-emerald-500/10 px-2 text-[9px] font-bold text-emerald-500 rounded-full flex items-center">
+                              معاينة مجانية
+                            </span>
+                          }
+                          {lesson.locked &&
+                            <Lock className="w-3 h-3 text-gray-450" />
+                          }
+                        </div>
+                      </div>
+                    </>
+                  );
+
+                  if (!accessible) {
+                    return (
+                      <div key={lesson.id} aria-disabled="true" className={rowClassName}>
+                        {rowContent}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={lesson.id}
+                      href={`/courses/${courseSlug}/learn/${lesson.id}`}
+                      className={rowClassName}
+                    >
+                      {rowContent}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Lesson content */}
+            {/* Start-learning panel. The course page deliberately hosts no player:
+                video, quizzes, notes and progress all live on the learn route. */}
             <div className="lg:col-span-7 space-y-6">
-              <>
-                {activeLessonData &&
-                  <div
-                    key={activeLessonData.id}
-                    className="space-y-6">
-                    {/* Video / Quiz player */}
-                    <div className="rounded-[28px] overflow-hidden border border-gray-250 dark:border-white/[0.08] bg-white dark:bg-gray-900/80 shadow-md">
-                      {activeLessonData.type === "QUIZ" ? (
-                        <>
-                          <div className="p-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
-                            <QuizLessonBadge lesson={activeLessonData} />
-                          </div>
-                          <div className="p-5">
-                            <QuizLessonArea
-                              canAccess={canAccessActiveLesson}
-                              lessonData={activeLessonData}
-                              courseId={course.id}
-                              onEnroll={handleEnroll}
-                              onCompletion={(completion) => {
-                                setCourse((prev) => ({
-                                  ...prev,
-                                  progress: completion.courseProgress,
-                                  completion: {
-                                    isComplete: completion.courseCompleted,
-                                    progress: completion.courseProgress,
-                                    certificateEligible: completion.certificateEligible,
-                                    requiredExams: 0,
-                                    completedRequiredExams: 0,
-                                    requiredCourseQuizzes: 0,
-                                    completedCourseQuizzes: 0,
-                                  },
-                                }));
-                                if (completion.lessonCompleted) {
-                                  setLessons((prev) => prev.map((lesson) =>
-                                    lesson.id === activeLessonData.id
-                                      ? { ...lesson, completed: true, progress: 100, locked: false }
-                                    : lesson
-                                  ));
-                                }
-                                // Quiz mutations invalidate React Query data, but this
-                                // page owns its course snapshot in local state. Re-read
-                                // the same hydration endpoint to reconcile all rules.
-                                void apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseId))
-                                  .then((snapshot) => {
-                                    setCourse((prev) => ({
-                                      ...prev,
-                                      enrolled: snapshot.access.isEnrolled,
-                                      progress: snapshot.completion?.progress ?? 0,
-                                      completion: snapshot.completion,
-                                    }));
-                                    const normalized = toLessonCards((snapshot.lessons || []).map((lesson) => {
-                                      const progress = snapshot.progress?.[lesson.id];
-                                      return {
-                                        ...lesson,
-                                        completed: lesson.completed || (typeof progress === "object" ? progress.completed : progress) || false,
-                                        progress: lesson.progress ?? (typeof progress === "object" ? progress.percentage : progress ? 100 : 0),
-                                      };
-                                    }));
-                                    setLessons(normalized);
-                                  })
-                                  .catch((error) => logger.error("Error refreshing course after quiz", error));
-                              }}
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <LessonVideoArea
-                          canAccess={canAccessActiveLesson}
-                          lessonData={activeLessonData}
-                          courseId={course.id}
-                          courseEnrolled={course.enrolled}
-                          onAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
-                          onEnroll={handleEnroll}
-                        />
-                      )}
-
-                      {/* Lesson details */}
-                      <div className="p-6 space-y-4 border-t border-gray-100 dark:border-white/5">
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{activeLessonData.title}</h2>
-                            {activeLessonData.description &&
-                              <p className="text-sm text-gray-400 mt-1.5">{activeLessonData.description}</p>
-                            }
-                          </div>
-                          {!activeLessonData.completed && course.enrolled &&
-                            <Button
-                              onClick={() => handleLessonComplete(activeLessonData.id)}
-                              size="sm"
-                              className="gap-1.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 font-bold">
-                              <CheckCircle2 className="h-4 w-4" />
-                              <span>مكتمل</span>
-                            </Button>
-                          }
-                        </div>
-
-                        {activeLessonData.content && canAccessActiveLesson &&
-                          <div
-                            className="prose prose-sm dark:prose-invert max-w-none pt-4 border-t border-gray-100 dark:border-white/5"
-                            dangerouslySetInnerHTML={{ __html: sanitizedLessonContent }} />
-                        }
-                      </div>
-                    </div>
-
-                    {/* Nav buttons */}
-                    <div className="flex items-center justify-between">
-                      <Button
-                        variant="ghost"
-                        className="gap-2 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700"
-                        onClick={() => {
-                          const idx = lessons.findIndex((l) => l.id === activeLesson);
-                          if (idx > 0) selectLesson(lessons[idx - 1]!);
-                        }}>
-                        <ChevronRight className="w-4 h-4" />
-                        <span>الدرس السابق</span>
-                      </Button>
-
-                      <Button
-                        className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-bold"
-                        onClick={() => {
-                          const idx = lessons.findIndex((l) => l.id === activeLesson);
-                          if (idx < lessons.length - 1) selectLesson(lessons[idx + 1]!);
-                        }}>
-                        <span>الدرس التالي</span>
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                    </div>
+              <div className="rounded-[28px] border border-gray-250 dark:border-white/[0.08] bg-white dark:bg-gray-900/80 shadow-md p-6 sm:p-8 space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-14 w-14 shrink-0 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                    <PlayCircle className="h-7 w-7" />
                   </div>
-                }
-              </>
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white">
+                      {course.enrolled ? "أكمل ما بدأته" : "ابدأ أول درس الآن"}
+                    </h2>
+                    {firstAccessibleLesson ? (
+                      <p className="text-sm text-gray-400 mt-1.5 truncate">
+                        {course.enrolled ? "الدرس التالي: " : "الدرس الأول: "}
+                        {firstAccessibleLesson.title}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-1.5">
+                        ستُضاف الدروس قريباً.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-2xl bg-gray-50/70 dark:bg-white/[0.03] p-3 text-center">
+                    <p className="text-[10px] font-bold text-gray-400">الدروس</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white mt-1">{lessons.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-gray-50/70 dark:bg-white/[0.03] p-3 text-center">
+                    <p className="text-[10px] font-bold text-gray-400">المكتملة</p>
+                    <p className="text-lg font-black text-emerald-500 mt-1">{completedCount}</p>
+                  </div>
+                  <div className="rounded-2xl bg-gray-50/70 dark:bg-white/[0.03] p-3 text-center">
+                    <p className="text-[10px] font-bold text-gray-400">التقدم</p>
+                    <p className="text-lg font-black text-primary mt-1">{Math.round(courseProgress)}%</p>
+                  </div>
+                </div>
+
+                {firstAccessibleLesson && (
+                  <Button asChild className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2">
+                    <Link href={learnHref}>
+                      <PlayCircle className="h-4 w-4" />
+                      <span>{course.enrolled ? "متابعة من حيث توقفت" : "فتح الدرس الأول"}</span>
+                    </Link>
+                  </Button>
+                )}
+
+                {!course.enrolled && (
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed text-center">
+                    الدروس المجانية متاحة للمعاينة بدون تسجيل. باقي الدروس تُفتح بعد
+                    التسجيل في الدورة، والصلاحيات يقررها الخادم دائماً.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         }
@@ -597,7 +491,7 @@ export default function CourseDetailClient({
         {/* Reviews Tab */}
         {activeTab === "reviews" &&
           <ReviewsTab
-            courseId={courseId}
+            courseId={courseSlug}
             courseRating={course.rating}
             enrolled={course.enrolled}
             reviews={reviews}
@@ -618,7 +512,7 @@ export default function CourseDetailClient({
 
         {/* Questions Tab */}
         {activeTab === "questions" &&
-          <QuestionsTab courseId={courseId} enrolled={course.enrolled} />
+          <QuestionsTab courseId={courseSlug} enrolled={course.enrolled} />
         }
       </div>
 

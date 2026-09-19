@@ -155,7 +155,6 @@ export default function TipsGenerator({
                       <SelectValue placeholder="اختر المادة" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-white/10 text-white">
-                      <SelectItem value="">اختر المادة</SelectItem>
                       {subjects.map((subject) => (
                         <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                       ))}

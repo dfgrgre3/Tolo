@@ -127,6 +127,8 @@ export type CompletionSnapshot = CompletionEligibility & { progress: number };
 /** View model for the course-detail page hero / sidebar. */
 export interface CourseSummaryView {
   id: string;
+  /** Unique URL segment; every course link is built from this, never from id. */
+  slug: string;
   title: string;
   description: string;
   instructor: string;
@@ -181,6 +183,8 @@ function normalizeLessonType(type?: string | null): LessonCardView['type'] {
 /** View model for catalog cards and catalog filtering. */
 export interface CourseCatalogView {
   id: string;
+  /** Unique URL segment; every catalog card links via slug, never via id. */
+  slug: string;
   title: string;
   description: string;
   instructor: string;
@@ -209,6 +213,15 @@ function reportInvalidLessonType(type?: string | null): 'INVALID' {
   return 'INVALID';
 }
 
+/**
+ * The URL segment for a course. Slugs are the canonical address; the id
+ * fallback only covers legacy rows that predate the NOT NULL slug and is
+ * resolved to the real slug by the [slug] route's redirect layer.
+ */
+export function courseSlug(subject: { slug?: string | null; id: string }): string {
+  return subject.slug?.trim() || subject.id;
+}
+
 /** Subject (course) + enrollment state → course-detail view model. */
 export function toCourseSummary(
   subject: Subject,
@@ -216,6 +229,7 @@ export function toCourseSummary(
 ): CourseSummaryView {
   return {
     id: subject.id,
+    slug: courseSlug(subject),
     title: subject.nameAr || subject.name,
     description: subject.description || 'لا يوجد وصف متاح لهذه الدورة.',
     instructor: subject.instructorName || 'المنصة التعليمية',

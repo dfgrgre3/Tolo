@@ -257,18 +257,27 @@ function applyCookies(fromResponse: Response, toResponse: NextResponse) {
 }
 
 function handleErrorResponse(response: Response, errorText: string) {
-  let errorData;
+  let errorData: Record<string, unknown>;
   try {
-    errorData = JSON.parse(errorText);
-    // Ensure we always have an error field
-    if (!errorData.error && errorData.message) {
-      errorData.error = errorData.message;
-    }
-    if (!errorData.error && errorData.msg) {
-      errorData.error = errorData.msg;
-    }
-    if (!errorData.error) {
-      errorData.error = `Backend error (HTTP ${response.status})`;
+    const parsed: unknown = JSON.parse(errorText);
+    if (typeof parsed === 'string') {
+      // Backend may return a bare JSON string body (e.g. `"Job not found or expired"`).
+      // Normalize it to the standard envelope so the client can read `.error`.
+      errorData = { error: parsed || `Backend error (HTTP ${response.status})` };
+    } else if (parsed && typeof parsed === 'object') {
+      errorData = parsed as Record<string, unknown>;
+      // Ensure we always have an error field
+      if (!errorData.error && errorData.message) {
+        errorData.error = errorData.message;
+      }
+      if (!errorData.error && errorData.msg) {
+        errorData.error = errorData.msg;
+      }
+      if (!errorData.error) {
+        errorData.error = `Backend error (HTTP ${response.status})`;
+      }
+    } else {
+      errorData = { error: `Backend error (HTTP ${response.status})` };
     }
   } catch {
     errorData = {

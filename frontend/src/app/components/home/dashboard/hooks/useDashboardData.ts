@@ -12,19 +12,19 @@ import type {
   CourseProgress,
 } from "../shared/types";
 
-/** Centralized API endpoints to avoid magic strings and improve maintainability */
+/** Centralized API endpoints to avoid magic strings and improve maintainability.
+ * NOTE: GET /api/ai/tips does not exist on the backend (only POST for generation).
+ * TIPS is intentionally omitted until the backend ships a GET feed — see useTips below. */
 const API_ENDPOINTS = {
   PERFORMANCE: "/api/analytics/performance",
   PREDICTIONS: "/api/analytics/predictions",
   RECOMMENDATIONS: apiRoutes.ai.recommendations,
-  TIPS: apiRoutes.ai.tips,
   COURSE_PROGRESS: "/api/users/progress/courses",
 } as const;
 
 type PerformanceResponse = { metrics: PerformanceMetric[] };
 type PredictionsResponse = { predictions: Prediction[] };
 type RecommendationsResponse = { recommendations: Recommendation[] };
-type TipsResponse = { tips: Tip[] };
 type CourseProgressResponse = {
   courses: CourseProgress[];
   totalCourses: number;
@@ -37,7 +37,11 @@ type CourseProgressResponse = {
 const EMPTY_METRICS = [] as const satisfies readonly PerformanceMetric[];
 const EMPTY_PREDICTIONS = [] as const satisfies readonly Prediction[];
 const EMPTY_RECOMMENDATIONS = [] as const satisfies readonly Recommendation[];
-const EMPTY_TIPS = [] as const satisfies readonly Tip[];
+// An annotated empty array, not "[] as const": the literal empty-tuple type has
+// no element type, so .map() in TipsSection would infer its item as `never`.
+// The other empties are always unioned with the real response type below, which
+// supplies the element type; this one is returned on its own.
+const EMPTY_TIPS: readonly Tip[] = [];
 const EMPTY_COURSES = [] as const satisfies readonly CourseProgress[];
 
 /**
@@ -112,21 +116,21 @@ export function useRecommendations() {
   );
 }
 
-/** Study tips personalized from the learner's own habits. */
+/** Study tips personalized from the learner's own habits.
+ * The backend currently only exposes POST /api/ai/tips (on-demand generation
+ * via TipsGenerator). There is no GET feed, so a GET here 404s through the
+ * /api/[...path] proxy on every dashboard visit. Return a stable empty state
+ * (the "سجّل جلسات مذاكرة" empty UI) without any network request until the
+ * backend ships `GET /api/ai/tips`. */
 export function useTips() {
-  const { data, loading, error, refetch } = useAuthenticatedResource<TipsResponse>(
-    API_ENDPOINTS.TIPS,
-    "النصائح"
-  );
-
   return useMemo(
     () => ({
-      tips: data?.tips ?? EMPTY_TIPS,
-      loading,
-      error,
-      refetch,
+      tips: EMPTY_TIPS,
+      loading: false as boolean,
+      error: null as string | null,
+      refetch: () => {},
     }),
-    [data?.tips, loading, error, refetch]
+    []
   );
 }
 

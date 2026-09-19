@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface FeaturedCoursesSectionProps {
@@ -28,7 +28,7 @@ export function FeaturedCoursesSection({ courses, loading }: FeaturedCoursesSect
   }
 
   return (
-    <section className="py-10 bg-gradient-to-b from-white to-[#F8FAFC] border-b border-[#E2E8F0] dark:from-slate-950 dark:to-slate-900 dark:border-slate-800">
+    <section className={`${SECTION.padding} bg-gradient-to-b from-white to-[#F8FAFC] dark:from-slate-950 dark:to-slate-900`}>
       <div className={CONTAINER.className}>
         <div className={SECTION_HEADER.container}>
           <div className={SECTION_HEADER.content}>

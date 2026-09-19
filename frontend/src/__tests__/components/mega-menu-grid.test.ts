@@ -10,7 +10,7 @@ const category = (slug: string, title = slug, columnKey = slug): MegaMenuCategor
 });
 
 describe("groupMegaMenuCategories", () => {
-	it("renders every category as its own horizontal column", () => {
+	it("groups categories that share a columnKey into one column", () => {
 		const columns = groupMegaMenuCategories([
 			category("study", "study", "study"),
 			category("exams", "exams", "study"),
@@ -19,11 +19,24 @@ describe("groupMegaMenuCategories", () => {
 			category("awareness", "awareness", "resources"),
 		]);
 
+		// Column count is bounded by the information architecture (2 column
+		// keys), not the raw category count (5).
+		expect(columns.map((column) => column.map(({ slug }) => slug))).toEqual([
+			["study", "exams", "time_management"],
+			["digital_library", "awareness"],
+		]);
+	});
+
+	it("gives each category without a columnKey its own column", () => {
+		const columns = groupMegaMenuCategories([
+			category("study", "study", "study"),
+			category("tools", "tools", undefined),
+			category("awareness", "awareness", undefined),
+		]);
+
 		expect(columns.map((column) => column.map(({ slug }) => slug))).toEqual([
 			["study"],
-			["exams"],
-			["time_management"],
-			["digital_library"],
+			["tools"],
 			["awareness"],
 		]);
 	});

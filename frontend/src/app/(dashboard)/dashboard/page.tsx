@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { userProgress } = useGamification();
   const [mounted, setMounted] = useState(false);
-  const [lastCourse, setLastCourse] = useState<{ id: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null>(null);
+  const [lastCourse, setLastCourse] = useState<{ id: string; slug?: string; title: string; thumbnailUrl?: string; progress: number; lastAccessedAt: string } | null>(null);
   const [recentActivities] = useState<{ id: string; title: string; time: string; xp: string; icon: React.ElementType; color: string }[]>([]);
   const [, setIsDataLoading] = useState(true);
 

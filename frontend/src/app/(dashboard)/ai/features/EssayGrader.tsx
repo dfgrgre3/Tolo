@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { m } from 'framer-motion';
-import { PenTool, GraduationCap, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { PenTool, GraduationCap, AlertCircle, Loader2, Sparkles, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { pollAIJobResult } from '@/lib/pollJobResult';
+import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+
+interface EvaluationPayload {
+  evaluation?: string;
+  result?: string;
+}
 
 export default function EssayGrader() {
   const { gradeEssay: requestGradeEssay } = useAIWorkspace();
@@ -22,6 +28,7 @@ export default function EssayGrader() {
   const [isLoading, setIsLoading] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const gradeEssay = async () => {
     setIsLoading(true);
@@ -37,18 +44,30 @@ export default function EssayGrader() {
       }
 
       // Step 2 — poll every 1.5 s until completed/failed
-      const result = await pollAIJobResult<{ evaluation: string; result: string }>(
+      const payload = await pollAIJobResult<EvaluationPayload & { status: string }>(
         data.jobId,
-        '/api/ai/grade-essay/status',
-        1500,
+        apiRoutes.ai.gradeEssayStatusBase,
+        { intervalMs: 1500 },
       );
 
-      setEvaluation(result.evaluation ?? result.result ?? '');
+      setEvaluation(payload.evaluation ?? payload.result ?? '');
     } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return;
       const msg = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
       setError(msg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!evaluation) return;
+    try {
+      await navigator.clipboard.writeText(evaluation);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('تعذر نسخ التقييم. حاول مرة أخرى.');
     }
   };
 
@@ -133,15 +152,26 @@ export default function EssayGrader() {
       </Card>
 
       {evaluation && (
-        <m.div 
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-500/20 rounded-xl border border-orange-500/30">
-              <Sparkles className="w-5 h-5 text-orange-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-500/20 rounded-xl border border-orange-500/30">
+                <Sparkles className="w-5 h-5 text-orange-400" />
+              </div>
+              <h3 className="text-xl font-black text-white">نتائج التقييم الذكي</h3>
             </div>
-            <h3 className="text-xl font-black text-white">نتائج التقييم الذكي</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCopy}
+              className="text-gray-500 hover:text-white"
+              title="نسخ التقييم"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </Button>
           </div>
 
           <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none">

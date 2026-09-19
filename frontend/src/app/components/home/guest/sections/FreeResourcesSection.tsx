@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Heart, ChevronLeft, Gift } from 'lucide-react';
 import { CourseCard, CourseCardSkeleton } from '@/components/common/CourseCard';
 import { normalizeCourse } from '../helpers';
-import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, RAIL } from '../design-system';
+import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 import type { CourseItem } from '../types';
 
 interface FreeResourcesSectionProps {
@@ -25,7 +25,7 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
   }
 
   return (
-    <section className="py-10 bg-gradient-to-b from-[#FEF3C7] to-[#FEF08A] dark:from-orange-500/10 dark:to-orange-600/10 border-b border-[#F59E0B] dark:border-orange-500/30">
+    <section className={`${SECTION.padding} bg-gradient-to-b from-[#FEF3C7] to-[#FEF08A] dark:from-orange-500/10 dark:to-orange-600/10`}>
       <div className={CONTAINER.className}>
         {/* Section Header */}
         <div className={SECTION_HEADER.container}>

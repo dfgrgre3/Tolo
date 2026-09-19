@@ -1,7 +1,7 @@
 'use client';
 
 import { TrendingUp, Users, BookOpen, Award } from 'lucide-react';
-import { CONTAINER, GRIDS, SHADOWS } from '../design-system';
+import { CONTAINER, GRIDS, SHADOWS, TYPOGRAPHY, SECTION_HEADER, SECTION } from '../design-system';
 import type { PlatformStats } from '../types';
 
 interface PlatformStatsSectionProps {
@@ -66,17 +66,17 @@ export function PlatformStatsSection({ stats }: PlatformStatsSectionProps) {
   };
 
   return (
-    <section className="py-10 bg-gradient-to-r from-[#0F766E]/5 to-[#F59E0B]/5 dark:from-orange-500/5 dark:to-orange-500/10 border-y border-[#E2E8F0] dark:border-slate-800">
+    <section className={`${SECTION.padding} bg-gradient-to-r from-[#0F766E]/5 to-[#F59E0B]/5 dark:from-orange-500/5 dark:to-orange-500/10`}>
       <div className={CONTAINER.className}>
         {/* Section Header */}
-        <div className="text-center mb-6">
+        <div className={SECTION_HEADER.center}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <TrendingUp className="h-5 w-5 text-[#0F766E] dark:text-orange-500" />
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1E293B] dark:text-white">
+            <h2 className={TYPOGRAPHY.sectionHeading}>
               أرقام المنصة
             </h2>
           </div>
-          <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium">
+          <p className={TYPOGRAPHY.sectionSubheading}>
             ملايين المتعلمين يثقون بمنصة ثنائي
           </p>
         </div>

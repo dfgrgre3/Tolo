@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
@@ -96,11 +96,30 @@ function markLessonCompletedInChapters(chapters: Chapter[], lessonId: string): C
   }));
 }
 
-export function useLearningHub() {
-  const params = useParams();
+// LearningHubOptions lets a route mount the hub for a specific course without
+// relying on useParams(): the slug-based learn route resolves the course
+// server-side and passes the resolved id down, because its URL segments
+// ([slug], [lessonId]) do not carry the id at all.
+export interface LearningHubOptions {
+  courseId: string;
+  // The slug segment of the course, when mounted on
+  // /courses/[slug]/learn/[lessonId]. Omitted on /learning/[courseId]; when
+  // present, switching lessons rewrites the address bar so the URL a user
+  // copies always names the lesson they are on.
+  courseSlug?: string;
+  // A lesson id from the URL. It wins over the stored / first-incomplete
+  // resolution when it names an unlocked lesson, so a shared lesson link opens
+  // exactly that lesson. A locked or unknown id falls back to the default
+  // resolution and the URL self-heals on the next navigation.
+  initialLessonId?: string;
+}
+
+export function useLearningHub(options: LearningHubOptions) {
+  const { courseId } = options;
+  const courseSlug = options.courseSlug;
+  const initialLessonId = options.initialLessonId?.trim() || undefined;
   const router = useRouter();
   const queryClient = useQueryClient();
-  const courseId = params.courseId as string;
   const playerApiRef = useRef<CourseVideoPlayerApi | null>(null);
 
   const { isLoading: authLoading } = useAuth();
@@ -175,15 +194,25 @@ export function useLearningHub() {
         const nextChapters: Chapter[] = curriculumPayload.curriculum || [];
         setChapters(nextChapters);
 
-        const initialLessonId = resolveInitialLessonState(courseId, nextChapters, {
+        const resolvedLessonId = resolveInitialLessonState(courseId, nextChapters, {
           setActiveTab,
           setSidebarOpen,
           setIsTheaterMode,
           setAutoPlayNext,
         });
 
-        if (initialLessonId) {
-          setActiveLessonId(initialLessonId);
+        // A lesson id from the URL takes precedence over the stored position,
+        // but only when it really is an unlocked lesson of this course —
+        // otherwise a stale share link would drop the user on a locked lesson
+        // instead of their own resume point.
+        const allAvailableLessons = nextChapters.flatMap((chapter) => chapter.subTopics);
+        const urlLesson = initialLessonId
+          ? allAvailableLessons.find((lesson) => lesson.id === initialLessonId && !lesson.locked)
+          : undefined;
+
+        const activeLesson = urlLesson ? urlLesson.id : resolvedLessonId;
+        if (activeLesson) {
+          setActiveLessonId(activeLesson);
         }
         setIsInitialized(true);
       } catch (loadError) {
@@ -199,7 +228,7 @@ export function useLearningHub() {
     };
 
     loadLearningHub();
-  }, [courseId, authLoading, router]);
+  }, [courseId, authLoading, router, initialLessonId]);
 
   useEffect(() => {
     if (!isInitialized || !courseId) return;
@@ -323,7 +352,13 @@ export function useLearningHub() {
       setActiveLessonId(lessonId);
       setActiveTab("content");
     });
-  }, [allLessons]);
+    // On the learn route the URL must follow the lesson so a copied link opens
+    // the right one. replace (not push): stepping through lessons is one view,
+    // and back must return to the course page, not walk one lesson per click.
+    if (courseSlug) {
+      router.replace(`/courses/${courseSlug}/learn/${lessonId}`, { scroll: false });
+    }
+  }, [allLessons, courseSlug, router]);
 
   const navigateRelative = useCallback(
     (direction: "next" | "prev") => {

@@ -97,6 +97,9 @@ export function mapCoursesPayload(
 
     return {
       id: String(course.id || ""),
+      slug: typeof course.slug === "string" && course.slug.trim()
+        ? course.slug.trim()
+        : String(course.id || ""),
       title: String(course.name || course.nameAr || ""),
       description: String(course.description || ""),
       instructor: String(course.instructorName || ""),

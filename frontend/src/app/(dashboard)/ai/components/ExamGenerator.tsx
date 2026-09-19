@@ -13,6 +13,7 @@ import {
   RefreshCw,
   BookOpen,
   Calendar,
+  ExternalLink,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -307,7 +308,16 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
             {saveSuccess && (
               <Alert className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                <AlertDescription>تم حفظ الامتحان بنجاح!</AlertDescription>
+                <div className="flex-1">
+                  <AlertDescription>تم حفظ الامتحان في قائمة اختباراتك.</AlertDescription>
+                </div>
+                <a
+                  href="/exams?mine=1"
+                  className="flex items-center gap-1.5 text-xs font-black text-emerald-400 hover:text-emerald-300 whitespace-nowrap"
+                >
+                  عرض امتحاناتي
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </Alert>
             )}
 

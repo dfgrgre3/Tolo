@@ -18,6 +18,7 @@ import { HeaderCartIcon } from "./HeaderCartIcon";
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
 import { utilityNavItems } from "@/components/mega-menu/navData";
+import { utilityLinkStyles } from "@/components/navigation/navigationTokens";
 import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useNavigationMenu } from "@/components/mega-menu";
@@ -113,7 +114,7 @@ export default function Header() {
 		enableProgress: true
 	});
 
-	const { user } = useAuth();
+	const { user, status: authStatus } = useAuth();
 	const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
 	const { navItems: backendNavItems } = useNavigationMenu();
 
@@ -196,12 +197,8 @@ export default function Header() {
 	});
 
 	// ── Close mobile menu on route change ─────────────────────────
-
-	useEffect(() => {
-		queueMicrotask(() => {
-			setIsMobileMenuOpen(false);
-		});
-	}, [pathname]);
+	// Handled inside HeaderMobileMenuEnhanced, which owns the transient drawer
+	// state (expanded sections, search query) that has to be reset too.
 
 	// ── Helpers ───────────────────────────────────────────────────
 
@@ -258,7 +255,7 @@ export default function Header() {
 										key={item.href}
 										href={item.href}
 										prefetch={UTILITY_NAV_PREFETCH}
-										className="text-sm font-semibold text-muted-foreground hover:text-primary px-3 py-2 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+										className={cn(utilityLinkStyles(), "hidden lg:inline-flex")}
 									>
 										{item.label}
 									</Link>
@@ -294,7 +291,7 @@ export default function Header() {
 										label={schoolsNavItem.label}
 										icon={schoolsNavItem.icon}
 										zIndex={50}
-									className="relative h-10 px-3 flex items-center gap-2 rounded-xl font-semibold text-sm text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+									className={cn(utilityLinkStyles({ active: isActiveRoute(schoolsNavItem.href) }), "relative")}
 									/>
 								</div>
 							)}
@@ -306,7 +303,7 @@ export default function Header() {
 										key={item.href}
 										href={item.href}
 										prefetch={UTILITY_NAV_PREFETCH}
-										className="hidden lg:flex items-center h-10 px-3 text-sm font-semibold text-muted-foreground hover:text-primary rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+										className={cn(utilityLinkStyles(), "hidden lg:inline-flex")}
 									>
 										{item.label}
 									</Link>
@@ -328,6 +325,17 @@ export default function Header() {
 							<div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
 								{user ? (
 									<UserMenu />
+								) : authStatus === "loading" ? (
+									// The server saw session cookies (hasSessionHint) but /auth/me
+									// has not confirmed the account yet. Rendering the guest CTA here
+									// would flash "logged out" at a returning user on every page load
+									// and then swap it for the avatar; reserving the avatar's
+									// footprint keeps the row still. A genuine guest never enters this
+									// branch — the provider resolves to "anonymous" immediately.
+									<div
+										className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-muted animate-pulse shrink-0"
+										aria-hidden="true"
+									/>
 								) : (
 									<div className="flex items-center gap-1 sm:gap-1.5">
 										<Link href={loginUrl} aria-label="تسجيل الدخول">
@@ -393,7 +401,6 @@ export default function Header() {
 			</header>
 
 			<HeaderMobileMenuEnhanced
-				key={pathname || "root"}
 				isMobileMenuOpen={isMobileMenuOpen}
 				setIsMobileMenuOpen={setIsMobileMenuOpen}
 				isActiveRoute={isActiveRoute}

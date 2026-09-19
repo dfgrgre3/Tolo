@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -16,11 +16,9 @@ import {
   Shield,
   Compass,
    Scroll,
-   Loader2,
-   History } from
+   Loader2 } from
 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIWorkspaceProvider } from './context/AIWorkspaceContext';
 
@@ -45,7 +43,6 @@ export default function AILearningPage() {
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-   const searchParams = useSearchParams();
    const [selectedTab, setSelectedTab] = useState('assistant');
 
   useEffect(() => {
@@ -53,15 +50,6 @@ export default function AILearningPage() {
     const redirectTarget = pathname || '/ai';
     router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
   }, [isLoading, pathname, router, user]);
-
-   const requestedTab = searchParams.get('tab');
-   const validTabs = ['assistant', 'exam', 'planner', 'summarizer', 'grader', 'teachers', 'tips'];
-   const activeTab = requestedTab && validTabs.includes(requestedTab) ? requestedTab : selectedTab;
-
-   const handleTabChange = (tab: string) => {
-      setSelectedTab(tab);
-      router.replace(`${pathname}?tab=${tab}`, { scroll: false });
-   };
 
   if (isLoading || !user) {
     return (
@@ -74,6 +62,38 @@ export default function AILearningPage() {
     );
   }
 
+  return (
+      <AIWorkspaceProvider>
+      <Suspense fallback={null}>
+        <AIWorkspace
+          selectedTab={selectedTab}
+          onTabChange={setSelectedTab}
+        />
+      </Suspense>
+    </AIWorkspaceProvider>
+  );
+}
+
+function AIWorkspace({
+  selectedTab,
+  onTabChange,
+}: {
+  selectedTab: string;
+  onTabChange: (tab: string) => void;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const requestedTab = searchParams.get('tab');
+  const validTabs = ['assistant', 'exam', 'planner', 'summarizer', 'grader', 'teachers', 'tips'];
+  const activeTab = requestedTab && validTabs.includes(requestedTab) ? requestedTab : selectedTab;
+
+  const handleTabChange = (tab: string) => {
+    onTabChange(tab);
+    router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+  };
+
   const subjects = [
   'الرياضيات', 'العلوم', 'اللغة العربية', 'اللغة الإنجليزية', 'الدراسات الاجتماعية',
   'الفيزياء', 'الكيمياء', 'الأحياء', 'التربية الإسلامية', 'الحاسوب'];
@@ -82,9 +102,8 @@ export default function AILearningPage() {
   const years = [1, 2, 3];
 
   return (
-      <AIWorkspaceProvider>
       <div
-         className="min-h-screen overflow-hidden bg-background text-foreground [&_*]:!rounded-none [&_*]:!transition-none [&_*]:!animate-none [&_*]:!transform-none"
+         className="min-h-screen bg-background text-foreground"
          dir="rtl"
       >
       {/* --- Ambient Background --- */}
@@ -146,19 +165,20 @@ export default function AILearningPage() {
             <div
           className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { icon: MessageSquare, label: 'اسأل وتابع الحوار', value: '01', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-            { icon: FileText, label: 'تدرّب باختبارات', value: '02', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-            { icon: Sparkles, label: 'لخّص الدروس', value: '03', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-            { icon: Zap, label: 'طوّر خطتك', value: '04', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+            { icon: MessageSquare, label: 'اسأل وتابع الحوار', tab: 'assistant', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+            { icon: FileText, label: 'تدرّب باختبارات', tab: 'exam', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+            { icon: Sparkles, label: 'لخّص الدروس', tab: 'summarizer', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+            { icon: Zap, label: 'طوّر خطتك', tab: 'planner', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
           ].map((stat, i) => (
-            <div
+            <button
               key={i}
-              className={`border ${stat.border} ${stat.bg} p-5 text-center`}
+              onClick={() => handleTabChange(stat.tab)}
+              aria-label={stat.label}
+              className={`border ${stat.border} ${stat.bg} p-5 text-center transition-all hover:scale-[1.02] active:scale-[0.98]`}
             >
               <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
-              <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
               <div className="text-xs text-gray-400 mt-1 font-bold">{stat.label}</div>
-            </div>
+            </button>
           ))}
       </div>
 
@@ -206,12 +226,6 @@ export default function AILearningPage() {
                                 <h3 className="text-2xl font-black text-white">العراف المستجيب</h3>
                                 <p className="text-gray-500 font-medium">ذو البصيرة الرقمية ومعالج العلوم الكبرى</p>
                              </div>
-                          </div>
-                          <div className="flex gap-3">
-                             <Button variant="ghost" className="h-12 px-6 bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-gray-400 gap-2">
-                                <History className="w-4 h-4" />
-                                   <span>سجل المحادثات</span>
-                             </Button>
                           </div>
                        </div>
                        <div className="p-4 sm:p-8 bg-black/40 min-h-[600px] flex flex-col">
@@ -282,6 +296,5 @@ export default function AILearningPage() {
         </div>
       </div>
    </div>
-   </AIWorkspaceProvider>);
-
+);
 }

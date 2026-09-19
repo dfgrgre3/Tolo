@@ -12,9 +12,18 @@ import { applyRefreshToRequest, createRefreshedResponse } from './refresh';
 import { applyRoleGate, isApiRequest, isGuestPage, isProtectedPage, isPublicApiPath } from './routing';
 import { isAdminRoute } from '@/lib/auth/route-guards';
 import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
+import { canonicalizeCourseUrl } from './course-canonical-redirect';
 
 export async function runProxyPipeline(request: NextRequest): Promise<NextResponse> {
   const { pathname, nonce, requestHeaders } = createProxyContext(request);
+
+  // Canonicalize legacy /courses/<uuid> links to the slug URL with a 301 before
+  // any session work, so a stale link spends no auth budget on a redirect.
+  const canonicalRedirect = await canonicalizeCourseUrl(request);
+  if (canonicalRedirect) {
+    return finalizeProxyResponse(canonicalRedirect, nonce);
+  }
+
   const isProtected = isProtectedPage(pathname);
   const isGuest = isGuestPage(pathname);
   const accessToken = request.cookies.get('access_token')?.value;

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail, Send, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '@/lib/api/api-client';
+import { TYPOGRAPHY, SECTION } from '../design-system';
 
 type SubscribeStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -27,14 +28,14 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="py-10 bg-white border-t border-[#E2E8F0]">
+    <section className={SECTION.padding}>
       <div className="max-w-3xl mx-auto px-4 text-center space-y-5">
-        <div className="h-12 w-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F766E] mx-auto flex items-center justify-center">
+        <div className="h-12 w-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F766E] mx-auto flex items-center justify-center dark:bg-slate-900 dark:border-slate-700 dark:text-orange-500">
           <Mail className="h-6 w-6" />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-[#1E293B]">اشترك في نشرتنا البريدية</h2>
-          <p className="text-sm text-[#64748B] font-medium mt-1.5">
+          <h2 className={TYPOGRAPHY.sectionHeading}>اشترك في نشرتنا البريدية</h2>
+          <p className={TYPOGRAPHY.sectionSubheading}>
             احصل على أحدث الكورسات، المقالات التعليمية، والعروض الحصرية مباشرة في بريدك
           </p>
         </div>
@@ -49,7 +50,7 @@ export function NewsletterSection() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="أدخل بريدك الإلكتروني"
-            className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#0F766E] text-[#1E293B] focus:ring-2 focus:ring-[#0F766E]/20"
+            className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#0F766E] text-[#1E293B] focus:ring-2 focus:ring-[#0F766E]/20 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-orange-500 dark:focus:ring-orange-500/20"
           />
           <button
             type="submit"

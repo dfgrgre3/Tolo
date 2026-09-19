@@ -174,7 +174,12 @@ export async function buildApiError(response: Response): Promise<AppError> {
     const responseText = await response.text();
     try {
         errorData = JSON.parse(responseText);
-        if (errorData) {
+        if (typeof errorData === 'string') {
+            // Backend may return a bare JSON string body (e.g. `"Job not found or expired"`).
+            // Use it directly as the message instead of falling back to a generic status text.
+            if (errorData) errorMessage = errorData;
+            errorData = { error: errorData };
+        } else if (errorData) {
             errorMessage = (errorData.error as string) || (errorData.message as string) || errorMessage;
             errorCode = (errorData.code as string) || errorCode;
         }

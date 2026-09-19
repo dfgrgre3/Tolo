@@ -22,12 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/lib/api/api-client";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { logger } from "@/lib/logger";
-
-// ─── Helpers ─────────────────────────────────────────────────────
-
-function buildLoginUrl(redirect?: string): string {
-	return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login";
-}
+import { useLoginUrl } from "./useHeaderOptimizations";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -86,6 +81,19 @@ export function HeaderMobileMenuEnhanced({
 			document.body.style.overflow = "";
 		};
 	}, [isMobileMenuOpen]);
+
+	// ── Close & reset on route change ─────────────────────────────
+	// The drawer holds transient state (expanded sections, search query,
+	// API results). It used to be remounted with key={pathname} on every
+	// navigation to reset that state, which paid for a full unmount/remount
+	// of this dynamic import on every route change. Closing through the
+	// drawer's own helper resets everything and is idempotent, so the
+	// surviving menu state can never go stale. Deferred to a microtask for
+	// the same reason the parent's former close-on-route effect did it: a
+	// synchronous setState in the effect body triggers a cascading render.
+	useEffect(() => {
+		queueMicrotask(() => closeMobileMenu());
+	}, [pathname, closeMobileMenu]);
 
 	// ── Click outside to close ────────────────────────────────────
 
@@ -253,15 +261,7 @@ export function HeaderMobileMenuEnhanced({
 		[closeMobileMenu, router]
 	);
 
-	const [loginUrl, setLoginUrl] = useState<string>("/login");
-
-	useEffect(() => {
-		const query =
-			typeof window !== "undefined"
-				? window.location.search.replace(/^\?/, "")
-				: "";
-		queueMicrotask(() => setLoginUrl(buildLoginUrl(`${pathname || "/"}${query ? `?${query}` : ""}`)));
-	}, [pathname]);
+	const loginUrl = useLoginUrl();
 
 	// ── Render helpers ────────────────────────────────────────────
 
@@ -301,7 +301,7 @@ export function HeaderMobileMenuEnhanced({
 			<div
 				ref={mobileMenuRef}
 				id="mobile-menu"
-				data-header-root
+				data-mobile-menu-panel
 				role="dialog"
 				aria-modal="true"
 				aria-label="قائمة التنقل"

@@ -42,7 +42,7 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
   const heroThumb = featuredCourse?.thumbnailUrl || featuredCourse?.thumbnail;
 
   return (
-    <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-8 pb-12">
+    <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-8 pb-10">
       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#F59E0B]/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-300/10 rounded-full blur-[100px]" />

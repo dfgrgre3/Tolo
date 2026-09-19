@@ -1,5 +1,6 @@
 import { BookOpen, Users, GraduationCap, Award } from 'lucide-react';
 import type { PlatformStats } from '../types';
+import { CONTAINER, SECTION } from '../design-system';
 
 interface StatsStripProps {
   stats: PlatformStats | null;
@@ -20,7 +21,7 @@ export function StatsStrip({ stats }: StatsStripProps) {
   ];
 
   return (
-    <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
       {items.map(({ icon: Icon, value, label, color }) => (
         <div
           key={label}
@@ -52,8 +53,8 @@ export function AchievementStrip({ stats }: StatsStripProps) {
   ];
 
   return (
-    <section className="py-10 bg-[#1e293b]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className={`${SECTION.padding} bg-[#1e293b]`}>
+      <div className={CONTAINER.className}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {items.map(({ value, label, icon: Icon }) => (
             <div key={label} className="flex flex-col items-center animate-fade-in-up">
