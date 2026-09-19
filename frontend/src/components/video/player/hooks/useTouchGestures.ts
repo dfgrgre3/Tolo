@@ -1,15 +1,29 @@
-import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { SEEK_STEP_SECONDS, TEMPORARY_SPEED_RATE } from "../constants";
-import { usePlayerPlayback, usePlayerSettings, usePlayerUI } from "../stores/player-scope";
+import { usePlayerSettings, usePlayerStores, usePlayerUI } from "../stores/player-scope";
 import { clamp } from "../utils";
 
-type TouchGestureState = {
-  mode: "volume" | "brightness" | "seek" | "speed" | null;
-  startX: number;
-  startY: number;
-  startValue: number;
-  moved: boolean;
-};
+/**
+ * Unified gesture state machine (P2-41).
+ *
+ * Previously click / double-click / touchstart-move-end / pointer handlers
+ * lived in separate layers with separate timers (long-press vs tap vs drag
+ * raced each other — e.g. a long-press release fired a click that toggled
+ * playback). Now ONE machine owns the surface:
+ *
+ *   idle → pressed ──(500ms hold)──▶ speed (temporary 2x via player command)
+ *      │                                │── release → idle (click suppressed)
+ *      ├──(move > 12px, vertical)──▶ dragging (volume / brightness)
+ *      │                                │── release → idle (click suppressed)
+ *      └──(release, no move)──▶ tap ──(2nd tap < 280ms, sides)──▶ seek ∓10s
+ *                              └──(single)──▶ toggle play / reveal controls
+ *
+ * Pointer events cover mouse + touch + pen uniformly (no more
+ * event.detail sniffing or parallel touch/pointer tracks). The zoomed-in
+ * pan mode stays in usePlayerViewport — the surface wires ONE of the two
+ * handler sets depending on zoom (see CourseVideoPlayer).
+ */
+type GestureMode = "volume" | "brightness" | "seek" | "speed" | null;
 
 type TouchGesturesOptions = {
   togglePlayPause: () => | Promise<void>;
@@ -19,13 +33,25 @@ type TouchGesturesOptions = {
   /**
    * Player COMMAND (not a store mutation): drives the adapter AND the store
    * together so UI state can never diverge from the real media element.
-   * Returns false when the rate can't be applied (e.g. unsupported on
-   * YouTube) — the gesture then shows nothing instead of a fake 2x badge.
    */
   beginTemporaryRate: (rate: number) => boolean;
   /** Restores the pre-gesture rate via adapter + store. No-op when inactive. */
   endTemporaryRate: () => void;
 };
+
+const LONG_PRESS_MS = 500;
+const TAP_WINDOW_MS = 280;
+const MOVE_THRESHOLD_PX = 12;
+
+interface PressState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  mode: "volume" | "brightness";
+  startValue: number;
+  longpressFired: boolean;
+  dragging: boolean;
+}
 
 export function useTouchGestures({
   togglePlayPause,
@@ -35,176 +61,193 @@ export function useTouchGestures({
   beginTemporaryRate,
   endTemporaryRate,
 }: TouchGesturesOptions) {
-  const volume = usePlayerPlayback((s) => s.volume);
-  const brightness = usePlayerSettings((s) => s.brightness);
+  // Live values are read from the stores at press-start (getState), never
+  // captured in closures — the machine must not go stale between renders.
   const setSettingsState = usePlayerSettings((s) => s.setSettingsState);
   const showControls = usePlayerUI((s) => s.showControls);
-  const [gestureActiveMode, setGestureActiveMode] = useState<"volume" | "brightness" | "seek" | "speed" | null>(null);
+  const stores = usePlayerStores();
+  const [gestureActiveMode, setGestureActiveMode] = useState<GestureMode>(null);
   const [gestureValue, setGestureValue] = useState<number | string>(0);
-  const touchGestureRef = useRef<TouchGestureState | null>(null);
-  const lastTapRef = useRef<{ timestamp: number; x: number } | null>(null);
+
+  const pressRef = useRef<PressState | null>(null);
+  const pressTimerRef = useRef<number | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+  const suppressClickUntilRef = useRef(0);
   const feedbackHideTimeoutRef = useRef<number | null>(null);
-  const longPressTimeoutRef = useRef<number | null>(null);
-  const tempSpeedActiveRef = useRef(false);
 
-  const handleSurfaceTap = useCallback(
-    async (event: ReactMouseEvent<HTMLButtonElement>) => {
-      if (event.detail === 2) {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const xRatio = (event.clientX - bounds.left) / bounds.width;
-        if (xRatio >= 0.66) {
-          seekBy(SEEK_STEP_SECONDS);
-          setGestureActiveMode("seek");
-          setGestureValue(`+${SEEK_STEP_SECONDS}`);
-          if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
-          feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), 600);
-          return;
-        }
-        if (xRatio <= 0.34) {
-          seekBy(-SEEK_STEP_SECONDS);
-          setGestureActiveMode("seek");
-          setGestureValue(`-${SEEK_STEP_SECONDS}`);
-          if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
-          feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), 600);
-          return;
-        }
-      }
+  useEffect(() => {
+    const timer = pressTimerRef.current;
+    const feedback = feedbackHideTimeoutRef.current;
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (feedback) clearTimeout(feedback);
+    };
+  }, []);
 
-      if (!showControls) {
-        resetControlsTimeout();
-        return;
-      }
+  const flashGesture = useCallback((mode: Exclude<GestureMode, null>, value: number | string, hideAfterMs = 600) => {
+    setGestureActiveMode(mode);
+    setGestureValue(value);
+    if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
+    feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), hideAfterMs);
+  }, []);
 
-      await togglePlayPause();
-    },
-    [resetControlsTimeout, seekBy, showControls, togglePlayPause]
-  );
+  const cancelPressTimer = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }, []);
 
-  const handleTouchStart = useCallback(
-    (event: ReactTouchEvent<HTMLButtonElement>) => {
-      const touch = event.touches[0];
-      if (!touch) return;
-
-      const bounds = event.currentTarget.getBoundingClientRect();
-      const now = Date.now();
-      const x = touch.clientX - bounds.left;
-      const y = touch.clientY - bounds.top;
-
-      if (
-        lastTapRef.current &&
-        now - lastTapRef.current.timestamp < 280 &&
-        Math.abs(lastTapRef.current.x - x) < bounds.width * 0.12
-      ) {
-        if (x >= bounds.width * 0.66) {
-          seekBy(SEEK_STEP_SECONDS);
-        } else if (x <= bounds.width * 0.34) {
-          seekBy(-SEEK_STEP_SECONDS);
-        }
-      }
-
-      lastTapRef.current = { timestamp: now, x };
-      touchGestureRef.current = {
-        mode: x > bounds.width / 2 ? "volume" : "brightness",
-        startX: x,
-        startY: y,
-        startValue: x > bounds.width / 2 ? volume : brightness,
-        moved: false,
-      };
-
+  const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    if (!event.isPrimary) return;
+    cancelPressTimer();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    const rightSide = x > bounds.width / 2;
+    pressRef.current = {
+      pointerId: event.pointerId,
+      startX: x,
+      startY: y,
+      mode: rightSide ? "volume" : "brightness",
+      startValue: rightSide
+        ? stores.playback.getState().volume
+        : stores.settings.getState().brightness,
+      longpressFired: false,
+      dragging: false,
+    };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Non-critical: moves outside the element may be missed.
+    }
+    pressTimerRef.current = window.setTimeout(() => {
+      const press = pressRef.current;
+      if (!press || press.dragging) return;
       // Long press for temporary speed: a PLAYER COMMAND (adapter + store),
       // never a bare store mutation — the badge must reflect the real rate.
-      if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
-      longPressTimeoutRef.current = window.setTimeout(() => {
-        if (beginTemporaryRate(TEMPORARY_SPEED_RATE)) {
-          tempSpeedActiveRef.current = true;
-          setGestureActiveMode("speed");
-          setGestureValue(`${TEMPORARY_SPEED_RATE}x`);
-        }
-      }, 500);
-    },
-    [beginTemporaryRate, brightness, seekBy, volume]
-  );
-
-  const handleTouchMove = useCallback(
-    (event: ReactTouchEvent<HTMLButtonElement>) => {
-      const gesture = touchGestureRef.current;
-      const touch = event.touches[0];
-      if (!gesture || !touch) return;
-
-      const bounds = event.currentTarget.getBoundingClientRect();
-      const nextX = touch.clientX - bounds.left;
-      const nextY = touch.clientY - bounds.top;
-      const deltaYRatio = (gesture.startY - nextY) / bounds.height;
-      const deltaX = Math.abs(nextX - gesture.startX);
-      const deltaY = Math.abs(nextY - gesture.startY);
-
-      if (!gesture.moved && deltaY < 12 && deltaX < 12) {
-        return;
+      if (beginTemporaryRate(TEMPORARY_SPEED_RATE)) {
+        press.longpressFired = true;
+        flashGesture("speed", `${TEMPORARY_SPEED_RATE}x`, 10_000);
       }
+      pressTimerRef.current = null;
+    }, LONG_PRESS_MS);
+  }, [beginTemporaryRate, cancelPressTimer, flashGesture, stores]);
 
-      if (deltaY > 12 || deltaX > 12) {
-        if (longPressTimeoutRef.current) {
-          clearTimeout(longPressTimeoutRef.current);
-          longPressTimeoutRef.current = null;
-        }
-      }
+  const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    const press = pressRef.current;
+    if (!press || event.pointerId !== press.pointerId) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.height <= 0) return;
 
-      if (deltaY <= deltaX) {
-        return;
-      }
+    const dx = Math.abs(event.clientX - bounds.left - press.startX);
+    const dy = Math.abs(event.clientY - bounds.top - press.startY);
 
-      gesture.moved = true;
-      event.preventDefault();
-
-      if (gesture.mode === "volume") {
-        const nextVolume = clamp(gesture.startValue + deltaYRatio, 0, 1);
-        handleVolumeChange(nextVolume);
-        setGestureActiveMode("volume");
-        setGestureValue(nextVolume);
-      } else if (gesture.mode === "brightness") {
-        const nextBrightness = clamp(gesture.startValue + deltaYRatio, 0.6, 1.3);
-        setSettingsState({ brightness: nextBrightness });
-        setGestureActiveMode("brightness");
-        setGestureValue((nextBrightness - 0.6) / (1.3 - 0.6)); // Normalize for UI
-      }
-
-      if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
-    },
-    [handleVolumeChange, setSettingsState]
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimeoutRef.current) {
-      clearTimeout(longPressTimeoutRef.current);
-      longPressTimeoutRef.current = null;
+    if (!press.dragging && !press.longpressFired && (dx > MOVE_THRESHOLD_PX || dy > MOVE_THRESHOLD_PX)) {
+      cancelPressTimer();
     }
+    if (press.longpressFired) return;
+    if (!press.dragging && (dx <= MOVE_THRESHOLD_PX && dy <= MOVE_THRESHOLD_PX)) return;
+    // Vertical-dominant movement drives the value; horizontal is ignored
+    // (seek lives on taps, not drags).
+    if (!press.dragging && dy <= dx) return;
 
-    if (tempSpeedActiveRef.current) {
-      tempSpeedActiveRef.current = false;
+    press.dragging = true;
+    const deltaRatio = (press.startY - (event.clientY - bounds.top)) / bounds.height;
+    if (press.mode === "volume") {
+      const nextVolume = clamp(press.startValue + deltaRatio, 0, 1);
+      handleVolumeChange(nextVolume);
+      flashGesture("volume", nextVolume, 1000);
+    } else {
+      const nextBrightness = clamp(press.startValue + deltaRatio, 0.6, 1.3);
+      setSettingsState({ brightness: nextBrightness });
+      flashGesture("brightness", (nextBrightness - 0.6) / (1.3 - 0.6), 1000);
+    }
+  }, [cancelPressTimer, flashGesture, handleVolumeChange, setSettingsState]);
+
+  const endPress = useCallback((event: ReactPointerEvent<HTMLElement> | null, pointerId: number | null) => {
+    const press = pressRef.current;
+    cancelPressTimer();
+    if (!press) return;
+    if (pointerId !== null && pointerId !== press.pointerId) return;
+    pressRef.current = null;
+    if (event) {
+      try {
+        if (event.currentTarget.hasPointerCapture(press.pointerId)) {
+          event.currentTarget.releasePointerCapture(press.pointerId);
+        }
+      } catch {
+        // Best-effort.
+      }
+    }
+    if (press.longpressFired) {
       endTemporaryRate();
       setGestureActiveMode(null);
-    }
-
-    const gesture = touchGestureRef.current;
-    
-    feedbackHideTimeoutRef.current = window.setTimeout(() => {
-      setGestureActiveMode(null);
-    }, 1000);
-
-    if (!gesture?.moved) {
-      touchGestureRef.current = null;
+      // The release click after a long-press must NOT toggle playback.
+      suppressClickUntilRef.current = Date.now() + 400;
       return;
     }
+    if (press.dragging) {
+      if (feedbackHideTimeoutRef.current) clearTimeout(feedbackHideTimeoutRef.current);
+      feedbackHideTimeoutRef.current = window.setTimeout(() => setGestureActiveMode(null), 1000);
+      // A drag release must NOT count as a tap.
+      suppressClickUntilRef.current = Date.now() + 400;
+    }
+  }, [cancelPressTimer, endTemporaryRate]);
 
-    touchGestureRef.current = null;
-  }, [endTemporaryRate]);
+  const onPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    endPress(event, event.pointerId);
+  }, [endPress]);
+
+  const onPointerCancel = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    endPress(event, event.pointerId);
+  }, [endPress]);
+
+  const onClick = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    if (Date.now() < suppressClickUntilRef.current) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0) return;
+    const x = event.clientX - bounds.left;
+    const now = Date.now();
+    const lastTap = lastTapRef.current;
+
+    // Double-tap (mouse double-click AND mobile double-tap, one path):
+    // sides seek, center falls through to toggle below.
+    if (
+      lastTap &&
+      now - lastTap.time < TAP_WINDOW_MS &&
+      Math.abs(lastTap.x - x) < bounds.width * 0.12
+    ) {
+      lastTapRef.current = null;
+      if (x >= bounds.width * 0.66) {
+        seekBy(SEEK_STEP_SECONDS);
+        flashGesture("seek", `+${SEEK_STEP_SECONDS}`);
+        return;
+      }
+      if (x <= bounds.width * 0.34) {
+        seekBy(-SEEK_STEP_SECONDS);
+        flashGesture("seek", `-${SEEK_STEP_SECONDS}`);
+        return;
+      }
+    }
+    lastTapRef.current = { time: now, x };
+
+    if (!showControls) {
+      resetControlsTimeout();
+      return;
+    }
+    void togglePlayPause();
+  }, [flashGesture, resetControlsTimeout, seekBy, showControls, togglePlayPause]);
 
   return {
-    handleSurfaceTap,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
     gestureActiveMode,
     gestureValue,
+    surfaceHandlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
+      onClick,
+    },
   };
 }

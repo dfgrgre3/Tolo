@@ -64,17 +64,18 @@ const PlaybackInfo = ({
   duration,
   playbackRate,
   currentTime,
-  isMobile = false,
 }: {
   duration: number;
   playbackRate: number;
   currentTime: number;
-  isMobile?: boolean;
 }) => {
   const hasCustomRate = playbackRate !== 1;
-  
-  if (!isMobile) {
-    return (
+
+  // P2-29: ONE tree, CSS-only breakpoints (sm:). The old isMobile prop
+  // forked two render paths off JS viewport reads — same output, half the
+  // branches, zero hydration risk.
+  return (
+    <>
       <div className="hidden items-center gap-2 sm:flex">
         <span className="rounded-full border border-white/15 bg-gradient-to-br from-white/10 to-white/5 px-3 py-2 text-xs font-bold tabular-nums text-white/80 shadow-[0_0_15px_rgba(255,255,255,0.05)] backdrop-blur-sm">
           {formatDuration(currentTime)} / {formatDuration(duration)}
@@ -86,22 +87,18 @@ const PlaybackInfo = ({
           </span>
         )}
       </div>
-    );
-  }
-  
-  // Mobile: show progress in center, larger text
-  return (
-    <div className="flex items-center gap-2">
-      <span className="rounded-full border border-white/15 bg-gradient-to-br from-white/10 to-white/5 px-4 py-2 text-sm font-bold tabular-nums text-white/90 shadow-lg backdrop-blur-sm sm:hidden">
-        {formatDuration(currentTime)} / {formatDuration(duration)}
-      </span>
-      {hasCustomRate && (
-        <span className="flex items-center gap-1.5 rounded-full border border-sky-400/25 bg-gradient-to-br from-sky-500/15 to-sky-500/5 px-3 py-1.5 text-xs font-bold text-sky-100 shadow-[0_0_15px_rgba(14,165,233,0.15)] backdrop-blur-sm sm:hidden">
-          <Gauge className="h-3 w-3" />
-          {playbackRate}x
+      <div className="flex items-center gap-2 sm:hidden">
+        <span className="rounded-full border border-white/15 bg-gradient-to-br from-white/10 to-white/5 px-4 py-2 text-sm font-bold tabular-nums text-white/90 shadow-lg backdrop-blur-sm">
+          {formatDuration(currentTime)} / {formatDuration(duration)}
         </span>
-      )}
-    </div>
+        {hasCustomRate && (
+          <span className="flex items-center gap-1.5 rounded-full border border-sky-400/25 bg-gradient-to-br from-sky-500/15 to-sky-500/5 px-3 py-1.5 text-xs font-bold text-sky-100 shadow-[0_0_15px_rgba(14,165,233,0.15)] backdrop-blur-sm">
+            <Gauge className="h-3 w-3" />
+            {playbackRate}x
+          </span>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -183,10 +180,10 @@ export function PlayerControls({
   return (
     <div
       className={cn(
-        "absolute inset-x-0 bottom-0 z-20 px-5 pb-5 pt-28",
+        "absolute inset-x-0 bottom-0 z-20 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-28",
         isEfficiencyMode ? "bg-black/80" : "bg-gradient-to-t from-black/95 via-black/80 to-transparent transition-opacity duration-300",
         showControls ? "opacity-100" : "pointer-events-none opacity-0",
-        "sm:px-6 sm:pb-6 sm:pt-24"
+        "sm:px-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-24"
       )}
       onWheel={handleWheel}
     >
@@ -215,7 +212,7 @@ export function PlayerControls({
             <IconButton icon={SkipForward} label="تقديم 10 ثوان" onClick={() => onSeekBy(10)} />
             <VolumeControl isMuted={isMuted} volume={volume} onToggleMute={onToggleMute} onVolumeChange={onVolumeChange} />
           </div>
-          <PlaybackInfo duration={duration} playbackRate={playbackRate} currentTime={currentTime} isMobile />
+          <PlaybackInfo duration={duration} playbackRate={playbackRate} currentTime={currentTime} />
         </div>
 
         {/* Bottom row: Action buttons - larger touch targets on mobile */}

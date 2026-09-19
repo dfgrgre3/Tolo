@@ -22,6 +22,7 @@ import {
 import { SITE, CONTACT, LEGAL, SOCIAL, APP_VERSION } from "@thanawy/shared/site-config";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import { queryProfiles } from "@/lib/query/query-profiles";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -106,8 +107,6 @@ const LEGAL_LINKS: readonly FooterLink[] = [
 	{ href: "/privacy", label: "سياسة الخصوصية" }
 ];
 
-const CATEGORIES_STALE_TIME_MS = 10 * 60 * 1000;
-
 const LINK_CLASS =
 	"inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary outline-none focus-visible:text-primary focus-visible:underline";
 
@@ -127,7 +126,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 				return [];
 			}
 		},
-		staleTime: CATEGORIES_STALE_TIME_MS
+		...queryProfiles.static
 	});
 
 	// Hide footer on teaching pages

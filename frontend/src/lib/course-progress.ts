@@ -56,6 +56,13 @@ export const PLAYER_PROTOCOL_VERSION = "progress/2";
 export interface ProgressHeartbeat {
   /** Unique per player mount. Separates concurrent tabs/sessions. */
   sessionId: string;
+  /**
+   * P2-49: session wall-clock origin (epoch ms, set once per mount).
+   * Lets analytics/fraud reconcile session age vs accumulated deltas and
+   * order cross-device watch history. Device class comes server-side from
+   * request headers (User-Agent) — the client never fingerprints.
+   */
+  sessionStartedAtMs: number;
   /** Monotonic per session. Gaps are fine (unsent heartbeats are dropped). */
   sequenceNumber: number;
   positionSeconds: number;

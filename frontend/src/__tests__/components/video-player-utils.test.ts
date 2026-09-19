@@ -7,6 +7,8 @@ import {
   mapYouTubeErrorCode,
   playerErrorMessage,
   shouldUseHls,
+  searchTranscriptCues,
+  findTranscriptMatchRange,
   formatDuration,
   formatWatchTime,
   formatSecondsToTimestamp,
@@ -105,11 +107,23 @@ describe("getProvider", () => {
 describe("resolveVideoSource (P1-10)", () => {
   it("explicit provider metadata wins over detection", () => {
     expect(resolveVideoSource({ url: "https://cdn.custom.com/lesson.m3u8", provider: "bunny" }))
-      .toEqual({ url: "https://cdn.custom.com/lesson.m3u8", provider: "bunny" });
+      .toEqual({ url: "https://cdn.custom.com/lesson.m3u8", provider: "bunny", fallbackUrls: [] });
+  });
+
+  it("prefers manifestUrl and carries fallbacks (P2-34)", () => {
+    expect(resolveVideoSource({
+      url: "https://cdn.custom.com/lesson",
+      manifestUrl: "https://cdn.custom.com/lesson/signed.m3u8?token=abc",
+      fallbackUrls: ["https://backup.example.com/lesson.m3u8"],
+    })).toEqual({
+      url: "https://cdn.custom.com/lesson/signed.m3u8?token=abc",
+      provider: "html5",
+      fallbackUrls: ["https://backup.example.com/lesson.m3u8"],
+    });
   });
 
   it("falls back to detection for plain urls", () => {
-    expect(resolveVideoSource("https://youtu.be/abc")).toEqual({ url: "https://youtu.be/abc", provider: "youtube" });
+    expect(resolveVideoSource("https://youtu.be/abc")).toEqual({ url: "https://youtu.be/abc", provider: "youtube", fallbackUrls: [] });
   });
 });
 
@@ -120,7 +134,7 @@ describe("mapYouTubeErrorCode (P1-9)", () => {
     expect(mapYouTubeErrorCode(100).code).toBe("SOURCE");
     expect(mapYouTubeErrorCode(5).code).toBe("MEDIA");
     expect(mapYouTubeErrorCode(999).code).toBe("UNKNOWN");
-    expect(mapYouTubeErrorCode(undefined).code).toBe("UNKNOWN");
+    expect(mapYouTubeErrorCode(undefined).code).toBe("NETWORK");
   });
 
   it("produces a non-empty Arabic message for every code", () => {
@@ -281,6 +295,75 @@ describe("parseTranscript", () => {
     expect(parseTranscript("")).toEqual([]);
     expect(parseTranscript("لا يوجد أي توقيت هنا")).toEqual([]);
   });
+
+  it("handles cue identifiers, NOTE blocks and cue settings (P1-21)", () => {
+    const vtt = [
+      "WEBVTT - Generated",
+      "Kind: captions",
+      "",
+      "NOTE this is a comment",
+      "spanning lines",
+      "",
+      "cue-1",
+      "00:00:01.000 --> 00:00:02.000 align:start position:0%",
+      "<v Speaker>مرحباً</v> بكم",
+      "",
+    ].join("\n");
+    const cues = parseTranscript(vtt);
+    expect(cues).toHaveLength(1);
+    expect(cues[0]).toMatchObject({ start: 1, end: 2, text: "مرحباً بكم" });
+  });
+
+  it("recovers across missing blank lines and malformed cues (P1-21)", () => {
+    const vtt = [
+      "WEBVTT",
+      "",
+      "00:00:01.000 --> 00:00:02.000",
+      "الأول",
+      "00:00:03.000 --> 00:00:02.000",
+      "زمن معكوس يُتجاهل",
+      "00:00:05.000 --> 00:00:06.000",
+      "الثالث &amp; الأخير",
+    ].join("\n");
+    const cues = parseTranscript(vtt);
+    expect(cues.map((c) => c.text)).toEqual(["الأول", "الثالث & الأخير"]);
+  });
+
+  it("keeps literal angle brackets that are not tags (P1-21)", () => {
+    const vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n3 < 5 صحيح";
+    expect(parseTranscript(vtt)[0]?.text).toBe("3 < 5 صحيح");
+  });
+});
+
+describe("searchTranscriptCues (P1-23)", () => {
+  const cues = [
+    { id: "cue-0-10", start: 10, end: 12, text: "مقدمة عن الفيزياء الحديثة" },
+    { id: "cue-1-30", start: 30, end: 32, text: "قوانين الحركة لنيوتن" },
+    { id: "cue-2-50", start: 50, end: 52, text: "الفيزياءً علم واسع" },
+  ];
+
+  it("matches across diacritics and Alef/Ta variants", () => {
+    // Ranked by earliest phrase position: cue-2 opens with the phrase.
+    expect(searchTranscriptCues(cues, "الفيزياء").map((c) => c.id))
+      .toEqual(["cue-2-50", "cue-0-10"]);
+    expect(searchTranscriptCues(cues, "فيزياءً").map((c) => c.id))
+      .toEqual(["cue-2-50", "cue-0-10"]);
+  });
+
+  it("ranks phrase hits before token hits and ties by time", () => {
+    const ranked = searchTranscriptCues(cues, "قوانين الحركة");
+    expect(ranked[0]?.id).toBe("cue-1-30");
+  });
+
+  it("returns everything for an empty query", () => {
+    expect(searchTranscriptCues(cues, "  ")).toHaveLength(3);
+  });
+
+  it("finds highlight ranges in original indices", () => {
+    const range = findTranscriptMatchRange("الفيزياءً علم", "الفيزياء");
+    expect(range).not.toBeNull();
+    expect("الفيزياءً علم".slice(range!.start, range!.end)).toBe("الفيزياء");
+  });
 });
 
 // ─── الصور المصغرة والفصول ─────────────────────────────────────────────────
@@ -332,5 +415,47 @@ describe("readPlayerPreferences", () => {
   it("falls back to defaults on corrupted JSON", () => {
     localStorage.setItem(PLAYER_PREFERENCES_KEY, "{ هذا ليس JSON");
     expect(() => readPlayerPreferences()).not.toThrow();
+  });
+
+  it("migrates v4 payloads with v5 defaults (P2-43)", () => {
+    localStorage.clear();
+    localStorage.setItem(
+      "course-video-player-preferences:v4",
+      JSON.stringify({ volume: 0.5 })
+    );
+    const prefs = readPlayerPreferences();
+    expect(prefs.volume).toBe(0.5);
+    expect(prefs.autoplayNext).toBe(true);
+    expect(prefs.miniPlayerMode).toBe("auto");
+    expect(prefs.selectedQualityKey).toBe("auto");
+  });
+
+  it("runs explicit versioned migrations, not blind merges (P2-44)", async () => {
+    const { migratePreferences } = await import("@/components/video/player/utils");
+    // Unstamped legacy object → treated as v4 → migrated to v5 shape.
+    const migrated = migratePreferences({ volume: 0.3, sidebarTab: "notes" });
+    expect(migrated.volume).toBe(0.3);
+    expect(migrated.sidebarTab).toBe("notes");
+    expect(migrated.gesturesEnabled).toBe(true);
+    expect(migrated.skipIntro).toBe(false);
+    // Garbage → clean defaults.
+    expect(migratePreferences(null).volume).toBe(1);
+    expect(migratePreferences("nope").volume).toBe(1);
+    expect(migratePreferences([1, 2]).volume).toBe(1);
+  });
+});
+
+describe("getPlayerCapabilities (P2-39)", () => {
+  it("returns a boolean probe object without throwing", async () => {
+    const { getPlayerCapabilities, resetPlayerCapabilities } = await import(
+      "@/components/video/player/capabilities"
+    );
+    resetPlayerCapabilities();
+    const caps = getPlayerCapabilities();
+    for (const value of Object.values(caps)) {
+      expect(typeof value).toBe("boolean");
+    }
+    // Memoized: same reference on repeat calls.
+    expect(getPlayerCapabilities()).toBe(caps);
   });
 });

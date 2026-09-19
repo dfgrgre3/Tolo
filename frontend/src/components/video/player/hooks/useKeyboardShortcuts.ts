@@ -32,6 +32,13 @@ export function useKeyboardShortcuts({
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement | null;
+      // P2-27: Escape always closes topmost UI — even when focus sits on a
+      // button/input INSIDE the open panel (the guard below would swallow it).
+      if (event.key.toLowerCase() === "escape") {
+        event.preventDefault();
+        setOpenPanel(null);
+        return;
+      }
       if (
         target &&
         (["INPUT", "TEXTAREA", "BUTTON", "SELECT", "OPTION", "A"].includes(target.tagName) ||
@@ -68,7 +75,6 @@ export function useKeyboardShortcuts({
         "n": () => setUIState({ sidebarTab: "notes", isSidebarOpen: true }),
         "b": () => setUIState({ sidebarTab: "bookmarks", isSidebarOpen: true }),
         "home": () => handleSeek(0),
-        "escape": () => setOpenPanel(null),
         "?": () => setUIState({ isHelpOpen: true }),
       };
 

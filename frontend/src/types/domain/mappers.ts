@@ -97,6 +97,17 @@ export interface LessonProgressResponse extends Partial<LessonProgressMutationRe
   requiredCourseQuizzes?: number;
   completedCourseQuizzes?: number;
   certificateEligible?: boolean;
+  /**
+   * P2-46/47: non-empty when the backend REFUSED an explicit completion
+   * command under the course policy ("watch_percent" | "questions").
+   * A blocked completion is an explicit 200 — the player must surface
+   * requirements, not mark complete.
+   */
+  completionBlocked?: string[] | null;
+  completionPolicy?: {
+    minWatchPercent?: number;
+    requireQuestions?: boolean;
+  };
 }
 
 export interface EnrollmentResponse {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2, XCircle, HelpCircle, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import type {
   InteractiveQuestion,
   QuestionAttemptVerdict,
@@ -51,6 +52,10 @@ export function InteractiveQuestionOverlay({
   const busy = phase.kind === "submitting";
   const submitted = phase.kind === "verdict";
 
+  // P2-27: blocking modal — trap Tab inside until answered or skipped.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(dialogRef, true, { trap: true });
+
   const pickOption = (index: number) => {
     if (busy || submitted) return;
     // Re-picking after a failed server attempt resets to answering.
@@ -92,7 +97,14 @@ export function InteractiveQuestionOverlay({
   };
 
   return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="سؤال تفاعلي"
+      tabIndex={-1}
+      className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+    >
       <div
         className="w-full max-w-lg overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/90 shadow-2xl backdrop-blur-xl"
       >

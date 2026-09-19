@@ -1,12 +1,14 @@
 'use client';
 
 import { AnimatePresence, m } from "framer-motion";
+import { useRef } from "react";
 import { Bookmark, Check, ChevronRight, Clock3, ListVideo, MessageSquare, Search, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { formatDuration } from "../../utils";
+import { formatDuration, findTranscriptMatchRange } from "../../utils";
 import type { BookmarkItem, LessonInfo, SidebarTab, TimelineNote, TranscriptCue } from "../../types";
 import { SidebarTabButton } from "../SidebarTabButton";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { cn } from "@/lib/utils";
 
 function EmptySidebarState({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
@@ -97,7 +99,13 @@ function NotesTab({
       {notes.length > 0 ? (
         <div className="space-y-3">
           {notes.map((note) => (
-            <div key={note.id} className="rounded-[24px] border border-white/15 bg-white/8 p-4">
+            <div
+              key={note.id}
+              className={cn(
+                "rounded-[24px] border border-white/15 bg-white/8 p-4",
+                note.pending && "border-dashed border-white/25 opacity-80"
+              )}
+            >
               <div className="flex items-center justify-between gap-2.5">
                 <button 
                   type="button" 
@@ -106,13 +114,18 @@ function NotesTab({
                 >
                   {formatDuration(note.time)}
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => onRemoveNote(note.id)} 
-                  className="text-sm font-bold text-white/50 transition hover:text-white/85"
-                >
-                  حذف
-                </button>
+                <div className="flex items-center gap-3">
+                  {note.pending ? (
+                    <span className="text-xs font-bold text-white/40">جارٍ الحفظ…</span>
+                  ) : null}
+                  <button 
+                    type="button" 
+                    onClick={() => onRemoveNote(note.id)} 
+                    className="text-sm font-bold text-white/50 transition hover:text-white/85"
+                  >
+                    حذف
+                  </button>
+                </div>
               </div>
               <p className="mt-3 text-base leading-7 text-white/90">{note.text}</p>
             </div>
@@ -163,6 +176,8 @@ function TranscriptTab({
         <div className="space-y-2">
           {cues.map((cue) => {
             const isActive = currentTime >= cue.start && currentTime < cue.end;
+            // P1-23: highlight the normalized match span inside the original text.
+            const match = query.trim() ? findTranscriptMatchRange(cue.text, query) : null;
             return (
               <button
                 key={cue.id}
@@ -178,7 +193,19 @@ function TranscriptTab({
                 <span className="mt-0.5 shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white/70">
                   {formatDuration(cue.start)}
                 </span>
-                <p className="text-sm leading-6 text-white/90">{cue.text}</p>
+                <p className="text-sm leading-6 text-white/90">
+                  {match ? (
+                    <>
+                      {cue.text.slice(0, match.start)}
+                      <mark className="rounded bg-amber-400/40 px-0.5 text-amber-100">
+                        {cue.text.slice(match.start, match.end)}
+                      </mark>
+                      {cue.text.slice(match.end)}
+                    </>
+                  ) : (
+                    cue.text
+                  )}
+                </p>
               </button>
             );
           })}
@@ -271,11 +298,19 @@ export function SidebarPanel({
 }) {
   // P1-15: hydration-safe viewport flag (SSR + first client render agree).
   const isMobile = useIsMobile();
+  // P2-27: docked side content = complementary landmark (never a modal
+  // trap); focus moves in on open and restores on close.
+  const panelRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(panelRef, isSidebarOpen);
   
   return (
     <AnimatePresence>
       {isSidebarOpen ? (
         <m.aside
+          ref={panelRef}
+          role="complementary"
+          aria-label="لوحة الدراسة"
+          tabIndex={-1}
           initial={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}
           animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
           exit={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}

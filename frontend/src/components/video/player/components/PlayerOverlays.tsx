@@ -16,12 +16,15 @@ export function PlayerOverlays({
   onDismissResume,
   onCancelAutoplay,
   onPlayNextNow,
+  onReplay,
   onRetry,
 }: {
   onAcceptResume: () => void;
   onDismissResume: () => void;
   onCancelAutoplay: () => void;
   onPlayNextNow?: () => void;
+  /** P3-50: explicit replay — restart this lesson from zero. */
+  onReplay?: () => void;
   onRetry?: () => void;
 }) {
   const {
@@ -179,7 +182,7 @@ export function PlayerOverlays({
       </AnimatePresence>
 
       <AnimatePresence>
-        {isEnded && onPlayNextNow ? (
+        {isEnded ? (
           <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -188,53 +191,80 @@ export function PlayerOverlays({
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-xl"
           >
             <div className="w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/85 p-8 text-center shadow-2xl">
-              {/* Circular progress ring */}
-              <div className="relative mx-auto flex h-24 w-24 items-center justify-center" aria-live="assertive" aria-atomic="true">
-                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
-                  <circle
-                    cx="48" cy="48" r="42"
-                    strokeWidth="4"
-                    stroke="currentColor"
-                    fill="none"
-                    className="text-white/10"
-                  />
-                  <circle
-                    cx="48" cy="48" r="42"
-                    strokeWidth="4"
-                    stroke="currentColor"
-                    fill="none"
-                    className="text-blue-400 transition-all duration-1000"
-                    strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - autoplayProgress / 100)}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="text-3xl font-black text-blue-200">
-                  {autoplayCountdown}
-                </span>
-              </div>
-              <h3 className="mt-6 text-2xl font-black text-white">
-                الدرس التالي سيبدأ تلقائيًا
-              </h3>
-              <p className="mt-2 text-sm leading-7 text-white/65">
-                يمكنك الإلغاء أو الانتقال مباشرة الآن.
-              </p>
+              {onPlayNextNow ? (
+                <>
+                  {/* Circular progress ring */}
+                  <div className="relative mx-auto flex h-24 w-24 items-center justify-center" aria-live="assertive" aria-atomic="true">
+                    <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
+                      <circle
+                        cx="48" cy="48" r="42"
+                        strokeWidth="4"
+                        stroke="currentColor"
+                        fill="none"
+                        className="text-white/10"
+                      />
+                      <circle
+                        cx="48" cy="48" r="42"
+                        strokeWidth="4"
+                        stroke="currentColor"
+                        fill="none"
+                        className="text-blue-400 transition-all duration-1000"
+                        strokeDasharray={`${2 * Math.PI * 42}`}
+                        strokeDashoffset={`${2 * Math.PI * 42 * (1 - autoplayProgress / 100)}`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="text-3xl font-black text-blue-200">
+                      {autoplayCountdown}
+                    </span>
+                  </div>
+                  <h3 className="mt-6 text-2xl font-black text-white">
+                    الدرس التالي سيبدأ تلقائيًا
+                  </h3>
+                  <p className="mt-2 text-sm leading-7 text-white/65">
+                    يمكنك الإلغاء أو الانتقال مباشرة الآن.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="mt-2 text-2xl font-black text-white">
+                    انتهى الدرس
+                  </h3>
+                  <p className="mt-2 text-sm leading-7 text-white/65">
+                    أحسنت! يمكنك إعادته أو مراجعة ملاحظاتك.
+                  </p>
+                </>
+              )}
               <div className="mt-6 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onCancelAutoplay}
-                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="button"
-                  onClick={onPlayNextNow}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-blue-600 hover:scale-105"
-                >
-                  تشغيل الآن
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
+                {onReplay ? (
+                  <button
+                    type="button"
+                    onClick={onReplay}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-white/10 hover:scale-105"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    إعادة التشغيل
+                  </button>
+                ) : null}
+                {onPlayNextNow ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onCancelAutoplay}
+                      className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white/75 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onPlayNextNow}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-blue-600 hover:scale-105"
+                    >
+                      تشغيل الآن
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : null}
               </div>
             </div>
           </m.div>

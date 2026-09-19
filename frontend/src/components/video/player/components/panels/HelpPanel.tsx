@@ -2,7 +2,9 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronRight, Keyboard } from "lucide-react";
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export function HelpPanel({
   isHelpOpen,
@@ -15,10 +17,19 @@ export function HelpPanel({
   shortcuts: [string, string][];
   onCloseHelp: () => void;
 }) {
+  // P2-27: modal dialog semantics + focus trap while open.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(dialogRef, isHelpOpen, { trap: true });
+
   return (
     <AnimatePresence>
       {isHelpOpen ? (
         <m.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="اختصارات لوحة المفاتيح"
+          tabIndex={-1}
           initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
           animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, scale: 1 }}
           exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}

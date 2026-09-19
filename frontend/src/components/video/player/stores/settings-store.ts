@@ -19,6 +19,13 @@ interface SettingsState {
   // "auto" = default track; otherwise the track id.
   hlsAudioTracks: AudioTrack[];
   selectedAudioTrack: string;
+
+  // Behavior preferences (P2-43) — reseeded from versioned prefs per lesson.
+  autoplayNext: boolean;
+  skipIntro: boolean;
+  gesturesEnabled: boolean;
+  shortcutsEnabled: boolean;
+  miniPlayerMode: "auto" | "off";
   
   // Subtitles
   selectedSubtitle: string;
@@ -44,6 +51,11 @@ interface SettingsActions {
   setSelectedQualityKey: (key: string) => void;
   setCurrentAutoQuality: (quality: number | null) => void;
   setSelectedAudioTrack: (trackId: string) => void;
+  setAutoplayNext: (enabled: boolean) => void;
+  setSkipIntro: (enabled: boolean) => void;
+  setGesturesEnabled: (enabled: boolean) => void;
+  setShortcutsEnabled: (enabled: boolean) => void;
+  setMiniPlayerMode: (mode: "auto" | "off") => void;
   setSelectedSubtitle: (subtitle: string) => void;
   setSubtitleSize: (size: "sm" | "md" | "lg" | "xl") => void;
   setSubtitleBgOpacity: (opacity: number) => void;
@@ -65,6 +77,11 @@ const createDefaultSettingsState = (): SettingsState => ({
   currentAutoBitrate: null,
   hlsAudioTracks: [],
   selectedAudioTrack: "auto",
+  autoplayNext: true,
+  skipIntro: false,
+  gesturesEnabled: true,
+  shortcutsEnabled: true,
+  miniPlayerMode: "auto",
   selectedSubtitle: "off",
   subtitleSize: "md",
   subtitleBgOpacity: 0.7,
@@ -93,6 +110,11 @@ export const useSettingsStore = create<SettingsStore>()(
 
     setSelectedQualityKey: (selectedQualityKey) => set({ selectedQualityKey }),
     setSelectedAudioTrack: (selectedAudioTrack) => set({ selectedAudioTrack }),
+    setAutoplayNext: (autoplayNext) => set({ autoplayNext }),
+    setSkipIntro: (skipIntro) => set({ skipIntro }),
+    setGesturesEnabled: (gesturesEnabled) => set({ gesturesEnabled }),
+    setShortcutsEnabled: (shortcutsEnabled) => set({ shortcutsEnabled }),
+    setMiniPlayerMode: (miniPlayerMode) => set({ miniPlayerMode }),
     setCurrentAutoQuality: (currentAutoQuality) => set({ currentAutoQuality }),
     setSelectedSubtitle: (selectedSubtitle) => set({ selectedSubtitle }),
     setSubtitleSize: (subtitleSize) => set({ subtitleSize }),
@@ -147,6 +169,11 @@ export function createSettingsStoreInstance(
 
       setSelectedQualityKey: (selectedQualityKey) => set({ selectedQualityKey }),
     setSelectedAudioTrack: (selectedAudioTrack) => set({ selectedAudioTrack }),
+    setAutoplayNext: (autoplayNext) => set({ autoplayNext }),
+    setSkipIntro: (skipIntro) => set({ skipIntro }),
+    setGesturesEnabled: (gesturesEnabled) => set({ gesturesEnabled }),
+    setShortcutsEnabled: (shortcutsEnabled) => set({ shortcutsEnabled }),
+    setMiniPlayerMode: (miniPlayerMode) => set({ miniPlayerMode }),
       setCurrentAutoQuality: (currentAutoQuality) => set({ currentAutoQuality }),
       setSelectedSubtitle: (selectedSubtitle) => set({ selectedSubtitle }),
       setSubtitleSize: (subtitleSize) => set({ subtitleSize }),

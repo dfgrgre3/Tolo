@@ -1,103 +1,33 @@
+/**
+ * @deprecated
+ * هذا الملف أصبح facade للتوافق الرجعي فقط.
+ * الاستخدام الصحيح: استورد مباشرة من `@/features/gamification`
+ */
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import * as gamificationApi from "@/lib/api/gamification-client";
-import { UserProgress, CustomGoal } from "@/types/gamification";
-import { useAuth } from "@/hooks/use-auth";
-import { toast } from "sonner";
+import { useGamificationProgress, useAchievements, useLeaderboard, useCreateGoalMutation, useUpdateGoalMutation } from "@/features/gamification";
+import type { GamificationQueryOptions } from "@/features/gamification";
 
-export interface GamificationQueryOptions {
-  includeAchievements?: boolean;
-  includeLeaderboard?: boolean;
-}
+export type { GamificationQueryOptions };
 
 /**
- * Session-scoped gamification queries. Identity is never passed to the API —
- * the backend resolves it from the JWT — so there is no userId parameter.
- * Queries are simply disabled until a session exists.
+ * @deprecated استخدم `useGamification` من `@/features/gamification` بدلاً من هذا.
  */
 export function useGamificationQuery(options?: GamificationQueryOptions) {
-  const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
-
-  const progressQuery = useQuery({
-    queryKey: ["gamification", "progress", "me"],
-    queryFn: () => gamificationApi.fetchMyProgress(),
-    enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 5, // 5 minutes stale time for passive refetches
-  });
-
-  const achievementsQuery = useQuery({
-    queryKey: ["gamification", "achievements"],
-    queryFn: () => gamificationApi.fetchAchievements(),
-    enabled: isAuthenticated && !!options?.includeAchievements,
-    staleTime: 1000 * 60 * 30, // 30 minutes
-  });
-
-  const leaderboardQuery = useQuery({
-    queryKey: ["gamification", "leaderboard", "global"],
-    queryFn: () => gamificationApi.fetchLeaderboard("global", 50),
-    enabled: isAuthenticated && !!options?.includeLeaderboard,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const createGoalMutation = useMutation({
-    mutationFn: (goalData: Omit<CustomGoal, "id" | "userId" | "isCompleted" | "createdAt" | "completedAt">) => {
-      return gamificationApi.createCustomGoal(goalData);
-    },
-    onSuccess: (newGoal) => {
-      queryClient.setQueryData<UserProgress | null>(
-        ["gamification", "progress", "me"],
-        (oldProgress) => {
-          if (!oldProgress) return null;
-          return {
-            ...oldProgress,
-            customGoals: [...(oldProgress.customGoals || []), newGoal],
-          };
-        }
-      );
-      toast.success("تم إنشاء الهدف بنجاح");
-    },
-    onError: (error) => {
-      console.error("Failed to create goal:", error);
-      toast.error("فشل في إنشاء الهدف");
-    },
-  });
-
-  const updateGoalMutation = useMutation({
-    mutationFn: ({ goalId, currentValue }: { goalId: string; currentValue: number }) => {
-      return gamificationApi.updateCustomGoal(goalId, currentValue);
-    },
-    onSuccess: (updatedGoal) => {
-      queryClient.setQueryData<UserProgress | null>(
-        ["gamification", "progress", "me"],
-        (oldProgress) => {
-          if (!oldProgress) return null;
-          return {
-            ...oldProgress,
-            customGoals: (oldProgress.customGoals || []).map((g) =>
-              g.id === updatedGoal.id ? updatedGoal : g
-            ),
-          };
-        }
-      );
-      toast.success("تم تحديث الهدف");
-    },
-    onError: (error) => {
-      console.error("Failed to update custom goal:", error);
-      toast.error("فشل في تحديث الهدف");
-    },
-  });
+  const progressQuery = useGamificationProgress();
+  const achievementsQuery = useAchievements(!!options?.includeAchievements);
+  const leaderboardQuery = useLeaderboard("global", !!options?.includeLeaderboard);
+  const createGoalMutation = useCreateGoalMutation();
+  const updateGoalMutation = useUpdateGoalMutation();
 
   return {
-    // Queries
     userProgress: progressQuery.data ?? null,
     achievements: achievementsQuery.data ?? [],
     leaderboard: leaderboardQuery.data ?? [],
     isLoading: progressQuery.isLoading || achievementsQuery.isLoading || leaderboardQuery.isLoading,
-    error: progressQuery.error || achievementsQuery.error || leaderboardQuery.error ? "فشل في تحميل بيانات نظام النقاط" : null,
-
-    // Mutations
+    error: progressQuery.error || achievementsQuery.error || leaderboardQuery.error
+      ? "فشل في تحميل بيانات نظام النقاط"
+      : null,
     createCustomGoal: createGoalMutation.mutateAsync,
     updateCustomGoal: updateGoalMutation.mutateAsync,
     refreshData: async () => {

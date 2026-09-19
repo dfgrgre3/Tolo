@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { usePlayerUI, usePlayerStores, usePlayerScope } from "../stores/player-scope";
+import { usePlayerSettings, usePlayerUI, usePlayerStores, usePlayerScope } from "../stores/player-scope";
 
 /**
  * Mini-player controller (P1-14).
@@ -17,6 +17,8 @@ import { usePlayerUI, usePlayerStores, usePlayerScope } from "../stores/player-s
 export function useMiniPlayer(containerRef: RefObject<HTMLDivElement | null>) {
   const setUIState = usePlayerUI((state) => state.setUIState);
   const isMiniPlayer = usePlayerUI((state) => state.isMiniPlayer);
+  // P2-43: "off" disables auto-float entirely (explicit user preference).
+  const miniPlayerMode = usePlayerSettings((state) => state.miniPlayerMode);
   const stores = usePlayerStores();
   const scope = usePlayerScope();
   const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
@@ -50,6 +52,7 @@ export function useMiniPlayer(containerRef: RefObject<HTMLDivElement | null>) {
           }
           return;
         }
+        if (stores.settings.getState().miniPlayerMode === "off") return;
         const { isPlaying } = stores.playback.getState();
         const { isFullscreen, miniPlayerDismissed } = stores.ui.getState();
         if (isPlaying && !isFullscreen && !miniPlayerDismissed) {
@@ -61,7 +64,7 @@ export function useMiniPlayer(containerRef: RefObject<HTMLDivElement | null>) {
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, [containerRef, setUIState, stores]);
+  }, [containerRef, miniPlayerMode, setUIState, stores]);
 
   // Drag support for the floating player.
   useEffect(() => {

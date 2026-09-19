@@ -17,6 +17,12 @@ describe("requiresIdempotencyKey", () => {
     expect(requiresIdempotencyKey("POST", "/api/courses/lessons/lesson-1/interactive-questions/q-1/answer")).toBe(true);
   });
 
+  it("requires keys for per-note mutations (clientOpId dedupe)", () => {
+    expect(requiresIdempotencyKey("POST", "/api/courses/lessons/lesson-1/notes/items")).toBe(true);
+    expect(requiresIdempotencyKey("PATCH", "/api/courses/lessons/lesson-1/notes/items/n-1")).toBe(true);
+    expect(requiresIdempotencyKey("DELETE", "/api/courses/lessons/lesson-1/notes/items/n-1")).toBe(true);
+  });
+
   it("does not classify every write as idempotent", () => {
     expect(requiresIdempotencyKey("POST", "/api/v1/auth/login")).toBe(false);
     expect(requiresIdempotencyKey("POST", "/api/analytics/events")).toBe(false);

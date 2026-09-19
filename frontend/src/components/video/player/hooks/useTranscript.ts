@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { parseTranscript } from "../utils";
+import { parseTranscript, searchTranscriptCues } from "../utils";
 import type { TranscriptCue } from "../types";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { getLessonTranscript } from "@/services/api/lesson-content-service";
 
 /**
  * Fetches and parses a lesson's transcript (admin-uploaded SRT/VTT, see
- * GetLessonTranscript on the backend), and exposes a search query that
- * filters cues by text — powers the sidebar's transcript tab.
+ * GetLessonTranscript on the backend), and exposes an Arabic-normalized,
+ * ranked search over cues — powers the sidebar's transcript tab.
  */
 export function useTranscript({ lessonId }: { lessonId: string }) {
   const [cues, setCues] = useState<TranscriptCue[]>([]);
@@ -17,9 +16,7 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
   const loadTranscript = useCallback(async (isCancelled: () => boolean) => {
     setIsLoading(true);
     try {
-      const payload = await apiClient.get<{ content?: string }>(
-        apiRoutes.courses.lessonTranscript(lessonId)
-      );
+      const payload = await getLessonTranscript(lessonId);
       if (isCancelled()) return;
 
       const content: string = payload?.content ?? "";
@@ -42,12 +39,9 @@ export function useTranscript({ lessonId }: { lessonId: string }) {
     };
   }, [loadTranscript]);
 
-  const filteredCues = useMemo(() => {
-    const trimmed = query.trim();
-    if (!trimmed) return cues;
-    const needle = trimmed.toLocaleLowerCase();
-    return cues.filter((cue) => cue.text.toLocaleLowerCase().includes(needle));
-  }, [cues, query]);
+  // P1-23: normalized + ranked (phrase > all-tokens > none). First result
+  // is the jump-to-match target.
+  const filteredCues = useMemo(() => searchTranscriptCues(cues, query), [cues, query]);
 
   return {
     hasTranscript: cues.length > 0,

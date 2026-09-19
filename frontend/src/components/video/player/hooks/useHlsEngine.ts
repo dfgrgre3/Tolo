@@ -1,8 +1,9 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { Sparkles } from "lucide-react";
-import { usePlayerPlayback, usePlayerSettings, usePlayerUI } from "../stores/player-scope";
-import { shouldUseHls } from "../utils";
+import { usePlayerPlayback, usePlayerSettings } from "../stores/player-scope";
+import { isHlsManifestUrl, shouldUseHls } from "../utils";
 import { AUTO_QUALITY_KEY } from "../constants";
+import { mapHlsError, type RichPlayerError } from "../errors";
 import type { AudioTrack, PlayerFeedback, QualityOption, VideoProvider } from "../types";
 import type Hls from "hls.js";
 
@@ -12,11 +13,20 @@ type HlsEngineOptions = {
   provider: VideoProvider;
   videoRef: MutableRefObject<HTMLVideoElement | null>;
   flashFeedback: (feedback: NonNullable<PlayerFeedback>) => void;
+  /** Ordered failover manifests (P2-34), tried after the primary is exhausted. */
+  fallbackUrls?: string[];
+  /** Central error engine sink (P2-36): message + telemetry in one place. */
+  onError?: (error: RichPlayerError) => void;
 };
 
 // P1-11: quality identity is a stable `key` ("1080p"), NOT the level index.
 // The index is kept only as the transient engine handle (`levelIndex`);
 // manifests may reorder levels, so the UI must never treat it as identity.
+// P2-37: attempt budgets. Network gets more (often transient); media
+// recovery rarely helps past a few tries — fail over instead of looping.
+const MAX_NETWORK_ATTEMPTS = 5;
+const MAX_MEDIA_ATTEMPTS = 3;
+
 type HlsLevelInfo = { height?: number; bitrate?: number };
 
 const parseQualities = (levels: HlsLevelInfo[]): QualityOption[] => {
@@ -42,6 +52,9 @@ const qualityKeyForLevel = (qualities: QualityOption[], levelIndex: number): str
   if (levelIndex < 0) return AUTO_QUALITY_KEY;
   return qualities.find((q) => q.levelIndex === levelIndex)?.key ?? AUTO_QUALITY_KEY;
 };
+
+// P3-52: pure quality-mapping helpers, exported for unit tests.
+export { parseQualities as buildQualityOptions, qualityKeyForLevel };
 
 /** P1-12: apply a stable audio-track id to the HLS engine (ids are String(index)). */
 const applyHlsAudioTrack = (hls: Hls, trackId: string) => {
@@ -73,10 +86,13 @@ export function useHlsEngine({
   provider,
   videoRef,
   flashFeedback,
+  fallbackUrls = [],
+  onError,
 }: HlsEngineOptions) {
   const setPlaybackState = usePlayerPlayback((s) => s.setPlaybackState);
   const setSettingsState = usePlayerSettings((s) => s.setSettingsState);
-  const setUIState = usePlayerUI((s) => s.setUIState);
+  // NOTE: terminal failures report via onError (central error engine,
+  // P2-36) — this hook never writes user-facing error strings itself.
   // P1-12: live selection mirror — the engine applies track switches without
   // re-running the setup effect (hls instance lives in a ref).
   const selectedAudioTrack = usePlayerSettings((s) => s.selectedAudioTrack);
@@ -87,6 +103,12 @@ export function useHlsEngine({
   const hlsRef = useRef<Hls | null>(null);
   const hlsRetryTimeoutRef = useRef<number | null>(null);
   const hlsRetryStateRef = useRef({ network: 0, media: 0 });
+  // P2-34: failover cursor into fallbackUrls for THIS source.
+  const fallbackIndexRef = useRef(0);
+  const fallbackUrlsRef = useRef<string[]>(fallbackUrls);
+  useEffect(() => {
+    fallbackUrlsRef.current = fallbackUrls;
+  }, [fallbackUrls]);
   // Latest parsed qualities for this manifest — lets error-path fallbacks
   // resolve an engine index back to a stable key without store access.
   const qualitiesRef = useRef<QualityOption[]>([]);
@@ -103,6 +125,7 @@ export function useHlsEngine({
       clearTimeout(hlsRetryTimeoutRef.current);
     }
     hlsRetryStateRef.current = { network: 0, media: 0 };
+    fallbackIndexRef.current = 0;
     qualitiesRef.current = [];
 
     if (!shouldUseHls(activeVideoUrl, provider)) {
@@ -188,16 +211,36 @@ export function useHlsEngine({
             }
           };
 
+          // P2-37: retry with exponential backoff + jitter, network/visibility
+          // aware. A background tab or a dead connection must not burn the
+          // attempt budget — re-check conditions, then fire.
+          const scheduleRetry = (fire: () => void, attempt: number) => {
+            if (hlsRetryTimeoutRef.current) clearTimeout(hlsRetryTimeoutRef.current);
+            const delay = Math.min(1000 * 2 ** Math.min(attempt, 4), 15000) + Math.random() * 500;
+            hlsRetryTimeoutRef.current = window.setTimeout(() => {
+              if (typeof navigator !== "undefined" && !navigator.onLine) {
+                flashFeedback({ icon: Sparkles, label: "بانتظار عودة الاتصال..." });
+                scheduleRetry(fire, attempt); // attempt NOT consumed
+                return;
+              }
+              if (typeof document !== "undefined" && document.hidden) {
+                scheduleRetry(fire, attempt); // attempt NOT consumed
+                return;
+              }
+              fire();
+            }, delay);
+          };
+
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
             retryState.network += 1;
-            lowerQuality();
-            if (retryState.network <= 4) {
-              hlsRetryTimeoutRef.current = window.setTimeout(() => {
-                hls.startLoad();
-              }, Math.min(1200 * retryState.network, 5000));
+            // Quality drops only from the 2nd consecutive failure: the first
+            // is usually transient (blip, CDN hiccup), not bandwidth.
+            if (retryState.network >= 2) lowerQuality();
+            if (retryState.network <= MAX_NETWORK_ATTEMPTS) {
+              scheduleRetry(() => hls.startLoad(), retryState.network);
               flashFeedback({
                 icon: Sparkles,
-                label: "نعيد محاولة الاتصال بجودة أقل...",
+                label: retryState.network >= 2 ? "نعيد محاولة الاتصال بجودة أقل..." : "نعيد محاولة الاتصال...",
               });
               return;
             }
@@ -205,9 +248,10 @@ export function useHlsEngine({
 
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             retryState.media += 1;
-            if (retryState.media <= 2) {
-              lowerQuality();
-              hls.recoverMediaError();
+            if (retryState.media <= MAX_MEDIA_ATTEMPTS) {
+              // Media recovery swaps/fixes the pipeline; dropping quality as
+              // well only masks decoder issues, so recover in place.
+              scheduleRetry(() => hls.recoverMediaError(), retryState.media);
               flashFeedback({
                 icon: Sparkles,
                 label: "جارٍ استعادة البث...",
@@ -216,10 +260,44 @@ export function useHlsEngine({
             }
           }
 
-          hls.destroy();
-          setUIState({
-            errorMessage: "تعذر تشغيل البث الحالي بعد عدة محاولات.",
-          });
+          // P2-34/38: primary exhausted — fail over through the source chain
+          // (alternate HLS manifests, then progressive MP4) before surfacing
+          // a terminal error.
+          const fallbacks = fallbackUrlsRef.current;
+          const nextFallback = fallbacks[fallbackIndexRef.current];
+          if (nextFallback) {
+            fallbackIndexRef.current += 1;
+            hlsRetryStateRef.current = { network: 0, media: 0 };
+            setPlaybackState({ isLoading: true });
+            flashFeedback({
+              icon: Sparkles,
+              label: "جارٍ التبديل إلى مصدر بديل...",
+            });
+            try {
+              if (isHlsManifestUrl(nextFallback)) {
+                hls.loadSource(nextFallback);
+              } else {
+                // Progressive fallback: leave the HLS engine, let the plain
+                // element (and its loadedmetadata/playing events) drive.
+                hls.destroy();
+                hlsRef.current = null;
+                video.src = nextFallback;
+              }
+              return;
+            } catch {
+              // Fall through to the terminal error below.
+            }
+          }
+
+          // Terminal: normalize through the central error engine (P2-36) —
+          // one taxonomy, one message, one telemetry event.
+          try {
+            hls.destroy();
+          } catch {
+            // Already torn down — report anyway.
+          }
+          hlsRef.current = null;
+          onError?.(mapHlsError(String(data.type), String(data.details ?? ""), provider));
           setPlaybackState({ isLoading: false });
         });
       } catch (err) {
@@ -240,7 +318,7 @@ export function useHlsEngine({
         clearTimeout(hlsRetryTimeoutRef.current);
       }
     };
-  }, [activeVideoUrl, flashFeedback, provider, setPlaybackState, setSettingsState, setUIState, videoRef]);
+  }, [activeVideoUrl, flashFeedback, onError, provider, setPlaybackState, setSettingsState, videoRef]);
 
   // P1-12: live audio-track switching without re-initializing the engine.
   useEffect(() => {

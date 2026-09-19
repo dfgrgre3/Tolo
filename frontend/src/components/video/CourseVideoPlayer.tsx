@@ -9,15 +9,7 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  Pause,
-  Play,
-  Settings2,
-  SkipBack,
-  SkipForward,
   Sparkles,
-  Volume2,
-  VolumeX,
-  Repeat,
   HelpCircle,
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
@@ -28,11 +20,11 @@ import { AnimatedWatermark } from "@/app/(education)/courses/components/_compone
 import { SidebarHint } from "@/app/(education)/courses/components/_components/SidebarHint";
 
 import {
-  AUTO_QUALITY_KEY,
   AUTOPLAY_NEXT_SECONDS,
   CONTROLS_HIDE_TIMEOUT_MS,
   PLAYER_PREFERENCES_KEY,
   PLAYBACK_RATES,
+  PREFERENCES_SCHEMA_VERSION,
   WATERMARK_POSITIONS,
 } from "./player/constants";
 
@@ -60,9 +52,11 @@ import { useMediaSession } from "./player/hooks/useMediaSession";
 import { useCastSession } from "./player/hooks/useCastSession";
 import { useTranscript } from "./player/hooks/useTranscript";
 import { usePlayerWatermark } from "./player/hooks/usePlayerWatermark";
+import { usePlayerTelemetry, usePlayerTelemetrySubscriptions } from "./player/hooks/usePlayerTelemetry";
 import { useThumbnailCues } from "./player/hooks/useThumbnailCues";
 import { useMiniPlayer } from "./player/hooks/useMiniPlayer";
 import { usePlayerViewport } from "./player/hooks/usePlayerViewport";
+import { usePlayerActions, releaseOrientationLock } from "./player/hooks/usePlayerActions";
 
 // Store & Types
 import { usePlaybackStore } from "./player/stores/playback-store";
@@ -89,13 +83,15 @@ import {
   clamp,
   formatSecondsToTimestamp,
   getProvider,
-  mapYouTubeErrorCode,
   mergeChapterMarkers,
   parseYouTubeId,
   playerErrorMessage,
   readPlayerPreferences,
+  resolveVideoSource,
   shouldUseHls,
 } from "./player/utils";
+import { mapYouTubeErrorCode, type RichPlayerError } from "./player/errors";
+import { getPlayerCapabilities } from "./player/capabilities";
 
 export function CourseVideoPlayer(props: CourseVideoPlayerProps) {
   // P0 FIX (player-scoped state): every player instance gets isolated
@@ -123,6 +119,7 @@ function CourseVideoPlayerInner({
   lessonId,
   lessonTitle,
   videoUrl,
+  videoSource,
   provider: explicitProvider,
   alreadyCompleted = false,
   onLessonAutoComplete,
@@ -149,10 +146,19 @@ function CourseVideoPlayerInner({
   // `videoUrl` it was created for, so a URL change coming from the parent (lesson switch)
   // automatically invalidates it — no reset effect and no ref access during render.
   const [qualityOverride, setQualityOverride] = useState<{ forVideoUrl: string; src: string } | null>(null);
-  const activeVideoUrl = qualityOverride?.forVideoUrl === videoUrl ? qualityOverride.src : videoUrl;
+  // P2-34: rich source model wins — manifestUrl is the playable source,
+  // explicit provider beats detection, fallbacks feed the HLS engine.
+  // Quality overrides retag against the RESOLVED base (not the raw prop).
+  const resolvedSource = useMemo(
+    () => (videoSource ? resolveVideoSource(videoSource) : null),
+    [videoSource]
+  );
+  const baseUrl = resolvedSource?.url ?? videoUrl;
+  const activeVideoUrl = qualityOverride?.forVideoUrl === baseUrl ? qualityOverride.src : baseUrl;
+  const fallbackUrls = useMemo(() => resolvedSource?.fallbackUrls ?? [], [resolvedSource]);
   // P1-10: explicit backend metadata wins; hostname-based detection is the fallback.
   const detectedProvider = useMemo(() => getProvider(activeVideoUrl), [activeVideoUrl]);
-  const provider = explicitProvider ?? detectedProvider;
+  const provider = resolvedSource?.provider ?? explicitProvider ?? detectedProvider;
   const youtubeId = useMemo(() => parseYouTubeId(activeVideoUrl), [activeVideoUrl]);
   
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -191,6 +197,7 @@ function CourseVideoPlayerInner({
     isPlaying: s.isPlaying,
     autoplayCountdown: s.autoplayCountdown,
     isEnded: s.isEnded,
+    duration: s.duration,
     resumeTime: s.resumeTime,
     activeQuestionId: s.activeQuestionId,
     answeredQuestionIds: s.answeredQuestionIds,
@@ -218,6 +225,12 @@ function CourseVideoPlayerInner({
     hlsAudioTracks: s.hlsAudioTracks,
     subtitleSize: s.subtitleSize,
     subtitleBgOpacity: s.subtitleBgOpacity,
+    selectedQualityKey: s.selectedQualityKey,
+    autoplayNext: s.autoplayNext,
+    skipIntro: s.skipIntro,
+    gesturesEnabled: s.gesturesEnabled,
+    shortcutsEnabled: s.shortcutsEnabled,
+    miniPlayerMode: s.miniPlayerMode,
     zoomFactor: s.zoomFactor,
     panOffset: s.panOffset,
     qualities: s.qualities,
@@ -273,13 +286,62 @@ function CourseVideoPlayerInner({
   const { hasTranscript, cues: transcriptCues, query: transcriptQuery, setQuery: setTranscriptQuery } = useTranscript({ lessonId });
 
   // --- Hook: Progress & Persistence ---
+  // P2-35: telemetry lifecycle wiring (store-driven events need no wiring).
+  const { track: trackTelemetry } = usePlayerTelemetry({
+    lessonId,
+    courseId,
+    getProvider: () => provider,
+  });
+  usePlayerTelemetrySubscriptions(trackTelemetry);
+
+  const stopPlaybackLoop = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  // P2-36: the single error reporter — every provider failure normalizes to
+  // { code, severity, retryable } → one localized message + one telemetry event.
+  const reportPlayerError = useCallback((error: RichPlayerError) => {
+    setUIState({ errorMessage: playerErrorMessage(error) });
+    trackTelemetry("error", {
+      errorCode: error.technicalCause ?? error.code,
+      extra: { severity: error.severity, retryable: error.retryable },
+    });
+    if (error.severity === "fatal") {
+      // Clearing isPlaying halts the rAF loop naturally (it only
+      // reschedules while playing); no direct loop handle needed here.
+      setPlaybackState({ isLoading: false, isPlaying: false });
+    }
+  }, [setPlaybackState, setUIState, trackTelemetry]);
+
+  useEffect(() => {
+    trackTelemetry("player_initialized");
+    return () => {
+      trackTelemetry("exit");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/unmount only
+  }, []);
+
+  const sourceLoadedTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!sourceLoadedTrackedRef.current && store.duration > 0) {
+      sourceLoadedTrackedRef.current = true;
+      trackTelemetry("source_loaded", { durationSeconds: Math.round(store.duration) });
+    }
+  }, [store.duration, trackTelemetry]);
+
   const storageKey = useMemo(() => `course-video-progress:${courseId}:${lessonId}`, [courseId, lessonId]);
   const { saveProgress, loadResumeData } = useProgressPersistence({
     lessonId,
     storageKey,
     getDuration: () => getAdapter()?.getDuration() ?? 0,
     getCurrentTime: () => getAdapter()?.getCurrentTime() ?? 0,
-    triggerAutoComplete: () => onLessonAutoComplete?.(lessonId),
+    triggerAutoComplete: () => {
+      trackTelemetry("completion", { positionSeconds: Math.round(getAdapter()?.getCurrentTime() ?? 0) });
+      onLessonAutoComplete?.(lessonId);
+    },
     alreadyCompleted,
   });
 
@@ -383,7 +445,7 @@ function CourseVideoPlayerInner({
   useMiniPlayer(playerContainerRef);
 
   // --- Hook: HLS Engine ---
-  const hlsRef = useHlsEngine({ activeVideoUrl, provider, videoRef, flashFeedback });
+  const hlsRef = useHlsEngine({ activeVideoUrl, provider, videoRef, flashFeedback, fallbackUrls, onError: reportPlayerError });
 
   // --- Hook: Frame Capture ---
   const captureFrame = useFrameCapture({ videoRef, provider, flashFeedback, lessonTitle });
@@ -469,13 +531,7 @@ function CourseVideoPlayerInner({
     }
   }, [getAdapter, effectiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState]);
 
-  const stopPlaybackLoop = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      window.cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  }, []);
-
+  
   const runPlaybackLoop = useCallback(() => {
     syncPlaybackSnapshot();
     saveProgress();
@@ -496,108 +552,47 @@ function CourseVideoPlayerInner({
     }
   }, []);
 
-  // --- Core Player Actions ---
-  const handleSeek = useCallback((value: number) => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    const duration = adapter.getDuration();
-    if (duration <= 0) return;
-    const nextTime = clamp(value, 0, duration);
-    adapter.seekTo(nextTime);
-    setPlaybackState({ currentTime: nextTime, resumeTime: null, isEnded: false });
-    lastPushedTimeRef.current = nextTime;
-    syncPlaybackSnapshot(true);
-    resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout, setPlaybackState, syncPlaybackSnapshot]);
-
-  const seekBy = useCallback((seconds: number) => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    const nextTime = adapter.getCurrentTime() + seconds;
-    handleSeek(nextTime);
-    flashFeedback({
-      icon: seconds > 0 ? SkipForward : SkipBack,
-      label: `${Math.abs(seconds)} ث`,
-    });
-  }, [flashFeedback, getAdapter, handleSeek]);
-
-  const togglePlayPause = useCallback(async () => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    try {
-      if (stores.playback.getState().isPlaying) {
-        adapter.pause();
-        flashFeedback({ icon: Pause, label: "إيقاف مؤقت" });
-      } else {
-        await adapter.play();
-        flashFeedback({ icon: Play, label: "تشغيل" });
-      }
-    } catch {
-      setUIState({ errorMessage: "تعذر تشغيل الفيديو الحالي." });
-    }
-    resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout, setUIState]);
-
-  const toggleMute = useCallback(() => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    const nextMuted = !store.isMuted;
-    adapter.setMuted(nextMuted);
-    if (!nextMuted && store.volume === 0) {
-      adapter.setVolume(0.5);
-      setPlaybackState({ volume: 0.5 });
-    }
-    setPlaybackState({ isMuted: nextMuted });
-    flashFeedback({ icon: nextMuted ? VolumeX : Volume2, label: nextMuted ? "كتم" : "صوت" });
-    resetControlsTimeout();
-  }, [flashFeedback, getAdapter, resetControlsTimeout, setPlaybackState, store.isMuted, store.volume]);
-
-  const handleVolumeChange = useCallback((nextVolume: number) => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    const safeVolume = clamp(nextVolume, 0, 1);
-    adapter.setVolume(safeVolume);
-    adapter.setMuted(safeVolume === 0);
-    setPlaybackState({ volume: safeVolume, isMuted: safeVolume === 0 });
-    resetControlsTimeout();
-  }, [getAdapter, resetControlsTimeout, setPlaybackState]);
-
-  const handlePlaybackRateChange = useCallback((nextRate: number) => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    if (provider === "youtube" && !youtubePlaybackRates.includes(nextRate)) {
-      flashFeedback({ icon: Settings2, label: "هذه السرعة غير مدعومة على YouTube" });
-      return;
-    }
-    adapter.setPlaybackRate(nextRate);
-    setPlaybackState({ playbackRate: nextRate });
-    flashFeedback({ icon: Settings2, label: `${nextRate}x` });
-    resetControlsTimeout();
-  }, [flashFeedback, getAdapter, provider, resetControlsTimeout, setPlaybackState, youtubePlaybackRates]);
-
-  // --- Temporary speed gesture as a PLAYER COMMAND (P1-8) ---
-  // Long-press 2x must drive the adapter AND the store together. A bare
-  // store mutation fakes the badge while the media element keeps its old
-  // rate — the exact UI/real-state divergence this guards against.
-  const tempRateRef = useRef<number | null>(null);
-  const beginTemporaryRate = useCallback((rate: number) => {
-    if (tempRateRef.current !== null) return true;
-    const adapter = getAdapter();
-    if (!adapter) return false;
-    if (provider === "youtube" && !youtubePlaybackRates.includes(rate)) return false;
-    tempRateRef.current = stores.playback.getState().playbackRate;
-    adapter.setPlaybackRate(rate);
-    setPlaybackState({ playbackRate: rate });
-    return true;
-  }, [getAdapter, provider, setPlaybackState, stores.playback, youtubePlaybackRates]);
-
-  const endTemporaryRate = useCallback(() => {
-    const previous = tempRateRef.current;
-    if (previous === null) return;
-    tempRateRef.current = null;
-    getAdapter()?.setPlaybackRate(previous);
-    setPlaybackState({ playbackRate: previous });
-  }, [getAdapter, setPlaybackState]);
+  // --- Core Player Actions (P2-32) ---
+  // Verbs live in usePlayerActions (PlayerController direction);
+  // this component keeps orchestration (loops, effects, render).
+  const {
+    handleSeek,
+    seekBy,
+    togglePlayPause,
+    toggleMute,
+    handleVolumeChange,
+    handlePlaybackRateChange,
+    beginTemporaryRate,
+    endTemporaryRate,
+    toggleFullscreen,
+    togglePip,
+    canUseAirPlay,
+    openAirPlayPicker,
+    toggleLoop,
+    changeSubtitle,
+    changeAudioTrack,
+    changeQuality,
+  } = usePlayerActions({
+    getAdapter,
+    syncPlaybackSnapshot,
+    lastPushedTimeRef,
+    pendingSourceSwitchRef,
+    playerContainerRef,
+    videoRef,
+    hlsRef,
+    provider,
+    youtubePlaybackRates,
+    videoUrl: baseUrl,
+    qualitySources,
+    subtitleTracks,
+    isMuted: store.isMuted,
+    volume: store.volume,
+    isPlaying: store.isPlaying,
+    setQualityOverride,
+    resetControlsTimeout,
+    flashFeedback,
+    reportError: reportPlayerError,
+  });
 
   // Expose the declared imperative API to the parent. Previously this prop
   // was renamed to `_playerApiRef` and silently ignored, leaving external
@@ -617,154 +612,24 @@ function CourseVideoPlayerInner({
     };
   }, [getAdapter, playerApiRef]);
 
-  const toggleFullscreen = useCallback(async () => {
-    const container = playerContainerRef.current;
-    if (!container) return;
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await container.requestFullscreen();
-    } catch {
-      setUIState({ errorMessage: "تعذر تفعيل وضع ملء الشاشة." });
-    }
-    resetControlsTimeout();
-  }, [resetControlsTimeout, setUIState]);
-
-  const togglePip = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video || provider === "youtube") return;
-    try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else await video.requestPictureInPicture();
-    } catch {
-      setUIState({ errorMessage: "وضع النافذة العائمة غير متاح لهذا المتصفح." });
-    }
-    resetControlsTimeout();
-  }, [provider, resetControlsTimeout, setUIState]);
-
   // AirPlay (Safari/iOS/macOS only — WebKit exposes this non-standard method
   // on the media element; other browsers simply don't have it, so we guard).
-  const canUseAirPlay = useMemo(() => {
-    if (typeof window === "undefined" || provider === "youtube") return false;
-    return typeof (window as { WebKitPlaybackTargetAvailabilityEvent?: unknown }).WebKitPlaybackTargetAvailabilityEvent !== "undefined";
-  }, [provider]);
-
-  const openAirPlayPicker = useCallback(() => {
-    const video = videoRef.current as (HTMLVideoElement & { webkitShowPlaybackTargetPicker?: () => void }) | null;
-    if (!video?.webkitShowPlaybackTargetPicker) {
-      setUIState({ errorMessage: "AirPlay غير متاح على هذا المتصفح." });
-      return;
-    }
-    video.webkitShowPlaybackTargetPicker();
-    resetControlsTimeout();
-  }, [resetControlsTimeout, setUIState]);
+  // (canUseAirPlay + openAirPlayPicker live in usePlayerActions — P2-32.)
 
   // P1-17: loop commands go through the ENGINE (adapter owns the range);
   // the store keeps a display mirror for the button + timeline region.
-  const toggleLoop = useCallback(() => {
-    const adapter = getAdapter();
-    if (!adapter) return;
-    const loop = adapter.getLoopRange();
-    const currentTime = adapter.getCurrentTime();
-    if (loop === null) {
-      adapter.setLoopRange(currentTime, currentTime);
-      // A zero-length range marks "A set, waiting for B" — enforcement is a
-      // no-op until B lands past A (end > start guard in setLoopRange).
-      setPlaybackState({ loopStart: currentTime, loopEnd: null });
-      flashFeedback({ icon: Repeat, label: "تم تحديد نقطة البداية (A)" });
-    } else if (stores.playback.getState().loopEnd === null) {
-      if (currentTime <= loop.start) {
-        flashFeedback({ icon: Repeat, label: "يجب أن تكون النهاية بعد البداية" });
-        return;
-      }
-      adapter.setLoopRange(loop.start, currentTime);
-      setPlaybackState({ loopEnd: currentTime });
-      flashFeedback({ icon: Repeat, label: "تم تفعيل التكرار (A-B)" });
-    } else {
-      adapter.clearLoop();
-      setPlaybackState({ loopStart: null, loopEnd: null });
-      flashFeedback({ icon: Repeat, label: "إيقاف التكرار" });
-    }
-  }, [flashFeedback, getAdapter, setPlaybackState, stores.playback]);
-
-  const applySubtitleSelection = useCallback((subtitleId: string) => {
-    if (provider === "youtube" || !videoRef.current) return;
-    Array.from(videoRef.current.textTracks).forEach((track, idx) => {
-      track.mode = subtitleId !== "off" && subtitleTracks[idx]?.id === subtitleId ? "showing" : "disabled";
-    });
-  }, [provider, subtitleTracks]);
-
-  const changeSubtitle = useCallback((id: string) => {
-    applySubtitleSelection(id);
-    setSettingsState({ selectedSubtitle: id });
-    flashFeedback({
-      icon: Settings2,
-      label: id === "off" ? "الترجمة متوقفة" : (subtitleTracks.find(t => t.id === id)?.label ?? "ترجمة")
-    });
-  }, [applySubtitleSelection, flashFeedback, setSettingsState, subtitleTracks]);
+  // (toggleLoop lives in usePlayerActions — P2-32.)
+  // (applySubtitleSelection + changeSubtitle live in usePlayerActions — P2-32.)
 
   // P1-12: real audio-track selection. HLS switches via the engine (the
   // useHlsEngine live effect applies the stored id); native/HTML5 switches
   // via the media element's AudioTrackList when exposed (Safari). The store
   // stays the single source of truth either way.
-  const changeAudioTrack = useCallback((trackId: string) => {
-    const hls = hlsRef.current;
-    if (hls) {
-      setSettingsState({ selectedAudioTrack: trackId });
-      flashFeedback({ icon: Settings2, label: trackId === "auto" ? "صوت تلقائي" : "تم تغيير المسار الصوتي" });
-      return;
-    }
-    const video = videoRef.current as (HTMLVideoElement & {
-      audioTracks?: ArrayLike<{ enabled: boolean; id: string; label: string; language: string }>;
-    }) | null;
-    const list = video?.audioTracks;
-    if (video && list && list.length > 0) {
-      const idx = trackId === "auto" ? 0 : Array.from(list).findIndex(
-        (t) => t.language === trackId || t.label === trackId || t.id === trackId
-      );
-      if (idx >= 0 && idx < list.length) {
-        Array.from(list).forEach((t, i) => { t.enabled = i === idx; });
-        setSettingsState({ selectedAudioTrack: trackId });
-        flashFeedback({ icon: Settings2, label: trackId === "auto" ? "صوت تلقائي" : "تم تغيير المسار الصوتي" });
-        return;
-      }
-    }
-    // No switchable tracks on this element — keep the choice stored so an
-    // HLS manifest carrying it later can still apply it.
-    setSettingsState({ selectedAudioTrack: trackId });
-  }, [flashFeedback, hlsRef, setSettingsState]);
+  // (changeAudioTrack lives in usePlayerActions — P2-32.)
 
   // P1-11: quality is selected by stable KEY. The HLS level index is
   // resolved at apply time from the current manifest — never stored.
-  const changeQuality = useCallback((qualityKey: string) => {
-    const hls = hlsRef.current;
-    if (hls) {
-      if (qualityKey === AUTO_QUALITY_KEY) {
-        hls.currentLevel = -1;
-      } else {
-        const match = stores.settings.getState().qualities.find((q) => q.key === qualityKey);
-        if (!match) return;
-        hls.currentLevel = match.levelIndex;
-      }
-      setSettingsState({ selectedQualityKey: qualityKey });
-      flashFeedback({
-        icon: Settings2,
-        label: qualityKey === AUTO_QUALITY_KEY ? `تلقائي` : `جودة ${qualityKey}`
-      });
-      return;
-    }
-    // Progressive (non-HLS) sources carry backend-provided numeric ids;
-    // they are explicit source identities, matched here by string form.
-    const source = qualitySources.find(q => String(q.id) === qualityKey);
-    if (!source) return;
-    pendingSourceSwitchRef.current = {
-      time: getAdapter()?.getCurrentTime() ?? 0,
-      shouldResume: store.isPlaying
-    };
-    setSettingsState({ selectedQualityKey: qualityKey });
-    setQualityOverride({ forVideoUrl: videoUrl, src: source.src });
-    setPlaybackState({ isLoading: true });
-    flashFeedback({ icon: Settings2, label: source.label });
-  }, [flashFeedback, getAdapter, hlsRef, qualitySources, setPlaybackState, setSettingsState, store.isPlaying, stores.settings, videoUrl]);
+  // (changeQuality lives in usePlayerActions — P2-32.)
 
   // --- Hook Integration: Keyboard & Touch ---
   const handleKeyboardShortcuts = useKeyboardShortcuts({
@@ -778,12 +643,9 @@ function CourseVideoPlayerInner({
   });
 
   const {
-    handleSurfaceTap,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
     gestureActiveMode,
     gestureValue,
+    surfaceHandlers,
   } = useTouchGestures({
     togglePlayPause, seekBy, handleVolumeChange, resetControlsTimeout,
     beginTemporaryRate, endTemporaryRate,
@@ -810,9 +672,14 @@ function CourseVideoPlayerInner({
     onStarted: () => getAdapter()?.pause(),
   });
   const toggleCasting = useCallback(() => {
-    if (isCasting) stopCasting();
-    else startCasting();
-  }, [isCasting, startCasting, stopCasting]);
+    if (isCasting) {
+      trackTelemetry("cast_end");
+      stopCasting();
+    } else {
+      trackTelemetry("cast_start", { positionSeconds: Math.round(getAdapter()?.getCurrentTime() ?? 0) });
+      startCasting();
+    }
+  }, [getAdapter, isCasting, startCasting, stopCasting, trackTelemetry]);
 
   // --- Sync & Lifecycle Effects ---
   // FIX: The old `useEffect(() => setActiveVideoUrl(videoUrl), [videoUrl])` caused a classic
@@ -846,6 +713,14 @@ function CourseVideoPlayerInner({
       isAmbientMode: prefs.isAmbientMode,
       selectedSubtitle: prefs.selectedSubtitle,
       selectedAudioTrack: prefs.selectedAudioTrack ?? "auto",
+      subtitleSize: prefs.subtitleSize ?? "md",
+      subtitleBgOpacity: prefs.subtitleBgOpacity ?? 0.7,
+      selectedQualityKey: prefs.selectedQualityKey ?? "auto",
+      autoplayNext: prefs.autoplayNext ?? true,
+      skipIntro: prefs.skipIntro ?? false,
+      gesturesEnabled: prefs.gesturesEnabled ?? true,
+      shortcutsEnabled: prefs.shortcutsEnabled ?? true,
+      miniPlayerMode: prefs.miniPlayerMode ?? "auto",
       brightness: prefs.brightness,
     });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached YouTube rates when the lesson changes
@@ -854,21 +729,37 @@ function CourseVideoPlayerInner({
   }, [lessonId, setNoteDraft]);
 
   useEffect(() => {
+    // P2-44: version-stamped payload so future upgrades migrate explicitly.
     localStorage.setItem(PLAYER_PREFERENCES_KEY, JSON.stringify({
+      _v: PREFERENCES_SCHEMA_VERSION,
       volume: store.volume,
       isMuted: store.isMuted,
       playbackRate: store.playbackRate,
       isAmbientMode: store.isAmbientMode,
       selectedSubtitle: store.selectedSubtitle,
       selectedAudioTrack: store.selectedAudioTrack,
+      subtitleSize: store.subtitleSize,
+      subtitleBgOpacity: store.subtitleBgOpacity,
+      selectedQualityKey: store.selectedQualityKey,
+      autoplayNext: store.autoplayNext,
+      skipIntro: store.skipIntro,
+      gesturesEnabled: store.gesturesEnabled,
+      shortcutsEnabled: store.shortcutsEnabled,
+      miniPlayerMode: store.miniPlayerMode,
       brightness: store.brightness,
       isSidebarOpen: store.isSidebarOpen,
       sidebarTab: store.sidebarTab,
     }));
-  }, [store.brightness, store.isAmbientMode, store.isMuted, store.playbackRate, store.selectedSubtitle, store.selectedAudioTrack, store.volume, store.isSidebarOpen, store.sidebarTab]);
+  }, [store.brightness, store.isAmbientMode, store.isMuted, store.playbackRate, store.selectedSubtitle, store.selectedAudioTrack, store.subtitleSize, store.subtitleBgOpacity, store.selectedQualityKey, store.autoplayNext, store.skipIntro, store.gesturesEnabled, store.shortcutsEnabled, store.miniPlayerMode, store.volume, store.isSidebarOpen, store.sidebarTab]);
 
   useEffect(() => {
-    const onFullscreen = () => setUIState({ isFullscreen: !!document.fullscreenElement });
+    const onFullscreen = () => {
+      const active = !!document.fullscreenElement;
+      setUIState({ isFullscreen: active });
+      // P2-40: release the orientation lock on every exit path (button,
+      // Escape, gesture) — toggleFullscreen only covers its own call.
+      if (!active) void releaseOrientationLock();
+    };
     const onPip = () => setUIState({ isPip: !!document.pictureInPictureElement });
     document.addEventListener("fullscreenchange", onFullscreen);
     document.addEventListener("enterpictureinpicture", onPip);
@@ -879,6 +770,19 @@ function CourseVideoPlayerInner({
       document.removeEventListener("leavepictureinpicture", onPip);
     };
   }, [setUIState]);
+
+  // P2-33: release engine resources on unmount (decoder/source detach).
+  useEffect(() => {
+    const getAdapterRef = getAdapter;
+    return () => {
+      try {
+        getAdapterRef()?.destroy();
+      } catch {
+        // Teardown best-effort: never throw from unmount paths.
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only teardown
+  }, []);
 
   // Only rotate the watermark while the video is actually playing — no point
   // ticking this timer while paused or before playback has started.
@@ -955,25 +859,20 @@ function CourseVideoPlayerInner({
         saveProgress(true);
       }
     },
-    // P1-9: YouTube failures now reach the unified error surface with a
+    // P1-9 + P2-36: YouTube failures reach the unified error surface with a
     // mapped code. `undefined` = SDK failed to load (offline/blocked) → NETWORK.
     onError: (code) => {
-      const error = code === undefined
-        ? { code: "NETWORK" as const, provider: "youtube" as const, retryable: true }
-        : mapYouTubeErrorCode(code);
-      setUIState({ errorMessage: playerErrorMessage(error) });
-      setPlaybackState({ isLoading: false, isPlaying: false });
-      stopPlaybackLoop();
+      reportPlayerError(mapYouTubeErrorCode(code));
     }
   });
 
-  // Autoplay Effect
+  // Autoplay Effect — honors the autoplayNext preference (P2-43).
   useEffect(() => {
-    if (!store.isEnded || !onNextVideo) return;
+    if (!store.isEnded || !onNextVideo || !store.autoplayNext) return;
     if (store.autoplayCountdown <= 0) { onNextVideo(); return; }
     const t = setTimeout(() => setPlaybackState(s => ({ autoplayCountdown: s.autoplayCountdown - 1 })), 1000);
     return () => clearTimeout(t);
-  }, [onNextVideo, setPlaybackState, store.autoplayCountdown, store.isEnded]);
+  }, [onNextVideo, setPlaybackState, store.autoplayCountdown, store.autoplayNext, store.isEnded]);
 
   // Watch Time Tracking Effect
   // FIX: Subscribe to `playbackStore.isPlaying` directly instead of `store.isPlaying` (merged object).
@@ -1020,13 +919,17 @@ function CourseVideoPlayerInner({
     [audioTracks, store.hlsAudioTracks]
   );
 
+  // P2-43: gesture layer arming — zoomed pan keeps its own handlers,
+  // disabled gestures leave a passive surface (buttons still work).
+  const gesturesArmed = store.gesturesEnabled && store.zoomFactor <= 1;
+
   // --- Render ---
   return (
     <div
       ref={playerContainerRef}
       dir="rtl"
       tabIndex={0}
-      onKeyDown={handleKeyboardShortcuts}
+      onKeyDown={store.shortcutsEnabled ? handleKeyboardShortcuts : undefined}
       onMouseMove={resetControlsTimeout}
       onMouseDown={() => playerContainerRef.current?.focus()}
       className={cn(
@@ -1099,17 +1002,19 @@ function CourseVideoPlayerInner({
         )}
       </div>
 
-      <button
-        aria-label="سطح المشغل"
-        type="button"
-        className={cn("absolute inset-0 z-10 bg-transparent", store.zoomFactor > 1 && "cursor-grab active:cursor-grabbing")}
-        onClick={store.zoomFactor > 1 ? undefined : handleSurfaceTap}
-        onTouchStart={store.zoomFactor > 1 ? undefined : handleTouchStart}
-        onTouchMove={store.zoomFactor > 1 ? undefined : handleTouchMove}
-        onTouchEnd={store.zoomFactor > 1 ? undefined : handleTouchEnd}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+      {/* P2-28: pure interaction layer (mouse/touch/click), NOT a control:
+          hidden from assistive tech and out of the tab order. Keyboard and
+          screen-reader users operate the real controls above (z-20).
+          P2-41: ONE gesture state machine owns all surface input (pointer +
+          click); the zoomed pan path is the only alternate wiring. */}
+      <div
+        aria-hidden="true"
+        className={cn("absolute inset-0 z-10 touch-none bg-transparent", store.zoomFactor > 1 && "cursor-grab active:cursor-grabbing")}
+        onClick={gesturesArmed ? surfaceHandlers.onClick : undefined}
+        onPointerDown={store.zoomFactor > 1 ? handlePointerDown : gesturesArmed ? surfaceHandlers.onPointerDown : undefined}
+        onPointerMove={store.zoomFactor > 1 ? handlePointerMove : gesturesArmed ? surfaceHandlers.onPointerMove : undefined}
+        onPointerUp={store.zoomFactor > 1 ? handlePointerUp : gesturesArmed ? surfaceHandlers.onPointerUp : undefined}
+        onPointerCancel={gesturesArmed ? surfaceHandlers.onPointerCancel : undefined}
         onDoubleClick={handleDoubleClick}
       />
 
@@ -1165,6 +1070,13 @@ function CourseVideoPlayerInner({
           onDismissResume={() => setPlaybackState({ resumeTime: null })}
           onCancelAutoplay={() => setPlaybackState({ isEnded: false, autoplayCountdown: AUTOPLAY_NEXT_SECONDS })}
           onPlayNextNow={onNextVideo}
+          onReplay={() => {
+            // P3-50: explicit replay — back to zero, loop cleared, playing.
+            getAdapter()?.clearLoop();
+            setPlaybackState({ loopStart: null, loopEnd: null });
+            handleSeek(0);
+            void getAdapter()?.play();
+          }}
           onRetry={() => {
             // Reset the quality override and trigger reload via state update
             setQualityOverride(null);
@@ -1180,7 +1092,7 @@ function CourseVideoPlayerInner({
         notes={notes}
         sidebarHasContent={sidebarHasContent}
         isTheaterMode={isTheaterMode}
-        canUsePip={provider !== "youtube" && typeof document !== "undefined" && !!document.pictureInPictureEnabled}
+        canUsePip={provider !== "youtube" && getPlayerCapabilities().pictureInPicture}
         canUseAirPlay={canUseAirPlay}
         onOpenAirPlay={openAirPlayPicker}
         canCast={canCast}

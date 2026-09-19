@@ -9,7 +9,7 @@ export function usePlayerViewport() {
   const isPanningRef = useRef(false);
   const startPanRef = useRef({ x: 0, y: 0 });
 
-  const handlePointerDown = useCallback((event: PointerEvent<HTMLButtonElement>) => {
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLElement>) => {
     const state = stores.settings.getState();
     if (state.zoomFactor <= 1) return;
     isPanningRef.current = true;
@@ -17,7 +17,7 @@ export function usePlayerViewport() {
     event.currentTarget.setPointerCapture(event.pointerId);
   }, [stores]);
 
-  const handlePointerMove = useCallback((event: PointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLElement>) => {
     if (!isPanningRef.current) return;
     const state = stores.settings.getState();
     setSettingsState({ panOffset: {
@@ -26,7 +26,7 @@ export function usePlayerViewport() {
     } });
   }, [setSettingsState, stores]);
 
-  const handlePointerUp = useCallback((event: PointerEvent<HTMLButtonElement>) => {
+  const handlePointerUp = useCallback((event: PointerEvent<HTMLElement>) => {
     if (!isPanningRef.current) return;
     isPanningRef.current = false;
     event.currentTarget.releasePointerCapture(event.pointerId);

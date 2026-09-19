@@ -116,6 +116,10 @@ export const apiRoutes = {
     lessonProgress: (lessonId: string) => `/api/courses/lessons/${lessonId}/progress`,
     lessonNotes: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
     createNote: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes`,
+    // Per-note items (P1-24). Legacy blob endpoints above stay as fallback.
+    lessonNoteItems: (lessonId: string) => `/api/courses/lessons/${lessonId}/notes/items`,
+    lessonNoteItem: (lessonId: string, noteId: string) =>
+      `/api/courses/lessons/${lessonId}/notes/items/${noteId}`,
     lessonQuestions: (lessonId: string) => `/api/courses/lessons/${lessonId}/questions`,
     answerLessonQuestion: (lessonId: string, questionId: string) =>
       `/api/courses/lessons/${lessonId}/questions/${questionId}/answer`,

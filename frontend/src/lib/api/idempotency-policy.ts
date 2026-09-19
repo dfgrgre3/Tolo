@@ -17,6 +17,8 @@ const LESSON_PROGRESS_PATH = /^\/api\/courses\/lessons\/[^/]+\/progress$/;
 // Server-validated question attempts: attemptId doubles as the key, so a
 // retried submit replays the original verdict instead of double-counting.
 const LESSON_QUESTION_ANSWER_PATH = /^\/api\/courses\/lessons\/[^/]+\/(?:questions|interactive-questions)\/[^/]+\/answer$/;
+// Player notes items (per-note mutations carry their clientOpId as key).
+const LESSON_NOTE_ITEMS_PATH = /^\/api\/courses\/lessons\/[^/]+\/notes\/items(\/[^/]+)?$/;
 
 const NON_IDEMPOTENT_ENDPOINTS = [
   "/api/v1/auth/login",
@@ -74,6 +76,7 @@ export function requiresIdempotencyKey(method: string, endpoint: string): boolea
     || CART_CHECKOUT_PATH.test(path)
     || LESSON_PROGRESS_PATH.test(path)
     || LESSON_QUESTION_ANSWER_PATH.test(path)
+    || LESSON_NOTE_ITEMS_PATH.test(path)
     || IDEMPOTENT_WRITE_PREFIXES.some(
     (prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix),
   );

@@ -80,6 +80,12 @@ export interface CourseVideoPlayerProps {
    * detection — required for custom CDNs, signed URLs and aliases.
    */
   provider?: VideoProvider;
+  /**
+   * Rich source model (P2-34). When present, its manifestUrl (or url) is
+   * the playable source and its provider/fallbacks win over everything.
+   * Prefer this over bare videoUrl for backend-driven playback.
+   */
+  videoSource?: import("./utils").VideoSource;
   alreadyCompleted?: boolean;
   onLessonAutoComplete?: (lessonId: string) => void;
   onNextVideo?: (nextLessonId?: string) => void;
@@ -114,6 +120,10 @@ export interface PlayerFeedback {
 export type PlayerFeedbackType = PlayerFeedback | null;
 
 // تفضيلات المشغل المخزنة
+//
+// P2-43: versioned schema (see PLAYER_PREFERENCES_KEY + readPlayerPreferences
+// migration). New keys MUST be optional-tolerant: old payloads merge over
+// DEFAULT_PLAYER_PREFERENCES, so additive fields degrade to defaults.
 export interface PlayerPreferences {
   volume: number;
   isMuted: boolean;
@@ -121,6 +131,14 @@ export interface PlayerPreferences {
   isAmbientMode: boolean;
   selectedSubtitle: string;
   selectedAudioTrack: string;
+  subtitleSize: "sm" | "md" | "lg" | "xl";
+  subtitleBgOpacity: number;
+  selectedQualityKey: string;
+  autoplayNext: boolean;
+  skipIntro: boolean;
+  gesturesEnabled: boolean;
+  shortcutsEnabled: boolean;
+  miniPlayerMode: "auto" | "off";
   brightness: number;
   isSidebarOpen: boolean;
   sidebarTab: SidebarTab;
@@ -160,6 +178,10 @@ export interface YouTubeRuntimePlayer {
   setPlaybackRate: (rate: number) => void;
   destroy: () => void;
   getAvailablePlaybackRates?: () => number[];
+  /** IFrame getPlayerState (-1/0/1/2/3/5). Absent on old facades. */
+  getPlayerState?: () => number;
+  /** IFrame getPlaybackRate. Absent on old facades. */
+  getPlaybackRate?: () => number;
 }
 
 // تعريف YouTube Namespace للـ API
@@ -206,11 +228,16 @@ export interface ThumbnailCue {
 }
 
 // ملاحظة على الخط الزمني
+//
+// P1-25: `clientId` is the stable identity across optimistic apply, queue
+// retry and server reconciliation; `pending` marks not-yet-acked notes.
 export interface TimelineNote {
   id: string;
   time: number;
   text: string;
   createdAt?: number;
+  clientId?: string;
+  pending?: boolean;
 }
 
 // سؤال تفاعلي

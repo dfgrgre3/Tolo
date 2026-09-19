@@ -17,6 +17,8 @@ import type { Course, Chapter, LessonQuestion, TabKey } from "../types";
 import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 import { updateLessonProgress } from "@/lib/course-progress";
+import { useQueryClient } from "@tanstack/react-query";
+import { reconcileCourseProgress } from "@/lib/state/state-ownership";
 import type {
   LearningHubResponse,
   LessonNotesResponse,
@@ -97,6 +99,7 @@ function markLessonCompletedInChapters(chapters: Chapter[], lessonId: string): C
 export function useLearningHub() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const courseId = params.courseId as string;
   const playerApiRef = useRef<CourseVideoPlayerApi | null>(null);
 
@@ -364,6 +367,15 @@ export function useLearningHub() {
 
         if (data?.xpAwarded) toast.success(`أحسنت! حصلت على ${data.xpAwarded} نقطة XP.`);
         else toast.success("تم تسجيل الدرس كمكتمل.");
+
+        reconcileCourseProgress(queryClient, courseId, {
+          lessonId,
+          isCompleted: true,
+          courseProgress: data.courseProgress,
+          lessonProgress: data.lessonProgress,
+          isCourseComplete: data.isCourseComplete,
+          certificateEligible: data.certificateEligible,
+        });
 
         if (data?.isCourseComplete) toast.success("رائع، لقد أنهيت الدورة بالكامل.");
       } catch (completeError) {

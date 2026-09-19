@@ -188,3 +188,10 @@ export async function changePassword(
     return mapped;
   }
 }
+export async function fetchAuthMe<T = unknown>(url: string, signal?: AbortSignal): Promise<T> {
+  return apiClient.get<T>(url, { signal });
+}
+
+export async function logoutUser(): Promise<void> {
+  await apiClient.post<void>(apiRoutes.auth.logout, {});
+}

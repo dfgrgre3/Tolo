@@ -1,7 +1,18 @@
 /**
- * Checks if an error is a critical client-side error (e.g., 400, 401, 403, 404, or equivalent Connect RPC codes)
- * that should not be retried.
+ * Checks if an error is a critical client-side error that should not be retried.
+ *
+ * Uses the canonical domain error taxonomy from '@/lib/errors/domain-errors'
+ * via instanceof — avoids magic status-code arrays and fragile message matching.
  */
+import {
+  AppError,
+  AuthenticationError,
+  AuthorizationError,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from './errors/domain-errors';
+
 export function isCriticalError(error: unknown): boolean {
   if (!error) return false;
 
@@ -10,10 +21,24 @@ export function isCriticalError(error: unknown): boolean {
     return true;
   }
 
-  const errObj = error as Record<string, unknown>;
+  // Canonical domain errors: these represent definitive server decisions,
+  // not transient failures — do not retry.
+  if (
+    error instanceof AuthenticationError ||
+    error instanceof AuthorizationError ||
+    error instanceof ValidationError ||
+    error instanceof NotFoundError ||
+    error instanceof ConflictError
+  ) {
+    return true;
+  }
 
-  // 1. Handle Connect RPC Errors structurally to avoid pulling @connectrpc/connect package into client-side bundles
-  const isConnectError = error instanceof Error && (error.name === 'ConnectError' || error.constructor?.name === 'ConnectError');
+  // Handle Connect RPC Errors structurally to avoid pulling @connectrpc/connect
+  // package into client-side bundles
+  const errObj = error as Record<string, unknown>;
+  const isConnectError =
+    error instanceof Error &&
+    (error.name === 'ConnectError' || error.constructor?.name === 'ConnectError');
   if (isConnectError || (typeof error === 'object' && 'code' in errObj)) {
     const code = errObj.code;
     const criticalCodes = [
@@ -30,7 +55,14 @@ export function isCriticalError(error: unknown): boolean {
     }
   }
 
-  // 2. Handle HTTP Errors (with status codes)
+  // Legacy fallback: ApiError/AppError with a critical status code.
+  // Kept for any code paths that haven't migrated to domain errors yet.
+  if (error instanceof AppError) {
+    const criticalStatuses = [400, 401, 403, 404, 409, 422];
+    return criticalStatuses.includes(error.statusCode);
+  }
+
+  // Legacy: plain objects with a `status` or `statusCode` field.
   let status: number | undefined;
   if (typeof errObj.status === 'number') {
     status = errObj.status;
@@ -38,27 +70,12 @@ export function isCriticalError(error: unknown): boolean {
     status = errObj.statusCode;
   } else if (errObj.response && typeof errObj.response === 'object' && 'status' in errObj.response) {
     const resStatus = (errObj.response as Record<string, unknown>).status;
-    if (typeof resStatus === 'number') {
-      status = resStatus;
-    }
+    if (typeof resStatus === 'number') status = resStatus;
   }
 
   if (status !== undefined) {
     const criticalStatuses = [400, 401, 403, 404, 409, 422];
-    if (criticalStatuses.includes(status)) {
-      return true;
-    }
-  }
-
-  // 3. Handle messages indicating critical failures
-  const message = typeof errObj.message === 'string' ? errObj.message.toLowerCase() : '';
-  if (
-    message.includes('unauthorized') ||
-    message.includes('forbidden') ||
-    message.includes('not found') ||
-    message.includes('invalid argument')
-  ) {
-    return true;
+    if (criticalStatuses.includes(status)) return true;
   }
 
   return false;

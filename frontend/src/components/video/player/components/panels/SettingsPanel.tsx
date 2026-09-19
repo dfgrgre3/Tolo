@@ -15,10 +15,11 @@ import {
   ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, type ComponentType } from "react";
+import { useState, type ComponentType, useRef } from "react";
 import { AUTO_QUALITY_KEY } from "../../constants";
 import type { AudioTrack, QualityOption, SubtitleTrack } from "../../types";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { usePlayerSettings, usePlayerStores } from "../../stores/player-scope";
 import { Check } from "lucide-react";
 
@@ -229,6 +230,62 @@ function AudioSettings({
   );
 }
 
+// P2-43: behavior preferences, store-direct (no prop threading). Persisted
+// via the versioned preferences writer in CourseVideoPlayer.
+function BehaviorSettings() {
+  const autoplayNext = usePlayerSettings((s) => s.autoplayNext);
+  const skipIntro = usePlayerSettings((s) => s.skipIntro);
+  const gesturesEnabled = usePlayerSettings((s) => s.gesturesEnabled);
+  const shortcutsEnabled = usePlayerSettings((s) => s.shortcutsEnabled);
+  const miniPlayerMode = usePlayerSettings((s) => s.miniPlayerMode);
+  const setSettingsState = usePlayerSettings((s) => s.setSettingsState);
+
+  return (
+    <>
+      <SettingsRow
+        icon={Layers}
+        label="تشغيل تلقائي للتالي"
+        value={autoplayNext ? "مفعل" : "متوقف"}
+        isToggle
+        isActive={autoplayNext}
+        onClick={() => setSettingsState({ autoplayNext: !autoplayNext })}
+      />
+      <SettingsRow
+        icon={Layers}
+        label="تخطي المقدمة تلقائيًا"
+        value={skipIntro ? "مفعل" : "متوقف"}
+        isToggle
+        isActive={skipIntro}
+        onClick={() => setSettingsState({ skipIntro: !skipIntro })}
+      />
+      <SettingsRow
+        icon={Layers}
+        label="إيماءات اللمس"
+        value={gesturesEnabled ? "مفعلة" : "متوقفة"}
+        isToggle
+        isActive={gesturesEnabled}
+        onClick={() => setSettingsState({ gesturesEnabled: !gesturesEnabled })}
+      />
+      <SettingsRow
+        icon={Keyboard}
+        label="اختصارات لوحة المفاتيح"
+        value={shortcutsEnabled ? "مفعلة" : "متوقفة"}
+        isToggle
+        isActive={shortcutsEnabled}
+        onClick={() => setSettingsState({ shortcutsEnabled: !shortcutsEnabled })}
+      />
+      <SettingsRow
+        icon={Monitor}
+        label="الفيديو المصغر التلقائي"
+        value={miniPlayerMode === "auto" ? "مفعل" : "متوقف"}
+        isToggle
+        isActive={miniPlayerMode === "auto"}
+        onClick={() => setSettingsState({ miniPlayerMode: miniPlayerMode === "auto" ? "off" : "auto" })}
+      />
+    </>
+  );
+}
+
 interface SettingsPanelProps {
   isSettingsOpen: boolean;
   isEfficiencyMode?: boolean;
@@ -268,11 +325,19 @@ export function SettingsPanel({
 
   // P1-15: hydration-safe viewport flag (SSR + first client render agree).
   const isMobilePanel = useIsMobile();
+  // P2-27: non-modal dialog — initial focus + restore, no Tab trap (the
+  // player controls behind it stay reachable).
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(dialogRef, isSettingsOpen);
 
   return (
     <>
       {isSettingsOpen ? (
         <div
+          ref={dialogRef}
+          role="dialog"
+          aria-label="إعدادات التشغيل"
+          tabIndex={-1}
           className={cn(
             "fixed inset-0 z-[100] flex items-end sm:absolute sm:bottom-28 sm:right-5 sm:w-[360px] sm:max-h-[70vh] sm:items-start",
             isMobilePanel ? "bg-slate-950" : "pointer-events-none"
@@ -457,6 +522,7 @@ export function SettingsPanel({
               <div className="space-y-4">
                 <p className="px-2 text-[11px] font-bold text-white/40 uppercase tracking-wider">أدوات ومميزات</p>
                 <SettingsRow icon={Sparkles} label="الإضاءة المحيطية" value={isAmbientMode ? "مفعلة" : "متوقفة"} onClick={onToggleAmbient} />
+                <BehaviorSettings />
                 <SettingsRow icon={Layers} label="إحصاءات المشغل" value="عرض" onClick={onOpenStats} />
                 <SettingsRow icon={Keyboard} label="اختصارات لوحة المفاتيح" value="عرض" onClick={onToggleShortcuts} />
               </div>
@@ -468,6 +534,8 @@ export function SettingsPanel({
           <>
             {isShortcutsOpen && (
               <div
+                role="dialog"
+                aria-label="اختصارات لوحة المفاتيح"
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
                 onClick={onToggleShortcuts}
               >

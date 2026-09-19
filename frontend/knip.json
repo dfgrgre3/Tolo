@@ -1,7 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
+  "next": true,
   "entry": [
-    "scripts/*.ts",
+    "src/app/**/*.{ts,tsx}",
+    "src/infrastructure/**/index.ts",
+    "src/shared/**/index.ts",
     "scripts/*.mjs"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mjs}"],

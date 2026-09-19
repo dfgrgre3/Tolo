@@ -57,13 +57,25 @@ export function useTimeData(): UseTimeDataReturn {
       return;
     }
 
-    if (data === null) return;
+    if (data === null || data === undefined) return;
 
-    if (isArray && !Array.isArray(data)) {
-      logger.warn(`${path} data is not an array:`, data);
+    // Support both raw arrays and standard API envelopes: { success: true, data: [...] }
+    let payload: unknown = data;
+    if (
+      data &&
+      typeof data === 'object' &&
+      'data' in data &&
+      (('success' in data) || isArray) &&
+      (data as { data: unknown }).data !== undefined
+    ) {
+      payload = (data as { data: unknown }).data;
+    }
+
+    if (isArray && !Array.isArray(payload)) {
+      logger.warn(`${path} data is not an array:`, payload);
       setter([] as unknown as T);
     } else {
-      setter(data);
+      setter(payload as T);
     }
   }, []);
 
@@ -89,7 +101,13 @@ export function useTimeData(): UseTimeDataReturn {
 
       // Process each result using the helper
       processResult(scheduleRes, '/api/schedule', setSchedule, false);
-      processResult(subjectsRes, '/api/subjects', (data) => setSubjects(data.map(s => s.subject)));
+      processResult(subjectsRes, '/api/subjects', (data) => {
+        if (!Array.isArray(data)) return;
+        const validSubjects = data
+          .map((s: { subject?: SubjectType } | string) => (typeof s === 'object' && s !== null ? s.subject : s))
+          .filter(Boolean) as SubjectType[];
+        setSubjects(validSubjects);
+      });
       processResult(tasksRes, '/api/tasks', setTasks);
       processResult(sessionsRes, '/api/study-sessions', setStudySessions);
       processResult(remindersRes, '/api/reminders', setReminders);

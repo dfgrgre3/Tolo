@@ -3,7 +3,7 @@
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
 import { performanceMonitor } from '../metrics/performance';
-import { getBackendApiUrl } from './backend-url';
+import { defaultHttpTransport, type HttpTransport } from './http-transport';
 import { requestCache } from './request-cache';
 import { ensureCsrfToken, isCsrfValidationFailure } from './csrf';
 import { handleUnauthorized } from './redirect-loop-guard';
@@ -18,6 +18,36 @@ import {
     TimeoutError,
     CallerAbortError,
 } from './retry-policy';
+import {
+    AppError,
+    ContractError,
+    TransportError,
+    mapStatusToDomainError,
+} from '../errors/domain-errors';
+
+// Re-export canonical error classes so callers can `instanceof` them via
+// a single import path during the ApiError → domain-errors migration.
+export {
+    AppError,
+    TransportError,
+    AuthenticationError,
+    AuthorizationError,
+    ValidationError,
+    NotFoundError,
+    ConflictError,
+    RateLimitError,
+    ServerError,
+    ContractError,
+    isAuthError,
+    isValidationError,
+    isNotFoundError,
+    isConflictError,
+    isRateLimitError,
+    isServerError,
+    isTransportError,
+    isContractError,
+    isAppError,
+} from '../errors/domain-errors';
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
@@ -38,15 +68,14 @@ interface ApiEnvelope<T> {
     code?: string;
 }
 
-/** Thrown when an HTTP-success response violates the API envelope contract. */
-export class ApiContractError extends Error {
-    public readonly status = 502;
-    public readonly payload: unknown;
-
+/** Thrown when an HTTP-success response violates the API envelope contract.
+ * @deprecated Use ContractError from '@/lib/errors/domain-errors' for new code.
+ *   This alias is preserved for backward compatibility only.
+ */
+export class ApiContractError extends ContractError {
     constructor(message: string, payload: unknown) {
-        super(message);
+        super(message, payload);
         this.name = 'ApiContractError';
-        this.payload = payload;
     }
 }
 
@@ -72,44 +101,35 @@ const API_TIMEOUT = 30_000;
 // Idempotency-Key, so the backend can replay the same mutation.
 const MAX_RETRIES = 1;
 
-export class ApiError extends Error {
-    public status: number;
+/**
+ * @deprecated Use the canonical domain error classes from '@/lib/errors/domain-errors'.
+ *   `ApiError` is kept for backward compatibility. New code should use
+ *   `instanceof AuthenticationError`, `instanceof ValidationError`, etc.
+ *   Migration tracking: see scripts/find-api-error-usages.sh
+ */
+export class ApiError extends AppError {
+    /** @deprecated Use AppError.statusCode */
+    public get status(): number { return this.statusCode; }
     public code?: string;
     public data?: Record<string, unknown>;
 
     constructor(message: string, status: number, code?: string, data?: Record<string, unknown>) {
-        super(message);
+        super(message, status, code ?? 'HTTP_ERROR');
         this.name = 'ApiError';
-        this.status = status;
         this.code = code;
         this.data = data;
     }
 
-    get isUnauthorized(): boolean { return this.status === 401; }
-    get isForbidden(): boolean { return this.status === 403; }
-    get isNotFound(): boolean { return this.status === 404; }
-    get isValidation(): boolean { return this.status === 422; }
-    get isRateLimited(): boolean { return this.status === 429; }
+    get isUnauthorized(): boolean { return this.statusCode === 401; }
+    get isForbidden(): boolean { return this.statusCode === 403; }
+    get isNotFound(): boolean { return this.statusCode === 404; }
+    get isValidation(): boolean { return this.statusCode === 422; }
+    get isRateLimited(): boolean { return this.statusCode === 429; }
 }
 
-function normalizeEndpoint(endpoint: string): string {
-    if (!endpoint) return '';
-    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
-        return endpoint;
-    }
-
-    const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-
-    // In the browser, always use relative path (/api/...) to route through Next.js proxy.
-    // This avoids CORS issues entirely.
-    if (typeof window !== 'undefined') {
-        if (normalized.startsWith('/api/')) {
-            return normalized;
-        }
-        return `/api${normalized}`;
-    }
-
-    return getBackendApiUrl(normalized);
+/** Resolves endpoint via HttpTransport abstraction (P0-8). */
+function normalizeEndpoint(endpoint: string, transport: HttpTransport = defaultHttpTransport): string {
+    return transport.resolveUrl(endpoint);
 }
 
 
@@ -138,11 +158,15 @@ export function unwrapApplicationPayload<T>(payload: unknown): T {
 }
 
 /**
- * Builds an ApiError from a non-OK response, preferring the backend's own
+ * Builds a domain error from a non-OK response, preferring the backend's own
  * `error`/`message`/`code` fields and falling back to the raw body text.
  * Consumes the response body — call at most once per response.
+ *
+ * Returns a canonical domain error (AuthenticationError, ValidationError,
+ * ServerError, etc.) from '@/lib/errors/domain-errors'.
+ * Also sets ApiError-compatible properties for backward compatibility.
  */
-export async function buildApiError(response: Response): Promise<ApiError> {
+export async function buildApiError(response: Response): Promise<AppError> {
     let errorMessage = `Server error: ${response.statusText}`;
     let errorCode = 'HTTP_ERROR';
     let errorData: Record<string, unknown> | undefined;
@@ -158,7 +182,7 @@ export async function buildApiError(response: Response): Promise<ApiError> {
         if (responseText) errorMessage = responseText;
     }
 
-    return new ApiError(errorMessage, response.status, errorCode, errorData);
+    return mapStatusToDomainError(response.status, errorMessage, errorCode, errorData);
 }
 
 /**

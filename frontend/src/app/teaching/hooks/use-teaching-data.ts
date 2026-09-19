@@ -13,6 +13,7 @@ import { usePermission } from "@/hooks/use-permission";
 import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
 import { normalizeCourseLifecycle, type CourseLifecycle } from "@thanawy/shared/types/course-state";
 import { unwrapOpenApiPayload } from "@/lib/api/generated-client";
+import { queryProfiles } from "@/lib/query/query-profiles";
 
 // ==========================================
 // TYPES DEFINITIONS (matching backend response)
@@ -102,6 +103,12 @@ export function buildCourseUpdateBody(data: Partial<Course>): Record<string, unk
   if (data.level !== undefined) body.level = data.level;
   if (data.categoryId !== undefined) body.categoryId = data.categoryId;
   if (data.chapters !== undefined) body.chapters = mapTeachingChapters(data.chapters);
+  if (data.deletedChapterIds && data.deletedChapterIds.length > 0) {
+    body.deletedChapterIds = data.deletedChapterIds;
+  }
+  if (data.deletedLessonIds && data.deletedLessonIds.length > 0) {
+    body.deletedLessonIds = data.deletedLessonIds;
+  }
   const quizzes = mapTeachingQuizzes(data);
   if (quizzes.length > 0) body.quizzes = quizzes;
   return body;
@@ -298,10 +305,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "stats"],
     queryFn: () => apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
     enabled: canFetch,
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const stats = statsQuery.data ?? EMPTY_STATS;
@@ -312,10 +316,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "activities"],
     queryFn: () => apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
     enabled: canFetch && activeTab === "dashboard",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const activities = activitiesQuery.data?.activities ?? [];
@@ -334,10 +335,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
       return { ...payload, courses: payload.courses.map(normalizeTeachingCourse) };
     },
     enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses" || activeTab === "quizzes"),
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const courses = coursesQuery.data?.courses ?? [];
@@ -395,10 +393,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "students"],
     queryFn: () => apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
     enabled: canFetch && activeTab === "students",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const allStudents = allStudentsQuery.data?.students ?? [];
@@ -409,10 +404,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "reviews"],
     queryFn: () => apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
     enabled: canFetch && activeTab === "reviews",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const allReviews = allReviewsQuery.data?.reviews ?? [];
@@ -444,10 +436,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "notifications"],
     queryFn: () => apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
     enabled: canFetch,
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const notifications = notificationsQuery.data?.notifications ?? [];
@@ -506,10 +495,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "conversations"],
     queryFn: () => apiClient.get<{ conversations: Conversation[] }>(apiRoutes.teaching.conversations),
     enabled: canFetch && activeTab === "messages",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const conversations = conversationsQuery.data?.conversations ?? [];
@@ -556,10 +542,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "calendar"],
     queryFn: () => apiClient.get<{ events: CalendarEvent[] }>(apiRoutes.teaching.calendar),
     enabled: canFetch && activeTab === "calendar",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.dashboard,
   });
 
   const calendarEvents = calendarEventsQuery.data?.events ?? [];
@@ -592,10 +575,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
     queryKey: ["teaching", "transactions"],
     queryFn: () => apiClient.get<{ transactions: Transaction[] }>(apiRoutes.teaching.transactions),
     enabled: canFetch && activeTab === "earnings",
-    retry: 1,
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
-    refetchOnWindowFocus: false,
+    ...queryProfiles.financial,
   });
 
   const transactions = transactionsQuery.data?.transactions ?? [];

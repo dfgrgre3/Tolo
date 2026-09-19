@@ -35,6 +35,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   const [thumbnail, setThumbnail] = useState(course?.thumbnail || "");
   const [status, setStatus] = useState<Course["status"]>(course?.status || "DRAFT");
   const [chapters, setChapters] = useState<Chapter[]>(course?.chapters || []);
+  const [deletedChapterIds, setDeletedChapterIds] = useState<string[]>([]);
+  const [deletedLessonIds, setDeletedLessonIds] = useState<string[]>([]);
   const [quizDrafts, setQuizDrafts] = useState<NonNullable<Course["quiz"]>[]>(() =>
     course?.quizzes ?? (course?.quiz ? [course.quiz] : [])
   );
@@ -170,6 +172,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
         chapters,
         lessonsCount: chapters.reduce((acc, curr) => acc + curr.lessons.length, 0),
         quizzes: quizzesToSave.map((quiz) => ({ ...quiz, title: quiz.title || `${title} — اختبار` })),
+        deletedChapterIds,
+        deletedLessonIds,
         /* quiz: {
           title: `${title} — اختبار`,
           passingScore: quizSettings.passingScore,
@@ -340,7 +344,21 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
 
           {/* STEP 3: Curriculum Builder */}
           {currentStep === 3 && (
-            <LessonBuilder chapters={chapters} onChange={(newChapters) => setChapters(newChapters)} />
+            <LessonBuilder
+              chapters={chapters}
+              onChange={(newChapters) => setChapters(newChapters)}
+              onDeleteChapter={(chapterId) => {
+                if (chapterId && course?.chapters?.some((c) => c.id === chapterId)) {
+                  setDeletedChapterIds((prev) => Array.from(new Set([...prev, chapterId])));
+                }
+              }}
+              onDeleteLesson={(lessonId) => {
+                const isExisting = course?.chapters?.some((c) => c.lessons.some((l) => l.id === lessonId));
+                if (lessonId && isExisting) {
+                  setDeletedLessonIds((prev) => Array.from(new Set([...prev, lessonId])));
+                }
+              }}
+            />
           )}
 
           {/* STEP 4: Quiz Builder */}

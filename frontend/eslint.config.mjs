@@ -198,6 +198,8 @@ export default [
       "no-unused-vars": "off",
       // Disable no-undef for TypeScript files since TypeScript handles type checking
       "no-undef": "off",
+      // Disable base no-redeclare in favor of TypeScript overload checking
+      "no-redeclare": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
@@ -246,6 +248,95 @@ export default [
     ],
     rules: {
       "no-restricted-globals": "off",
+    },
+  },
+  // P0-10 Architecture Rule: Storage Admin Operations (createBucket, deleteBucket, etc.)
+  // are internal infrastructure operations. Importing them in UI, hooks, or client components is forbidden.
+  {
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/app/**/*.{ts,tsx}",
+      "src/features/**/*.{ts,tsx}",
+      "src/hooks/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "src/app/api/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/storage/storage-admin",
+              message:
+                "Architecture boundary violation (P0-10): Storage admin operations (bucket creation/deletion) require service-role privileges and cannot be imported from UI code. Move this operation to Go backend or Next.js route handlers.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // P0-1 / P0-4 Architecture Rule: Strict boundary on standardized features and video components.
+  // Direct use of apiClient is forbidden — UI must call a domain service or feature hook.
+  {
+    files: [
+      "src/components/video/**/*.{ts,tsx}",
+      "src/features/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/*.old.*", "**/*.old"],
+              message: "ملفات .old.* غير موجودة وقد تسبب أخطاء. استخدم الملفات الحالية فقط. / .old.* files do not exist and will cause errors. Use current files only.",
+            },
+          ],
+          paths: [
+            {
+              name: "@/lib/api/api-client",
+              importNames: ["apiClient"],
+              message:
+                "Architecture boundary violation (P0-1/P0-4): Direct use of 'apiClient' in UI components is forbidden. Use a domain service from '@/services/...' or a feature hook instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Architecture Drift Advisory: Warn legacy UI components and pages about direct apiClient usage.
+  {
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/app/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "src/app/api/**/*.{ts,tsx}",
+      "src/components/video/**/*.{ts,tsx}",
+      "src/features/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["**/*.old.*", "**/*.old"],
+              message: "ملفات .old.* غير موجودة وقد تسبب أخطاء. استخدم الملفات الحالية فقط. / .old.* files do not exist and will cause errors. Use current files only.",
+            },
+          ],
+          paths: [
+            {
+              name: "@/lib/api/api-client",
+              importNames: ["apiClient"],
+              message:
+                "Architecture drift warning (P0-1): Direct use of 'apiClient' in UI components/pages is deprecated. Migrate to a typed domain service in '@/services/...'.",
+            },
+          ],
+        },
+      ],
     },
   },
   // Test files that need fetch for mocking

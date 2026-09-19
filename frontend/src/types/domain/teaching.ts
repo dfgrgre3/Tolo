@@ -57,6 +57,8 @@ export type TeachingCourse = Pick<
   chapters: TeachingChapter[];
   quiz?: TeachingQuiz;
   quizzes?: TeachingQuiz[];
+  deletedChapterIds?: string[];
+  deletedLessonIds?: string[];
 };
 
 export type { QuizQuestion } from "@/types/course-quiz";

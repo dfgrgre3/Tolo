@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 interface LessonBuilderProps {
   chapters: Chapter[];
   onChange: (chapters: Chapter[]) => void;
+  onDeleteChapter?: (chapterId: string) => void;
+  onDeleteLesson?: (lessonId: string) => void;
 }
 
 interface EditLessonModalProps {
@@ -107,7 +109,7 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
   );
 }
 
-export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps) {
+export default function LessonBuilder({ chapters, onChange, onDeleteChapter, onDeleteLesson }: LessonBuilderProps) {
   const [editingLessonInfo, setEditingLessonInfo] = useState<{ chapterId: string; lesson: Lesson } | null>(null);
 
   const addChapter = () => {
@@ -122,6 +124,7 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
   };
 
   const deleteChapter = (chapterId: string) => {
+    onDeleteChapter?.(chapterId);
     onChange(chapters.filter((c) => c.id !== chapterId));
   };
 
@@ -175,6 +178,7 @@ export default function LessonBuilder({ chapters, onChange }: LessonBuilderProps
   };
 
   const deleteLesson = (chapterId: string, lessonId: string) => {
+    onDeleteLesson?.(lessonId);
     onChange(
       chapters.map((c) => {
         if (c.id === chapterId) {

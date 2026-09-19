@@ -16,7 +16,11 @@ import {
   Search,
   BarChart3,
   Play,
-  Pause
+  Pause,
+  CalendarRange,
+  KanbanSquare,
+  Target,
+  FileBarChart
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,6 +54,11 @@ const LazyProductivityInsights = dynamic(() => import('./_components/Productivit
 const LazyExportDialog = dynamic(() => import('./_components/ExportDialog'), { ssr: false });
 const LazyKeyboardShortcutsHelp = dynamic(() => import('./_components/KeyboardShortcutsHelp'), { ssr: false });
 const QuickActionButton = dynamic(() => import('./_components/QuickActionButton'), { ssr: false });
+const LazyTimeCalendar = dynamic(() => import('./_components/TimeCalendar'), { ssr: false });
+const LazyTaskKanban = dynamic(() => import('./_components/TaskKanban'), { ssr: false });
+const LazyGoalsHabits = dynamic(() => import('./_components/GoalsHabits'), { ssr: false });
+const LazyAdvancedPomodoro = dynamic(() => import('./_components/AdvancedPomodoro'), { ssr: false });
+const LazyProductivityReport = dynamic(() => import('./_components/ProductivityReport'), { ssr: false });
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -256,7 +265,7 @@ export default function TimeManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050B14] text-slate-100 p-4 md:p-6 lg:p-8 space-y-8 animate-in fade-in duration-500">
+      <div className="min-h-screen bg-[#050B14] text-slate-100 p-4 md:p-6 lg:p-8 space-y-8">
         {/* Header Skeleton */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-2">
@@ -330,12 +339,12 @@ export default function TimeManagementPage() {
           here; it can desync from the root provider's context under HMR. */}
       {/* Premium Background Layer */}
       <div className="min-h-screen bg-[#050B14] text-slate-100 relative overflow-hidden">
-        {/* Animated Deep Space / RPG Glowing Orbs Background */}
+        {/* خلفية ثابتة بدون أنيميشن */}
         <div className="absolute top-0 right-0 w-[80%] h-[60%] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/20 via-background to-background pointer-events-none" />
-        <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-background to-background pointer-events-none opacity-60 dark:opacity-40 animate-pulse duration-10000" />
+        <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-background to-background pointer-events-none opacity-60 dark:opacity-40" />
 
-        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-5000" />
-        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-7000 delay-1000" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="container mx-auto p-4 md:p-6 lg:p-8 rtl relative z-10" dir="rtl">
           <div
@@ -368,29 +377,34 @@ export default function TimeManagementPage() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             {/* RPG Style Glassmorphic Floating Tabs */}
-            <div className="sticky top-4 z-40 mb-8 max-w-5xl mx-auto">
-              <TabsList className="flex w-full overflow-x-auto hide-scrollbar sm:grid sm:grid-cols-3 md:grid-cols-6 h-auto p-2 gap-2 bg-background/50 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-3xl w-full">
+            <div className="sticky top-4 z-40 mb-8 max-w-6xl mx-auto">
+              <TabsList className="flex w-full overflow-x-auto hide-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-6 h-auto p-2 gap-2 bg-background/50 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-3xl w-full">
                 {[
                   { id: "dashboard", label: "لوحة القيادة", icon: LayoutDashboard },
                   { id: "schedule", label: "خريطة الأسبوع", icon: CalendarDays },
                   { id: "tasks", label: "سجل المهام", icon: CheckSquare },
+                  { id: "kanban", label: "كانبان", icon: KanbanSquare },
+                  { id: "calendar", label: "التقويم", icon: CalendarRange },
                   { id: "tracker", label: "بؤرة التركيز", icon: TimerReset },
+                  { id: "pomodoro", label: "بومودورو", icon: Play },
+                  { id: "goals", label: "أهداف وعادات", icon: Target },
                   { id: "history", label: "موسوعة السجل", icon: History },
+                  { id: "reports", label: "التقارير", icon: FileBarChart },
                   { id: "reminders", label: "أجراس التنبيه", icon: Bell }
                 ].map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold transition-all duration-300 rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald-400 hover:bg-muted/30 w-full group overflow-hidden"
-                  >
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald-400 hover:bg-muted/30 w-full group overflow-hidden"
+                    >
                     {activeTab === tab.id && (
                       <div
                         className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 z-0 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]"
                       />
                     )}
-                    <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-sm">
-                      <tab.icon className="h-4 w-4 opacity-70 group-hover:opacity-100 group-data-[state=active]:opacity-100 transition-opacity" />
-                      <span className="group-data-[state=active]:text-shadow-[0_0_8px_rgba(16,185,129,0.8)]">{tab.label}</span>
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        <tab.icon className="h-4 w-4 opacity-70 group-hover:opacity-100 group-data-[state=active]:opacity-100" />
+                      <span>{tab.label}</span>
                     </span>
                   </TabsTrigger>
                 ))}
@@ -461,14 +475,14 @@ export default function TimeManagementPage() {
                     <p className="text-sm text-muted-foreground mt-1">نظم دراستك وخطط لأسبوعك</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
+                    <Button variant="outline" size="sm" className="transition-shadow hover:shadow-md">
                       <Settings className="h-4 w-4 ms-2" />
                       إعدادات الجدول
                     </Button>
                   </div>
                 </div>
                 {isAuthenticated ? (
-                  <div className="animate-in fade-in duration-700">
+                  <div>
                     <ComponentErrorBoundary>
                       <LazyWeeklySchedule schedule={schedule} subjects={subjects} onScheduleUpdate={handleScheduleUpdate} />
                     </ComponentErrorBoundary>
@@ -493,7 +507,7 @@ export default function TimeManagementPage() {
                         placeholder="بحث في المهام..."
                         value={taskSearch}
                         onChange={(e) => setTaskSearch(e.target.value)}
-                        className="ps-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
+                        className="ps-8 w-full sm:w-40 focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <Select value={taskFilter} onValueChange={(value: "all" | "pending" | "in_progress" | "completed") => setTaskFilter(value)}>
@@ -507,14 +521,14 @@ export default function TimeManagementPage() {
                         <SelectItem value="completed">مكتملة</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
+                    <Button variant="outline" size="sm" className="transition-shadow hover:shadow-md">
                       <Filter className="h-4 w-4 ms-2" />
                       تصفية متقدمة
                     </Button>
                   </div>
                 </div>
                 {isAuthenticated ? (
-                  <div className="animate-in fade-in duration-700">
+                  <div>
                     <ComponentErrorBoundary>
                       <LazyTaskManagement
                         initialTasks={filteredTasks}
@@ -541,8 +555,8 @@ export default function TimeManagementPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => handleTimerToggle()}
-                      className={`flex items-center gap-2 transition-all shadow-lg hover:shadow-xl ${isTimerRunning
-                          ? 'bg-red-600 hover:bg-red-700 animate-pulse'
+                      className={`flex items-center gap-2 shadow-lg ${isTimerRunning
+                          ? 'bg-red-600 hover:bg-red-700'
                           : 'bg-green-600 hover:bg-green-700'
                         }`}
                     >
@@ -561,7 +575,7 @@ export default function TimeManagementPage() {
                   </div>
                 </div>
                 {isAuthenticated ? (
-                  <div className="animate-in fade-in duration-700">
+                  <div>
                     <ComponentErrorBoundary>
                       <LazyTimeTracker
                         tasks={mapTasksForTimeTracker}
@@ -595,13 +609,13 @@ export default function TimeManagementPage() {
                         <SelectItem value="month">هذا الشهر</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
+                    <Button variant="outline" size="sm" className="transition-shadow hover:shadow-md">
                       <BarChart3 className="h-4 w-4 ms-2" />
                       تحليل البيانات
                     </Button>
                   </div>
                 </div>
-                <div className="animate-in fade-in duration-700">
+                <div>
                   <ComponentErrorBoundary>
                     <LazyStudySessionsHistory
                       sessions={filteredSessions.length > 0 ? filteredSessions : studySessions}
@@ -609,6 +623,73 @@ export default function TimeManagementPage() {
                     />
                   </ComponentErrorBoundary>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="kanban" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">لوحة كانبان</h2>
+                  <p className="text-sm text-muted-foreground mt-1">اسحب مهامك بين المراحل: انتظار ← تنفيذ ← إنجاز</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyTaskKanban
+                    tasks={tasks}
+                    onStatusChange={(taskId, status) => {
+                      const t = tasks.find(x => x.id === taskId);
+                      if (t) handleTaskUpdate({ ...t, status });
+                    }}
+                  />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="calendar" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">التقويم الشهري</h2>
+                  <p className="text-sm text-muted-foreground mt-1">عرض موحد للمهام والجلسات والتذكيرات على مدار الشهر</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyTimeCalendar tasks={tasks} sessions={studySessions} reminders={reminders} />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="pomodoro" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">بومودورو متقدم</h2>
+                  <p className="text-sm text-muted-foreground mt-1">خصص دورات التركيز والاستراحة مع تنبيه صوتي وانتقال تلقائي</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyAdvancedPomodoro onSessionComplete={(min) => handleStudySessionCreate({
+                    id: `pomo_${Date.now()}`,
+                    durationMin: min,
+                    startTime: new Date(Date.now() - min * 60000).toISOString(),
+                    endTime: new Date().toISOString(),
+                    subjectId: '',
+                    createdAt: new Date().toISOString(),
+                  })} />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="goals" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">الأهداف والعادات</h2>
+                  <p className="text-sm text-muted-foreground mt-1">حدد أهدافًا رقمية وابنِ عادات يومية مع تتبع الالتزام — تُحفظ على جهازك</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyGoalsHabits studyMinutesWeek={studySessions.filter(s => {
+                    const d = new Date(s.startTime);
+                    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+                    return d >= weekAgo;
+                  }).reduce((a, s) => a + s.durationMin, 0)} />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="reports" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">تقارير الإنتاجية</h2>
+                  <p className="text-sm text-muted-foreground mt-1">خريطة نشاط 12 أسبوع مع ملخص وإمكانية التصدير CSV</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyProductivityReport tasks={tasks} sessions={studySessions} />
+                </ComponentErrorBoundary>
               </TabsContent>
 
               <TabsContent value="reminders" className="mt-0">
@@ -624,17 +705,17 @@ export default function TimeManagementPage() {
                         placeholder="بحث في التذكيرات..."
                         value={reminderSearch}
                         onChange={(e) => setReminderSearch(e.target.value)}
-                        className="ps-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
+                        className="ps-8 w-full sm:w-40 focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                    <Button variant="outline" size="sm" className="transition-all hover:shadow-md">
+                    <Button variant="outline" size="sm" className="transition-shadow hover:shadow-md">
                       <Filter className="h-4 w-4 ms-2" />
                       تصفية متقدمة
                     </Button>
                   </div>
                 </div>
                 {isAuthenticated ? (
-                  <div className="animate-in fade-in duration-700">
+                  <div>
                     <ComponentErrorBoundary>
                       <LazyReminders
                         initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders}

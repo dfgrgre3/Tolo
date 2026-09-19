@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchThumbnailVtt } from "@/services/api/lesson-content-service";
 import { parseThumbnailVtt } from "../utils";
 
 export function useThumbnailCues(thumbnailVttUrl?: string) {
@@ -9,8 +9,7 @@ export function useThumbnailCues(thumbnailVttUrl?: string) {
     if (!thumbnailVttUrl) return;
 
     let cancelled = false;
-    apiClient.fetch(thumbnailVttUrl, { cache: "force-cache" })
-      .then((response) => response.ok ? response.text() : "")
+    fetchThumbnailVtt(thumbnailVttUrl)
       .then((text) => {
         if (!cancelled) setThumbnailCues(text ? parseThumbnailVtt(text, thumbnailVttUrl) : []);
       })

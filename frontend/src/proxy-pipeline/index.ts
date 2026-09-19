@@ -9,8 +9,8 @@ import {
   type SessionState,
 } from './auth';
 import { applyRefreshToRequest, createRefreshedResponse } from './refresh';
-import { isApiRequest, isGuestPage, isProtectedPage, isPublicApiPath } from './routing';
-import { findRoleRule, hasRole, isAdminRoute } from '@/lib/auth/route-guards';
+import { applyRoleGate, isApiRequest, isGuestPage, isProtectedPage, isPublicApiPath } from './routing';
+import { isAdminRoute } from '@/lib/auth/route-guards';
 import { isStaffAdminPanelRole } from '@/lib/auth/admin-panel-roles';
 
 export async function runProxyPipeline(request: NextRequest): Promise<NextResponse> {
@@ -119,13 +119,10 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
   }
 
   // Coarse role gate for endpoints declared in ROLE_RULES (e.g. teacher-only,
-  // student-only). This is a fast-path only — the backend re-validates roles
-  // on every request and remains the authority.
-  if (isApiRequest(pathname) && !isPublicEndpoint) {
-    const roleRule = findRoleRule(pathname);
-    if (roleRule && !hasRole(session.payload?.role, roleRule.allowedRoles)) {
-      return NextResponse.json({ error: roleRule.errorMessage }, { status: 403 });
-    }
+  // student-only). Extracted to applyRoleGate (P0-7). Fast-path check; backend re-validates.
+  const roleGateResponse = applyRoleGate(pathname, session.payload?.role, isPublicEndpoint);
+  if (roleGateResponse) {
+    return roleGateResponse;
   }
 
   if (isProtected) {

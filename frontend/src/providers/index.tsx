@@ -27,9 +27,9 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // 60s staleTime — cuts redundant refetches dramatically.
-        // Data is still re-fetched on reconnect and when explicitly invalidated.
-        staleTime: 60_000,
+        // Safe default: 0ms staleTime (always fresh / revalidates on mount).
+        // Specific queries MUST explicitly spread a profile from '@/lib/query/query-profiles'.
+        staleTime: 0,
         // 10 min garbage-collect window (enough for navigation within a session)
         gcTime: 600_000,
         // Disable retry in development to speed up debugging, otherwise retry transient network errors
@@ -42,8 +42,7 @@ function makeQueryClient() {
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
-        // Don't refetch on every component mount if data is still fresh
-        refetchOnMount: false,
+        refetchOnMount: true,
         networkMode: 'online',
       },
       mutations: {

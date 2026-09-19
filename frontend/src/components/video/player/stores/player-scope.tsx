@@ -121,22 +121,22 @@ export function usePlayerPlayback(): PlaybackStore;
 export function usePlayerPlayback<T>(selector: (s: PlaybackStore) => T): T;
 export function usePlayerPlayback<T>(selector?: (s: PlaybackStore) => T): T | PlaybackStore {
   const ctx = useContext(PlayerScopeContext);
-  if (ctx) return useStore(ctx.playback, selector as (s: PlaybackStore) => T);
-  return (usePlaybackStore as unknown as <U>(sel?: (s: PlaybackStore) => U) => U)(selector);
+  const store = (ctx?.playback ?? usePlaybackStore) as unknown as StoreApi<PlaybackStore>;
+  return useStore(store, (selector ?? ((s) => s)) as (s: PlaybackStore) => T);
 }
 
 export function usePlayerUI(): UIStore;
 export function usePlayerUI<T>(selector: (s: UIStore) => T): T;
 export function usePlayerUI<T>(selector?: (s: UIStore) => T): T | UIStore {
   const ctx = useContext(PlayerScopeContext);
-  if (ctx) return useStore(ctx.ui, selector as (s: UIStore) => T);
-  return (useUIStore as unknown as <U>(sel?: (s: UIStore) => U) => U)(selector);
+  const store = (ctx?.ui ?? useUIStore) as unknown as StoreApi<UIStore>;
+  return useStore(store, (selector ?? ((s) => s)) as (s: UIStore) => T);
 }
 
 export function usePlayerSettings(): SettingsStore;
 export function usePlayerSettings<T>(selector: (s: SettingsStore) => T): T;
 export function usePlayerSettings<T>(selector?: (s: SettingsStore) => T): T | SettingsStore {
   const ctx = useContext(PlayerScopeContext);
-  if (ctx) return useStore(ctx.settings, selector as (s: SettingsStore) => T);
-  return (useSettingsStore as unknown as <U>(sel?: (s: SettingsStore) => U) => U)(selector);
+  const store = (ctx?.settings ?? useSettingsStore) as unknown as StoreApi<SettingsStore>;
+  return useStore(store, (selector ?? ((s) => s)) as (s: SettingsStore) => T);
 }

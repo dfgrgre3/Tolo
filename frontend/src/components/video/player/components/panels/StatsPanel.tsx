@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AudioTrack } from "../../types";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 interface StatItem {
   label: string;
@@ -19,10 +21,19 @@ interface StatsPanelProps {
 }
 
 export function StatsPanel({ isStatsOpen, isEfficiencyMode, statsItems, audioTracks, selectedAudioTrack, onCloseStats }: StatsPanelProps) {
+  // P2-27: modal dialog semantics + focus trap while open.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(dialogRef, isStatsOpen, { trap: true });
+
   return (
     <>
       {isStatsOpen ? (
         <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="إحصاءات المشغل"
+          tabIndex={-1}
           className={cn("absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6", !isEfficiencyMode && "backdrop-blur-xl")}
           onClick={onCloseStats}>
           <div className="w-full max-w-lg rounded-[30px] border border-white/10 bg-slate-950/90 p-6 shadow-2xl"

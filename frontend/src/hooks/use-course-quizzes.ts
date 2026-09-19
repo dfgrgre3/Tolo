@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { courseQuizRepository } from '@/data-access/repositories/course-quiz-repository';
+import { queryProfiles } from '@/lib/query/query-profiles';
 import type {
   CourseQuiz,
   StudentCourseQuiz,
@@ -18,6 +19,7 @@ export function useCourseQuizzes(courseId?: string) {
     queryKey: ['course-quizzes', courseId],
     queryFn: () => courseQuizRepository.getCourseQuizzes(courseId!),
     enabled: !!courseId,
+    ...queryProfiles.progress,
   });
 }
 
@@ -27,6 +29,7 @@ export function useLessonQuizzes(courseId?: string, lessonId?: string) {
     queryKey: ['lesson-quizzes', courseId, lessonId],
     queryFn: () => courseQuizRepository.getLessonQuizzes(courseId!, lessonId!),
     enabled: !!courseId && !!lessonId,
+    ...queryProfiles.progress,
   });
 }
 
@@ -36,15 +39,17 @@ export function useCourseQuiz(courseId?: string, quizId?: string) {
     queryKey: ['course-quiz', courseId, quizId],
     queryFn: () => courseQuizRepository.getQuiz(courseId!, quizId!),
     enabled: !!courseId && !!quizId,
+    ...queryProfiles.progress,
   });
 }
 
-/** Fetch user's results for a quiz. */
+/** Fetch user's results for a quiz (event-driven / immutable results). */
 export function useQuizResults(courseId?: string, quizId?: string) {
   return useQuery<QuizResultsSummary>({
     queryKey: ['course-quiz-results', courseId, quizId],
     queryFn: () => courseQuizRepository.getQuizResults(courseId!, quizId!),
     enabled: !!courseId && !!quizId,
+    ...queryProfiles.eventDriven,
   });
 }
 

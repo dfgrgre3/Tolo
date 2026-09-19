@@ -9,8 +9,6 @@ import type {
   ListFilesOptions,
   FileListItem,
   DeleteOptions,
-  CreateBucketOptions,
-  BucketInfo,
   ImageTransformOptions,
 } from "./types";
 
@@ -22,8 +20,6 @@ export type {
   ListFilesOptions,
   FileListItem,
   DeleteOptions,
-  CreateBucketOptions,
-  BucketInfo,
   ImageTransformOptions,
 };
 
@@ -359,95 +355,8 @@ export async function copyFile(
   }
 }
 
-export async function createBucket(options: CreateBucketOptions): Promise<BucketInfo> {
-  const supabase = getSupabaseClient();
-  const { name, public: isPublic = false, fileSizeLimit, allowedMimeTypes } = options;
-
-  const { data, error } = await supabase.storage.createBucket(name, {
-    public: isPublic,
-    fileSizeLimit,
-    allowedMimeTypes,
-  });
-
-  if (error) {
-    throw new Error(`Failed to create bucket: ${error.message}`);
-  }
-
-  return data as BucketInfo;
-}
-
-export async function getBucket(name: string): Promise<BucketInfo | null> {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase.storage.getBucket(name);
-
-  if (error) {
-    if (error.message.includes("not found")) {
-      return null;
-    }
-    throw new Error(`Failed to get bucket: ${error.message}`);
-  }
-
-  return data as BucketInfo;
-}
-
-export async function listBuckets(): Promise<BucketInfo[]> {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase.storage.listBuckets();
-
-  if (error) {
-    throw new Error(`Failed to list buckets: ${error.message}`);
-  }
-
-  return data as BucketInfo[];
-}
-
-export async function updateBucket(
-  name: string,
-  options: Partial<CreateBucketOptions>
-): Promise<BucketInfo> {
-  const supabase = getSupabaseClient();
-
-  const updatePayload: Partial<Pick<CreateBucketOptions, 'public' | 'fileSizeLimit' | 'allowedMimeTypes'>> = {};
-  if (options.public !== undefined) updatePayload.public = options.public;
-  if (options.fileSizeLimit !== undefined) updatePayload.fileSizeLimit = options.fileSizeLimit;
-  if (options.allowedMimeTypes !== undefined) updatePayload.allowedMimeTypes = options.allowedMimeTypes;
-  const { data, error } = await supabase.storage.updateBucket(
-    name,
-    updatePayload as Parameters<typeof supabase.storage.updateBucket>[1],
-  );
-
-  if (error) {
-    throw new Error(`Failed to update bucket: ${error.message}`);
-  }
-
-  if (!data) {
-    throw new Error("Failed to update bucket: No data returned");
-  }
-
-  return data as unknown as BucketInfo;
-}
-
-export async function deleteBucket(name: string): Promise<void> {
-  const supabase = getSupabaseClient();
-
-  const { error } = await supabase.storage.deleteBucket(name);
-
-  if (error) {
-    throw new Error(`Failed to delete bucket: ${error.message}`);
-  }
-}
-
-export async function emptyBucket(name: string): Promise<void> {
-  const supabase = getSupabaseClient();
-
-  const { error } = await supabase.storage.emptyBucket(name);
-
-  if (error) {
-    throw new Error(`Failed to empty bucket: ${error.message}`);
-  }
-}
+// Note: Bucket administration operations (createBucket, deleteBucket, etc.)
+// have moved to "@/lib/storage/storage-admin" (P0-10).
 
 export function getImageTransformUrl(
   bucket: string,

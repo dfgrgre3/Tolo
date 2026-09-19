@@ -105,14 +105,13 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center mb-10 cursor-pointer group transition-all duration-300",
-        isRunning && "animate-[pulse_3s_infinite_ease-in-out] scale-[1.015]"
+        "relative flex items-center justify-center mb-10 cursor-pointer group",
       )}
       onClick={handleToggle}
     >
       {/* Outer glow ring */}
       <div className={cn(
-        'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500',
+        'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30',
         currentPomodoroState === 'work' ? 'bg-rose-500' :
         currentPomodoroState === 'shortBreak' ? 'bg-teal-500' : 'bg-violet-500'
       )} />
@@ -128,7 +127,7 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={offset}
-          className={cn(theme.stroke, theme.glow, "transition-[stroke-dashoffset] duration-1000 ease-out")}
+          className={cn(theme.stroke, theme.glow)}
         />
       </svg>
 
@@ -234,7 +233,6 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
           'relative overflow-hidden rounded-3xl border bg-[#0a1628]/80 backdrop-blur-2xl',
           'shadow-[0_20px_80px_rgba(0,0,0,0.4)]',
           theme.border,
-          'transition-colors duration-700'
         )}>
           {/* Background glow orb */}
           <div className={cn(

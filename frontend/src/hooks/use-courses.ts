@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { contractGetCourse, contractListCourses } from '@/services/api/contracts-courses-service';
 import { unwrapOpenApiPayload } from '@/lib/api/generated-client';
+import { queryProfiles } from '@/lib/query/query-profiles';
 import type { Subject } from '@/types/subject';
 
 export function useCourses() {
@@ -11,6 +12,7 @@ export function useCourses() {
       const payload = unwrapOpenApiPayload<{ items?: Subject[] }>(result.data);
       return payload?.items ?? [];
     },
+    ...queryProfiles.static,
   });
 }
 
@@ -24,5 +26,6 @@ export function useCourse(id: string) {
       return (payload && "subject" in payload ? payload.subject : payload) as Subject;
     },
     enabled: !!id,
+    ...queryProfiles.static,
   });
 }
