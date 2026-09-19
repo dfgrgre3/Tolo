@@ -1,8 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, ChevronLeft, CalendarDays } from 'lucide-react';
 import type { Task, StudySession, Reminder } from '../types';
@@ -63,13 +62,13 @@ export default function TimeCalendar({ tasks, sessions, reminders }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" dir="rtl">
-      <Card className="lg:col-span-2 bg-[#0a1628]/70 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <CalendarDays className="h-5 w-5 text-emerald-400" />
+      <div className="lg:col-span-2">
+        <div className="flex flex-row items-center justify-between mb-3">
+          <h3 className="flex items-center gap-2 text-foreground font-bold">
+            <CalendarDays className="h-5 w-5 text-primary-strong" />
             {monthLabel}
             <Badge variant="secondary" className="ms-2">{Math.round(monthMinutes / 60 * 10) / 10} ساعة مذاكرة</Badge>
-          </CardTitle>
+          </h3>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
               <ChevronRight className="h-4 w-4" />
@@ -79,9 +78,9 @@ export default function TimeCalendar({ tasks, sessions, reminders }: Props) {
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs text-white/40 font-bold">
+        </div>
+        <div>
+          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs text-muted-foreground font-bold">
             {WEEKDAYS.map(w => <div key={w} className="py-2">{w}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -97,45 +96,43 @@ export default function TimeCalendar({ tasks, sessions, reminders }: Props) {
                   onClick={() => setSelected(d)}
                   className={cn(
                     'min-h-[72px] rounded-xl border p-1.5 text-start',
-                    inMonth ? 'bg-white/[0.03] border-white/10' : 'bg-transparent border-white/5 opacity-40',
-                    isSel ? 'border-emerald-500/60 bg-emerald-500/10' : '',
+                    inMonth ? 'bg-card border-border' : 'bg-transparent border-border opacity-40',
+                    isSel ? 'border-orange-500/60 bg-orange-500/10' : '',
                     isToday ? 'border-blue-500/50' : ''
                   )}
                 >
-                  <div className={cn('text-sm font-bold', isToday ? 'text-blue-400' : 'text-white/80')}>{d.getDate()}</div>
+                  <div className={cn('text-sm font-bold', isToday ? 'text-blue-600 dark:text-blue-400' : 'text-foreground')}>{d.getDate()}</div>
                   {info && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {info.tasks.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-400" title={`${info.tasks.length} مهام`} />}
-                      {info.sessions.length > 0 && <span className="h-2 w-2 rounded-full bg-emerald-400" title={`${info.sessions.length} جلسات`} />}
+                      {info.sessions.length > 0 && <span className="h-2 w-2 rounded-full bg-orange-400" title={`${info.sessions.length} جلسات`} />}
                       {info.reminders.length > 0 && <span className="h-2 w-2 rounded-full bg-violet-400" title={`${info.reminders.length} تذكيرات`} />}
                     </div>
                   )}
-                  {count > 0 && <div className="text-[10px] text-white/40 mt-1">{count} عناصر</div>}
+                  {count > 0 && <div className="text-[10px] text-muted-foreground mt-1">{count} عناصر</div>}
                 </button>
               );
             })}
           </div>
-          <div className="flex gap-4 mt-4 text-xs text-white/50">
+          <div className="flex gap-4 mt-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> مهام</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> جلسات</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-400" /> جلسات</span>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-400" /> تذكيرات</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-[#0a1628]/70 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white text-base">
-            تفاصيل {selected.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 max-h-[560px] overflow-y-auto">
+      <div>
+        <h3 className="text-foreground text-base font-bold mb-3">
+          تفاصيل {selected.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </h3>
+        <div className="space-y-4 max-h-[560px] overflow-y-auto">
           <div>
-            <h4 className="text-xs font-bold text-amber-400 mb-2">المهام ({selectedData.tasks.length})</h4>
-            {selectedData.tasks.length === 0 ? <p className="text-xs text-white/30">لا توجد مهام مستحقة</p> :
+            <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-2">المهام ({selectedData.tasks.length})</h4>
+            {selectedData.tasks.length === 0 ? <p className="text-xs text-muted-foreground">لا توجد مهام مستحقة</p> :
               selectedData.tasks.map(t => (
-                <div key={t.id} className="p-2 rounded-lg bg-white/5 border border-white/10 mb-1.5">
-                  <p className="text-sm text-white/85 font-medium">{t.title}</p>
+                <div key={t.id} className="py-1.5 border-b border-border">
+                  <p className="text-sm text-foreground font-medium">{t.title}</p>
                   <div className="flex gap-1 mt-1">
                     {t.status && <Badge variant="outline" className="text-[10px]">{t.status}</Badge>}
                     {t.priority && <Badge variant="outline" className="text-[10px]">{t.priority}</Badge>}
@@ -144,26 +141,26 @@ export default function TimeCalendar({ tasks, sessions, reminders }: Props) {
               ))}
           </div>
           <div>
-            <h4 className="text-xs font-bold text-emerald-400 mb-2">الجلسات ({selectedData.sessions.length})</h4>
-            {selectedData.sessions.length === 0 ? <p className="text-xs text-white/30">لا توجد جلسات</p> :
+            <h4 className="text-xs font-bold text-primary-strong mb-2">الجلسات ({selectedData.sessions.length})</h4>
+            {selectedData.sessions.length === 0 ? <p className="text-xs text-muted-foreground">لا توجد جلسات</p> :
               selectedData.sessions.map(s => (
-                <div key={s.id} className="p-2 rounded-lg bg-white/5 border border-white/10 mb-1.5 text-xs text-white/70">
+                <div key={s.id} className="py-1.5 border-b border-border text-xs text-foreground/80">
                   {s.durationMin} دقيقة • {new Date(s.startTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               ))}
           </div>
           <div>
-            <h4 className="text-xs font-bold text-violet-400 mb-2">التذكيرات ({selectedData.reminders.length})</h4>
-            {selectedData.reminders.length === 0 ? <p className="text-xs text-white/30">لا توجد تذكيرات</p> :
+            <h4 className="text-xs font-bold text-violet-600 dark:text-violet-400 mb-2">التذكيرات ({selectedData.reminders.length})</h4>
+            {selectedData.reminders.length === 0 ? <p className="text-xs text-muted-foreground">لا توجد تذكيرات</p> :
               selectedData.reminders.map(r => (
-                <div key={r.id} className="p-2 rounded-lg bg-white/5 border border-white/10 mb-1.5">
-                  <p className="text-sm text-white/85 font-medium">{r.title}</p>
-                  <p className="text-[11px] text-white/40">{new Date(r.remindAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                <div key={r.id} className="py-1.5 border-b border-border">
+                  <p className="text-sm text-foreground font-medium">{r.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{new Date(r.remindAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

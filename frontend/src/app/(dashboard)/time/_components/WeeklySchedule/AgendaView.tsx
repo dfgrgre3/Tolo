@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, Circle, BookOpen, Calendar } from 'lucide-react';
@@ -63,14 +63,14 @@ export function AgendaView({
 
       return (
         <Card className={cn(
-          "bg-background/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl mt-4 h-[90px] flex flex-col justify-center",
+          "bg-background/40 backdrop-blur-xl border border-border rounded-3xl shadow-xl mt-4 h-[90px] flex flex-col justify-center",
           isToday && "ring-2 ring-emerald-500/50 bg-emerald-500/5"
         )}>
           <CardHeader className="py-2 border-b-0">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  "p-2 rounded-xl bg-blue-500/10 text-blue-400",
+                  "p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400",
                   isToday && "bg-emerald-500/20 text-emerald-400"
                 )}>
                   <Calendar className="h-5 w-5" />
@@ -97,7 +97,7 @@ export function AgendaView({
           role="button"
           tabIndex={0}
           className={cn(
-            "w-full h-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 hover:scale-[1.01] transition-all duration-300 text-start group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-500/50",
+            "w-full h-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-muted/60 cursor-pointer hover:bg-muted hover:scale-[1.01] transition-all duration-300 text-start group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-500/50",
             block.isCompleted && "opacity-40 grayscale"
           )}
           onClick={() => onBlockEdit(block)}
@@ -125,19 +125,19 @@ export function AgendaView({
           <div className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h4 className={cn(
-                "text-lg font-black text-slate-100 truncate max-w-[200px]",
+                "text-lg font-black text-foreground truncate max-w-[200px]",
                 block.isCompleted && "line-through text-slate-500"
               )}>
                 {block.title}
               </h4>
-              <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <Badge variant="outline" className="bg-muted/60 border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 {typeInfo.label}
               </Badge>
             </div>
             
-            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400 mt-2">
-              <span className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
-                <Clock className="w-3 h-3 text-blue-400" />
+            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-muted-foreground mt-2">
+              <span className="flex items-center gap-1.5 bg-muted/60 px-2 py-0.5 rounded-lg border border-border">
+                <Clock className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                 {formatTimeRange(block.startTime, block.endTime)}
               </span>
               
@@ -156,7 +156,7 @@ export function AgendaView({
               variant="ghost"
               className={cn(
                 "rounded-xl transition-all duration-300 h-10 w-10",
-                block.isCompleted ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-slate-500 hover:text-emerald-400"
+                block.isCompleted ? "bg-emerald-500/20 text-emerald-400" : "bg-muted/60 text-slate-500 hover:text-emerald-400"
               )}
               onClick={(e) => {
                 e.stopPropagation();
@@ -172,7 +172,7 @@ export function AgendaView({
   };
 
   if (flattenedItems.length === 0) {
-    return <div className="text-center p-8 text-slate-400 font-bold">لا يوجد مهام هذا الأسبوع</div>;
+    return <div className="text-center p-8 text-muted-foreground font-bold">لا يوجد مهام هذا الأسبوع</div>;
   }
 
   return (

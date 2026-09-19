@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { cn } from '@/lib/utils';
 import { TIME_SLOTS, DAYS_OF_WEEK } from './constants';
 import { getWeekDays, parseTime, addMinutesToTime } from './utils';
@@ -41,10 +41,10 @@ export function TimeGrid({
   const weekDays = getWeekDays(currentWeek);
 
   return (
-    <div className="w-full bg-[#0A0F1D]/50 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+    <div className="w-full bg-[#0A0F1D]/50 backdrop-blur-2xl border border-border rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
       <div className="grid grid-cols-8 min-w-[800px] text-sm">
         {/* Time column header */}
-        <div className="sticky top-0 bg-[#0F172A]/80 backdrop-blur-md z-30 p-4 border-b border-white/5 flex items-center justify-center">
+        <div className="sticky top-0 bg-[#0F172A]/80 backdrop-blur-md z-30 p-4 border-b border-border flex items-center justify-center">
           <span className="text-xs font-black text-slate-500 uppercase tracking-widest">الوقت</span>
         </div>
         
@@ -53,12 +53,12 @@ export function TimeGrid({
           <div 
             key={index} 
             className={cn(
-              "sticky top-0 bg-[#0F172A]/80 backdrop-blur-md z-30 p-4 border-b border-white/5 text-center transition-colors duration-300",
+              "sticky top-0 bg-[#0F172A]/80 backdrop-blur-md z-30 p-4 border-b border-border text-center transition-colors duration-300",
               format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && "bg-emerald-500/10"
             )}
           >
             <div className={cn(
-              "font-black text-slate-300",
+              "font-black text-muted-foreground",
               format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && "text-emerald-400"
             )}>
               {DAYS_OF_WEEK[index]}
@@ -74,7 +74,7 @@ export function TimeGrid({
           <React.Fragment key={time}>
             {/* Time label */}
             {showTimeLabels && (
-              <div className="p-4 text-[11px] font-black text-slate-500 border-r border-white/5 bg-[#0F172A]/20 flex items-center justify-center">
+              <div className="p-4 text-[11px] font-black text-slate-500 border-r border-border bg-[#0F172A]/20 flex items-center justify-center">
                 {time}
               </div>
             )}
@@ -87,7 +87,7 @@ export function TimeGrid({
                 <div
                   key={`${dayIndex}-${time}`}
                   className={cn(
-                    "min-h-[80px] border-b border-r border-white/5 cursor-pointer hover:bg-white/[0.02] relative group transition-colors duration-200",
+                    "min-h-[80px] border-b border-r border-border cursor-pointer hover:bg-muted/[0.02] relative group transition-colors duration-200",
                     compactView && "min-h-[50px]",
                     dayIndex === 6 && "border-r-0"
                   )}

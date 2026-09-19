@@ -126,10 +126,10 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
           
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Award className="h-4 w-4 text-emerald-500" />
+              <Award className="h-4 w-4 text-orange-600 dark:text-orange-500" />
               <h3 className="font-medium">نسبة الإتقان</h3>
             </div>
-            <div className="text-2xl font-bold text-emerald-600">{masteryScore}%</div>
+            <div className="text-2xl font-bold text-orange-600">{masteryScore}%</div>
             <p className="text-sm text-muted-foreground">
               بناء على التركيز وكفاءة الدراسة
             </p>
@@ -150,7 +150,7 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
           
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Brain className="h-4 w-4 text-orange-500" />
+              <Brain className="h-4 w-4 text-orange-600 dark:text-orange-500" />
               <h3 className="font-medium">أفضل موضوع</h3>
             </div>
             <div className="text-xl font-bold text-orange-600">
@@ -186,10 +186,10 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
           
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-teal-500" />
+              <BarChart3 className="h-4 w-4 text-blue-500" />
               <h3 className="font-medium">نوعية التركيز</h3>
             </div>
-            <div className="text-xl font-bold text-teal-600">
+            <div className="text-xl font-bold text-blue-600">
               {pomodoroRatio >= 0.5 ? 'مرتفع' : pomodoroRatio >= 0.25 ? 'متوسط' : 'منخفض'}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -231,8 +231,8 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
               <Zap className="h-4 w-4 text-indigo-500 mt-0.5 me-2 flex-shrink-0" />
               <span>قلل المشتتات: حدد أوقاتًا معينة لفحص الهاتف والرسائل</span>
             </li>
-            <li className="flex items-start p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg">
-                <Award className="h-4 w-4 text-teal-500 mt-0.5 me-2 flex-shrink-0" />
+            <li className="flex items-start p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                <Award className="h-4 w-4 text-blue-500 mt-0.5 me-2 flex-shrink-0" />
                 <span>احتفل بالإنجازات: كافئ نفسك عند إكمال المهام المهمة</span>
             </li>
           </ul>

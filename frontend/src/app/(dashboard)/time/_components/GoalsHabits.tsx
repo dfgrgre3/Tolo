@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -93,14 +92,12 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" dir="rtl">
-      <Card className="bg-[#0a1628]/70 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2 text-base">
-            <Target className="h-5 w-5 text-emerald-400" /> الأهداف الذكية
-            <Badge variant="secondary">{syncedGoals.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="space-y-3">
+        <h3 className="text-foreground flex items-center gap-2 text-base font-bold">
+          <Target className="h-5 w-5 text-primary-strong" /> الأهداف الذكية
+          <Badge variant="secondary">{syncedGoals.length}</Badge>
+        </h3>
+        <div className="space-y-3">
           <div className="flex gap-2">
             <Input placeholder="هدف جديد... مثال: حفظ 5 دروس" value={gTitle} onChange={e => setGTitle(e.target.value)} />
             <Input placeholder="الرقم" value={gTarget} onChange={e => setGTarget(e.target.value)} className="w-24" inputMode="numeric" />
@@ -109,18 +106,18 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
           {syncedGoals.map(g => {
             const pct = Math.min(100, Math.round((g.current / g.target) * 100));
             return (
-              <div key={g.id} className="rounded-xl bg-white/[0.04] border border-white/10 p-3">
+              <div key={g.id} className="py-3 border-b border-border">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-bold text-white/90">{g.title}</p>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-red-400" onClick={() => setGoals(p => p.filter(x => x.id !== g.id))}>
+                  <p className="text-sm font-bold text-foreground">{g.title}</p>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-400" onClick={() => setGoals(p => p.filter(x => x.id !== g.id))}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <div className="flex items-center justify-between text-xs text-white/50 mb-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                   <span>{g.current} / {g.target} {g.unit}</span>
-                  <span className="font-bold text-emerald-400">{pct}%</span>
+                  <span className="font-bold text-primary-strong">{pct}%</span>
                 </div>
-                <Progress value={pct} className="h-2 bg-white/10" />
+                <Progress value={pct} className="h-2 bg-muted" />
                 <div className="flex gap-1 mt-2">
                   <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setGoals(p => p.map(x => x.id === g.id ? { ...x, current: Math.min(x.target, x.current + 1) } : x))}>+1</Button>
                   <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setGoals(p => p.map(x => x.id === g.id ? { ...x, current: Math.min(x.target, x.current + 10) } : x))}>+10</Button>
@@ -129,29 +126,27 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
               </div>
             );
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-[#0a1628]/70 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2 text-base">
-            <Flame className="h-5 w-5 text-orange-400" /> العادات اليومية
-            <Badge variant="secondary">{habits.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="space-y-3">
+        <h3 className="text-foreground flex items-center gap-2 text-base font-bold">
+          <Flame className="h-5 w-5 text-primary-strong" /> العادات اليومية
+          <Badge variant="secondary">{habits.length}</Badge>
+        </h3>
+        <div className="space-y-3">
           <div className="flex gap-2">
             <Input placeholder="عادة جديدة... مثال: استيقاظ مبكر" value={hTitle} onChange={e => setHTitle(e.target.value)} />
             <Button onClick={addHabit} size="sm"><Plus className="h-4 w-4" /></Button>
           </div>
-          <p className="text-[11px] text-white/40">علّم على أيام الأسبوع (آخر 7 أيام) — السبت أولاً</p>
+          <p className="text-[11px] text-muted-foreground">علّم على أيام الأسبوع (آخر 7 أيام) — السبت أولاً</p>
           {habits.map(h => (
-            <div key={h.id} className="rounded-xl bg-white/[0.04] border border-white/10 p-3">
+            <div key={h.id} className="py-3 border-b border-border">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold text-white/90">{h.title}</p>
+                <p className="text-sm font-bold text-foreground">{h.title}</p>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[11px] text-orange-300">🔥 {h.streak}</Badge>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-red-400" onClick={() => setHabits(p => p.filter(x => x.id !== h.id))}>
+                  <Badge variant="outline" className="text-[11px] text-orange-600 dark:text-orange-300">🔥 {h.streak}</Badge>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-400" onClick={() => setHabits(p => p.filter(x => x.id !== h.id))}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -161,7 +156,7 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
                   <button
                     key={i}
                     onClick={() => toggleHabitDay(h.id, i)}
-                    className={`h-9 flex-1 rounded-lg border text-xs font-bold ${done ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'bg-white/5 border-white/10 text-white/30'}`}
+                    className={`h-9 flex-1 rounded-lg border text-xs font-bold ${done ? 'bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-300' : 'bg-muted/60 border-border text-muted-foreground'}`}
                     title={`يوم ${i + 1}`}
                   >
                     {done ? <Check className="h-4 w-4 mx-auto" /> : `ي${i + 1}`}
@@ -170,8 +165,8 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

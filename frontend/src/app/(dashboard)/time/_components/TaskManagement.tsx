@@ -17,7 +17,7 @@ import {
 import { isPast } from 'date-fns';
 
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
+import { apiClient, ApiContractError } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
 import { TaskFormDialog } from './_components/TaskFormDialog';
 import { TaskFilters } from './_components/TaskFilters';
@@ -30,7 +30,10 @@ import { taskSchema } from './_components/task-types';
 import {
   matchesTaskFilters,
   getTaskSortComparison,
+  buildTaskPayload,
+  mergeServerTask,
 } from './_components/task-utils';
+import { toast } from 'sonner';
 
 export default function TaskManagement({
   initialTasks,
@@ -142,28 +145,40 @@ export default function TaskManagement({
     const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
     // The task owner is resolved server-side from the session — no userId.
-    const body = {
-      ...values,
+    // NOTE: send only backend-supported fields as a FULL object (see
+    // buildTaskPayload): subject-as-string / tags / '' dueAt break Go binding,
+    // and partial PATCHes wipe the row via full Save.
+    const local: Task = {
+      id: taskToEdit?.id ?? '',
+      title: values.title,
+      description: values.description || undefined,
+      subject: values.subject,
+      dueAt: values.dueAt || undefined,
+      priority: values.priority ?? 'MEDIUM',
+      estimatedTime: values.estimatedTime ?? 30,
       tags,
-      status: taskToEdit?.status || 'PENDING'
+      status: taskToEdit?.status || 'PENDING',
+      subtasks: taskToEdit?.subtasks,
     };
 
     try {
       const savedTask = taskToEdit
-        ? await apiClient.patch<Task>(apiRoutes.tasks.update(taskToEdit.id), body)
-        : await apiClient.postJson<Task>(apiRoutes.tasks.create, body);
+        ? await apiClient.patch<Task>(apiRoutes.tasks.update(taskToEdit.id), buildTaskPayload(local))
+        : await apiClient.postJson<Task>(apiRoutes.tasks.create, buildTaskPayload(local));
+      const next = mergeServerTask(local, savedTask);
 
       if (taskToEdit) {
-        setTasks(prev => prev.map(t => t.id === savedTask.id ? savedTask : t));
-        if (onTaskUpdate) onTaskUpdate(savedTask);
+        setTasks(prev => prev.map(t => t.id === savedTask.id ? next : t));
+        if (onTaskUpdate) onTaskUpdate(next);
       } else {
-        setTasks(prev => [savedTask, ...prev]);
-        if (onTaskCreate) onTaskCreate(savedTask);
+        setTasks(prev => [next, ...prev]);
+        if (onTaskCreate) onTaskCreate(next);
       }
 
       handleFinished();
     } catch (error) {
       logger.error("Error saving task:", error);
+      toast.error('فشل حفظ المهمة — حاول مرة أخرى');
     }
   }, [taskToEdit, onTaskUpdate, onTaskCreate, handleFinished]);
 
@@ -172,26 +187,37 @@ export default function TaskManagement({
 
     try {
       await apiClient.delete(apiRoutes.tasks.delete(taskId));
-
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      onTaskDelete?.(taskId);
     } catch (error: unknown) {
-      logger.error("Error deleting task:", error instanceof Error ? error.message : String(error));
+      // Backend DELETE returns HTTP 200 with `{success: true}` and NO `data`
+      // key — the row IS deleted, only the client's envelope check fails.
+      // Treat that specific contract mismatch as success; real failures
+      // (network/4xx/5xx) still abort below.
+      if (!(error instanceof ApiContractError)) {
+        logger.error("Error deleting task:", error instanceof Error ? error.message : String(error));
+        toast.error('فشل حذف المهمة — حاول مرة أخرى');
+        return;
+      }
     }
+
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    onTaskDelete?.(taskId);
   }, [onTaskDelete]);
 
   const handleStatusChange = async (taskId: string, status: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
     try {
-      const updateData: Partial<Task> = { status: status as Task['status'] };
+      const merged: Task = { ...task, status: status as Task['status'] };
       if (status === 'COMPLETED') {
-        updateData.completedAt = new Date().toISOString();
-        updateData.actualTime = timerSeconds > 0 ? Math.round(timerSeconds / 60) : undefined;
+        merged.completedAt = new Date().toISOString();
+        if (timerSeconds > 0) merged.actualTime = Math.round(timerSeconds / 60);
       }
 
-      const updatedTask = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), updateData);
+      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(merged));
+      const next = mergeServerTask(merged, saved);
 
-      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      if (onTaskUpdate) onTaskUpdate(updatedTask);
+      setTasks(prev => prev.map(t => t.id === taskId ? next : t));
+      if (onTaskUpdate) onTaskUpdate(next);
 
       if (status === 'COMPLETED' && activeTimer === taskId) {
         setActiveTimer(null);
@@ -199,6 +225,7 @@ export default function TaskManagement({
       }
     } catch (error) {
       logger.error("Error updating task status:", error);
+      toast.error('فشل تحديث حالة المهمة');
     }
   };
 
@@ -221,13 +248,19 @@ export default function TaskManagement({
   };
 
   const updateTaskField = async (taskId: string, field: string, value: unknown) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
     try {
-      const updatedTask = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), { [field]: value });
+      // Full-object PATCH: the backend overwrites the whole row.
+      const merged = { ...task, [field]: value } as Task;
+      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(merged));
+      const next = mergeServerTask(merged, saved);
 
-      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      onTaskUpdate?.(updatedTask);
+      setTasks(prev => prev.map(t => t.id === taskId ? next : t));
+      onTaskUpdate?.(next);
     } catch (error) {
       logger.error("Error updating task:", error);
+      toast.error('فشل تحديث المهمة');
     }
   };
 

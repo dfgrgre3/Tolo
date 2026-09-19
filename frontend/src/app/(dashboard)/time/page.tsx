@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -20,7 +20,8 @@ import {
   CalendarRange,
   KanbanSquare,
   Target,
-  FileBarChart
+  FileBarChart,
+  Wrench
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,6 +43,9 @@ import { toast } from 'sonner';
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
 
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
+import { buildTaskPayload, mergeServerTask } from './_components/_components/task-utils';
 import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 
 const LazyWeeklySchedule = dynamic(() => import("@/app/(dashboard)/time/_components/WeeklySchedule"), { ssr: false });
@@ -59,6 +63,7 @@ const LazyTaskKanban = dynamic(() => import('./_components/TaskKanban'), { ssr: 
 const LazyGoalsHabits = dynamic(() => import('./_components/GoalsHabits'), { ssr: false });
 const LazyAdvancedPomodoro = dynamic(() => import('./_components/AdvancedPomodoro'), { ssr: false });
 const LazyProductivityReport = dynamic(() => import('./_components/ProductivityReport'), { ssr: false });
+const LazyTaskTools = dynamic(() => import('./_components/TaskTools'), { ssr: false });
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -159,6 +164,22 @@ export default function TimeManagementPage() {
       updateStatsOnTaskChange(oldTask, updatedTask);
     }
   }, [tasks, setTasks, updateStatsOnTaskChange]);
+
+  // Kanban status move — optimistic + persisted with a FULL backend payload
+  const handleKanbanStatusChange = useCallback(async (taskId: string, status: Task['status']) => {
+    const oldTask = tasks.find(t => t.id === taskId);
+    if (!oldTask || oldTask.status === status) return;
+    const optimistic = { ...oldTask, status };
+    setTasks(prev => prev.map(t => t.id === taskId ? optimistic : t));
+    try {
+      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(optimistic));
+      handleTaskUpdate(mergeServerTask(optimistic, saved));
+    } catch (error) {
+      setTasks(prev => prev.map(t => t.id === taskId ? oldTask : t));
+      logger.error('Error moving task on kanban:', error);
+      toast.error('فشل نقل المهمة — حاول مرة أخرى');
+    }
+  }, [tasks, setTasks, handleTaskUpdate]);
 
   // Handle new task creation
   const handleTaskCreate = useCallback((newTask: Task) => {
@@ -265,28 +286,28 @@ export default function TimeManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050B14] text-slate-100 p-4 md:p-6 lg:p-8 space-y-8">
+      <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8 space-y-8">
         {/* Header Skeleton */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-2">
-            <Skeleton className="h-10 w-64 bg-emerald-500/10 rounded-xl" />
-            <Skeleton className="h-4 w-96 bg-slate-800/50 rounded-lg" />
+            <Skeleton className="h-10 w-64 bg-orange-500/10 rounded-xl" />
+            <Skeleton className="h-4 w-96 bg-muted/50 rounded-lg" />
           </div>
           <div className="flex gap-2">
-            <Skeleton className="h-12 w-32 bg-emerald-500/5 rounded-xl" />
-            <Skeleton className="h-12 w-12 bg-slate-800/40 rounded-xl" />
+            <Skeleton className="h-12 w-32 bg-orange-500/5 rounded-xl" />
+            <Skeleton className="h-12 w-12 bg-muted/40 rounded-xl" />
           </div>
         </div>
 
         {/* Stats Grid Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-2xl bg-slate-900/40 border border-white/5 p-5 space-y-3">
+            <div key={i} className="rounded-2xl bg-muted/40 border border-border p-5 space-y-3">
               <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 bg-emerald-500/10 rounded-lg" />
+                <Skeleton className="h-10 w-10 bg-orange-500/10 rounded-lg" />
                 <div className="space-y-1">
-                  <Skeleton className="h-4 w-20 bg-slate-800" />
-                  <Skeleton className="h-6 w-12 bg-slate-800" />
+                  <Skeleton className="h-4 w-20 bg-muted" />
+                  <Skeleton className="h-6 w-12 bg-muted" />
                 </div>
               </div>
             </div>
@@ -295,9 +316,9 @@ export default function TimeManagementPage() {
 
         {/* Floating Tabs Skeleton */}
         <div className="max-w-5xl mx-auto">
-          <div className="flex justify-between p-2 gap-2 bg-slate-900/40 border border-white/5 rounded-3xl">
+          <div className="flex justify-between p-2 gap-2 bg-muted/40 border border-border rounded-3xl">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-11 flex-1 bg-slate-800/60 rounded-2xl" />
+              <Skeleton key={i} className="h-11 flex-1 bg-muted/60 rounded-2xl" />
             ))}
           </div>
         </div>
@@ -305,25 +326,25 @@ export default function TimeManagementPage() {
         {/* Dashboard Content Cards Skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl bg-slate-900/30 border border-white/5 p-6 space-y-4">
-              <Skeleton className="h-6 w-40 bg-slate-800" />
+            <div className="rounded-2xl bg-muted/30 border border-border p-6 space-y-4">
+              <Skeleton className="h-6 w-40 bg-muted" />
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex justify-between items-center py-2 border-b border-white/5">
+                  <div key={i} className="flex justify-between items-center py-2 border-b border-border">
                     <div className="space-y-2">
-                      <Skeleton className="h-4 w-48 bg-slate-800" />
-                      <Skeleton className="h-3 w-32 bg-slate-800/60" />
+                      <Skeleton className="h-4 w-48 bg-muted" />
+                      <Skeleton className="h-3 w-32 bg-muted/60" />
                     </div>
-                    <Skeleton className="h-6 w-16 bg-slate-800 rounded-full" />
+                    <Skeleton className="h-6 w-16 bg-muted rounded-full" />
                   </div>
                 ))}
               </div>
             </div>
           </div>
           <div className="space-y-6">
-            <div className="rounded-2xl bg-slate-900/30 border border-white/5 p-6 space-y-4">
-              <Skeleton className="h-6 w-32 bg-slate-800" />
-              <Skeleton className="h-[200px] w-full bg-slate-800/50 rounded-xl" />
+            <div className="rounded-2xl bg-muted/30 border border-border p-6 space-y-4">
+              <Skeleton className="h-6 w-32 bg-muted" />
+              <Skeleton className="h-[200px] w-full bg-muted/50 rounded-xl" />
             </div>
           </div>
         </div>
@@ -338,12 +359,12 @@ export default function TimeManagementPage() {
           LazyMotion provider in providers/index.tsx. Don't nest another LazyMotion
           here; it can desync from the root provider's context under HMR. */}
       {/* Premium Background Layer */}
-      <div className="min-h-screen bg-[#050B14] text-slate-100 relative overflow-hidden">
+      <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
         {/* خلفية ثابتة بدون أنيميشن */}
-        <div className="absolute top-0 right-0 w-[80%] h-[60%] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/20 via-background to-background pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[80%] h-[60%] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-900/20 via-background to-background pointer-events-none" />
         <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-background to-background pointer-events-none opacity-60 dark:opacity-40" />
 
-        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-orange-500/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="container mx-auto p-4 md:p-6 lg:p-8 rtl relative z-10" dir="rtl">
@@ -378,7 +399,7 @@ export default function TimeManagementPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             {/* RPG Style Glassmorphic Floating Tabs */}
             <div className="sticky top-4 z-40 mb-8 max-w-6xl mx-auto">
-              <TabsList className="flex w-full overflow-x-auto hide-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-6 h-auto p-2 gap-2 bg-background/50 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-3xl w-full">
+              <TabsList className="flex w-full overflow-x-auto hide-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-6 h-auto p-2 gap-2 bg-card border border-border shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-3xl w-full">
                 {[
                   { id: "dashboard", label: "لوحة القيادة", icon: LayoutDashboard },
                   { id: "schedule", label: "خريطة الأسبوع", icon: CalendarDays },
@@ -389,17 +410,18 @@ export default function TimeManagementPage() {
                   { id: "pomodoro", label: "بومودورو", icon: Play },
                   { id: "goals", label: "أهداف وعادات", icon: Target },
                   { id: "history", label: "موسوعة السجل", icon: History },
+                  { id: "tools", label: "أدوات المهام", icon: Wrench },
                   { id: "reports", label: "التقارير", icon: FileBarChart },
                   { id: "reminders", label: "أجراس التنبيه", icon: Bell }
                 ].map((tab) => (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
-                      className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald-400 hover:bg-muted/30 w-full group overflow-hidden"
+                      className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary-strong hover:bg-muted/30 w-full group overflow-hidden"
                     >
                     {activeTab === tab.id && (
                       <div
-                        className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 z-0 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]"
+                        className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-blue-500/10 rounded-2xl border border-orange-500/30 z-0 shadow-[inset_0_0_10px_rgba(249,115,22,0.1)]"
                       />
                     )}
                       <span className="relative z-10 flex items-center justify-center gap-2">
@@ -633,10 +655,7 @@ export default function TimeManagementPage() {
                 <ComponentErrorBoundary>
                   <LazyTaskKanban
                     tasks={tasks}
-                    onStatusChange={(taskId, status) => {
-                      const t = tasks.find(x => x.id === taskId);
-                      if (t) handleTaskUpdate({ ...t, status });
-                    }}
+                    onStatusChange={handleKanbanStatusChange}
                   />
                 </ComponentErrorBoundary>
               </TabsContent>
@@ -679,6 +698,16 @@ export default function TimeManagementPage() {
                     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
                     return d >= weekAgo;
                   }).reduce((a, s) => a + s.durationMin, 0)} />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="tools" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">أدوات المهام</h2>
+                  <p className="text-sm text-muted-foreground mt-1">مهام تتولد تلقائيًا كل يوم + قوالب جاهزة بمهام فرعية بضغطة واحدة</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyTaskTools subjects={subjects.map(String)} onTaskCreate={handleTaskCreate} />
                 </ComponentErrorBoundary>
               </TabsContent>
 

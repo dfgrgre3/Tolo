@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Bell, CheckCircle, Clock, Repeat, Edit, Copy, Trash2, MoreHorizontal } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function RemindersList({
                   className={cn("p-2 rounded shrink-0", typeInfo.color)}
                   {...(reminder.color ? { style: { backgroundColor: reminder.color } } : {})}
                 >
-                  <Icon className="w-4 h-4 text-white" />
+                  <Icon className="w-4 h-4 text-foreground" />
                 </div>
 
                 <div className="flex-1 min-w-0">

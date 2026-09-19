@@ -185,7 +185,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
 
             <div>
               <h3 className="font-medium mb-4 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-teal-500" />
+                <TrendingUp className="h-4 w-4 text-blue-500" />
                 مقياس الإنتاجية
               </h3>
               <ResponsiveContainer width="100%" height={300}>
@@ -245,7 +245,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي جلسات البومودورو</CardTitle>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-500" />
+              <Clock className="h-5 w-5 text-orange-600 dark:text-orange-500" />
               <span className="text-2xl font-bold">{totalPomodoroSessions}</span>
             </div>
           </CardHeader>
@@ -279,11 +279,11 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-0">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">الانضباط</CardTitle>
             <div className="flex items-center gap-2">
-              <Flame className="h-5 w-5 text-emerald-500" />
+              <Flame className="h-5 w-5 text-orange-600 dark:text-orange-500" />
               <span className="text-2xl font-bold">{streak}</span>
             </div>
           </CardHeader>
@@ -293,7 +293,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
             </p>
             <Progress 
               value={Math.min(100, streak * 10)} 
-              className="mt-2 h-1.5 bg-emerald-300" 
+              className="mt-2 h-1.5 bg-orange-300" 
             />
           </CardContent>
         </Card>

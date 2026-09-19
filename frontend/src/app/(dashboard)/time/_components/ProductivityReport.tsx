@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
-import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, TrendingUp, Clock, CheckCircle2, Flame } from 'lucide-react';
+import { Download, TrendingUp, Clock, CheckCircle2, Flame, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Task, StudySession } from '../types';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,8 @@ interface Props {
 }
 
 export default function ProductivityReport({ tasks, sessions }: Props) {
+  const printRef = useRef<HTMLDivElement>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const heat = useMemo(() => {
     // last 84 days (12 weeks)
     const days: { date: Date; minutes: number; done: number }[] = [];
@@ -56,10 +58,10 @@ export default function ProductivityReport({ tasks, sessions }: Props) {
   }, [heat]);
 
   const color = (m: number) =>
-    m === 0 ? 'bg-white/5' :
-    m < 30 ? 'bg-emerald-900/60' :
-    m < 90 ? 'bg-emerald-700/70' :
-    m < 180 ? 'bg-emerald-500/80' : 'bg-emerald-400';
+    m === 0 ? 'bg-muted/60' :
+    m < 30 ? 'bg-orange-900/60' :
+    m < 90 ? 'bg-orange-700/70' :
+    m < 180 ? 'bg-orange-500/80' : 'bg-orange-400';
 
   const exportCSV = () => {
     const rows = ['date,minutes,tasks_done', ...heat.map(d =>
@@ -71,36 +73,66 @@ export default function ProductivityReport({ tasks, sessions }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const exportPDF = async () => {
+    if (!printRef.current) return;
+    setPdfBusy(true);
+    try {
+      // استيراد ديناميكي حتى لا يثقل التحميل الأولي — ولقطة شاشة تحفظ العربية سليمة
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(printRef.current, { backgroundColor: '#ffffff', scale: 2 });
+      const img = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+      const w = canvas.width * ratio;
+      const h = canvas.height * ratio;
+      pdf.addImage(img, 'PNG', (pageW - w) / 2, (pageH - h) / 2, w, h);
+      pdf.save(`productivity-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success('تم تصدير التقرير PDF');
+    } catch {
+      toast.error('فشل تصدير PDF');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
-    <div className="space-y-6" dir="rtl">
+    <div ref={printRef} className="space-y-6" dir="rtl">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: <Clock className="h-4 w-4" />, label: 'مذاكرة آخر 7 أيام', value: `${Math.round(weekMin / 60 * 10) / 10} س`, color: 'text-emerald-400' },
-          { icon: <CheckCircle2 className="h-4 w-4" />, label: 'مهام منجزة (7 أيام)', value: `${weekDone}`, color: 'text-blue-400' },
-          { icon: <Flame className="h-4 w-4" />, label: 'أيام متتالية نشطة', value: `${streak} يوم`, color: 'text-orange-400' },
-          { icon: <TrendingUp className="h-4 w-4" />, label: 'أفضل يوم (84 يوم)', value: bestDay ? `${bestDay.minutes} د` : '—', color: 'text-violet-400' },
+          { icon: <Clock className="h-4 w-4" />, label: 'مذاكرة آخر 7 أيام', value: `${Math.round(weekMin / 60 * 10) / 10} س`, color: 'text-primary-strong' },
+          { icon: <CheckCircle2 className="h-4 w-4" />, label: 'مهام منجزة (7 أيام)', value: `${weekDone}`, color: 'text-blue-600 dark:text-blue-400' },
+          { icon: <Flame className="h-4 w-4" />, label: 'أيام متتالية نشطة', value: `${streak} يوم`, color: 'text-primary-strong' },
+          { icon: <TrendingUp className="h-4 w-4" />, label: 'أفضل يوم (84 يوم)', value: bestDay ? `${bestDay.minutes} د` : '—', color: 'text-violet-600 dark:text-violet-400' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#0a1628]/70 border-white/10">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-white/40">{s.label}</span>
-                <span className={s.color}>{s.icon}</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{s.value}</div>
-              <p className="text-[11px] text-white/30 mt-1">إجمالي 12 أسبوع: {Math.round(totalMin / 60 * 10) / 10} ساعة</p>
-            </CardContent>
-          </Card>
+          <div key={i} className="py-3 border-b border-border">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">{s.label}</span>
+              <span className={s.color}>{s.icon}</span>
+            </div>
+            <div className="text-2xl font-bold text-foreground">{s.value}</div>
+            <p className="text-[11px] text-muted-foreground mt-1">إجمالي 12 أسبوع: {Math.round(totalMin / 60 * 10) / 10} ساعة</p>
+          </div>
         ))}
       </div>
 
-      <Card className="bg-[#0a1628]/70 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white text-base">خريطة النشاط — آخر 12 أسبوع</CardTitle>
+      <div>
+        <div className="flex flex-row items-center justify-between mb-3">
+          <h3 className="text-foreground text-base font-bold">خريطة النشاط — آخر 12 أسبوع</h3>
+          <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download className="h-4 w-4 ms-1" /> تصدير CSV
           </Button>
-        </CardHeader>
-        <CardContent>
+          <Button variant="outline" size="sm" onClick={exportPDF} disabled={pdfBusy}>
+            <FileText className="h-4 w-4 ms-1" /> {pdfBusy ? 'جارٍ إنشاء PDF...' : 'تصدير PDF'}
+          </Button>
+          </div>
+        </div>
+        <div>
           <div className="flex gap-1 overflow-x-auto pb-2" dir="ltr">
             {Array.from({ length: 12 }).map((_, w) => (
               <div key={w} className="flex flex-col gap-1">
@@ -108,26 +140,26 @@ export default function ProductivityReport({ tasks, sessions }: Props) {
                   <div
                     key={di}
                     title={`${d.date.toLocaleDateString('ar-EG')} — ${d.minutes} دقيقة، ${d.done} مهام`}
-                    className={cn('h-5 w-5 rounded-md border border-white/5', color(d.minutes))}
+                    className={cn('h-5 w-5 rounded-md border border-border', color(d.minutes))}
                   />
                 ))}
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-2 mt-3 text-[11px] text-white/40">
+          <div className="flex items-center gap-2 mt-3 text-[11px] text-muted-foreground">
             <span>أقل</span>
             <div className="flex gap-1" dir="ltr">
-              <div className="h-3 w-3 rounded bg-white/5 border border-white/5" />
-              <div className="h-3 w-3 rounded bg-emerald-900/60" />
-              <div className="h-3 w-3 rounded bg-emerald-700/70" />
-              <div className="h-3 w-3 rounded bg-emerald-500/80" />
-              <div className="h-3 w-3 rounded bg-emerald-400" />
+              <div className="h-3 w-3 rounded bg-muted/60 border border-border" />
+              <div className="h-3 w-3 rounded bg-orange-900/60" />
+              <div className="h-3 w-3 rounded bg-orange-700/70" />
+              <div className="h-3 w-3 rounded bg-orange-500/80" />
+              <div className="h-3 w-3 rounded bg-orange-400" />
             </div>
             <span>أكثر</span>
             {bestDay && <Badge variant="outline" className="ms-3">الأفضل: {bestDay.date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</Badge>}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

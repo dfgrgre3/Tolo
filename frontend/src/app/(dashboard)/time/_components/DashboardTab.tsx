@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,7 @@ export default function DashboardTab({
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors" />
             <CardHeader className="pb-2 text-center relative z-10">
-              <CardTitle className="text-sm font-bold text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
+              <CardTitle className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
                 <Sword className="h-4 w-4" /> معدل الإنجاز
               </CardTitle>
             </CardHeader>
@@ -105,12 +105,12 @@ export default function DashboardTab({
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-colors" />
             <CardHeader className="pb-2 text-center relative z-10">
-              <CardTitle className="text-sm font-bold text-orange-400 uppercase tracking-widest flex items-center justify-center gap-2">
+              <CardTitle className="text-sm font-bold text-primary-strong uppercase tracking-widest flex items-center justify-center gap-2">
                 <BookOpen className="h-4 w-4" /> تقدم الدراسة
               </CardTitle>
             </CardHeader>
              <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
-                <div className="text-3xl font-black text-orange-500">{Math.round(stats.weeklyGoalProgress)}%</div>
+                <div className="text-3xl font-black text-orange-600 dark:text-orange-500">{Math.round(stats.weeklyGoalProgress)}%</div>
                 <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{stats.studyHours} ساعات متراكمة</div>
             </CardContent>
           </Card>
@@ -133,16 +133,16 @@ export default function DashboardTab({
         </m.div>
 
         <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
-          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-emerald-500/20 shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden group rounded-3xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-colors" />
+          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-orange-500/20 shadow-[0_8px_32px_rgba(249,115,22,0.15)] relative overflow-hidden group rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-colors" />
             <CardHeader className="pb-2 text-center relative z-10">
-              <CardTitle className="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-2">
+              <CardTitle className="text-sm font-bold text-primary-strong uppercase tracking-widest flex items-center justify-center gap-2">
                 <Trophy className="h-4 w-4" /> الإتقان
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
-                <div className="text-3xl font-black text-emerald-500">{stats.masteryScore}%</div>
+                <div className="text-3xl font-black text-orange-600 dark:text-orange-500">{stats.masteryScore}%</div>
                 <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">السيطرة التامة</div>
             </CardContent>
           </Card>
@@ -158,7 +158,7 @@ export default function DashboardTab({
         
         <div className="lg:col-span-2 space-y-8">
           
-          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+          <Card className="bg-background/40 backdrop-blur-xl border-border rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl font-bold">
                  <Zap className="h-6 w-6 text-amber-500 fill-amber-500/20" /> الإجراءات السريعة
@@ -199,8 +199,8 @@ export default function DashboardTab({
             </CardContent>
           </Card>
 
-          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+          <Card className="bg-background/40 backdrop-blur-xl border-border rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
               <div>
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                   <Sword className="h-5 w-5 text-indigo-400" /> ساحة القتال القادمة
@@ -233,7 +233,7 @@ export default function DashboardTab({
             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-orange-400 to-red-600 top-0 w-full animate-pulse opacity-50"></div>
             <CardHeader className="text-center pb-2 pt-8">
               <div className="mx-auto w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(249,115,22,0.5)] group-hover:scale-110 transition-transform">
-                 <Flame className="h-8 w-8 text-orange-500 drop-shadow-md" />
+                 <Flame className="h-8 w-8 text-orange-600 dark:text-orange-500 drop-shadow-md" />
               </div>
               <CardTitle className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
                 شعلة الحماس
@@ -242,10 +242,10 @@ export default function DashboardTab({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center pb-4">
-                <div className="text-6xl font-black text-orange-500 drop-shadow-[0_0_20px_rgba(249,115,22,0.6)] group-hover:drop-shadow-[0_0_30px_rgba(249,115,22,0.8)] transition-all">
+                <div className="text-6xl font-black text-orange-600 dark:text-orange-500 drop-shadow-[0_0_20px_rgba(249,115,22,0.6)] group-hover:drop-shadow-[0_0_30px_rgba(249,115,22,0.8)] transition-all">
                    {stats.streakDays}
                 </div>
-                <div className="text-sm font-bold text-orange-300 tracking-wider">أيام</div>
+                <div className="text-sm font-bold text-orange-600 dark:text-orange-300 tracking-wider">أيام</div>
               </div>
               
               <div className="bg-background/40 rounded-2xl p-4 mt-2 space-y-3 border border-orange-500/10">
@@ -254,8 +254,8 @@ export default function DashboardTab({
                   <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">{stats.focusScore}%</Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-500" /> معدل الكفاءة</div>
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{stats.studyEfficiency}%</Badge>
+                  <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-500" /> معدل الكفاءة</div>
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-600 dark:text-orange-500 border-orange-500/20">{stats.studyEfficiency}%</Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-purple-500" /> جلسات الإنجاز</div>
@@ -265,8 +265,8 @@ export default function DashboardTab({
             </CardContent>
           </Card>
 
-          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+          <Card className="bg-background/40 backdrop-blur-xl border-border rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
                <CardTitle className="text-lg font-bold flex items-center gap-2">
                  <ShieldAlert className="h-5 w-5 text-rose-400" /> التنبيهات المنتظرة
                </CardTitle>
@@ -291,8 +291,8 @@ export default function DashboardTab({
             </CardContent>
           </Card>
 
-          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
-            <CardHeader className="border-b border-white/5 pb-4">
+          <Card className="bg-background/40 backdrop-blur-xl border-border rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="border-b border-border pb-4">
               <CardTitle className="text-lg font-bold">مخطوطات السجل القديم</CardTitle>
               <CardDescription>أحدث جلسات التركيز المكتملة</CardDescription>
             </CardHeader>
@@ -302,7 +302,7 @@ export default function DashboardTab({
                   {recentSessions.map((session, index) =>
                 <div
                   key={`${session.id}-${index}`}
-                  className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-white/5 hover:bg-muted/40 transition-colors group">
+                  className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border hover:bg-muted/40 transition-colors group">
                       
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate text-foreground/90 group-hover:text-primary transition-colors">
@@ -323,7 +323,7 @@ export default function DashboardTab({
                     </div>
                 )}
                 </div> :
-              <div className="text-center text-muted-foreground py-8 bg-muted/10 rounded-2xl border border-dashed border-white/10">
+              <div className="text-center text-muted-foreground py-8 bg-muted/10 rounded-2xl border border-dashed border-border">
                   <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" />
                   <p>لا توجد مخطوطات تدريبية بعد</p>
                 </div>

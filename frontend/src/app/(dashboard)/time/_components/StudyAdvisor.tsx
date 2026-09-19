@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -17,7 +17,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
     // Discipline Insights
     if (stats.disciplineScore > 80) {
       list.push({
-        icon: <TrendingUp className="h-4 w-4 text-emerald-400" />,
+        icon: <TrendingUp className="h-4 w-4 text-primary-strong" />,
         text: "انضباطك مذهل! استمر في هذا الأداء لتصل إلى رتبة 'أستاذ أعظم' قريباً.",
         type: 'success'
       });
@@ -32,7 +32,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
     // Focus Insights
     if (stats.focusScore < 50) {
       list.push({
-        icon: <Lightbulb className="h-4 w-4 text-amber-400" />,
+        icon: <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
         text: "تبدو مشتتاً بعض الشيء. جرب تقنية 'بومودورو' (25 دقيقة تركيز) لتحسين إنتاجيتك.",
         type: 'tip'
       });
@@ -41,7 +41,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
     // Goal Insights
     if (stats.dailyGoalProgress < 50) {
       list.push({
-        icon: <Brain className="h-4 w-4 text-blue-400" />,
+        icon: <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
         text: "لم تقترب من هدفك اليومي بعد. هل جربت تقسيم المواد الصعبة إلى أجزاء أصغر؟",
         type: 'tip'
       });
@@ -59,7 +59,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
     // Default if empty
     if (list.length === 0) {
       list.push({
-        icon: <Sparkles className="h-4 w-4 text-emerald-400" />,
+        icon: <Sparkles className="h-4 w-4 text-primary-strong" />,
         text: "أداء متوازن وممتاز. استمر في رحلتك التعليمية!",
         type: 'success'
       });
@@ -69,10 +69,10 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
   }, [stats]);
 
   return (
-    <Card className="bg-background/40 backdrop-blur-xl border-white/5 h-full">
+    <Card className="bg-background/40 backdrop-blur-xl border-border h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl font-bold flex items-center gap-2">
-          <Brain className="h-5 w-5 text-emerald-400" />
+          <Brain className="h-5 w-5 text-primary-strong" />
           المستشار الذكي
         </CardTitle>
       </CardHeader>
@@ -86,12 +86,12 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-xl bg-muted/60 border border-border hover:bg-muted transition-colors"
               >
                 <div className="mt-1 flex-shrink-0">
                   {insight.icon}
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {insight.text}
                 </p>
               </m.div>
@@ -99,9 +99,9 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
           </AnimatePresence>
         </div>
 
-        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 text-center">
-          <p className="text-xs text-emerald-400 font-bold mb-1">نصيحة اليوم</p>
-          <p className="text-xs text-slate-400 italic">&quot;العلم بالتعلم، والحلم بالتحلم.. ابدأ الآن ولو بخطوة بسيطة.&quot;</p>
+        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-orange-500/10 to-blue-500/10 border border-orange-500/20 text-center">
+          <p className="text-xs text-primary-strong font-bold mb-1">نصيحة اليوم</p>
+          <p className="text-xs text-muted-foreground italic">&quot;العلم بالتعلم، والحلم بالتحلم.. ابدأ الآن ولو بخطوة بسيطة.&quot;</p>
         </div>
       </CardContent>
     </Card>

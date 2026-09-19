@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ export default function UpcomingTasksCard({
     .slice(0, 5);
 
   return (
-    <Card className="border-white/10 shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
+    <Card className="border-border shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
       <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 relative z-10 border-b border-primary/10">
         <CardTitle className="flex items-center text-lg">
           <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ms-2 shadow-[0_0_10px_rgba(var(--primary),0.2)]">
@@ -66,7 +66,7 @@ export default function UpcomingTasksCard({
                 visible: { x: 0, opacity: 1 }
               }}
               whileHover={{ scale: 1.02 }}
-              className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-white/5 hover:border-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.15)] relative overflow-hidden"
+              className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-border hover:border-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.15)] relative overflow-hidden"
               onClick={() => onTabChange("tasks")}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -89,7 +89,7 @@ export default function UpcomingTasksCard({
                   variant={task.status === 'PENDING' ? 'secondary' : task.status === 'IN_PROGRESS' ? 'default' : 'outline'}
                   className={`font-medium tracking-wide ${
                     task.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 
-                    task.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : ''
+                    task.status === 'COMPLETED' ? 'bg-orange-500/10 text-orange-600 dark:text-orange-500 hover:bg-orange-500/20 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.2)]' : ''
                   }`}
                 >
                   {task.status === 'PENDING' ? 'قيد الانتظار' : 
@@ -97,7 +97,7 @@ export default function UpcomingTasksCard({
                 </Badge>
                 <Button 
                   size="icon" 
-                  className="h-10 w-10 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/30 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] group-hover:animate-pulse"
+                  className="h-10 w-10 bg-green-500/10 text-green-600 dark:text-green-500 hover:bg-green-500 hover:text-white border border-green-500/30 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] group-hover:animate-pulse"
                   onClick={(e) => {
                     e.stopPropagation();
                     onTimerToggle(task.id);

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useCallback } from 'react';
 import {
@@ -52,37 +52,37 @@ const stateThemes: Record<PomodoroState, PomodoroTheme> = {
     label: 'وقت الدراسة والتركيز',
     labelShort: 'دراسة',
     icon: <Target className="h-5 w-5" />,
-    color: 'text-rose-400',
-    glow: 'drop-shadow-[0_0_24px_rgba(244,63,94,0.7)]',
-    stroke: 'stroke-rose-500',
-    bgGlow: 'from-rose-600/25 via-rose-500/10 to-transparent',
-    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    color: 'text-primary-strong',
+    glow: 'drop-shadow-[0_0_24px_rgba(249,115,22,0.7)]',
+    stroke: 'stroke-orange-500',
+    bgGlow: 'from-orange-600/25 via-orange-500/10 to-transparent',
+    playBg: 'bg-orange-500/15 text-primary-strong hover:bg-orange-500/25 border border-orange-500/30',
     stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
-    border: 'border-rose-500/20',
+    border: 'border-orange-500/20',
   },
   shortBreak: {
     label: 'استراحة قصيرة - خذ نفسك',
     labelShort: 'استراحة',
     icon: <Coffee className="h-5 w-5" />,
-    color: 'text-teal-400',
-    glow: 'drop-shadow-[0_0_24px_rgba(20,184,166,0.7)]',
-    stroke: 'stroke-teal-500',
-    bgGlow: 'from-teal-600/25 via-teal-500/10 to-transparent',
-    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    color: 'text-blue-600 dark:text-blue-400',
+    glow: 'drop-shadow-[0_0_24px_rgba(96,165,250,0.7)]',
+    stroke: 'stroke-blue-500',
+    bgGlow: 'from-blue-600/25 via-blue-500/10 to-transparent',
+    playBg: 'bg-orange-500/15 text-primary-strong hover:bg-orange-500/25 border border-orange-500/30',
     stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
-    border: 'border-teal-500/20',
+    border: 'border-blue-500/20',
   },
   longBreak: {
     label: 'استراحة طويلة - استرح جيداً',
     labelShort: 'استراحة طويلة',
     icon: <Moon className="h-5 w-5" />,
-    color: 'text-violet-400',
-    glow: 'drop-shadow-[0_0_24px_rgba(139,92,246,0.7)]',
-    stroke: 'stroke-violet-500',
-    bgGlow: 'from-violet-600/25 via-violet-500/10 to-transparent',
-    playBg: 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30',
+    color: 'text-amber-600 dark:text-amber-400',
+    glow: 'drop-shadow-[0_0_24px_rgba(251,191,36,0.7)]',
+    stroke: 'stroke-amber-500',
+    bgGlow: 'from-amber-600/25 via-amber-500/10 to-transparent',
+    playBg: 'bg-orange-500/15 text-primary-strong hover:bg-orange-500/25 border border-orange-500/30',
     stopBg: 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30',
-    border: 'border-violet-500/20',
+    border: 'border-amber-500/20',
   },
 };
 
@@ -112,8 +112,8 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
       {/* Outer glow ring */}
       <div className={cn(
         'absolute inset-0 rounded-full blur-3xl opacity-0 group-hover:opacity-30',
-        currentPomodoroState === 'work' ? 'bg-rose-500' :
-        currentPomodoroState === 'shortBreak' ? 'bg-teal-500' : 'bg-violet-500'
+        currentPomodoroState === 'work' ? 'bg-orange-500' :
+        currentPomodoroState === 'shortBreak' ? 'bg-blue-500' : 'bg-amber-500'
       )} />
 
       <svg width="280" height="280" className="-rotate-90">
@@ -136,10 +136,10 @@ const TimerCircle = React.memo(({ currentPomodoroState, totalDuration, handleTog
         <span className={cn('text-6xl font-mono font-black tabular-nums tracking-tighter', theme.color, theme.glow)}>
           {formatTime(timeLeft)}
         </span>
-        <span className="text-sm font-medium text-white/40 mt-2">
+        <span className="text-sm font-medium text-muted-foreground mt-2">
           {Math.round(progress)}% مكتمل
         </span>
-        <span className="text-xs text-white/25 mt-1">
+        <span className="text-xs text-muted-foreground/60 mt-1">
           {isRunning ? 'اضغط للإيقاف' : 'اضغط للبدء'}
         </span>
       </div>
@@ -230,7 +230,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
       {/* ── Main Timer Card ── */}
       <div className="xl:col-span-2">
         <div className={cn(
-          'relative overflow-hidden rounded-3xl border bg-[#0a1628]/80 backdrop-blur-2xl',
+          'relative overflow-hidden rounded-3xl border bg-card backdrop-blur-2xl',
           'shadow-[0_20px_80px_rgba(0,0,0,0.4)]',
           theme.border,
         )}>
@@ -243,23 +243,23 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
 
           {/* Animated grid */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)', backgroundSize: '30px 30px' }}
+            style={{ backgroundImage: 'linear-gradient(rgba(120,120,120,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(120,120,120,.3) 1px, transparent 1px)', backgroundSize: '30px 30px' }}
           />
 
           <div className="relative z-10 p-6 md:p-8 flex flex-col items-center">
             {/* Title row */}
             <div className={cn('flex items-center gap-2.5 mb-1 transition-all duration-300', theme.color)}>
               {theme.icon}
-              <h2 className="text-xl font-bold text-white">متتبع الوقت</h2>
+              <h2 className="text-xl font-bold text-foreground">متتبع الوقت</h2>
             </div>
             <p className={cn('text-sm font-medium mb-6 transition-all duration-300', theme.color)}>{theme.label}</p>
 
             {/* Context badge */}
             {(activeCourseTitle || activeTaskTitle) && (
-              <div className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs transition-all duration-300">
+              <div className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-muted/60 border border-border text-muted-foreground text-xs transition-all duration-300">
                 {activeCourseTitle
-                  ? <><BookOpen className="h-3 w-3 text-blue-400 shrink-0" /><span>{activeCourseTitle}</span></>
-                  : <><Zap className="h-3 w-3 text-amber-400 shrink-0" /><span>{activeTaskTitle}</span></>
+                  ? <><BookOpen className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0" /><span>{activeCourseTitle}</span></>
+                  : <><Zap className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" /><span>{activeTaskTitle}</span></>
                 }
               </div>
             )}
@@ -278,7 +278,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
                 onClick={resetTimer}
                 variant="ghost"
                 size="icon"
-                className="h-13 w-13 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 hover:scale-110 active:scale-95 transition-all"
+                className="h-13 w-13 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border hover:scale-110 active:scale-95 transition-all"
               >
                 <RotateCcw className="h-5 w-5" />
               </Button>
@@ -303,7 +303,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
                 onClick={skipPhase}
                 variant="ghost"
                 size="icon"
-                className="h-13 w-13 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 hover:scale-110 active:scale-95 transition-all"
+                className="h-13 w-13 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border hover:scale-110 active:scale-95 transition-all"
               >
                 <SkipForward className="h-5 w-5" />
               </Button>
@@ -314,7 +314,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
               <div className="mb-6 w-full max-w-sm overflow-hidden transition-all duration-300">
                 <Button
                   onClick={completeSessionEarly}
-                  className="w-full h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/30 hover:bg-teal-500/20 font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/20"
+                  className="w-full h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-950/20"
                 >
                   <Target className="h-4 w-4" />
                   إنهاء الجلسة وحفظ الدقائق المنقضية
@@ -324,7 +324,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
 
             {/* Pomodoro progress dots */}
             <div className="flex items-center gap-2 mb-6">
-              <span className="text-xs text-white/30 ms-2">التقدم اليوم:</span>
+              <span className="text-xs text-muted-foreground ms-2">التقدم اليوم:</span>
               {Array.from({ length: settings.goalTarget }).map((_, i) => {
                 const done = i < (pomodoroCount % settings.goalTarget);
                 return (
@@ -333,21 +333,21 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
                     className={cn(
                       'h-2.5 w-2.5 rounded-full transition-all duration-500',
                       done
-                        ? currentPomodoroState === 'work' ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)] scale-110'
-                          : currentPomodoroState === 'shortBreak' ? 'bg-teal-500 scale-110'
-                          : 'bg-violet-500 scale-110'
-                        : 'bg-white/10'
+                        ? currentPomodoroState === 'work' ? 'bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)] scale-110'
+                          : currentPomodoroState === 'shortBreak' ? 'bg-blue-500 scale-110'
+                          : 'bg-amber-500 scale-110'
+                        : 'bg-muted'
                     )}
                   />
                 );
               })}
-              <span className="text-xs text-white/30 me-2">{pomodoroCount} جلسة</span>
+              <span className="text-xs text-muted-foreground me-2">{pomodoroCount} جلسة</span>
             </div>
 
             {/* Task Selector */}
             {tasks.length > 0 && (
               <div className="w-full max-w-md">
-                <p className="text-xs text-white/40 mb-2 text-center">اختر مهمة لتتبع وقتها</p>
+                <p className="text-xs text-muted-foreground mb-2 text-center">اختر مهمة لتتبع وقتها</p>
                 <div className="grid grid-cols-2 gap-2">
                   {tasks.slice(0, 6).map(task => (
                     <Button
@@ -359,8 +359,8 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
                         'truncate text-xs h-9 rounded-xl transition-all',
                         'border',
                         activeTaskId === task.id
-                          ? cn('border-opacity-60', theme.border, theme.color, 'bg-white/8')
-                          : 'border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5'
+                          ? cn('border-opacity-60', theme.border, theme.color, 'bg-muted/8')
+                          : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/60'
                       )}
                     >
                       {task.title}
@@ -397,16 +397,16 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
           ].map((stat, i) => (
             <div
               key={i}
-              className="rounded-2xl bg-[#0a1628]/60 border border-white/8 backdrop-blur p-4 hover:border-white/15 transition-colors"
+              className="rounded-2xl bg-card border border-border backdrop-blur p-4 hover:border-border transition-colors"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-white/40">{stat.label}</span>
+                <span className="text-xs text-muted-foreground">{stat.label}</span>
                 <span className={cn('opacity-60', theme.color)}>{stat.icon}</span>
               </div>
               <div className={cn('text-2xl font-bold', theme.color)}>{stat.value}</div>
-              <p className="text-[11px] text-white/30 mt-0.5">{stat.sub}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{stat.sub}</p>
               {stat.progress !== undefined && (
-                <Progress value={Math.min(100, stat.progress)} className="mt-2 h-1.5 bg-white/10" />
+                <Progress value={Math.min(100, stat.progress)} className="mt-2 h-1.5 bg-muted" />
               )}
             </div>
           ))}
@@ -415,38 +415,38 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
 
       {/* ── Right Column: Sessions History ── */}
       <div className="flex flex-col gap-4">
-        <div className="rounded-3xl bg-[#0a1628]/60 border border-white/8 backdrop-blur-xl p-5">
+        <div className="rounded-3xl bg-card border border-border backdrop-blur-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Timer className={cn('h-4 w-4', theme.color)} />
-            <h3 className="text-sm font-bold text-white">جلسات اليوم</h3>
+            <h3 className="text-sm font-bold text-foreground">جلسات اليوم</h3>
           </div>
 
           {recentSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Timer className="h-10 w-10 text-white/15 mb-3" />
-              <p className="text-sm text-white/40">لا توجد جلسات بعد</p>
-              <p className="text-xs text-white/25 mt-1">ابدأ المؤقت لتسجيل جلسة</p>
+              <Timer className="h-10 w-10 text-foreground/15 mb-3" />
+              <p className="text-sm text-muted-foreground">لا توجد جلسات بعد</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">ابدأ المؤقت لتسجيل جلسة</p>
             </div>
           ) : (
             <div className="space-y-2">
               {recentSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-white/4 hover:bg-white/7 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-muted/60 hover:bg-muted transition-colors"
                 >
                   <div className={cn(
                     'h-8 w-8 rounded-xl flex items-center justify-center shrink-0',
-                    session.type === 'work' ? 'bg-rose-500/20 text-rose-400'
-                      : session.type === 'shortBreak' ? 'bg-teal-500/20 text-teal-400'
-                      : 'bg-violet-500/20 text-violet-400'
+                    session.type === 'work' ? 'bg-orange-500/20 text-primary-strong'
+                      : session.type === 'shortBreak' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
                   )}>
                     <Timer className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white/80 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {session.courseTitle || session.taskTitle || 'جلسة دراسة'}
                     </p>
-                    <p className="text-xs text-white/30">
+                    <p className="text-xs text-muted-foreground">
                       {session.durationMin} دقيقة • {new Date(session.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -457,20 +457,20 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
         </div>
 
         {/* Settings summary card */}
-        <div className="rounded-3xl bg-[#0a1628]/60 border border-white/8 backdrop-blur-xl p-5">
+        <div className="rounded-3xl bg-card border border-border backdrop-blur-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Timer className="h-4 w-4 text-white/40" />
-            <h3 className="text-sm font-bold text-white">إعدادات المؤقت</h3>
+            <Timer className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-bold text-foreground">إعدادات المؤقت</h3>
           </div>
           <div className="space-y-3">
             {[
-              { label: 'وقت الدراسة', value: `${settings.pomodoroWorkMinutes} دقيقة`, color: 'text-rose-400' },
-              { label: 'استراحة قصيرة', value: `${settings.pomodoroBreakMinutes} دقيقة`, color: 'text-teal-400' },
-              { label: 'استراحة طويلة', value: `${settings.longBreakMinutes} دقيقة`, color: 'text-violet-400' },
-              { label: 'هدف الجلسات', value: `${settings.goalTarget} جلسات`, color: 'text-amber-400' },
+              { label: 'وقت الدراسة', value: `${settings.pomodoroWorkMinutes} دقيقة`, color: 'text-primary-strong' },
+              { label: 'استراحة قصيرة', value: `${settings.pomodoroBreakMinutes} دقيقة`, color: 'text-blue-600 dark:text-blue-400' },
+              { label: 'استراحة طويلة', value: `${settings.longBreakMinutes} دقيقة`, color: 'text-amber-600 dark:text-amber-400' },
+              { label: 'هدف الجلسات', value: `${settings.goalTarget} جلسات`, color: 'text-amber-600 dark:text-amber-400' },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between">
-                <span className="text-xs text-white/40">{item.label}</span>
+                <span className="text-xs text-muted-foreground">{item.label}</span>
                 <span className={cn('text-xs font-bold', item.color)}>{item.value}</span>
               </div>
             ))}

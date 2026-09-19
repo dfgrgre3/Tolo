@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Flame, BookOpen, Clock, TrendingUp, TrendingDown } from 'lucide-react';
@@ -73,7 +73,7 @@ export function StatsSection({ stats }: StatsSectionProps) {
                 <p className="text-sm text-gray-600">الوقت الأمثل</p>
                 <p className="text-sm font-bold text-orange-600">{stats.mostProductiveTime}</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-500" />
+              <Clock className="h-8 w-8 text-orange-600 dark:text-orange-500" />
             </div>
           </CardContent>
         </Card>

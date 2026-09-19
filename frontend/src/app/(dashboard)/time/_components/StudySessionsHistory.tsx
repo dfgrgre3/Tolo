@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -383,8 +383,8 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
             موسوعة السجل (Chronicles)
           </h2>
           <div className="flex flex-wrap gap-4 text-sm font-bold text-muted-foreground/80 mt-2">
-            <span className="flex items-center gap-1.5"><Activity className="h-4 w-4 text-blue-400" /> الإجمالي: {stats.totalSessions} جلسة</span>
-            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-emerald-400" /> الساعات: {stats.totalHours}س</span>
+            <span className="flex items-center gap-1.5"><Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" /> الإجمالي: {stats.totalSessions} جلسة</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary-strong" /> الساعات: {stats.totalHours}س</span>
             <span className="flex items-center gap-1.5"><Brain className="h-4 w-4 text-purple-400" /> الإنتاجية: {stats.averageProductivity}%</span>
           </div>
         </div>

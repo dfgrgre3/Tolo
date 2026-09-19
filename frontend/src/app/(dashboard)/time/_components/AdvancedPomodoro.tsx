@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,68 +83,66 @@ export default function AdvancedPomodoro({ onSessionComplete }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" dir="rtl">
-      <Card className="lg:col-span-2 bg-[#0a1628]/70 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white text-base">
-            {phase === 'work' ? 'جلسة تركيز عميق' : phase === 'short' ? 'استراحة قصيرة' : 'استراحة طويلة'}
-            <span className="text-xs text-white/40 font-normal ms-2">جلسات مكتملة: {done}/{cycles}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center py-6">
-          <div className="text-7xl font-mono font-black text-white tabular-nums" dir="ltr">{fmt(left)}</div>
-          <div className="w-full max-w-md h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
-            <div className="h-full bg-emerald-500" style={{ width: `${Math.round((1 - left / phaseLen) * 100)}%` }} />
+      <div className="lg:col-span-2 space-y-4">
+        <h3 className="text-foreground text-base font-bold">
+          {phase === 'work' ? 'جلسة تركيز عميق' : phase === 'short' ? 'استراحة قصيرة' : 'استراحة طويلة'}
+          <span className="text-xs text-muted-foreground font-normal ms-2">جلسات مكتملة: {done}/{cycles}</span>
+        </h3>
+        <div className="flex flex-col items-center py-6">
+          <div className="text-7xl font-mono font-black text-foreground tabular-nums" dir="ltr">{fmt(left)}</div>
+          <div className="w-full max-w-md h-2 rounded-full bg-muted mt-4 overflow-hidden">
+            <div className="h-full bg-orange-500" style={{ width: `${Math.round((1 - left / phaseLen) * 100)}%` }} />
           </div>
           <div className="flex gap-1.5 mt-4">
             {Array.from({ length: cycles }).map((_, i) => (
-              <div key={i} className={`h-2.5 w-2.5 rounded-full ${i < done % cycles || (done > 0 && done % cycles === 0) ? 'bg-emerald-500' : 'bg-white/10'}`} />
+              <div key={i} className={`h-2.5 w-2.5 rounded-full ${i < done % cycles || (done > 0 && done % cycles === 0) ? 'bg-orange-500' : 'bg-muted'}`} />
             ))}
           </div>
           <div className="flex items-center gap-3 mt-6">
-            <Button variant="ghost" size="icon" onClick={reset} className="rounded-full border border-white/10"><RotateCcw className="h-5 w-5" /></Button>
-            <Button onClick={() => setRunning(r => !r)} className={`h-14 px-10 rounded-2xl font-bold ${running ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+            <Button variant="ghost" size="icon" onClick={reset} className="rounded-full border border-border"><RotateCcw className="h-5 w-5" /></Button>
+            <Button onClick={() => setRunning(r => !r)} className={`h-14 px-10 rounded-2xl font-bold ${running ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}>
               {running ? <><Pause className="h-5 w-5 ms-2" /> إيقاف مؤقت</> : <><Play className="h-5 w-5 ms-2" /> بدء التركيز</>}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => { setPhase(phase === 'work' ? 'short' : 'work'); setRunning(false); }} className="rounded-full border border-white/10"><SkipForward className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => { setPhase(phase === 'work' ? 'short' : 'work'); setRunning(false); }} className="rounded-full border border-border"><SkipForward className="h-5 w-5" /></Button>
           </div>
-          <p className="text-xs text-white/40 mt-4">نصيحة: ضع هاتفك على الصامت، وركز على مهمة واحدة فقط.</p>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-muted-foreground mt-4">نصيحة: ضع هاتفك على الصامت، وركز على مهمة واحدة فقط.</p>
+        </div>
+      </div>
 
-      <Card className="bg-[#0a1628]/70 border-white/10">
-        <CardHeader><CardTitle className="text-white text-sm">إعدادات البومودورو</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+      <div className="space-y-4">
+        <h3 className="text-foreground text-sm font-bold">إعدادات البومودورو</h3>
+        <div className="space-y-4">
           <div>
-            <Label className="text-xs text-white/60">مدة التركيز (دقيقة)</Label>
+            <Label className="text-xs text-muted-foreground">مدة التركيز (دقيقة)</Label>
             <Input type="number" min={5} max={120} value={work} onChange={e => setWork(Math.max(1, parseInt(e.target.value) || 25))} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs text-white/60">استراحة قصيرة</Label>
+              <Label className="text-xs text-muted-foreground">استراحة قصيرة</Label>
               <Input type="number" min={1} max={30} value={shortB} onChange={e => setShortB(Math.max(1, parseInt(e.target.value) || 5))} />
             </div>
             <div>
-              <Label className="text-xs text-white/60">استراحة طويلة</Label>
+              <Label className="text-xs text-muted-foreground">استراحة طويلة</Label>
               <Input type="number" min={5} max={60} value={longB} onChange={e => setLongB(Math.max(1, parseInt(e.target.value) || 15))} />
             </div>
           </div>
           <div>
-            <Label className="text-xs text-white/60">جلسات قبل الاستراحة الطويلة</Label>
+            <Label className="text-xs text-muted-foreground">جلسات قبل الاستراحة الطويلة</Label>
             <Input type="number" min={2} max={8} value={cycles} onChange={e => setCycles(Math.max(2, parseInt(e.target.value) || 4))} />
           </div>
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-white/60">انتقال تلقائي بين المراحل</Label>
+            <Label className="text-xs text-muted-foreground">انتقال تلقائي بين المراحل</Label>
             <Switch checked={autoSwitch} onCheckedChange={setAutoSwitch} />
           </div>
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-white/60 flex items-center gap-1">{sound ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />} صوت التنبيه</Label>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">{sound ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />} صوت التنبيه</Label>
             <Switch checked={sound} onCheckedChange={setSound} />
           </div>
-          <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/50 leading-6">
+          <p className="text-xs text-muted-foreground leading-6">
             القاعدة الذهبية: 25 د تركيز + 5 د راحة × 4 = ثم راحة طويلة 15-30 دقيقة.
-          </div>
-        </CardContent>
-      </Card>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

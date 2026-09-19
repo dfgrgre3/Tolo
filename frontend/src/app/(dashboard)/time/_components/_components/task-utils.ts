@@ -141,3 +141,39 @@ export const getTaskSortComparison = (a: Task, b: Task, sortBy: string): number 
       return 0;
   }
 };
+
+// =============================================================================
+// Backend-compatible payload
+// -----------------------------------------------------------------------------
+// باك إند المهام (Go) يربط الـ PATCH على موديل Task كامل ثم يعمل Save كامل،
+// فأي PATCH جزئي يصفّر باقي الأعمدة (title/status/createdAt...) وقد يكسر
+// قيود قاعدة البيانات (500). وأيضًا حقول الفرونت مثل subject كنص وsubtags
+// وtags وcompletedAt غير موجودة في الموديل وتكسر الـ binding (400).
+// لذلك: كل كتابة ترسل كائنًا كاملًا بهذه الحقول فقط، وندمج الرد مع الحقول
+// المحلية (subtasks/tags/...) التي لا يخزنها الباك إند.
+// =============================================================================
+
+export interface TaskPayload {
+  title: string;
+  description: string | null;
+  status: NonNullable<Task['status']>;
+  priority: NonNullable<Task['priority']>;
+  dueAt: string | null;
+  estimatedTime: number;
+  actualTime: number;
+}
+
+export const buildTaskPayload = (task: Task): TaskPayload => ({
+  title: task.title,
+  description: task.description || null,
+  status: task.status ?? 'PENDING',
+  priority: task.priority ?? 'MEDIUM',
+  dueAt: task.dueAt || null,
+  estimatedTime: task.estimatedTime ?? 0,
+  actualTime: task.actualTime ?? 0,
+});
+
+export const mergeServerTask = (local: Task, server: Task): Task => ({
+  ...local,
+  ...server,
+});

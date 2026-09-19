@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ export function SessionsListView({ sessions, bulkSelectMode, selectedSessions, o
       {sessions.map((session) => {
         const subjectLabel = typeof session.subject === 'string' ? session.subject : session.subject?.name;
         return (
-          <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
+          <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-border shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="flex-1">

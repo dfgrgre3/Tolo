@@ -51,7 +51,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
       id: 'set-goal',
       label: 'تعيين هدف',
       icon: Target,
-      color: 'bg-orange-500/10 text-orange-500 border border-orange-500/30 hover:bg-orange-500/20 hover:shadow-[0_0_15px_rgba(249,115,22,0.4)]',
+      color: 'bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/30 hover:bg-orange-500/20 hover:shadow-[0_0_15px_rgba(249,115,22,0.4)]',
       description: 'تعيين هدف يومي أو أسبوعي'
     },
     {
@@ -72,13 +72,13 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
       id: 'view-history',
       label: 'سجل المذاكرة',
       icon: BookOpen,
-      color: 'bg-teal-500/10 text-teal-500 border border-teal-500/30 hover:bg-teal-500/20 hover:shadow-[0_0_15px_rgba(20,184,166,0.4)]',
+      color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)]',
       description: 'مراجعة جلسات المذاكرة السابقة'
     }
   ];
 
   return (
-    <Card className="border-white/10 shadow-xl bg-background/60 backdrop-blur-xl group relative overflow-hidden">
+    <Card className="border-border shadow-xl bg-background/60 backdrop-blur-xl group relative overflow-hidden">
       <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 relative z-10 border-b border-primary/10">
         <CardTitle className="flex items-center text-lg">

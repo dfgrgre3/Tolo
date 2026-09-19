@@ -1,4 +1,4 @@
-import { CheckCircle, Circle, MapPin, AlignLeft } from 'lucide-react';
+﻿import { CheckCircle, Circle, MapPin, AlignLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatTimeRange, getBlockDuration } from './utils';
 import type { TimeBlock } from './types';
@@ -37,7 +37,7 @@ export function TimeBlockCard({
       whileHover={{ y: -2, scale: 1.02 }}
       className={cn(
         "absolute inset-x-1 top-1 z-20 rounded-xl p-2 text-[10px] cursor-pointer border-r-4 transition-all duration-300 shadow-lg backdrop-blur-md group",
-        "bg-[#0F172A]/80 border-white/10",
+        "bg-[#0F172A]/80 border-border",
         block.isCompleted && "opacity-40 grayscale"
       )}
       style={style}
@@ -60,7 +60,7 @@ export function TimeBlockCard({
 
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between gap-1 mb-1">
-          <span className="font-black text-slate-100 truncate flex-1 uppercase tracking-tight">
+          <span className="font-black text-foreground truncate flex-1 uppercase tracking-tight">
             {block.title}
           </span>
           <button
@@ -80,8 +80,8 @@ export function TimeBlockCard({
 
         {!compactView && duration >= 30 && (
           <div className="space-y-1.5 flex-1 overflow-hidden">
-            <div className="flex items-center gap-1.5 text-slate-400 font-bold">
-              <span className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px]">
+            <div className="flex items-center gap-1.5 text-muted-foreground font-bold">
+              <span className="px-1.5 py-0.5 rounded-md bg-muted/60 border border-border text-[9px]">
                 {formatTimeRange(block.startTime, block.endTime)}
               </span>
             </div>
@@ -94,7 +94,7 @@ export function TimeBlockCard({
             )}
 
             {block.location && (
-              <div className="flex items-center gap-1 text-blue-400/70 truncate">
+              <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400/70 truncate">
                 <MapPin className="h-2.5 w-2.5" />
                 {block.location}
               </div>
@@ -104,7 +104,7 @@ export function TimeBlockCard({
       </div>
 
       {/* Glossy Overlay Effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none rounded-xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/40 to-transparent pointer-events-none rounded-xl" />
     </m.div>
   );
 }

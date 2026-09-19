@@ -20,7 +20,7 @@ export default function UpcomingRemindersCard({
   onTabChange
 }: UpcomingRemindersCardProps) {
   return (
-    <Card className="border-white/10 shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
+    <Card className="border-border shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
       <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 relative z-10 border-b border-primary/10">
         <CardTitle className="flex items-center text-lg">
           <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ms-2 shadow-[0_0_10px_rgba(var(--primary),0.2)]">
@@ -53,7 +53,7 @@ export default function UpcomingRemindersCard({
               return (
                 <div 
                   key={reminder.id}
-                  className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-white/5 hover:border-yellow-500/30 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden"
+                  className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-border hover:border-yellow-500/30 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden"
                   onClick={() => onTabChange("reminders")}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

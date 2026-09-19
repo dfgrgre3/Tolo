@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { m, AnimatePresence } from "framer-motion";
@@ -21,7 +21,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
   const actions: { id: 'task' | 'reminder' | 'timer'; icon: React.ReactNode; label: string; color: string; hover: string }[] = [
     { id: 'task', icon: <CheckSquare className="h-5 w-5" />, label: 'مهمة جديدة', color: 'bg-blue-500', hover: 'hover:bg-blue-600' },
     { id: 'reminder', icon: <Bell className="h-5 w-5" />, label: 'تذكير جديد', color: 'bg-rose-500', hover: 'hover:bg-rose-600' },
-    { id: 'timer', icon: <Timer className="h-5 w-5" />, label: 'بدء مؤقت', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600' },
+    { id: 'timer', icon: <Timer className="h-5 w-5" />, label: 'بدء مؤقت', color: 'bg-orange-500', hover: 'hover:bg-orange-600' },
   ];
 
   return (
@@ -64,8 +64,8 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
 
         <Button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-14 h-14 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-500 ${
-            isOpen ? 'bg-slate-800 rotate-90' : 'bg-emerald-500 hover:bg-emerald-600'
+          className={`w-14 h-14 rounded-full text-foreground shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all duration-500 ${
+            isOpen ? 'bg-muted rotate-90' : 'bg-orange-500 hover:bg-orange-600'
           }`}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}

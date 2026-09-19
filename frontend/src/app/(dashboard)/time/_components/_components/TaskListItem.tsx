@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {
   CheckCircle,
@@ -109,7 +109,7 @@ export function TaskListItem({
             className={cn(
               "mt-1 h-6 w-6 p-0 shrink-0",
               task.status === 'COMPLETED'
-                ? "bg-green-500 hover:bg-green-600 border-green-500 text-white"
+                ? "bg-green-500 hover:bg-green-600 border-green-500 text-foreground"
                 : "border-gray-300 dark:border-gray-600"
             )}
             onClick={() => onStatusChange(

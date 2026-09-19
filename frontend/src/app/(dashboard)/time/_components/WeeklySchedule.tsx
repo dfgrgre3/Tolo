@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -332,12 +332,12 @@ export default function WeeklySchedule({
         animate={{ opacity: 1, y: 0 }}
         className="relative"
       >
-        <div className="absolute inset-0 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute inset-0 bg-orange-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
         
         <Card className="bg-transparent border-0 shadow-none">
           <CardContent className="p-0">
             {viewMode === 'week' ? (
-              <div className="relative rounded-3xl overflow-hidden border border-white/5">
+              <div className="relative rounded-3xl overflow-hidden border border-border">
                 <div className="overflow-x-auto pb-4">
                   <TimeGrid
                     currentWeek={currentWeek}
@@ -352,7 +352,7 @@ export default function WeeklySchedule({
                 </div>
               </div>
             ) : (
-              <div className="bg-[#0A0F1D]/50 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 shadow-2xl">
+              <div className="bg-[#0A0F1D]/50 backdrop-blur-2xl border border-border rounded-3xl p-6 shadow-2xl">
                 <AgendaView
                   currentWeek={currentWeek}
                   timeBlocks={filteredBlocks}

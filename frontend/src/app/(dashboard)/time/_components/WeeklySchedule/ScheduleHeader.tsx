@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Settings, Download, Upload, Activity, Clock, Brain, Trophy } from 'lucide-react';
 import type { WeekStats } from './types';
 
@@ -16,7 +16,7 @@ export function ScheduleHeader({
   onImport 
 }: ScheduleHeaderProps) {
   return (
-    <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 p-6 bg-background/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden group">
+    <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 p-6 bg-background/40 backdrop-blur-xl border border-border rounded-3xl shadow-2xl relative overflow-hidden group">
       {/* Decorative Gradient Glow */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -me-10 -mt-10" />
       
@@ -26,7 +26,7 @@ export function ScheduleHeader({
           خريطة الأسبوع الاستراتيجية
         </h2>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-bold shadow-[inset_0_0_10px_rgba(59,130,246,0.1)]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold shadow-[inset_0_0_10px_rgba(59,130,246,0.1)]">
             <Activity className="h-4 w-4" />
             <span>المجموع: {weekStats.totalBlocks}</span>
           </div>
@@ -34,7 +34,7 @@ export function ScheduleHeader({
             <Clock className="h-4 w-4" />
             <span>دراسة: {weekStats.studyHours}س</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-bold shadow-[inset_0_0_10px_rgba(245,158,11,0.1)]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-bold shadow-[inset_0_0_10px_rgba(245,158,11,0.1)]">
             <Brain className="h-4 w-4" />
             <span>مكتمل: {weekStats.completedBlocks}</span>
           </div>
@@ -47,7 +47,7 @@ export function ScheduleHeader({
             variant="outline"
             size="icon"
             onClick={onSettingsClick}
-            className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-md transition-all duration-300 h-12 w-12"
+            className="rounded-2xl border-border bg-muted/60 hover:bg-muted backdrop-blur-md transition-all duration-300 h-12 w-12"
           >
             <Settings className="w-5 h-5" />
           </Button>
@@ -58,7 +58,7 @@ export function ScheduleHeader({
             variant="outline"
             size="icon"
             onClick={onExport}
-            className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-md transition-all duration-300 h-12 w-12"
+            className="rounded-2xl border-border bg-muted/60 hover:bg-muted backdrop-blur-md transition-all duration-300 h-12 w-12"
           >
             <Download className="w-5 h-5" />
           </Button>
@@ -66,7 +66,7 @@ export function ScheduleHeader({
         
         <label className="cursor-pointer">
           <div>
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 h-12 transition-all duration-300 font-bold backdrop-blur-md">
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 h-12 transition-all duration-300 font-bold backdrop-blur-md">
               <Upload className="w-5 h-5" />
               <span>استيراد الخطة</span>
             </div>

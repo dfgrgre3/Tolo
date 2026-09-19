@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ export function SessionsGridView({ sessions }: SessionsGridViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {sessions.map((session) => (
-        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
+        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-border shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
           <CardContent className="p-4">
             <div className="text-center mb-3">
               <div className="text-2xl font-bold text-blue-600 mb-1">

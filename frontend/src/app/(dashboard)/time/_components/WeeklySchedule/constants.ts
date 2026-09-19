@@ -29,7 +29,7 @@ export const BLOCK_TYPES = [
   { value: 'EXERCISE', label: 'رياضة', icon: Dumbbell, color: 'bg-red-500' },
   { value: 'MEAL', label: 'وجبة', icon: ShoppingCart, color: 'bg-yellow-500' },
   { value: 'SLEEP', label: 'نوم', icon: Moon, color: 'bg-indigo-500' },
-  { value: 'ENTERTAINMENT', label: 'ترفيه', icon: Gamepad2, color: 'bg-teal-500' },
+  { value: 'ENTERTAINMENT', label: 'ترفيه', icon: Gamepad2, color: 'bg-blue-500' },
   { value: 'WORK', label: 'عمل', icon: Zap, color: 'bg-gray-500' }
 ];
 
